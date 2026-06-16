@@ -1,0 +1,28 @@
+{
+  "providers": [
+    {
+      "name": "openrouter",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "model": "google/gemini-2.0-flash-thinking-exp",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "auth_header": "Authorization",
+      "auth_prefix": "Bearer "
+    },
+    {
+      "name": "gemini",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta",
+      "model": "gemini-2.0-flash-exp",
+      "api_key_env": "GEMINI_API_KEY",
+      "auth_header": "x-goog-api-key",
+      "auth_prefix": ""
+    },
+    {
+      "name": "nvidia",
+      "endpoint": "https://integrate.api.nvidia.com/v1",
+      "model": "nvidia/llama-3.3-nemotron-70b-instruct",
+      "api_key_env": "NVIDIA_API_KEY",
+      "auth_header": "Authorization",
+      "auth_prefix": "Bearer "
+    }
+  ]
+}

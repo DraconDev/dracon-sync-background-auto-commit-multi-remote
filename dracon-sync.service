@@ -1,0 +1,51 @@
+[Unit]
+Description=Dracon Sync (deterministic sync runtime)
+Documentation=https://github.com/DraconDev/dracon-utilities
+After=default.target
+
+[Service]
+Type=simple
+StandardOutput=journal
+StandardError=journal
+# NixOS-optimized PATH. On non-NixOS distributions, customize or use
+# PassEnvironment=PATH after running `systemctl --user import-environment PATH`.
+Environment=PATH=%h/.local/bin:/run/wrappers/bin:%h/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:%h/.nix-profile/bin:/nix/profile/bin:%h/.local/state/nix/profile/bin:/etc/profiles/per-user/%u/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin
+Environment=DRACON_SYNC_POLICY=%h/.dracon/utilities/sync/dracon-sync.toml
+Environment=GIT_TERMINAL_PROMPT=0
+PassEnvironment=SSH_AUTH_SOCK
+ExecStartPre=-/run/current-system/sw/bin/pkill -x -f "dracon-git pulse"
+ExecStart=%h/.local/bin/dracon-sync daemon
+Restart=always
+RestartSec=5
+RestartPreventExitStatus=2 78
+Nice=10
+CPUQuota=15%
+MemoryHigh=768M
+MemoryMax=2G
+TasksMax=96
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.dracon %h/Dev %h/.local/state/dracon %h/.ssh
+PrivateTmp=true
+
+# Kernel-level sandboxing (all certain — these daemons never use these privileges)
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+CapabilityBoundingSet=
+RestrictNamespaces=true
+
+# Syscall allowlist — returns EPERM instead of SIGSYS for safe discovery
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=default.target

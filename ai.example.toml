@@ -1,0 +1,31 @@
+# AI Provider Configuration
+# Order matters - providers are tried in order until one succeeds
+# Copy to ~/.dracon/utilities/sync/ai.toml and set your API keys
+# Set enabled = false to disable a provider without removing the config
+
+[[providers]]
+name = "gemma"
+env = "GEMINI_API_KEY"
+endpoint = "https://generativelanguage.googleapis.com/v1beta"
+model = "gemma-3-27b-it"
+auth_header = "x-goog-api-key"
+auth_prefix = ""
+is_google_api = true
+
+[[providers]]
+name = "openrouter"
+env = "OPENROUTER_API_KEY"
+endpoint = "https://openrouter.ai/api/v1"
+model = "openrouter/free"
+
+[[providers]]
+name = "mistral"
+env = "MISTRAL_API_KEY"
+endpoint = "https://codestral.mistral.ai/v1"
+model = "codestral-latest"
+
+[[providers]]
+name = "nvidia"
+env = "NVIDIA_API_KEY"
+endpoint = "https://integrate.api.nvidia.com/v1"
+model = "nvidia/nemotron-3-nano-30b-a3b"

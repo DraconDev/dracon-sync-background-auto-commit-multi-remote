@@ -1,0 +1,572 @@
+# Dracon Sync Policy
+# Path: ~/.dracon/utilities/sync/dracon-sync.toml
+#
+# This controls how dracon-sync watches and syncs your repos.
+#
+# ⚠️  TOML FIELD ORDERING: Top-level fields (like standard_files) must appear
+# BEFORE any section headers ([...] or [[...]]). Fields after a section header
+# are silently parsed as belonging to that section and will be ignored by the
+# policy loader.
+
+# =============================================================================
+#  SECTION 1: THE SOVEREIGN CORE
+# =============================================================================
+# [system_repo]
+# The primary repository for your machine laws and state (~/.dracon).
+# The daemon ensures this repo is ALWAYS healthy and synchronized.
+# This must be a git repository (or a directory that will be turned into one).
+# Defaults to ~/.dracon when unset.
+# system_repo = "/home/dracon/.dracon"
+
+# =============================================================================
+#  SECTION 2: THE RHYTHM (Sync Logic)
+# =============================================================================
+# How often (seconds) to scan repos for activity while daemon is running.
+pulse_interval_secs = 1
+
+# Push only after this many quiet seconds since last detected repo change.
+inactivity_push_delay_secs = 5
+
+# Apply-phase deadline (seconds) is derived from `pulse_interval_secs * 2`
+# (with a 2s minimum). It bounds the time the daemon's main loop waits for
+# in-flight `sync_repo` calls to finish. A slow push on one repo cannot
+# block the next cycle beyond this deadline. Unfinished sync_repo calls
+# remain in the in-flight queue and are drained in subsequent cycles.
+# (This is an internal policy of the daemon — no user-tunable field.)
+
+# Maximum number of `sync_repo` calls dispatched in parallel per daemon
+# cycle. With 17+ watched repos, a serial loop blocks all other repos
+# on the slowest push (e.g. 60s `push_op_timeout_secs` for a slow
+# gitlab). Bounded parallelism (default 4 concurrent) lets the daemon
+# process multiple repos simultaneously. Each `sync_repo` call still
+# has its own timeout; the cap just bounds how many run at once.
+# Set to 1 to restore the original serial behavior.
+sem_max_concurrent_sync = 4
+
+# [auto_commit] - Automatically stage and commit local changes.
+auto_commit = true
+
+# If true, bump patch versions before auto-commits (best-effort).
+# Applies when these files exist at repo root:
+# - Rust: Cargo.toml (+ keep Cargo.lock aligned for root package)
+# - Node/TS: package.json (+ align package-lock.json root version when applicable)
+# - Generic: VERSION
+auto_bump_versions = true
+
+# [auto_pull]   - Pull remote changes before committing (uses merge, not rebase).
+auto_pull = true
+
+# [auto_push]   - Propagate local commits to all configured remotes.
+auto_push = true
+
+# [auto_repair_concerns] - Run concern repair logic after each sync pass.
+auto_repair_concerns = true
+
+# [auto_repair_warns] - Run dirty-only warn triage after each sync pass.
+auto_repair_warns = true
+
+# [auto_rewrite_large_blobs] - Aggressive rewrite when large blobs are detected.
+# Keep false for safe default behavior.
+auto_rewrite_large_blobs = false
+
+# Git operation idle timeouts (seconds). Git push/pull commands are progress-aware:
+# a stalled operation is killed after this idle window, while active pack
+# transfer progress extends the deadline so large repos are not aborted early.
+# repo_sync_timeout_secs is retained for status/compatibility; per-operation
+# timeouts now enforce push/pull safety.
+pull_op_timeout_secs = 30
+push_op_timeout_secs = 60
+# Idle timeout (seconds) for `git add -A` and other staging operations on a
+# single repo. Large repos (thousands of dirty files) can take 60-90s to
+# stage; the default of 60s gives headroom for typical work without making
+# the daemon feel stuck. The minimum accepted value is 10s — values below
+# are clamped and a warning is logged. See docs/OPERATIONS.md and
+# docs/design/sync-push-classification.md for the full rationale.
+stage_op_timeout_secs = 60
+repo_sync_timeout_secs = 120
+
+# When `git add` exceeds stage_op_timeout_secs, the daemon pauses further
+# attempts on that repo for this many seconds (default 1h). The point is to
+# stop incident-ledger spam: a single repo that consistently takes longer
+# than the timeout to stage will otherwise log a new "staging timeout"
+# incident on every cycle. After the cooldown elapses, the daemon will
+# try `git add` again; if it times out once more, the cooldown resets.
+stage_cooldown_secs = 3600
+
+# Retry count for push operations before fallback transport logic.
+push_retries = 3
+
+# Push rejection classification
+# ----------------------------
+# When a remote rejects a push, the daemon classifies the error before
+# deciding whether to retry. Permanent rejections (e.g., GitLab/Codeberg
+# protected branch, server-side hook declined) are NOT retried — retrying
+# would burn the full push_retries budget on an outcome that cannot
+# change. The daemon logs one incident per cycle and surfaces the repo
+# in `dracon-sync repos` with a `STUCK_PUSH` flag so the operator can
+# resolve the server-side configuration. See
+# docs/design/sync-push-classification.md for the full regex set and the
+# relationship to the `recent_push_failure` 10-minute window.
+
+# Cooldown between failed auto-repair attempts on the same repo.
+repair_cooldown_secs = 60
+
+# Hard push guardrail for blob size; keep <= 100 MiB host limit.
+max_push_blob_bytes = 52428800
+
+# Incident ledger retention policy.
+incident_ledger_max_lines = 10000
+incident_ledger_max_age_days = 30
+
+# =============================================================================
+#  SECTION 3: THE VAULT (Backup Strategy)
+# =============================================================================
+# 'Bundle' creates air-gapped git-bundle files in the backup_dir before every
+# sync attempt. This is your insurance against failed rebases or data loss.
+backup_policy = "Bundle"
+backup_dir = "/home/dracon/dracon/backups"
+
+# =============================================================================
+#  SECTION 4: THE SCOPE
+# =============================================================================
+# Roots recursively patrolled for .git repositories to sync.
+watch_roots = ["/home/dracon/Dev"]
+
+# Exclude heavy/generated trees from repo discovery and auto-staging.
+exclude_dir_names = [
+    "target",
+    "node_modules",
+    ".cache",
+    ".direnv",
+    ".venv",
+    "dist",
+    "build",
+    "archives",
+    ".tmp-*"
+]
+
+# Exclude specific file patterns from auto-staging.
+# CHANGED 2026-06-15 (goal 9aaf0b08 / commit-all-policy): operator's
+# new policy is "commit all unless we have a super good reason to leave
+# it out like over 100 megs". Logs and DB files are now committed by
+# default. Use per-repo `auto_commit_exclude_patterns` if you need to
+# exclude patterns for a specific repo (e.g. Junk-Runner-bevy excludes
+# `**/test-results/**` to break a 2989-commit auto-commit loop).
+exclude_file_patterns = []
+
+# Auto-stage newly-created untracked files on the next sync cycle.
+# Defaults to true. The daemon stages untracked files (status=Added in
+# git status --porcelain) when they don't match `untracked_exclude_patterns`.
+# Set to false if you want to keep brand-new files out of the auto-commit
+# (e.g. while writing research notes, scratch docs, or one-off scripts
+# that you don't want committed).
+auto_stage_untracked = true
+
+# Patterns for untracked files that should NEVER be auto-staged, even
+# when `auto_stage_untracked = true`.
+#
+# CHANGED 2026-06-15 (commit-all-policy): the default is now MINIMAL.
+# Only session-scratch patterns remain — everything else (audit
+# evidence, screenshots, media files, notes) is committed by default
+# under the operator's "commit all unless super-good reason" policy.
+# Glob-style patterns with `**` are supported (e.g. `**/scratch/**`).
+# To extend the list per-repo, use `.dracon/dracon-sync.toml` in the
+# repo root with `auto_commit_exclude_patterns = [...]`.
+untracked_exclude_patterns = [
+    "**/scratch/**",
+    "**/scratch-*",
+    "**/scratch_*",
+    "**/tmp/**",
+    "**/tmp-*",
+    "**/pi-tmp/**",
+    "**/.pi-tmp/**",
+    "**/research/scratch/**",
+    ".demon/**",
+    ".sisyphus/**",
+    ".ralph/**",
+]
+
+# Per-repo override for tracked files the daemon should NEVER auto-
+# commit. Like `untracked_exclude_patterns`, this is a glob-style list,
+# but it applies to MODIFICATIONS of already-tracked files too.
+#
+# Use case: a repo has 372 Playwright screenshots in
+# `web/test-results/` that are force-tracked by the `.gitignore`
+# allowlist (`!*.png`). Every test run modifies them, and the daemon
+# auto-commits each modification, creating a moving target the push
+# can never resolve. Setting this field in the repo's
+# `.dracon/dracon-sync.toml`:
+#
+#   auto_commit_exclude_patterns = ["**/test-results/**"]
+#
+# tells the daemon to skip those files entirely. Manual `git add`
+# still works. Default: empty (opt-in per repo).
+
+# Skip staging files larger than 100 MiB during auto-commit.
+# CHANGED 2026-06-15 (goal 9aaf0b08 / commit-all-policy): was
+# 50 MiB. Now matches the code default of 100 MiB so the
+# example is self-consistent with the daemon.
+max_stage_file_bytes = 104857600
+
+# =============================================================================
+#  SECTION 5: SAFETY
+# =============================================================================
+# Mass-deletion prevention: if >= 85% of tracked files are missing from the
+# working tree, dracon-sync will refuse to auto-commit. This guards against
+# accidental wipes from filesystem issues or destructive operations.
+#
+# To bypass for intentional total wipes:
+#   dracon-sync sync-now --force <repo>
+
+# =============================================================================
+#  SECTION 6: REMOTES
+# =============================================================================
+# Origin remote is always pushed first. Mirror remotes are pushed after.
+# The {repo} placeholder is replaced with the repo directory name.
+
+# GitHub (origin)
+[[remotes]]
+name = "github"
+push_url = "https://github.com/DraconDev/{repo}.git"
+auto_create = true
+
+# GitLab (with PAT-based HTTPS fallback)
+[[remotes]]
+name = "gitlab"
+push_url = "git@gitlab.com:dracondev/{repo}.git"
+auto_create = true
+
+# Codeberg (push-to-create disabled in Forgejo)
+[[remotes]]
+name = "codeberg"
+push_url = "git@codeberg.org:dracondev/{repo}.git"
+auto_create = false
+
+# Per-remote repo name mapping (e.g. for dot-prefixed dirs on GitLab)
+# [[remotes]]
+# name = "gitlab"
+# push_url = "git@gitlab.com:myorg/{repo}.git"
+# auto_create = true
+# [remotes.repo_name_map]
+# ".dracon" = "dracon-home"
+
+# =============================================================================
+#  SECTION 7: MIRROR VISIBILITY & METADATA
+# =============================================================================
+# When true, mirrors (GitLab, Codeberg) match GitHub's public/private status.
+# When false (default), all auto-created mirrors are private.
+# Checked at most once per repo per sync_visibility_interval_hours.
+# sync_visibility = false
+# sync_visibility_interval_hours = 24
+
+# When true, mirror repos also inherit the GitHub repo's description and topics.
+# This makes mirrors discoverable via topic search on GitLab/Codeberg.
+# Uses the same interval cache as visibility sync.
+# sync_metadata = false
+
+# =============================================================================
+#  SECTION 8: RELEASE PIPELINE (Tags, Releases, Publishing)
+# =============================================================================
+# Three separate toggles control the release pipeline per repo.
+# All three default to "off" at the repo level — nothing happens unless
+# the repo explicitly opts in via .dracon/dracon-sync.toml.
+#
+# ┌──────────────┬─────────────┬──────────┬────────────────────────────────┐
+# │ Toggle       │ Default     │ Risk     │ Purpose                       │
+# ├──────────────┼─────────────┼──────────┼────────────────────────────────┤
+# │ auto_tag     │ true        │ Low      │ Git tag on every version bump  │
+# │ auto_release │ false       │ Medium   │ GitHub Release on major bumps │
+# │ auto_publish │ [] (empty)  │ High     │ Publish to package registries │
+# └──────────────┴─────────────┴──────────┴────────────────────────────────┘
+#
+# Tags are cheap, reversible, and universally useful — on by default.
+# Releases are public milestones — opt-in per repo.
+# Publishing is IRREVERSIBLE (crates.io/npm/PyPI are immutable) — explicit list.
+#
+# auto_publish = false          # global master toggle (default: off)
+#
+# Each publish target needs a token_secret — the env var name that holds the
+# registry API key. Store the actual token in ~/.dracon/utilities/sync/secrets/*.env.
+# See that directory's README for how to create each token.
+#
+# [[publish_targets]]
+# name = "crates-io"
+# registry = "crates-io"          # crates-io | npm | pypi
+# token_secret = "CARGO_REGISTRY_TOKEN"   # env var name (token in secrets/cratesio.env)
+# publish_timeout_secs = 300
+#
+# [[publish_targets]]
+# name = "npm"
+# registry = "npm"
+# token_secret = "NPM_TOKEN"             # env var name (token in secrets/npm.env)
+#   Create npm token at: https://www.npmjs.com/settings/tokens/create
+#   Use "Automation" type (never expires, bypasses 2FA for CI/CD)
+#   Note: `npm token create --automation` is deprecated in npm v11+
+# publish_timeout_secs = 120
+#
+# [[publish_targets]]
+# name = "pypi"
+# registry = "pypi"
+# token_secret = "TWINE_PASSWORD"        # env var name (token in secrets/pypi.env)
+# publish_timeout_secs = 120
+#
+# PER-REPO OPT-IN (required even when auto_publish = true globally):
+# Create .dracon/dracon-sync.toml in the repo root:
+#
+#   # Tag every bump (default: true, safe to omit)
+#   auto_tag = true
+#
+#   # Create GitHub Releases for major bumps (default: false)
+#   auto_release = true
+#
+#   # Publish to specific registries (default: empty = no publishing)
+#   auto_publish = ["crates-io"]
+#
+# Example configurations for different project types:
+#
+#   Rust library:
+#     auto_tag = true
+#     auto_release = true
+#     auto_publish = ["crates-io"]
+#
+#   CLI binary (app, not a library):
+#     auto_tag = true
+#     auto_release = false
+#     auto_publish = []
+#
+#   Mixed Rust+JS library:
+#     auto_tag = true
+#     auto_release = true
+#     auto_publish = ["crates-io", "npm"]
+#
+#   Internal daemon (private, no publish):
+#     auto_tag = true
+#     auto_release = false
+#     auto_publish = []
+#
+# Without auto_publish targets, no publishing happens.
+# Without auto_release = true, no GitHub Releases are created.
+# Tags are created by default for every version bump unless auto_tag = false.
+
+# nix_auto_update = false            # global master toggle (default: off)
+#
+# When true and a version bump occurs in a repo with flake.nix, dracon-sync:
+#   1. Updates the version field in flake.nix (inside [package] block)
+#   2. Creates a PR via `gh` with the flake.nix change
+#
+# This is independent of tagging and publishing — it only applies to repos
+# that have a flake.nix file AND are connected to GitHub (gh CLI required).
+#
+# Per-repo opt-in (via .dracon/dracon-sync.toml):
+#   nix_auto_update = true
+#
+# Nix flake version update (if enabled globally and repo has flake.nix):
+#   auto_tag = true
+#   nix_auto_update = true
+#
+# Without nix_auto_update, flake.nix version fields are NOT updated automatically.
+#
+# =============================================================================
+#  SECTION 9: STANDARD FILES
+# =============================================================================
+# AGPL v3 LICENSE is auto-copied to every new repo during sync.
+# This ensures all Dracon repos carry the same copyleft license.
+# You own the copyright → you're the only one who can sell commercial licenses.
+# Templates live in ~/.dracon/utilities/sync/templates/ (auto-resolved from short form).
+# Files are only copied if the target does not exist (overwrite = false, the default).
+#
+# Short form — filename only (resolves to templates/{name}):
+# This is the generic starter for external users: only AGPL LICENSE is added.
+# standard_files = ["LICENSE"]
+#
+# Auto-copy during sync (default: true — ensures new repos always get AGPL):
+# standard_files_auto = true
+#
+# Dracon-specific optional file: FUNDING.yml is not part of the generic
+# dracon-sync default. Only add this if you intentionally want GitHub Sponsors
+# configuration scaffolded into your repos.
+#
+# GitHub discovers FUNDING.yml at .github/FUNDING.yml (not the repo root).
+# To scaffold it there, use the long form:
+# [[standard_files]]
+# source = "templates/FUNDING.yml"
+# target = ".github/FUNDING.yml"
+# overwrite = false
+#
+# Long form — for explicit source path or overwrite behavior:
+# [[standard_files]]
+# source = "templates/CUSTOM"
+# target = "CUSTOM_NOTICE"
+# overwrite = false   # default: false (never overwrites existing files)
+#
+# Per-repo opt-out (via .dracon/dracon-sync.toml in repo root):
+#   skip_standard_files = ["LICENSE", ".github/FUNDING.yml"]
+#
+# Template path resolution:
+#   - Absolute paths: used as-is
+#   - ~/ paths: expanded to home directory
+#   - Relative paths: resolved relative to sync config dir (~/.dracon/utilities/sync/)
+#
+# If a template file is missing, a warning is printed but sync continues.
+#
+# FUNDING.yml is the GitHub Sponsors / community funding configuration file.
+# It is Dracon-specific in this policy: external users of dracon-sync do not
+# receive it unless they explicitly add the long-form standard_files entry
+# above. The default template ships with no funding destinations (github: [],
+# etc.) so a freshly-scaffolded repo advertises nothing until the operator
+# fills it in. The file is public and version-controlled; never place API keys,
+# tokens, or any other secret material in it. The Warden key management layer
+# treats it as plain text.
+
+# =============================================================================
+#  SECTION 10: WEBHOOK
+# =============================================================================
+# On push failures (origin or mirror remotes), dracon-sync can send a
+# fire-and-forget HTTP POST to a configured webhook URL:
+# webhook_url = "https://your-webhook-endpoint.example/notify"
+
+# =============================================================================
+#  SECTION 11: `repos` STATE COLUMN THRESHOLDS
+# =============================================================================
+# The `repos` table includes a derived `STATE` column that combines
+# last-commit time, last-push time, dirty state, ahead/behind, and push
+# status into a single label the user can scan at a glance:
+#
+#   working   — clean, in sync, commit and push both within `active_commit_minutes`
+#               (the daemon is currently working through this repo)
+#   committing — unpushed commits waiting, or last commit within `committing_commit_minutes`
+#   pushing   — push_status = PENDING (the daemon is mid-cycle)
+#   synced    — clean, in sync, commit/push within `committing_commit_minutes` but outside active
+#               (longer-term clean state, not just synced)
+#   stalled   — dirty tracked/staged work older than `committing_commit_minutes`
+#               (this is the "we changed files but then stopped" case)
+#   dirty     — recent dirty tracked/staged work; auto-handled after settle or force with `sync-now --warns`
+# DAEMON column (in `dracon-sync repos`): the daemon's most recent recorded
+# action for each repo, so you can tell at a glance whether the daemon is
+# actively syncing dirty rows vs. you're still editing.
+#   untracked-only — only untracked files, no modified/staged
+#   intentional — repo flagged `intentional_no_upstream = true`
+#   failed    — push_status = FAIL or STUCK
+#   idle      — clean, in sync, older than `committing_commit_minutes` but not yet cold
+#               (this is the normal/default-looking state for quiet repos)
+#   cold      — clean, in sync, last commit older than `cold_commit_minutes`
+#   healthy   — fallback when nothing else matches
+#
+# Defaults: 5m / 60m / 24h. Per-repo overrides are supported in
+# <repo>/.dracon/dracon-sync.toml:
+#   active_commit_minutes = 30
+#
+# active_commit_minutes = 5
+# committing_commit_minutes = 60
+# cold_commit_minutes = 1440
+
+# =============================================================================
+#  SECTION 12: CANONICAL GIT IDENTITY
+# =============================================================================
+# The daemon auto-commits using the git identity configured in:
+#   1. The per-repo `.git/config` `[user]` section, if set.
+#   2. The global `~/.gitconfig` `[user]` section as a fallback.
+#
+# The canonical operator profile for Dracon services is:
+#   user.name  = DraconDev
+#   user.email = dracsharp@gmail.com
+#
+# To set the global profile:
+#   git config --global user.name  "DraconDev"
+#   git config --global user.email "dracsharp@gmail.com"
+#
+# To set a per-repo override (rarely needed):
+#   git -C /path/to/repo config user.name  "DraconDev"
+#   git -C /path/to/repo config user.email "dracsharp@gmail.com"
+#
+# A drift to `user.name = Dracon` (no surname) is a known config bug —
+# search with:
+#   grep -RIn 'user\.name' ~/.gitconfig ~/.dracon/ /home/dracon/*/.git/config
+# If any result shows `name = Dracon` (without "Dev"), correct it.
+# The daemon does NOT rewrite the git identity at runtime; auto-commits
+# always use whatever the local config resolves to. Operators should
+# keep their profile consistent.
+
+# =============================================================================
+#  SECTION 13: OWNERSHIP DETECTION (SAFETY GUARD RAIL)
+# =============================================================================
+# The daemon classifies each repo as `Owned`, `Unowned`, or `Unknown` based
+# on three signals:
+#   1. `git config user.email` ∈ `trusted_emails`
+#   2. HEAD author name/email ∈ `trusted_authors` or `trusted_emails`
+#   3. `origin` remote URL host ∈ `trusted_remote_hosts`
+#
+# When `auto_skip_unowned = true` (the safety-first default) and a repo
+# is `Unowned` or `Unknown`, the daemon does NOT commit or push to it.
+# This protects against repos whose `origin` is someone else's account
+# (e.g. `zerostack-reference` → `gi-dellav/zerostack.git`) or whose HEAD
+# author is a historical bad config (e.g. `dracon-ai-lib` → `Dracon
+# <dracon@void>`).
+#
+# Use `dracon-sync ownership --explain <repo>` to diagnose why a repo
+# is or isn't owned.
+#
+# Defaults: auto_skip_unowned = true, trusted_emails = [dracsharp@gmail.com],
+# trusted_authors = [DraconDev], trusted_remote_hosts = the three DraconDev
+# hosts on GitHub/GitLab/Codeberg. To extend, override per-repository in
+# `<repo>/.dracon/dracon-sync.toml`:
+#
+#   # Force this specific repo to be Owned (overrides all signals).
+#   # Use this when the signal-based detection is wrong (e.g. a
+#   # legitimate repo whose upstream HEAD has a historical bad-
+#   # config author that the daemon would otherwise flag as
+#   # untrusted_author).
+#   owned = true
+#
+#   # Force this specific repo to be Unowned (the daemon skips it
+#   # regardless of signals). Use this for repos you want the
+#   # daemon to leave alone (e.g. user-owned repos the operator
+#   # manages manually, or repos that should not be touched by
+#   # automated tooling).
+#   owned = false
+#   auto_skip_unowned = true
+#
+#   # Re-enable the daemon for a specific repo that the global
+#   # `auto_skip_unowned = true` would otherwise skip:
+#   auto_skip_unowned = false
+#
+# To disable the safety guard rail globally (NOT recommended):
+#   auto_skip_unowned = false
+#   trusted_emails = []
+#   trusted_authors = []
+#   trusted_remote_hosts = []
+# auto_skip_unowned = true
+# trusted_emails = ["dracsharp@gmail.com"]
+# trusted_authors = ["DraconDev"]
+# trusted_remote_hosts = [
+#     "github.com/DraconDev",
+#     "gitlab.com/dracondev",
+#     "codeberg.org/dracondev",
+# ]
+
+# =============================================================================
+#  SECTION 14: SETTLING MAX-DELAY (AGGRESSIVE AUTO-COMMIT)
+# =============================================================================
+# When a repo has been dirty continuously for > `settling_max_delay_secs`,
+# the daemon force-commits REGARDLESS of fingerprint stability. This
+# prevents the "⏸ stalled Xm" pileup the operator sees when many repos
+# have stale dirty state from previous sessions.
+#
+# The 5s fingerprint-stability wait is still used for actively-edited
+# repos, so the daemon doesn't commit on every keystroke.
+#
+# `dirty_max_age_action` controls what happens when the max-age is hit:
+#   - Commit (default): force-commit the current state
+#   - Warn: log a warning, do not commit (operator must intervene)
+#   - Ignore: do nothing
+#
+# `min_commit_interval_secs` is the minimum time between consecutive
+# auto-commits for the same repo. Prevents thrashing when the operator
+# is actively editing.
+#
+# To override per-repository, set in `<repo>/.dracon/dracon-sync.toml`:
+#   settling_max_delay_secs = 30  # be more aggressive for this repo
+#   dirty_max_age_action = "warn"  # never force-commit; just warn
+# settling_max_delay_secs = 60
+# dirty_max_age_action = "commit"  # or "warn" or "ignore"
+# min_commit_interval_secs = 5
