@@ -1,6 +1,6 @@
 # Dracon Sync
 
-File-watch, debounce, commit, push, mirror — invisible git sync for multi-remote developer workspaces.
+Background, auto-commit, multi-remote — invisible git sync for developer workspaces.
 
 This repository is a feature façade for `dracon-sync`. It does **not**
 duplicate the implementation code. The canonical source of truth remains the
@@ -22,7 +22,7 @@ audience/UX claims) is documented in
 
 ## Purpose
 
-Watches configured repositories, waits for changes to settle (fingerprint stability / debounce), commits deterministic diff-based messages, and pushes to origin plus configured mirrors. Invisible: no user interaction required.
+Watches configured repositories, waits for changes to settle (fingerprint stability / debounce), commits deterministic diff-based messages, and pushes to origin plus configured mirrors. Invisible: runs in the background, no user interaction required.
 
 Use this repo to feature the utility on GitHub, GitLab, and Codeberg without
 splitting the actual implementation out of the monorepo. Issues, project
@@ -55,7 +55,7 @@ regenerate this façade with:
 cd /path/to/dracon-utilities
 ./scripts/scaffold_feature_repos.py --apply --repo dracon-sync
 ./scripts/scaffold_feature_repos.py --push-all-remotes --repo dracon-sync \
-    --ssh-target /path/to/dracon-sync-watch-debounce-commit-push-mirror
+    --ssh-target /path/to/dracon-sync-background-auto-commit-multi-remote
 ```
 
 Do not paste implementation code into this façade repo. Keep it as a stable
