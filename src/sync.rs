@@ -703,6 +703,25 @@ async fn stage_existing_files(
             continue;
         }
         if full.is_dir() {
+            // CHANGED 2026-06-21 (goal 29144c2c): skip submodules.
+            // A git submodule has a `.git` FILE (not a directory)
+            // at its root, with content like
+            // `gitdir: ../.git/modules/<name>`. The parent's
+            // `git status` reports it as `M DraconDev` (a single
+            // entry with the gitlink SHA changed). When that entry
+            // is passed to stage_existing_files, the recursion
+            // walks into DraconDev's working tree and tries to add
+            // its files as if they belonged to the parent, which
+            // fails with `fatal: Pathspec 'DraconDev/X' is in
+            // submodule 'DraconDev'`. Detect by checking if the
+            // top-level dir's `.git` is a regular file and skip the
+            // entire subtree. This is safe because the parent
+            // references the submodule via its gitlink pointer, not
+            // its working-tree files.
+            let full_dot_git = full.join(".git");
+            if full_dot_git.is_file() {
+                continue;
+            }
             // Recurse into untracked directories. The libgit2/git status
             // API can collapse a fully-untracked subtree into a single
             // top-level directory entry (e.g. `web/games/libs/game/
@@ -768,23 +787,17 @@ async fn stage_existing_files(
                                 continue;
                             }
                         }
-                        // CHANGED 2026-06-21 (goal 29144c2c): skip submodules.
-                        // A git submodule has a `.git` FILE (not a
-                        // directory) at its root, with content like
-                        // `gitdir: ../.git/modules/<name>`. The walker
-                        // already skips dotfile dirs (so `.git/` itself
-                        // is skipped), but the FILES inside the
-                        // submodule's working tree were being added to
-                        // the parent repo's stage list, causing
-                        // `fatal: Pathspec 'X' is in submodule 'X'`
-                        // errors. Detecting submodule dir by the
-                        // presence of `.git` as a regular file (not a
-                        // dir) and skipping the entire subtree. This
-                        // is safe because the parent repo references
-                        // the submodule by its gitlink pointer, not
-                        // its working-tree files.
-                        let sub_dot_git = cp.join(".git");
-                        if sub_dot_git.is_file() {
+                        // CHANGED 2026-06-21 (goal 29144c2c): skip
+                        // submodules encountered DURING recursion
+                        // (not just at the top-level `existing`
+                        // entry). A submodule can be nested inside a
+                        // normal untracked directory, so the check
+                        // belongs here too. Same logic as the
+                        // top-level check: skip if `<dir>/.git` is a
+                        // regular file pointing to a parent's
+                        // modules/<name> dir.
+                        let inner_dot_git = cp.join(".git");
+                        if inner_dot_git.is_file() {
                             continue;
                         }
                         stack.push(cp);
@@ -819,9 +832,6 @@ async fn stage_existing_files(
         //   re-stage; git already tracks these so gitignore shouldn't block updates)
         // - Ignored and untracked: skip entirely (.gitignore is intentional)
         let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
-
-        eprintln!("🔍 DEBUG stage_existing_files: existing={:?}", existing);
-        eprintln!("🔍 DEBUG stage_existing_files: normal_paths={:?}", normal_paths);
 
         if !normal_paths.is_empty() {
             let mut add_args = vec!["add", "-A", "--"];
