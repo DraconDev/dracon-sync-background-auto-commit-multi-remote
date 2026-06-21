@@ -5946,4 +5946,423 @@ auto_bump_versions = false
         let since = now - std::time::Duration::from_secs(3600);
         assert!(!is_backstop_active(Some(since), now, 100, 0, 300));
     }
+
+    // ============================================================
+    // auto_resolve_unmerged_if_safe tests
+    // ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44
+    // ============================================================
+
+    fn init_test_git_repo(tmp: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
+        let repo = tmp.path().join(name);
+        std::fs::create_dir_all(&repo).unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch=main", "-q"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        repo
+    }
+
+    #[tokio::test]
+    async fn test_auto_resolve_unmerged_working_tree_matches_head() {
+        // The 4+ hour dracon-platform bug: unmerged PNGs with
+        // working tree == HEAD. The daemon must auto-resolve these.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "unmerged-repo");
+
+        // Create initial file and commit
+        std::fs::write(repo.join("a.png"), b"a-content\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Create a branch with conflicting content
+        std::process::Command::new("git")
+            .args(["checkout", "-b", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("a.png"), b"other-content\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "other-change"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Switch back to main, modify the file, and merge to create an
+        // unmerged state
+        std::process::Command::new("git")
+            .args(["checkout", "main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("a.png"), b"main-content\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "main-change"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        // Now restore the working tree to the main version (matches HEAD)
+        std::fs::write(repo.join("a.png"), b"main-content\n").unwrap();
+        // Try the merge (will fail with conflicts)
+        let _ = std::process::Command::new("git")
+            .args(["merge", "--no-edit", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        // After a failed merge, the index has unmerged entries. We need
+        // to add the file to mark the unmerged state.
+        std::process::Command::new("git")
+            .args(["add", "a.png"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Verify unmerged state exists
+        let before = std::process::Command::new("git")
+            .args(["ls-files", "--unmerged"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let before_text = String::from_utf8_lossy(&before.stdout);
+        assert!(
+            !before_text.is_empty(),
+            "test setup failed: should have unmerged entries, got: {:?}",
+            before_text
+        );
+
+        // Now call the daemon's auto-resolve function
+        let resolved = auto_resolve_unmerged_if_safe(&repo, true)
+            .await
+            .expect("auto_resolve should not error");
+
+        assert_eq!(resolved, 1, "should have resolved 1 unmerged entry");
+
+        // Verify the unmerged state is gone
+        let after = std::process::Command::new("git")
+            .args(["ls-files", "--unmerged"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let after_text = String::from_utf8_lossy(&after.stdout);
+        assert!(
+            after_text.trim().is_empty(),
+            "unmerged state should be cleared, got: {:?}",
+            after_text
+        );
+
+        // Verify the working tree content is preserved (matches main)
+        let wt = std::fs::read(repo.join("a.png")).unwrap();
+        assert_eq!(wt, b"main-content\n");
+    }
+
+    #[tokio::test]
+    async fn test_auto_resolve_unmerged_working_tree_differs_from_head() {
+        // When the working tree does NOT match HEAD, the daemon must
+        // NOT auto-resolve (it would discard the user's work).
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "unmerged-differs");
+
+        // Setup: create file, branch, conflicting change
+        std::fs::write(repo.join("x.txt"), b"original\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        std::process::Command::new("git")
+            .args(["checkout", "-b", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("x.txt"), b"other-content\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        std::process::Command::new("git")
+            .args(["checkout", "main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("x.txt"), b"main-content\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Merge will fail; the working tree file already has conflict markers
+        let _ = std::process::Command::new("git")
+            .args(["merge", "--no-edit", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["add", "x.txt"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Now overwrite the working tree with NEW content that doesn't
+        // match any stage (simulating user editing during conflict)
+        std::fs::write(repo.join("x.txt"), b"user-edited-content\n").unwrap();
+
+        // auto-resolve should NOT resolve (working tree differs from HEAD)
+        let resolved = auto_resolve_unmerged_if_safe(&repo, true)
+            .await
+            .expect("auto_resolve should not error");
+        assert_eq!(
+            resolved, 0,
+            "should not resolve when working tree differs from HEAD"
+        );
+
+        // Working tree should still have user's content
+        let wt = std::fs::read(repo.join("x.txt")).unwrap();
+        assert_eq!(wt, b"user-edited-content\n");
+    }
+
+    #[tokio::test]
+    async fn test_auto_resolve_unmerged_disabled() {
+        // When policy.auto_resolve_unmerged = false, the daemon must
+        // NOT resolve anything (operator choice).
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "unmerged-disabled");
+
+        std::fs::write(repo.join("y.txt"), b"original\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        std::process::Command::new("git")
+            .args(["checkout", "-b", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("y.txt"), b"other\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        std::process::Command::new("git")
+            .args(["checkout", "main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("y.txt"), b"main\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "main"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let _ = std::process::Command::new("git")
+            .args(["merge", "--no-edit", "other"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["add", "y.txt"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // auto-resolve disabled
+        let resolved = auto_resolve_unmerged_if_safe(&repo, false)
+            .await
+            .expect("auto_resolve should not error");
+        assert_eq!(resolved, 0, "should not resolve when policy disabled");
+
+        // Unmerged state should still exist
+        let after = std::process::Command::new("git")
+            .args(["ls-files", "--unmerged"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let after_text = String::from_utf8_lossy(&after.stdout);
+        assert!(
+            !after_text.trim().is_empty(),
+            "unmerged state should remain when policy disabled"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_auto_resolve_no_unmerged() {
+        // When there are no unmerged entries, the function should
+        // return 0 quickly without doing anything.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "clean-repo");
+
+        std::fs::write(repo.join("z.txt"), b"hello\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        let resolved = auto_resolve_unmerged_if_safe(&repo, true)
+            .await
+            .expect("auto_resolve should not error");
+        assert_eq!(resolved, 0);
+    }
+
+    // ============================================================
+    // check_untracked_threshold tests
+    // ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_check_untracked_threshold_below() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "low-untracked");
+
+        // Create 3 untracked files (below threshold of 10)
+        for i in 0..3 {
+            std::fs::write(repo.join(format!("u{}.txt", i)), b"x").unwrap();
+        }
+
+        let count = check_untracked_threshold(&repo, 10)
+            .await
+            .expect("should not error");
+        assert_eq!(count, 3);
+    }
+
+    #[tokio::test]
+    async fn test_check_untracked_threshold_above() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "high-untracked");
+
+        // Create 15 untracked files (above threshold of 10)
+        for i in 0..15 {
+            std::fs::write(repo.join(format!("u{}.txt", i)), b"x").unwrap();
+        }
+
+        let count = check_untracked_threshold(&repo, 10)
+            .await
+            .expect("should not error");
+        assert_eq!(count, 15);
+    }
+
+    #[tokio::test]
+    async fn test_check_untracked_threshold_zero_disables() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "threshold-zero");
+
+        // Create 100 untracked files
+        for i in 0..100 {
+            std::fs::write(repo.join(format!("u{}.txt", i)), b"x").unwrap();
+        }
+
+        // threshold = 0 disables the warning but still counts
+        let count = check_untracked_threshold(&repo, 0)
+            .await
+            .expect("should not error");
+        assert_eq!(count, 100);
+    }
+
+    #[tokio::test]
+    async fn test_check_untracked_threshold_gitignored_excluded() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "gitignored");
+
+        // Create a .gitignore that excludes node_modules/
+        std::fs::write(repo.join(".gitignore"), b"node_modules/\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", ".gitignore"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "gitignore"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Create 3 tracked + 5 gitignored files
+        for i in 0..3 {
+            std::fs::write(repo.join(format!("a{}.txt", i)), b"x").unwrap();
+        }
+        std::fs::create_dir_all(repo.join("node_modules")).unwrap();
+        for i in 0..5 {
+            std::fs::write(
+                repo.join(format!("node_modules/pkg{}.js", i)),
+                b"x",
+            )
+            .unwrap();
+        }
+
+        // Only the 3 non-ignored files should be counted
+        let count = check_untracked_threshold(&repo, 100)
+            .await
+            .expect("should not error");
+        assert_eq!(count, 3, "gitignored files should not be counted");
+    }
 }
