@@ -1601,3 +1601,4 @@ remotes = []
 }
 
 // daemon-push-test: 2026-06-21 12:18 — verify end-to-end propagation
+// daemon-push-test-2: 2026-06-21 12:35 — verify daemon auto-push for nested repo
