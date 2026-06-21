@@ -160,6 +160,7 @@ use crate::git::{
     top_level_dir,
 };
 use crate::policy::{
+    default_auto_resolve_unmerged, default_push_debounce_secs, default_untracked_warn_threshold,
     timestamp_secs, RepoPolicyOverride, SyncPolicy, DEFAULT_GIT_HOST_BLOB_LIMIT_BYTES,
 };
 
@@ -4876,6 +4877,9 @@ mod tests {
     fn test_sync_policy() -> SyncPolicy {
         SyncPolicy {
             max_stage_batch_files: 100000,
+            auto_resolve_unmerged: default_auto_resolve_unmerged(),
+            push_debounce_secs: default_push_debounce_secs(),
+            untracked_warn_threshold: default_untracked_warn_threshold(),
             system_repo: String::new(),
             pulse_interval_secs: 1,
             inactivity_push_delay_secs: 5,
