@@ -2228,12 +2228,14 @@ async fn auto_resolve_unmerged_if_safe(
     use anyhow::Context;
     use std::process::Command;
 
-    // List unmerged entries. `git diff` output is empty for unmerged
-    // paths so we use `ls-files --unmerged` to enumerate them.
+    // List unmerged entries. The output format is:
+    //   <mode> <hash> <stage> <path>
+    // for each unmerged stage (1, 2, 3). We collect the unique
+    // paths (one entry per path across all stages).
     let output = Command::new("git")
         .args([
             "-C", &repo.to_string_lossy(),
-            "ls-files", "--unmerged", "--format=%H %S %P",
+            "ls-files", "--unmerged",
         ])
         .output()
         .with_context(|| format!("failed to list unmerged files in {}", repo.display()))?;
@@ -2244,15 +2246,17 @@ async fn auto_resolve_unmerged_if_safe(
     }
 
     // Parse unmerged paths. For each path with stage=1/2/3 entries, we
-    // need to check if the working tree matches the HEAD (stage 2)
-    // content. If yes, we can safely `git reset HEAD -- <path>` to
-    // clear the unmerge.
+    // need to check if the working tree matches HEAD. If yes, we can
+    // safely `git reset HEAD -- <path>` to clear the unmerge.
     let mut unmerged_paths: std::collections::BTreeSet<String> =
         std::collections::BTreeSet::new();
     for line in stdout.lines() {
         // Format: <mode> <hash> <stage> <path>
+        // Example: "100644 abc123... 1    foo/bar.png"
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 4 {
+            // The path is everything from index 3 onwards (paths can
+            // contain spaces in unusual cases)
             unmerged_paths.insert(parts[3..].join(" "));
         }
     }
@@ -2274,19 +2278,19 @@ async fn auto_resolve_unmerged_if_safe(
     let mut resolved: usize = 0;
     for path in &unmerged_paths {
         // For each unmerged path, compare the working tree file
-        // content to the HEAD version (stage 2). If they match,
-        // we can safely reset.
-        let wt_output = Command::new("git")
+        // content to the HEAD version. If they match, we can safely
+        // reset the unmerge.
+        let head_output = Command::new("git")
             .args([
                 "-C", &repo.to_string_lossy(),
-                "show", ":2:", path,
+                "show", &format!("HEAD:{}", path),
             ])
             .output();
         let wt_bytes = match std::fs::read(repo.join(path)) {
             Ok(b) => b,
             Err(_) => continue,  // file deleted; skip
         };
-        let head_bytes = match wt_output {
+        let head_bytes = match head_output {
             Ok(o) if o.status.success() => o.stdout,
             _ => continue,  // path not in HEAD; skip
         };
