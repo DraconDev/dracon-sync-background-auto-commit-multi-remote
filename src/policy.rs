@@ -447,6 +447,33 @@ pub(crate) struct SyncPolicy {
     #[serde(default = "default_max_stage_batch_files")]
     pub(crate) max_stage_batch_files: usize,
 
+    /// Auto-resolve unmerged index entries when the working tree
+    /// matches HEAD (the "ours" side of the merge). When true, the
+    /// daemon runs `git reset HEAD -- <unmerged-paths>` to clear
+    /// the unmerge and proceeds with the commit. This is safe
+    /// because the working tree content has already been verified
+    /// to match HEAD byte-for-byte. Default: true (commit-all
+    /// policy — never block on stale unmerged entries).
+    /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+    #[serde(default = "default_auto_resolve_unmerged")]
+    pub(crate) auto_resolve_unmerged: bool,
+
+    /// Minimum seconds between push attempts to all remotes of a
+    /// single repo. When the daemon makes multiple commits within
+    /// this window, it accumulates them and pushes once at the end
+    /// of the window. This eliminates per-commit push churn.
+    /// Default: 30s.
+    /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+    #[serde(default = "default_push_debounce_secs")]
+    pub(crate) push_debounce_secs: u64,
+
+    /// When the untracked-file count exceeds this threshold, the
+    /// daemon emits a warning to the operator. Set to 0 to disable.
+    /// Default: 500.
+    /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+    #[serde(default = "default_untracked_warn_threshold")]
+    pub(crate) untracked_warn_threshold: usize,
+
     #[serde(default = "default_pull_op_timeout_secs")]
     pub(crate) pull_op_timeout_secs: u64,
     #[serde(default = "default_push_op_timeout_secs")]
@@ -856,6 +883,26 @@ fn default_max_stage_batch_files() -> usize {
     // large Playwright test runs into multiple commits, slowing sync.
     // With 100000, the daemon commits everything it can in one cycle.
     100000
+}
+
+pub(crate) fn default_auto_resolve_unmerged() -> bool {
+    // Default: true. The daemon's commit-all policy should never
+    // be blocked by a stale unmerged index. When the working tree
+    // matches HEAD (verified byte-by-byte), the unmerge is safe to
+    // reset.
+    true
+}
+
+pub(crate) fn default_push_debounce_secs() -> u64 {
+    // Default: 30s. Eliminates per-commit push churn while still
+    // keeping the remotes up-to-date within a reasonable window.
+    30
+}
+
+pub(crate) fn default_untracked_warn_threshold() -> usize {
+    // Default: 500. Emits a warning when the untracked count
+    // exceeds this. Set to 0 to disable.
+    500
 }
 
 pub(crate) fn default_pull_op_timeout_secs() -> u64 {
