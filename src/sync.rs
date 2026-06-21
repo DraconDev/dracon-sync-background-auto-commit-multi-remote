@@ -820,6 +820,9 @@ async fn stage_existing_files(
         // - Ignored and untracked: skip entirely (.gitignore is intentional)
         let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
 
+        eprintln!("🔍 DEBUG stage_existing_files: existing={:?}", existing);
+        eprintln!("🔍 DEBUG stage_existing_files: normal_paths={:?}", normal_paths);
+
         if !normal_paths.is_empty() {
             let mut add_args = vec!["add", "-A", "--"];
             for p in &normal_paths {
