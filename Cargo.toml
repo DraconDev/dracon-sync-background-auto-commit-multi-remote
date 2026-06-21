@@ -23,7 +23,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "ti
 reqwest = { version = "0.12", features = ["json", "blocking"] }
 futures = "0.3"
 toml = "0.8"
-dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
+dracon-git = "94.7.0"
 notify-rust = "4.17"
 parking_lot = "0.12"
 urlencoding = "2"
