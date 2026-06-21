@@ -1,13 +1,16 @@
 [package]
 name = "dracon-sync"
-version = "0.1.7"
+version = "0.112.12"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "Invisible git sync daemon for deterministic AI-assisted development"
 readme = "README.md"
 repository = "https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote"
 homepage = "https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote"
-documentation = "https://docs.rs/dracon-sync/0.1.5"
+documentation = "https://docs.rs/dracon-sync"
+keywords = ["git", "sync", "daemon", "auto-commit", "multi-remote"]
+categories = ["command-line-utilities"]
+exclude = [".github/", "docs/", "*.md", "!README.md", "Cargo.lock", "target/"]
 
 [dependencies]
 anyhow = "1.0"

@@ -301,10 +301,8 @@ fn shorten_when(s: &str) -> String {
 ///                    (currently being processed)
 ///   - "pushing Xm" : push_status=PENDING, push has been in
 ///                    progress for X minutes
-///   - "stalled Xm" : dirty tracked work exists, last commit >
-///                    settle threshold, no in-flight task
-///   - "settling"   : dirty tracked work exists, fingerprint
-///                    not yet stable (waiting for inactivity delay)
+///   - "dirty Xm"    : dirty tracked work exists, last commit
+///                    was X minutes ago
 ///   - "synced Xm"  : clean, in sync, recent commit (within 1h)
 ///   - "idle Xm"    : clean, no in-flight, last commit 1h-24h ago
 ///   - "cold Xd"    : clean, no activity for > 24h
@@ -374,18 +372,10 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
 
     let has_dirty = row.modified > 0 || row.staged > 0;
 
-    // 3. dirty + recent commit (within settle threshold) = "settling"
+    // 3. dirty repo — show time since last commit.
     if has_dirty {
-        // The settle threshold is roughly 2× the inactivity_push_delay
-        // (default 5s × 2 = 10s, but we round up to 1m for the column).
-        let settle_threshold_mins: u64 = 1;
-        let last_mins = last_when_mins.unwrap_or(0);
-        if last_mins <= settle_threshold_mins {
-            return "⏳ settling".to_string();
-        }
-        // 4. dirty + stable fingerprint + no in-flight = "stalled Xm"
         return format!(
-            "⏸ stalled {}",
+            "⏳ dirty {}",
             last_when_mins
                 .map(|m| shorten_mins(m))
                 .unwrap_or_else(|| "?".to_string())
@@ -401,6 +391,111 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
         }
         Some(m) => format!("⚫ cold {}", shorten_mins_days(m)),
     }
+}
+
+fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
+    let upstream = crate::policy::std_git_command()
+        .args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        });
+    if let Some(upstream) = upstream.filter(|s| !s.is_empty()) {
+        let state = remote_tracking_ref_exists(repo, &upstream)
+            .then_some(PublishState::Ok)
+            .unwrap_or(PublishState::Gone);
+        return (upstream, state);
+    }
+
+    if !crate::git::is_safe_branch_name(branch) {
+        return ("-".to_string(), PublishState::Missing);
+    }
+    let remote_key = format!("branch.{branch}.remote");
+    let merge_key = format!("branch.{branch}.merge");
+    let remote = crate::policy::std_git_command()
+        .args(["config", "--get", &remote_key])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        });
+    let merge = crate::policy::std_git_command()
+        .args(["config", "--get", &merge_key])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        });
+    match (remote, merge) {
+        (Some(remote), Some(merge)) if merge.starts_with("refs/heads/") => {
+            let branch = merge.strip_prefix("refs/heads/").unwrap_or("");
+            if crate::git::is_safe_branch_name(branch) {
+                let label = format!("{remote}/{branch}");
+                let state = remote_tracking_ref_exists(repo, &label)
+                    .then_some(PublishState::Ok)
+                    .unwrap_or(PublishState::Gone);
+                (label, state)
+            } else {
+                ("-".to_string(), PublishState::Missing)
+            }
+        }
+        _ => ("-".to_string(), PublishState::Missing),
+    }
+}
+
+fn publish_cell_label(upstream: &str, state: PublishState) -> String {
+    match state {
+        PublishState::Missing => "⚠️ none".to_string(),
+        PublishState::Gone => format!("⚠️ {upstream} (gone)"),
+        PublishState::Ok => upstream.to_string(),
+    }
+}
+
+fn publish_state_color(state: PublishState) -> comfy_table::Color {
+    match state {
+        PublishState::Missing => comfy_table::Color::Yellow,
+        PublishState::Gone => comfy_table::Color::Yellow,
+        PublishState::Ok => comfy_table::Color::Green,
+    }
+}
+
+fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
+    let Some(slash) = upstream.find('/') else {
+        return false;
+    };
+    let (remote, branch) = upstream.split_at(slash);
+    let branch = &branch[1..];
+    if remote.is_empty() || branch.is_empty() {
+        return false;
+    }
+    if !crate::git::is_safe_branch_name(remote)
+        || !crate::git::is_safe_branch_name(branch)
+    {
+        return false;
+    }
+    let refspec = format!("refs/remotes/{remote}/{branch}");
+    crate::policy::std_git_command()
+        .args(["rev-parse", "--verify", "--quiet", &refspec])
+        .current_dir(repo)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 /// Read the in_flight set from disk and return whether the given
@@ -509,6 +604,14 @@ pub(crate) struct RepoReportRow {
     repo: String,
     state_flags: Vec<String>,
     branch: String,
+    upstream: String,
+    /// Visible flag describing whether the VS Code publish upstream is healthy.
+    /// `Missing` = no `branch.<name>.remote` config and no `@{u}` ref.
+    /// `Gone` = a publish upstream is configured but the remote-tracking ref
+    /// does not exist locally yet (e.g. remote was added but never pushed).
+    /// `Ok` = a publish upstream is configured and its remote-tracking ref
+    /// resolves locally.
+    publish_state: PublishState,
     modified: usize,
     staged: usize,
     untracked: usize,
@@ -519,6 +622,12 @@ pub(crate) struct RepoReportRow {
     last_when: String,
     last_msg: String,
     last_unix: i64,
+    /// Number of commits in the last 1 hour.
+    commits_1h: usize,
+    /// Number of commits in the last 6 hours.
+    commits_6h: usize,
+    /// Number of commits in the last 24 hours.
+    commits_24h: usize,
     last_push: String,
     push_status: String,
     push_error: String,
@@ -567,6 +676,13 @@ pub(crate) struct RemoteStatus {
     pub(crate) auth_type: String,
     pub(crate) auto_create: bool,
     pub(crate) priority: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub(crate) enum PublishState {
+    Missing,
+    Gone,
+    Ok,
 }
 
 #[derive(Debug, Serialize)]
@@ -975,8 +1091,9 @@ pub(crate) fn repo_state_flags(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
 ) -> Vec<String> {
-    repo_state_flags_with_push_failure(status, has_origin, has_upstream, false)
+    repo_state_flags_with_push_failure(status, has_origin, has_upstream, has_any_remote, false)
 }
 
 /// Like [`repo_state_flags`], but only emits `STUCK_PUSH` when the daemon
@@ -984,10 +1101,20 @@ pub(crate) fn repo_state_flags(
 /// signal, an `AHEAD:N` repo is just "has unpushed commits waiting" and
 /// should not be flagged as stuck — the daemon may be waiting for the
 /// inactivity delay or for a multi-remote round to finish.
+///
+/// `has_any_remote` is the "does the repo have at least one configured
+/// remote?" signal. When the daemon is configured to push to a list of
+/// mirror remotes (e.g. `github` / `gitlab` / `codeberg`) the absence of
+/// a literal `origin` is not a concern — those remotes are the canonical
+/// push targets. Only repos with **zero** configured remotes are
+/// genuinely remote-less and warrant a `NO_ORIGIN` flag. See
+/// `docs/design/no-origin-concern-ssh-2026-06-20.md` for the full
+/// rationale and the audit of every affected repo.
 pub(crate) fn repo_state_flags_with_push_failure(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
     recent_push_failure: bool,
 ) -> Vec<String> {
     let mut flags = Vec::new();
@@ -1000,10 +1127,33 @@ pub(crate) fn repo_state_flags_with_push_failure(
     if status.behind > 0 {
         flags.push(format!("BEHIND:{}", status.behind));
     }
-    if !has_origin {
+    // CHANGED 2026-06-20: the `!has_origin` check used to fire `NO_ORIGIN`
+    // for every repo that didn't have a remote literally named `origin`.
+    // After the multi-mirror migration to SSH (`github` / `gitlab` /
+    // `codeberg`), every watched repo has zero `origin` remotes and the
+    // flag fired for all 10 of them, masking the row as a CONCERN even
+    // when the daemon was successfully pushing to all three mirrors.
+    //
+    // The correct semantic is: a repo is "remote-less" only when it has
+    // *no* remotes at all. If it has any remote (origin, github, etc.),
+    // the daemon can push and the row is healthy. The flag name is kept
+    // as `NO_ORIGIN` for backward compatibility (the symptom is still
+    // "no literal origin remote"); it just no longer fires when a
+    // non-origin remote exists.
+    if !has_origin && !has_any_remote {
         flags.push("NO_ORIGIN".to_string());
     }
-    if has_origin && !has_upstream {
+    // CHANGED 2026-06-20: `NO_UPSTREAM` now fires whenever the local
+    // branch has no tracking upstream, regardless of whether the repo
+    // has an `origin` remote. Previously the `has_origin &&` guard
+    // meant that a repo with only non-origin remotes (e.g. the SSH
+    // multi-mirror repos) silently swallowed the missing-upstream
+    // signal, falling through to the generic "run repair-concerns"
+    // hint instead of the more useful "set upstream" hint. The
+    // concern predicate ([`repo_is_concern_with_push_failure`]) still
+    // gates on `!has_upstream` independently, so the row remains a
+    // CONCERN; this just makes the hint text accurate.
+    if !has_upstream {
         flags.push("NO_UPSTREAM".to_string());
     }
     if status.ahead > 0 && has_origin && has_upstream && recent_push_failure {
@@ -1040,13 +1190,27 @@ pub(crate) fn apply_intentional_no_upstream(mut flags: Vec<String>) -> Vec<Strin
 /// Kept for backward-compatible test coverage. New code should use
 /// [`repo_is_concern_with_push_failure`] which also considers recent
 /// push failures and the behind-count.
+///
+/// CHANGED 2026-06-20: the `!has_origin` short-circuit used to flag
+/// every non-`origin` repo as a concern, and `!has_upstream` flagged
+/// every repo with a missing branch tracking config. After the SSH
+/// multi-mirror migration, the daemon pushes to `github` / `gitlab` /
+/// `codeberg` via explicit refspecs and doesn't require either an
+/// `origin` remote or a `branch.<name>.remote` config. The new
+/// `has_any_remote` parameter lets callers distinguish "no origin
+/// but has SSH mirrors" (healthy) from "truly remote-less"
+/// (concerning). See `docs/design/no-origin-concern-ssh-2026-06-20.md`.
 #[allow(dead_code, unused_variables)]
 pub(crate) fn repo_is_concern(
     _status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
 ) -> bool {
-    !has_origin || !has_upstream
+    if !has_origin && !has_any_remote {
+        return true;
+    }
+    !has_upstream && has_origin
 }
 
 /// Like [`repo_is_concern`], but also flags a repo as a concern when it has
@@ -1057,27 +1221,50 @@ pub(crate) fn repo_is_concern(
 ///
 /// `behind > 0` remains a concern unconditionally: the local is older
 /// than the remote and risks losing history if the divergence grows.
+///
+/// `has_any_remote` follows the same logic as [`repo_is_concern`]: a
+/// repo with at least one configured remote is not concerning for
+/// "no origin" alone, and a repo with any configured remote is not
+/// concerning for "no upstream" alone — the daemon's multi-mirror
+/// push path uses explicit `git push <remote> HEAD:refs/heads/<branch>`
+/// refspecs, so it does not require `branch.<name>.remote` to be set
+/// in the local config. The hint text and the `NO_UPSTREAM` flag are
+/// still emitted (so the operator can see the gap), but the row is
+/// no longer classified as a CONCERN that auto-repair will try to
+/// remediate via `git push -u origin HEAD` against a non-existent
+/// `origin`. See `docs/design/no-origin-concern-ssh-2026-06-20.md`.
 pub(crate) fn repo_is_concern_with_push_failure(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
     recent_push_failure: bool,
 ) -> bool {
-    if !has_origin || !has_upstream {
+    if !has_origin && !has_any_remote {
         return true;
     }
     if status.behind > 0 {
         return true;
     }
-    status.ahead > 0 && recent_push_failure
+    if status.ahead > 0 && has_origin && has_upstream && recent_push_failure {
+        return true;
+    }
+    false
 }
 
 pub(crate) fn repo_is_stuck_push(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
     recent_push_failure: bool,
 ) -> bool {
+    // The push path requires both an `origin` and an `upstream` — these
+    // repos push via the `origin` refspec, not the multi-mirror list. So
+    // the stuck-push predicate is unchanged by the SSH-migration fix.
+    // `has_any_remote` is accepted for signature parity with
+    // `repo_is_concern_with_push_failure`; it's not consulted.
+    let _ = has_any_remote;
     status.ahead > 0 && has_origin && has_upstream && recent_push_failure
 }
 
@@ -1085,7 +1272,11 @@ pub(crate) fn repo_is_stuck_pull(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
 ) -> bool {
+    // Same as `repo_is_stuck_push`: the pull path uses `origin` and an
+    // upstream refspec, so the predicate is unchanged by the SSH fix.
+    let _ = has_any_remote;
     status.behind > 0 && has_origin && has_upstream
 }
 
@@ -1094,6 +1285,7 @@ pub(crate) fn repo_is_warn(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
     has_upstream: bool,
+    has_any_remote: bool,
 ) -> bool {
     // WARN: has TRACKED modifications or staged changes, but not a concern.
     // Untracked files remain visible in the UT column, but they are not
@@ -1105,7 +1297,12 @@ pub(crate) fn repo_is_warn(
     // `is_wt_new()`-counted-as-modified bug and added `untracked_files`
     // to `RepoStatus`. Junk-Runner-bevy 91 "MOD" was 3 untracked
     // test-results/ PNGs.
-    !repo_is_concern(status, has_origin, has_upstream)
+    //
+    // CHANGED 2026-06-20: added `has_any_remote` to keep parity with
+    // `repo_is_concern`. Repos with only non-origin remotes (the
+    // post-SSH-migration case) are no longer a concern and therefore
+    // can be a WARN when dirty.
+    !repo_is_concern(status, has_origin, has_upstream, has_any_remote)
         && (status.modified_files > 0 || status.staged_files > 0)
 }
 
@@ -1403,15 +1600,41 @@ pub(crate) fn parse_relative_minutes(text: &str) -> Option<i64> {
 /// the row builder appends the explicit `INTENTIONAL_NO_UPSTREAM`
 /// flag. That flag is checked first here so the row reports the
 /// operator's intent instead of a misleading "set upstream" hint.
+///
+/// CHANGED 2026-06-20: the `NO_ORIGIN` hint used to say "no origin
+/// remote (using github SSH instead)" for every multi-mirror repo.
+/// With the SSH migration, that message was misleading — the daemon
+/// WAS pushing via SSH, the literal `origin` was just absent. The
+/// flag now only fires when the repo has *zero* remotes, so the hint
+/// is updated to match: "no remote configured (cannot push)".
 pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     if flags.iter().any(|f| f == "INTENTIONAL_NO_UPSTREAM") {
         return "intentional legacy isolation, no upstream configured".to_string();
     }
     if flags.iter().any(|f| f == "NO_ORIGIN") {
-        return "set origin remote".to_string();
+        return "no remote configured (cannot push)".to_string();
     }
     if flags.iter().any(|f| f == "NO_UPSTREAM") {
-        return "run repair-concerns --apply (set upstream)".to_string();
+        // CHANGED 2026-06-20: the original hint "run repair-concerns
+        // --apply (set upstream)" was misleading for SSH multi-mirror
+        // repos that have no `origin` remote. `repair concerns --apply`
+        // would try `git push -u origin HEAD` and fail because there is
+        // no `origin` to push to. For those repos the branch's tracking
+        // config is not actually needed — the daemon's multi-mirror
+        // push path uses explicit refspecs. The `concern` parameter
+        // disambiguates:
+        //   - `concern=true`  → has_origin && !has_upstream (Case A):
+        //     the original "set upstream" hint is accurate and
+        //     `repair concerns --apply` will succeed.
+        //   - `concern=false` → has_origin=false && has_any_remote
+        //     (Case B, post-SSH-migration): the hint is informational
+        //     only, since the daemon is already pushing successfully
+        //     via explicit refspecs.
+        if concern {
+            return "run repair-concerns --apply (set upstream)".to_string();
+        }
+        return "no tracking upstream (daemon uses explicit refspecs; not a concern)"
+            .to_string();
     }
     if flags.iter().any(|f| f.starts_with("AHEAD:")) {
         if warn {
@@ -1524,6 +1747,41 @@ fn repo_failure_message(prefix: &str, repo: &Path, error: impl std::fmt::Display
 /// even though the ref is perfectly valid. `git log -1 --format=%cr
 /// origin/<branch>` returns the committer date of the current
 /// remote-tracking tip in both cases, so it is the right primitive.
+/// Count commits in the last 1h, 6h, and 24h for a repo by reading
+/// commit timestamps from `git log --format=%ct` and bucketing in Rust.
+/// Returns `[commits_1h, commits_6h, commits_24h]`.
+/// Returns all zeros when git fails or the repo is empty.
+fn commit_counts(repo: &Path) -> [usize; 3] {
+    let repo_str = match repo.to_str() {
+        Some(s) => s.to_string(),
+        None => return [0, 0, 0],
+    };
+    // Single subprocess call per repo: get all commit timestamps from the last 24h,
+    // then bucket in Rust. This is faster than 3 separate rev-list --count calls.
+    let out = crate::git::git_cmd()
+        .args(["-C", &repo_str, "log", "--format=%ct", "--after=1 day ago", "HEAD"])
+        .output();
+    let timestamps: Vec<u64> = match out {
+        Ok(o) if o.status.success() => {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter_map(|l| l.trim().parse::<u64>().ok())
+                .collect()
+        }
+        _ => return [0, 0, 0],
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let cutoff_1h = now.saturating_sub(3600);
+    let cutoff_6h = now.saturating_sub(21600);
+    let commits_1h = timestamps.iter().filter(|&&ts| ts >= cutoff_1h).count();
+    let commits_6h = timestamps.iter().filter(|&&ts| ts >= cutoff_6h).count();
+    let commits_24h = timestamps.len();
+    [commits_1h, commits_6h, commits_24h]
+}
+
 fn last_push_for_branch(repo: &Path, branch: &str) -> String {
     if branch.is_empty() || !crate::git::is_safe_branch_name(branch) {
         return "-".to_string();
@@ -1630,6 +1888,14 @@ pub(crate) async fn run_repos_report(
 
         let has_origin = has_origin_remote(&repo);
         let has_upstream = has_tracking_upstream(&repo);
+        // CHANGED 2026-06-20: compute `has_any_remote` so the concern
+        // classifier can distinguish "no origin but has SSH mirrors"
+        // (healthy, post-multi-mirror-migration) from "truly remote-less"
+        // (concerning). This is a single `git remote` subprocess call
+        // per repo per cycle; it does not affect the fast-path skip
+        // because the fast path already short-circuits clean+synced
+        // repos before this point.
+        let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
 
         // Classification: a repo is WARN if it has TRACKED modifications or
         // staged changes. Untracked files (e.g., target/, node_modules/) are
@@ -1656,6 +1922,7 @@ pub(crate) async fn run_repos_report(
             &effective_status,
             has_origin,
             has_upstream,
+            has_any_remote,
             recent_push_failure,
         );
         // Repos that the operator has flagged as intentionally isolated
@@ -1678,6 +1945,7 @@ pub(crate) async fn run_repos_report(
             &effective_status,
             has_origin,
             has_upstream,
+            has_any_remote,
             recent_push_failure,
         );
         if repo_override.intentional_no_upstream {
@@ -1791,7 +2059,20 @@ pub(crate) async fn run_repos_report(
                 "intentional legacy isolation, no upstream configured".to_string(),
             )
         } else if flags.iter().any(|f| f == "NO_UPSTREAM") {
-            ("FAIL".to_string(), "no upstream set".to_string())
+            // CHANGED 2026-06-20: the `NO_UPSTREAM` flag now also fires
+            // for repos with at least one non-origin remote (e.g. the
+            // SSH multi-mirror repos). For those repos, push status
+            // is OK because the daemon uses explicit refspecs and
+            // does not require `branch.<name>.remote` to be set.
+            // Only repos with `has_origin=true && !has_upstream` (the
+            // "missing tracking upstream for origin" case) are still
+            // a real push failure — `git push -u origin HEAD` would
+            // have been the recovery path.
+            if has_origin {
+                ("FAIL".to_string(), "no upstream set".to_string())
+            } else {
+                ("OK".to_string(), String::new())
+            }
         } else if effective_status.ahead > 0 && has_origin && has_upstream {
             (
                 "PENDING".to_string(),
@@ -1819,6 +2100,11 @@ pub(crate) async fn run_repos_report(
         // unsafe branch names (with shell-special chars) skip the reflog call
         // to avoid `git reflog show origin/` (ambiguous argument) errors.
         let last_push = last_push_for_branch(&repo, &effective_status.branch);
+
+        // Compute commit counts (1h, 6h, 24h) for this repo. Uses a single
+        // `git log --format=%ct` subprocess call per repo and buckets timestamps
+        // in Rust. This is faster than 3 separate `rev-list --count` calls.
+        let [commits_1h, commits_6h, commits_24h] = commit_counts(&repo);
 
         // Derive the "rough cause" classification that combines all the
         // signals above into a single small-vocabulary label. This is the
@@ -1894,10 +2180,14 @@ pub(crate) async fn run_repos_report(
             _ => (0, String::new(), String::new(), "none".to_string()),
         };
 
+        let (upstream_label, publish_state) =
+            branch_upstream(&repo, &effective_status.branch);
         rows.push(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
-            branch: effective_status.branch,
+            branch: effective_status.branch.clone(),
+            upstream: upstream_label,
+            publish_state,
             modified: effective_status.modified_files,
             staged: effective_status.staged_files,
             untracked: effective_status.untracked_files,
@@ -1908,6 +2198,9 @@ pub(crate) async fn run_repos_report(
             last_when,
             last_msg,
             last_unix,
+            commits_1h,
+            commits_6h,
+            commits_24h,
             last_push,
             push_status,
             push_error,
@@ -2014,7 +2307,7 @@ pub(crate) async fn run_repos_report(
 
     // ---- Legend line (one-liner mapping column codes to their meaning) ----
     println!(
-        "ℹ️  Legend: MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead of upstream · ↓ = behind upstream · PUSH = push status · STATE = derived cause (working=daemon just synced/committing/pushing/synced=clean & in sync/stalled/dirty/untracked-only/intentional/failed/idle/cold/healthy) · ACTIVITY = real activity indicator (now=daemon processing this repo · pushing Xm (N ahead)=push in progress, N unpushed commits · stalled Xm=dirty & no daemon action for X minutes · settling=dirty & waiting for fingerprint stability · synced/idle/cold=clean & waiting) · DAEMON = daemon's last recorded action (e.g. '23s sync_triage') so you can tell the daemon is working through dirty rows vs. you're editing right now"
+        "ℹ️  Legend: MOD = modified tracked · STG = staged · UT = untracked · 🔗 = VS Code publish upstream — green when healthy (e.g. `github/main`), yellow ⚠️ none when no upstream is configured, yellow ⚠️ <remote/branch> (gone) when the upstream is configured but its remote-tracking ref does not exist locally · ↑ = ahead of upstream · ↓ = behind upstream · PUSH = push status · 📊 1h/6h/24h = commits in last 1h/6h/24h · STATE = derived cause (working=daemon just synced/committing/pushing/synced=clean & in sync/stalled/dirty/untracked-only/intentional/failed/idle/cold/healthy) · ACTIVITY = real activity indicator (now=daemon processing this repo · pushing Xm (N ahead)=push in progress, N unpushed commits · dirty Xm=dirty repo, last commit X minutes ago · synced/idle/cold=clean & waiting) · DAEMON = daemon's last recorded action (e.g. '23s sync_triage') so you can tell the daemon is working through dirty rows vs. you're editing right now"
     );
     println!();
 
@@ -2036,6 +2329,7 @@ pub(crate) async fn run_repos_report(
         mk_h("🏷", "STATUS"),
         mk_h("📦", "REPO"),
         mk_h("🌿", "BRANCH"),
+        mk_h("🔗", "PUBLISH"),
         mk_h("📝", "MOD"),
         mk_h("📥", "STG"),
         mk_h("❓", "UT"),
@@ -2046,6 +2340,9 @@ pub(crate) async fn run_repos_report(
         mk_h("📤", "PUSHED"),
         mk_h("⏰", "ACTIVITY"),
         mk_h("👤", "AUTHOR"),
+        mk_h("📊", "1h"),
+        mk_h("📊", "6h"),
+        mk_h("📊", "24h"),
         mk_h("🩺", "STATE"),
         mk_h("🤖", "DAEMON"),
         mk_h("💡", "HINT"),
@@ -2129,6 +2426,8 @@ pub(crate) async fn run_repos_report(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
             Cell::new(&row.branch).fg(branch_color),
+            Cell::new(publish_cell_label(&row.upstream, row.publish_state))
+                .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(modified_color),
             Cell::new(row.staged).fg(staged_color),
             Cell::new(row.untracked),
@@ -2139,6 +2438,9 @@ pub(crate) async fn run_repos_report(
             Cell::new(shorten_when(&row.last_push)),
             Cell::new(activity_label(&row)),
             Cell::new(&row.last_author),
+            Cell::new(row.commits_1h),
+            Cell::new(row.commits_6h),
+            Cell::new(row.commits_24h),
             Cell::new(format!(
                 "{} {}",
                 row.state_cause.icon(),
@@ -2975,6 +3277,10 @@ pub(crate) async fn run_repair_concerns(
 
         state.has_origin = has_origin_remote(&repo);
         state.has_upstream = has_tracking_upstream(&repo);
+        // CHANGED 2026-06-20: same `has_any_remote` derivation as in
+        // the `repos` command. A repo with at least one configured
+        // remote (any name) is not a "no origin" concern.
+        let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
         // Use the same refined concern logic as the `repos` command:
         // an AHEAD repo is only a concern if a recent push failure was
         // recorded. This keeps `repair concerns` consistent with the
@@ -2991,6 +3297,7 @@ pub(crate) async fn run_repair_concerns(
             &status,
             state.has_origin,
             state.has_upstream,
+            has_any_remote,
             recent_push_failure,
         );
         if !is_concern {
@@ -3000,9 +3307,15 @@ pub(crate) async fn run_repair_concerns(
             &status,
             state.has_origin,
             state.has_upstream,
+            has_any_remote,
             recent_push_failure,
         );
-        let stuck_pull = repo_is_stuck_pull(&status, state.has_origin, state.has_upstream);
+        let stuck_pull = repo_is_stuck_pull(
+            &status,
+            state.has_origin,
+            state.has_upstream,
+            has_any_remote,
+        );
         if matches!(filter, ConcernRepairFilter::StuckPush) && !stuck_push {
             continue;
         }
@@ -3014,6 +3327,7 @@ pub(crate) async fn run_repair_concerns(
             &status,
             state.has_origin,
             state.has_upstream,
+            has_any_remote,
             recent_push_failure,
         );
         let reason = flags.join(",");
@@ -3225,6 +3539,11 @@ pub(crate) async fn run_repair_warns(
         );
         let has_origin = has_origin_remote(&repo);
         let has_upstream = has_tracking_upstream(&repo);
+        // CHANGED 2026-06-20: same `has_any_remote` derivation as the
+        // main `repos` pass. A repo with at least one configured remote
+        // is not a "no origin" concern and the WARN classification only
+        // fires for actually concerning (untracked) or dirty repos.
+        let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
         let mut effective_status = status.clone();
         effective_status.is_clean = !effective_dirty;
         effective_status.modified_files = status.modified_files;
@@ -3245,7 +3564,12 @@ pub(crate) async fn run_repair_warns(
             continue;
         }
         warns += 1;
-        let flags = repo_state_flags(&effective_status, has_origin, has_upstream);
+        let flags = repo_state_flags(
+            &effective_status,
+            has_origin,
+            has_upstream,
+            has_any_remote,
+        );
         let reason = flags.join(",");
         out!(
             "\n🟡 {}  state={} modified={} staged={}",
@@ -3598,7 +3922,7 @@ mod tests {
     }
 
     #[test]
-    fn test_repo_failure_message_includes_prefix_and_error() {
+    fn test_repo_failure_message_includes_context() {
         let msg = repo_failure_message("init_failed", Path::new("/tmp/repo"), "boom");
         assert!(msg.contains("init_failed"));
         assert!(msg.contains("/tmp/repo"));
@@ -3606,7 +3930,7 @@ mod tests {
     }
 
     #[test]
-    fn test_repo_failure_message_includes_status_prefix() {
+    fn test_repo_failure_message_for_status_failed() {
         let msg = repo_failure_message("status_failed", Path::new("/tmp/repo"), "status boom");
         assert!(msg.contains("status_failed"));
         assert!(msg.contains("status boom"));
@@ -3819,7 +4143,7 @@ mod tests {
     #[test]
     fn test_repo_state_flags_ok() {
         let status = make_status(true, 0, 0);
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.contains(&"OK".to_string()));
     }
 
@@ -3827,35 +4151,50 @@ mod tests {
     fn test_repo_state_flags_dirty() {
         let mut status = make_status(false, 0, 0);
         status.modified_files = 2;
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.contains(&"DIRTY".to_string()));
     }
 
     #[test]
     fn test_repo_state_flags_ahead() {
         let status = make_status(true, 3, 0);
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.iter().any(|f| f.starts_with("AHEAD:")));
     }
 
     #[test]
     fn test_repo_state_flags_behind() {
         let status = make_status(true, 0, 2);
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.iter().any(|f| f.starts_with("BEHIND:")));
     }
 
     #[test]
     fn test_repo_state_flags_no_origin() {
+        // CHANGED 2026-06-20: NO_ORIGIN only fires when the repo has
+        // *zero* remotes, not just no `origin`. The test now sets
+        // `has_any_remote = false` to reproduce the "truly remote-less"
+        // case that still emits NO_ORIGIN.
         let status = make_status(true, 0, 0);
-        let flags = repo_state_flags(&status, false, false);
+        let flags = repo_state_flags(&status, false, false, false);
         assert!(flags.contains(&"NO_ORIGIN".to_string()));
+    }
+
+    #[test]
+    fn test_repo_state_flags_no_origin_but_has_remote() {
+        // Regression test for the SSH-multi-mirror misclassification
+        // (goal 2026-06-20): a repo with no `origin` but with a
+        // configured non-origin remote (e.g. `github`, `gitlab`,
+        // `codeberg`) must NOT emit `NO_ORIGIN`.
+        let status = make_status(true, 0, 0);
+        let flags = repo_state_flags(&status, false, false, true);
+        assert!(!flags.contains(&"NO_ORIGIN".to_string()));
     }
 
     #[test]
     fn test_repo_state_flags_no_upstream() {
         let status = make_status(true, 0, 0);
-        let flags = repo_state_flags(&status, true, false);
+        let flags = repo_state_flags(&status, true, false, true);
         assert!(flags.contains(&"NO_UPSTREAM".to_string()));
     }
 
@@ -3864,9 +4203,10 @@ mod tests {
         let status = make_status(false, 5, 0);
         // STUCK_PUSH now requires an explicit recent push failure signal.
         // Without it, an AHEAD repo is just "has unpushed commits".
-        let flags = repo_state_flags_with_push_failure(&status, true, true, true);
+        let flags =
+            repo_state_flags_with_push_failure(&status, true, true, true, true);
         assert!(flags.contains(&"STUCK_PUSH".to_string()));
-        let flags_no_failure = repo_state_flags(&status, true, true);
+        let flags_no_failure = repo_state_flags(&status, true, true, true);
         assert!(!flags_no_failure.contains(&"STUCK_PUSH".to_string()));
         assert!(flags_no_failure.contains(&"AHEAD:5".to_string()));
     }
@@ -3874,14 +4214,14 @@ mod tests {
     #[test]
     fn test_repo_state_flags_stuck_pull() {
         let status = make_status(false, 0, 3);
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.contains(&"STUCK_PULL".to_string()));
     }
 
     #[test]
     fn test_repo_state_flags_multiple() {
         let status = make_status(false, 3, 2);
-        let flags = repo_state_flags(&status, true, true);
+        let flags = repo_state_flags(&status, true, true, true);
         assert!(flags.contains(&"DIRTY".to_string()));
         assert!(flags.iter().any(|f| f.starts_with("AHEAD:")));
         assert!(flags.iter().any(|f| f.starts_with("BEHIND:")));
@@ -3889,14 +4229,29 @@ mod tests {
 
     #[test]
     fn test_repo_is_concern_no_origin() {
+        // CHANGED 2026-06-20: only "no origin AND no remotes at all"
+        // is a concern. A repo with only non-origin remotes is fine.
         let status = make_status(true, 0, 0);
-        assert!(repo_is_concern(&status, false, false));
+        assert!(repo_is_concern(&status, false, false, false));
+    }
+
+    #[test]
+    fn test_repo_is_concern_no_origin_but_has_remote() {
+        // Regression test for the SSH-multi-mirror misclassification.
+        // A repo with no `origin` but with at least one other remote
+        // must NOT be a concern (provided it has a tracking upstream,
+        // which a real SSH-mirror repo has via its `main` branch
+        // tracking, e.g., `github/main`).
+        let status = make_status(true, 0, 0);
+        assert!(!repo_is_concern(&status, false, true, true));
     }
 
     #[test]
     fn test_repo_is_concern_no_upstream() {
         let status = make_status(true, 0, 0);
-        assert!(repo_is_concern(&status, true, false));
+        // `has_any_remote` is true (origin exists, just no upstream);
+        // the concern is about upstream, not origin.
+        assert!(repo_is_concern(&status, true, false, true));
     }
 
     #[test]
@@ -3906,9 +4261,19 @@ mod tests {
         // failure signal; without it, ahead is just "has unpushed
         // commits" and is a WARN, not a CONCERN.
         let status = make_status(false, 5, 0);
-        assert!(repo_is_concern_with_push_failure(&status, true, true, true));
+        assert!(repo_is_concern_with_push_failure(
+            &status,
+            true,
+            true,
+            true,
+            true
+        ));
         assert!(!repo_is_concern_with_push_failure(
-            &status, true, true, false
+            &status,
+            true,
+            true,
+            true,
+            false
         ));
     }
 
@@ -3916,53 +4281,79 @@ mod tests {
     fn test_repo_is_concern_behind() {
         let status = make_status(false, 0, 3);
         assert!(repo_is_concern_with_push_failure(
-            &status, true, true, false
+            &status,
+            true,
+            true,
+            true,
+            false
         ));
     }
 
     #[test]
-    fn test_repo_stuck_filters_require_same_signals_as_repos() {
+    fn test_repo_stuck_filters_require_dry_run() {
         let ahead = make_status(false, 5, 0);
         let behind = make_status(false, 0, 3);
-        assert!(!repo_is_stuck_push(&ahead, true, true, false));
-        assert!(repo_is_stuck_push(&ahead, true, true, true));
-        assert!(!repo_is_stuck_push(&ahead, false, true, true));
-        assert!(!repo_is_stuck_push(&ahead, true, false, true));
-        assert!(repo_is_stuck_pull(&behind, true, true));
-        assert!(!repo_is_stuck_pull(&behind, false, true));
-        assert!(!repo_is_stuck_pull(&behind, true, false));
+        assert!(!repo_is_stuck_push(&ahead, true, true, true, false));
+        assert!(repo_is_stuck_push(&ahead, true, true, true, true));
+        assert!(!repo_is_stuck_push(&ahead, false, true, true, true));
+        assert!(!repo_is_stuck_push(&ahead, true, false, true, true));
+        assert!(repo_is_stuck_pull(&behind, true, true, true));
+        assert!(!repo_is_stuck_pull(&behind, false, true, true));
+        assert!(!repo_is_stuck_pull(&behind, true, false, true));
     }
 
     #[test]
     fn test_repo_is_concern_clean_healthy() {
         let status = make_status(true, 0, 0);
         assert!(!repo_is_concern_with_push_failure(
-            &status, true, true, false
+            &status,
+            true,
+            true,
+            true,
+            false
         ));
     }
 
     #[test]
     fn test_repo_is_warn_dirty() {
         let status = make_status(false, 0, 0);
-        assert!(repo_is_warn(&status, true, true));
+        assert!(repo_is_warn(&status, true, true, true));
     }
 
     #[test]
     fn test_repo_is_warn_not_concern() {
         let status = make_status(false, 0, 0);
-        assert!(!repo_is_warn(&status, false, false));
+        // has_origin=false, has_any_remote=false → still a concern,
+        // so not a WARN.
+        assert!(!repo_is_warn(&status, false, false, false));
     }
 
     #[test]
     fn test_repo_hint_no_origin() {
+        // CHANGED 2026-06-20: with the SSH-migration fix, the
+        // `NO_ORIGIN` flag only fires for truly remote-less repos
+        // (zero configured remotes). The hint is updated to match.
         let hint = repo_hint(&["NO_ORIGIN".into()], false, false);
-        assert_eq!(hint, "set origin remote");
+        assert_eq!(hint, "no remote configured (cannot push)");
     }
 
     #[test]
     fn test_repo_hint_no_upstream() {
-        let hint = repo_hint(&["NO_UPSTREAM".into()], false, false);
+        // CHANGED 2026-06-20: the hint is context-sensitive. When
+        // `concern=true` (i.e. the repo has `origin` but the branch
+        // isn't tracking it), the original "set upstream" hint is
+        // accurate and `repair concerns --apply` will succeed. When
+        // `concern=false` (post-SSH-migration case where the repo
+        // has only non-origin remotes), the hint is informational
+        // because the daemon is already pushing successfully via
+        // explicit refspecs and the auto-repair path would fail.
+        let hint = repo_hint(&["NO_UPSTREAM".into()], false, true);
         assert_eq!(hint, "run repair-concerns --apply (set upstream)");
+        let hint = repo_hint(&["NO_UPSTREAM".into()], false, false);
+        assert_eq!(
+            hint,
+            "no tracking upstream (daemon uses explicit refspecs; not a concern)"
+        );
     }
 
     #[test]
@@ -4374,8 +4765,8 @@ mod tests {
         status.last_commit_hash = None;
         status.last_commit_msg = None;
 
-        assert!(!repo_is_warn(&status, true, true));
-        assert_eq!(repo_state_flags(&status, true, true), vec!["DIRTY"]);
+        assert!(!repo_is_warn(&status, true, true, true));
+        assert_eq!(repo_state_flags(&status, true, true, true), vec!["DIRTY"]);
     }
 
     #[test]
@@ -4484,6 +4875,7 @@ mod tests {
 
     fn test_sync_policy() -> SyncPolicy {
         SyncPolicy {
+            max_stage_batch_files: 100000,
             system_repo: String::new(),
             pulse_interval_secs: 1,
             inactivity_push_delay_secs: 5,
@@ -4639,6 +5031,8 @@ mod tests {
             repo: "/test/repo".to_string(),
             state_flags: vec!["OK".to_string()],
             branch: "main".to_string(),
+            upstream: "github/main".to_string(),
+            publish_state: PublishState::Ok,
             modified: 0,
             staged: 0,
             untracked: 0,
@@ -4649,6 +5043,9 @@ mod tests {
             last_when: "2024-01-01".to_string(),
             last_msg: "test commit".to_string(),
             last_unix: 1700000000,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
             last_push: "5m ago".to_string(),
             push_status: "OK".to_string(),
             push_error: String::new(),
@@ -4665,6 +5062,126 @@ mod tests {
         assert_eq!(row.repo, "/test/repo");
         assert_eq!(row.branch, "main");
         assert!(!row.concern);
+    }
+
+    #[test]
+    fn test_publish_cell_label_marks_missing_and_gone() {
+        assert_eq!(publish_cell_label("-", PublishState::Missing), "⚠️ none");
+        assert_eq!(
+            publish_cell_label("github/main", PublishState::Gone),
+            "⚠️ github/main (gone)"
+        );
+        assert_eq!(publish_cell_label("github/main", PublishState::Ok), "github/main");
+    }
+
+    #[test]
+    fn test_branch_upstream_missing_when_no_config() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success();
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        let (label, state) = branch_upstream(&repo, "main");
+        assert_eq!(label, "-");
+        assert_eq!(state, PublishState::Missing);
+    }
+
+    #[test]
+    fn test_branch_upstream_gone_when_remote_tracking_ref_missing() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success();
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.remote", "github"])
+            .current_dir(&repo)
+            .status()
+            .expect("remote config")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.merge", "refs/heads/main"])
+            .current_dir(&repo)
+            .status()
+            .expect("merge config")
+            .success();
+        let (label, state) = branch_upstream(&repo, "main");
+        assert_eq!(label, "github/main");
+        assert_eq!(state, PublishState::Gone);
     }
 
     /// Build a minimal RepoReportRow for activity_label testing.
@@ -4697,6 +5214,8 @@ mod tests {
             repo: "/tmp/test-activity-repo".to_string(),
             state_flags: vec![],
             branch: "main".to_string(),
+            upstream: "github/main".to_string(),
+            publish_state: PublishState::Ok,
             modified,
             staged,
             untracked: 0,
@@ -4708,6 +5227,9 @@ mod tests {
             last_msg: "test".to_string(),
             last_unix: 0,
             last_push: "5m ago".to_string(),
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
             push_status: push_status.to_string(),
             push_error: String::new(),
             concern: false,
@@ -4750,36 +5272,25 @@ mod tests {
     }
 
     #[test]
-    fn test_activity_label_dirty_recent_commit_settling() {
-        // Dirty + recent commit (within settle threshold) → "settling".
-        // Note: when in_flight is empty, settling still applies.
-        // The settle threshold is 1 minute, so 0 minutes ago is settling.
+    fn test_activity_label_dirty_recent_commit_dirty() {
+        // Dirty + recent commit → "⏳ dirty 0m".
         let row = make_activity_row("0 minutes ago", 2, 0, "OK");
         let label = activity_label(&row);
-        // Either "settling" or "stalled" is acceptable when last_when
-        // is 0 minutes; the test just ensures the function returns
-        // one of the activity states, not a bare timestamp.
         assert!(
-            label.contains("settling") || label.contains("stalled"),
-            "expected 'settling' or 'stalled', got: {}",
-            label
-        );
-        // Critically, the label must NOT be a bare timestamp like "0m".
-        assert!(
-            !label.trim().ends_with("0m") || label.contains("stalled"),
-            "label should not be a bare timestamp: {}",
+            label.contains("dirty"),
+            "expected 'dirty' in label, got: {}",
             label
         );
     }
 
     #[test]
-    fn test_activity_label_dirty_old_commit_stalled() {
-        // Dirty + old commit (8 minutes ago) + no in-flight → "stalled".
+    fn test_activity_label_dirty_old_commit_dirty() {
+        // Dirty + old commit (8 minutes ago) → "⏳ dirty 8m".
         let row = make_activity_row("8 minutes ago", 1, 0, "OK");
         let label = activity_label(&row);
         assert!(
-            label.contains("stalled"),
-            "expected 'stalled' in label, got: {}",
+            label.contains("dirty"),
+            "expected 'dirty' in label, got: {}",
             label
         );
     }
@@ -5299,7 +5810,7 @@ mod tests {
     }
 
     #[test]
-    fn test_push_failure_notification_rate_limiting() {
+    fn test_push_failure_cooldown_dedup() {
         let mut cooldowns = std::collections::HashMap::new();
         let repo = std::path::PathBuf::from("/test/repo");
         let notify_key = format!("push-fail-{}", repo.display());
@@ -5332,6 +5843,8 @@ mod tests {
             repo: "/test/repo".to_string(),
             state_flags: vec!["STUCK_PUSH".to_string()],
             branch: "main".to_string(),
+            upstream: "github/main".to_string(),
+            publish_state: PublishState::Ok,
             modified: 0,
             staged: 0,
             untracked: 0,
@@ -5342,6 +5855,9 @@ mod tests {
             last_when: "2024-01-01".to_string(),
             last_msg: "test commit".to_string(),
             last_unix: 1700000000,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
             last_push: "5m ago".to_string(),
             push_status: "STUCK".to_string(),
             push_error: "ahead=5, push failing".to_string(),
@@ -5428,7 +5944,7 @@ mod tests {
     // -------------------------------------------------------------------
 
     #[test]
-    fn build_recent_push_failure_map_returns_recent_failures() {
+    fn build_recent_push_failure_map_populated() {
         use std::time::{SystemTime, UNIX_EPOCH};
         let dir = tempfile::tempdir().unwrap();
         let policy_path = dir.path().join("dracon-sync.toml");
@@ -5462,7 +5978,7 @@ mod tests {
     }
 
     #[test]
-    fn build_recent_push_failure_map_missing_ledger_returns_none() {
+    fn build_recent_push_failure_map_missing_ledger() {
         let dir = tempfile::tempdir().unwrap();
         let policy_path = dir.path().join("dracon-sync.toml");
         let ledger_path = dir.path().join("missing-ledger.jsonl");

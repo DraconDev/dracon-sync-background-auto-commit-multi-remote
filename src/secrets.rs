@@ -157,3 +157,11 @@ pub(crate) fn sync_secrets_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".dracon/utilities/sync/secrets")
 }
+
+/// Returns the legacy PAT directory used by git credential helpers:
+/// `~/.dracon/secrets/pat`.
+pub(crate) fn legacy_pat_secrets_dir() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".dracon/secrets/pat")
+}

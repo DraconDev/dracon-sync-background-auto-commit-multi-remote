@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use dracon_git::GitService;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -27,14 +27,247 @@ macro_rules! veprintln {
 
 use crate::exclude::{excluded_dir_names_set, has_sync_relevant_dirty_entries};
 use crate::git::{
-    discover_git_repos, git_diff_head_files, has_both_main_and_master, has_origin_remote,
-    has_tracking_upstream, is_repo_ready, repair_broken_tracking, repo_diff_entries,
+    count_unpushed_vs_mirrors, current_branch, discover_git_repos, git_diff_head_files,
+    has_both_main_and_master, has_origin_remote, has_tracking_upstream, is_repo_ready,
+    is_safe_branch_name, repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
 use crate::sync::{sync_repo, sync_repo_with_ahead_since, SyncOutcome};
 
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
+
+/// Count unpushed commits by comparing local HEAD to configured remote HEADs.
+/// This catches repos that have remotes but no upstream tracking branch and no
+/// remote-tracking refs yet (e.g. a repo that just received mirror remotes).
+pub(crate) fn count_unpushed_vs_configured_remotes(
+    repo: &Path,
+    remote_names: &[String],
+) -> u64 {
+    if remote_names.is_empty() {
+        return 0;
+    }
+    let branch = crate::git::current_branch(repo).unwrap_or_else(|| "main".to_string());
+    let local_head = crate::policy::std_git_command()
+        .args(["rev-parse", "HEAD"])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        });
+    let Some(local_head) = local_head else {
+        return 0;
+    };
+
+    for remote in remote_names {
+        let output = crate::policy::std_git_command()
+            .args(["ls-remote", remote, &format!("refs/heads/{branch}")])
+            .current_dir(repo)
+            .output();
+        let Ok(output) = output else {
+            return 1;
+        };
+        if !output.status.success() {
+            return 1;
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let Some(remote_hash) = stdout.lines().next().and_then(|line| line.split_whitespace().next()) else {
+            return 1;
+        };
+        if remote_hash != local_head {
+            return 1;
+        }
+    }
+    0
+}
+
+/// Configure standard mirror remotes only when the repo has no remotes yet.
+pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPolicy) -> bool {
+    let has_any_remote = has_origin_remote(repo)
+        || !policy.remotes.is_empty()
+            && policy.remotes.iter().any(|r| {
+                crate::git::multi_remote::get_remote_url(repo, &r.name).is_some()
+            });
+    if !has_any_remote && !policy.remotes.is_empty() {
+        let repo_name = repo
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        eprintln!(
+            "🔧 {} configuring standard mirror remotes",
+            repo.display()
+        );
+        crate::git::multi_remote::configure_all_remotes(repo, &policy.remotes, &repo_name);
+        true
+    } else {
+        false
+    }
+}
+
+/// Return the primary remote VS Code should use for Publish Branch.
+///
+/// `origin` wins when present for backwards compatibility. For mirror-only
+/// repos, `github` is the conventional primary mirror because VS Code expects a
+/// single publish remote and the daemon still pushes explicitly to all mirrors.
+fn primary_publish_remote(repo: &Path, policy: &SyncPolicy) -> Option<String> {
+    let remotes = crate::git::multi_remote::list_remotes(repo);
+    let remote_set: HashSet<&str> = remotes.iter().map(String::as_str).collect();
+    if remote_set.contains("origin") {
+        return Some("origin".to_string());
+    }
+    if remote_set.contains("github") {
+        return Some("github".to_string());
+    }
+    policy
+        .remotes
+        .iter()
+        .find(|r| remote_set.contains(r.name.as_str()))
+        .map(|r| r.name.clone())
+}
+
+/// Configure `branch.<current>.remote` and `branch.<current>.merge` when the
+/// current branch has no upstream. This removes VS Code's "Publish Branch"
+/// prompt for mirror-only repos while preserving daemon explicit mirror pushes.
+pub(crate) fn configure_publish_upstream_if_missing(
+    repo: &Path,
+    policy: &SyncPolicy,
+) -> Result<bool> {
+    if has_tracking_upstream(repo) {
+        return Ok(false);
+    }
+    let Some(branch) = current_branch(repo) else {
+        return Ok(false);
+    };
+    if !is_safe_branch_name(&branch) {
+        return Ok(false);
+    }
+    let Some(remote) = primary_publish_remote(repo, policy) else {
+        return Ok(false);
+    };
+    let remote_key = format!("branch.{branch}.remote");
+    let merge_key = format!("branch.{branch}.merge");
+    crate::policy::std_git_command()
+        .args(["config", &remote_key, &remote])
+        .current_dir(repo)
+        .status()
+        .with_context(|| format!("failed to set {remote_key} in {}", repo.display()))?;
+    crate::policy::std_git_command()
+        .args(["config", &merge_key, &format!("refs/heads/{branch}")])
+        .current_dir(repo)
+        .status()
+        .with_context(|| format!("failed to set {merge_key} in {}", repo.display()))?;
+    eprintln!(
+        "🔧 {} configured publish upstream for {branch} on {remote}",
+        repo.display()
+    );
+    Ok(true)
+}
+
+/// Refresh the configured publish upstream after a successful push.
+///
+/// `configure_publish_upstream_if_missing` writes the branch config so VS Code
+/// stops showing "Publish Branch" immediately. Once the branch exists on the
+/// primary remote, this fetches that remote-tracking ref and points the local
+/// upstream to it so `git status --branch` is clean rather than "gone".
+///
+/// We skip the refresh when the configured publish upstream is `origin` and
+/// the repo also has SSH mirrors (the legacy pattern seen in `dracon-platform`):
+/// fetching from an HTTPS `origin` every daemon cycle is slow and unreliable,
+/// while the operator has already configured SSH mirror pushes for the actual
+/// sync. The publish upstream config itself is still useful (VS Code stops
+/// prompting "Publish Branch"), but pointing `@{u}` at an SSH mirror's ref
+/// adds no value when the operator chose `origin` as publish.
+pub(crate) async fn refresh_publish_upstream(repo: &Path, policy: &SyncPolicy) -> Result<bool> {
+    if !has_tracking_upstream(repo) {
+        return Ok(false);
+    }
+    let Some(branch) = current_branch(repo) else {
+        return Ok(false);
+    };
+    if !is_safe_branch_name(&branch) {
+        return Ok(false);
+    }
+    let remote = configured_branch_remote(repo, &branch)
+        .or_else(|| primary_publish_remote(repo, policy))
+        .unwrap_or_default();
+    if remote.is_empty() {
+        return Ok(false);
+    }
+    if remote == "origin" && has_ssh_mirrors(repo) {
+        return Ok(false);
+    }
+    let refspec = format!("{branch}:refs/remotes/{remote}/{branch}");
+    let fetch = run_git_with_timeout(
+        repo,
+        &["fetch", "--prune", &remote, &refspec],
+        30,
+        &format!("fetch-publish-upstream-{remote}"),
+    )
+    .await;
+    if let Err(e) = fetch {
+        if debug_enabled() {
+            eprintln!(
+                "🐛 {} could not fetch publish upstream {remote}/{branch}: {}",
+                repo.display(),
+                e
+            );
+        }
+        return Ok(false);
+    }
+    crate::git::set_upstream_to_remote_branch(repo, &remote, &branch)?;
+    Ok(true)
+}
+
+fn has_ssh_mirrors(repo: &Path) -> bool {
+    crate::git::multi_remote::list_remotes(repo)
+        .iter()
+        .any(|name| name == "github" || name == "gitlab" || name == "codeberg")
+}
+
+fn configured_branch_remote(repo: &Path, branch: &str) -> Option<String> {
+    if !is_safe_branch_name(branch) {
+        return None;
+    }
+    let remote_key = format!("branch.{branch}.remote");
+    let merge_key = format!("branch.{branch}.merge");
+    let remote = crate::policy::std_git_command()
+        .args(["config", "--get", &remote_key])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        })?;
+    let merge = crate::policy::std_git_command()
+        .args(["config", "--get", &merge_key])
+        .current_dir(repo)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        })?;
+    let Some(remote_branch) = merge.strip_prefix("refs/heads/") else {
+        return None;
+    };
+    if is_safe_branch_name(remote_branch) {
+        Some(remote)
+    } else {
+        None
+    }
+}
 
 fn stage_cooldown_remaining(
     stage_cooldowns: &mut HashMap<PathBuf, Instant>,
@@ -83,6 +316,407 @@ fn default_push_max_retries() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::policy::{AuthType, RemoteConfig};
+
+    fn git_config_value(repo: &Path, key: &str) -> String {
+        String::from_utf8_lossy(
+            &crate::git::git_cmd()
+                .args(["config", "--get", key])
+                .current_dir(repo)
+                .output()
+                .expect("git config")
+                .stdout,
+        )
+        .trim()
+        .to_string()
+    }
+
+    #[test]
+    fn test_configure_standard_remotes_if_missing_adds_remotes() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        let mut policy = crate::policy::test_sync_policy();
+        policy.remotes = vec![RemoteConfig {
+            name: "github".to_string(),
+            push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+            auto_create: false,
+            auto_create_account: "DraconDev".to_string(),
+            auth_type: AuthType::GitHub,
+            priority: 50,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: Default::default(),
+            force_push_when_behind: false,
+        }];
+
+        assert!(configure_standard_remotes_if_missing(&repo, &policy));
+        assert_eq!(
+            crate::git::multi_remote::get_remote_url(&repo, "github"),
+            Some("git@github.com:DraconDev/test-repo.git".to_string())
+        );
+    }
+
+    #[test]
+    fn test_configure_standard_remotes_if_missing_preserves_existing_remote() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "origin", "git@github.com:Other/test-repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success();
+        let mut policy = crate::policy::test_sync_policy();
+        policy.remotes = vec![RemoteConfig {
+            name: "github".to_string(),
+            push_url: "git@github.com:DraconDev/{repo}.git".to_string(),
+            auto_create: false,
+            auto_create_account: "DraconDev".to_string(),
+            auth_type: AuthType::GitHub,
+            priority: 50,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: Default::default(),
+            force_push_when_behind: false,
+        }];
+
+        assert!(!configure_standard_remotes_if_missing(&repo, &policy));
+        assert_eq!(
+            crate::git::multi_remote::get_remote_url(&repo, "origin"),
+            Some("git@github.com:Other/test-repo.git".to_string())
+        );
+        assert_eq!(
+            crate::git::multi_remote::get_remote_url(&repo, "github"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_configure_publish_upstream_if_missing_adds_github_upstream() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success();
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success();
+
+        let policy = crate::policy::test_sync_policy();
+        assert!(configure_publish_upstream_if_missing(&repo, &policy).expect("configure upstream"));
+        assert_eq!(git_config_value(&repo, "branch.main.remote"), "github");
+        assert_eq!(
+            git_config_value(&repo, "branch.main.merge"),
+            "refs/heads/main"
+        );
+        assert!(!configure_publish_upstream_if_missing(&repo, &policy).expect("already configured"));
+    }
+
+    #[test]
+    fn test_configure_publish_upstream_if_missing_preserves_existing_upstream() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.remote", "origin"])
+            .current_dir(&repo)
+            .status()
+            .expect("remote config")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.merge", "refs/heads/main"])
+            .current_dir(&repo)
+            .status()
+            .expect("merge config")
+            .success();
+
+        let policy = crate::policy::test_sync_policy();
+        assert!(!configure_publish_upstream_if_missing(&repo, &policy).expect("preserve upstream"));
+        assert_eq!(git_config_value(&repo, "branch.main.remote"), "origin");
+    }
+
+    #[tokio::test]
+    async fn test_refresh_publish_upstream_fetches_primary_remote_ref() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        let bare = tmp.path().join("remote.git");
+        crate::git::git_cmd()
+            .args(["init", "-q", "--bare"])
+            .arg(&bare)
+            .status()
+            .expect("bare init")
+            .success();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success();
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "github"])
+            .arg(&bare)
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.remote", "github"])
+            .current_dir(&repo)
+            .status()
+            .expect("remote config")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.merge", "refs/heads/main"])
+            .current_dir(&repo)
+            .status()
+            .expect("merge config")
+            .success();
+        crate::git::git_cmd()
+            .args(["push", "github", "main"])
+            .current_dir(&repo)
+            .status()
+            .expect("initial push")
+            .success();
+        crate::git::git_cmd()
+            .args(["update-ref", "-d", "refs/remotes/github/main"])
+            .current_dir(&repo)
+            .status()
+            .ok();
+
+        let policy = crate::policy::test_sync_policy();
+        assert!(refresh_publish_upstream(&repo, &policy).await.expect("refresh upstream"));
+        let upstream = crate::git::git_cmd()
+            .args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
+            .current_dir(&repo)
+            .output()
+            .expect("upstream")
+            .stdout;
+        assert_eq!(String::from_utf8_lossy(&upstream).trim(), "github/main");
+    }
+
+    #[tokio::test]
+    async fn test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success();
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "origin", "https://github.com/DraconDev/test-repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add origin")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add github")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.remote", "origin"])
+            .current_dir(&repo)
+            .status()
+            .expect("remote config")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "branch.main.merge", "refs/heads/main"])
+            .current_dir(&repo)
+            .status()
+            .expect("merge config")
+            .success();
+
+        let policy = crate::policy::test_sync_policy();
+        // Should skip cleanly (return false) without attempting HTTPS fetch.
+        assert!(!refresh_publish_upstream(&repo, &policy).await.expect("skip origin"));
+    }
+
+    #[test]
+    fn test_count_unpushed_vs_configured_remotes_detects_new_remote_head() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let bare = tmp.path().join("remote.git");
+        let repo = tmp.path().join("work");
+        let bare_path = bare.to_str().expect("bare path");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", bare_path])
+            .status()
+            .expect("git init --bare")
+            .success();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .expect("git init work")
+            .success();
+        std::fs::write(repo.join("file.txt"), "hello\n").expect("write file");
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("git config email")
+            .success();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "Test User"])
+            .current_dir(&repo)
+            .status()
+            .expect("git config name")
+            .success();
+        crate::git::git_cmd()
+            .args(["add", "file.txt"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success();
+        crate::git::git_cmd()
+            .args(["remote", "add", "github", bare_path])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success();
+
+        let remotes = vec!["github".to_string()];
+        assert_eq!(
+            count_unpushed_vs_configured_remotes(&repo, &remotes),
+            1,
+            "local HEAD should be unpushed before the first push"
+        );
+        crate::git::git_cmd()
+            .args(["push", "--no-verify", "-q", "github", "master:refs/heads/master"])
+            .current_dir(&repo)
+            .status()
+            .expect("git push")
+            .success();
+        assert_eq!(
+            count_unpushed_vs_configured_remotes(&repo, &remotes),
+            0,
+            "local HEAD should match remote branch after push"
+        );
+    }
 
     #[test]
     fn test_stuck_repo_entry_serialization() {
@@ -254,7 +888,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_push_failure_increments_consecutive_failures() {
+    fn test_record_push_failure_increments_counter() {
         // Use a temp state dir so this test does NOT pollute the
         // real stuck-push ledger at
         // ~/.local/state/dracon/dracon-sync-stuck-push-repos.json.
@@ -288,7 +922,7 @@ mod tests {
 
     #[test]
     fn test_record_push_success_clears_entry() {
-        // See `test_record_push_failure_increments_consecutive_failures`
+        // See `test_record_push_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBpR29oN2dGRHpLVG93UVRtR01ScnpyK3dURVF4NS9SREd5bm9hVFc0OFdFCm53RTBVdHQxdzBSd1d5bTN6OHVTWGIybFVxWjd5eXc5Smd4YTJ5dmtLWHMKLT4gWDI1NTE5IHVEVEhvTmJpUVp1SDA2ZXMwOFo4eG5UZWhuVlo1dEpPbWJDelBpbHJIeTgKUnBjRGpXdEtzenR6ZnpCdURlTHZqMTlza2M0aTRMYXQ1YnNJTk1DaUd3UQotPiBYMjU1MTkgR01WWXlYZ3Y5WkFnOERrRFpvZGpzNDM0RWJFZ0FyY1pkMGN4ZXB2ZzRIYwoxZ0RYZytZSkVvdjZHb1VxMHV1OElvb2w5THY3c284V2pjOGNnaVNQb2t3Ci0+IFgyNTUxOSB1UWcraFNXdWw5RGY3TDZ1WndCQzZZTi9zVmNiSGl3NmE3cFFHbHZFR1RNCmN2Zkd3VzdiSXBkMmhrSCtWMFhKcWJGUit6emhqaTd0NGNVaUN2dFZaUWcKLT4gWDI1NTE5IDdHY1Z6QWVXMW10R0NvV1lvMk5kaXo5U3RFS25lS3FGRG5yeXN1V3dOVGsKZmEvVVZQdnJ1azFEaHVGRnphbWUzdklhcGVpcnpUNHFXaERTcG5CSzVDbwotPiAoNF58VTEtZ3JlYXNlIGxJQ1hTTXkgJHEgTQpKN1dOb0laUHl1d01BU2VHbVYremcxL1pzam5uZ0t4THkvdEFDR0kweGhnNDFoenFTeEZUcHFNCi0tLSB5OUhQSGZlK1VXclRqbWdiZVBYRDJrS1IvY3NTbXczcmRoaU52Umw5N3NzCj/aK0ntHuvwUkgJw+IQoVBPVJASljLDE3uww4CzGLc6qn/MA7IZbpIUQIEZW130K6X2yyqgzQ3WIiwMAST5uFf5Ag==]`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
@@ -309,8 +943,8 @@ mod tests {
     }
 
     #[test]
-    fn test_record_push_failure_first_call_sets_stuck_since() {
-        // See `test_record_push_failure_increments_consecutive_failures`
+    fn test_record_push_failure_returns_repo_state() {
+        // See `test_record_push_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA1bXlHRU1mdjgzSnJSTWpDSjIvYVBLQ3R1R3lMTDllVmNtZ1ViVlU5TFhVCndBa0s0UXlVNzRjUndmSVRTMzN2ZmNFU3RkcEMxSEZlUjJJZzREK0FsTTAKLT4gWDI1NTE5IEVYbVJFbjNlNjFrN0gwdTJ1N1l4dG5PL0N2UFJMMVBiT1FhMkpYVTRxeG8KWHdSRWY3U1hVWUo2NHFON1o2WnFFSm92U29QaDJUc294L0dDOTdnbmdmSQotPiBYMjU1MTkgNVpBVW1BSUdkUDF1N1hkQUNwSHNHakJ4NW5rdDRpRTIyQlNFR1hrNm5tOApVY0pseWR3WXZ4NGJ5RDA1eTdLSW9MM2ZoQmdZd3p0cFlZNkI1Rm94Y1RRCi0+IFgyNTUxOSBGMUZXM0x3Lythcmwzb0FuSjRkMWZCcjlHbHc5S0VhSVpCa1JEWURYcFdzCjZDRGFldk1SRnJvcGp5MlBCM0l2OTZ5UmR6czJ1V1RON250RDBWMStMcUEKLT4gWDI1NTE5IHlnZGE5amZKbVVrWWRoZXBaTzZQN2JOd245VW1VWkVBVnRqU1lSbk82bWsKcCswYXRuMHEwVXE2Q3FqcHJxbzlSalU4Qm9OUHNaQzVQTEMwTGZUMnRLcwotPiB0NEctZ3JlYXNlCmlLMXZjR0tkU01KLytYSGp2TTdDcTcyQnJOc0M2TzFWVDZ6dlprMlV3aWtMRFJTK1AvdGlXK0xLCi0tLSBBeTA4S3VLQzh1ZERaL0wvVDRpaUFyNXF1MFh1dlNZRnE0WmpOL3k4bndvCjBF2hEU1d+fE8vRM+6Gcz+22zj64LeHthNoCxuxGZrAPy41PicyAu4JFMc/XJTT5qjRlOdg6SwQcC2D6g+JPrTyjw==]`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
@@ -1488,6 +2122,14 @@ pub(crate) async fn run_daemon(
             }
 
             let now = Instant::now();
+
+            // CHANGED 2026-06-20: newly discovered repos may be empty or may
+            // already have local commits. In both cases, if they have no remotes
+            // yet, configure the standard mirror remotes before any readiness
+            // or push decision. This fixes the `git init`-then-no-remotes gap
+            // without overwriting operator-configured remotes.
+            configure_standard_remotes_if_missing(&repo, &policy);
+
             if !is_repo_ready(&repo) {
                 if debug_enabled() {
                     eprintln!(
@@ -1496,6 +2138,13 @@ pub(crate) async fn run_daemon(
                     );
                 }
                 continue;
+            }
+            if let Err(e) = configure_publish_upstream_if_missing(&repo, &policy) {
+                eprintln!(
+                    "⚠️ failed to configure publish upstream for {}: {}",
+                    repo.display(),
+                    e
+                );
             }
             // Skip repos mid-checkout (clone's checkout phase holds index.lock).
             // Without this guard, the daemon can interfere with git checkout by
@@ -1686,7 +2335,7 @@ pub(crate) async fn run_daemon(
                     continue;
                 }
             };
-            let status = match svc.get_status().await {
+            let mut status = match svc.get_status().await {
                 Ok(status) => status,
                 Err(e) => {
                     eprintln!("⚠️ {} status_failed: {}", repo.display(), e);
@@ -1697,6 +2346,33 @@ pub(crate) async fn run_daemon(
             // Cache remote checks — used in both fast and slow paths
             let has_origin = has_origin_remote(&repo);
             let has_upstream = has_tracking_upstream(&repo);
+
+            // CHANGED 2026-06-20: for repos without an upstream tracking branch
+            // (mirror-only repos like `.dracon`), `git status` reports `ahead = 0`
+            // even when there ARE unpushed local commits. Override `status.ahead`
+            // from mirror tracking refs so the fast-path dispatch and the
+            // `has_local_or_pending_work` check detect the real ahead count.
+            if !has_upstream && status.ahead == 0 {
+                let unpushed = count_unpushed_vs_mirrors(&repo);
+                let unpushed = if unpushed == 0 {
+                    count_unpushed_vs_configured_remotes(
+                        &repo,
+                        &policy.remotes.iter().map(|r| r.name.clone()).collect::<Vec<_>>(),
+                    )
+                } else {
+                    unpushed
+                };
+                if unpushed > 0 {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} ahead override: status.ahead=0 → {} (no upstream)",
+                            repo.display(),
+                            unpushed
+                        );
+                    }
+                    status.ahead = unpushed as usize;
+                }
+            }
 
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Only do detailed diff analysis when the repo actually has changes.
@@ -1792,13 +2468,19 @@ pub(crate) async fn run_daemon(
                 (dirty, filtered)
             };
 
+            // FIX (2026-06-19): include untracked_files in the fingerprint so
+            // untracked file additions don't trigger the fingerprint stability
+            // wait. Untracked file additions are atomic (new files appear all
+            // at once), so they don't need the 5s stability wait that tracked
+            // file edits need to avoid committing half-written files.
             let fingerprint = format!(
-                "{}:{}:{}:{}:{}",
+                "{}:{}:{}:{}:{}:{}",
                 status.branch,
                 effective_dirty as u8,
                 status.staged_files,
                 status.ahead,
-                status.behind
+                status.behind,
+                status.untracked_files
             );
             let Some(entry) = activity.get_mut(&repo) else {
                 activity.insert(
@@ -1840,84 +2522,21 @@ pub(crate) async fn run_daemon(
                 entry.fingerprint = fingerprint;
                 entry.changed_at = now;
                 entry.failure_count = 0;
-                // Don't skip if the repo has been dirty for > 5s —
-                // sync it regardless of fingerprint changes.
-                const MAX_DIRTY_DELAY: Duration = Duration::from_secs(5);
-                let dirty_long_enough = entry
-                    .dirty_since
-                    .is_some_and(|since| now.duration_since(since) >= MAX_DIRTY_DELAY);
-                if !dirty_long_enough {
-                    continue;
-                }
             }
-            if now.duration_since(entry.changed_at) < inactivity_delay {
-                // Same check for the stable-fingerprint case:
-                // allow sync if dirty for > 5s even if fingerprint is stable.
-                const MAX_DIRTY_DELAY: Duration = Duration::from_secs(5);
-                let dirty_long_enough = entry
-                    .dirty_since
-                    .is_some_and(|since| now.duration_since(since) >= MAX_DIRTY_DELAY);
-                if !dirty_long_enough {
-                    continue;
-                }
-            }
-            // ── Settling max-delay ──────────────────────────
-            // The user requested that the daemon "should be very
-            // actively committing" so that stale dirty state from
-            // previous sessions is drained promptly. The 5s
-            // fingerprint-stability wait above is good for
-            // actively-edited repos, but for repos that have
-            // been dirty continuously for > settling_max_delay_secs
-            // (default 60s), the daemon commits REGARDLESS of
-            // fingerprint stability. This prevents the
-            // "⏸ stalled Xm" pileup the operator was seeing.
-            //
-            // Action is configurable via policy.dirty_max_age_action
-            // (`Commit` | `Warn` | `Ignore`). Per-repo override
-            // via `RepoPolicyOverride.settling_max_delay_secs` and
-            // `RepoPolicyOverride.dirty_max_age_action`.
-            let repo_override_for_dispatch = crate::policy::load_repo_override(&repo);
-            let effective_max_delay = repo_override_for_dispatch
-                .settling_max_delay_secs
-                .unwrap_or(policy.settling_max_delay_secs);
-            let effective_max_age_action = repo_override_for_dispatch
-                .dirty_max_age_action
-                .unwrap_or(policy.dirty_max_age_action);
-            if effective_max_delay > 0 {
-                if let Some(dirty_since) = entry.dirty_since {
-                    let dirty_age = now.duration_since(dirty_since);
-                    if dirty_age >= Duration::from_secs(effective_max_delay) {
-                        match effective_max_age_action {
-                            crate::policy::DirtyMaxAgeAction::Commit => {
-                                // Pass through to dispatch. We
-                                // don't bypass the in_flight /
-                                // failures checks below — we
-                                // just don't skip on the
-                                // fingerprint gate.
-                                if debug_enabled() {
-                                    eprintln!(
-                                        "⏰ {} max-age commit ({}s ≥ {}s, fingerprint may be changing)",
-                                        repo.display(),
-                                        dirty_age.as_secs(),
-                                        effective_max_delay
-                                    );
-                                }
-                            }
-                            crate::policy::DirtyMaxAgeAction::Warn => {
-                                eprintln!(
-                                    "⚠️ {} dirty for {}s (≥ {}s, fingerprint changing) — operator action required",
-                                    repo.display(),
-                                    dirty_age.as_secs(),
-                                    effective_max_delay
-                                );
-                                continue;
-                            }
-                            crate::policy::DirtyMaxAgeAction::Ignore => {
-                                continue;
-                            }
-                        }
-                    }
-                }
+
+            // Wait `inactivity_push_delay_secs` after the last
+            // fingerprint change before committing, so rapid edits
+            // are batched into one commit. Never wait more than 5s
+            // since the repo first became dirty — this ensures
+            // continuous editing (e.g. a build process) still gets
+            // committed at a steady cadence.
+            const MAX_DIRTY_DELAY: Duration = Duration::from_secs(5);
+            let enough_time = entry.dirty_since.is_some_and(|since| {
+                now.duration_since(since) >= MAX_DIRTY_DELAY
+            }) || now.duration_since(entry.changed_at) >= inactivity_delay;
+
+            if !enough_time {
+                continue;
             }
 
             // MAX_FAILURES: per-cycle retry cap for transient errors.

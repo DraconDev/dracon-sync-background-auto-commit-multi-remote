@@ -73,7 +73,7 @@ name = "test""#;
     }
 
     #[test]
-    fn test_extract_version_from_cargo_ignore_workspace_without_version() {
+    fn test_extract_version_from_cargo_ignorefile() {
         let content = r#"[workspace]
 members = ["crate1", "crate2"]
 

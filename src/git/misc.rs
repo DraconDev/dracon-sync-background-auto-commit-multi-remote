@@ -11,6 +11,15 @@ pub(crate) fn load_secret(env_name: &str) -> Option<String> {
     crate::secrets::load_secret(env_name, &crate::secrets::sync_secrets_dir())
 }
 
+/// Load a secret from sync secrets first, then the legacy PAT directory.
+/// Codeberg auto-create historically stored tokens under `~/.dracon/secrets/pat`;
+/// keeping this fallback avoids blocking mirror setup for new repos.
+pub(crate) fn load_secret_or_legacy_pat(env_name: &str) -> Option<String> {
+    load_secret(env_name).or_else(|| {
+        crate::secrets::load_secret(env_name, &crate::secrets::legacy_pat_secrets_dir())
+    })
+}
+
 /// Build a `gh` CLI command with deterministic GitHub token wiring.
 ///
 /// `GH_TOKEN` is loaded from the environment or the sync secrets directory and

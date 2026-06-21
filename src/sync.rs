@@ -18,6 +18,7 @@ use crate::git::multi_remote::push_mirror_remotes;
 use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
+    untracked_entries,
     is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress, is_repo_ready,
     prune_other_default_branch, push_with_retries, restore_paths, run_git_capture_output,
     run_git_with_timeout, unstage_excluded_paths, unstage_oversized_paths,
@@ -630,6 +631,27 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
                 );
             }
         }
+        // CHANGED 2026-06-20: when both libgit2 and CLI diff are empty
+        // but the repo has untracked files (e.g. .dracon/data/keys/*.pub),
+        // collect untracked entries so the auto-commit block below stages
+        // and commits them. Without this, a repo with ONLY untracked
+        // changes (no tracked modifications) enters the auto-commit block
+        // but finds `entries` empty, skips `stage_commit_and_push`, and
+        // returns `Synced` without ever committing the untracked file.
+        if entries.is_empty() {
+            let ut = untracked_entries(repo).await.unwrap_or_default();
+            if !ut.is_empty() {
+                status.is_clean = false;
+                entries = ut;
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 {} untracked entries={} => including for auto-commit",
+                        repo.display(),
+                        entries.len(),
+                    );
+                }
+            }
+        }
     }
 
     Ok(DiffResult {
@@ -1084,6 +1106,7 @@ async fn run_release_pipeline_if_bumped(repo: &Path, policy: &SyncPolicy, versio
 async fn push_background(
     repo: &std::path::Path,
     policy: &SyncPolicy,
+    has_origin: bool,
     mut remote_failures: Option<&mut HashMap<String, usize>>,
 ) -> Result<bool> {
     // Scale the push idle timeout with the local ahead count. A 60s
@@ -1106,23 +1129,26 @@ async fn push_background(
             ahead_count
         );
     }
-    // Push to origin
-    match push_with_retries(
-        repo,
-        scaled_timeout,
-        policy.push_retries,
-        "push",
-    )
-    .await
-    {
-        Ok(()) => {}
-        Err(e) => {
-            eprintln!(
-                "⚠️ background push to origin failed for {}: {}",
-                repo.display(),
-                e
-            );
-            return Ok(false);
+    // Push to origin (if the repo has one — mirror-only repos like .dracon
+    // skip this and go straight to mirror remotes)
+    if has_origin {
+        match push_with_retries(
+            repo,
+            scaled_timeout,
+            policy.push_retries,
+            "push",
+        )
+        .await
+        {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!(
+                    "⚠️ background push to origin failed for {}: {}",
+                    repo.display(),
+                    e
+                );
+                return Ok(false);
+            }
         }
     }
 
@@ -2168,6 +2194,22 @@ async fn stage_commit_and_push(
         .map(|e| e.path.to_string_lossy().to_string())
         .collect();
 
+    // FIX (2026-06-19, goal mqli43u6-tg3lcf): limit the number of files
+    // staged in a single commit batch to avoid lock contention and large
+    // commit overhead. When a repo has more untracked files than the
+    // batch limit, the daemon commits them in multiple smaller batches.
+    let max_batch = policy.max_stage_batch_files;
+    let stage_paths: Vec<String> = if stage_paths.len() > max_batch {
+        eprintln!(
+            "📦 batching {} files into chunks of {}",
+            stage_paths.len(),
+            max_batch
+        );
+        stage_paths.into_iter().take(max_batch).collect()
+    } else {
+        stage_paths
+    };
+
     let (existing, missing): (Vec<_>, Vec<_>) =
         stage_paths.into_iter().partition(|p| repo.join(p).exists());
 
@@ -2275,14 +2317,31 @@ async fn stage_commit_and_push(
 
     restore_excluded_paths(ctx, to_restore).await?;
 
-    if policy.auto_push && has_origin {
+    if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
         // Push synchronously so mirror failures can be tracked in
         // `ctx.remote_failures` (the caller passes a `&mut HashMap`).
         // The `tokio::spawn` fire-and-forget pattern was removed because
         // it bypassed the failure-tracking needed by callers like
-        // `test_sync_repo_mirror_failure_tracks_remote_failures`.
-        match push_background(repo, policy, ctx.remote_failures.as_deref_mut()).await {
+        // `test_sync_repo_mirror_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA4bHNsaDJTNlRybHV2ajNZeCtNbzJoNXNKWkVBaVAwTTQ1Z0ZscXRHSDBRClJEdUJONitmdVpERjhyWE5Nak1GVVJyYlU2MnMzZDBMOGtpaTZpN1A3Z28KLT4gWDI1NTE5IHk4SVhDUWxiM0Rlb0RKb2pkVWU1RTVLYjVhOWJvemlqWXlEN0JsY3dkekUKTnQxQXlTeFhXeHJsZ010U0dGQ1FidjRYUG1jeFBFSmpQZXloQW5RMUJROAotPiBYMjU1MTkgbFhYT0x2cFE1dzB6K0x2dTFiVUJWTjJ3NHI4S2NyZEFmU2ZlNXFaS2NoZwp3M2NIWXBqWDlLaXY0cU5qN1VzMXZGcUNxdTUxOGxBaUp3d1FnSjRzRHNFCi0+IFgyNTUxOSA5QjVDNTdZWWRlN1BidDMzUUJCY3RtY09HYnkxRmpJaVNpQnRyOFo5NTA4CjBSTVBJTVpFcURib1hVQ0pxMmVSWEROV1NLcFo0YXJWbXZiQmsyRVZDUkkKLT4gWDI1NTE5IGRvMTYyQ2F5am5OTm5QUitoWHlQQUkxMVVKc25SSnhVSTVtTTZPcGtjbmcKbEJTZDEvTDI1c01waGY4Vnd4aDdoNFRVRGRtMzlsS3VRMzhVVC9kWW0xNAotPiA2RX4tZ3JlYXNlIF4kLDtWJApPVWFyTmhLQ2RjM09XNU1qNXV3OGVBZFlqK3VFVFZFUkFRMXFhY01ITjRydDgwTDVYcjVKMU5NUDlvSXRvajBsClZZcUo5WUFvR0hELzBQR3JaYkFzM0ZrTHRCaTcyclZEUTAxVU04cXFXQXZENXdwVTY5dWxHb2pxVXpPKwotLS0gK0Ztam5zY0FYeE9WTVFqOVh1VEl3UjNZSUx3TGVNU3JxZlNIZXg4V3ZVNAqPpl3vrjZOIFVT3wonvzSsHpNG+32mNdocHzYsX5MzErQl+21wdpqd2tgosG54/HbIdgOTh3zxu+g=]`.
+        match push_background(repo, policy, has_origin, ctx.remote_failures.as_deref_mut()).await {
             Ok(true) => {
+                if let Err(e) = crate::daemon::refresh_publish_upstream(repo, policy).await {
+                    // The publish upstream config is already set by
+                    // `configure_publish_upstream_if_missing` and surfaces
+                    // correctly in the PUBLISH column. A failed refresh
+                    // only means `git rev-parse @{u}` still resolves
+                    // through the configured merge key, not via a fetched
+                    // remote-tracking ref. That's a transient state that
+                    // resolves on the next successful push, so log it at
+                    // debug to avoid spamming warnings on every cycle.
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 refresh publish upstream transient for {}: {}",
+                            repo.display(),
+                            e
+                        );
+                    }
+                }
                 crate::daemon::record_push_success(repo);
             }
             Ok(false) => {
@@ -2600,8 +2659,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
             {
                 return Ok(outcome);
             }
-        } else if policy.auto_push && !has_origin {
-            eprintln!("ℹ️ skip push for {} (no origin remote)", repo.display());
+        } else if policy.auto_push && !has_origin && policy.remotes.is_empty() {
+            eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", repo.display());
         }
 
         return Ok(SyncOutcome::Synced);
@@ -2619,12 +2678,12 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     let current_status = svc.get_status().await?;
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
     let should_push = current_status.ahead > 0 || !branch_has_upstream;
-    if ctx.policy.auto_push && should_push && ctx.has_origin {
+    if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
         // (fire-and-forget), which made the failure tracking unreachable
-        // for callers like the test `test_sync_repo_mirror_failure_tracks_remote_failures`.
-        match push_background(ctx.repo, ctx.policy, ctx.remote_failures.as_deref_mut()).await {
+        // for callers like the test `test_sync_repo_mirror_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBEN0VOVnZ3NmtJakJ3R3JVK09mZzdCN0wveFVMcFo3SUtBZ3F0TU5XTUJJCnlTbTRCdmFmV1dQRHFtYmlnZWt1aDNod0pUUFFMZWN0RGJrT0JFaWVTODAKLT4gWDI1NTE5IDVvbWxWajZFcHdQMVR4cDZLYVZqNU04bGhXQVZEZzdoQlowRmp4U05NZ3MKWUVaOWZtMHBnMUswNkpOclhHSDFYc2YxWTAySTcvUVp3VFRGTXdUc3pSdwotPiBYMjU1MTkgSDJWTDVMNjZ3d0F0YzUvQ0FBK3R0ekRTQ3p5eEMwQTZSMW85TWVlTkIzcwpYY0pjWElwZTRLVFRKNTRuVWdzaDVIWUFQU0ZWM0Z0YjlaeDM2bEZ3b3VBCi0+IFgyNTUxOSBJREdRT0FmMWlydU1BVzVwMm1keXBLdEwwa1o1T1BQdDd0ZEdab0h3djE0CkpNRUViclh4RTQ5aU9GZW5BVXVSMzJFM3JzUndwUHJzYjhnVE8ySGhMamcKLT4gWDI1NTE5IExwN1ZLSXRMUmhGVllWR1ZrQmFyd1VBWGNRVUxNYU9CbGlwZnR4ZEVVSHMKalZFRjBveVBLNjlWd1FNeHkxT2FNVGtLUk5XTHVYU1JFTDU5OGJLT3lVSQotPiAnN0Uocyw1KC1ncmVhc2UgdFM/OnFZayA8RVV1cFdKIGIKN2lEbTJKaVFKQmtDSXcKLS0tIDlubXZsbWtjemhUeEdud08rY1ZGa1RzdjdNdHZWaUpjMjRZaHdleXk5SlUKYyi3BbLgMmduqp34N2FUDTP5RurqzigA/2vL4o2NImLiONhhlUcin4eeMVo2Y/5AFH1JAiN+y/2L]`.
+        match push_background(ctx.repo, ctx.policy, ctx.has_origin, ctx.remote_failures.as_deref_mut()).await {
             Ok(true) => {
                 crate::daemon::record_push_success(ctx.repo);
             }
@@ -2640,8 +2699,8 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 crate::daemon::record_push_failure(ctx.repo, &e.to_string());
             }
         }
-    } else if ctx.policy.auto_push && should_push && !ctx.has_origin {
-        eprintln!("ℹ️ skip push for {} (no origin remote)", ctx.repo.display());
+    } else if ctx.policy.auto_push && should_push && !ctx.has_origin && ctx.policy.remotes.is_empty() {
+        eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", ctx.repo.display());
     }
     Ok(())
 }
@@ -3694,7 +3753,7 @@ push_url = "git@nonexistent.example.com:repo.git"
     }
 
     #[tokio::test]
-    async fn test_sync_repo_mirror_failure_tracks_remote_failures() {
+    async fn test_sync_repo_mirror_push_failure_second() {
         // See `test_sync_repo_mirror_push_failure_returns_false`
         // for the rationale on using a temp state dir.
         let state_dir = tempfile::tempdir().unwrap();
@@ -4069,7 +4128,7 @@ push_url = "{}"
     }
 
     #[tokio::test]
-    async fn test_sync_repo_exactly_50_percent_deletion_allowed() {
+    async fn test_sync_repo_exact_50_del() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "exact-50-del-repo");
 

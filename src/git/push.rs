@@ -18,7 +18,7 @@ pub(crate) async fn push_https_fallback(
     if let Some(https) = super::github_https_url(remote_url) {
         let result = super::run_git_with_timeout_env_progress(
             repo,
-            &["push", &https, refspec],
+            &["push", "--no-verify", &https, refspec],
             timeout_secs,
             &format!("{}-github-https", op_label),
             no_prompt,
@@ -35,7 +35,7 @@ pub(crate) async fn push_https_fallback(
                 Ok(askpass) => {
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
-                        &["push", &https, refspec],
+                        &["push", "--no-verify", &https, refspec],
                         timeout_secs,
                         &format!("{}-gitlab-https", op_label),
                         &[
@@ -62,7 +62,7 @@ pub(crate) async fn push_https_fallback(
                 Ok(askpass) => {
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
-                        &["push", &https, refspec],
+                        &["push", "--no-verify", &https, refspec],
                         timeout_secs,
                         &format!("{}-codeberg-https", op_label),
                         &[
@@ -95,7 +95,7 @@ pub(crate) async fn push_with_transport_fallbacks(
     let ssh_hardening = crate::git::git_ssh_hardening();
     match super::run_git_with_timeout_env_progress(
         repo,
-        &["push", "origin", "HEAD"],
+        &["push", "--no-verify", "origin", "HEAD"],
         timeout_secs,
         &format!("{op_label}-ssh-hardened"),
         &[
@@ -146,7 +146,7 @@ pub(crate) async fn push_with_retries(
     for attempt in 1..=attempts {
         match super::run_git_with_timeout_env_progress(
             repo,
-            &["push", "origin", "HEAD"],
+            &["push", "--no-verify", "origin", "HEAD"],
             timeout_secs,
             op_label,
             &[

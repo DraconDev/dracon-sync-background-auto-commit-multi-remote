@@ -144,3 +144,34 @@ pub(crate) fn is_repo_ready(repo: &Path) -> bool {
         None => false,
     }
 }
+
+/// Count unpushed commits against the first available mirror tracking ref.
+/// For repos without an upstream tracking branch (mirror-only repos like
+/// `.dracon`), `git status` reports `ahead = 0` even when there ARE local
+/// commits that haven't been pushed to any remote. This function checks
+/// against known mirror tracking refs (`remotes/github/main`,
+/// `remotes/gitlab/main`, `remotes/codeberg/main`) to find the actual
+/// unpushed count.
+pub(crate) fn count_unpushed_vs_mirrors(repo: &Path) -> u64 {
+    let known_mirror_refs = [
+        "refs/remotes/github/main",
+        "refs/remotes/gitlab/main",
+        "refs/remotes/codeberg/main",
+    ];
+    for mirror_ref in &known_mirror_refs {
+        let output = crate::policy::std_git_command()
+            .args(["rev-list", "--count", &format!("{}..HEAD", mirror_ref)])
+            .current_dir(repo)
+            .output();
+        if let Ok(o) = output {
+            if o.status.success() {
+                let stdout = String::from_utf8_lossy(&o.stdout);
+                let count: u64 = stdout.trim().parse().unwrap_or(0);
+                if count > 0 {
+                    return count;
+                }
+            }
+        }
+    }
+    0
+}

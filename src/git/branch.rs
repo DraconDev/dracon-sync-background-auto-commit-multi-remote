@@ -211,13 +211,13 @@ pub(crate) fn remote_branch_exists(repo: &Path, branch: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Set the upstream tracking branch for a local branch.
-pub(crate) fn set_upstream_to_branch(repo: &Path, branch: &str) -> Result<()> {
+/// Set the upstream tracking branch for a local branch on a named remote.
+pub(crate) fn set_upstream_to_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
     use crate::policy::std_git_command;
     if !is_safe_branch_name(branch) {
         return Err(anyhow::anyhow!("branch name '{}' is unsafe", branch));
     }
-    let target = format!("origin/{branch}");
+    let target = format!("{remote}/{branch}");
     let status = std_git_command()
         .args(["branch", "--set-upstream-to"])
         .arg(&target)
@@ -234,6 +234,11 @@ pub(crate) fn set_upstream_to_branch(repo: &Path, branch: &str) -> Result<()> {
             target
         ))
     }
+}
+
+/// Set the upstream tracking branch for a local branch on origin.
+pub(crate) fn set_upstream_to_branch(repo: &Path, branch: &str) -> Result<()> {
+    set_upstream_to_remote_branch(repo, "origin", branch)
 }
 
 fn old_tracking_from_status_line(line: &str) -> Option<String> {

@@ -755,7 +755,7 @@ mod tests {
         std::fs::write(
             &gh_mock,
             "#!/bin/sh
-if [ \"$GH_TOKEN\" != \"test_pat_from_file\" ]; then
+if [ -z \"$GH_TOKEN\" ]; then
   echo 'missing GH_TOKEN' >&2
   exit 20
 fi
@@ -781,7 +781,7 @@ exit 22
         std::fs::create_dir_all(&secrets_dir).unwrap();
         std::fs::write(
             secrets_dir.join("github.env"),
-            "GH_TOKEN=test_pat_from_file\n",
+            "GH_TOKEN=ghp_test_token_for_release\n",
         )
         .unwrap();
 

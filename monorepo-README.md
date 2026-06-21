@@ -2,6 +2,20 @@
 
 **Invisible git sync for AI-powered development.** An auto-commit, multi-mirror daemon that watches your repos, commits every change with deterministic, facts-based messages, and pushes to GitHub, GitLab, and Codeberg simultaneously.
 
+## Install
+
+```bash
+cargo install dracon-sync
+```
+
+The binary will be at `~/.cargo/bin/dracon-sync`. Or install from the long-name façade repo:
+
+```bash
+git clone https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote.git
+cd dracon-sync-background-auto-commit-multi-remote
+cargo build --release
+```
+
 ## Why This Exists
 
 Other tools solve parts of the problem:

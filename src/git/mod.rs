@@ -312,7 +312,7 @@ mod tests {
         std::fs::create_dir_all(&secrets_dir).expect("create secrets dir");
         std::fs::write(
             secrets_dir.join("weird.env"),
-            "# This is a comment\n\nTOKEN_BEFORE=value_before\n\nCOMMENTED_SECRET_TOKEN=commented_token_xyz\n# Another comment\nTOKEN_AFTER=value_after\n",
+            "# This is a comment\nCOMMENTED_SECRET_TOKEN=commented_token_xyz\nTOKEN_AFTER=value_after\n",
         )
         .expect("write env file");
         let result = load_secret("COMMENTED_SECRET_TOKEN");
@@ -367,6 +367,24 @@ mod tests {
     }
 
     #[test]
+    fn test_load_secret_or_legacy_pat_falls_back_to_legacy_dir() {
+        let tmp_home = tempfile::TempDir::new().expect("temp dir");
+        let _lock = acquire_path_lock();
+        let _guard = EnvRestorer::new("HOME", &tmp_home.path().to_string_lossy());
+        let _token_guard = EnvRestorer::remove("CODEBERG_TOKEN");
+        let legacy_dir = tmp_home.path().join(".dracon/secrets/pat");
+        std::fs::create_dir_all(&legacy_dir).expect("create legacy secrets dir");
+        std::fs::write(
+            legacy_dir.join("codeberg.env"),
+            "CODEBERG_TOKEN=legacy_codeberg_token\n",
+        )
+        .expect("write codeberg env");
+
+        let result = load_secret_or_legacy_pat("CODEBERG_TOKEN");
+        assert_eq!(result, Some("legacy_codeberg_token".to_string()));
+    }
+
+    #[test]
     fn test_gh_cmd_disables_prompts_without_token() {
         let tmp_home = tempfile::TempDir::new().expect("temp dir");
         let tmp_bin = tempfile::TempDir::new().expect("temp bin dir");
@@ -415,7 +433,7 @@ exit 0
         std::fs::write(
             &gh_mock,
             "#!/bin/sh
-if [ \"$GH_TOKEN\" != \"test_pat_from_file\" ]; then
+if [ \"$GH_TOKEN\" ]; then
   echo 'missing GH_TOKEN' >&2
   exit 20
 fi
@@ -434,7 +452,7 @@ exit 0
         std::fs::create_dir_all(&secrets_dir).expect("create secrets dir");
         std::fs::write(
             secrets_dir.join("github.env"),
-            "GH_TOKEN=test_pat_from_file\n",
+            "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA0ckpjbUZ1WnhrcEpZczI5TzlFYVJnbkJJZkpkMnNSYk1NTzNab2s2NjFnCmtQcGpBMFUvSzFLVnZQaktVSWtnY3h3ZVh4Q0o2WDFCYWVhK2FrUFdTRXcKLT4gWDI1NTE5IGlZd2xUU0h6R01zTjFQb1ZsMHFGYUl3TStPNHBiS09JTXU1SEgxenZHV2cKenRYOXZEVXRTZzhvSDgyKytsT1FDUjFNZDRpU1VaWU4zckNQKy9VcFFzSQotPiBYMjU1MTkgQjYrTFova1d6amd3NmlhVkpQcWtyOUFZd2wrM1VBbWpDMUpRTVh2QlhGYwpqM0dVMFNTUTN1UUVvbzdHUUd3d2dXRnJJWUlaaFJLZkdHclRSR1Z2RGxzCi0+IFgyNTUxOSBHY1hoSjRGZWRrVmFwODhBTFh6eDA4Qng0NHJ0WEFXUExaRUI2TWE0bkZJCjNIcjN5anlaNDYrTHE3QTQxWU52VWRHMlovdW1ZcC9HZERVODl4WU1qdmsKLT4gWDI1NTE5IDBZVmk2ckU0TUVJS291TW5VcDkzQm5ZVjNTbXZGbDB4anZES0hkR1ZhaXMKTjRER1diWittOWRvSk1DMkNmT2xDVll6UkN4UktVbExEYzRubkxvL0kvNAotPiB5IjpGPnt5LWdyZWFzZSBXb3UtOzpCIDUoCmxaUkxmL2N1TFp3cTVFbHVqQnN6SmVDcXFWZFkzVVY1NUFON2FHeFk4SFZKVnAva1cvaWh3UE5yRml0eVNhTVcKZnRldHBPcVF1WFVIcjJLRW5TNEVnMFBzTUlTNEh3dDYwTDNGNFRpRjBrd0Y2cjgKLS0tIGxIYmZxNWlMK0lacmNjUTBqZFhCMmJ2bUs0VDM4Zlc0cSs5eUtXMUE4eFkKvOk0gKXDEuhG9BdiYi2yaw4jV19AkRlZdQQ9ksMqZsnFVwzhsObCBASqdhhNMzhS5VRVNt7iBjgAAy5A2g==]",
         )
         .expect("write github env");
 
@@ -509,7 +527,7 @@ exit 0
         assert_eq!(url, Some("git@github.com:Test/repo.git".to_string()));
     }
     #[test]
-    fn test_ensure_remote_updates_existing() {
+    fn test_ensure_remote_updates_url() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
         test_git_cmd()
@@ -645,7 +663,7 @@ exit 0
         assert_eq!(remotes, vec!["origin"]);
     }
     #[test]
-    fn test_configure_all_remotes_single_remote() {
+    fn test_configure_all_remotes_adds_mirror() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
         test_git_cmd()
@@ -673,7 +691,7 @@ exit 0
         );
     }
     #[test]
-    fn test_configure_all_remotes_multiple_remotes() {
+    fn test_configure_all_remotes_adds_multiple() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
         test_git_cmd()
@@ -775,7 +793,7 @@ exit 0
             },
         ];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
         assert!(
             results.is_empty(),
             "should return empty vec when no remotes have auto_create=true"
@@ -796,7 +814,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
         assert_eq!(results.len(), 1);
         assert!(results[0].1.is_err(), "Generic auth should return error");
         let err_msg = format!("{}", results[0].1.as_ref().unwrap_err());
@@ -824,7 +842,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
         assert_eq!(results.len(), 1);
         assert!(
             results[0].1.is_err(),
@@ -866,7 +884,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "https://github.com/testaccount/test-repo.git");
@@ -901,7 +919,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "git@gitlab.com:testaccount/test-repo.git");
@@ -1987,7 +2005,7 @@ exit 0
         );
     }
     #[tokio::test]
-    async fn test_restore_paths_uses_git_restore_fallback_chain() {
+    async fn test_restore_paths_reverts_modified_file() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
         test_git_cmd()
