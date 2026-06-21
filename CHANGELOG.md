@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.112.13] - 2026-06-21
 
 ### Added
 - **`auto_resolve_unmerged` policy field** (default `true`): when the
