@@ -2348,16 +2348,9 @@ async fn check_untracked_threshold(
 ) -> Result<usize> {
     use anyhow::Context;
     use std::process::Command;
-    if threshold == 0 {
-        // Disabled
-        let _ = Command::new("git")
-            .args([
-                "-C", &repo.to_string_lossy(),
-                "ls-files", "--others", "--exclude-standard",
-            ])
-            .output()?;
-        return Ok(0);
-    }
+    // Always count the untracked files (so callers can use the count
+    // for reporting), but only emit a warning when threshold > 0 AND
+    // the count exceeds the threshold.
     let output = Command::new("git")
         .args([
             "-C", &repo.to_string_lossy(),
