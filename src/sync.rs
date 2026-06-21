@@ -2225,6 +2225,7 @@ async fn auto_resolve_unmerged_if_safe(
     repo: &Path,
     auto_resolve: bool,
 ) -> Result<usize> {
+    use anyhow::Context;
     use std::process::Command;
 
     // List unmerged entries. `git diff` output is empty for unmerged
@@ -2341,6 +2342,7 @@ async fn check_untracked_threshold(
     repo: &Path,
     threshold: usize,
 ) -> Result<usize> {
+    use anyhow::Context;
     use std::process::Command;
     if threshold == 0 {
         // Disabled
