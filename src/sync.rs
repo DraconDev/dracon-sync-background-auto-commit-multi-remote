@@ -2208,6 +2208,173 @@ fn compute_blast_radius(repo: &Path) -> String {
     )
 }
 
+/// Detect unmerged entries in the git index and, if `auto_resolve_unmerged`
+/// is enabled and the working tree content matches HEAD for those paths,
+/// reset them so the index is clean and the commit can proceed.
+///
+/// Returns the number of unmerged entries that were resolved.
+///
+/// This is the SINGLE-POINT-OF-FIX for the 4+ hour staleness seen in
+/// `dracon-platform` where 4 unmerged PNGs in `web/ai-hub/audit-20260629/...`
+/// blocked every commit for 4+ hours. With this function, the daemon
+/// auto-detects the unmerged state, verifies the working tree matches HEAD
+/// byte-by-byte, and resets the unmerge so the commit can proceed.
+///
+/// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+async fn auto_resolve_unmerged_if_safe(
+    repo: &Path,
+    auto_resolve: bool,
+) -> Result<usize> {
+    use std::process::Command;
+
+    // List unmerged entries. `git diff` output is empty for unmerged
+    // paths so we use `ls-files --unmerged` to enumerate them.
+    let output = Command::new("git")
+        .args([
+            "-C", &repo.to_string_lossy(),
+            "ls-files", "--unmerged", "--format=%H %S %P",
+        ])
+        .output()
+        .with_context(|| format!("failed to list unmerged files in {}", repo.display()))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if stdout.trim().is_empty() {
+        return Ok(0);
+    }
+
+    // Parse unmerged paths. For each path with stage=1/2/3 entries, we
+    // need to check if the working tree matches the HEAD (stage 2)
+    // content. If yes, we can safely `git reset HEAD -- <path>` to
+    // clear the unmerge.
+    let mut unmerged_paths: std::collections::BTreeSet<String> =
+        std::collections::BTreeSet::new();
+    for line in stdout.lines() {
+        // Format: <mode> <hash> <stage> <path>
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 4 {
+            unmerged_paths.insert(parts[3..].join(" "));
+        }
+    }
+
+    if unmerged_paths.is_empty() {
+        return Ok(0);
+    }
+
+    if !auto_resolve {
+        eprintln!(
+            "⚠️ {} has {} unmerged entries (auto_resolve_unmerged=false, commits will fail). \
+             Set auto_resolve_unmerged=true in the policy to clear them automatically.",
+            repo.display(),
+            unmerged_paths.len()
+        );
+        return Ok(0);
+    }
+
+    let mut resolved: usize = 0;
+    for path in &unmerged_paths {
+        // For each unmerged path, compare the working tree file
+        // content to the HEAD version (stage 2). If they match,
+        // we can safely reset.
+        let wt_output = Command::new("git")
+            .args([
+                "-C", &repo.to_string_lossy(),
+                "show", ":2:", path,
+            ])
+            .output();
+        let wt_bytes = match std::fs::read(repo.join(path)) {
+            Ok(b) => b,
+            Err(_) => continue,  // file deleted; skip
+        };
+        let head_bytes = match wt_output {
+            Ok(o) if o.status.success() => o.stdout,
+            _ => continue,  // path not in HEAD; skip
+        };
+        if wt_bytes == head_bytes {
+            // Working tree matches HEAD — safe to reset the unmerge.
+            // `git reset HEAD -- <path>` clears all stages and sets
+            // the file to its HEAD state (which is what the working
+            // tree already has).
+            let reset_result = run_git_with_timeout(
+                repo,
+                &["reset", "HEAD", "--", path],
+                10,
+                "reset-unmerged",
+            )
+            .await;
+            match reset_result {
+                Ok(_) => {
+                    eprintln!(
+                        "🔧 {} auto-resolved unmerged entry (working tree matches HEAD): {}",
+                        repo.display(),
+                        path
+                    );
+                    resolved += 1;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "⚠️ {} failed to auto-resolve unmerged entry {}: {}",
+                        repo.display(),
+                        path,
+                        e
+                    );
+                }
+            }
+        } else {
+            eprintln!(
+                "⚠️ {} has unmerged entry with working tree != HEAD; \
+                 manual resolution required: {}",
+                repo.display(),
+                path
+            );
+        }
+    }
+
+    Ok(resolved)
+}
+
+/// Check the untracked file count and emit a warning if it exceeds
+/// the policy's `untracked_warn_threshold`. Returns the untracked
+/// count for use in the `drain_health` report field.
+///
+/// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+async fn check_untracked_threshold(
+    repo: &Path,
+    threshold: usize,
+) -> Result<usize> {
+    use std::process::Command;
+    if threshold == 0 {
+        // Disabled
+        let _ = Command::new("git")
+            .args([
+                "-C", &repo.to_string_lossy(),
+                "ls-files", "--others", "--exclude-standard",
+            ])
+            .output()?;
+        return Ok(0);
+    }
+    let output = Command::new("git")
+        .args([
+            "-C", &repo.to_string_lossy(),
+            "ls-files", "--others", "--exclude-standard",
+        ])
+        .output()
+        .with_context(|| format!("failed to list untracked files in {}", repo.display()))?;
+    let count = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|l| !l.is_empty())
+        .count();
+    if count > threshold {
+        eprintln!(
+            "⚠️ {} has {} untracked files (threshold {}). \
+             Consider adding ephemeral directories to .gitignore.",
+            repo.display(),
+            count,
+            threshold
+        );
+    }
+    Ok(count)
+}
+
 async fn stage_commit_and_push(
     svc: &GitService,
     ctx: &mut SyncContext<'_>,
@@ -2220,6 +2387,22 @@ async fn stage_commit_and_push(
     let dry_run = ctx.dry_run;
     let has_origin = ctx.has_origin;
     let _idle_seconds = ctx.idle_seconds;
+
+    // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
+    // unmerged index entries so the commit loop is never blocked.
+    // See `auto_resolve_unmerged_if_safe` for the full rationale.
+    let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
+    if resolved > 0 {
+        eprintln!(
+            "🔧 {} auto-resolved {} unmerged entries",
+            repo.display(),
+            resolved
+        );
+    }
+
+    // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
+    // when the untracked-file count exceeds the policy threshold.
+    let _untracked_count = check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
 
     let stage_paths: Vec<String> = to_stage
         .iter()
