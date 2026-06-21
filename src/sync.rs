@@ -768,6 +768,25 @@ async fn stage_existing_files(
                                 continue;
                             }
                         }
+                        // CHANGED 2026-06-21 (goal 29144c2c): skip submodules.
+                        // A git submodule has a `.git` FILE (not a
+                        // directory) at its root, with content like
+                        // `gitdir: ../.git/modules/<name>`. The walker
+                        // already skips dotfile dirs (so `.git/` itself
+                        // is skipped), but the FILES inside the
+                        // submodule's working tree were being added to
+                        // the parent repo's stage list, causing
+                        // `fatal: Pathspec 'X' is in submodule 'X'`
+                        // errors. Detecting submodule dir by the
+                        // presence of `.git` as a regular file (not a
+                        // dir) and skipping the entire subtree. This
+                        // is safe because the parent repo references
+                        // the submodule by its gitlink pointer, not
+                        // its working-tree files.
+                        let sub_dot_git = cp.join(".git");
+                        if sub_dot_git.is_file() {
+                            continue;
+                        }
                         stack.push(cp);
                     }
                 }
