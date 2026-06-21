@@ -5973,6 +5973,74 @@ auto_bump_versions = false
         repo
     }
 
+    /// Manually create an unmerged index state for the given file.
+    /// This is the exact state that causes the
+    /// "cannot create a tree from a not fully merged index" error.
+    /// Stages: 1=base, 2=ours (HEAD), 3=theirs.
+    /// Note: `git add <path>` after a merge RESOLVES the unmerge
+    /// (selects the working tree content), so we must use
+    /// `git update-index --index-info` to set the stages directly.
+    fn create_unmerged_state(repo: &std::path::Path, path: &str) {
+        use std::io::Write;
+        // Get hashes from HEAD (stage 2), from HEAD~1 (stage 1 base),
+        // and synthesize a different stage 3 hash by writing a new blob.
+        let base = std::process::Command::new("git")
+            .args(["rev-parse", &format!("HEAD~1:{}", path)])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        let base_hash = String::from_utf8_lossy(&base.stdout).trim().to_string();
+        let ours = std::process::Command::new("git")
+            .args(["rev-parse", &format!("HEAD:{}", path)])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        let ours_hash = String::from_utf8_lossy(&ours.stdout).trim().to_string();
+        // Write a different blob for "theirs"
+        let theirs_path = repo.join(path);
+        let original = std::fs::read(&theirs_path).unwrap_or_default();
+        let theirs_content = format!("theirs-conflict-content\n");
+        std::fs::write(&theirs_path, &theirs_content).unwrap();
+        let theirs_hash = String::from_utf8_lossy(
+            &std::process::Command::new("git")
+                .args(["hash-object", "-w", &theirs_path.to_string_lossy()])
+                .current_dir(repo)
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        // Restore the working tree to the HEAD (ours) content so
+        // auto-resolve can verify wt == HEAD
+        let ours_content = String::from_utf8_lossy(
+            &std::process::Command::new("git")
+                .args(["show", &format!("HEAD:{}", path)])
+                .current_dir(repo)
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        std::fs::write(&theirs_path, ours_content.as_bytes()).unwrap();
+        let _ = original; // suppress unused
+        // Now set the 3 stages via --index-info
+        let input = format!(
+            "100644 {} 1\t{}\n100644 {} 2\t{}\n100644 {} 3\t{}\n",
+            base_hash, path, ours_hash, path, theirs_hash, path
+        );
+        let mut child = std::process::Command::new("git")
+            .args(["update-index", "--index-info"])
+            .current_dir(repo)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        child.stdin.as_mut().unwrap().write_all(input.as_bytes()).unwrap();
+        let _ = child.wait_with_output();
+    }
+
     #[tokio::test]
     async fn test_auto_resolve_unmerged_working_tree_matches_head() {
         // The 4+ hour dracon-platform bug: unmerged PNGs with
@@ -5993,31 +6061,7 @@ auto_bump_versions = false
             .output()
             .unwrap();
 
-        // Create a branch with conflicting content
-        std::process::Command::new("git")
-            .args(["checkout", "-b", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::fs::write(repo.join("a.png"), b"other-content\n").unwrap();
-        std::process::Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["commit", "--no-verify", "-m", "other-change"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-
-        // Switch back to main, modify the file, and merge to create an
-        // unmerged state
-        std::process::Command::new("git")
-            .args(["checkout", "main"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
+        // Create a second commit on main that changes a.png
         std::fs::write(repo.join("a.png"), b"main-content\n").unwrap();
         std::process::Command::new("git")
             .args(["add", "-A"])
@@ -6029,21 +6073,9 @@ auto_bump_versions = false
             .current_dir(&repo)
             .output()
             .unwrap();
-        // Now restore the working tree to the main version (matches HEAD)
-        std::fs::write(repo.join("a.png"), b"main-content\n").unwrap();
-        // Try the merge (will fail with conflicts)
-        let _ = std::process::Command::new("git")
-            .args(["merge", "--no-edit", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        // After a failed merge, the index has unmerged entries. We need
-        // to add the file to mark the unmerged state.
-        std::process::Command::new("git")
-            .args(["add", "a.png"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
+
+        // Manually create the unmerged state (3 stages for a.png)
+        create_unmerged_state(&repo, "a.png");
 
         // Verify unmerged state exists
         let before = std::process::Command::new("git")
@@ -6090,7 +6122,7 @@ auto_bump_versions = false
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_git_repo(&tmp, "unmerged-differs");
 
-        // Setup: create file, branch, conflicting change
+        // Setup: create file + commit, then second commit
         std::fs::write(repo.join("x.txt"), b"original\n").unwrap();
         std::process::Command::new("git")
             .args(["add", "-A"])
@@ -6099,29 +6131,6 @@ auto_bump_versions = false
             .unwrap();
         std::process::Command::new("git")
             .args(["commit", "--no-verify", "-m", "init"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-
-        std::process::Command::new("git")
-            .args(["checkout", "-b", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::fs::write(repo.join("x.txt"), b"other-content\n").unwrap();
-        std::process::Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["commit", "--no-verify", "-m", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-
-        std::process::Command::new("git")
-            .args(["checkout", "main"])
             .current_dir(&repo)
             .output()
             .unwrap();
@@ -6137,17 +6146,8 @@ auto_bump_versions = false
             .output()
             .unwrap();
 
-        // Merge will fail; the working tree file already has conflict markers
-        let _ = std::process::Command::new("git")
-            .args(["merge", "--no-edit", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["add", "x.txt"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
+        // Create unmerged state
+        create_unmerged_state(&repo, "x.txt");
 
         // Now overwrite the working tree with NEW content that doesn't
         // match any stage (simulating user editing during conflict)
@@ -6185,29 +6185,6 @@ auto_bump_versions = false
             .current_dir(&repo)
             .output()
             .unwrap();
-
-        std::process::Command::new("git")
-            .args(["checkout", "-b", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::fs::write(repo.join("y.txt"), b"other\n").unwrap();
-        std::process::Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["commit", "--no-verify", "-m", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-
-        std::process::Command::new("git")
-            .args(["checkout", "main"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
         std::fs::write(repo.join("y.txt"), b"main\n").unwrap();
         std::process::Command::new("git")
             .args(["add", "-A"])
@@ -6219,16 +6196,9 @@ auto_bump_versions = false
             .current_dir(&repo)
             .output()
             .unwrap();
-        let _ = std::process::Command::new("git")
-            .args(["merge", "--no-edit", "other"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["add", "y.txt"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
+
+        // Create unmerged state
+        create_unmerged_state(&repo, "y.txt");
 
         // auto-resolve disabled
         let resolved = auto_resolve_unmerged_if_safe(&repo, false)
