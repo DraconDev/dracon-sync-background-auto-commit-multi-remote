@@ -94,10 +94,15 @@ fn discover_git_repos_recursive(
         }
         let dot_git = path.join(".git");
         if dot_git.exists() && (dot_git.is_dir() || is_git_worktree_file(&dot_git)) {
+            // Record the subdir as a discovered repo AND continue recursing
+            // into its children to look for any nested sub-subdirs that
+            // might also have their own .git/. This supports the
+            // "3 sibling repos inside a parent repo" structure (e.g.
+            // 3 utility subdirs living under a docs-only monorepo).
+            // CHANGED 2026-06-21 (goal 5297d4df): the previous `continue`
+            // early-exit prevented discovery of nested standalone repos.
             repos.push(path.clone());
-            continue;
-        }
-        if name.starts_with('.') {
+        } else if name.starts_with('.') {
             continue;
         }
         discover_git_repos_recursive(&path, excluded_dir_names, repos, depth + 1, max_depth);
