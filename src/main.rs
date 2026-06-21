@@ -1599,3 +1599,5 @@ remotes = []
         }
     }
 }
+
+// daemon-push-test: 2026-06-21 12:18 — verify end-to-end propagation
