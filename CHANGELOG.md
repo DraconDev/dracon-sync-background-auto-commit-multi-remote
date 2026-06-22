@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.112.14] - 2026-06-22
 
 ### Fixed
 - **`.pi/` recursion-skip bug**: the daemon's `stage_existing_files`
