@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+- **`.pi/` recursion-skip bug**: the daemon's `stage_existing_files`
+  recursion had a broad `name.starts_with('.')` skip that was meant
+  to skip `.git/`, `.cache/`, `.venv/`, etc., but it ALSO skipped
+  `.pi/` — silently blocking `*/.pi/goals/archived/*.md` from
+  being auto-staged. These are operator docs (pi-goal tracking
+  records) that the commit-all principle says MUST go up. The
+  fix removes the dotfile-skip entirely; the dot-dirs we want to
+  skip (`.cache`, `.direnv`, `.venv`) are already in the
+  `excluded` BTreeSet, and `.git/` is handled by a separate
+  `full_dot_git.is_file()` check. Adds regression test
+  `test_stage_existing_files_recurses_into_pi_dir`.
+
 ## [0.112.13] - 2026-06-21
 
 ### Added
