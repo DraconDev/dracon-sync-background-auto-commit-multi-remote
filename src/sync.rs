@@ -743,14 +743,27 @@ async fn stage_existing_files(
             // inside e.g. `node_modules/` are NEVER staged even when
             // they appear as untracked.
             let excluded = excluded_dir_names;
-            // Skip the top-level dir itself if its basename is excluded
-            // or it's a dotfile dir. This handles the case where libgit2
+            // Skip the top-level dir itself if its basename is in the
+            // excluded-dir set. This handles the case where libgit2
             // returned `node_modules/` or `.cache/` directly as a
             // top-level untracked entry (e.g. on a fresh clone where
             // the operator ran `npm install` and `.gitignore` is not
             // catching it for some reason).
+            //
+            // CHANGED 2026-06-22 (goal mqp8dffy-bonnlu): removed the
+            // broad `name.starts_with('.')` skip. The previous
+            // blanket-dotfile skip was meant to skip `.git/`, `.cache/`,
+            // `.venv/`, etc., but it ALSO skipped `.pi/` — silently
+            // blocking `*/.pi/goals/archived/*.md` from auto-commit.
+            // Those are operator docs (goal tracking records) that the
+            // commit-all principle says MUST go up. The dot-dirs we
+            // actually want to skip (`.cache`, `.direnv`, `.venv`)
+            // are already in the `excluded` BTreeSet; `.git/` is
+            // handled by the separate `full_dot_git.is_file()` check
+            // above. So removing the dotfile skip is safe and the
+            // recursion now correctly descends into `.pi/`.
             if let Some(name) = full.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with('.') || excluded.contains(name) {
+                if excluded.contains(name) {
                     continue;
                 }
             }
@@ -777,12 +790,27 @@ async fn stage_existing_files(
                         continue;
                     }
                     if meta.is_dir() {
-                        // Skip dotfile dirs (.git, .cache, .venv, etc.)
+                        // Skip excluded dir names (target, node_modules,
+                        // .cache, .venv, dist, build, archives, .tmp-*, etc.).
+                        //
+                        // CHANGED 2026-06-22 (goal mqp8dffy-bonnlu):
+                        // removed the `name.starts_with('.')` skip.
+                        // The previous blanket-dotfile skip was meant
+                        // to skip `.git/`, `.cache/`, `.venv/`, etc.,
+                        // but it ALSO skipped `.pi/` — silently
+                        // blocking `*/.pi/goals/archived/*.md` from
+                        // auto-commit. The dot-dirs we want to skip
+                        // are already in the `excluded` BTreeSet
+                        // (set up by `excluded_dir_names_set` from the
+                        // policy's `exclude_dir_names` list, defaulting
+                        // to `target`, `node_modules`, `.cache`,
+                        // `.direnv`, `.venv`, `dist`, `build`,
+                        // `archives`, `.tmp-*`). `.git/` is handled
+                        // by the separate `inner_dot_git.is_file()`
+                        // check below. So removing the dotfile skip
+                        // is safe and the recursion now correctly
+                        // descends into `.pi/`.
                         if let Some(name) = cp.file_name().and_then(|n| n.to_str()) {
-                            if name.starts_with('.') {
-                                continue;
-                            }
-                            // Skip excluded dir names (target, node_modules, etc.)
                             if excluded.contains(name) {
                                 continue;
                             }
@@ -6331,5 +6359,125 @@ auto_bump_versions = false
             .await
             .expect("should not error");
         assert_eq!(count, 3, "gitignored files should not be counted");
+    }
+
+    /// Regression test for the .pi/ recursion-skip bug (goal
+    /// mqp8dffy-bonnlu). The daemon's `stage_existing_files`
+    /// recursion used to skip any dir whose name starts with `.`,
+    /// which silently blocked `*/.pi/goals/archived/*.md` from
+    /// being auto-staged. This test creates such files, calls the
+    /// recursion helper, and asserts the files end up in the stage
+    /// list (i.e. they are not skipped).
+    #[test]
+    fn test_stage_existing_files_recurses_into_pi_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "pi-recursion");
+
+        // Create an initial commit so the repo isn't empty
+        std::fs::write(repo.join("README.md"), b"# test\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Create a .pi/ tree that mirrors a real-world goal-tracking
+        // layout: .pi/goals/archived/*.md (operator docs) + a control
+        // .cache/ dir (should still be skipped).
+        std::fs::create_dir_all(repo.join(".pi/goals/archived")).unwrap();
+        std::fs::write(
+            repo.join(".pi/goals/archived/goal_20260622_test.md"),
+            b"{\"objective\": \"test\"}\n",
+        )
+        .unwrap();
+        std::fs::write(
+            repo.join(".pi/goals/active_goal_test.md"),
+            b"{\"objective\": \"active\"}\n",
+        )
+        .unwrap();
+
+        // The control: .cache/ should still be skipped.
+        std::fs::create_dir_all(repo.join(".cache")).unwrap();
+        std::fs::write(repo.join(".cache/junk.txt"), b"junk\n").unwrap();
+
+        // The control: node_modules/ should still be skipped.
+        std::fs::create_dir_all(repo.join("node_modules/pkg")).unwrap();
+        std::fs::write(repo.join("node_modules/pkg/index.js"), b"x\n").unwrap();
+
+        // The control: .git/ (a directory inside the work tree) should
+        // be skipped — but since we just `git init`'d, there is no
+        // nested .git/ in the work tree. Skip this case.
+
+        // Build the excluded-dir BTreeSet the same way the daemon does.
+        use std::collections::BTreeSet;
+        let excluded: BTreeSet<String> = [
+            "target",
+            "node_modules",
+            ".cache",
+            ".direnv",
+            ".venv",
+            "dist",
+            "build",
+            "archives",
+            ".tmp-*",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+
+        // Run the daemon's `stage_existing_files` with the .pi/ dir
+        // as the input. The daemon's flow is: libgit2/git status
+        // reports the untracked .pi/ dir as a single entry, and the
+        // recursion walks into it.
+        let result = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(stage_existing_files(
+                &repo,
+                &[".pi/".to_string()],
+                /*dry_run=*/ false,
+                /*stage_timeout_secs=*/ 60,
+                &excluded,
+            ));
+        assert!(result.is_ok(), "stage_existing_files should not error");
+
+        // The .pi/goals/archived/*.md file should be staged.
+        let staged = std::process::Command::new("git")
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let staged_text = String::from_utf8_lossy(&staged.stdout);
+        assert!(
+            staged_text
+                .contains(".pi/goals/archived/goal_20260622_test.md"),
+            "expected the .pi/goals/archived/goal_*.md file to be staged, but staged entries were: {:?}",
+            staged_text
+        );
+        assert!(
+            staged_text.contains(".pi/goals/active_goal_test.md"),
+            "expected the .pi/goals/active_goal_*.md file to be staged, but staged entries were: {:?}",
+            staged_text
+        );
+
+        // The control .cache/ contents should NOT be staged.
+        assert!(
+            !staged_text.contains(".cache/junk.txt"),
+            ".cache/ contents should be skipped, but staged entries were: {:?}",
+            staged_text
+        );
+
+        // The control node_modules/ contents should NOT be staged.
+        assert!(
+            !staged_text.contains("node_modules/pkg/index.js"),
+            "node_modules/ contents should be skipped, but staged entries were: {:?}",
+            staged_text
+        );
     }
 }
