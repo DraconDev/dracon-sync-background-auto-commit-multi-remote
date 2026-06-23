@@ -741,4 +741,86 @@ exit 1
             "missing remote should not be treated as existing"
         );
     }
+
+    // ========================================================================
+    // Tests for filter_remotes_by_exclude (goal mqqsyzyd-qkvna5, 2026-06-23)
+    //
+    // The per-repo `exclude_remotes` override lets a repo opt out of a
+    // specific mirror (e.g. gitlab for a repo over the free-tier
+    // storage quota) without affecting other repos. The filter is the
+    // single source of truth: the daemon must consult it for both
+    // `configure_all_remotes` and `push_mirror_remotes`.
+    // ========================================================================
+
+    /// Test: an empty exclude list is a no-op (returns a clone of the
+    /// input unchanged). This is the common case for the 12 other
+    /// repos that use gitlab and do NOT opt out of it.
+    #[test]
+    fn test_filter_remotes_by_exclude_empty_exclude_is_noop() {
+        let remotes = vec![make_remote("github", 1), make_remote("gitlab", 2)];
+        let exclude: Vec<String> = vec![];
+        let filtered = filter_remotes_by_exclude(&remotes, &exclude);
+        assert_eq!(filtered.len(), 2, "empty exclude must return all remotes");
+        let names: Vec<String> = filtered.iter().map(|r| r.name.clone()).collect();
+        assert_eq!(names, vec!["github", "gitlab"]);
+    }
+
+    /// Test: a non-empty exclude list drops the matching remote. This
+    /// is the platform case: `exclude_remotes = ["gitlab"]` causes
+    /// the gitlab remote to be omitted from both configure and push.
+    #[test]
+    fn test_filter_remotes_by_exclude_drops_matching_remote() {
+        let remotes = vec![
+            make_remote("github", 1),
+            make_remote("codeberg", 2),
+            make_remote("gitlab", 3),
+        ];
+        let exclude = vec!["gitlab".to_string()];
+        let filtered = filter_remotes_by_exclude(&remotes, &exclude);
+        assert_eq!(filtered.len(), 2, "gitlab must be excluded");
+        let names: Vec<String> = filtered.iter().map(|r| r.name.clone()).collect();
+        assert_eq!(names, vec!["github", "codeberg"]);
+    }
+
+    /// Test: multiple excludes work in one pass. (Forward-looking
+    /// scenario: a repo over quota on both gitlab AND codeberg.)
+    #[test]
+    fn test_filter_remotes_by_exclude_drops_multiple_remotes() {
+        let remotes = vec![
+            make_remote("github", 1),
+            make_remote("codeberg", 2),
+            make_remote("gitlab", 3),
+        ];
+        let exclude = vec!["gitlab".to_string(), "codeberg".to_string()];
+        let filtered = filter_remotes_by_exclude(&remotes, &exclude);
+        assert_eq!(filtered.len(), 1, "only github must remain");
+        assert_eq!(filtered[0].name, "github");
+    }
+
+    /// Test: the global remotes list is unchanged for OTHER repos.
+    /// This is a regression test for the design's "per-repo, not
+    /// global" property: the filter is applied at the call site with
+    /// the per-repo override, so other repos still see the full
+    /// global list.
+    #[test]
+    fn test_filter_remotes_by_exclude_is_per_call_not_global() {
+        // The filter is a pure function: same input + same exclude
+        // always produces the same output. The per-repo behavior
+        // comes from the caller passing the right `exclude`.
+        let remotes = vec![
+            make_remote("github", 1),
+            make_remote("codeberg", 2),
+            make_remote("gitlab", 3),
+        ];
+        // Repo A opts out of gitlab
+        let exclude_a = vec!["gitlab".to_string()];
+        let filtered_a = filter_remotes_by_exclude(&remotes, &exclude_a);
+        assert_eq!(filtered_a.len(), 2);
+        // Repo B does not opt out
+        let exclude_b: Vec<String> = vec![];
+        let filtered_b = filter_remotes_by_exclude(&remotes, &exclude_b);
+        assert_eq!(filtered_b.len(), 3);
+        // The original `remotes` slice is never mutated.
+        assert_eq!(remotes.len(), 3, "input must not be mutated");
+    }
 }

@@ -2012,6 +2012,46 @@ auto_bump_versions = false
         assert!(!override_.intentional_no_upstream);
     }
 
+    // ========================================================================
+    // Tests for exclude_remotes (goal mqqsyzyd-qkvna5, 2026-06-23)
+    //
+    // The `exclude_remotes` field is the per-repo opt-out for a specific
+    // mirror. Default is empty (no exclusion). The platform uses this
+    // to disable gitlab pushes (free-tier storage quota exceeded).
+    // ========================================================================
+
+    #[test]
+    fn test_load_repo_override_exclude_remotes() {
+        // A repo's per-repo `.dracon/dracon-sync.toml` setting
+        // `exclude_remotes = ["gitlab"]` must round-trip through
+        // `load_repo_override`.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "exclude_remotes = [\"gitlab\"]\n",
+        )
+        .unwrap();
+        let override_ = load_repo_override(repo);
+        assert_eq!(override_.exclude_remotes, vec!["gitlab".to_string()]);
+    }
+
+    #[test]
+    fn test_load_repo_override_exclude_remotes_default_empty() {
+        // When the per-repo override file is absent, `exclude_remotes`
+        // must default to an empty vec so the new opt-in is non-breaking
+        // for the 12 other repos that use gitlab.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let override_ = load_repo_override(repo);
+        assert!(
+            override_.exclude_remotes.is_empty(),
+            "default exclude_remotes must be empty, got {:?}",
+            override_.exclude_remotes
+        );
+    }
+
     static POLICY_ENV_GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     struct VarGuard {
