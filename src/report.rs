@@ -2736,12 +2736,19 @@ async fn handle_ahead(
             // Also push to mirror remotes (codeberg, gitlab, etc.)
             if let Ok(policy) = SyncPolicy::load(policy_path) {
                 if !policy.remotes.is_empty() {
+                    // CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): honor
+                    // per-repo `exclude_remotes` so a repo can opt out
+                    // of a specific mirror (e.g. gitlab for a repo over
+                    // the free-tier storage quota) without affecting
+                    // other repos that use the same mirror.
+                    let repo_override = crate::policy::load_repo_override(repo);
                     let mirror_results = push_mirror_remotes(
                         repo,
                         &policy.remotes,
                         push_timeout_secs,
                         push_retries,
                         true,
+                        &repo_override.exclude_remotes,
                     )
                     .await;
                     for (name, result) in &mirror_results {
@@ -2943,12 +2950,18 @@ async fn handle_ahead(
                                     // Also push to mirror remotes
                                     if let Ok(policy) = SyncPolicy::load(policy_path) {
                                         if !policy.remotes.is_empty() {
+                                            // CHANGED 2026-06-23: honor
+                                            // per-repo exclude_remotes
+                                            // (see goal mqqsyzyd-qkvna5).
+                                            let repo_override =
+                                                crate::policy::load_repo_override(repo);
                                             push_mirror_remotes(
                                                 repo,
                                                 &policy.remotes,
                                                 push_timeout_secs,
                                                 push_retries,
                                                 true,
+                                                &repo_override.exclude_remotes,
                                             )
                                             .await;
                                         }
@@ -3041,12 +3054,18 @@ async fn handle_ahead(
                                     // Also push to mirror remotes
                                     if let Ok(policy) = SyncPolicy::load(policy_path) {
                                         if !policy.remotes.is_empty() {
+                                            // CHANGED 2026-06-23: honor
+                                            // per-repo exclude_remotes
+                                            // (see goal mqqsyzyd-qkvna5).
+                                            let repo_override =
+                                                crate::policy::load_repo_override(repo);
                                             push_mirror_remotes(
                                                 repo,
                                                 &policy.remotes,
                                                 push_timeout_secs,
                                                 push_retries,
                                                 true,
+                                                &repo_override.exclude_remotes,
                                             )
                                             .await;
                                         }

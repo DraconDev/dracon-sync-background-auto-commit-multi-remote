@@ -102,7 +102,20 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             "🔧 {} configuring standard mirror remotes",
             repo.display()
         );
-        crate::git::multi_remote::configure_all_remotes(repo, &policy.remotes, &repo_name);
+        // CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): honor
+        // per-repo `exclude_remotes` so a repo can opt out of a
+        // specific mirror at the very first auto-configure step.
+        // Without this, the daemon would add the excluded remote
+        // here and then `push_mirror_remotes` would skip it on
+        // every push — leaving a useless remote entry in
+        // `.git/config`.
+        let repo_override = crate::policy::load_repo_override(repo);
+        crate::git::multi_remote::configure_all_remotes(
+            repo,
+            &policy.remotes,
+            &repo_name,
+            &repo_override.exclude_remotes,
+        );
         true
     } else {
         false
