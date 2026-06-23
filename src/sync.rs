@@ -1215,12 +1215,18 @@ async fn push_background(
     // Push to mirror remotes
     if !policy.remotes.is_empty() {
         let private = true;
+        // CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): honor
+        // per-repo `exclude_remotes` so a repo can opt out of a
+        // specific mirror (e.g. gitlab for a repo over the free-tier
+        // storage quota) without affecting other repos.
+        let repo_override = crate::policy::load_repo_override(repo);
         let push_results = push_mirror_remotes(
             repo,
             &policy.remotes,
             policy.push_op_timeout_secs,
             policy.push_retries,
             private,
+            &repo_override.exclude_remotes,
         )
         .await;
         let all_ok = push_results.iter().all(|(_, r)| r.is_ok());
