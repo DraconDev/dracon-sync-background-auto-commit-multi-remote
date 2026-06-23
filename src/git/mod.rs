@@ -683,7 +683,7 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "my-repo");
+        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "my-repo", &[]);
         let url = multi_remote::get_remote_url(&repo, "mirror");
         assert_eq!(
             url,
@@ -725,7 +725,7 @@ exit 0
                 force_push_when_behind: false,
             },
         ];
-        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "multi-repo");
+        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "multi-repo", &[]);
         let github_url = multi_remote::get_remote_url(&repo, "github");
         assert_eq!(
             github_url,
@@ -758,8 +758,8 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "repo");
-        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "repo");
+        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "repo", &[]);
+        crate::git::multi_remote::configure_all_remotes(&repo, &remotes, "repo", &[]);
         let remotes_list = multi_remote::list_remotes(&repo);
         assert_eq!(remotes_list.len(), 1);
         assert_eq!(remotes_list[0], "origin");
@@ -1120,7 +1120,7 @@ exit 0
             .arg(&repo)
             .status()
             .expect("git init");
-        let results = crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true).await;
+        let results = crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true, &[]).await;
         assert!(
             results.is_empty(),
             "should return empty results for empty remotes"

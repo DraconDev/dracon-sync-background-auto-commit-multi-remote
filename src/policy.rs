@@ -778,6 +778,20 @@ pub(crate) struct RepoPolicyOverride {
     /// inherits the global value.
     #[serde(default)]
     pub(crate) dirty_max_age_action: Option<DirtyMaxAgeAction>,
+    /// Per-repo list of remote names to skip when configuring
+    /// and pushing mirrors. Each entry is a remote name as
+    /// defined in the global `[[remotes]]` config (e.g. "gitlab").
+    /// When a remote is in this list, the daemon will not
+    /// add the remote to `.git/config` and will not attempt to
+    /// push to it. Default: empty (no exclusion). Set in
+    /// `<repo>/.dracon/dracon-sync.toml`.
+    ///
+    /// Added 2026-06-23 (goal mqqsyzyd-qkvna5) so a repo whose
+    /// mirror is permanently unavailable (e.g. over a free-tier
+    /// storage quota) can opt out of that mirror without
+    /// affecting other repos that use it.
+    #[serde(default)]
+    pub(crate) exclude_remotes: Vec<String>,
 
 }
 

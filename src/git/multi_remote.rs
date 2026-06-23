@@ -40,9 +40,40 @@ pub(crate) fn ensure_remote(repo: &Path, name: &str, url: &str) -> Result<()> {
     }
 }
 
-/// Configure all remotes from policy for a given repo.
-pub(crate) fn configure_all_remotes(repo: &Path, remotes: &[RemoteConfig], repo_name: &str) {
-    for remote in remotes {
+/// Filter a remote config list by an exclusion list of remote names.
+/// Added 2026-06-23 (goal mqqsyzyd-qkvna5) so a repo with a
+/// permanently unavailable mirror (e.g. over free-tier storage
+/// quota) can opt out without affecting other repos.
+///
+/// `exclude` is a list of remote `name` values (e.g. `["gitlab"]`).
+/// Any remote whose `name` matches an entry in `exclude` is omitted
+/// from the returned vec. An empty `exclude` returns a clone of
+/// the input unchanged.
+pub(crate) fn filter_remotes_by_exclude(
+    remotes: &[RemoteConfig],
+    exclude: &[String],
+) -> Vec<RemoteConfig> {
+    if exclude.is_empty() {
+        return remotes.to_vec();
+    }
+    remotes
+        .iter()
+        .filter(|r| !exclude.iter().any(|e| e == &r.name))
+        .cloned()
+        .collect()
+}
+
+/// Configure all remotes from policy for a given repo, skipping any
+/// remote in `exclude`. `exclude` is a list of remote names (e.g.
+/// `["gitlab"]`); an empty list is a no-op filter.
+pub(crate) fn configure_all_remotes(
+    repo: &Path,
+    remotes: &[RemoteConfig],
+    repo_name: &str,
+    exclude: &[String],
+) {
+    let filtered = filter_remotes_by_exclude(remotes, exclude);
+    for remote in &filtered {
         let url = remote.resolve_push_url(repo_name);
         if let Err(e) = ensure_remote(repo, &remote.name, &url) {
             eprintln!(
@@ -56,21 +87,29 @@ pub(crate) fn configure_all_remotes(repo: &Path, remotes: &[RemoteConfig], repo_
 }
 
 /// Push to all mirror remotes, auto-creating repos if configured.
+/// `exclude` is a list of remote names to skip (e.g. `["gitlab"]`).
+/// Excluded remotes are not added to `.git/config`, are not
+/// auto-created, and are not pushed to. Default behavior with an
+/// empty `exclude` is unchanged.
 pub(crate) async fn push_mirror_remotes(
     repo: &Path,
     remotes: &[RemoteConfig],
     timeout_secs: u64,
     retries: u32,
     private: bool,
+    exclude: &[String],
 ) -> Vec<(String, Result<()>)> {
     let repo_name = repo
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    configure_all_remotes(repo, remotes, &repo_name);
+    let filtered = filter_remotes_by_exclude(remotes, exclude);
 
-    for (remote_name, create_result) in auto_create_all_remotes(remotes, &repo_name, private, Some(repo)).await
+    configure_all_remotes(repo, &filtered, &repo_name, &[]);
+
+    for (remote_name, create_result) in
+        auto_create_all_remotes(&filtered, &repo_name, private, Some(repo)).await
     {
         match create_result {
             Ok(_) => {}
@@ -83,7 +122,7 @@ pub(crate) async fn push_mirror_remotes(
         }
     }
 
-    let all_remote_names: Vec<_> = remotes.iter().map(|r| r.name.as_str()).collect();
+    let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
     if let Err(e) = remove_stale_remotes(repo, &all_remote_names) {
         eprintln!(
             "⚠️ failed to clean stale remotes for {}: {}",
@@ -92,7 +131,7 @@ pub(crate) async fn push_mirror_remotes(
         );
     }
 
-    push_to_all_remotes(repo, remotes, timeout_secs, retries).await
+    push_to_all_remotes(repo, &filtered, timeout_secs, retries).await
 }
 
 /// Get the URL for a given remote name.
