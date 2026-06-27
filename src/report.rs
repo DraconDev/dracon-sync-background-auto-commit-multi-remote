@@ -632,6 +632,21 @@ pub(crate) struct RepoReportRow {
     last_push: String,
     push_status: String,
     push_error: String,
+    /// Effective remotes the daemon will push to for this repo, derived
+    /// from `policy.remotes` minus the per-repo `exclude_remotes` override.
+    /// Sourced from the SAME configuration the daemon uses at push time
+    /// (`filter_remotes_by_exclude` in `git/multi_remote.rs`), so the
+    /// `dracon-sync repos` table shows exactly what the daemon will do.
+    /// For most repos this is `["codeberg", "github", "gitlab"]`. For
+    /// `dracon-platform` it is `["codeberg"]` because the per-repo
+    /// override at `<repo>/.dracon/dracon-sync.toml` excludes github+gitlab
+    /// (see 2026-06-23 goal `mqqsyzyd-qkvna5` for rationale).
+    push_to_remotes: Vec<String>,
+    /// Remotes explicitly excluded from this repo by the per-repo override
+    /// (or by the global `policy.exclude_remotes`). Empty when the repo
+    /// uses the full default remote set. Always present (not Option) so
+    /// downstream callers don't have to handle None.
+    excluded_remotes: Vec<String>,
     concern: bool,
     warn: bool,
     hint: String,
@@ -2205,6 +2220,19 @@ pub(crate) async fn run_repos_report(
             last_push,
             push_status,
             push_error,
+            // Effective remotes the daemon will push to for this repo,
+            // computed by applying the per-repo `exclude_remotes` filter
+            // to the global `policy.remotes` — the SAME logic the daemon
+            // runs in `push_mirror_remotes` at sync time. What you see
+            // in the table is what the daemon will do.
+            push_to_remotes: {
+                let filtered = crate::git::multi_remote::filter_remotes_by_exclude(
+                    &policy.remotes,
+                    &repo_override.exclude_remotes,
+                );
+                filtered.iter().map(|r| r.name.clone()).collect()
+            },
+            excluded_remotes: repo_override.exclude_remotes.clone(),
             concern,
             warn,
             hint,
@@ -5072,6 +5100,8 @@ mod tests {
             last_push: "5m ago".to_string(),
             push_status: "OK".to_string(),
             push_error: String::new(),
+            push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            excluded_remotes: vec![],
             concern: false,
             warn: false,
             hint: "healthy".to_string(),
@@ -5255,6 +5285,8 @@ mod tests {
             commits_24h: 0,
             push_status: push_status.to_string(),
             push_error: String::new(),
+            push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            excluded_remotes: vec![],
             concern: false,
             warn: false,
             hint: "test".to_string(),
@@ -5884,6 +5916,8 @@ mod tests {
             last_push: "5m ago".to_string(),
             push_status: "STUCK".to_string(),
             push_error: "ahead=5, push failing".to_string(),
+            push_to_remotes: vec!["codeberg".to_string()],
+            excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
             concern: true,
             warn: false,
             hint: "run repair-concerns --apply (push or rewrite)".to_string(),
