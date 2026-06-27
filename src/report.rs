@@ -2441,7 +2441,7 @@ pub(crate) async fn run_repos_report(
     println!("    ↑/↓        = ahead/behind upstream");
     println!("    PUSH-TO    = remotes the daemon will push to (excluded remotes shown dimmed)");
     println!("    TOKENS     = 🟢 token present, 🔴 missing (pushes will fail)");
-    println!("    STATE      = working/committing/pushing/synced/stalled/dirty/intentional/failed/idle/cold/healthy");
+    println!("    STATE      = working/committing/pushing/synced/stalled/dirty/failed/idle/cold/healthy");
     println!("    ACTIVITY   = now=daemon processing · pushing Xm (N ahead) · dirty Xm · synced/idle/cold");
     println!("    DAEMON     = last action timestamp + name (e.g. '23s sync_commit')");
     println!();
@@ -2529,13 +2529,26 @@ fn render_repo_card(idx: usize, row: &RepoReportRow, full_path: bool) {
     let ahead_count = row.ahead;
     let behind_count = row.behind;
     let push_status_str = row.push_status.clone();
+    // Shorten publish label: if it's `<remote>/<branch>`, show just
+    // `<remote>` (the branch is already shown on the same line, and
+    // the remote is in the PUSH-TO line below). This saves ~12 chars
+    // for long branch names like `codeberg/main-temp`.
+    let publish_short = if let Some(slash) = row.upstream.find('/') {
+        &row.upstream[..slash]
+    } else {
+        &row.upstream
+    };
+    let publish_display = if row.publish_state == PublishState::Missing {
+        "—".to_string()
+    } else {
+        publish_short.to_string()
+    };
     println!(
-        "    {cyan}{branch}{reset}  ·  {pub}{publish_label}{reset}  ·  {ahead}{ahead_count}↑{reset}  {behind}{behind_count}↓{reset}  ·  {p}{push_status_str}{reset}{push_status_extra}",
+        "    {cyan}{branch}{reset}  ·  {pub}{publish_display}{reset}  ·  {ahead}{ahead_count}↑{reset}  {behind}{behind_count}↓{reset}  ·  {p}{push_status_str}{reset}{push_status_extra}",
         reset = ansi_code("0"),
         cyan = ansi_code("36"),
         branch = row.branch,
         pub = publish_color,
-        publish_label = publish_cell_label(&row.upstream, row.publish_state),
         ahead = ahead_color,
         behind = behind_color,
         p = push_status_color,
@@ -2581,7 +2594,16 @@ fn render_repo_card(idx: usize, row: &RepoReportRow, full_path: bool) {
         } else {
             ansi_code("32")
         };
-        println!("    {hc}Hint  {hint}{reset}", hc = hint_color, hint = row.hint, reset = ansi_code("0"));
+        // Truncate hint to fit ~80 chars on this line. Hints longer
+        // than that are usually auto-generated and verbose; the
+        // operator can run `dracon-sync repos --verbose` (future) for
+        // the full text.
+        let hint_text = if row.hint.len() > 70 {
+            format!("{}…", &row.hint[..69])
+        } else {
+            row.hint.clone()
+        };
+        println!("    {hc}Hint  {hint_text}{reset}", hc = hint_color, reset = ansi_code("0"));
     }
 
     // Blank line between cards for readability
