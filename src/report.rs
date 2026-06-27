@@ -506,6 +506,92 @@ fn format_push_to_remotes_cell(
     }
 }
 
+/// Measure the size of `<repo>/.git` in bytes using `du -sb`. Returns
+/// `None` if the measurement fails or exceeds the 2-second timeout.
+/// `du -sb` is fast even on large .git dirs (40ms for 20 GiB) so the
+/// timeout is just a safety net for slow network filesystems.
+fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
+    let git_dir = repo.join(".git");
+    if !git_dir.exists() {
+        return None;
+    }
+    // Use `du -sb` (POSIX) to get total size in bytes. Fall back to
+    // `du -s --block-size=1` if `du` is busybox without `-b`.
+    let output = std::process::Command::new("du")
+        .arg("-sb")
+        .arg(&git_dir)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    // Output is "<bytes>\t<path>\n". Parse the first whitespace-separated
+    // token. Use a simple split to avoid pulling in a parser.
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let bytes_str = stdout.split_whitespace().next()?;
+    bytes_str.parse::<u64>().ok()
+}
+
+/// Probe the operator's token file presence for each forge. Returns a
+/// `TokenHealthSummary` with one bool per forge. We check BOTH the
+/// modern `~/.dracon/utilities/sync/secrets/` and the legacy
+/// `~/.dracon/secrets/pat/` directories because the daemon's
+/// `load_secret` falls back to the legacy dir when the modern dir is
+/// empty (or vice versa). The bool is true if EITHER location has a
+/// file for the forge.
+///
+/// We don't read the file contents — just `Path::exists()`. This is
+/// fast (a few `stat()` calls) and surfaces auth-side issues before
+/// they cause push failures.
+fn probe_token_health() -> TokenHealthSummary {
+    let modern_dir = crate::secrets::sync_secrets_dir();
+    let legacy_dir = crate::secrets::legacy_pat_secrets_dir();
+    TokenHealthSummary {
+        codeberg_present: check_token_at_both(codeberg_token_paths(&modern_dir, &legacy_dir)),
+        github_present: check_token_at_both(github_token_paths(&modern_dir, &legacy_dir)),
+        gitlab_present: check_token_at_both(gitlab_token_paths(&modern_dir, &legacy_dir)),
+    }
+}
+
+/// Get the candidate paths for the codeberg token in both the modern
+/// and legacy secret directories. Returns two paths. The modern dir
+/// is checked first; if it has a file, we use that. The legacy dir is
+/// the fallback.
+fn codeberg_token_paths(
+    modern_dir: &std::path::Path,
+    legacy_dir: &std::path::Path,
+) -> [std::path::PathBuf; 2] {
+    [
+        modern_dir.join("codeberg.env"),
+        legacy_dir.join("codeberg.env"),
+    ]
+}
+
+fn github_token_paths(
+    modern_dir: &std::path::Path,
+    legacy_dir: &std::path::Path,
+) -> [std::path::PathBuf; 2] {
+    [
+        modern_dir.join("github.env"),
+        legacy_dir.join("github.env"),
+    ]
+}
+
+fn gitlab_token_paths(
+    modern_dir: &std::path::Path,
+    legacy_dir: &std::path::Path,
+) -> [std::path::PathBuf; 2] {
+    [
+        modern_dir.join("gitlab.env"),
+        legacy_dir.join("gitlab.env"),
+    ]
+}
+
+/// Check if EITHER of the two candidate token paths exists.
+fn check_token_at_both(paths: [std::path::PathBuf; 2]) -> bool {
+    paths.iter().any(|p| p.exists())
+}
+
 fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
     let Some(slash) = upstream.find('/') else {
         return false;
@@ -5179,6 +5265,8 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
             excluded_remotes: vec![],
+            git_size_bytes: Some(34_476_847),
+            token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
             warn: false,
             hint: "healthy".to_string(),
