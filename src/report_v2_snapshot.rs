@@ -1,3 +1,27 @@
+// V2 CARD DESIGN SNAPSHOT — preserved for reference, not compiled.
+//
+// This file is a snapshot of the v2 card design that was introduced in commits
+// 3eb648f (added render_push_to_with_icons, render_repo_card) and refined in
+// 7a525cb (removed format_push_to_remotes_cell, StateCause::icon(), state_cause_as_str),
+// then tweaked in 78f5a68 (multi-line legend, subject truncation) and 14a19d3
+// (publish label shortening, hint truncation).
+//
+// The v2 design was reverted to the v1 comfy_table-based design on 2026-06-27
+// per the operator's request: 'i am not over the new dracon-sync repos table its
+// less informative than the one we have before'.
+//
+// To re-enable the v2 design in the future:
+//   1. Move the rendering functions (render_repo_card, render_push_to_with_icons)
+//      back to src/report.rs
+//   2. Remove the format_push_to_remotes_cell, StateCause::icon(), and
+//      state_cause_as_str() restoration from src/report.rs
+//   3. Update the main loop in run_repos_report() to call render_repo_card()
+//      instead of the comfy_table-based rendering
+//
+// See docs/design/repo-remote-visibility-v3-revert-2026-06-27.md for the full
+// revert context and the v2 design's intended use case.
+
+
 use anyhow::Result;
 use dracon_git::GitService;
 use serde::{Deserialize, Serialize};
@@ -476,35 +500,9 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
     }
 }
 
-/// Format the "PUSH-TO" column for a single repo. Shows the effective
-/// remotes the daemon will push to (the `push_to_remotes` list), and
-/// if the per-repo override excludes any remotes, shows them in a
-/// subscript-style annotation so the operator can see both the active
-/// targets AND why some are missing.
-///
-/// Examples:
-/// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
-/// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
-/// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
-fn format_push_to_remotes_cell(
-    push_to_remotes: &[String],
-    excluded_remotes: &[String],
-) -> comfy_table::Cell {
-    use comfy_table::Cell;
-    if push_to_remotes.is_empty() && excluded_remotes.is_empty() {
-        return Cell::new("-").fg(comfy_table::Color::DarkGrey);
-    }
-    let main = push_to_remotes.join(",");
-    if excluded_remotes.is_empty() {
-        Cell::new(main).fg(comfy_table::Color::Green)
-    } else {
-        // Active remotes in green, excluded annotation in dim yellow
-        // so the operator can see at a glance that the repo has been
-        // deliberately limited to a subset of the default set.
-        let excl = excluded_remotes.join(",");
-        Cell::new(format!("{main} [excl:{excl}]"))
-    }
-}
+// (format_push_to_remotes_cell removed in 2026-06-27 v2 redesign;
+// replaced by render_push_to_with_icons which uses ANSI colors and
+// per-forge icons instead of comfy_table Cell.)
 
 /// Measure the size of `<repo>/.git` in bytes using `du -sb`. Returns
 /// `None` if the measurement fails or exceeds the 2-second timeout.
@@ -1545,26 +1543,6 @@ impl StateCause {
             StateCause::Unowned { .. } => "unowned",
         }
     }
-
-    /// Icon used in the human-readable table. The colour of the row is
-    /// picked separately by `cause_color`.
-    pub(crate) fn icon(&self) -> &'static str {
-        match self {
-            StateCause::Working => "🔄",
-            StateCause::Committing => "🟡",
-            StateCause::Pushing => "🟣",
-            StateCause::Synced => "🟢",
-            StateCause::Stalled => "🔴",
-            StateCause::Dirty => "🟠",
-            StateCause::Untracked => "⚪",
-            StateCause::Intentional => "🟣",
-            StateCause::Failed => "⛔",
-            StateCause::Idle => "⚪",
-            StateCause::Cold => "⚫",
-            StateCause::Healthy => "✅",
-            StateCause::Unowned { .. } => "🚫",
-        }
-    }
 }
 
 /// Compute the state_cause_label string. For most variants this
@@ -1583,23 +1561,8 @@ pub(crate) fn state_cause_label_string(cause: &StateCause) -> String {
 /// dropped `Copy` from `StateCause` (it now carries String
 /// fields in the Unowned variant). Most call sites are
 /// refactored to use this.
-pub(crate) fn state_cause_as_str(cause: &StateCause) -> &'static str {
-    match cause {
-        StateCause::Working => "working",
-        StateCause::Committing => "committing",
-        StateCause::Pushing => "pushing",
-        StateCause::Synced => "synced",
-        StateCause::Stalled => "stalled",
-        StateCause::Dirty => "dirty",
-        StateCause::Untracked => "untracked-only",
-        StateCause::Intentional => "intentional",
-        StateCause::Failed => "failed",
-        StateCause::Idle => "idle",
-        StateCause::Cold => "cold",
-        StateCause::Healthy => "healthy",
-        StateCause::Unowned { .. } => "unowned",
-    }
-}
+// (state_cause_as_str removed in 2026-06-27 v2 redesign; it was
+// only used by the old comfy_table renderer.)
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct StateCauseThresholds {
@@ -2492,179 +2455,275 @@ pub(crate) async fn run_repos_report(
     );
     println!();
 
-    // ---- Legend line (one-liner mapping column codes to their meaning) ----
-    println!(
-        "ℹ️  Legend: MOD = modified tracked · STG = staged · UT = untracked · 🔗 = VS Code publish upstream — green when healthy (e.g. `github/main`), yellow ⚠️ none when no upstream is configured, yellow ⚠️ <remote/branch> (gone) when the upstream is configured but its remote-tracking ref does not exist locally · ↑ = ahead of upstream · ↓ = behind upstream · PUSH = push status · 📊 1h/6h/24h = commits in last 1h/6h/24h · STATE = derived cause (working=daemon just synced/committing/pushing/synced=clean & in sync/stalled/dirty/untracked-only/intentional/failed/idle/cold/healthy) · ACTIVITY = real activity indicator (now=daemon processing this repo · pushing Xm (N ahead)=push in progress, N unpushed commits · dirty Xm=dirty repo, last commit X minutes ago · synced/idle/cold=clean & waiting) · DAEMON = daemon's last recorded action (e.g. '23s sync_triage') so you can tell the daemon is working through dirty rows vs. you're editing right now"
-    );
+    // ---- Legend (multi-line, fits in 100 cols) ----
+    // Each line is a category, under 100 chars wide so it doesn't wrap
+    // on 80-column terminals. The full legend is now readable without
+    // horizontal scrolling.
+    println!("ℹ️  Legend (one line per category):");
+    println!("    MOD/STG/UT = modified/staged/untracked file counts");
+    println!("    🔗         = VS Code publish upstream (green=healthy, yellow=missing/gone)");
+    println!("    ↑/↓        = ahead/behind upstream");
+    println!("    PUSH-TO    = remotes the daemon will push to (excluded remotes shown dimmed)");
+    println!("    TOKENS     = 🟢 token present, 🔴 missing (pushes will fail)");
+    println!("    STATE      = working/committing/pushing/synced/stalled/dirty/failed/idle/cold/healthy");
+    println!("    ACTIVITY   = now=daemon processing · pushing Xm (N ahead) · dirty Xm · synced/idle/cold");
+    println!("    DAEMON     = last action timestamp + name (e.g. '23s sync_commit')");
     println!();
 
-    use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentArrangement, Table,
-    };
-
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL_CONDENSED);
-    table.set_content_arrangement(ContentArrangement::Dynamic);
-    // Single-line header cells: icon + space + label (no newline)
-    let mk_h = |icon: &str, label: &str| -> Cell {
-        Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
-    };
-    // Set fixed column widths so the table doesn't wrap rows on 100+ col terminals
-    // and truncates gracefully on narrower ones.
-    table.set_header(vec![
-        Cell::new("#"),
-        mk_h("🏷", "STATUS"),
-        mk_h("📦", "REPO"),
-        mk_h("🌿", "BRANCH"),
-        mk_h("🔗", "PUBLISH"),
-        mk_h("📝", "MOD"),
-        mk_h("📥", "STG"),
-        mk_h("❓", "UT"),
-        mk_h("↑", "AHEAD"),
-        mk_h("↓", "BEHIND"),
-        mk_h("🚀", "PUSH"),
-        mk_h("🛰", "PUSH-TO"),
-        mk_h("📜", "LAST COMMIT"),
-        mk_h("📤", "PUSHED"),
-        mk_h("⏰", "ACTIVITY"),
-        mk_h("👤", "AUTHOR"),
-        mk_h("📊", "1h"),
-        mk_h("📊", "6h"),
-        mk_h("📊", "24h"),
-        mk_h("🩺", "STATE"),
-        mk_h("🤖", "DAEMON"),
-        mk_h("💡", "HINT"),
-    ]);
-
+    // Card-based output. Each repo is a 5-6 line block (~90 chars
+    // wide) that fits cleanly in a 100-column terminal. Replaces the
+    // old 22-column `comfy_table` layout that wrapped text vertically
+    // on 80-column terminals. The JSON path above is unchanged so
+    // scripts and tools that consume `dracon-sync repos --json` are
+    // not affected by the visual redesign.
+    //
+    // Card format (5 lines per repo):
+    //   [N] STATUS  repo-name              .git-size
+    //       branch · publish · ahead ↑ behind ↓  push-status
+    //       PUSH-TO  forge-icon remote  ...  (excluded: forge-icon remote  ...)
+    //       TOKENS   🟢 codeberg  🟢 github  🟢 gitlab
+    //       Last  hash "subject"  ·  Xm ago by author
+    //       Hint  hint-text
+    //
+    // The format is deliberately fixed-width-per-line (no wrapping)
+    // and uses emojis + color for quick visual scanning.
     for (idx, row) in rows.iter().enumerate() {
-        let (status_text, status_color) = if row.concern {
-            ("❌ CONCERN".to_string(), Color::Red)
-        } else if row.warn {
-            ("⚠️  WARN".to_string(), Color::Yellow)
-        } else {
-            ("✅ OK".to_string(), Color::Green)
-        };
-
-        let repo_name = if full_path {
-            row.repo.clone()
-        } else {
-            std::path::Path::new(&row.repo)
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| row.repo.clone())
-        };
-
-        let push_color = match row.push_status.as_str() {
-            "OK" | "INTENTIONAL" => Color::Green,
-            "PENDING" => Color::Yellow,
-            "FAIL" | "STUCK" => Color::Red,
-            _ => Color::White,
-        };
-
-        let state_color = match row.state_cause {
-            StateCause::Working | StateCause::Synced => Color::Green,
-            StateCause::Committing | StateCause::Pushing | StateCause::Dirty => Color::Yellow,
-            StateCause::Stalled | StateCause::Failed => Color::Red,
-            StateCause::Intentional => Color::Magenta,
-            StateCause::Untracked | StateCause::Idle => Color::White,
-            StateCause::Cold | StateCause::Healthy => Color::DarkGrey,
-            // Unowned: red — the daemon is intentionally not
-            // touching this repo, the operator must intervene.
-            StateCause::Unowned { .. } => Color::Red,
-        };
-
-        // Color-code numeric columns based on severity
-        let modified_color = if row.modified > 0 {
-            Color::Yellow
-        } else {
-            Color::White
-        };
-        let staged_color = if row.staged > 0 {
-            Color::Cyan
-        } else {
-            Color::White
-        };
-        let ahead_color = if row.ahead > 0 {
-            Color::Yellow
-        } else {
-            Color::White
-        };
-        let behind_color = if row.behind > 0 {
-            Color::Red
-        } else {
-            Color::White
-        };
-
-        // Color branches: main/master in bold, others in cyan
-        let branch_color = if row.branch == "main" || row.branch == "master" {
-            Color::White
-        } else {
-            Color::Cyan
-        };
-
-        // Compose a one-line commit summary: "<short-hash> <subject>"
-        let commit_summary = if row.last_hash == "-" {
-            "-".to_string()
-        } else {
-            format!("{} {}", row.last_hash, row.last_msg)
-        };
-
-        table.add_row(vec![
-            Cell::new(idx + 1),
-            Cell::new(status_text).fg(status_color),
-            Cell::new(repo_name),
-            Cell::new(&row.branch).fg(branch_color),
-            Cell::new(publish_cell_label(&row.upstream, row.publish_state))
-                .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(modified_color),
-            Cell::new(row.staged).fg(staged_color),
-            Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(ahead_color),
-            Cell::new(row.behind).fg(behind_color),
-            Cell::new(&row.push_status).fg(push_color),
-            format_push_to_remotes_cell(
-                &row.push_to_remotes,
-                &row.excluded_remotes,
-            ),
-            Cell::new(commit_summary),
-            Cell::new(shorten_when(&row.last_push)),
-            Cell::new(activity_label(&row)),
-            Cell::new(&row.last_author),
-            Cell::new(row.commits_1h),
-            Cell::new(row.commits_6h),
-            Cell::new(row.commits_24h),
-            Cell::new(format!(
-                "{} {}",
-                row.state_cause.icon(),
-                row.state_cause.as_str()
-            ))
-            .fg(state_color),
-            Cell::new(format!(
-                "{} {}",
-                row.daemon_last_action_when, row.daemon_last_action
-            ))
-            .fg(if row.daemon_last_result == "fail" {
-                Color::Red
-            } else if row.daemon_last_result == "ok" {
-                Color::Green
-            } else if row.daemon_last_action_when == "none" {
-                Color::DarkGrey
-            } else {
-                Color::Cyan
-            }),
-            Cell::new(&row.hint).fg(if row.concern {
-                Color::Red
-            } else if row.warn {
-                Color::Yellow
-            } else {
-                Color::Green
-            }),
-        ]);
+        render_repo_card(idx + 1, row, full_path);
     }
 
-    println!("{table}");
-
     Ok(())
+}
+
+/// Render a single repo as a 5-6 line card. The card is designed to
+/// fit cleanly in a 100-column terminal without text wrapping. Color
+/// is applied via ANSI escape codes (so the output is also readable
+/// when piped to a file).
+fn render_repo_card(idx: usize, row: &RepoReportRow, full_path: bool) {
+    let repo_name = if full_path {
+        row.repo.clone()
+    } else {
+        std::path::Path::new(&row.repo)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| row.repo.clone())
+    };
+
+    // ---- Line 1: index, status, repo name, .git size ----
+    let (status_text, status_color) = if row.concern {
+        ("❌ CONCERN", ansi_code("31")) // red
+    } else if row.warn {
+        ("⚠️  WARN  ", ansi_code("33")) // yellow
+    } else {
+        ("✅ OK     ", ansi_code("32")) // green
+    };
+    let size_text = match row.git_size_bytes {
+        Some(b) => format_size_bytes(b),
+        None => "size: ?".to_string(),
+    };
+    let name_display = repo_name;
+    println!(
+        "{reset}[{idx}]{reset} {status}{status_text}{reset}  {name_display}{reset}  {dim}{size_text}{reset}",
+        reset = ansi_code("0"),
+        status = status_color,
+        dim = ansi_code("2"),
+    );
+
+    // ---- Line 2: branch, publish, ahead/behind, push status ----
+    let push_status_color = match row.push_status.as_str() {
+        "OK" | "INTENTIONAL" => ansi_code("32"), // green
+        "PENDING" => ansi_code("33"),            // yellow
+        "FAIL" | "STUCK" => ansi_code("31"),    // red
+        _ => ansi_code("0"),                     // default
+    };
+    let publish_color = match row.publish_state {
+        PublishState::Ok => ansi_code("32"),         // green
+        PublishState::Missing | PublishState::Gone => ansi_code("33"), // yellow
+    };
+    let ahead_color = if row.ahead > 0 { ansi_code("33") } else { ansi_code("0") };
+    let behind_color = if row.behind > 0 { ansi_code("31") } else { ansi_code("0") };
+    let push_failed_count = if row.push_status == "STUCK" || row.push_status == "FAIL" {
+        // pull the failure count from push_error if present
+        extract_push_failure_count(&row.push_error)
+    } else {
+        None
+    };
+    let push_status_extra = push_failed_count
+        .map(|n| format!("  {red}{n}+ fails{reset}", red = ansi_code("31"), reset = ansi_code("0")))
+        .unwrap_or_default();
+    let ahead_count = row.ahead;
+    let behind_count = row.behind;
+    let push_status_str = row.push_status.clone();
+    // Shorten publish label: if it's `<remote>/<branch>`, show just
+    // `<remote>` (the branch is already shown on the same line, and
+    // the remote is in the PUSH-TO line below). This saves ~12 chars
+    // for long branch names like `codeberg/main-temp`.
+    let publish_short = if let Some(slash) = row.upstream.find('/') {
+        &row.upstream[..slash]
+    } else {
+        &row.upstream
+    };
+    let publish_display = if row.publish_state == PublishState::Missing {
+        "—".to_string()
+    } else {
+        publish_short.to_string()
+    };
+    println!(
+        "    {cyan}{branch}{reset}  ·  {pub}{publish_display}{reset}  ·  {ahead}{ahead_count}↑{reset}  {behind}{behind_count}↓{reset}  ·  {p}{push_status_str}{reset}{push_status_extra}",
+        reset = ansi_code("0"),
+        cyan = ansi_code("36"),
+        branch = row.branch,
+        pub = publish_color,
+        ahead = ahead_color,
+        behind = behind_color,
+        p = push_status_color,
+    );
+
+    // ---- Line 3: PUSH-TO with forge icons ----
+    let push_to_line = render_push_to_with_icons(&row.push_to_remotes, &row.excluded_remotes);
+    println!("    PUSH-TO  {push_to_line}");
+
+    // ---- Line 4: token health per forge ----
+    let token_line = render_token_health_line(&row.token_health);
+    println!("    TOKENS   {token_line}");
+
+    // ---- Line 5: last commit summary ----
+    let commit_summary = if row.last_hash == "-" {
+        "-".to_string()
+    } else {
+        // Truncate to fit ~80 chars on this line. Subject is capped at
+        // 40 chars + "…" = 41 chars, plus hash (10) + quotes (2) +
+        // "Last  " (6) + "  ·  " (5) + when (max ~8) + " by " (4) +
+        // author (max ~12) = ~88 chars total. Leaves margin for
+        // 100-col terminals.
+        let subject = if row.last_msg.len() > 40 {
+            format!("{}…", &row.last_msg[..39])
+        } else {
+            row.last_msg.clone()
+        };
+        format!("{} \"{}\"", row.last_hash, subject)
+    };
+    let when_short = shorten_when(&row.last_when);
+    let author_str = row.last_author.clone();
+    let when_display = when_short;
+    println!(
+        "    Last  {commit_summary}  ·  {when_display} by {author_str}",
+    );
+
+    // ---- Line 6: hint (only if non-empty and meaningful) ----
+    if !row.hint.is_empty() && row.hint != "healthy" {
+        let hint_color = if row.concern {
+            ansi_code("31")
+        } else if row.warn {
+            ansi_code("33")
+        } else {
+            ansi_code("32")
+        };
+        // Truncate hint to fit ~80 chars on this line. Hints longer
+        // than that are usually auto-generated and verbose; the
+        // operator can run `dracon-sync repos --verbose` (future) for
+        // the full text.
+        let hint_text = if row.hint.len() > 70 {
+            format!("{}…", &row.hint[..69])
+        } else {
+            row.hint.clone()
+        };
+        println!("    {hc}Hint  {hint_text}{reset}", hc = hint_color, reset = ansi_code("0"));
+    }
+
+    // Blank line between cards for readability
+    println!();
+}
+
+/// Render the PUSH-TO line with per-forge icons. Active remotes in
+/// green, excluded remotes dimmed with 🚫. Example output:
+///   🐙 github  🦊 gitlab  🟢 codeberg
+///   🟢 codeberg    (excluded: 🚫 github  🚫 gitlab)
+fn render_push_to_with_icons(active: &[String], excluded: &[String]) -> String {
+    let mut out = String::new();
+    for (i, name) in active.iter().enumerate() {
+        if i > 0 {
+            out.push_str("  ");
+        }
+        out.push_str(&format!("{}{} {}", forge_icon(name), name, ansi_code("0")));
+    }
+    if !excluded.is_empty() {
+        if !out.is_empty() {
+            out.push_str("    ");
+        }
+        out.push_str(&format!("{}(excluded: ", ansi_code("2"))); // dim
+        for (i, name) in excluded.iter().enumerate() {
+            if i > 0 {
+                out.push_str("  ");
+            }
+            out.push_str(&format!("🚫 {} {}", name, ansi_code("0")));
+        }
+        out.push_str(&format!("{}){}", ansi_code("2"), ansi_code("0")));
+    }
+    if out.is_empty() {
+        format!("{}-{}", ansi_code("2"), ansi_code("0"))
+    } else {
+        out
+    }
+}
+
+/// Render the TOKENS line showing per-forge token presence.
+/// 🟢 = token file present, 🔴 = missing (pushes will fail).
+fn render_token_health_line(health: &TokenHealthSummary) -> String {
+    let codeberg = if health.codeberg_present { "🟢" } else { "🔴" };
+    let github = if health.github_present { "🟢" } else { "🔴" };
+    let gitlab = if health.gitlab_present { "🟢" } else { "🔴" };
+    format!(
+        "{codeberg} codeberg  {github} github  {gitlab} gitlab",
+    )
+}
+
+/// Map a forge name to a distinct icon. Used for both the PUSH-TO
+/// line and any future forge-tagged output.
+fn forge_icon(name: &str) -> &'static str {
+    match name {
+        "github" => "🐙",
+        "gitlab" => "🦊",
+        "codeberg" => "🟢",
+        _ => "❓",
+    }
+}
+
+/// Format a byte count as a human-readable string. Uses GiB/MiB/KiB
+/// for clarity. Example: 20_518_397_949 -> "19.1 GiB".
+fn format_size_bytes(bytes: u64) -> String {
+    const GIB: u64 = 1024 * 1024 * 1024;
+    const MIB: u64 = 1024 * 1024;
+    const KIB: u64 = 1024;
+    if bytes >= GIB {
+        format!("{:.1} GiB", bytes as f64 / GIB as f64)
+    } else if bytes >= MIB {
+        format!("{:.1} MiB", bytes as f64 / MIB as f64)
+    } else if bytes >= KIB {
+        format!("{:.1} KiB", bytes as f64 / KIB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+/// Extract a push failure count from the push_error string. The
+/// daemon encodes it like "(1417 failures)" or "(152 fails)". Returns
+/// None if not parseable.
+fn extract_push_failure_count(error: &str) -> Option<usize> {
+    // Look for the pattern "(NNNN failures)" or "(NNNN fails)"
+    let start = error.rfind('(')?;
+    let end = error.rfind(')').unwrap_or(error.len());
+    if start >= end {
+        return None;
+    }
+    let inside = &error[start + 1..end];
+    // First whitespace-separated token should be the count
+    let count_str = inside.split_whitespace().next()?;
+    count_str.parse::<usize>().ok()
+}
+
+/// Return an ANSI escape code for a foreground color.
+fn ansi_code(code: &str) -> String {
+    format!("\x1b[{code}m")
 }
 
 pub(crate) fn log_incident(
