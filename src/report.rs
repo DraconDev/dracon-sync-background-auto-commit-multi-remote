@@ -476,35 +476,9 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
     }
 }
 
-/// Format the "PUSH-TO" column for a single repo. Shows the effective
-/// remotes the daemon will push to (the `push_to_remotes` list), and
-/// if the per-repo override excludes any remotes, shows them in a
-/// subscript-style annotation so the operator can see both the active
-/// targets AND why some are missing.
-///
-/// Examples:
-/// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
-/// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
-/// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
-fn format_push_to_remotes_cell(
-    push_to_remotes: &[String],
-    excluded_remotes: &[String],
-) -> comfy_table::Cell {
-    use comfy_table::Cell;
-    if push_to_remotes.is_empty() && excluded_remotes.is_empty() {
-        return Cell::new("-").fg(comfy_table::Color::DarkGrey);
-    }
-    let main = push_to_remotes.join(",");
-    if excluded_remotes.is_empty() {
-        Cell::new(main).fg(comfy_table::Color::Green)
-    } else {
-        // Active remotes in green, excluded annotation in dim yellow
-        // so the operator can see at a glance that the repo has been
-        // deliberately limited to a subset of the default set.
-        let excl = excluded_remotes.join(",");
-        Cell::new(format!("{main} [excl:{excl}]"))
-    }
-}
+// (format_push_to_remotes_cell removed in 2026-06-27 v2 redesign;
+// replaced by render_push_to_with_icons which uses ANSI colors and
+// per-forge icons instead of comfy_table Cell.)
 
 /// Measure the size of `<repo>/.git` in bytes using `du -sb`. Returns
 /// `None` if the measurement fails or exceeds the 2-second timeout.
@@ -1545,26 +1519,6 @@ impl StateCause {
             StateCause::Unowned { .. } => "unowned",
         }
     }
-
-    /// Icon used in the human-readable table. The colour of the row is
-    /// picked separately by `cause_color`.
-    pub(crate) fn icon(&self) -> &'static str {
-        match self {
-            StateCause::Working => "🔄",
-            StateCause::Committing => "🟡",
-            StateCause::Pushing => "🟣",
-            StateCause::Synced => "🟢",
-            StateCause::Stalled => "🔴",
-            StateCause::Dirty => "🟠",
-            StateCause::Untracked => "⚪",
-            StateCause::Intentional => "🟣",
-            StateCause::Failed => "⛔",
-            StateCause::Idle => "⚪",
-            StateCause::Cold => "⚫",
-            StateCause::Healthy => "✅",
-            StateCause::Unowned { .. } => "🚫",
-        }
-    }
 }
 
 /// Compute the state_cause_label string. For most variants this
@@ -1583,23 +1537,8 @@ pub(crate) fn state_cause_label_string(cause: &StateCause) -> String {
 /// dropped `Copy` from `StateCause` (it now carries String
 /// fields in the Unowned variant). Most call sites are
 /// refactored to use this.
-pub(crate) fn state_cause_as_str(cause: &StateCause) -> &'static str {
-    match cause {
-        StateCause::Working => "working",
-        StateCause::Committing => "committing",
-        StateCause::Pushing => "pushing",
-        StateCause::Synced => "synced",
-        StateCause::Stalled => "stalled",
-        StateCause::Dirty => "dirty",
-        StateCause::Untracked => "untracked-only",
-        StateCause::Intentional => "intentional",
-        StateCause::Failed => "failed",
-        StateCause::Idle => "idle",
-        StateCause::Cold => "cold",
-        StateCause::Healthy => "healthy",
-        StateCause::Unowned { .. } => "unowned",
-    }
-}
+// (state_cause_as_str removed in 2026-06-27 v2 redesign; it was
+// only used by the old comfy_table renderer.)
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct StateCauseThresholds {
