@@ -677,6 +677,17 @@ pub(crate) struct RepoReportRow {
     /// uses the full default remote set. Always present (not Option) so
     /// downstream callers don't have to handle None.
     excluded_remotes: Vec<String>,
+    /// Size of the repo's `.git` directory in bytes (i.e. the data that
+    /// would be pushed to remotes). Measured with `du -sb` at report
+    /// time. `None` if the measurement failed or timed out. Useful for
+    /// spotting size-blocked repos like `dracon-platform` (20 GiB) and
+    /// for general capacity planning.
+    git_size_bytes: Option<u64>,
+    /// Per-forge token health summary. Shows whether each forge's token
+    /// file is present on disk, so the operator can spot auth-side
+    /// issues BEFORE they cause push failures. Always present (not
+    /// Option) so the renderer doesn't have to handle None.
+    token_health: TokenHealthSummary,
     concern: bool,
     warn: bool,
     hint: String,
@@ -722,6 +733,25 @@ pub(crate) struct RemoteStatus {
     pub(crate) auth_type: String,
     pub(crate) auto_create: bool,
     pub(crate) priority: u32,
+}
+
+/// Per-forge token health summary. Shows whether the daemon can find a
+/// token file for each forge. The daemon's `load_secret` (in
+/// `secrets.rs`) checks (1) env var, (2) `~/.dracon/utilities/sync/secrets/<name>.env`,
+/// (3) `~/.dracon/secrets/pat/<name>.env`. This struct reports the
+/// file-presence check for (2) and (3) combined — the most common case
+/// on this operator's machine (no tokens in env, but token files on
+/// disk). The bool is true if EITHER location has a file.
+///
+/// We don't read the token contents — just the file presence + mode.
+/// The renderer shows one icon per forge:
+/// - 🟢 when present (daemon can auth)
+/// - 🔴 when missing (pushes to that forge will fail with HTTP 401/403)
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+pub(crate) struct TokenHealthSummary {
+    pub(crate) codeberg_present: bool,
+    pub(crate) github_present: bool,
+    pub(crate) gitlab_present: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -2263,6 +2293,18 @@ pub(crate) async fn run_repos_report(
                 filtered.iter().map(|r| r.name.clone()).collect()
             },
             excluded_remotes: repo_override.exclude_remotes.clone(),
+            // Measure `.git` size in bytes. `du -sb` is fast (~40ms for
+            // a 20 GiB .git) so we can call it inline. If it fails or
+            // times out, we record `None` and the renderer shows a
+            // dash. 2-second cap to keep the report snappy even on
+            // network filesystems.
+            git_size_bytes: measure_git_size_bytes(&repo),
+            // Probe each forge's token file. We check both the modern
+            // `~/.dracon/utilities/sync/secrets/` dir and the legacy
+            // `~/.dracon/secrets/pat/` dir (the daemon's `load_secret`
+            // falls back to the legacy dir, so both matter). The probe
+            // is just `Path::exists()` on each — no file contents read.
+            token_health: probe_token_health(),
             concern,
             warn,
             hint,
