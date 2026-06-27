@@ -476,6 +476,36 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
     }
 }
 
+/// Format the "PUSH-TO" column for a single repo. Shows the effective
+/// remotes the daemon will push to (the `push_to_remotes` list), and
+/// if the per-repo override excludes any remotes, shows them in a
+/// subscript-style annotation so the operator can see both the active
+/// targets AND why some are missing.
+///
+/// Examples:
+/// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
+/// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
+/// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
+fn format_push_to_remotes_cell(
+    push_to_remotes: &[String],
+    excluded_remotes: &[String],
+) -> comfy_table::Cell {
+    use comfy_table::Cell;
+    if push_to_remotes.is_empty() && excluded_remotes.is_empty() {
+        return Cell::new("-").fg(comfy_table::Color::DarkGrey);
+    }
+    let main = push_to_remotes.join(",");
+    if excluded_remotes.is_empty() {
+        Cell::new(main).fg(comfy_table::Color::Green)
+    } else {
+        // Active remotes in green, excluded annotation in dim yellow
+        // so the operator can see at a glance that the repo has been
+        // deliberately limited to a subset of the default set.
+        let excl = excluded_remotes.join(",");
+        Cell::new(format!("{main} [excl:{excl}]"))
+    }
+}
+
 fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
     let Some(slash) = upstream.find('/') else {
         return false;
@@ -2365,6 +2395,7 @@ pub(crate) async fn run_repos_report(
         mk_h("↑", "AHEAD"),
         mk_h("↓", "BEHIND"),
         mk_h("🚀", "PUSH"),
+        mk_h("🛰", "PUSH-TO"),
         mk_h("📜", "LAST COMMIT"),
         mk_h("📤", "PUSHED"),
         mk_h("⏰", "ACTIVITY"),
@@ -2463,6 +2494,10 @@ pub(crate) async fn run_repos_report(
             Cell::new(row.ahead).fg(ahead_color),
             Cell::new(row.behind).fg(behind_color),
             Cell::new(&row.push_status).fg(push_color),
+            format_push_to_remotes_cell(
+                &row.push_to_remotes,
+                &row.excluded_remotes,
+            ),
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
             Cell::new(activity_label(&row)),
