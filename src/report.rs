@@ -2431,10 +2431,19 @@ pub(crate) async fn run_repos_report(
     );
     println!();
 
-    // ---- Legend line (one-liner mapping column codes to their meaning) ----
-    println!(
-        "ℹ️  Legend: MOD = modified tracked · STG = staged · UT = untracked · 🔗 = VS Code publish upstream — green when healthy (e.g. `github/main`), yellow ⚠️ none when no upstream is configured, yellow ⚠️ <remote/branch> (gone) when the upstream is configured but its remote-tracking ref does not exist locally · ↑ = ahead of upstream · ↓ = behind upstream · PUSH = push status · 📊 1h/6h/24h = commits in last 1h/6h/24h · STATE = derived cause (working=daemon just synced/committing/pushing/synced=clean & in sync/stalled/dirty/untracked-only/intentional/failed/idle/cold/healthy) · ACTIVITY = real activity indicator (now=daemon processing this repo · pushing Xm (N ahead)=push in progress, N unpushed commits · dirty Xm=dirty repo, last commit X minutes ago · synced/idle/cold=clean & waiting) · DAEMON = daemon's last recorded action (e.g. '23s sync_triage') so you can tell the daemon is working through dirty rows vs. you're editing right now"
-    );
+    // ---- Legend (multi-line, fits in 100 cols) ----
+    // Each line is a category, under 100 chars wide so it doesn't wrap
+    // on 80-column terminals. The full legend is now readable without
+    // horizontal scrolling.
+    println!("ℹ️  Legend (one line per category):");
+    println!("    MOD/STG/UT = modified/staged/untracked file counts");
+    println!("    🔗         = VS Code publish upstream (green=healthy, yellow=missing/gone)");
+    println!("    ↑/↓        = ahead/behind upstream");
+    println!("    PUSH-TO    = remotes the daemon will push to (excluded remotes shown dimmed)");
+    println!("    TOKENS     = 🟢 token present, 🔴 missing (pushes will fail)");
+    println!("    STATE      = working/committing/pushing/synced/stalled/dirty/intentional/failed/idle/cold/healthy");
+    println!("    ACTIVITY   = now=daemon processing · pushing Xm (N ahead) · dirty Xm · synced/idle/cold");
+    println!("    DAEMON     = last action timestamp + name (e.g. '23s sync_commit')");
     println!();
 
     // Card-based output. Each repo is a 5-6 line block (~90 chars
@@ -2544,9 +2553,13 @@ fn render_repo_card(idx: usize, row: &RepoReportRow, full_path: bool) {
     let commit_summary = if row.last_hash == "-" {
         "-".to_string()
     } else {
-        // Truncate to fit ~80 chars on this line
-        let subject = if row.last_msg.len() > 60 {
-            format!("{}…", &row.last_msg[..59])
+        // Truncate to fit ~80 chars on this line. Subject is capped at
+        // 40 chars + "…" = 41 chars, plus hash (10) + quotes (2) +
+        // "Last  " (6) + "  ·  " (5) + when (max ~8) + " by " (4) +
+        // author (max ~12) = ~88 chars total. Leaves margin for
+        // 100-col terminals.
+        let subject = if row.last_msg.len() > 40 {
+            format!("{}…", &row.last_msg[..39])
         } else {
             row.last_msg.clone()
         };
