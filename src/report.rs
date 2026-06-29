@@ -1907,8 +1907,8 @@ pub(crate) fn terminal_width() -> Option<u16> {
             return Some(w);
         }
     }
-    // Default: assume a wide terminal (250 cols) when piping to file
-    Some(250)
+    // Default: assume a wide terminal (300 cols) when piping to file
+    Some(300)
 }
 
 /// Tier classification for the `dracon-sync repos` output.
@@ -1923,18 +1923,19 @@ pub(crate) enum LayoutTier {
 }
 
 pub(crate) fn choose_layout_tier() -> LayoutTier {
-    let w = terminal_width().unwrap_or(250);
+    let w = terminal_width().unwrap_or(300);
     if w < 120 {
         LayoutTier::Vertical
     } else if w < 200 {
         LayoutTier::Compact
     } else {
-        // Full tier only kicks in at >= 250 cols because the minimum sum of
-        // 22 column widths + 23 borders is 247 cols. At 200-249 cols the
-        // comfy-table Dynamic arrangement cannot honor all LowerBoundary
-        // constraints and wraps content mid-cell (e.g., 'PUSH'/'PENDING' on
-        // separate lines). 250+ gives 3+ cols of headroom for clean render.
-        if w >= 250 {
+        // Full tier only kicks in at >= 300 cols because the minimum sum of
+        // 22 column widths (with 2-col cell padding per column) + 23 borders
+        // is 291 cols. At 200-299 cols the comfy-table Dynamic arrangement
+        // cannot honor all LowerBoundary constraints and wraps content mid-cell
+        // (e.g., 'PUSH'/'PENDING' on separate lines, 'STATUS' header → 'STA/TUS').
+        // 300+ gives 9+ cols of headroom for clean render.
+        if w >= 300 {
             LayoutTier::Full
         } else {
             LayoutTier::Compact
@@ -2804,23 +2805,25 @@ fn print_repos_compact_table(
     ]);
 
     // Set minimum widths so the table never letter-wraps content.
-    // Sum: 3+7+18+7+18+4+4+4+4+4+9+18+18+15+22 = 155 + 16 borders = 171 cols min
+    // Each minimum = max(header_text_width + 2 padding, content_min_width).
+    // Sum: 3+9+18+9+18+8+8+7+7+7+11+18+18+17+22 = 180 + 15 borders = 195 cols min
+    // Compact tier is 200-299 cols so this fits comfortably.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(3)),
-        ColumnConstraint::Absolute(Width::Fixed(7)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
-        ColumnConstraint::Absolute(Width::Fixed(7)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
-        ColumnConstraint::Absolute(Width::Fixed(4)),
-        ColumnConstraint::Absolute(Width::Fixed(4)),
-        ColumnConstraint::Absolute(Width::Fixed(4)),
-        ColumnConstraint::Absolute(Width::Fixed(4)),
-        ColumnConstraint::Absolute(Width::Fixed(4)),
-        ColumnConstraint::Absolute(Width::Fixed(9)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)),
-        ColumnConstraint::LowerBoundary(Width::Fixed(22)),
+        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header 1 + 2 pad)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // STATUS (header 7 + 2 pad)
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // BRANCH (header 7 + 2 pad)
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUBLISH (header 8 + 2 + 8 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // M (header 4 + 2 + 2 for digit)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // S (header 4 + 2 + 2 for digit)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // U (header 4 + 2 + 1 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // AHEAD (header 5 + 2 pad)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // BEHIND (header 6 + 2 - 1 trunc)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH (header 7 + 2 + 2 for '🟣 PENDING')
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUSH-TO (header 10 + 2 + 6 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // LAST COMMIT (header 14 + 2 + 2 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // STATE+ACT (header 10 + 2 + 5 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
@@ -2949,38 +2952,37 @@ fn print_repos_full_table(
     // Enforce minimum widths to prevent letter-wrapping when terminal is
     // narrower than the natural content width.
     //
-    // Each minimum = max(header_text_width, content_min_width):
-    //   - '🏷 STATUS' = 9 cols (header is wider than data min 7)
-    //   - '🌿 BRANCH' = 9 cols (header is wider than data min 8)
-    //   - '↑ AHEAD' = 7 cols (header is wider than data min 5)
-    //   - '🚀 PUSH' = 7 cols (header is narrower than '🟣 PENDING' 10 cols, so use 11)
+    // Each minimum = max(header_text_width, content_min_width) + 2 (cell padding).
+    // The 2 extra cols account for comfy-table's default left+right cell padding,
+    // which is required for the content to fit on a single line.
     //
-    // Sum: 3+9+15+9+15+6+6+5+7+7+11+15+20+9+15+9+6+6+6+13+15+20 = 224
-    // Plus 23 borders: 247 cols minimum. Full tier starts at 250 cols to give
-    // 3+ cols of headroom.
+    // Sum: 3+11+17+11+17+8+8+7+9+9+13+17+22+11+17+11+8+8+8+15+17+22 = 268
+    // Plus 23 borders: 291 cols minimum. Full tier starts at 300 cols to give
+    // 9+ cols of headroom. At 250-299 cols, falls back to compact tier which
+    // is 14-col and fits in 199+.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header: 1, data: 1-3)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // STATUS (header: 9, data: 7-9)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // REPO (header: 7, data: 15+)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // BRANCH (header: 9, data: 4-8)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUBLISH (header: 10, data: 15+)
-        ColumnConstraint::Absolute(Width::Fixed(6)),     // MOD (header: 6, data: 1-4)
-        ColumnConstraint::Absolute(Width::Fixed(6)),     // STG (header: 6, data: 1-4)
-        ColumnConstraint::Absolute(Width::Fixed(5)),     // UT (header: 5, data: 1-4)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // AHEAD (header: 7, data: 1-5)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // BEHIND (header: 9→7 trunc, data: 1-5)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH: '🟣 PENDING' = 2+1+7=10, +1
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUSH-TO (header: 10, data: 15+)
-        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // LAST COMMIT (header: 14, data: 20+)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // PUSHED (header: 9, data: 1-8)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // ACTIVITY (header: 11, data: 15+)
-        ColumnConstraint::LowerBoundary(Width::Fixed(9)), // AUTHOR (header: 9, data: 8+)
-        ColumnConstraint::Absolute(Width::Fixed(6)),     // 1h (header: 6, data: 1-4)
-        ColumnConstraint::Absolute(Width::Fixed(6)),     // 6h (header: 6, data: 1-4)
-        ColumnConstraint::Absolute(Width::Fixed(6)),     // 24h (header: 7→6 trunc, data: 1-5)
-        ColumnConstraint::LowerBoundary(Width::Fixed(13)), // STATE (header: 8, data: 13+)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON (header: 9, data: 15+)
-        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // HINT (header: 7, data: 20+)
+        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header 1 + 2 pad = 3)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUBLISH (header 10 + 2 + 5 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // MOD (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // STG (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // UT (header 5 + 2 pad = 7)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // BEHIND (header 9 + 2 pad - 2 for `↓ `)
+        ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUSH-TO (header 10 + 2 + 5 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // LAST COMMIT (header 14 + 2 + 6 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // ACTIVITY (header 11 + 2 + 4 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(11)), // AUTHOR (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // 1h (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // 6h (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // 24h (header 7 + 2 pad - 1 for `24`)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // STATE (header 8 + 2 + 5 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // DAEMON (header 9 + 2 + 6 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
@@ -6825,7 +6827,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [120, 150, 180, 199, 220, 249] {
+        for w in [120, 150, 180, 199, 220, 250, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -6843,7 +6845,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_full() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [250, 300, 500, 1000] {
+        for w in [300, 400, 500, 1000] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
