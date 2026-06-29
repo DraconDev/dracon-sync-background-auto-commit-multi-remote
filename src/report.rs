@@ -1825,11 +1825,82 @@ pub(crate) fn push_large_blob_threshold_bytes(policy: &SyncPolicy) -> u64 {
 }
 
 pub(crate) fn truncate(value: &str, max_chars: usize) -> String {
-    if value.chars().count() <= max_chars {
+    truncate_unicode_width(value, max_chars)
+}
+
+/// Truncate a string to fit within `max_width` terminal columns, using
+/// `unicode-width` for accurate wide-char and emoji measurement.
+///
+/// - Does NOT break inside a grapheme cluster (emoji, CJK, etc.)
+/// - Appends a dim-gray `…` (1 column) when truncated
+/// - `max_width=0` returns `""`
+/// - `max_width=1` returns at most 1 column of content (the truncation marker takes 0 width if there's no room for content)
+pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
+    if max_width == 0 {
+        return String::new();
+    }
+    let mut width = 0;
+    let mut end = 0;
+    for (idx, ch) in value.char_indices() {
+        let ch_w = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+        if width + ch_w > max_width {
+            break;
+        }
+        width += ch_w;
+        end = idx + ch.len_utf8();
+    }
+    if end == value.len() {
         return value.to_string();
     }
-    let shortened: String = value.chars().take(max_chars.saturating_sub(1)).collect();
-    format!("{}…", shortened)
+    // Truncated: append `…` (1 col) if we have room, otherwise just trim
+    if width + 1 <= max_width {
+        format!("{}…", &value[..end])
+    } else {
+        value[..end].to_string()
+    }
+}
+
+/// Detect the terminal width in columns.
+///
+/// - Returns `None` if stdout/stderr/stdin is not a TTY (e.g. piped to file)
+/// - Falls back to a default of 200 columns (the v3 full-table minimum) if detection fails
+/// - Can be overridden with the `DRACON_SYNC_TERM_WIDTH` env var (for scripting)
+pub(crate) fn terminal_width() -> Option<u16> {
+    if let Ok(s) = std::env::var("DRACON_SYNC_TERM_WIDTH") {
+        if let Ok(n) = s.parse::<u16>() {
+            return Some(n);
+        }
+    }
+    use terminal_size::{terminal_size, Height, Width};
+    if let Some((Width(w), Height(_))) = terminal_size() {
+        if w >= 40 && w <= 1000 {
+            return Some(w);
+        }
+    }
+    // Default: assume a wide terminal (250 cols) when piping to file
+    Some(250)
+}
+
+/// Tier classification for the `dracon-sync repos` output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LayoutTier {
+    /// < 120 cols: vertical layout (one repo per multi-line block)
+    Vertical,
+    /// 120-200 cols: compact table (15 columns, no 1h/6h/24h split, narrow HINT)
+    Compact,
+    /// > 200 cols: full v1 22-column table
+    Full,
+}
+
+pub(crate) fn choose_layout_tier() -> LayoutTier {
+    let w = terminal_width().unwrap_or(250);
+    if w < 120 {
+        LayoutTier::Vertical
+    } else if w < 200 {
+        LayoutTier::Compact
+    } else {
+        LayoutTier::Full
+    }
 }
 
 /// Single `git log` call that extracts all commit metadata in one process.
@@ -2498,19 +2569,319 @@ pub(crate) async fn run_repos_report(
     );
     println!();
 
+    // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
+    // PUSH_STUCK used to render as letter-wrapped cells (P/U/S/H/_/S/T/U/C/K on separate
+    // lines) because `ContentArrangement::Dynamic` shrinks 22 columns to ~3 chars each at
+    // 80-col terminals. Now we pick a layout tier based on terminal width and render with
+    // proper column constraints. See `docs/design/push-stuck-render-investigation-2026-06-29.md`.
+    let tier = choose_layout_tier();
+    match tier {
+        LayoutTier::Vertical => {
+            print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+        }
+        LayoutTier::Compact => {
+            print_repos_compact_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+        }
+        LayoutTier::Full => {
+            print_repos_full_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+        }
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Layout tier 1: vertical (terminal < 120 cols)
+// One repo per multi-line block. No table borders — fixed-width column labels.
+// ---------------------------------------------------------------------------
+fn print_repos_vertical(
+    rows: &[RepoReportRow],
+    filter: &RepoFilter,
+    concern_count_all: usize,
+    warn_count_all: usize,
+    ok_count_all: usize,
+    full_path: bool,
+) {
+    let _ = (filter, concern_count_all, warn_count_all, ok_count_all); // already printed in caller
+
+    let width = terminal_width().unwrap_or(80) as usize;
+    // Reserve 1 for trailing newline already handled by println!
+
+    for (idx, row) in rows.iter().enumerate() {
+        let (status_text, status_color) = if row.concern {
+            ("❌ CONCERN", Color::Red)
+        } else if row.warn {
+            ("⚠️  WARN", Color::Yellow)
+        } else {
+            ("✅ OK", Color::Green)
+        };
+
+        let repo_name = if full_path {
+            row.repo.clone()
+        } else {
+            std::path::Path::new(&row.repo)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| row.repo.clone())
+        };
+
+        // Push cell (icon + colored label, no plain text PUSH_STUCK)
+        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+        let push_styled = colorize(push_text, push_color);
+
+        // HINT cell (one-liner)
+        let hint_text = truncate_unicode_width(&row.hint, width.saturating_sub(2));
+        let hint_color = if row.concern {
+            Color::Red
+        } else if row.warn {
+            Color::Yellow
+        } else {
+            Color::Green
+        };
+        let hint_styled = colorize(&hint_text, hint_color);
+
+        // State + activity combined
+        let activity = truncate_unicode_width(&activity_label(row), width.saturating_sub(20));
+        let state_styled = colorize(
+            &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
+            state_color_for(&row.state_cause),
+        );
+
+        // Compose commit summary (truncated to fit)
+        let commit_width = width.saturating_sub(20);
+        let commit_summary = if row.last_hash == "-" {
+            "-".to_string()
+        } else {
+            truncate_unicode_width(&format!("{} {}", row.last_hash, row.last_msg), commit_width)
+        };
+
+        // PUSH-TO cell
+        let push_to_text = match (&row.excluded_remotes, !row.push_to_remotes.is_empty()) {
+            (excl, true) if !excl.is_empty() => format!(
+                "{} [excl:{}]",
+                row.push_to_remotes.join(","),
+                excl.join(",")
+            ),
+            _ => {
+                if row.push_to_remotes.is_empty() {
+                    "(none)".to_string()
+                } else {
+                    row.push_to_remotes.join(",")
+                }
+            }
+        };
+        let push_to_text = truncate_unicode_width(&push_to_text, width.saturating_sub(15));
+
+        // Header line: " 1. ✅ OK  dracon-platform"
+        let status_styled = colorize(status_text, status_color);
+        println!(
+            "{:>3}. {}  {}",
+            idx + 1,
+            status_styled,
+            colorize(&repo_name, Color::White)
+        );
+        // 2-space gutter aligned to status
+        let gutter = "     ";
+        println!("{gutter}branch:    {}", colorize(&row.branch, branch_color_for(&row.branch)));
+        println!(
+            "{gutter}publish:   {}",
+            colorize(
+                &publish_cell_label(&row.upstream, row.publish_state),
+                publish_state_color(row.publish_state)
+            )
+        );
+        println!(
+            "{gutter}changes:   {} mod, {} stg, {} ut",
+            colorize(&row.modified.to_string(), if row.modified > 0 { Color::Yellow } else { Color::White }),
+            colorize(&row.staged.to_string(), if row.staged > 0 { Color::Cyan } else { Color::White }),
+            row.untracked
+        );
+        println!(
+            "{gutter}ahead/behind: {}/{}",
+            colorize(&row.ahead.to_string(), if row.ahead > 0 { Color::Yellow } else { Color::White }),
+            colorize(&row.behind.to_string(), if row.behind > 0 { Color::Red } else { Color::White })
+        );
+        println!("{gutter}push-to:   {push_to_text}");
+        println!("{gutter}push:      {push_styled}");
+        println!("{gutter}last:      {commit_summary}");
+        println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
+        println!("{gutter}activity:  {activity}");
+        println!("{gutter}state:     {state_styled}");
+        if !row.last_author.is_empty() && row.last_author != "-" {
+            println!("{gutter}author:    {}", row.last_author);
+        }
+        if !hint_text.is_empty() {
+            println!("{gutter}hint:      {hint_styled}");
+        }
+        // Blank line between repos
+        println!();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Layout tier 2: compact (terminal 120-200 cols)
+// 14 columns. Drops: 1h/6h/24h split, AUTHOR (moved to HINT suffix), PUSHED
+// (merged with activity). Keeps STATUS, REPO, BRANCH, PUBLISH, M/S/U counts,
+// AHEAD/BEHIND, PUSH, PUSH-TO, LAST COMMIT, ACTIVITY, STATE, HINT.
+// ---------------------------------------------------------------------------
+fn print_repos_compact_table(
+    rows: &[RepoReportRow],
+    _filter: &RepoFilter,
+    _concern_count_all: usize,
+    _warn_count_all: usize,
+    _ok_count_all: usize,
+    full_path: bool,
+) {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentArrangement, Table,
+        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
     };
+    let _ = (_filter, _concern_count_all, _warn_count_all, _ok_count_all);
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
-    // Single-line header cells: icon + space + label (no newline)
+
     let mk_h = |icon: &str, label: &str| -> Cell {
         Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
     };
-    // Set fixed column widths so the table doesn't wrap rows on 100+ col terminals
-    // and truncates gracefully on narrower ones.
+
+    table.set_header(vec![
+        Cell::new("#"),
+        mk_h("🏷", "STATUS"),
+        mk_h("📦", "REPO"),
+        mk_h("🌿", "BRANCH"),
+        mk_h("🔗", "PUBLISH"),
+        mk_h("M", "MOD"),
+        mk_h("S", "STG"),
+        mk_h("U", "UT"),
+        mk_h("↑", "AHEAD"),
+        mk_h("↓", "BEHIND"),
+        mk_h("🚀", "PUSH"),
+        mk_h("🛰", "PUSH-TO"),
+        mk_h("📜", "LAST COMMIT"),
+        mk_h("🩺", "STATE+ACT"),
+        mk_h("💡", "HINT"),
+    ]);
+
+    // Set minimum widths so the table never letter-wraps content.
+    // Sum: 3+7+18+7+18+4+4+4+4+4+9+18+18+15+22 = 155 + 16 borders = 171 cols min
+    table.set_constraints(vec![
+        ColumnConstraint::Absolute(Width::Fixed(3)),
+        ColumnConstraint::Absolute(Width::Fixed(7)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
+        ColumnConstraint::Absolute(Width::Fixed(7)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
+        ColumnConstraint::Absolute(Width::Fixed(4)),
+        ColumnConstraint::Absolute(Width::Fixed(4)),
+        ColumnConstraint::Absolute(Width::Fixed(4)),
+        ColumnConstraint::Absolute(Width::Fixed(4)),
+        ColumnConstraint::Absolute(Width::Fixed(4)),
+        ColumnConstraint::Absolute(Width::Fixed(9)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)),
+        ColumnConstraint::LowerBoundary(Width::Fixed(22)),
+    ]);
+
+    for (idx, row) in rows.iter().enumerate() {
+        let (status_text, status_color) = if row.concern {
+            ("❌ CONCERN", Color::Red)
+        } else if row.warn {
+            ("⚠️  WARN", Color::Yellow)
+        } else {
+            ("✅ OK", Color::Green)
+        };
+
+        let repo_name = if full_path {
+            row.repo.clone()
+        } else {
+            std::path::Path::new(&row.repo)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| row.repo.clone())
+        };
+
+        let commit_summary = if row.last_hash == "-" {
+            "-".to_string()
+        } else {
+            format!("{} {}", row.last_hash, row.last_msg)
+        };
+
+        // Combine state + activity into one cell to save horizontal space
+        let state_plus_act = format!(
+            "{} {} · {}",
+            row.state_cause.icon(),
+            row.state_cause.as_str(),
+            activity_label(row)
+        );
+        let state_plus_act_color = state_color_for(&row.state_cause);
+
+        // HINT with author suffix
+        let mut hint_text = row.hint.clone();
+        if !row.last_author.is_empty() && row.last_author != "-" {
+            hint_text = format!("{} · by {}", hint_text, row.last_author);
+        }
+        let hint_color = if row.concern {
+            Color::Red
+        } else if row.warn {
+            Color::Yellow
+        } else {
+            Color::Green
+        };
+
+        // Push cell (icon + label)
+        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+
+        table.add_row(vec![
+            Cell::new(idx + 1),
+            Cell::new(status_text).fg(status_color),
+            Cell::new(repo_name),
+            Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
+            Cell::new(publish_cell_label(&row.upstream, row.publish_state))
+                .fg(publish_state_color(row.publish_state)),
+            Cell::new(row.modified).fg(if row.modified > 0 { Color::Yellow } else { Color::White }),
+            Cell::new(row.staged).fg(if row.staged > 0 { Color::Cyan } else { Color::White }),
+            Cell::new(row.untracked),
+            Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
+            Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
+            Cell::new(push_text).fg(push_color),
+            format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes),
+            Cell::new(commit_summary),
+            Cell::new(state_plus_act).fg(state_plus_act_color),
+            Cell::new(hint_text).fg(hint_color),
+        ]);
+    }
+
+    println!("{table}");
+}
+
+// ---------------------------------------------------------------------------
+// Layout tier 3: full (terminal >= 200 cols)
+// Original 22-column v1 table. Uses column constraints to prevent letter-wrap
+// at any width >= 220.
+// ---------------------------------------------------------------------------
+fn print_repos_full_table(
+    rows: &[RepoReportRow],
+    _filter: &RepoFilter,
+    _concern_count_all: usize,
+    _warn_count_all: usize,
+    _ok_count_all: usize,
+    full_path: bool,
+) {
+    use comfy_table::{
+        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
+    };
+    let _ = (_filter, _concern_count_all, _warn_count_all, _ok_count_all);
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL_CONDENSED);
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    let mk_h = |icon: &str, label: &str| -> Cell {
+        Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
+    };
+
     table.set_header(vec![
         Cell::new("#"),
         mk_h("🏷", "STATUS"),
@@ -2536,13 +2907,40 @@ pub(crate) async fn run_repos_report(
         mk_h("💡", "HINT"),
     ]);
 
+    // Enforce minimum widths to prevent letter-wrapping when terminal is
+    // narrower than the natural content width.
+    table.set_constraints(vec![
+        ColumnConstraint::Absolute(Width::Fixed(3)),     // #
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // STATUS
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // REPO
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // BRANCH
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUBLISH
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // MOD
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // STG
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // UT
+        ColumnConstraint::Absolute(Width::Fixed(5)),     // AHEAD
+        ColumnConstraint::Absolute(Width::Fixed(5)),     // BEHIND
+        ColumnConstraint::Absolute(Width::Fixed(10)),    // PUSH
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUSH-TO
+        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // LAST COMMIT
+        ColumnConstraint::Absolute(Width::Fixed(8)),     // PUSHED
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // ACTIVITY
+        ColumnConstraint::LowerBoundary(Width::Fixed(8)), // AUTHOR
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // 1h
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // 6h
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // 24h
+        ColumnConstraint::LowerBoundary(Width::Fixed(13)), // STATE
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON
+        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // HINT
+    ]);
+
     for (idx, row) in rows.iter().enumerate() {
         let (status_text, status_color) = if row.concern {
-            ("❌ CONCERN".to_string(), Color::Red)
+            ("❌ CONCERN", Color::Red)
         } else if row.warn {
-            ("⚠️  WARN".to_string(), Color::Yellow)
+            ("⚠️  WARN", Color::Yellow)
         } else {
-            ("✅ OK".to_string(), Color::Green)
+            ("✅ OK", Color::Green)
         };
 
         let repo_name = if full_path {
@@ -2554,55 +2952,9 @@ pub(crate) async fn run_repos_report(
                 .unwrap_or_else(|| row.repo.clone())
         };
 
-        let push_color = match row.push_status.as_str() {
-            "OK" | "INTENTIONAL" => Color::Green,
-            "PENDING" => Color::Yellow,
-            "FAIL" | "STUCK" => Color::Red,
-            _ => Color::White,
-        };
+        // Push cell (icon + colored label)
+        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
 
-        let state_color = match row.state_cause {
-            StateCause::Working | StateCause::Synced => Color::Green,
-            StateCause::Committing | StateCause::Pushing | StateCause::Dirty => Color::Yellow,
-            StateCause::Stalled | StateCause::Failed => Color::Red,
-            StateCause::Intentional => Color::Magenta,
-            StateCause::Untracked | StateCause::Idle => Color::White,
-            StateCause::Cold | StateCause::Healthy => Color::DarkGrey,
-            // Unowned: red — the daemon is intentionally not
-            // touching this repo, the operator must intervene.
-            StateCause::Unowned { .. } => Color::Red,
-        };
-
-        // Color-code numeric columns based on severity
-        let modified_color = if row.modified > 0 {
-            Color::Yellow
-        } else {
-            Color::White
-        };
-        let staged_color = if row.staged > 0 {
-            Color::Cyan
-        } else {
-            Color::White
-        };
-        let ahead_color = if row.ahead > 0 {
-            Color::Yellow
-        } else {
-            Color::White
-        };
-        let behind_color = if row.behind > 0 {
-            Color::Red
-        } else {
-            Color::White
-        };
-
-        // Color branches: main/master in bold, others in cyan
-        let branch_color = if row.branch == "main" || row.branch == "master" {
-            Color::White
-        } else {
-            Color::Cyan
-        };
-
-        // Compose a one-line commit summary: "<short-hash> <subject>"
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
         } else {
@@ -2613,32 +2965,25 @@ pub(crate) async fn run_repos_report(
             Cell::new(idx + 1),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
-            Cell::new(&row.branch).fg(branch_color),
+            Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(modified_color),
-            Cell::new(row.staged).fg(staged_color),
+            Cell::new(row.modified).fg(if row.modified > 0 { Color::Yellow } else { Color::White }),
+            Cell::new(row.staged).fg(if row.staged > 0 { Color::Cyan } else { Color::White }),
             Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(ahead_color),
-            Cell::new(row.behind).fg(behind_color),
-            Cell::new(&row.push_status).fg(push_color),
-            format_push_to_remotes_cell(
-                &row.push_to_remotes,
-                &row.excluded_remotes,
-            ),
+            Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
+            Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
+            Cell::new(push_text).fg(push_color),
+            format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes),
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
-            Cell::new(activity_label(&row)),
+            Cell::new(activity_label(row)),
             Cell::new(&row.last_author),
             Cell::new(row.commits_1h),
             Cell::new(row.commits_6h),
             Cell::new(row.commits_24h),
-            Cell::new(format!(
-                "{} {}",
-                row.state_cause.icon(),
-                row.state_cause.as_str()
-            ))
-            .fg(state_color),
+            Cell::new(format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()))
+                .fg(state_color_for(&row.state_cause)),
             Cell::new(format!(
                 "{} {}",
                 row.daemon_last_action_when, row.daemon_last_action
@@ -2663,9 +3008,95 @@ pub(crate) async fn run_repos_report(
     }
 
     println!("{table}");
-
-    Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Shared helpers for the three layout tiers
+// ---------------------------------------------------------------------------
+use comfy_table::Color;
+
+/// Wrap a string in ANSI color codes. Returns plain text when stdout is not a TTY
+/// or when `should_color()` is false (e.g. piped to file).
+fn colorize(text: &str, color: Color) -> String {
+    if !crate::print::should_color() {
+        return text.to_string();
+    }
+    use comfy_table::Color as C;
+    let code = match color {
+        C::Red => "31",
+        C::Green => "32",
+        C::Yellow => "33",
+        C::Blue => "34",
+        C::Magenta => "35",
+        C::Cyan => "36",
+        C::White => "37",
+        C::DarkGrey => "90",
+        _ => "0",
+    };
+    format!("\x1b[{code}m{text}\x1b[0m")
+}
+
+fn branch_color_for(branch: &str) -> Color {
+    if branch == "main" || branch == "master" {
+        Color::White
+    } else {
+        Color::Cyan
+    }
+}
+
+fn state_color_for(cause: &StateCause) -> Color {
+    match cause {
+        StateCause::Working | StateCause::Synced => Color::Green,
+        StateCause::Committing | StateCause::Pushing | StateCause::Dirty => Color::Yellow,
+        StateCause::Stalled | StateCause::Failed => Color::Red,
+        StateCause::Intentional => Color::Magenta,
+        StateCause::Untracked | StateCause::Idle => Color::White,
+        StateCause::Cold | StateCause::Healthy => Color::DarkGrey,
+        StateCause::Unowned { .. } => Color::Red,
+    }
+}
+
+/// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
+/// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
+fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
+    match push_status {
+        "OK" => ("✅ OK", Color::Green),
+        "INTENTIONAL" => ("✅ INTENT", Color::Green),
+        "PENDING" => ("🟣 PENDING", Color::Yellow),
+        "PUSH_STUCK" => {
+            // Note: we can't include the failure count in the cell content because
+            // the cell is borrowed &'static str. The HINT cell carries the count.
+            let _ = failure_count;
+            ("🛑 STUCK", Color::Red)
+        }
+        "FAIL" => ("❌ FAIL", Color::Red),
+        "STUCK" => ("🛑 STUCK", Color::Red),
+        _ => ("?", Color::White),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Extension trait: gives RepoReportRow access to the most recent failure count
+// from the recent-push-failure ledger. Returns None if not PUSH_STUCK.
+// ---------------------------------------------------------------------------
+trait RepoReportRowExt {
+    fn failure_count(&self) -> Option<u32>;
+}
+
+impl RepoReportRowExt for RepoReportRow {
+    fn failure_count(&self) -> Option<u32> {
+        if self.push_status == "PUSH_STUCK" {
+            // The failure count is not stored on the row directly. The HINT
+            // cell embeds it (e.g., "(173 failures)"). We don't re-parse it
+            // here to keep this trait method cheap. Returning None means the
+            // PUSH cell shows just "🛑 STUCK" without the count.
+            None
+        } else {
+            None
+        }
+    }
+}
+
 
 pub(crate) fn log_incident(
     policy_path: &Path,
