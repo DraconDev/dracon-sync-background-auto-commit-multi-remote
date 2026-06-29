@@ -504,8 +504,10 @@ fn format_push_to_remotes_cell(
         // Active remotes in green, excluded annotation in dim yellow
         // so the operator can see at a glance that the repo has been
         // deliberately limited to a subset of the default set.
+        // Use compact '−' separator instead of '[excl:...]' to fit in
+        // a 15-col PUSH-TO column without wrapping.
         let excl = excluded_remotes.join(",");
-        Cell::new(format!("{main} [excl:{excl}]"))
+        Cell::new(format!("{main} −{excl}"))
     }
 }
 
@@ -1927,12 +1929,12 @@ pub(crate) fn choose_layout_tier() -> LayoutTier {
     } else if w < 200 {
         LayoutTier::Compact
     } else {
-        // Full tier only kicks in at >= 240 cols because the minimum sum of
-        // 22 column widths + 23 borders is 229 cols. At 200-239 cols the
+        // Full tier only kicks in at >= 250 cols because the minimum sum of
+        // 22 column widths + 23 borders is 247 cols. At 200-249 cols the
         // comfy-table Dynamic arrangement cannot honor all LowerBoundary
         // constraints and wraps content mid-cell (e.g., 'PUSH'/'PENDING' on
-        // separate lines). 240+ gives 11+ cols of headroom for clean render.
-        if w >= 240 {
+        // separate lines). 250+ gives 3+ cols of headroom for clean render.
+        if w >= 250 {
             LayoutTier::Full
         } else {
             LayoutTier::Compact
@@ -2947,32 +2949,38 @@ fn print_repos_full_table(
     // Enforce minimum widths to prevent letter-wrapping when terminal is
     // narrower than the natural content width.
     //
-    // Sum of minimums: 3+7+15+8+15+4+4+4+5+5+11+15+20+8+15+8+4+4+4+13+15+20 = 207
-    // Plus 23 borders: 230 cols minimum. Full tier starts at 240 cols to give
-    // 10+ cols of headroom.
+    // Each minimum = max(header_text_width, content_min_width):
+    //   - '🏷 STATUS' = 9 cols (header is wider than data min 7)
+    //   - '🌿 BRANCH' = 9 cols (header is wider than data min 8)
+    //   - '↑ AHEAD' = 7 cols (header is wider than data min 5)
+    //   - '🚀 PUSH' = 7 cols (header is narrower than '🟣 PENDING' 10 cols, so use 11)
+    //
+    // Sum: 3+9+15+9+15+6+6+5+7+7+11+15+20+9+15+9+6+6+6+13+15+20 = 224
+    // Plus 23 borders: 247 cols minimum. Full tier starts at 250 cols to give
+    // 3+ cols of headroom.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(3)),     // #
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // STATUS
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // REPO
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // BRANCH
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUBLISH
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // MOD
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // STG
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // UT
-        ColumnConstraint::Absolute(Width::Fixed(5)),     // AHEAD
-        ColumnConstraint::Absolute(Width::Fixed(5)),     // BEHIND
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH: '🟣 PENDING' = 2+1+7=10, +1 headroom
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUSH-TO
-        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // LAST COMMIT
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // PUSHED
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // ACTIVITY
-        ColumnConstraint::LowerBoundary(Width::Fixed(8)), // AUTHOR
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // 1h
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // 6h
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // 24h
-        ColumnConstraint::LowerBoundary(Width::Fixed(13)), // STATE
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON
-        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // HINT
+        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header: 1, data: 1-3)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // STATUS (header: 9, data: 7-9)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // REPO (header: 7, data: 15+)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // BRANCH (header: 9, data: 4-8)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUBLISH (header: 10, data: 15+)
+        ColumnConstraint::Absolute(Width::Fixed(6)),     // MOD (header: 6, data: 1-4)
+        ColumnConstraint::Absolute(Width::Fixed(6)),     // STG (header: 6, data: 1-4)
+        ColumnConstraint::Absolute(Width::Fixed(5)),     // UT (header: 5, data: 1-4)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // AHEAD (header: 7, data: 1-5)
+        ColumnConstraint::Absolute(Width::Fixed(7)),     // BEHIND (header: 9→7 trunc, data: 1-5)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH: '🟣 PENDING' = 2+1+7=10, +1
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUSH-TO (header: 10, data: 15+)
+        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // LAST COMMIT (header: 14, data: 20+)
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // PUSHED (header: 9, data: 1-8)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // ACTIVITY (header: 11, data: 15+)
+        ColumnConstraint::LowerBoundary(Width::Fixed(9)), // AUTHOR (header: 9, data: 8+)
+        ColumnConstraint::Absolute(Width::Fixed(6)),     // 1h (header: 6, data: 1-4)
+        ColumnConstraint::Absolute(Width::Fixed(6)),     // 6h (header: 6, data: 1-4)
+        ColumnConstraint::Absolute(Width::Fixed(6)),     // 24h (header: 7→6 trunc, data: 1-5)
+        ColumnConstraint::LowerBoundary(Width::Fixed(13)), // STATE (header: 8, data: 13+)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON (header: 9, data: 15+)
+        ColumnConstraint::LowerBoundary(Width::Fixed(20)), // HINT (header: 7, data: 20+)
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
