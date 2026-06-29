@@ -1825,7 +1825,14 @@ pub(crate) fn push_large_blob_threshold_bytes(policy: &SyncPolicy) -> u64 {
 }
 
 pub(crate) fn truncate(value: &str, max_chars: usize) -> String {
-    truncate_unicode_width(value, max_chars)
+    // Original char-counted truncation. Used by call sites that pre-compute
+    // char budgets (e.g., commit subjects at 40 chars). For width-aware
+    // truncation (terminal column width, emoji-safe), use `truncate_unicode_width`.
+    if value.chars().count() <= max_chars {
+        return value.to_string();
+    }
+    let shortened: String = value.chars().take(max_chars.saturating_sub(1)).collect();
+    format!("{}…", shortened)
 }
 
 /// Truncate a string to fit within `max_width` terminal columns, using
