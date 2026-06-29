@@ -1926,15 +1926,15 @@ pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(300);
     if w < 120 {
         LayoutTier::Vertical
-    } else if w < 200 {
+    } else if w < 250 {
         LayoutTier::Compact
     } else {
         // Full tier only kicks in at >= 300 cols because the minimum sum of
         // 22 column widths (with 2-col cell padding per column) + 23 borders
-        // is 291 cols. At 200-299 cols the comfy-table Dynamic arrangement
+        // is 293 cols. At 250-299 cols the comfy-table Dynamic arrangement
         // cannot honor all LowerBoundary constraints and wraps content mid-cell
         // (e.g., 'PUSH'/'PENDING' on separate lines, 'STATUS' header → 'STA/TUS').
-        // 300+ gives 9+ cols of headroom for clean render.
+        // 300+ gives 7+ cols of headroom for clean render.
         if w >= 300 {
             LayoutTier::Full
         } else {
@@ -2806,20 +2806,20 @@ fn print_repos_compact_table(
 
     // Set minimum widths so the table never letter-wraps content.
     // Each minimum = max(header_text_width + 2 padding, content_min_width).
-    // Sum: 3+9+18+9+18+8+8+7+7+7+11+18+18+17+22 = 180 + 15 borders = 195 cols min
-    // Compact tier is 200-299 cols so this fits comfortably.
+    // Sum: 3+11+18+11+18+8+8+7+9+11+13+18+18+17+22 = 192 + 15 borders = 207 cols min
+    // Compact tier is 250-299 cols so this fits comfortably.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header 1 + 2 pad)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // STATUS (header 7 + 2 pad)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 7 + 2 + 2 buffer for '⚠️  WARN')
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // BRANCH (header 7 + 2 pad)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUBLISH (header 8 + 2 + 8 buffer)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // M (header 4 + 2 + 2 for digit)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // S (header 4 + 2 + 2 for digit)
         ColumnConstraint::Absolute(Width::Fixed(7)),     // U (header 4 + 2 + 1 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // AHEAD (header 5 + 2 pad)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // BEHIND (header 6 + 2 - 1 trunc)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH (header 7 + 2 + 2 for '🟣 PENDING')
+        ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 5 + 2 + 2 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 6 + 2 + 3 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUSH-TO (header 10 + 2 + 6 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // LAST COMMIT (header 14 + 2 + 2 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // STATE+ACT (header 10 + 2 + 5 buffer)
@@ -2970,7 +2970,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(8)),     // STG (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(7)),     // UT (header 5 + 2 pad = 7)
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // BEHIND (header 9 + 2 pad - 2 for `↓ `)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUSH-TO (header 10 + 2 + 5 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // LAST COMMIT (header 14 + 2 + 6 buffer)
@@ -6827,7 +6827,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [120, 150, 180, 199, 220, 250, 299] {
+        for w in [120, 150, 180, 199, 220, 249, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
