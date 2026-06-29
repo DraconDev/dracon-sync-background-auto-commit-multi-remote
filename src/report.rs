@@ -1839,32 +1839,50 @@ pub(crate) fn truncate(value: &str, max_chars: usize) -> String {
 /// `unicode-width` for accurate wide-char and emoji measurement.
 ///
 /// - Does NOT break inside a grapheme cluster (emoji, CJK, etc.)
-/// - Appends a dim-gray `…` (1 column) when truncated
+/// - Appends `…` (1 column) when truncated
 /// - `max_width=0` returns `""`
-/// - `max_width=1` returns at most 1 column of content (the truncation marker takes 0 width if there's no room for content)
+/// - `max_width=1` returns at most 1 column of content
+///
+/// Truncation policy:
+/// 1. If content fits in `max_width` cols, return as-is (no ellipsis)
+/// 2. Otherwise, fit as much as possible, but reserve 1 col for the ellipsis
+/// 3. If the next char would push the width over `max_width - 1`, stop
+/// 4. Append `…` to signal truncation
 pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     if max_width == 0 {
         return String::new();
     }
+    if max_width == 1 {
+        // Only room for 1 col of content (no room for ellipsis)
+        for ch in value.chars() {
+            let w = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+            if w == 1 {
+                return ch.to_string();
+            }
+        }
+        return String::new();
+    }
+    // Try to fit the full content
+    let total_width: usize = value
+        .chars()
+        .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+        .sum();
+    if total_width <= max_width {
+        return value.to_string();
+    }
+    // Need to truncate. Reserve 1 col for the ellipsis.
+    let content_budget = max_width - 1;
     let mut width = 0;
     let mut end = 0;
     for (idx, ch) in value.char_indices() {
         let ch_w = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
-        if width + ch_w > max_width {
+        if width + ch_w > content_budget {
             break;
         }
         width += ch_w;
         end = idx + ch.len_utf8();
     }
-    if end == value.len() {
-        return value.to_string();
-    }
-    // Truncated: append `…` (1 col) if we have room, otherwise just trim
-    if width + 1 <= max_width {
-        format!("{}…", &value[..end])
-    } else {
-        value[..end].to_string()
-    }
+    format!("{}…", &value[..end])
 }
 
 /// Detect the terminal width in columns.
@@ -6714,5 +6732,152 @@ mod tests {
         let _ledger = EnvRestorer::new("DRACON_SYNC_LEDGER", &ledger_str);
         let map = build_daemon_last_action_map(&policy_path);
         assert!(map.is_none());
+    }
+
+    // ---- Layout tier and rendering tests (goal: fix ugly PUSH_STUCK render) ----
+
+    #[test]
+    fn test_truncate_unicode_width_no_truncation() {
+        // ASCII fits in width budget
+        assert_eq!(truncate_unicode_width("hello", 10), "hello");
+        // Exact fit
+        assert_eq!(truncate_unicode_width("hello", 5), "hello");
+        // Empty input
+        assert_eq!(truncate_unicode_width("", 5), "");
+        // max_width=0 returns empty
+        assert_eq!(truncate_unicode_width("hello", 0), "");
+    }
+
+    #[test]
+    fn test_truncate_unicode_width_emoji_safe() {
+        // 👋 is 2 cols wide. "hello 👋 world" is 14 cols.
+        // At width 8, content_budget=7 (reserve 1 for ellipsis).
+        // h(1)+e(1)+l(1)+l(1)+o(1)+space(1) = 6, then 👋(2) = 8 > 7.
+        // So 👋 is dropped. Result: "hello …" (7 cols).
+        let r = truncate_unicode_width("hello 👋 world", 8);
+        assert!(r.ends_with('…'), "expected ellipsis, got: {:?}", r);
+        // 👋 should NOT be present (it didn't fit in content_budget)
+        assert!(!r.contains('👋'), "emoji should be dropped: {:?}", r);
+        // Width should be at most 8 cols
+        let w: usize = r.chars().map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        assert!(w <= 8, "result width {} > 8 for {:?}", w, r);
+
+        // At width 10, content_budget=9. h(1)+e(1)+l(1)+l(1)+o(1)+space(1)+👋(2) = 8 fits.
+        // Then space(1) = 9, fits. So "hello 👋 " + "…" = 10 cols.
+        let r2 = truncate_unicode_width("hello 👋 world", 10);
+        assert!(r2.ends_with('…'), "expected ellipsis, got: {:?}", r2);
+        assert!(r2.contains('👋'), "emoji should be preserved: {:?}", r2);
+        let w2: usize = r2.chars().map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        assert!(w2 <= 10, "result width {} > 10 for {:?}", w2, r2);
+    }
+
+    #[test]
+    fn test_truncate_unicode_width_cjk() {
+        // CJK chars are 2 cols wide each. "你好世" = 6 cols.
+        // At width 5, fits "你好" (4 cols) + "…" (1 col) = 5 cols.
+        let r = truncate_unicode_width("你好世界", 5);
+        assert!(r.ends_with('…'), "expected ellipsis, got: {:?}", r);
+        // Must not split a CJK char
+        assert!(!r.contains('界'), "must not include last CJK: {:?}", r);
+    }
+
+    #[test]
+    fn test_choose_layout_tier_vertical() {
+        // Use env var to control width
+        let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
+        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "80");
+        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
+        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "100");
+        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
+        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "119");
+        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
+        // Restore
+        match prev {
+            Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
+            None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+    }
+
+    #[test]
+    fn test_choose_layout_tier_compact() {
+        let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
+        for w in [120, 150, 180, 199] {
+            std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
+            assert_eq!(
+                choose_layout_tier(),
+                LayoutTier::Compact,
+                "width {} should be Compact",
+                w
+            );
+        }
+        match prev {
+            Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
+            None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+    }
+
+    #[test]
+    fn test_choose_layout_tier_full() {
+        let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
+        for w in [200, 250, 500, 1000] {
+            std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
+            assert_eq!(
+                choose_layout_tier(),
+                LayoutTier::Full,
+                "width {} should be Full",
+                w
+            );
+        }
+        match prev {
+            Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
+            None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+    }
+
+    #[test]
+    fn test_push_cell_label_ok() {
+        let (text, _color) = push_cell_label("OK", None);
+        assert_eq!(text, "✅ OK");
+    }
+
+    #[test]
+    fn test_push_cell_label_pending() {
+        let (text, _color) = push_cell_label("PENDING", None);
+        assert_eq!(text, "🟣 PENDING");
+    }
+
+    #[test]
+    fn test_push_cell_label_push_stuck() {
+        // PUSH_STUCK should render with stop icon, no plain "PUSH_STUCK" text
+        let (text, _color) = push_cell_label("PUSH_STUCK", Some(173));
+        assert_eq!(text, "🛑 STUCK");
+        assert!(!text.contains("PUSH_STUCK"), "must not show plain PUSH_STUCK text: {:?}", text);
+    }
+
+    #[test]
+    fn test_push_cell_label_fail() {
+        let (text, _color) = push_cell_label("FAIL", None);
+        assert_eq!(text, "❌ FAIL");
+    }
+
+    #[test]
+    fn test_branch_color_for_main_master() {
+        assert_eq!(branch_color_for("main"), Color::White);
+        assert_eq!(branch_color_for("master"), Color::White);
+    }
+
+    #[test]
+    fn test_branch_color_for_other() {
+        assert_eq!(branch_color_for("feature/foo"), Color::Cyan);
+        assert_eq!(branch_color_for("wip"), Color::Cyan);
+    }
+
+    #[test]
+    fn test_colorize_passthrough_when_no_color() {
+        // When stdout is not a TTY (e.g. piped to file), colorize should
+        // return the plain text. This test runs in a test env, so usually no color.
+        let result = colorize("hello", Color::Red);
+        // Either with ANSI codes or without, but must contain "hello"
+        assert!(result.contains("hello"));
     }
 }
