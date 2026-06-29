@@ -7082,22 +7082,37 @@ mod tests {
         );
         assert_eq!(cell.content(), " [excl:github,gitlab]");
 
-        // Case 5: the format is symmetric with the text-mode renderer at line 2699
-        let row = RepoReportRow {
-            push_to_remotes: vec!["codeberg".to_string()],
-            excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
-            ..sample_repo_report_row()
-        };
-        let text_mode = format!(
-            "{} [excl:{}]",
-            row.push_to_remotes.join(","),
-            row.excluded_remotes.join(",")
-        );
-        let cell = format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes);
+        // Case 5: the format must be symmetric with the text-mode renderer
+        // at line 2699 (which builds `"{active} [excl:{excluded}]"`).
+        let active = vec!["codeberg".to_string()];
+        let excluded = vec!["github".to_string(), "gitlab".to_string()];
+        let text_mode = format!("{} [excl:{}]", active.join(","), excluded.join(","));
+        let cell = format_push_to_remotes_cell(&active, &excluded);
         assert_eq!(
             cell.content(),
             text_mode,
             "table-mode PUSH-TO must match text-mode renderer"
+        );
+
+        // Case 6: width sanity check. The longest realistic cell content
+        // is `codeberg [excl:github,gitlab]` = 30 cols. The PUSH-TO column
+        // was widened to 32 in the same change; cell content must fit
+        // within (column - 2) = 30 content cols without wrap.
+        let cell = format_push_to_remotes_cell(
+            &["codeberg".to_string()],
+            &["github".to_string(), "gitlab".to_string()],
+        );
+        let width: usize = cell
+            .content()
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
+        let push_to_col = 32;
+        let content_max = push_to_col - 2;
+        assert!(
+            width <= content_max,
+            "PUSH-TO cell {width} cols exceeds content area {content_max} cols. \
+             Widen the column or shorten the format."
         );
     }
 }
