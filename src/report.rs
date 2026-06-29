@@ -489,6 +489,12 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 /// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
 /// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
 /// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
+///
+/// CHANGED 2026-06-29: format changed from `codeberg −github,gitlab` (Unicode
+/// minus) to `codeberg [excl:github,gitlab]` (brackets) for consistency with
+/// the text-mode renderer at `format_status_block` (line 2699) which has
+/// always used `[excl:...]`. The PUSH-TO column width was widened from
+/// 17-18 to 32 chars in the same change to accommodate the longer string.
 fn format_push_to_remotes_cell(
     push_to_remotes: &[String],
     excluded_remotes: &[String],
@@ -504,10 +510,12 @@ fn format_push_to_remotes_cell(
         // Active remotes in green, excluded annotation in dim yellow
         // so the operator can see at a glance that the repo has been
         // deliberately limited to a subset of the default set.
-        // Use compact '−' separator instead of '[excl:...]' to fit in
-        // a 15-col PUSH-TO column without wrapping.
+        // Format mirrors the text-mode renderer at line 2699: bracket
+        // annotation is more readable than a Unicode minus sign,
+        // especially when terminal fonts differ.
         let excl = excluded_remotes.join(",");
-        Cell::new(format!("{main} −{excl}"))
+        Cell::new(format!("{main} [excl:{excl}]"))
+            .fg(comfy_table::Color::Yellow)
     }
 }
 
@@ -2820,7 +2828,7 @@ fn print_repos_compact_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 5 + 2 + 2 buffer)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 6 + 2 + 3 buffer)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUSH-TO (header 10 + 2 + 6 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(32)), // PUSH-TO (header 10 + 2 + 20 buffer for 'codeberg [excl:github,gitlab]')
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // LAST COMMIT (header 14 + 2 + 2 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // STATE+ACT (header 10 + 2 + 5 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
@@ -2972,7 +2980,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUSH-TO (header 10 + 2 + 5 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(32)), // PUSH-TO (header 10 + 2 + 20 buffer for 'codeberg [excl:github,gitlab]')
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // LAST COMMIT (header 14 + 2 + 6 buffer)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // ACTIVITY (header 11 + 2 + 4 buffer)
@@ -7038,5 +7046,58 @@ mod tests {
                  Shorten the label or widen the column."
             );
         }
+    }
+
+    /// CHANGED 2026-06-29: PUSH-TO cell format changed from Unicode minus
+    /// `codeberg −github,gitlab` to brackets `codeberg [excl:github,gitlab]`
+    /// for consistency with the text-mode renderer. PUSH-TO column was
+    /// widened from 17-18 to 32 chars in the same change.
+    #[test]
+    fn test_format_push_to_remotes_cell() {
+        use comfy_table::Cell;
+
+        // Case 1: full set of remotes, no exclusions → comma list, no annotation
+        let cell = format_push_to_remotes_cell(
+            &["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            &[],
+        );
+        assert_eq!(cell.content(), "codeberg,github,gitlab");
+
+        // Case 2: subset (dracon-platform case) → bracket annotation
+        let cell = format_push_to_remotes_cell(
+            &["codeberg".to_string()],
+            &["github".to_string(), "gitlab".to_string()],
+        );
+        assert_eq!(cell.content(), "codeberg [excl:github,gitlab]");
+
+        // Case 3: no remotes, no exclusions → dash
+        let cell = format_push_to_remotes_cell(&[], &[]);
+        assert_eq!(cell.content(), "-");
+
+        // Case 4: no active remotes, only exclusions → still bracket annotation
+        // (shouldn't happen in practice but guard against regression)
+        let cell = format_push_to_remotes_cell(
+            &[],
+            &["github".to_string(), "gitlab".to_string()],
+        );
+        assert_eq!(cell.content(), " [excl:github,gitlab]");
+
+        // Case 5: the format is symmetric with the text-mode renderer at line 2699
+        let row = RepoReportRow {
+            push_to_remotes: vec!["codeberg".to_string()],
+            excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
+            ..sample_repo_report_row()
+        };
+        let text_mode = format!(
+            "{} [excl:{}]",
+            row.push_to_remotes.join(","),
+            row.excluded_remotes.join(",")
+        );
+        let cell = format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes);
+        assert_eq!(
+            cell.content(),
+            text_mode,
+            "table-mode PUSH-TO must match text-mode renderer"
+        );
     }
 }
