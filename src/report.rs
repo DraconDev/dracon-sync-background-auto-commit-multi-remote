@@ -6825,7 +6825,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [120, 150, 180, 199, 220, 239] {
+        for w in [120, 150, 180, 199, 220, 249] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -6843,7 +6843,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_full() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [240, 250, 500, 1000] {
+        for w in [250, 300, 500, 1000] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
