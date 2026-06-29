@@ -367,8 +367,11 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
 
     // 2c. Unowned = "🚫 unowned: <reason>" so the operator
     // knows the daemon is intentionally not touching this repo.
+    // The detail is aggressively truncated to 20 chars so the cell fits
+    // in a 15-col ACTIVITY column with the leading label (13 cols) and
+    // room for the truncation marker. Full reason is in the HINT column.
     if let StateCause::Unowned { detail, .. } = &row.state_cause {
-        return format!("🚫 unowned: {}", truncate(detail, 40));
+        return format!("🚫 unowned: {}", truncate(detail, 20));
     }
 
     let has_dirty = row.modified > 0 || row.staged > 0;
@@ -1924,7 +1927,16 @@ pub(crate) fn choose_layout_tier() -> LayoutTier {
     } else if w < 200 {
         LayoutTier::Compact
     } else {
-        LayoutTier::Full
+        // Full tier only kicks in at >= 240 cols because the minimum sum of
+        // 22 column widths + 23 borders is 229 cols. At 200-239 cols the
+        // comfy-table Dynamic arrangement cannot honor all LowerBoundary
+        // constraints and wraps content mid-cell (e.g., 'PUSH'/'PENDING' on
+        // separate lines). 240+ gives 11+ cols of headroom for clean render.
+        if w >= 240 {
+            LayoutTier::Full
+        } else {
+            LayoutTier::Compact
+        }
     }
 }
 
@@ -2934,6 +2946,10 @@ fn print_repos_full_table(
 
     // Enforce minimum widths to prevent letter-wrapping when terminal is
     // narrower than the natural content width.
+    //
+    // Sum of minimums: 3+7+15+8+15+4+4+4+5+5+11+15+20+8+15+8+4+4+4+13+15+20 = 207
+    // Plus 23 borders: 230 cols minimum. Full tier starts at 240 cols to give
+    // 10+ cols of headroom.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(3)),     // #
         ColumnConstraint::Absolute(Width::Fixed(7)),     // STATUS
@@ -2945,7 +2961,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(4)),     // UT
         ColumnConstraint::Absolute(Width::Fixed(5)),     // AHEAD
         ColumnConstraint::Absolute(Width::Fixed(5)),     // BEHIND
-        ColumnConstraint::Absolute(Width::Fixed(10)),    // PUSH
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSH: '🟣 PENDING' = 2+1+7=10, +1 headroom
         ColumnConstraint::LowerBoundary(Width::Fixed(15)), // PUSH-TO
         ColumnConstraint::LowerBoundary(Width::Fixed(20)), // LAST COMMIT
         ColumnConstraint::Absolute(Width::Fixed(8)),     // PUSHED
@@ -6801,7 +6817,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [120, 150, 180, 199] {
+        for w in [120, 150, 180, 199, 220, 239] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -6819,7 +6835,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_full() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [200, 250, 500, 1000] {
+        for w in [240, 250, 500, 1000] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
