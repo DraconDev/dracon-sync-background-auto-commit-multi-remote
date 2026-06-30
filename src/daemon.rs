@@ -3136,57 +3136,6 @@ mod submodule_materialize_tests {
         std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
         parent
     }
-            let sub_gitdir = parent.join(".git/modules").join(subname);
-            std::fs::create_dir_all(&sub_gitdir).unwrap();
-            let run_sub = |args: &[&str]| {
-                Command::new("git")
-                    .args(args)
-                    .current_dir(&sub_gitdir)
-                    .output()
-                    .unwrap()
-            };
-            assert!(run_sub(&["init", "-q"]).status.success());
-            assert!(run_sub(&["config", "user.email", "test@example.com"]).status.success());
-            assert!(run_sub(&["config", "user.name", "Test"]).status.success());
-            assert!(run_sub(&["config", "commit.gpgsign", "false"]).status.success());
-            assert!(run_sub(&["config", "tag.gpgsign", "false"]).status.success());
-            std::fs::write(sub_gitdir.join("README.md"), b"# sub\n").unwrap();
-            assert!(run_sub(&["add", "README.md"]).status.success());
-            assert!(run_sub(&["commit", "-q", "-m", "init"]).status.success());
-            let _ = run_sub(&["config", "--unset-all", "core.worktree"]);
-            let _ = run_sub(&["reset"]);
-            let sub_head = String::from_utf8_lossy(&run_sub(&["rev-parse", "HEAD"]).stdout)
-                .trim()
-                .to_string();
-            // Write .git file in the parent so git treats it as
-            // a submodule of the right path.
-            std::fs::create_dir_all(parent.join(&path_in_parent)).unwrap();
-            std::fs::write(
-                parent.join(format!("{}/.git", path_in_parent)),
-                format!("gitdir: {}\n", sub_gitdir.display()),
-            )
-            .unwrap();
-            // Stage the gitlink.
-            Command::new("git")
-                .args([
-                    "update-index",
-                    "--add",
-                    "--cacheinfo",
-                    &format!("160000,{},{}", sub_head, path_in_parent),
-                ])
-                .current_dir(&parent)
-                .output()
-                .unwrap();
-            // Append to .gitmodules.
-            gitmodules.push_str(&format!(
-                "[submodule \"{}\"]\n\tpath = {}\n\turl = git@github.com:DraconDev/{}.git\n",
-                subname, path_in_parent, subname
-            ));
-            names.push((*subname).to_string());
-        }
-        std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
-        (parent, names)
-    }
 
     #[tokio::test]
     async fn daemon_cycle_materializes_3_submodules() {
