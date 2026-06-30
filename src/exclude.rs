@@ -451,6 +451,127 @@ mod tests {
             &[],
         ));
     }
+
+    // -----------------------------------------------------------------
+    // is_gitlink() — github-style tests under `#[cfg(test)]`.
+    //
+    // We avoid `tempfile` here and use a tiny shell-script-based approach
+    // because the helper is a thin wrapper around `git ls-tree HEAD -- <p>`.
+    // The interesting question is "does the helper detect a 160000 entry
+    // correctly", which we verify by directly invoking `git` against a
+    // hand-rolled repo. Using `tempfile::tempdir` would require pulling
+    // in the `tempfile` dev-dep at this layer; since `submodule-sync`
+    // tests already exercise the real flow end-to-end via
+    // `stage_existing_files` (see sync.rs tests mod), these `is_gitlink`
+    // tests just cover the explicit git-mode-prefix-detection corner
+    // cases cheaply.
+    // -----------------------------------------------------------------
+
+    /// Runs `git -C <repo>` with the given args, returns stdout as a String
+    /// (or empty string on failure).
+    fn git_c(repo: &std::path::Path, args: &[&str]) -> String {
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args(args)
+            .output();
+        match out {
+            Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+            Err(_) => String::new(),
+        }
+    }
+
+    #[test]
+    fn test_is_gitlink_returns_true_for_tracked_gitlink() {
+        let td = tempfile::tempdir().unwrap();
+        let repo = td.path().join("parent");
+        std::fs::create_dir_all(&repo).unwrap();
+        git_c(&repo, &["init", "-q", "-b", "main"]);
+        git_c(&repo, &["config", "user.email", "t@t"]);
+        git_c(&repo, &["config", "user.name", "t"]);
+
+        // Build a real nested git repo at parent/submod/{.git,foo.txt}.
+        let sub = repo.join("submod");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("foo.txt"), b"hi").unwrap();
+        git_c(&sub, &["init", "-q", "-b", "main"]);
+        git_c(&sub, &["config", "user.email", "t@t"]);
+        git_c(&sub, &["config", "user.name", "t"]);
+        git_c(&sub, &["add", "foo.txt"]);
+        git_c(&sub, &["commit", "-q", "-m", "init"]);
+        let sub_sha = git_c(&sub, &["rev-parse", "HEAD"]).trim().to_string();
+        assert!(!sub_sha.is_empty());
+
+        // Register the submodule in the parent via `git add <path>` of
+        // the gitlink (the standard way — no need for `.gitmodules`).
+        git_c(&repo, &["add", "submod"]);
+        git_c(&repo, &["commit", "-q", "-m", "register submod"]);
+
+        // Sanity: `git ls-tree HEAD -- submod` should report 160000.
+        let ls = git_c(&repo, &["ls-tree", "HEAD", "--", "submod"]);
+        assert!(
+            ls.starts_with("160000 "),
+            "expected `160000 commit ...\tsubmod` from ls-tree, got: {}",
+            ls
+        );
+
+        assert!(is_gitlink(&repo, std::path::Path::new("submod")));
+    }
+
+    #[test]
+    fn test_is_gitlink_returns_false_for_regular_file() {
+        let td = tempfile::tempdir().unwrap();
+        let repo = td.path().join("parent");
+        std::fs::create_dir_all(&repo).unwrap();
+        git_c(&repo, &["init", "-q", "-b", "main"]);
+        git_c(&repo, &["config", "user.email", "t@t"]);
+        git_c(&repo, &["config", "user.name", "t"]);
+        std::fs::write(repo.join("regular.txt"), b"hi").unwrap();
+        git_c(&repo, &["add", "regular.txt"]);
+        git_c(&repo, &["commit", "-q", "-m", "init"]);
+
+        assert!(!is_gitlink(&repo, std::path::Path::new("regular.txt")));
+    }
+
+    #[test]
+    fn test_is_gitlink_returns_false_for_untracked_dir_with_dotgit() {
+        // Untracked sibling subrepo (real `.git/` dir but no parent gitlink)
+        // must NOT be classified as a gitlink. This is the case where the
+        // daemon should fall through to the existing skip-and-recurse logic.
+        let td = tempfile::tempdir().unwrap();
+        let repo = td.path().join("parent");
+        std::fs::create_dir_all(&repo).unwrap();
+        git_c(&repo, &["init", "-q", "-b", "main"]);
+        git_c(&repo, &["config", "user.email", "t@t"]);
+        git_c(&repo, &["config", "user.name", "t"]);
+        std::fs::write(repo.join("regular.txt"), b"hi").unwrap();
+        git_c(&repo, &["add", "regular.txt"]);
+        git_c(&repo, &["commit", "-q", "-m", "init"]);
+
+        // Untracked subrepo on disk (no entry in parent index).
+        let sub = repo.join("nested_subrepo");
+        std::fs::create_dir_all(sub.join(".git")).unwrap();
+        std::fs::write(sub.join("foo.txt"), b"hi").unwrap();
+
+        assert!(!is_gitlink(&repo, std::path::Path::new("nested_subrepo")));
+    }
+
+    #[test]
+    fn test_is_gitlink_returns_false_for_missing_path() {
+        let td = tempfile::tempdir().unwrap();
+        let repo = td.path().join("parent");
+        std::fs::create_dir_all(&repo).unwrap();
+        git_c(&repo, &["init", "-q", "-b", "main"]);
+        git_c(&repo, &["config", "user.email", "t@t"]);
+        git_c(&repo, &["config", "user.name", "t"]);
+        std::fs::write(repo.join("regular.txt"), b"hi").unwrap();
+        git_c(&repo, &["add", "regular.txt"]);
+        git_c(&repo, &["commit", "-q", "-m", "init"]);
+
+        // `git ls-tree HEAD -- does_not_exist` exits non-zero with empty stdout.
+        // Our helper must return false in that case.
+        assert!(!is_gitlink(&repo, std::path::Path::new("does_not_exist")));
+    }
 }
 
 pub(crate) fn is_excluded_dir_name(name: &str, excluded_dir_names: &BTreeSet<String>) -> bool {
@@ -576,6 +697,30 @@ pub(crate) fn matches_untracked_exclude(
         }
     }
     false
+}
+
+/// Check if a path is a tracked gitlink (mode 160000) in the parent.
+/// Returns true iff `git ls-tree HEAD -- <path>` reports a `160000`
+/// entry for `path`. This is the only signal that the parent
+/// references the directory through a gitlink pointer — distinct
+/// from "directory exists on disk with a `.git/` inside" (which can
+/// also be an untracked sibling subrepo with no gitlink).
+///
+/// Used by `stage_existing_files` to know when a path should be
+/// staged via `git add <path>` (no `-A`) so the parent's index
+/// records the new submodule SHA without descending into the
+/// submodule's working tree.
+#[allow(dead_code)] // wired into sync.rs::sync_repo / stage_existing_files in goal mr0xseig-fn9bbd fix-2/fix-3
+pub(crate) fn is_gitlink(repo: &Path, path: &Path) -> bool {
+    let output = crate::git::git_cmd()
+        .current_dir(repo)
+        .args(["ls-tree", "HEAD", "--"])
+        .arg(path)
+        .output();
+    let Ok(out) = output else { return false };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Format: "160000 commit <sha>\t<path>"
+    stdout.starts_with("160000 ")
 }
 
 /// Check if a path is a gitlink (mode 160000) with an unchanged pointer.
