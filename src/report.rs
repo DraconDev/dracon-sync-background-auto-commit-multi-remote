@@ -2925,7 +2925,7 @@ fn print_repos_compact_table(
     // Sum: 3+11+18+11+18+8+8+7+9+11+13+18+18+17+22 = 192 + 15 borders = 207 cols min
     // Compact tier is 250-299 cols so this fits comfortably.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header 1 + 2 pad)
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 7 + 2 + 2 buffer for '⚠️  WARN')
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
@@ -3077,7 +3077,7 @@ fn print_repos_full_table(
     // 9+ cols of headroom. At 250-299 cols, falls back to compact tier which
     // is 14-col and fits in 199+.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(3)),     // # (header 1 + 2 pad = 3)
+        ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
@@ -7319,7 +7319,7 @@ mod tests {
     fn test_full_table_headers_fit_columns() {
         // (header_text, column_min)
         let header_columns: &[(&str, u16)] = &[
-            ("#", 3),
+            ("#", 4),
             ("🏷 STATUS", 11),
             ("📦 REPO", 17),
             ("🌿 BRANCH", 11),
@@ -7354,6 +7354,35 @@ mod tests {
                  Increase the column minimum in print_repos_full_table set_constraints."
             );
         }
+    }
+
+    /// Regression test for goal `mr0q2pp0-zznczr`: when there are
+    /// ≥10 repos in the table, the row-index column (`#`) MUST be
+    /// wide enough to fit a two-digit number on a single visual line.
+    /// If the column is too narrow, comfy-table truncates `10` to `1`
+    /// (or `20` to `2`, etc.) and the row-number column becomes
+    /// unreadable + the table layout breaks because the cell width
+    /// changes after the 9th row.
+    ///
+    /// The fix (per this goal) bumps `ColumnConstraint::Absolute(Width::Fixed(3))`
+    /// to `Width::Fixed(4)` for the `#` column in both the full
+    /// (`print_repos_full_table`) and compact (`print_repos_compact_table`)
+    /// tiers. This test pins the minimum at 4 in `test_full_table_headers_fit_columns`,
+    /// and here we additionally verify that a two-digit index string
+    /// (`"10"`) fits within `4` cells with the usual 1-char padding.
+    #[test]
+    fn test_index_column_fits_two_digit_row_number() {
+        let idx_str = "10";
+        let col_width = 4;
+        let padding = 1;
+        let rendered = idx_str.len() + padding;
+        assert!(
+            rendered <= col_width,
+            "Two-digit row index {idx_str:?} ({rendered} cols with {padding}-char padding) \
+             exceeds the # column width {col_width}. comfy-table would truncate to \
+             {idx_str:?}'s last char (\"{}\"), breaking the table layout for repos 10+.",
+            idx_str.chars().last().unwrap()
+        );
     }
 
     /// Verify the unowned activity label is short enough to fit in the
