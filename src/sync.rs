@@ -7588,4 +7588,162 @@ auto_bump_versions = false
             msg
         );
     }
+
+    /// Regression test for goal `mr10pdzr-i495vy`:
+    /// `parent_with_materialized_subrepo_and_dirty_subrepo`. After
+    /// the daemon materializes a submodule as a standalone worktree
+    /// (using `materialize_submodule`) AND the operator makes a
+    /// commit in the worktree, the parent's gitlink MUST be
+    /// auto-updated to point at the new SHA (no recursion, no
+    /// files from the worktree leaking into the parent's index).
+    ///
+    /// This is the end-to-end success criterion for the
+    /// `dracon-platform` migration: the parent commit
+    /// `dracon-platform/web/games/wip/polis` (mode 160000) must
+    /// be updated to the new SHA after each daemon cycle, with
+    /// the worktree files remaining ONLY in the worktree's index.
+    #[tokio::test]
+    async fn parent_with_materialized_subrepo_and_dirty_subrepo() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().join("parent");
+        std::fs::create_dir_all(&parent).unwrap();
+
+        // Build a parent + sibling subrepo (mimicking the
+        // subrepo sharing parent/.git/modules/web-games-polis).
+        let sub_head_initial = init_parent_with_submodule_gitdir(&parent, "web-games-polis");
+        // The parent committed a "README.md" but never added the
+        // subrepo as a gitlink. Do that now.
+        Command::new("git")
+            .args([
+                "-C",
+                &parent.to_string_lossy(),
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                &format!("160000,{},sub", sub_head_initial),
+            ])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "add subrepo"])
+            .output()
+            .unwrap();
+
+        // Sanity: parent has 160000 -> sub_head_initial.
+        let ls = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &parent.to_string_lossy(), "ls-tree", "HEAD", "--", "sub"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            ls.starts_with(&format!("160000 commit {}", sub_head_initial)),
+            "parent should have 160000 -> {} at HEAD, got: {}",
+            sub_head_initial,
+            ls
+        );
+
+        // Materialize the subrepo as a standalone worktree under
+        // the tmp dir (mirroring the real daemon's behavior of
+        // materializing under the watch root).
+        let worktree = tmp.path().join("standalone_polis");
+        let mat_result = materialize_submodule(&parent, "web-games-polis", &worktree, &sub_head_initial).await;
+        assert!(mat_result.is_ok(), "materialize must succeed: {:?}", mat_result);
+        assert!(worktree.exists(), "worktree not created");
+        assert!(worktree.join(".git").exists(), "worktree .git missing");
+
+        // Simulate a commit in the worktree: change a file and commit.
+        std::fs::write(worktree.join("README.md"), b"# updated sub\n").unwrap();
+        Command::new("git")
+            .args(["-C", &worktree.to_string_lossy(), "add", "README.md"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args([
+                "-C",
+                &worktree.to_string_lossy(),
+                "commit",
+                "-q",
+                "-m",
+                "update sub",
+            ])
+            .output()
+            .unwrap();
+        let sub_head_new = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &worktree.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        assert_ne!(
+            sub_head_initial, sub_head_new,
+            "subrepo HEAD must have advanced"
+        );
+
+        // Parent now sees `M sub` (gitlink pointer out of date).
+        let status_before = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &parent.to_string_lossy(), "status", "--porcelain"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            status_before.contains("sub"),
+            "parent must see stale gitlink `M sub`, got: {:?}",
+            status_before
+        );
+
+        // Run the gitlink-update stage flow (the exact function
+        // the daemon calls per cycle when it sees a modified
+        // gitlink entry).
+        let result =
+            stage_gitlink_updates(&parent, &["sub".to_string()], false, 30).await;
+        assert!(result.is_ok(), "stage_gitlink_updates must succeed: {:?}", result);
+
+        // Parent index must now point at sub_head_new.
+        let index_sha = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &parent.to_string_lossy(), "ls-files", "--stage", "sub"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            index_sha.contains(&sub_head_new),
+            "parent index must reflect new submodule SHA {}, got: {:?}",
+            sub_head_new,
+            index_sha
+        );
+
+        // CRITICAL: NO file from inside the worktree must be in
+        // the parent's index. This is the parent-gitlink fix
+        // invariant from goal `mr0xseig-fn9bbd`.
+        let staged_files = String::from_utf8_lossy(
+            &Command::new("git")
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "diff",
+                    "--cached",
+                    "--name-only",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            !staged_files.contains("sub/README.md"),
+            "sub/README.md must NOT be in parent index (no recursion!), got:\n{}",
+            staged_files
+        );
+    }
 }
