@@ -2375,7 +2375,17 @@ async fn auto_resolve_unmerged_if_safe(
 /// the policy's `untracked_warn_threshold`. Returns the untracked
 /// count for use in the `drain_health` report field.
 ///
+/// The reported count subtracts entries that point to nested git
+/// repositories under `repo` (e.g. `child/`, where `child/.git`
+/// exists). Such entries inflate the parent's UT count but do not
+/// represent new files in the parent — the child is a separately-
+/// tracked, independently-synced git repo. See
+/// `count_nested_repo_untracked_entries` in `git/discovery.rs`.
+///
 /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
+/// CHANGED 2026-06-30, goal `mr02de1n-gjkgzp`: subtract nested-repo
+/// entries so the parent UT count reflects only the parent's own
+/// working-tree noise.
 async fn check_untracked_threshold(
     repo: &Path,
     threshold: usize,
@@ -2392,18 +2402,35 @@ async fn check_untracked_threshold(
         ])
         .output()
         .with_context(|| format!("failed to list untracked files in {}", repo.display()))?;
-    let count = String::from_utf8_lossy(&output.stdout)
+    let entries: Vec<String> = String::from_utf8_lossy(&output.stdout)
         .lines()
         .filter(|l| !l.is_empty())
-        .count();
+        .map(|l| l.to_string())
+        .collect();
+    let raw_count = entries.len();
+    let nested_repo_count =
+        crate::git::count_nested_repo_untracked_entries(repo, &entries);
+    let count = raw_count.saturating_sub(nested_repo_count);
     if count > threshold {
-        eprintln!(
-            "⚠️ {} has {} untracked files (threshold {}). \
-             Consider adding ephemeral directories to .gitignore.",
-            repo.display(),
-            count,
-            threshold
-        );
+        if nested_repo_count > 0 && crate::policy::debug_enabled() {
+            eprintln!(
+                "⚠️ {} has {} untracked files ({} raw − {} nested-repo entries; threshold {}). \
+                 Consider adding ephemeral directories to .gitignore.",
+                repo.display(),
+                count,
+                raw_count,
+                nested_repo_count,
+                threshold
+            );
+        } else {
+            eprintln!(
+                "⚠️ {} has {} untracked files (threshold {}). \
+                 Consider adding ephemeral directories to .gitignore.",
+                repo.display(),
+                count,
+                threshold
+            );
+        }
     }
     Ok(count)
 }
