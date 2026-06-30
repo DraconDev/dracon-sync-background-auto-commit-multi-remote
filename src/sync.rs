@@ -7602,6 +7602,16 @@ auto_bump_versions = false
     /// `dracon-platform/web/games/wip/polis` (mode 160000) must
     /// be updated to the new SHA after each daemon cycle, with
     /// the worktree files remaining ONLY in the worktree's index.
+    ///
+    /// Approach: we mimic the real dracon-platform subrepo
+    /// structure where the subrepo's gitdir is at
+    /// `<parent>/.git/modules/<subname>`. The gitlink is
+    /// registered in the parent's index to point at the subrepo's
+    /// HEAD. When the operator commits in the (materialized)
+    /// subrepo's main working tree, the subrepo's HEAD advances,
+    /// the parent's gitlink goes stale, and the daemon's
+    /// `stage_gitlink_updates` propagates the new SHA back to the
+    /// parent.
     #[tokio::test]
     async fn parent_with_materialized_subrepo_and_dirty_subrepo() {
         let tmp = tempfile::tempdir().unwrap();
@@ -7632,37 +7642,60 @@ auto_bump_versions = false
             .output()
             .unwrap();
 
-        // 2. Build a sibling subrepo: separate standalone repo
-        // with its own commits. This mirrors the real
-        // `web-games-polis` layout (a standalone repo the parent
-        // tracks via a gitlink).
-        let sibling = parent.join("web/games/wip/sibling");
-        std::fs::create_dir_all(&sibling).unwrap();
+        // 2. Build the subrepo's gitdir at
+        //    `<parent>/.git/modules/web-games-polis/` and the
+        //    subrepo's main working tree at
+        //    `<parent>/web/games/wip/polis`. This is the
+        //    post-`git submodule update --init` state of a real
+        //    submodule.
+        let sub_gitdir = parent.join(".git/modules/web-games-polis");
+        std::fs::create_dir_all(&sub_gitdir).unwrap();
         Command::new("git")
             .args(["init", "-q", "-b", "main"])
-            .arg(&sibling)
+            .arg(&sub_gitdir)
             .output()
             .unwrap();
         Command::new("git")
-            .args(["-C", &sibling.to_string_lossy(), "config", "user.email", "t@t"])
+            .args(["-C", &sub_gitdir.to_string_lossy(), "config", "user.email", "t@t"])
             .output()
             .unwrap();
         Command::new("git")
-            .args(["-C", &sibling.to_string_lossy(), "config", "user.name", "t"])
-            .output()
-            .unwrap();
-        std::fs::write(sibling.join("README.md"), b"# sub\n").unwrap();
-        Command::new("git")
-            .args(["-C", &sibling.to_string_lossy(), "add", "-A"])
+            .args(["-C", &sub_gitdir.to_string_lossy(), "config", "user.name", "t"])
             .output()
             .unwrap();
         Command::new("git")
-            .args(["-C", &sibling.to_string_lossy(), "commit", "-q", "-m", "init"])
+            .args(["-C", &sub_gitdir.to_string_lossy(), "config", "commit.gpgsign", "false"])
+            .output()
+            .unwrap();
+        // The subrepo's main worktree is at
+        // `<parent>/web/games/wip/polis`. The submodule
+        // convention is that the gitdir's `core.worktree` points
+        // at the working tree.
+        let sub_worktree = parent.join("web/games/wip/polis");
+        std::fs::create_dir_all(&sub_worktree).unwrap();
+        Command::new("git")
+            .args([
+                "-C",
+                &sub_gitdir.to_string_lossy(),
+                "config",
+                "core.worktree",
+                &sub_worktree.to_string_lossy(),
+            ])
+            .output()
+            .unwrap();
+        // First commit at SHA-A.
+        std::fs::write(sub_worktree.join("README.md"), b"# sub\n").unwrap();
+        Command::new("git")
+            .args(["-C", &sub_worktree.to_string_lossy(), "add", "-A"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sub_worktree.to_string_lossy(), "commit", "-q", "-m", "init"])
             .output()
             .unwrap();
         let sub_head_initial = String::from_utf8_lossy(
             &Command::new("git")
-                .args(["-C", &sibling.to_string_lossy(), "rev-parse", "HEAD"])
+                .args(["-C", &sub_gitdir.to_string_lossy(), "rev-parse", "HEAD"])
                 .output()
                 .unwrap()
                 .stdout,
@@ -7678,7 +7711,7 @@ auto_bump_versions = false
                 "update-index",
                 "--add",
                 "--cacheinfo",
-                &format!("160000,{},web/games/wip/sibling", sub_head_initial),
+                &format!("160000,{},web/games/wip/polis", sub_head_initial),
             ])
             .output()
             .unwrap();
@@ -7690,7 +7723,14 @@ auto_bump_versions = false
         // Sanity: parent has 160000 -> sub_head_initial.
         let ls = String::from_utf8_lossy(
             &Command::new("git")
-                .args(["-C", &parent.to_string_lossy(), "ls-tree", "HEAD", "--", "web/games/wip/sibling"])
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "ls-tree",
+                    "HEAD",
+                    "--",
+                    "web/games/wip/polis",
+                ])
                 .output()
                 .unwrap()
                 .stdout,
@@ -7705,34 +7745,47 @@ auto_bump_versions = false
 
         // 4. Simulate the daemon's `materialize_submodule`:
         //    `git worktree add --detach <target> <sha>` from
-        //    inside the sibling's own gitdir.
-        let worktree = tmp.path().join("standalone_sibling");
-        let sibling_dot_git = sibling.join(".git");
+        //    inside the subrepo's own gitdir.
+        let standalone_wt = tmp.path().join("standalone_polis");
         Command::new("git")
             .args([
                 "-C",
-                &sibling_dot_git.to_string_lossy(),
+                &sub_gitdir.to_string_lossy(),
                 "worktree",
                 "add",
                 "--detach",
             ])
-            .arg(&worktree)
+            .arg(&standalone_wt)
             .arg(&sub_head_initial)
             .output()
             .unwrap();
-        assert!(worktree.exists(), "worktree not created");
-        assert!(worktree.join(".git").exists(), "worktree .git missing");
+        assert!(standalone_wt.exists(), "worktree not created");
+        assert!(standalone_wt.join(".git").exists(), "worktree .git missing");
 
-        // 5. Simulate a commit in the materialized worktree.
-        std::fs::write(worktree.join("README.md"), b"# updated sub\n").unwrap();
+        // 5. The standalone worktree IS a real worktree of the
+        //    subrepo's gitdir. But for the parent's gitlink to
+        //    see a stale pointer, the SUBREPO'S MAIN WORKTREE
+        //    must advance. (A new worktree's HEAD is independent
+        //    from the main worktree's HEAD; they share objects
+        //    but not refs.)
+        //
+        //    The real daemon flow is: the user (or operator) edits
+        //    files in the main worktree, the daemon's auto-commit
+        //    fires on the main worktree, the main HEAD advances,
+        //    the parent's gitlink goes stale, the daemon's
+        //    stage_gitlink_updates runs. To test this end-to-end,
+        //    we commit in the SUBREPO'S MAIN WORKTREE (not the
+        //    standalone worktree, which is just an extra checkout
+        //    of the same gitdir).
+        std::fs::write(sub_worktree.join("README.md"), b"# updated sub\n").unwrap();
         Command::new("git")
-            .args(["-C", &worktree.to_string_lossy(), "add", "README.md"])
+            .args(["-C", &sub_worktree.to_string_lossy(), "add", "README.md"])
             .output()
             .unwrap();
         Command::new("git")
             .args([
                 "-C",
-                &worktree.to_string_lossy(),
+                &sub_worktree.to_string_lossy(),
                 "commit",
                 "-q",
                 "-m",
@@ -7742,7 +7795,7 @@ auto_bump_versions = false
             .unwrap();
         let sub_head_new = String::from_utf8_lossy(
             &Command::new("git")
-                .args(["-C", &worktree.to_string_lossy(), "rev-parse", "HEAD"])
+                .args(["-C", &sub_gitdir.to_string_lossy(), "rev-parse", "HEAD"])
                 .output()
                 .unwrap()
                 .stdout,
@@ -7754,10 +7807,8 @@ auto_bump_versions = false
             "subrepo HEAD must have advanced"
         );
 
-        // 6. Parent now sees `M web/games/wip/sibling` (gitlink
-        //    pointer out of date). The parent's view of the
-        //    sibling's HEAD is via the .git file, not via the
-        //    sibling's own working tree.
+        // 6. Parent now sees `M web/games/wip/polis` (gitlink
+        //    pointer out of date).
         let status_before = String::from_utf8_lossy(
             &Command::new("git")
                 .args(["-C", &parent.to_string_lossy(), "status", "--porcelain"])
@@ -7767,8 +7818,8 @@ auto_bump_versions = false
         )
         .to_string();
         assert!(
-            status_before.contains("web/games/wip/sibling"),
-            "parent must see stale gitlink `M web/games/wip/sibling`, got: {:?}",
+            status_before.contains("web/games/wip/polis"),
+            "parent must see stale gitlink `M web/games/wip/polis`, got: {:?}",
             status_before
         );
 
@@ -7777,7 +7828,7 @@ auto_bump_versions = false
         //    modified gitlink entry).
         let result = stage_gitlink_updates(
             &parent,
-            &["web/games/wip/sibling".to_string()],
+            &["web/games/wip/polis".to_string()],
             false,
             30,
         )
@@ -7792,7 +7843,7 @@ auto_bump_versions = false
                     &parent.to_string_lossy(),
                     "ls-files",
                     "--stage",
-                    "web/games/wip/sibling",
+                    "web/games/wip/polis",
                 ])
                 .output()
                 .unwrap()
@@ -7806,7 +7857,7 @@ auto_bump_versions = false
             index_sha
         );
 
-        // 9. CRITICAL: NO file from inside the worktree must be
+        // 9. CRITICAL: NO file from inside the subrepo must be
         //    in the parent's index. This is the parent-gitlink
         //    fix invariant from goal `mr0xseig-fn9bbd`.
         let staged_files = String::from_utf8_lossy(
@@ -7824,7 +7875,7 @@ auto_bump_versions = false
         )
         .to_string();
         assert!(
-            !staged_files.contains("web/games/wip/sibling/README.md"),
+            !staged_files.contains("web/games/wip/polis/README.md"),
             "subrepo README.md must NOT be in parent index (no recursion!), got:\n{}",
             staged_files
         );
