@@ -215,3 +215,117 @@ pub(crate) fn is_safe_branch_name(branch: &str) -> bool {
     }
     true
 }
+
+#[cfg(test)]
+mod nested_repo_tests {
+    use super::*;
+    use std::fs;
+
+    /// Build a parent dir with one nested git repo under `nested_name`.
+    /// Returns the parent path. The parent is NOT a git repo (we just
+    /// need it as a directory for the helper's filesystem checks).
+    fn build_parent_with_nested(parent: &Path, nested_name: &str) -> PathBuf {
+        let nested = parent.join(nested_name);
+        fs::create_dir_all(&nested).unwrap();
+        fs::create_dir_all(nested.join(".git")).unwrap();
+        nested
+    }
+
+    #[test]
+    fn count_nested_repo_untracked_entries_zero_when_no_entries() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        assert_eq!(count_nested_repo_untracked_entries(&repo, &[]), 0);
+    }
+
+    #[test]
+    fn count_nested_repo_untracked_entries_counts_nested_repo_dirs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        build_parent_with_nested(&repo, "child_a");
+        build_parent_with_nested(&repo, "child_b");
+        let entries = vec![
+            "child_a".to_string(),
+            "child_a/inner.txt".to_string(),
+            "child_b".to_string(),
+            "scratch.txt".to_string(),
+        ];
+        // 2 nested-repo entries (child_a, child_b) plus 2 inner/scratch
+        // entries that do NOT have .git inside.
+        assert_eq!(
+            count_nested_repo_untracked_entries(&repo, &entries),
+            2,
+            "must count both nested-repo dirs (child_a, child_b) and ignore child_a/inner.txt and scratch.txt",
+        );
+    }
+
+    #[test]
+    fn count_nested_repo_untracked_entries_handles_trailing_slash() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        build_parent_with_nested(&repo, "child");
+        // git ls-files --others may emit "child/" with a trailing
+        // slash for untracked directory entries.
+        let entries = vec!["child/".to_string()];
+        assert_eq!(
+            count_nested_repo_untracked_entries(&repo, &entries),
+            1,
+            "trailing slash must not prevent detection of the nested repo",
+        );
+    }
+
+    #[test]
+    fn count_nested_repo_untracked_entries_counts_submodule_dot_git_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        // Build a `.git` FILE pointing to a worktree-style gitdir
+        // (this is what submodules and linked worktrees look like).
+        let sub = repo.join("sub");
+        fs::create_dir_all(&sub).unwrap();
+        fs::create_dir_all(repo.join(".git/modules/sub")).unwrap();
+        fs::write(
+            sub.join(".git"),
+            "gitdir: /fake/path/.git/modules/sub\n",
+        )
+        .unwrap();
+        let entries = vec!["sub".to_string()];
+        assert_eq!(
+            count_nested_repo_untracked_entries(&repo, &entries),
+            1,
+            "a sub/ where sub/.git is a file must also count as a nested repo",
+        );
+    }
+
+    #[test]
+    fn count_nested_repo_untracked_entries_keeps_plain_untracked_dirs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        // A plain dir with NO .git inside — must NOT count as nested.
+        fs::create_dir_all(repo.join("scratch_dir")).unwrap();
+        fs::write(repo.join("scratch_dir/note.txt"), b"x").unwrap();
+        fs::write(repo.join("a.txt"), b"x").unwrap();
+        let entries = vec![
+            "scratch_dir".to_string(),
+            "scratch_dir/note.txt".to_string(),
+            "a.txt".to_string(),
+        ];
+        assert_eq!(
+            count_nested_repo_untracked_entries(&repo, &entries),
+            0,
+            "plain untracked dirs without .git must not be subtracted",
+        );
+    }
+
+    #[test]
+    fn is_nested_repo_path_rejects_unsafe_paths() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().to_path_buf();
+        // Absolute path and .. are unsafe per is_safe_git_path;
+        // is_nested_repo_path must treat them as non-nested (safe
+        // fallback that does not subtract).
+        assert!(!is_nested_repo_path(&repo, "/etc/passwd"));
+        assert!(!is_nested_repo_path(&repo, "../etc"));
+        assert!(!is_nested_repo_path(&repo, ""));
+        assert!(!is_nested_repo_path(&repo, "."));
+    }
+}
