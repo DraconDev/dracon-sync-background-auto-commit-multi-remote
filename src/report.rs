@@ -2463,7 +2463,7 @@ pub(crate) async fn run_repos_report(
                 a,
                 w,
                 u,
-                format_commit_subject_for_display(&m, 100),
+                format_commit_subject_for_display(&m, 150),
             ),
             None => (
                 "-".to_string(),
@@ -4940,6 +4940,24 @@ mod tests {
         assert!(
             result.contains("mr02de1n-gjkgzp"),
             "full goal id must remain after stripping pipe metrics, got: {}",
+            result
+        );
+    }
+
+    /// Regression test for the deep-path case: when the file list
+    /// is very long (e.g. `extensions/auto-form-filler/.pi/goals/...`)
+    /// the budget of 100 is not enough to fit the full goal id. The
+    /// 150-char budget used by the daemon call site must fit the full
+    /// goal id in such cases.
+    #[test]
+    fn test_format_commit_subject_for_display_fits_deep_path_goal_id() {
+        let full = "2 file(s) in extensions [extensions/auto-form-filler/.pi/goals/{active_goal_2026063003343613_mr019xic-xs9wa4.md => archived/goal_2026063010094853_mr019xic-xs9wa4.md}, extensions/auto-form-filler/.pi/goals/goal_events.jsonl] DELTA:+8/-5";
+        // Budget 150 should keep the full goal id `mr019xic-xs9wa4`
+        // from the first filename in the rename arrow.
+        let result = format_commit_subject_for_display(full, 150);
+        assert!(
+            result.contains("mr019xic-xs9wa4"),
+            "full goal id must remain in deep-path commit, got: {}",
             result
         );
     }
