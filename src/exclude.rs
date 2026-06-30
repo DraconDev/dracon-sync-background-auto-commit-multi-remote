@@ -672,16 +672,18 @@ mod tests {
         let sub_sha = git_c(&nested_dir, &["rev-parse", "HEAD"])
             .trim()
             .to_string();
-        git_c(
-            &parent,
-            &[
-                "update-index",
-                "--add",
-                "--cacheinfo",
-                &format!("160000,{},nested/foo", sub_sha),
-            ],
-        );
+        eprintln!("DEBUG: sub_sha = {}", sub_sha);
+        let cacheinfo = format!("160000,{},nested/foo", sub_sha);
+        let update_args = vec![
+            "update-index".to_string(),
+            "--add".to_string(),
+            "--cacheinfo".to_string(),
+            cacheinfo,
+        ];
+        let update_refs: Vec<&str> = update_args.iter().map(String::as_str).collect();
+        git_c(&parent, &update_refs);
         git_c(&parent, &["commit", "-q", "-m", "add submodule"]);
+        eprintln!("DEBUG: ls-tree HEAD after commit: {}", git_c(&parent, &["ls-tree", "HEAD"]));
 
         (td, parent, standalone_dir, sub_sha)
     }
