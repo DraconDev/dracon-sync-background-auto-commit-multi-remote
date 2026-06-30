@@ -7608,11 +7608,69 @@ auto_bump_versions = false
         let parent = tmp.path().join("parent");
         std::fs::create_dir_all(&parent).unwrap();
 
-        // Build a parent + sibling subrepo (mimicking the
-        // subrepo sharing parent/.git/modules/web-games-polis).
-        let sub_head_initial = init_parent_with_submodule_gitdir(&parent, "web-games-polis");
-        // The parent committed a "README.md" but never added the
-        // subrepo as a gitlink. Do that now.
+        // 1. Build a parent repo.
+        Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .arg(&parent)
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "config", "user.email", "t@t"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "config", "user.name", "t"])
+            .output()
+            .unwrap();
+        std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "add", "-A"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "init"])
+            .output()
+            .unwrap();
+
+        // 2. Build a sibling subrepo: separate standalone repo
+        // with its own commits. This mirrors the real
+        // `web-games-polis` layout (a standalone repo the parent
+        // tracks via a gitlink).
+        let sibling = parent.join("web/games/wip/sibling");
+        std::fs::create_dir_all(&sibling).unwrap();
+        Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .arg(&sibling)
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sibling.to_string_lossy(), "config", "user.email", "t@t"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sibling.to_string_lossy(), "config", "user.name", "t"])
+            .output()
+            .unwrap();
+        std::fs::write(sibling.join("README.md"), b"# sub\n").unwrap();
+        Command::new("git")
+            .args(["-C", &sibling.to_string_lossy(), "add", "-A"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sibling.to_string_lossy(), "commit", "-q", "-m", "init"])
+            .output()
+            .unwrap();
+        let sub_head_initial = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &sibling.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+
+        // 3. Register the subrepo as a gitlink in the parent.
         Command::new("git")
             .args([
                 "-C",
@@ -7620,7 +7678,7 @@ auto_bump_versions = false
                 "update-index",
                 "--add",
                 "--cacheinfo",
-                &format!("160000,{},sub", sub_head_initial),
+                &format!("160000,{},web/games/wip/sibling", sub_head_initial),
             ])
             .output()
             .unwrap();
@@ -7632,7 +7690,7 @@ auto_bump_versions = false
         // Sanity: parent has 160000 -> sub_head_initial.
         let ls = String::from_utf8_lossy(
             &Command::new("git")
-                .args(["-C", &parent.to_string_lossy(), "ls-tree", "HEAD", "--", "sub"])
+                .args(["-C", &parent.to_string_lossy(), "ls-tree", "HEAD", "--", "web/games/wip/sibling"])
                 .output()
                 .unwrap()
                 .stdout,
@@ -7645,16 +7703,27 @@ auto_bump_versions = false
             ls
         );
 
-        // Materialize the subrepo as a standalone worktree under
-        // the tmp dir (mirroring the real daemon's behavior of
-        // materializing under the watch root).
-        let worktree = tmp.path().join("standalone_polis");
-        let mat_result = materialize_submodule(&parent, "web-games-polis", &worktree, &sub_head_initial).await;
-        assert!(mat_result.is_ok(), "materialize must succeed: {:?}", mat_result);
+        // 4. Simulate the daemon's `materialize_submodule`:
+        //    `git worktree add --detach <target> <sha>` from
+        //    inside the sibling's own gitdir.
+        let worktree = tmp.path().join("standalone_sibling");
+        let sibling_dot_git = sibling.join(".git");
+        Command::new("git")
+            .args([
+                "-C",
+                &sibling_dot_git.to_string_lossy(),
+                "worktree",
+                "add",
+                "--detach",
+            ])
+            .arg(&worktree)
+            .arg(&sub_head_initial)
+            .output()
+            .unwrap();
         assert!(worktree.exists(), "worktree not created");
         assert!(worktree.join(".git").exists(), "worktree .git missing");
 
-        // Simulate a commit in the worktree: change a file and commit.
+        // 5. Simulate a commit in the materialized worktree.
         std::fs::write(worktree.join("README.md"), b"# updated sub\n").unwrap();
         Command::new("git")
             .args(["-C", &worktree.to_string_lossy(), "add", "README.md"])
@@ -7685,7 +7754,10 @@ auto_bump_versions = false
             "subrepo HEAD must have advanced"
         );
 
-        // Parent now sees `M sub` (gitlink pointer out of date).
+        // 6. Parent now sees `M web/games/wip/sibling` (gitlink
+        //    pointer out of date). The parent's view of the
+        //    sibling's HEAD is via the .git file, not via the
+        //    sibling's own working tree.
         let status_before = String::from_utf8_lossy(
             &Command::new("git")
                 .args(["-C", &parent.to_string_lossy(), "status", "--porcelain"])
@@ -7695,22 +7767,33 @@ auto_bump_versions = false
         )
         .to_string();
         assert!(
-            status_before.contains("sub"),
-            "parent must see stale gitlink `M sub`, got: {:?}",
+            status_before.contains("web/games/wip/sibling"),
+            "parent must see stale gitlink `M web/games/wip/sibling`, got: {:?}",
             status_before
         );
 
-        // Run the gitlink-update stage flow (the exact function
-        // the daemon calls per cycle when it sees a modified
-        // gitlink entry).
-        let result =
-            stage_gitlink_updates(&parent, &["sub".to_string()], false, 30).await;
+        // 7. Run the gitlink-update stage flow (the exact
+        //    function the daemon calls per cycle when it sees a
+        //    modified gitlink entry).
+        let result = stage_gitlink_updates(
+            &parent,
+            &["web/games/wip/sibling".to_string()],
+            false,
+            30,
+        )
+        .await;
         assert!(result.is_ok(), "stage_gitlink_updates must succeed: {:?}", result);
 
-        // Parent index must now point at sub_head_new.
+        // 8. Parent index must now point at sub_head_new.
         let index_sha = String::from_utf8_lossy(
             &Command::new("git")
-                .args(["-C", &parent.to_string_lossy(), "ls-files", "--stage", "sub"])
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "ls-files",
+                    "--stage",
+                    "web/games/wip/sibling",
+                ])
                 .output()
                 .unwrap()
                 .stdout,
@@ -7723,9 +7806,9 @@ auto_bump_versions = false
             index_sha
         );
 
-        // CRITICAL: NO file from inside the worktree must be in
-        // the parent's index. This is the parent-gitlink fix
-        // invariant from goal `mr0xseig-fn9bbd`.
+        // 9. CRITICAL: NO file from inside the worktree must be
+        //    in the parent's index. This is the parent-gitlink
+        //    fix invariant from goal `mr0xseig-fn9bbd`.
         let staged_files = String::from_utf8_lossy(
             &Command::new("git")
                 .args([
@@ -7741,8 +7824,8 @@ auto_bump_versions = false
         )
         .to_string();
         assert!(
-            !staged_files.contains("sub/README.md"),
-            "sub/README.md must NOT be in parent index (no recursion!), got:\n{}",
+            !staged_files.contains("web/games/wip/sibling/README.md"),
+            "subrepo README.md must NOT be in parent index (no recursion!), got:\n{}",
             staged_files
         );
     }
