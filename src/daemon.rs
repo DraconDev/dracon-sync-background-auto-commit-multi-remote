@@ -1875,6 +1875,12 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
 /// the matching watch root. Idempotent: existing worktrees are
 /// detected by `materialize_submodule` and skipped.
 ///
+/// For each newly-materialized worktree, the daemon also adds
+/// the standard mirror remotes (github / gitlab / codeberg) from
+/// the policy, so the worktree can push to all 3 forges. The
+/// inherited `origin` remote (pointing at git@gitlab.com) is
+/// preserved — the multi-remote set is added alongside it.
+///
 /// Logs each materialize at INFO level (`🔧 Materializing ...`)
 /// and logs failures as warnings. The daemon cycle is NOT
 /// aborted on a failed materialize — the operator can recover
@@ -1886,6 +1892,7 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
 pub(crate) async fn materialize_pending_submodules(
     repos: &[PathBuf],
     roots: &[PathBuf],
+    policy: &SyncPolicy,
 ) {
     for parent in repos {
         let subs = list_submodules(parent);
@@ -1939,7 +1946,20 @@ pub(crate) async fn materialize_pending_submodules(
                     parent.display(),
                     e
                 );
+                continue;
             }
+            // Add the standard mirror remotes to the newly
+            // materialized worktree. The inherited `origin`
+            // (pointing at git@gitlab.com) is preserved; this
+            // adds `github` and `codeberg` alongside it so the
+            // daemon's multi-remote push flow works end-to-end.
+            let repo_override = crate::policy::load_repo_override(&target_path);
+            crate::git::multi_remote::configure_all_remotes(
+                &target_path,
+                &policy.remotes,
+                &worktree_name,
+                &repo_override.exclude_remotes,
+            );
         }
     }
 }
@@ -2175,7 +2195,7 @@ pub(crate) async fn run_daemon(
         // whose `.git/modules/<name>` is missing).
         //
         // ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
-        materialize_pending_submodules(&repos, &roots).await;
+        materialize_pending_submodules(&repos, &roots, &policy).await;
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
         let repos = discover_git_repos(
@@ -3158,7 +3178,11 @@ mod submodule_materialize_tests {
 
         let repos = vec![parent.clone()];
         let roots = vec![watch_root.clone()];
-        materialize_pending_submodules(&repos, &roots).await;
+        // The test passes an empty policy (no remotes); the
+        // materialize call should still succeed without adding
+        // any remotes.
+        let test_policy = crate::policy::SyncPolicy::default();
+        materialize_pending_submodules(&repos, &roots, &test_policy).await;
 
         // After materialize, all 3 worktrees must exist at the
         // path-basename anchor (e.g. /tmp/.../polis/).
@@ -3195,7 +3219,8 @@ mod submodule_materialize_tests {
 
         let repos = vec![parent.clone()];
         let roots = vec![watch_root.clone()];
-        materialize_pending_submodules(&repos, &roots).await;
+        let test_policy = crate::policy::SyncPolicy::default();
+        materialize_pending_submodules(&repos, &roots, &test_policy).await;
 
         // Polis marker must still exist (not clobbered).
         assert!(
