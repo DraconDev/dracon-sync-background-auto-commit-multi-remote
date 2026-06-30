@@ -5958,6 +5958,128 @@ auto_bump_versions = false
         );
     }
 
+    /// Regression test for goal `mr0rim9u-lzzfv9`:
+    /// `stage_existing_files` recursion MUST skip subdirs whose
+    /// `.git` is a real DIRECTORY (a nested git repo), not just
+    /// submodules whose `.git` is a pointer file. The previous
+    /// implementation only matched `is_file()`, which let the
+    /// recursion descend into nested sibling repos like
+    /// `web-auto/rust-ai-web-auto/`, attempt to `git add` ~19000
+    /// files inside, and fail with
+    /// `fatal: Pathspec '...' is in submodule 'rust-ai-web-auto'`.
+    /// After 5 failures, the daemon would mark the parent repo
+    /// as `exceeded max failures` and stop syncing it.
+    ///
+    /// This test creates a parent repo with:
+    /// - `keep.txt`              (regular file, SHOULD be staged)
+    /// - `nested_subrepo/`       (real git repo with `.git/` dir)
+    ///   - `nested_subrepo/should_not_stage.md`  (inside the nested repo)
+    /// and asserts:
+    /// a) `keep.txt` gets staged,
+    /// b) NO file from inside `nested_subrepo/` gets staged,
+    /// c) `stage_existing_files` returns Ok (no error).
+    #[tokio::test]
+    async fn test_stage_existing_files_skips_nested_git_repo() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("parent");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.email", "t@t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+
+        // Regular file that SHOULD be staged
+        std::fs::write(repo.join("keep.txt"), "keep me\n").unwrap();
+
+        // Nested git repo (real `.git/` directory, not a submodule
+        // pointer file). We're emulating the web-auto scenario
+        // where `web-auto/rust-ai-web-auto/.git` is a real git
+        // repo's working directory.
+        let nested = repo.join("nested_subrepo");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::create_dir_all(nested.join(".git")).unwrap();
+        std::fs::write(
+            nested.join(".git").join("HEAD"),
+            "ref: refs/heads/main\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(nested.join(".git").join("objects")).unwrap();
+        std::fs::create_dir_all(nested.join(".git").join("refs")).unwrap();
+        // One file inside the nested repo — must NOT be staged by parent
+        std::fs::write(
+            nested.join("should_not_stage.md"),
+            "this lives in a nested git repo\n",
+        )
+        .unwrap();
+
+        // Call the helper with the nested repo path as a top-level
+        // entry, exactly like the daemon does when a parent
+        // commit-hash change shows up as `M nested_subrepo`.
+        let paths = vec!["nested_subrepo".to_string()];
+        let excluded: std::collections::BTreeSet<String> =
+            crate::policy::default_exclude_dir_names()
+                .into_iter()
+                .collect();
+        let result =
+            stage_existing_files(&repo, &paths, false, 30, &excluded).await;
+        assert!(
+            result.is_ok(),
+            "stage_existing_files must NOT error on a nested git-repo entry: {:?}",
+            result
+        );
+
+        // Confirm only the unrelated file made it to the index
+        let output = crate::git::tokio_git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "diff",
+                "--cached",
+                "--name-only",
+            ])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .await
+            .unwrap();
+        let staged = String::from_utf8_lossy(&output.stdout);
+        // The empty `keep.txt` (`--allow-empty` initial commit) is
+        // what `git diff --cached` shows at this point, since the
+        // staged_paths argument didn't include `keep.txt` here.
+        // The KEY assertion is that nothing from inside the nested
+        // subrepo snuck into the index.
+        assert!(
+            !staged.contains("should_not_stage"),
+            "Files inside nested_subrepo MUST NOT be staged, got:\n{}",
+            staged
+        );
+        assert!(
+            !staged.contains("nested_subrepo/.git"),
+            "Files inside nested_subrepo/.git MUST NOT be staged, got:\n{}",
+            staged
+        );
+    }
+
     #[tokio::test]
     async fn test_stage_existing_files_empty_after_filter_returns_ok() {
         // If every path in the input list vanishes between status
