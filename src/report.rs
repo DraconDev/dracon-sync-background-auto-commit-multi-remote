@@ -1848,6 +1848,98 @@ pub(crate) fn truncate(value: &str, max_chars: usize) -> String {
     format!("{}…", shortened)
 }
 
+/// Format a commit subject for display in a table column, preserving
+/// meaningful structural tokens (the file list `[…]`) and dropping
+/// trailing metrics (`| GOAL:…`, `| TOKENS:…`, `| NEW:…`, etc.) when
+/// the full subject would otherwise be cut mid-filename.
+///
+/// This matters for daemon auto-commits in `.pi/goals/` where the
+/// commit subject embeds the full goal filename, e.g.
+///
+///     2 file(s) in .pi [.pi/goals/active_goal_2026063004051714_mr02de1n-gjkgzp.md, …] DELTA:+8/-5 | GOAL:complete TOKENS:407K TIME:323m
+///
+/// …and a naive `truncate(msg, N)` would slice through the goal id
+/// (`mr02de1n-gjkgzp` → `mr02de1n-gjkg…`), leaving the operator with
+/// a misleadingly-truncated id. The previous behaviour also produced
+/// a double-ellipsis (one from `truncate`, one from
+/// `truncate_unicode_width`) in the rendered row.
+///
+/// Strategy (in order, only ever more aggressive than the previous one):
+///  1. If the full subject fits in `max_chars`, return it as-is.
+///  2. If the subject is a structured auto-commit (matches
+///     `^N file(s) in DIR [FILE…] DELTA:+X/-Y`), drop the trailing
+///     `| METRIC:…` suffix and return what's left. If the result
+///     still doesn't fit, drop the ` DELTA:+X/-Y` portion too.
+///  3. Otherwise, fall back to plain `truncate(value, max_chars)`.
+///
+/// The helper never splits inside a `]`-bracketed file list when
+/// the data permits.
+pub(crate) fn format_commit_subject_for_display(value: &str, max_chars: usize) -> String {
+    if value.chars().count() <= max_chars {
+        return value.to_string();
+    }
+    // Detect the structured auto-commit shape: "N file(s) in DIR [...]"
+    // optionally followed by " DELTA:..." and/or " | METRIC:..." segments.
+    let lower = value.to_ascii_lowercase();
+    let is_structured = lower.contains(" file(s) in ");
+    if is_structured {
+        // Try progressively more aggressive truncations. We always
+        // keep the file list ([...]) whole when the data fits.
+        // 1) Full subject minus the leading pipe-separated metrics suffix
+        //    ("| GOAL:…", "| TOKENS:…", "| TIME:…", "| NEW:…", "| DEL:…", etc.)
+        if let Some(cut) = value.find(" | ") {
+            let head = &value[..cut];
+            if head.chars().count() <= max_chars {
+                return head.to_string();
+            }
+        }
+        // 2) Drop the " DELTA:+X/-Y" segment but keep the file list.
+        //    The DELTA segment is the LAST whitespace-delimited token
+        //    that starts with "DELTA:" (no leading pipe).
+        if let Some(delta_idx) = find_delta_segment(value) {
+            let head = value[..delta_idx].trim_end();
+            if head.chars().count() <= max_chars {
+                return head.to_string();
+            }
+        }
+    }
+    // 3) Fallback: plain truncate.
+    truncate(value, max_chars)
+}
+
+/// Find the start index of the trailing ` DELTA:+X/-Y` segment in a
+/// daemon commit subject, or `None` if not present. The DELTA token
+/// must NOT be preceded by `|` (those are pipe-separated metrics and
+/// handled by the first branch above). Returns the byte index of the
+/// leading space before "DELTA:".
+fn find_delta_segment(value: &str) -> Option<usize> {
+    // Search for the LAST occurrence of "DELTA:" that is not
+    // immediately preceded by "| " (those are metrics, not the
+    // top-level DELTA summary). We look for the literal substring
+    // " DELTA:" (with leading space) to avoid matching the top-level
+    // DELTA only.
+    let mut idx = 0;
+    let mut last_match: Option<usize> = None;
+    while let Some(pos) = value[idx..].find(" DELTA:") {
+        let abs = idx + pos;
+        // Verify the character before " DELTA:" is whitespace (space
+        // or end-of-list `]`). The match above already ensures a
+        // leading space; we just need the char BEFORE that space.
+        if abs > 0 {
+            let prev_char = value[..abs].chars().last().unwrap_or(' ');
+            // Acceptable boundaries: end of file list (']') or
+            // end of a previous segment. We treat the position as a
+            // valid cut point as long as we're not inside a pipe-
+            // separated metric block.
+            if prev_char == ']' {
+                last_match = Some(abs);
+            }
+        }
+        idx = abs + 1;
+    }
+    last_match
+}
+
 /// Truncate a string to fit within `max_width` terminal columns, using
 /// `unicode-width` for accurate wide-char and emoji measurement.
 ///
@@ -2366,7 +2458,13 @@ pub(crate) async fn run_repos_report(
         // Single git log call extracts all commit fields in one process.
         let last_meta = git_log_meta(&repo).await;
         let (last_hash, last_author, last_when, last_unix, last_msg) = match last_meta {
-            Some((h, a, w, u, m)) => (truncate(&h, 12), a, w, u, truncate(&m, 72)),
+            Some((h, a, w, u, m)) => (
+                truncate(&h, 12),
+                a,
+                w,
+                u,
+                format_commit_subject_for_display(&m, 100),
+            ),
             None => (
                 "-".to_string(),
                 "-".to_string(),
