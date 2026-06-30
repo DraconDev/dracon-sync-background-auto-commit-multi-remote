@@ -34,7 +34,7 @@ use crate::git::{
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
 use crate::sync::{materialize_submodule, sync_repo, sync_repo_with_ahead_since, SyncOutcome};
-use crate::git::discovery::list_submodules;
+use crate::git::list_submodules;
 
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
