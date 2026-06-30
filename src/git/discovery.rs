@@ -116,6 +116,53 @@ pub(crate) fn is_git_worktree_file(dot_git: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Count how many of the given untracked-path strings point to a nested
+/// git repository under `repo`. Such entries inflate the parent's
+/// untracked-file count without representing new files in the parent —
+/// the child repo is a separately-tracked, independently-synced git
+/// repo that the daemon discovers via `discover_git_repos`.
+///
+/// An entry is considered a nested git repo when its on-disk path
+/// contains a `.git` entry (either a directory — a standalone nested
+/// repo — or a `.git` file — a submodule / worktree). This matches
+/// git's own boundary semantics: `git ls-files --others
+/// --exclude-standard` stops at the first `.git/` it sees, so the only
+/// nested-repo "noise" entries that reach the parent are the parent
+/// paths of those nested repos (e.g. `child/`).
+///
+/// ADDED 2026-06-30, goal `mr02de1n-gjkgzp`:
+/// "The daemon should subtract known-nested-repos from the parent's UT count".
+pub(crate) fn count_nested_repo_untracked_entries(repo: &Path, entries: &[String]) -> usize {
+    entries
+        .iter()
+        .filter(|entry| is_nested_repo_path(repo, entry))
+        .count()
+}
+
+/// Returns true if `entry` (an untracked path returned by `git ls-files
+/// --others --exclude-standard`) is the parent path of a nested git
+/// repository under `repo`. Strips any trailing slash (which git
+/// appends to directory entries) before checking for `.git`.
+///
+/// `entry` is interpreted as a path relative to `repo`. An absolute
+/// path or one with `..` components is treated as non-nested (safe
+/// fallback: don't subtract).
+pub(crate) fn is_nested_repo_path(repo: &Path, entry: &str) -> bool {
+    let trimmed = entry.trim_end_matches('/');
+    if trimmed.is_empty() || trimmed == "." {
+        return false;
+    }
+    // Reject unsafe paths (absolute, .., etc.) — never treat as a
+    // nested repo, but also don't fail loudly: the parent repo's
+    // `git ls-files` would never emit these.
+    if !is_safe_git_path(Path::new(trimmed)) {
+        return false;
+    }
+    let full = repo.join(trimmed);
+    let dot_git = full.join(".git");
+    dot_git.exists()
+}
+
 /// Check if a path is safe — not in a way that could be used for
 /// path traversal or other attacks.
 pub(crate) fn is_safe_git_path(path: &Path) -> bool {
