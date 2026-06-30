@@ -2559,10 +2559,14 @@ async fn stage_commit_and_push(
     // records the new submodule SHA without walking into the
     // submodule's working tree. Regular files keep their existing
     // recursion-and-`git add -A` path.
-    let (gitlink_paths, regular_entries): (Vec<String>, Vec<dracon_git::types::DiffFile>) = to_stage
+    let (gitlink_entries, regular_entries): (Vec<dracon_git::types::DiffFile>, Vec<dracon_git::types::DiffFile>) = to_stage
         .iter()
         .cloned()
         .partition(|e| crate::exclude::is_gitlink(repo, &e.path));
+    let gitlink_paths: Vec<String> = gitlink_entries
+        .iter()
+        .map(|e| e.path.to_string_lossy().to_string())
+        .collect();
     let regular_paths: Vec<String> = regular_entries
         .iter()
         .map(|e| e.path.to_string_lossy().to_string())
