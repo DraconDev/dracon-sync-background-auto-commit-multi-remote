@@ -706,11 +706,10 @@ pub(crate) fn matches_untracked_exclude(
 /// from "directory exists on disk with a `.git/` inside" (which can
 /// also be an untracked sibling subrepo with no gitlink).
 ///
-/// Used by `stage_existing_files` to know when a path should be
-/// staged via `git add <path>` (no `-A`) so the parent's index
-/// records the new submodule SHA without descending into the
-/// submodule's working tree.
-#[allow(dead_code)] // wired into sync.rs::sync_repo / stage_existing_files in goal mr0xseig-fn9bbd fix-2/fix-3
+/// Used by `stage_commit_and_push` in `sync.rs` to partition
+/// `to_stage` into gitlink-pointer updates (handled by
+/// `stage_gitlink_updates` via `git add <path>`) vs regular
+/// files (handled by `stage_existing_files` via `git add -A`).
 pub(crate) fn is_gitlink(repo: &Path, path: &Path) -> bool {
     let output = crate::git::git_cmd()
         .current_dir(repo)

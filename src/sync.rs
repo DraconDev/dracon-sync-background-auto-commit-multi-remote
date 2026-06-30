@@ -920,6 +920,76 @@ async fn stage_existing_files(
     Ok(())
 }
 
+/// Stage a parent gitlink pointer update for each path in `gitlinks`
+/// WITHOUT recursing into the submodule's working tree.
+///
+/// For tracked `mode 160000` entries, the daemon's main stage path
+/// (`stage_existing_files`) skips the entry because the path is a
+/// directory whose `.git` exists (the submodule's own gitdir). We
+/// want the OPPOSITE behaviour here: do NOT recurse (that would
+/// stage the submodule's working-tree files as if they belonged
+/// to the parent), but DO record the new submodule HEAD SHA in
+/// the parent's index. `git add <path>` (no `-A`) does exactly that
+/// — it updates the gitlink entry to point at the path's current
+/// `rev-parse HEAD`, without descending into the subdirectory.
+///
+/// Invariants:
+/// - Each `gitlinks` entry MUST already pass `is_gitlink(repo, &p)`.
+///   The caller is `stage_commit_and_push`, which partitions
+///   `to_stage` via `is_gitlink` before calling this.
+/// - We stage each path individually (NOT `git add <all>` in one
+///   invocation) because the parent can have multiple distinct
+///   gitlink entries in a single commit, and a failure on one
+///   should not block the others.
+async fn stage_gitlink_updates(
+    repo: &Path,
+    gitlinks: &[String],
+    dry_run: bool,
+    stage_timeout_secs: u64,
+) -> Result<()> {
+    if gitlinks.is_empty() {
+        return Ok(());
+    }
+    if dry_run {
+        println!(
+            "🔗 Would stage {} gitlink pointer update(s) in {}: {:?}",
+            gitlinks.len(),
+            repo.display(),
+            &gitlinks[..gitlinks.len().min(5)]
+        );
+        if gitlinks.len() > 5 {
+            println!("  ... and {} more", gitlinks.len() - 5);
+        }
+        return Ok(());
+    }
+    for p in gitlinks {
+        // `git add <path>` (no -A, no --) updates the index entry
+        // to the submodule's current HEAD without recursing. This
+        // is the canonical way to propagate a submodule pointer
+        // update in git.
+        if let Err(e) = run_git_with_timeout(
+            repo,
+            &["add", "--", p.as_str()],
+            stage_timeout_secs,
+            "add (gitlink)",
+        )
+        .await
+        {
+            eprintln!(
+                "⚠️ {} git add (gitlink) failed for path {:?}: {}",
+                repo.display(),
+                p,
+                e
+            );
+            // Non-fatal: a single failed gitlink update is
+            // retried on the next daemon cycle (the entry
+            // remains in `MOD` and the partition will reselect
+            // it).
+        }
+    }
+    Ok(())
+}
+
 /// Partition paths into (force_add, normal_add) based on .gitignore.
 /// - Paths already tracked in git → force_add (git add -f). Tracked files
 ///   that match a gitignore rule (e.g. `**/.wxt/types/`) still get refused
@@ -2483,7 +2553,17 @@ async fn stage_commit_and_push(
     // when the untracked-file count exceeds the policy threshold.
     let _untracked_count = check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
 
-    let stage_paths: Vec<String> = to_stage
+    // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
+    // pointer updates vs regular files. Gitlink entries are staged
+    // without recursion (`git add <path>`) so the parent's index
+    // records the new submodule SHA without walking into the
+    // submodule's working tree. Regular files keep their existing
+    // recursion-and-`git add -A` path.
+    let (gitlink_paths, regular_entries): (Vec<String>, Vec<dracon_git::types::DiffFile>) = to_stage
+        .iter()
+        .cloned()
+        .partition(|e| crate::exclude::is_gitlink(repo, &e.path));
+    let regular_paths: Vec<String> = regular_entries
         .iter()
         .map(|e| e.path.to_string_lossy().to_string())
         .collect();
@@ -2492,20 +2572,40 @@ async fn stage_commit_and_push(
     // staged in a single commit batch to avoid lock contention and large
     // commit overhead. When a repo has more untracked files than the
     // batch limit, the daemon commits them in multiple smaller batches.
+    //
+    // FIX (goal mr0xseig-fn9bbd): batch-limit applies to the union of
+    // regular and gitlink paths; gitlinks are NOT subject to the
+    // recursion-skip behavior so they don't contribute to the
+    // subdir-expansion that would otherwise inflate counts (a single
+    // gitlink path is one entry, not many).
     let max_batch = policy.max_stage_batch_files;
-    let stage_paths: Vec<String> = if stage_paths.len() > max_batch {
-        eprintln!(
-            "📦 batching {} files into chunks of {}",
-            stage_paths.len(),
-            max_batch
-        );
-        stage_paths.into_iter().take(max_batch).collect()
-    } else {
-        stage_paths
-    };
+    let total_to_stage = regular_paths.len() + gitlink_paths.len();
+    let (regular_paths, gitlink_paths): (Vec<String>, Vec<String>) =
+        if total_to_stage > max_batch {
+            eprintln!(
+                "📦 batching {} entries into chunks of {}",
+                total_to_stage,
+                max_batch
+            );
+            let take = max_batch;
+            (
+                regular_paths.into_iter().take(take).collect(),
+                gitlink_paths.into_iter().take(take).collect(),
+            )
+        } else {
+            (regular_paths, gitlink_paths)
+        };
 
     let (existing, missing): (Vec<_>, Vec<_>) =
-        stage_paths.into_iter().partition(|p| repo.join(p).exists());
+        regular_paths.into_iter().partition(|p| repo.join(p).exists());
+
+    // FIX (goal mr0xseig-fn9bbd): gitlink pointer updates are
+    // staged WITHOUT recursion via `git add <path>` (no `-A`).
+    // `stage_existing_files` recurses-and-skips for anything in
+    // `existing` whose `.git` exists; for gitlinks we want the
+    // OPPOSITE — do not recurse, but DO emit the `git add`.
+    let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) =
+        gitlink_paths.into_iter().partition(|p| repo.join(p).exists());
 
     stage_existing_files(
         repo,
@@ -2516,6 +2616,16 @@ async fn stage_commit_and_push(
     )
     .await?;
 
+    stage_gitlink_updates(
+        repo,
+        &gitlink_existing,
+        dry_run,
+        ctx.policy.stage_op_timeout_secs,
+    )
+    .await?;
+
+    let missing_iter = missing.into_iter().chain(gitlink_missing);
+    let missing: Vec<_> = missing_iter.collect();
     if !missing.is_empty() {
         git_rm_missing(repo, &missing, dry_run).await?;
     }
