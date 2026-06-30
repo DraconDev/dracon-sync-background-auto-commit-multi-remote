@@ -722,10 +722,76 @@ pub(crate) fn is_gitlink(repo: &Path, path: &Path) -> bool {
     stdout.starts_with("160000 ")
 }
 
+/// Resolve the SHARED gitdir path for a nested submodule at
+/// `<repo>/<path>` (a gitlink entry in the parent).
+///
+/// Submodule checkouts are not standalone repos: their `.git`
+/// is a file containing `gitdir: <relative-path-to-shared-gitdir>`,
+/// where the shared gitdir is `<parent>/.git/modules/<name>`
+/// (created by `git submodule update --init`). The actual
+/// refs (`refs/heads/main`, etc.) live in the shared gitdir.
+///
+/// Returns the canonicalized shared gitdir path on success,
+/// or `None` if the path is not a gitlink-style submodule
+/// checkout (e.g., the `.git` file is missing, malformed,
+/// or the resolved path doesn't exist).
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// The parent-gitlink propagation fix needs to compare the
+/// parent's tracked SHA against the SHARED gitdir's
+/// `refs/heads/main` (which is what the standalone
+/// worktree's `fast_forward_daemon_standalone_to_main`
+/// hook updates). Reading the nested submodule's checkout
+/// HEAD is NOT enough, because the nested checkout is a
+/// separate worktree of the shared gitdir and its HEAD
+/// stays at the OLD SHA even after a standalone commit +
+/// fast-forward. This helper lets the caller walk to the
+/// shared gitdir's `main` ref to detect stale pointers.
+fn shared_submodule_gitdir(repo: &Path, path: &Path) -> Option<std::path::PathBuf> {
+    let dot_git = repo.join(path).join(".git");
+    if !dot_git.is_file() {
+        return None;
+    }
+    let content = std::fs::read_to_string(&dot_git).ok()?;
+    let rest = content.trim().strip_prefix("gitdir:")?;
+    let gitdir_rel = rest.trim();
+    // The .git file's gitdir is relative to its own directory
+    // (the submodule's working tree root, i.e. `<repo>/<path>`).
+    let base = repo.join(path);
+    let resolved = base.join(gitdir_rel);
+    // Canonicalize to resolve `..` segments and symlinks.
+    let canonical = std::fs::canonicalize(&resolved).ok()?;
+    if !canonical.is_dir() {
+        return None;
+    }
+    Some(canonical)
+}
+
 /// Check if a path is a gitlink (mode 160000) with an unchanged pointer.
 /// Returns true if the entry is a submodule-like directory whose HEAD commit
 /// matches what the parent repo tracks, meaning the "dirty" state is just
 /// the submodule's own working tree being dirty (not a pointer change).
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// The original implementation compared the parent's tracked gitlink SHA
+/// against the nested submodule's CHECKOUT HEAD (`git -C <path> rev-parse
+/// HEAD`). That works for the `materialize_submodule` use case where the
+/// nested submodule IS the only worktree of the shared gitdir. But after
+/// the daemon also creates a STANDALONE worktree (`/home/dracon/Dev/<name>/`)
+/// of the same shared gitdir, the standalone commits advance the shared
+/// gitdir's `refs/heads/main` (via the post-commit
+/// `fast_forward_daemon_standalone_to_main` hook), while the nested
+/// submodule's checkout HEAD stays at the OLD SHA because git worktrees
+/// have independent HEAD refs. As a result, the parent's gitlink
+/// (which tracks `main`) silently falls behind the standalone's commits,
+/// and the daemon's partition filter (`is_gitlink_unchanged` returning
+/// true → entry removed from `to_stage`) prevents the parent's gitlink
+/// from being updated.
+///
+/// The fix: in addition to comparing against the nested checkout HEAD,
+/// compare against the SHARED gitdir's `refs/heads/main`. If the shared
+/// `main` ref differs from the parent's tracked gitlink, the pointer is
+/// STALE and must be re-staged via `git add <path>`.
 pub(crate) fn is_gitlink_unchanged(repo: &Path, path: &Path) -> bool {
     let output = crate::git::git_cmd()
         .current_dir(repo)
@@ -741,7 +807,26 @@ pub(crate) fn is_gitlink_unchanged(repo: &Path, path: &Path) -> bool {
     let Some(sha) = stdout.split_whitespace().nth(2) else {
         return false;
     };
-    // Check if the submodule's current HEAD matches the tracked sha
+    // Primary check: does the shared gitdir's `main` ref match the
+    // parent's tracked gitlink? If they differ, the standalone
+    // worktree has commits the parent hasn't seen yet — the pointer
+    // is STALE and must be staged for update.
+    if let Some(shared_gitdir) = shared_submodule_gitdir(repo, path) {
+        let main_ref = shared_gitdir.join("refs/heads/main");
+        if let Ok(main_content) = std::fs::read_to_string(&main_ref) {
+            let shared_main = main_content.trim();
+            if !shared_main.is_empty() && shared_main != sha {
+                // Shared `main` ref is ahead of parent's tracked gitlink.
+                // The pointer is stale — return false so the entry is NOT
+                // filtered out, allowing `stage_gitlink_updates` to
+                // run `git add <path>` and update the parent's gitlink.
+                return false;
+            }
+        }
+    }
+    // Fallback (original behavior): check the nested submodule's
+    // checkout HEAD. This is still correct for the case where there's
+    // no standalone worktree (so the shared `main` ref == nested HEAD).
     let sub_output = crate::git::git_cmd()
         .current_dir(repo.join(path))
         .args(["rev-parse", "HEAD"])
