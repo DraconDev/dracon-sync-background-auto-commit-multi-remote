@@ -714,12 +714,26 @@ async fn stage_existing_files(
             // its files as if they belonged to the parent, which
             // fails with `fatal: Pathspec 'DraconDev/X' is in
             // submodule 'DraconDev'`. Detect by checking if the
-            // top-level dir's `.git` is a regular file and skip the
-            // entire subtree. This is safe because the parent
-            // references the submodule via its gitlink pointer, not
-            // its working-tree files.
+            // top-level dir's `.git` exists and skip the entire
+            // subtree. This is safe because the parent references
+            // the submodule via its gitlink pointer, not its
+            // working-tree files.
+            //
+            // CHANGED 2026-06-30 (goal `mr0rim9u-lzzfv9`):
+            // broadened `.git` check from `is_file()` to
+            // `exists()` so it ALSO catches the case where a
+            // sibling subrepo has its own real `.git/` directory
+            // (not a submodule pointer file). Symptom: the daemon
+            // recursed into a nested `rust-ai-web-auto/`
+            // (which has `.git/` as its own git repo, not a
+            // submodule), tried to `git add rust-ai-web-auto/...`
+            // for ~19183 nested files, and every `git add` failed
+            // with `fatal: Pathspec ... is in submodule
+            // 'rust-ai-web-auto'`. After 5 failures, the daemon
+            // marked the parent repo as `exceeded max failures`
+            // and stopped syncing it entirely.
             let full_dot_git = full.join(".git");
-            if full_dot_git.is_file() {
+            if full_dot_git.exists() {
                 continue;
             }
             // Recurse into untracked directories. The libgit2/git status
@@ -806,10 +820,11 @@ async fn stage_existing_files(
                         // to `target`, `node_modules`, `.cache`,
                         // `.direnv`, `.venv`, `dist`, `build`,
                         // `archives`, `.tmp-*`). `.git/` is handled
-                        // by the separate `inner_dot_git.is_file()`
-                        // check below. So removing the dotfile skip
-                        // is safe and the recursion now correctly
-                        // descends into `.pi/`.
+                        // by the separate `inner_dot_git.exists()`
+                        // check below (covers both submodule pointer
+                        // files and nested git-repo directories). So
+                        // removing the dotfile skip is safe and the
+                        // recursion now correctly descends into `.pi/`.
                         if let Some(name) = cp.file_name().and_then(|n| n.to_str()) {
                             if excluded.contains(name) {
                                 continue;
@@ -821,11 +836,15 @@ async fn stage_existing_files(
                         // entry). A submodule can be nested inside a
                         // normal untracked directory, so the check
                         // belongs here too. Same logic as the
-                        // top-level check: skip if `<dir>/.git` is a
-                        // regular file pointing to a parent's
-                        // modules/<name> dir.
+                        // top-level check: skip if `<dir>/.git`
+                        // exists (covers both submodule pointer
+                        // FILES and nested git-repo DIRECTORIES).
+                        // CHANGED 2026-06-30 (goal
+                        // `mr0rim9u-lzzfv9`): broadened from
+                        // `is_file()` to `exists()` to match the
+                        // top-level fix above.
                         let inner_dot_git = cp.join(".git");
-                        if inner_dot_git.is_file() {
+                        if inner_dot_git.exists() {
                             continue;
                         }
                         stack.push(cp);
