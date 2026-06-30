@@ -4853,6 +4853,51 @@ mod tests {
         assert_eq!(count, 0, "non-git path must not blow up");
     }
 
+    /// ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: a parent with a mix
+    /// of one sibling subrepo AND one plain file MUST report exactly
+    /// 1 nested-repo entry. This is the canonical case where
+    /// `saturating_sub(1)` keeps the report's `UT` count accurate.
+    #[tokio::test]
+    async fn test_nested_repo_untracked_count_mixed_subrepo_and_plain_file() {
+        use std::fs;
+        use std::process::Command;
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("parent");
+        fs::create_dir_all(&repo).unwrap();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&repo)
+            .output()
+            .expect("git init parent");
+        // One subrepo sibling.
+        let child = repo.join("child");
+        fs::create_dir_all(&child).unwrap();
+        Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&child)
+            .output()
+            .expect("git init child");
+        // One plain file.
+        fs::write(repo.join("notes.md"), "hello").unwrap();
+        let count = nested_repo_untracked_count(&repo).await;
+        assert_eq!(
+            count, 1,
+            "must count child/ but NOT notes.md; got {}",
+            count,
+        );
+        // Verify the corresponding raw untracked_files count
+        // (the parent's view) is 2 (child/ + notes.md), so the
+        // effective UT after subtraction would be 2 - 1 = 1.
+        let raw = crate::git::untracked_entries(&repo)
+            .await
+            .expect("untracked_entries succeeds")
+            .len();
+        assert_eq!(
+            raw, 2,
+            "git sees both child/ and notes.md; subtracting 1 yields the effective UT"
+        );
+    }
+
     #[test]
     fn test_parse_git_log_meta_line_preserves_subject_with_separator() {
         // Commit subject that itself contains the unit-separator character
