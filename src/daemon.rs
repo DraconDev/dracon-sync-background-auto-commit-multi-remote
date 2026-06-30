@@ -1929,30 +1929,38 @@ pub(crate) async fn materialize_pending_submodules(
             // (worktree already exists). materialize_submodule
             // itself is idempotent, but checking here lets us
             // avoid even the "gitdir" check on every cycle.
-            if target_path.join(".git").exists() {
-                continue;
-            }
-            eprintln!(
-                "🔧 Materializing submodule {} -> {}",
-                sub.name,
-                target_path.display()
-            );
-            if let Err(e) =
-                materialize_submodule(parent, &sub.name, &target_path, &sub.sha).await
-            {
+            // HOWEVER: we still want to ensure the multi-remote
+            // set is configured for pre-existing worktrees, so
+            // we don't `continue` here — we fall through to the
+            // remote-configure step below.
+            if !target_path.join(".git").exists() {
                 eprintln!(
-                    "⚠️ failed to materialize submodule {} from {}: {}",
+                    "🔧 Materializing submodule {} -> {}",
                     sub.name,
-                    parent.display(),
-                    e
+                    target_path.display()
                 );
-                continue;
+                if let Err(e) =
+                    materialize_submodule(parent, &sub.name, &target_path, &sub.sha).await
+                {
+                    eprintln!(
+                        "⚠️ failed to materialize submodule {} from {}: {}",
+                        sub.name,
+                        parent.display(),
+                        e
+                    );
+                    continue;
+                }
             }
-            // Add the standard mirror remotes to the newly
-            // materialized worktree. The inherited `origin`
-            // (pointing at git@gitlab.com) is preserved; this
-            // adds `github` and `codeberg` alongside it so the
-            // daemon's multi-remote push flow works end-to-end.
+            // Add (or re-add) the standard mirror remotes to the
+            // worktree. The inherited `origin` (pointing at
+            // git@gitlab.com) is preserved; this adds `github`
+            // and `codeberg` alongside it so the daemon's
+            // multi-remote push flow works end-to-end.
+            //
+            // We always run this, even for pre-existing
+            // worktrees, so a worktree that was materialized
+            // before the multi-remote step was added gets the
+            // remotes retroactively on the next cycle.
             let repo_override = crate::policy::load_repo_override(&target_path);
             crate::git::multi_remote::configure_all_remotes(
                 &target_path,
