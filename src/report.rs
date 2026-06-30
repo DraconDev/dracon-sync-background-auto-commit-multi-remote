@@ -2258,6 +2258,16 @@ pub(crate) async fn run_repos_report(
         // node_modules/, build outputs) from its modified count, so it gives us
         // the same "real source changes" answer without the slow clean-filter pass.
         let effective_status = status.clone();
+        // ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: subtract the
+        // untracked entries that point to sibling subrepo directories
+        // (each containing its own `.git/`) from the parent's UT count.
+        // Without this, a parent whose only untracked entries are its
+        // subrepos would falsely report UT ≥ 1 and trigger
+        // `⚪ untracked-only` state classification.
+        let nested_untracked = nested_repo_untracked_count(&repo).await;
+        let effective_untracked_files = effective_status
+            .untracked_files
+            .saturating_sub(nested_untracked);
 
         let has_origin = has_origin_remote(&repo);
         let has_upstream = has_tracking_upstream(&repo);
@@ -2497,7 +2507,7 @@ pub(crate) async fn run_repos_report(
             push_status: &push_status,
             modified: effective_status.modified_files,
             staged: effective_status.staged_files,
-            untracked: effective_status.untracked_files,
+            untracked: effective_untracked_files,
             ahead: effective_status.ahead,
             behind: effective_status.behind,
             last_commit_minutes,
@@ -2569,7 +2579,7 @@ pub(crate) async fn run_repos_report(
             publish_state,
             modified: effective_status.modified_files,
             staged: effective_status.staged_files,
-            untracked: effective_status.untracked_files,
+            untracked: effective_untracked_files,
             ahead: effective_status.ahead,
             behind: effective_status.behind,
             last_hash,
@@ -4697,6 +4707,37 @@ fn create_private_remote(repo: &Path) -> Option<String> {
     }
 
     Some(remote_url)
+}
+
+/// ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`:
+/// "Subrepos should not be counted as untracked in the `dracon-sync repos`
+/// report".
+///
+/// Count the untracked entries under `repo` that point to nested git
+/// repositories (sibling subrepo dirs each containing their own `.git/`).
+/// These show up in `git status --porcelain` as `?? <dir>/` and inflate
+/// the parent's `UT` count even though they're tracked under their own
+/// git history.
+///
+/// Reuses the `count_nested_repo_untracked_entries` helper from
+/// `src/git/discovery.rs` (added by archived goal `mr02de1n-gjkgzp`)
+/// which handles `..` paths, trailing slashes, `.git` files (submodules),
+/// and unsafe-path rejection.
+///
+/// Returns 0 if `git ls-files` fails — the parent's raw UT count is left
+/// untouched in that case (safe fallback: better to overcount than to
+/// drop legitimate untracked files because of a transient `git`
+/// failure).
+pub(crate) async fn nested_repo_untracked_count(repo: &Path) -> usize {
+    let entries = match crate::git::untracked_entries(repo).await {
+        Ok(entries) => entries,
+        Err(_) => return 0,
+    };
+    let paths: Vec<String> = entries
+        .into_iter()
+        .map(|d| d.path.to_string_lossy().into_owned())
+        .collect();
+    crate::git::count_nested_repo_untracked_entries(repo, &paths)
 }
 
 #[cfg(test)]
