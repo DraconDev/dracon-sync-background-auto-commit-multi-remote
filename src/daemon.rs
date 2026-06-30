@@ -3083,21 +3083,23 @@ mod submodule_materialize_tests {
         // The `.gitmodules` path's basename determines the
         // worktree name (the daemon does
         // `Path::new(&sub.path).file_name()` to anchor the
-        // worktree), so we put the worktree name as the leaf of
-        // the path. In the real dracon-platform case this is
-        // `web/games/wip/polis` -> basename `polis`.
+        // worktree), so the path leaf is the worktree name.
+        // In the real dracon-platform case this is
+        // `web/games/wip/polis` -> basename `polis`. For the
+        // fixture we use a 2-component path: `sub/<basename>`
+        // where `<basename>` is the suffix of `subname` after
+        // the first `-` (or the whole `subname` if no dash).
         let mut gitmodules = String::new();
         let mut names: Vec<String> = Vec::new();
         for (i, subname) in sub_names.iter().enumerate() {
-            // The worktree name is the part of the subname
-            // after the last `-` (matching the real
-            // dracon-platform naming where `web-games-polis`
-            // materializes to `/home/dracon/Dev/polis/`).
-            let basename = subname
-                .rsplitn(2, '-')
-                .next()
-                .unwrap_or(subname)
-                .to_string();
+            // First-dash split: `web-games-polis` -> `polis`,
+            // `web-games-junk-runner` -> `junk-runner`,
+            // `polis` -> `polis`. Matches the real operator
+            // naming convention.
+            let basename = match subname.find('-') {
+                Some(idx) => subname[idx + 1..].to_string(),
+                None => subname.to_string(),
+            };
             let path_in_parent = format!("sub/{}", basename);
             let sub_gitdir = parent.join(".git/modules").join(subname);
             std::fs::create_dir_all(&sub_gitdir).unwrap();
