@@ -6394,6 +6394,190 @@ auto_bump_versions = false
         assert_eq!(count, 3, "gitignored files should not be counted");
     }
 
+    /// Regression test for goal `mr02de1n-gjkgzp`: when a parent
+    /// repo contains a nested git repository (its own `.git/`
+    /// directory), the parent's untracked-file count must subtract
+    /// that nested-repo entry — otherwise the parent's UT count
+    /// inflates with entries that are owned by the child repo (which
+    /// the daemon syncs independently).
+    ///
+    /// Raw `git ls-files --others --exclude-standard` in this setup
+    /// would return 4 entries:
+    ///   - `nested/`  (one per nested git repo)
+    ///   - `a.txt`, `b.txt`, `c.txt`
+    /// The function must return 3 (subtracting the single nested-repo
+    /// entry).
+    #[tokio::test]
+    async fn test_check_untracked_threshold_subtracts_nested_repo() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "parent-with-nested");
+
+        // Create an initial commit so the repo isn't empty.
+        std::fs::write(repo.join("README.md"), b"# parent\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Create a nested git repo under `parent/nested/`. The nested
+        // repo's working tree is invisible to the parent's
+        // `git ls-files --others` (git stops at the .git/ boundary),
+        // so the parent only sees `nested/` as one untracked entry.
+        let nested = repo.join("nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch=main", "-q"])
+            .current_dir(&nested)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "child@example.com"])
+            .current_dir(&nested)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Child"])
+            .current_dir(&nested)
+            .output()
+            .unwrap();
+        std::fs::write(nested.join("inside_child.txt"), b"inside\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&nested)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "child init"])
+            .current_dir(&nested)
+            .output()
+            .unwrap();
+
+        // Add 3 untracked files at the parent level (not nested).
+        for i in 0..3 {
+            std::fs::write(repo.join(format!("file{}.txt", i)), b"x").unwrap();
+        }
+
+        // Sanity-check: git sees 4 entries (nested/ + 3 files).
+        let raw = std::process::Command::new("git")
+            .args(["-C", &repo.to_string_lossy(), "ls-files", "--others", "--exclude-standard"])
+            .output()
+            .unwrap();
+        let raw_stdout = String::from_utf8_lossy(&raw.stdout);
+        assert_eq!(
+            raw_stdout.lines().filter(|l| !l.is_empty()).count(),
+            4,
+            "precondition: git must see 4 untracked entries (nested/ + 3 files); got: {}",
+            raw_stdout,
+        );
+
+        // After subtraction, the count must be 3 (the nested/ entry
+        // is excluded because child/.git exists).
+        let count = check_untracked_threshold(&repo, 100)
+            .await
+            .expect("should not error");
+        assert_eq!(
+            count, 3,
+            "nested-repo entries must be subtracted from the parent's UT count",
+        );
+    }
+
+    /// Regression test for goal `mr02de1n-gjkgzp`: when the parent
+    /// has multiple nested git repos, ALL of them are subtracted.
+    #[tokio::test]
+    async fn test_check_untracked_threshold_subtracts_multiple_nested_repos() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "parent-multi-nested");
+
+        // Initial commit.
+        std::fs::write(repo.join("README.md"), b"# parent\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // Create three nested git repos.
+        for name in ["child_a", "child_b", "child_c"] {
+            let nested = repo.join(name);
+            std::fs::create_dir_all(&nested).unwrap();
+            std::process::Command::new("git")
+                .args(["init", "--initial-branch=main", "-q"])
+                .current_dir(&nested)
+                .output()
+                .unwrap();
+            std::process::Command::new("git")
+                .args(["config", "user.email", "child@example.com"])
+                .current_dir(&nested)
+                .output()
+                .unwrap();
+            std::process::Command::new("git")
+                .args(["config", "user.name", "Child"])
+                .current_dir(&nested)
+                .output()
+                .unwrap();
+        }
+
+        // Plus one real untracked file.
+        std::fs::write(repo.join("real_untracked.txt"), b"x").unwrap();
+
+        // Raw count = 4 (3 nested dirs + 1 file). Subtract all 3
+        // nested → expected return = 1.
+        let count = check_untracked_threshold(&repo, 100)
+            .await
+            .expect("should not error");
+        assert_eq!(
+            count, 1,
+            "all three nested-repo entries must be subtracted from the parent's UT count",
+        );
+    }
+
+    /// Regression test for goal `mr02de1n-gjkgzp`: a directory
+    /// without a `.git` inside it must NOT be subtracted. The
+    /// subtraction only applies to nested git repos, not to plain
+    /// untracked directories (which DO contribute to the parent's
+    /// noise count).
+    #[tokio::test]
+    async fn test_check_untracked_threshold_keeps_plain_untracked_dirs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_git_repo(&tmp, "parent-plain-dir");
+
+        std::fs::write(repo.join("README.md"), b"# parent\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        // A plain untracked dir (no .git inside) plus a regular file.
+        std::fs::create_dir_all(repo.join("scratch_dir")).unwrap();
+        std::fs::write(repo.join("scratch_dir/note.txt"), b"x").unwrap();
+        std::fs::write(repo.join("a.txt"), b"x").unwrap();
+
+        let count = check_untracked_threshold(&repo, 100)
+            .await
+            .expect("should not error");
+        assert_eq!(
+            count, 2,
+            "plain untracked dirs (no .git inside) must remain in the count",
+        );
+    }
+
     /// Regression test for the .pi/ recursion-skip bug (goal
     /// mqp8dffy-bonnlu). The daemon's `stage_existing_files`
     /// recursion used to skip any dir whose name starts with `.`,
