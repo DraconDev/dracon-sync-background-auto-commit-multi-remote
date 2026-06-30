@@ -3060,7 +3060,16 @@ mod submodule_materialize_tests {
     /// `.git/modules/<name>` gitdirs exist (mimicking
     /// post-`git submodule update --init` state). The watch root
     /// is the tempdir itself. Returns `(parent, [submodule_names])`.
-    fn build_fixture_with_submodules(tmp: &Path, sub_names: &[&str]) -> (PathBuf, Vec<String>) {
+    ///
+    /// `sub_specs` is a list of `(gitmodules_name, worktree_name,
+    /// path_in_parent)`. Splitting these out explicitly avoids
+    /// fragile name parsing: the real operator config uses
+    /// `web-games-polis` with path `web/games/wip/polis`, and
+    /// the worktree name is the path's basename.
+    fn build_fixture_with_submodules(
+        tmp: &Path,
+        sub_specs: &[(&str, &str, &str)],
+    ) -> PathBuf {
         let parent = tmp.join("dracon-platform");
         std::fs::create_dir_all(&parent).unwrap();
         let run = |args: &[&str]| {
@@ -3079,28 +3088,54 @@ mod submodule_materialize_tests {
         assert!(run(&["add", "README.md"]).status.success());
         assert!(run(&["commit", "-q", "-m", "init"]).status.success());
 
-        // Build each submodule's gitdir and a `.gitmodules` entry.
-        // The `.gitmodules` path's basename determines the
-        // worktree name (the daemon does
-        // `Path::new(&sub.path).file_name()` to anchor the
-        // worktree), so the path leaf is the worktree name.
-        // In the real dracon-platform case this is
-        // `web/games/wip/polis` -> basename `polis`. For the
-        // fixture we use a 2-component path: `sub/<basename>`
-        // where `<basename>` is the suffix of `subname` after
-        // the first `-` (or the whole `subname` if no dash).
         let mut gitmodules = String::new();
-        let mut names: Vec<String> = Vec::new();
-        for (i, subname) in sub_names.iter().enumerate() {
-            // First-dash split: `web-games-polis` -> `polis`,
-            // `web-games-junk-runner` -> `junk-runner`,
-            // `polis` -> `polis`. Matches the real operator
-            // naming convention.
-            let basename = match subname.find('-') {
-                Some(idx) => subname[idx + 1..].to_string(),
-                None => subname.to_string(),
+        for (subname, _worktree_name, path_in_parent) in sub_specs {
+            let sub_gitdir = parent.join(".git/modules").join(subname);
+            std::fs::create_dir_all(&sub_gitdir).unwrap();
+            let run_sub = |args: &[&str]| {
+                Command::new("git")
+                    .args(args)
+                    .current_dir(&sub_gitdir)
+                    .output()
+                    .unwrap()
             };
-            let path_in_parent = format!("sub/{}", basename);
+            assert!(run_sub(&["init", "-q"]).status.success());
+            assert!(run_sub(&["config", "user.email", "test@example.com"]).status.success());
+            assert!(run_sub(&["config", "user.name", "Test"]).status.success());
+            assert!(run_sub(&["config", "commit.gpgsign", "false"]).status.success());
+            assert!(run_sub(&["config", "tag.gpgsign", "false"]).status.success());
+            std::fs::write(sub_gitdir.join("README.md"), b"# sub\n").unwrap();
+            assert!(run_sub(&["add", "README.md"]).status.success());
+            assert!(run_sub(&["commit", "-q", "-m", "init"]).status.success());
+            let _ = run_sub(&["config", "--unset-all", "core.worktree"]);
+            let _ = run_sub(&["reset"]);
+            let sub_head = String::from_utf8_lossy(&run_sub(&["rev-parse", "HEAD"]).stdout)
+                .trim()
+                .to_string();
+            std::fs::create_dir_all(parent.join(path_in_parent)).unwrap();
+            std::fs::write(
+                parent.join(format!("{}/.git", path_in_parent)),
+                format!("gitdir: {}\n", sub_gitdir.display()),
+            )
+            .unwrap();
+            Command::new("git")
+                .args([
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("160000,{},{}", sub_head, path_in_parent),
+                ])
+                .current_dir(&parent)
+                .output()
+                .unwrap();
+            gitmodules.push_str(&format!(
+                "[submodule \"{}\"]\n\tpath = {}\n\turl = git@github.com:DraconDev/{}.git\n",
+                subname, path_in_parent, subname
+            ));
+        }
+        std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
+        parent
+    }
             let sub_gitdir = parent.join(".git/modules").join(subname);
             std::fs::create_dir_all(&sub_gitdir).unwrap();
             let run_sub = |args: &[&str]| {
@@ -3159,9 +3194,17 @@ mod submodule_materialize_tests {
         // materialize pass, assert all 3 worktrees appear.
         let tmp = tempfile::tempdir().unwrap();
         let watch_root = tmp.path().to_path_buf();
-        let (parent, _names) = build_fixture_with_submodules(
+        let parent = build_fixture_with_submodules(
             &watch_root,
-            &["web-games-polis", "web-games-deathrun", "web-games-junk-runner"],
+            &[
+                ("web-games-polis", "polis", "web/games/wip/polis"),
+                ("web-games-deathrun", "deathrun", "web/games/wip/deathrun"),
+                (
+                    "web-games-junk-runner",
+                    "junk-runner",
+                    "web/games/wip/junk-runner",
+                ),
+            ],
         );
 
         let repos = vec![parent.clone()];
@@ -3188,9 +3231,12 @@ mod submodule_materialize_tests {
         // does NOT clobber it.
         let tmp = tempfile::tempdir().unwrap();
         let watch_root = tmp.path().to_path_buf();
-        let (parent, _names) = build_fixture_with_submodules(
+        let parent = build_fixture_with_submodules(
             &watch_root,
-            &["web-games-polis", "web-games-deathrun"],
+            &[
+                ("web-games-polis", "polis", "web/games/wip/polis"),
+                ("web-games-deathrun", "deathrun", "web/games/wip/deathrun"),
+            ],
         );
 
         // Pre-create polis worktree with a marker file.
