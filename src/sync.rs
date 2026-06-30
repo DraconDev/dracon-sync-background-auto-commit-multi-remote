@@ -1203,14 +1203,48 @@ pub(crate) async fn materialize_submodule(
     // committed in locally but `git push` refuses ("not a full
     // refname") because there's no upstream ref to push.
     //
-    // We use a worktree-local branch named `daemon-standalone`
-    // (one per materialize call; subsequent re-materialize
-    // would fail on a branch-name conflict, which is fine — the
-    // idempotency check above returns Ok() before we reach here).
+    // We use the subrepo's main branch (typically `main`).
+    // The parent tracks the subrepo's HEAD via gitlink, so
+    // commits on the main branch are exactly what triggers
+    // the parent-gitlink propagation from goal
+    // `mr0xseig-fn9bbd`. Putting the standalone worktree on
+    // the same branch as the subrepo's main worktree is the
+    // cleanest way to make end-to-end parent-gitlink
+    // propagation work without daemon-side ref management.
+    //
+    // The downside: the standalone worktree's branch tracks
+    // the same ref as the subrepo's main worktree, so commits
+    // made in either worktree are visible in the other. This
+    // is acceptable for the goal's use case (the standalone
+    // IS where the daemon should commit on the subrepo going
+    // forward).
+    //
+    // Why we use a new branch (`daemon-standalone`) instead of
+    // the main branch: a fresh branch lets the standalone be
+    // created without checking out the main worktree (which
+    // is the parent's nested submodule, currently checked out
+    // at the parent's index). Two worktrees on the same branch
+    // is not allowed in git; a separate branch sidesteps this.
     //
     // ADDED 2026-06-30, goal `mr10pdzr-i495vy`: original
     // implementation used `--detach` which worked for parent
     // gitlink propagation but broke `git push` end-to-end.
+    // The `daemon-standalone` branch keeps the standalone
+    // worktree pushable while letting the daemon's commits
+    // advance the subrepo's main branch (the parent's gitlink
+    // target).
+    //
+    // CHANGED 2026-06-30 (round 3 of fix): for parent-gitlink
+    // propagation to work end-to-end, the standalone's
+    // commits must also advance the main branch that the
+    // parent tracks. We do this by ALSO fast-forwarding
+    // `main` to the standalone's HEAD after each commit
+    // (in `materialize_pending_submodules`'s post-commit hook
+    // for materialized submodules). For the materialize call
+    // itself, the worktree is created on `daemon-standalone`
+    // because the subrepo's main worktree (inside the parent)
+    // is currently checked out, so we can't create a second
+    // worktree on the same branch.
     let output = crate::policy::tokio_git_command()
         .arg("-C")
         .arg(&submodule_gitdir)
@@ -1358,6 +1392,115 @@ async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Resul
     Ok(())
 }
 
+/// Fast-forward the subrepo's `main` branch to the
+/// `daemon-standalone` branch's HEAD in the current worktree.
+///
+/// This is the post-commit hook for materialized submodules
+/// (goal `mr10pdzr-i495vy`). When the daemon commits in a
+/// standalone worktree (on the `daemon-standalone` branch), the
+/// subrepo's main branch (the parent's gitlink target) is
+/// unchanged. To make the parent's gitlink go stale (so the
+/// `stage_gitlink_updates` flow from goal `mr0xseig-fn9bbd`
+/// fires), we fast-forward the main branch to the new HEAD.
+///
+/// Only runs if:
+/// 1. The worktree is on the `daemon-standalone` branch.
+/// 2. The `main` branch exists in the gitdir.
+/// 3. `daemon-standalone` is ahead of `main` (otherwise no
+///    fast-forward is needed).
+///
+/// Why a local fast-forward is the right approach: the
+/// standalone worktree's commit is on `daemon-standalone` (a
+/// local-only ref). To make the parent see it via gitlink, the
+/// main ref (which the parent tracks) must point at the new
+/// SHA. A local `git update-ref` is the most direct way to do
+/// this without involving the subrepo's remotes.
+///
+/// ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
+async fn fast_forward_daemon_standalone_to_main(repo: &Path) -> std::io::Result<()> {
+    use std::process::Command;
+    // Check if the worktree is on daemon-standalone.
+    let branch_output = Command::new("git")
+        .args(["branch", "--show-current"])
+        .current_dir(repo)
+        .output()?;
+    let current_branch = String::from_utf8_lossy(&branch_output.stdout)
+        .trim()
+        .to_string();
+    if current_branch != "daemon-standalone" {
+        // Not a daemon-standalone worktree; nothing to do.
+        return Ok(());
+    }
+    // Find the gitdir of the worktree (via the .git file).
+    let dot_git = repo.join(".git");
+    if !dot_git.is_file() {
+        return Ok(());
+    }
+    let gitdir_link = std::fs::read_to_string(&dot_git)?;
+    let Some(gitdir_rel) = gitdir_link.trim().strip_prefix("gitdir:") else {
+        return Ok(());
+    };
+    let gitdir_rel = gitdir_rel.trim();
+    // The .git file's gitdir is `<submodule_gitdir>/worktrees/<name>`.
+    // The shared gitdir (where refs/heads/main lives) is the
+    // parent of `worktrees/<name>`.
+    let worktree_gitdir = Path::new(gitdir_rel);
+    let shared_gitdir = worktree_gitdir
+        .ancestors()
+        .find(|p| p.ends_with(".git") || p.parent().is_some_and(|pp| pp.ends_with(".git")))
+        .unwrap_or(worktree_gitdir);
+    // Actually, the structure is:
+    //   shared_gitdir = <parent>/.git/modules/<name>
+    //   worktree_gitdir = shared_gitdir/worktrees/<worktree_name>
+    // So shared_gitdir is the parent of `worktrees` (or the
+    // worktree_gitdir itself if there's no `worktrees` segment).
+    let shared_gitdir = if worktree_gitdir.ends_with("worktrees")
+        || worktree_gitdir.parent().is_some_and(|p| p.ends_with("worktrees"))
+    {
+        // worktree_gitdir is e.g. <shared>/worktrees/<name>;
+        // the shared gitdir is two levels up.
+        worktree_gitdir
+            .ancestors()
+            .nth(if worktree_gitdir.ends_with("worktrees") { 1 } else { 2 })
+            .unwrap_or(worktree_gitdir)
+    } else {
+        worktree_gitdir
+    };
+    // Check if main exists in the shared gitdir.
+    let main_ref = shared_gitdir.join("refs/heads/main");
+    let standalone_ref = shared_gitdir.join("refs/heads/daemon-standalone");
+    if !main_ref.exists() {
+        // No main branch; nothing to fast-forward.
+        return Ok(());
+    }
+    if !standalone_ref.exists() {
+        return Ok(());
+    }
+    // Read both SHAs.
+    let main_sha = std::fs::read_to_string(&main_ref)?.trim().to_string();
+    let standalone_sha = std::fs::read_to_string(&standalone_ref)?.trim().to_string();
+    if main_sha == standalone_sha {
+        return Ok(());
+    }
+    // Check if standalone is a descendant of main (fast-forward possible).
+    let is_ancestor_output = Command::new("git")
+        .args(["merge-base", "--is-ancestor", &main_sha, &standalone_sha])
+        .current_dir(repo)
+        .output()?;
+    if !is_ancestor_output.status.success() {
+        // Not a fast-forward (standalone is not a descendant of main).
+        // This shouldn't happen in practice (the daemon only commits
+        // forward on daemon-standalone), but skip to be safe.
+        return Ok(());
+    }
+    // Fast-forward main to standalone.
+    let _ = Command::new("git")
+        .args(["update-ref", "refs/heads/main", &standalone_sha])
+        .current_dir(&shared_gitdir)
+        .output()?;
+    Ok(())
+}
+
 async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
     if !policy.auto_pull {
         return;
@@ -1367,7 +1510,6 @@ async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
         Err(_) => return,
     };
     if post_commit_status.behind > 0 && post_commit_status.is_clean {
-        eprintln!(
             "📥 post-commit pull for {} ({} behind)",
             repo.display(),
             post_commit_status.behind
@@ -2942,6 +3084,26 @@ async fn stage_commit_and_push(
             committed_entries.len(),
             repo.display()
         );
+        // If the repo is a materialized submodule's standalone
+        // worktree (on the `daemon-standalone` branch), also
+        // fast-forward the subrepo's main branch to the new
+        // HEAD. This is what makes the parent-gitlink
+        // propagation (goal `mr0xseig-fn9bbd`) work for
+        // submodules: the parent tracks the subrepo's main
+        // branch via gitlink, and the daemon-standalone branch
+        // is a separate ref. Without this fast-forward, the
+        // parent's gitlink would NOT go stale after a daemon
+        // commit in the standalone, and the parent would NOT
+        // auto-update.
+        //
+        // ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
+        if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
+            eprintln!(
+                "⚠️ failed to fast-forward daemon-standalone to main in {}: {}",
+                repo.display(),
+                e
+            );
+        }
         // Flush so journald captures commit activity in real-time
         let _ = std::io::stderr().flush();
         // Record this commit in the incident ledger so the `repos` report
