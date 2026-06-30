@@ -4776,6 +4776,83 @@ mod tests {
         assert!(msg.contains("status boom"));
     }
 
+    /// ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: a parent git repo
+    /// whose ONLY untracked entries are sibling subrepo directories
+    /// (each with its own `.git/`) MUST NOT contribute those entries
+    /// to the parent's UT count. Plain untracked files (no `.git`
+    /// inside) MUST still be counted.
+    #[tokio::test]
+    async fn test_nested_repo_untracked_count_subtracts_sibling_subrepos() {
+        use std::fs;
+        use std::process::Command;
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("parent");
+        fs::create_dir_all(&repo).unwrap();
+        // Initialise the parent as a real git repo so that
+        // `git ls-files --others --exclude-standard` works.
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&repo)
+            .output()
+            .expect("git init parent");
+        // Initialise two subrepo siblings via real `git init` so that
+        // the parent treats `child_a/` and `child_b/` as untracked
+        // DIRECTORY entries (not as nested-git bisects).
+        for name in ["child_a", "child_b"] {
+            let child = repo.join(name);
+            fs::create_dir_all(&child).unwrap();
+            Command::new("git")
+                .args(["init", "-q", "-b", "main"])
+                .current_dir(&child)
+                .output()
+                .expect("git init child");
+            fs::create_dir_all(child.join(".git")).unwrap();
+        }
+        // And one plain (non-repo) untracked file.
+        fs::write(repo.join("scratch.txt"), "hello").unwrap();
+        // Now ask the helper. It must report 2 (child_a + child_b)
+        // and ignore scratch.txt.
+        let count = nested_repo_untracked_count(&repo).await;
+        assert_eq!(
+            count, 2,
+            "must count both sibling subrepo dirs and ignore plain files, got {}",
+            count,
+        );
+    }
+
+    /// ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: a parent git repo
+    /// with NO untracked entries MUST yield a count of 0 (no false
+    /// positives, no off-by-one).
+    #[tokio::test]
+    async fn test_nested_repo_untracked_count_zero_for_clean_parent() {
+        use std::fs;
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("parent");
+        fs::create_dir_all(&repo).unwrap();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&repo)
+            .output()
+            .expect("git init parent");
+        let count = nested_repo_untracked_count(&repo).await;
+        assert_eq!(count, 0, "clean parent must report zero");
+    }
+
+    /// ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: if `git ls-files`
+    /// cannot run (path that is not a git repo), the helper MUST
+    /// return 0 — the report then keeps the raw `effective_status
+    /// .untracked_files` value, which is preferable to silently
+    /// dropping legitimate untracked files because of a transient
+    /// git failure.
+    #[tokio::test]
+    async fn test_nested_repo_untracked_count_returns_zero_when_git_fails() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("not-a-git-dir");
+        std::fs::create_dir_all(&repo).unwrap();
+        let count = nested_repo_untracked_count(&repo).await;
+        assert_eq!(count, 0, "non-git path must not blow up");
+    }
+
     #[test]
     fn test_parse_git_log_meta_line_preserves_subject_with_separator() {
         // Commit subject that itself contains the unit-separator character
