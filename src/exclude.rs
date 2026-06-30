@@ -572,6 +572,182 @@ mod tests {
         // Our helper must return false in that case.
         assert!(!is_gitlink(&repo, std::path::Path::new("does_not_exist")));
     }
+
+    // -----------------------------------------------------------------
+    // is_gitlink_unchanged() — regression test for the 2026-07-01
+    // parent-gitlink propagation bug. The original implementation
+    // compared the parent's tracked gitlink against the nested
+    // submodule's CHECKOUT HEAD. When the daemon also creates a
+    // STANDALONE worktree of the same shared gitdir (via
+    // `materialize_submodule`), the standalone commits advance the
+    // shared gitdir's `refs/heads/main` while the nested checkout
+    // HEAD stays at the OLD SHA. Result: the parent's gitlink
+    // silently falls behind, and `is_gitlink_unchanged` returns
+    // true (filtering the entry out of `to_stage`) so the gitlink
+    // never updates.
+    //
+    // The fix reads the SHARED gitdir's `refs/heads/main` and
+    // compares against the parent's tracked gitlink. When they
+    // differ, return false (the entry is "changed" and must be
+    // staged via `git add <path>`).
+    //
+    // This test simulates the structure produced by `materialize_submodule`:
+    // - `<parent>/.git/modules/web-games-polis/` is the SHARED gitdir
+    // - `<parent>/web/games/wip/polis/.git` is a file pointing to it
+    // - `<parent>/web/games/wip/polis/HEAD` (the main worktree) is
+    //   on `main` and lags behind the standalone
+    // - `<parent>/.git/modules/web-games-polis/refs/heads/main` is
+    //   advanced by the standalone's post-commit hook
+    // -----------------------------------------------------------------
+
+    /// Build a parent + standalone worktree pair in the style of
+    /// `materialize_submodule`. Returns (parent_path, standalone_path,
+    /// initial_sub_sha). The shared gitdir is at
+    /// `<parent>/.git/modules/<sub_name>` and is laid out so the
+    /// nested submodule at `<parent>/<sub_path>/.git` is a file
+    /// pointing at it.
+    fn build_parent_with_standalone_submodule() -> (
+        tempfile::TempDir,
+        std::path::PathBuf,
+        std::path::PathBuf,
+        String,
+    ) {
+        let td = tempfile::tempdir().unwrap();
+        let parent = td.path().join("parent");
+        std::fs::create_dir_all(&parent).unwrap();
+
+        git_c(&parent, &["init", "-q", "-b", "main"]);
+        git_c(&parent, &["config", "user.email", "t@t"]);
+        git_c(&parent, &["config", "user.name", "t"]);
+        std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
+        git_c(&parent, &["add", "README.md"]);
+        git_c(&parent, &["commit", "-q", "-m", "init"]);
+
+        // Build the subrepo's working tree + standalone path layout.
+        let sub_name = "web-games-foo";
+        let sub_path_rel = std::path::PathBuf::from("nested/foo");
+        let nested_dir = parent.join(&sub_path_rel);
+        let standalone_dir = td.path().join("standalone_foo");
+
+        // The subrepo's own .git/ becomes the SHARED gitdir at
+        // <parent>/.git/modules/<sub_name>.
+        let shared_gitdir = parent.join(".git/modules").join(sub_name);
+        std::fs::create_dir_all(&shared_gitdir).unwrap();
+        // Move the subrepo's .git/ contents into the shared gitdir.
+        let sub_dot_git = nested_dir.join(".git");
+        std::fs::create_dir_all(&nested_dir).unwrap();
+        std::fs::write(nested_dir.join("README.md"), b"# foo\n").unwrap();
+        git_c(&nested_dir, &["init", "-q", "-b", "main"]);
+        git_c(&nested_dir, &["config", "user.email", "t@t"]);
+        git_c(&nested_dir, &["config", "user.name", "t"]);
+        git_c(&nested_dir, &["add", "README.md"]);
+        git_c(&nested_dir, &["commit", "-q", "-m", "init"]);
+
+        // Copy the subrepo's .git contents into the shared gitdir.
+        fn copy_dir(src: &std::path::Path, dst: &std::path::Path) {
+            std::fs::create_dir_all(dst).unwrap();
+            for entry in std::fs::read_dir(src).unwrap() {
+                let entry = entry.unwrap();
+                let from = entry.path();
+                let to = dst.join(entry.file_name());
+                if from.is_dir() {
+                    copy_dir(&from, &to);
+                } else {
+                    std::fs::copy(&from, &to).unwrap();
+                }
+            }
+        }
+        copy_dir(&sub_dot_git, &shared_gitdir);
+        // Replace nested_dir/.git (a real directory) with a file
+        // pointing to the shared gitdir. Use the relative path so
+        // `git` resolves it correctly.
+        std::fs::remove_dir_all(&sub_dot_git).unwrap();
+        std::fs::write(
+            &sub_dot_git,
+            b"gitdir: ../../../.git/modules/web-games-foo\n",
+        )
+        .unwrap();
+
+        // Register the submodule as a gitlink in the parent.
+        let sub_sha = git_c(&nested_dir, &["rev-parse", "HEAD"])
+            .trim()
+            .to_string();
+        git_c(
+            &parent,
+            &[
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                &format!("160000,{},nested/foo", sub_sha),
+            ],
+        );
+        git_c(&parent, &["commit", "-q", "-m", "add submodule"]);
+
+        (td, parent, standalone_dir, sub_sha)
+    }
+
+    #[test]
+    fn test_is_gitlink_unchanged_false_when_shared_main_ahead_of_parent() {
+        // Regression test for the 6/9 submodule propagation bug.
+        //
+        // Setup: parent tracks nested/foo as a gitlink at SHA_A.
+        // The SHARED gitdir's refs/heads/main is advanced to SHA_B
+        // (simulating a standalone worktree committing + the
+        // fast_forward_daemon_standalone_to_main hook updating the
+        // shared main ref). The nested submodule's checkout HEAD
+        // stays at SHA_A.
+        //
+        // Before the fix: is_gitlink_unchanged returned true (nested
+        // HEAD == parent gitlink), so the parent's gitlink was
+        // never re-staged. After the fix: is_gitlink_unchanged
+        // returns false (shared main != parent gitlink), allowing
+        // the parent's gitlink to be updated.
+        let (_td, parent, _standalone, _initial_sub_sha) =
+            build_parent_with_standalone_submodule();
+
+        // Advance the SHARED gitdir's refs/heads/main to a NEW commit.
+        let shared_gitdir = parent.join(".git/modules/web-games-foo");
+        let main_ref = shared_gitdir.join("refs/heads/main");
+        let main_sha_before = std::fs::read_to_string(&main_ref)
+            .unwrap()
+            .trim()
+            .to_string();
+        let new_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+        std::fs::write(&main_ref, format!("{}\n", new_sha)).unwrap();
+
+        // Parent's tracked gitlink should still be main_sha_before.
+        let parent_link = git_c(&parent, &["ls-tree", "HEAD", "--", "nested/foo"])
+            .trim()
+            .to_string();
+        assert!(
+            parent_link.contains(&main_sha_before),
+            "parent gitlink should still be {} before fix runs, got: {}",
+            main_sha_before,
+            parent_link
+        );
+
+        // CRITICAL: is_gitlink_unchanged must return FALSE because the
+        // shared main ref is now ahead of the parent's tracked gitlink.
+        // Before the 2026-07-01 fix, this returned TRUE (nested HEAD
+        // matched parent gitlink), which silently dropped the entry
+        // from `to_stage` and prevented the parent from seeing the
+        // standalone's commits.
+        assert!(
+            !is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
+            "is_gitlink_unchanged must return false when shared main ref ({} new_sha_before={}) is ahead of parent's tracked gitlink ({})",
+            new_sha,
+            main_sha_before,
+            main_sha_before,
+        );
+
+        // Sanity: with the OLD behavior (shared main == parent gitlink),
+        // is_gitlink_unchanged returns true.
+        std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
+        assert!(
+            is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
+            "is_gitlink_unchanged must return true when shared main == parent gitlink",
+        );
+    }
 }
 
 pub(crate) fn is_excluded_dir_name(name: &str, excluded_dir_names: &BTreeSet<String>) -> bool {
