@@ -117,17 +117,33 @@ pub(crate) fn is_cherry_pick_in_progress(repo: &Path) -> bool {
 
 /// Check if a repository is ready for operations (has valid HEAD with commits).
 pub(crate) fn is_repo_ready(repo: &Path) -> bool {
-    let head = repo.join(".git").join("HEAD");
-    if !head.exists() {
+    // The repo is a "linked worktree" if `<repo>/.git` is a file
+    // (a `gitdir: ...` pointer), not a directory. For worktrees,
+    // we can't read `<repo>/.git/HEAD` directly (that path is
+    // the .git file, not a directory), so we use `git rev-parse
+    // HEAD` from the worktree itself, which works for both
+    // regular repos and worktrees.
+    let dot_git = repo.join(".git");
+    if !dot_git.exists() {
         return false;
     }
-    if let Ok(content) = std::fs::read_to_string(&head) {
-        if content.trim().is_empty() {
+    if dot_git.is_dir() {
+        // Regular repo: HEAD is at `<repo>/.git/HEAD`.
+        let head = dot_git.join("HEAD");
+        if !head.exists() {
             return false;
         }
-    } else {
-        return false;
+        if let Ok(content) = std::fs::read_to_string(&head) {
+            if content.trim().is_empty() {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
+    // dot_git is a file (worktree) or a dir (regular). Either
+    // way, `git rev-parse HEAD` works. Use it to verify HEAD
+    // resolves to a real commit.
     let output = super::git_cmd()
         .args(["rev-parse", "HEAD"])
         .current_dir(repo)
