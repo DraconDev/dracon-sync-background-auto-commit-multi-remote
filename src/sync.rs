@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::log_warn;
@@ -986,6 +986,207 @@ async fn stage_gitlink_updates(
             // remains in `MOD` and the partition will reselect
             // it).
         }
+    }
+    Ok(())
+}
+
+/// Materialize a parent repo's submodule as a standalone worktree
+/// at `target_path`.
+///
+/// On first detection of a submodule, the daemon calls this
+/// function to create a real standalone worktree at
+/// `/home/dracon/Dev/<name>/` (or whatever `target_path` is), so
+/// the daemon can treat the submodule as a normal repo: discover
+/// it, classify ownership, auto-commit changes, and auto-push to
+/// the multi-remote set.
+///
+/// The worktree is created via `git worktree add --detach
+/// <target_path> <sha>` from the parent's `.git/modules/<name>`
+/// gitdir. The new worktree shares the same object store as the
+/// parent's nested submodule (the original `web/games/wip/polis/`
+/// inside the parent is unaffected). This is the canonical way to
+/// get a second worktree of an existing gitdir: each worktree
+/// gets its own working tree and index, but they all share the
+/// same objects, refs, and remotes.
+///
+/// Idempotency: if `target_path/.git` already exists and is a
+/// worktree of the same gitdir, the function returns Ok(()) without
+/// running `git worktree add` again. This makes it safe to call on
+/// every daemon cycle.
+///
+/// Failure modes (all return `Err`, the daemon skips the submodule):
+///
+/// 1. The parent's `.git/modules/<name>/` is missing or unreadable.
+///    Suggests the parent was cloned with `--no-recurse-submodules`
+///    or the submodule was never initialized. Recovery:
+///    `cd <parent> && git submodule update --init <submodule_path>`.
+///
+/// 2. The `git worktree add` command itself fails. Possible reasons:
+///    - Target path already exists and is NOT a worktree of this
+///      gitdir (a real conflict; the operator must resolve).
+///    - Target path's parent dir is not writable.
+///    - SHA is unreachable (e.g. a fetch was never run).
+///
+/// 3. The target_path already contains files that conflict with the
+///    submodule's HEAD checkout. The function refuses to overwrite
+///    non-empty directories.
+///
+/// ADDED 2026-06-30, goal `mr10pdzr-i495vy`:
+/// "Make the daemon materialize submodules as standalone worktrees".
+pub(crate) async fn materialize_submodule(
+    parent: &Path,
+    submodule_name: &str,
+    target_path: &Path,
+    sha: &str,
+) -> std::io::Result<()> {
+    // Compute the parent's gitdir-of-submodule path. For a normal
+    // git clone with submodules, this is `<parent>/.git/modules/<name>`.
+    // For a worktree of a parent, it's `<parent>/.git/worktrees/<worktree_name>/modules/<name>`.
+    // We try the simple form first; if not found, try the worktree
+    // variant.
+    let parent_dot_git = if parent.join(".git").is_dir() {
+        parent.join(".git")
+    } else {
+        // parent/.git is a file (parent is a linked worktree);
+        // resolve the real gitdir.
+        let git_file = parent.join(".git");
+        let content = std::fs::read_to_string(&git_file).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!(
+                    "could not read {} (parent's .git file): {}",
+                    git_file.display(),
+                    e
+                ),
+            )
+        })?;
+        let gitdir = content
+            .trim()
+            .strip_prefix("gitdir:")
+            .ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!(
+                        "{} does not start with 'gitdir:'",
+                        git_file.display()
+                    ),
+                )
+            })?
+            .trim();
+        PathBuf::from(gitdir)
+    };
+    let mut submodule_gitdir = parent_dot_git.join("modules").join(submodule_name);
+    if !submodule_gitdir.exists() {
+        // Try the worktree variant: for each worktree of the parent,
+        // modules live under `<parent_gitdir>/worktrees/<wt>/modules/<name>`.
+        let wt_modules = parent_dot_git.join("worktrees");
+        if wt_modules.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&wt_modules) {
+                for entry in entries.flatten() {
+                    let candidate = entry.path().join("modules").join(submodule_name);
+                    if candidate.exists() {
+                        submodule_gitdir = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if !submodule_gitdir.exists() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!(
+                "submodule gitdir not found: {} (run `cd {} && git submodule update --init` first)",
+                submodule_gitdir.display(),
+                parent.display()
+            ),
+        ));
+    }
+
+    // Idempotency: if target_path/.git already exists and points
+    // to a worktree of this same gitdir, return Ok.
+    if target_path.exists() {
+        let target_dot_git = target_path.join(".git");
+        if target_dot_git.exists() {
+            if let Ok(content) = std::fs::read_to_string(&target_dot_git) {
+                if let Some(rest) = content.trim().strip_prefix("gitdir:") {
+                    let gitdir = rest.trim();
+                    // The gitdir line for a worktree looks like
+                    // `<submodule_gitdir>/worktrees/<worktree_name>`.
+                    // We accept any worktree of this submodule's
+                    // gitdir, not just one with a specific name.
+                    if Path::new(gitdir).starts_with(&submodule_gitdir) {
+                        return Ok(());
+                    }
+                }
+            }
+            // target_path exists but is NOT a worktree of this
+            // submodule's gitdir. Refuse to clobber it.
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "{} already exists and is not a worktree of submodule gitdir {} (manual resolution required)",
+                    target_path.display(),
+                    submodule_gitdir.display()
+                ),
+            ));
+        }
+        // target_path exists but has no .git. Check if it's empty.
+        let is_empty = std::fs::read_dir(target_path)
+            .map(|mut d| d.next().is_none())
+            .unwrap_or(false);
+        if !is_empty {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "{} exists and is non-empty (refusing to clobber)",
+                    target_path.display()
+                ),
+            ));
+        }
+    }
+
+    // Ensure the parent dir of target_path exists. The watch root
+    // typically does, but a custom target_path may point elsewhere.
+    if let Some(parent_dir) = target_path.parent() {
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir)?;
+        }
+    }
+
+    // The actual materialize: `git -C <submodule_gitdir> worktree
+    // add --detach <target_path> <sha>`. We invoke git from the
+    // submodule's gitdir (not the parent's working tree) so git
+    // knows which object store to attach the new worktree to.
+    let output = crate::policy::tokio_git_command()
+        .arg("-C")
+        .arg(&submodule_gitdir)
+        .args(["worktree", "add", "--detach"])
+        .arg(target_path)
+        .arg(sha)
+        .output()
+        .await
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "failed to spawn git worktree add for submodule {}: {}",
+                    submodule_name,
+                    e
+                ),
+            )
+        })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!(
+                "git worktree add failed for submodule {} at {}: {}",
+                submodule_name,
+                target_path.display(),
+                stderr.trim()
+            ),
+        ));
     }
     Ok(())
 }
