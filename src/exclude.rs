@@ -668,11 +668,14 @@ mod tests {
         copy_dir(&sub_dot_git, &shared_gitdir);
         // Replace nested_dir/.git (a real directory) with a file
         // pointing to the shared gitdir. Use the relative path so
-        // `git` resolves it correctly.
+        // `git` resolves it correctly. Layout: nested_dir is at
+        // `<tempdir>/parent/nested/foo/`, so 2 levels up (`../..`)
+        // reaches `<tempdir>/parent/` where `.git/modules/<name>`
+        // lives.
         std::fs::remove_dir_all(&sub_dot_git).unwrap();
         std::fs::write(
             &sub_dot_git,
-            b"gitdir: ../../../.git/modules/web-games-foo\n",
+            b"gitdir: ../../.git/modules/web-games-foo\n",
         )
         .unwrap();
 
@@ -750,15 +753,6 @@ mod tests {
         // Sanity: with the OLD behavior (shared main == parent gitlink),
         // is_gitlink_unchanged returns true.
         std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
-        eprintln!(
-            "DEBUG main_ref={:?} contents={:?}",
-            main_ref,
-            std::fs::read_to_string(&main_ref)
-        );
-        eprintln!(
-            "DEBUG nested HEAD={:?}",
-            git_c(&parent.join("nested/foo"), &["rev-parse", "HEAD"])
-        );
         assert!(
             is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
             "is_gitlink_unchanged must return true when shared main == parent gitlink",
