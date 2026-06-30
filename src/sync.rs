@@ -3317,6 +3317,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
 
     #[test]
     fn test_sanitize_task_name_drops_explanatory_clauses() {
@@ -7394,6 +7395,202 @@ auto_bump_versions = false
             !staged_text.contains("node_modules/pkg/index.js"),
             "node_modules/ contents should be skipped, but staged entries were: {:?}",
             staged_text
+        );
+    }
+
+    // ====================================================================
+    // materialize_submodule — regression tests for goal `mr10pdzr-i495vy`
+    // ====================================================================
+
+    /// Build a real parent repo with a real submodule gitdir at
+    /// `<parent>/.git/modules/<subname>`. This simulates the
+    /// post-`git submodule update --init` state of a real
+    /// submodule. Returns the parent's HEAD SHA (used as the
+    /// submodule's tracked SHA in the index).
+    fn init_parent_with_submodule_gitdir(parent: &Path, subname: &str) -> String {
+        let run = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .current_dir(parent)
+                .output()
+                .unwrap()
+        };
+        assert!(run(&["init", "-q"]).status.success());
+        assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run(&["config", "user.name", "Test"]).status.success());
+        assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
+        assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
+        std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
+        assert!(run(&["add", "README.md"]).status.success());
+        assert!(run(&["commit", "-q", "-m", "init"]).status.success());
+        let head = String::from_utf8_lossy(&run(&["rev-parse", "HEAD"]).stdout)
+            .trim()
+            .to_string();
+
+        // Build the submodule's gitdir at
+        // `<parent>/.git/modules/<subname>`. We initialize a
+        // regular (non-bare) repo there with one commit, then
+        // write a `.git` file in the parent's working tree
+        // pointing at it (the standard submodule layout).
+        let sub_gitdir = parent.join(".git/modules").join(subname);
+        std::fs::create_dir_all(&sub_gitdir).unwrap();
+        let run_sub = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .current_dir(&sub_gitdir)
+                .output()
+                .unwrap()
+        };
+        assert!(run_sub(&["init", "-q"]).status.success());
+        assert!(run_sub(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run_sub(&["config", "user.name", "Test"]).status.success());
+        assert!(run_sub(&["config", "commit.gpgsign", "false"]).status.success());
+        assert!(run_sub(&["config", "tag.gpgsign", "false"]).status.success());
+        std::fs::write(sub_gitdir.join("README.md"), b"# sub\n").unwrap();
+        assert!(run_sub(&["add", "README.md"]).status.success());
+        assert!(run_sub(&["commit", "-q", "-m", "init"]).status.success());
+        let sub_head = String::from_utf8_lossy(&run_sub(&["rev-parse", "HEAD"]).stdout)
+            .trim()
+            .to_string();
+
+        // The gitdir needs a `worktree` config to be usable as a
+        // worktree base. Set it to a non-existent placeholder so
+        // we can later override via `worktree add`.
+        // (Without this, `git worktree add` from the gitdir
+        // may refuse with "not a working tree".)
+        assert!(run_sub(&["config", "--unset-all", "core.worktree"]).is_ok()
+            || Command::new("git")
+                .args(["config", "--unset-all", "core.worktree"])
+                .current_dir(&sub_gitdir)
+                .output()
+                .is_ok());
+        // Ensure the index is in a state that allows new commits
+        // to be added (clear the worktree state for the gitdir).
+        let _ = run_sub(&["reset"]).is_ok();
+
+        // Write a `.git` file in the parent pointing at the
+        // submodule gitdir. This is what makes git treat the
+        // subdir as a submodule.
+        std::fs::create_dir_all(parent.join("sub")).unwrap();
+        std::fs::write(
+            parent.join("sub/.git"),
+            format!("gitdir: {}\n", sub_gitdir.display()),
+        )
+        .unwrap();
+
+        // Return the sub HEAD (which is what `materialize_submodule`
+        // expects to checkout).
+        sub_head
+    }
+
+    #[tokio::test]
+    async fn materialize_submodule_creates_worktree() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().to_path_buf();
+        let sub_head = init_parent_with_submodule_gitdir(&parent, "web-games-polis");
+        let target = tmp.path().join("standalone_polis");
+
+        // Sanity: target doesn't exist yet.
+        assert!(!target.exists());
+
+        let result =
+            materialize_submodule(&parent, "web-games-polis", &target, &sub_head).await;
+        assert!(
+            result.is_ok(),
+            "materialize should succeed, got: {:?}",
+            result
+        );
+
+        // The worktree should exist now and have a .git file.
+        assert!(target.exists(), "target worktree not created");
+        assert!(target.join(".git").exists(), "target .git not created");
+
+        // The .git file should point into the parent's gitdir.
+        let git_file = std::fs::read_to_string(target.join(".git")).unwrap();
+        assert!(
+            git_file.contains("web-games-polis"),
+            "target .git should point at submodule gitdir, got: {}",
+            git_file
+        );
+
+        // The worktree should have the sub's commit checked out.
+        let output = Command::new("git")
+            .args(["-C", &target.to_string_lossy(), "log", "-1", "--oneline"])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let log = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            log.contains("init"),
+            "expected 'init' commit in worktree log, got: {}",
+            log
+        );
+    }
+
+    #[tokio::test]
+    async fn materialize_submodule_is_idempotent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().to_path_buf();
+        let sub_head = init_parent_with_submodule_gitdir(&parent, "web-games-polis");
+        let target = tmp.path().join("standalone_polis");
+
+        // First call: creates the worktree.
+        let r1 = materialize_submodule(&parent, "web-games-polis", &target, &sub_head).await;
+        assert!(r1.is_ok(), "first materialize failed: {:?}", r1);
+
+        // Make a marker file inside the worktree so we can detect
+        // a destructive re-create.
+        std::fs::write(target.join("marker.txt"), b"keep me").unwrap();
+
+        // Second call: should be a no-op (idempotent).
+        let r2 = materialize_submodule(&parent, "web-games-polis", &target, &sub_head).await;
+        assert!(r2.is_ok(), "second materialize failed: {:?}", r2);
+
+        // The marker file must still exist (idempotent means no
+        // re-clone, no clobber).
+        assert!(
+            target.join("marker.txt").exists(),
+            "marker file was clobbered — materialize is not idempotent"
+        );
+        let marker = std::fs::read_to_string(target.join("marker.txt")).unwrap();
+        assert_eq!(marker, "keep me");
+    }
+
+    #[tokio::test]
+    async fn materialize_submodule_fails_when_parent_modules_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().to_path_buf();
+        // Initialize a parent repo but DO NOT create a
+        // `.git/modules/web-games-polis/` gitdir.
+        let run = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .current_dir(&parent)
+                .output()
+                .unwrap()
+        };
+        assert!(run(&["init", "-q"]).status.success());
+        assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run(&["config", "user.name", "Test"]).status.success());
+        std::fs::write(parent.join("README.md"), b"# p\n").unwrap();
+        assert!(run(&["add", "README.md"]).status.success());
+        assert!(run(&["commit", "-q", "-m", "init"]).status.success());
+
+        let target = tmp.path().join("standalone_polis");
+        let result =
+            materialize_submodule(&parent, "web-games-polis", &target, "deadbeef").await;
+        assert!(
+            result.is_err(),
+            "materialize must fail when submodule gitdir is missing"
+        );
+        let err = result.unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("submodule gitdir not found")
+                || msg.contains("not found")
+                || msg.contains("git submodule update"),
+            "error message should hint at `git submodule update`, got: {}",
+            msg
         );
     }
 }
