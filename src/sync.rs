@@ -7458,15 +7458,10 @@ auto_bump_versions = false
         // we can later override via `worktree add`.
         // (Without this, `git worktree add` from the gitdir
         // may refuse with "not a working tree".)
-        assert!(run_sub(&["config", "--unset-all", "core.worktree"]).is_ok()
-            || Command::new("git")
-                .args(["config", "--unset-all", "core.worktree"])
-                .current_dir(&sub_gitdir)
-                .output()
-                .is_ok());
+        let _ = run_sub(&["config", "--unset-all", "core.worktree"]);
         // Ensure the index is in a state that allows new commits
         // to be added (clear the worktree state for the gitdir).
-        let _ = run_sub(&["reset"]).is_ok();
+        let _ = run_sub(&["reset"]);
 
         // Write a `.git` file in the parent pointing at the
         // submodule gitdir. This is what makes git treat the
