@@ -33,7 +33,8 @@ use crate::git::{
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
-use crate::sync::{sync_repo, sync_repo_with_ahead_since, SyncOutcome};
+use crate::sync::{materialize_submodule, sync_repo, sync_repo_with_ahead_since, SyncOutcome};
+use crate::git::discovery::list_submodules;
 
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
@@ -1869,6 +1870,97 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
     (repo_set, locks_removed)
 }
 
+/// Walk the just-discovered repos and materialize any submodules
+/// declared in their `.gitmodules` as standalone worktrees under
+/// the matching watch root. Idempotent: existing worktrees are
+/// detected by `materialize_submodule` and skipped.
+///
+/// Logs each materialize at INFO level (`🔧 Materializing ...`)
+/// and logs failures as warnings. The daemon cycle is NOT
+/// aborted on a failed materialize — the operator can recover
+/// with `cd <parent> && git submodule update --init` and the
+/// next cycle will retry.
+///
+/// ADDED 2026-06-30, goal `mr10pdzr-i495vy`:
+/// "Make the daemon discover, materialize, and sync submodules".
+pub(crate) async fn materialize_pending_submodules(
+    repos: &[PathBuf],
+    roots: &[PathBuf],
+) {
+    for parent in repos {
+        let subs = list_submodules(parent);
+        for sub in subs {
+            // Skip submodules with no tracked SHA (not in
+            // parent's index). list_submodules returns these with
+            // sha = ""; without a SHA we can't materialize.
+            if sub.sha.is_empty() {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 {} submodule {} declared in .gitmodules but not tracked in index; skipping materialize",
+                        parent.display(),
+                        sub.name
+                    );
+                }
+                continue;
+            }
+            // Compute the candidate worktree path. We anchor on
+            // the watch root the parent was found under so the
+            // worktree is at the same level as the parent
+            // (e.g. /home/dracon/Dev/polis/ for dracon-platform's
+            // web-games-polis submodule), not nested inside the
+            // parent.
+            let worktree_name = Path::new(&sub.path)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| sub.name.clone());
+            let anchor = match find_anchor_root(parent, roots) {
+                Some(a) => a,
+                None => continue,
+            };
+            let target_path = anchor.join(&worktree_name);
+            // Skip if the target is already a real .git dir
+            // (worktree already exists). materialize_submodule
+            // itself is idempotent, but checking here lets us
+            // avoid even the "gitdir" check on every cycle.
+            if target_path.join(".git").exists() {
+                continue;
+            }
+            eprintln!(
+                "🔧 Materializing submodule {} -> {}",
+                sub.name,
+                target_path.display()
+            );
+            if let Err(e) =
+                materialize_submodule(parent, &sub.name, &target_path, &sub.sha).await
+            {
+                eprintln!(
+                    "⚠️ failed to materialize submodule {} from {}: {}",
+                    sub.name,
+                    parent.display(),
+                    e
+                );
+            }
+        }
+    }
+}
+
+/// Find the watch root that contains `parent`. Mirrors the
+/// `find_anchor_root` helper in `git::discovery` but lives here
+/// because the daemon module doesn't re-export private
+/// functions. Returns `None` if no watch root contains the
+/// parent.
+fn find_anchor_root(parent: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
+    let parent_canon = parent.canonicalize().ok()?;
+    for root in roots {
+        if let Ok(root_canon) = root.canonicalize() {
+            if parent_canon.starts_with(&root_canon) {
+                return Some(root_canon);
+            }
+        }
+    }
+    None
+}
+
 pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
     if let Some(reason) = freeze_reason(policy_path) {
         eprintln!("⏸️ sync frozen ({})", reason);
@@ -2066,6 +2158,26 @@ pub(crate) async fn run_daemon(
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
         let roots = policy.watch_root_paths();
         let excluded_dir_names = excluded_dir_names_set(&policy);
+        let repos = discover_git_repos(
+            &roots,
+            &excluded_dir_names,
+            &policy.exclude_repos,
+            Some(&policy.system_repo),
+        );
+        // Submodule materialize pass: for each discovered parent
+        // repo, materialize any declared submodules as standalone
+        // worktrees under the watch root (e.g.
+        // /home/dracon/Dev/polis/ from dracon-platform). This is
+        // idempotent — once a worktree exists at the target path,
+        // subsequent calls are no-ops. Failures are logged but do
+        // NOT abort the daemon cycle (the operator may need to
+        // run `git submodule update --init` manually for submodules
+        // whose `.git/modules/<name>` is missing).
+        //
+        // ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
+        materialize_pending_submodules(&repos, &roots).await;
+        // Re-discover after materialize so the newly created
+        // worktrees are picked up by the standard report path.
         let repos = discover_git_repos(
             &roots,
             &excluded_dir_names,
