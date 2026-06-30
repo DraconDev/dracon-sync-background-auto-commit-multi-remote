@@ -1116,6 +1116,46 @@ pub(crate) async fn materialize_submodule(
                     // We accept any worktree of this submodule's
                     // gitdir, not just one with a specific name.
                     if Path::new(gitdir).starts_with(&submodule_gitdir) {
+                        // Additional check: if the worktree is
+                        // on a detached HEAD, convert it to a
+                        // branch (`daemon-standalone`) so the
+                        // daemon can `git push` it end-to-end.
+                        // Detached worktrees can be committed in
+                        // locally but `git push` refuses with
+                        // "not a full refname". This is a one-way
+                        // migration: any worktree that was
+                        // previously detached is converted to a
+                        // branch. The HEAD content is preserved
+                        // (we don't move any commits).
+                        let head_branch = crate::policy::tokio_git_command()
+                            .arg("-C")
+                            .arg(target_path)
+                            .args(["symbolic-ref", "--quiet", "HEAD"])
+                            .output()
+                            .await
+                            .ok();
+                        if head_branch.is_none()
+                            || !head_branch.as_ref().is_some_and(|o| o.status.success())
+                        {
+                            // Detached. Create the daemon-standalone
+                            // branch at HEAD, then check it out.
+                            let _ = crate::policy::tokio_git_command()
+                                .arg("-C")
+                                .arg(target_path)
+                                .args([
+                                    "branch",
+                                    "daemon-standalone",
+                                    "HEAD",
+                                ])
+                                .output()
+                                .await;
+                            let _ = crate::policy::tokio_git_command()
+                                .arg("-C")
+                                .arg(target_path)
+                                .args(["checkout", "-q", "daemon-standalone"])
+                                .output()
+                                .await;
+                        }
                         return Ok(());
                     }
                 }
@@ -1157,11 +1197,24 @@ pub(crate) async fn materialize_submodule(
     // The actual materialize: `git -C <submodule_gitdir> worktree
     // add --detach <target_path> <sha>`. We invoke git from the
     // submodule's gitdir (not the parent's working tree) so git
-    // knows which object store to attach the new worktree to.
+    // The new worktree must be on a real branch (not detached)
+    // so the daemon can `git push` the worktree's HEAD to the
+    // configured remotes. Detached-HEAD worktrees can be
+    // committed in locally but `git push` refuses ("not a full
+    // refname") because there's no upstream ref to push.
+    //
+    // We use a worktree-local branch named `daemon-standalone`
+    // (one per materialize call; subsequent re-materialize
+    // would fail on a branch-name conflict, which is fine — the
+    // idempotency check above returns Ok() before we reach here).
+    //
+    // ADDED 2026-06-30, goal `mr10pdzr-i495vy`: original
+    // implementation used `--detach` which worked for parent
+    // gitlink propagation but broke `git push` end-to-end.
     let output = crate::policy::tokio_git_command()
         .arg("-C")
         .arg(&submodule_gitdir)
-        .args(["worktree", "add", "--detach"])
+        .args(["worktree", "add", "-b", "daemon-standalone"])
         .arg(target_path)
         .arg(sha)
         .output()
