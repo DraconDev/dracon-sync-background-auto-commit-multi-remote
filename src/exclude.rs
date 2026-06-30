@@ -643,6 +643,14 @@ mod tests {
         git_c(&nested_dir, &["add", "README.md"]);
         git_c(&nested_dir, &["commit", "-q", "-m", "init"]);
 
+        // Capture sub_sha BEFORE we move the .git/ directory into
+        // the shared location. After the move, nested_dir/.git is
+        // a file (gitdir: pointer), and rev-parse still works
+        // but reading it from the test is fragile.
+        let sub_sha = git_c(&nested_dir, &["rev-parse", "HEAD"])
+            .trim()
+            .to_string();
+
         // Copy the subrepo's .git contents into the shared gitdir.
         fn copy_dir(src: &std::path::Path, dst: &std::path::Path) {
             std::fs::create_dir_all(dst).unwrap();
@@ -669,10 +677,8 @@ mod tests {
         .unwrap();
 
         // Register the submodule as a gitlink in the parent.
-        let sub_sha = git_c(&nested_dir, &["rev-parse", "HEAD"])
-            .trim()
-            .to_string();
-        eprintln!("DEBUG: sub_sha = {}", sub_sha);
+        // sub_sha was captured earlier (before .git was replaced with
+        // a file pointing to the shared gitdir).
         let cacheinfo = format!("160000,{},nested/foo", sub_sha);
         let update_args = vec![
             "update-index".to_string(),
@@ -683,7 +689,6 @@ mod tests {
         let update_refs: Vec<&str> = update_args.iter().map(String::as_str).collect();
         git_c(&parent, &update_refs);
         git_c(&parent, &["commit", "-q", "-m", "add submodule"]);
-        eprintln!("DEBUG: ls-tree HEAD after commit: {}", git_c(&parent, &["ls-tree", "HEAD"]));
 
         (td, parent, standalone_dir, sub_sha)
     }
@@ -745,6 +750,15 @@ mod tests {
         // Sanity: with the OLD behavior (shared main == parent gitlink),
         // is_gitlink_unchanged returns true.
         std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
+        eprintln!(
+            "DEBUG main_ref={:?} contents={:?}",
+            main_ref,
+            std::fs::read_to_string(&main_ref)
+        );
+        eprintln!(
+            "DEBUG nested HEAD={:?}",
+            git_c(&parent.join("nested/foo"), &["rev-parse", "HEAD"])
+        );
         assert!(
             is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
             "is_gitlink_unchanged must return true when shared main == parent gitlink",
