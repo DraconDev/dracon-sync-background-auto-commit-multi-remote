@@ -4912,6 +4912,84 @@ mod tests {
         assert!(result.ends_with('…'));
     }
 
+    /// Regression test for the goal-id-truncation bug: when a commit
+    /// subject is a structured auto-commit (matches the daemon's
+    /// `compute_blast_radius` format) and the full subject does not
+    /// fit in `max_chars`, `format_commit_subject_for_display` must
+    /// drop the trailing `| METRIC:…` suffix and (if still too long)
+    /// the ` DELTA:…` segment BEFORE resorting to a plain
+    /// `truncate()`. The plain truncate would otherwise slice through
+    /// the goal id in the file list, producing a misleading id like
+    /// `mr02de1n-gjkg…` instead of the full `mr02de1n-gjkgzp`.
+    #[test]
+    fn test_format_commit_subject_for_display_drops_pipe_metrics() {
+        let full = "2 file(s) in .pi [.pi/goals/active_goal_2026063004051714_mr02de1n-gjkgzp.md, .pi/goals/goal_events.jsonl] DELTA:+8/-5 | GOAL:complete TOKENS:407K TIME:323m";
+        // Subject is 168 chars; budget 100 should drop the trailing
+        // pipe-separated metrics.
+        let result = format_commit_subject_for_display(full, 100);
+        assert!(
+            !result.contains("GOAL:"),
+            "trailing | GOAL:… metric must be dropped, got: {}",
+            result
+        );
+        assert!(
+            !result.contains("TOKENS:"),
+            "trailing | TOKENS:… metric must be dropped, got: {}",
+            result
+        );
+        assert!(
+            result.contains("mr02de1n-gjkgzp"),
+            "full goal id must remain after stripping pipe metrics, got: {}",
+            result
+        );
+    }
+
+    /// When the subject already fits in `max_chars`, return it as-is
+    /// (no `…`).
+    #[test]
+    fn test_format_commit_subject_for_display_no_truncation_when_fits() {
+        let s = "1 file(s) in src [src/main.rs] DELTA:+5/-5";
+        let result = format_commit_subject_for_display(s, 100);
+        assert_eq!(result, s);
+    }
+
+    /// When even dropping both the pipe metrics AND the DELTA segment
+    /// is not enough, fall back to plain `truncate`. The result will
+    /// carry a `…` and may cut in the middle of the goal id, but
+    /// only as a last resort.
+    #[test]
+    fn test_format_commit_subject_for_display_falls_back_to_truncate() {
+        // Make a subject that is so long that even after stripping
+        // both metrics and DELTA it would still be over budget.
+        let long_path = "a".repeat(200);
+        let full = format!(
+            "5 file(s) in .pi [.pi/goals/{}] DELTA:+1/-1 | GOAL:complete",
+            long_path
+        );
+        let result = format_commit_subject_for_display(&full, 50);
+        assert!(
+            result.ends_with('…'),
+            "long subject should fall back to truncate and end with ellipsis, got: {}",
+            result
+        );
+        // The result must be at most max_chars chars.
+        assert!(result.chars().count() <= 50, "result too long: {}", result);
+    }
+
+    /// Non-structured subjects (e.g., a hand-written commit message)
+    /// bypass the metrics-stripping and go straight to `truncate`.
+    #[test]
+    fn test_format_commit_subject_for_display_non_structured() {
+        let s = "Fix login bug in auth module";
+        let result = format_commit_subject_for_display(s, 10);
+        assert!(
+            result.ends_with('…'),
+            "non-structured short subject should truncate with ellipsis, got: {}",
+            result
+        );
+        assert!(result.chars().count() <= 10);
+    }
+
     #[test]
     fn test_sync_alert_ledger_path_uses_state_dir() {
         let _guard = EnvRestorer::new("DRACON_SYNC_STATE_DIR", "/tmp/dracon-sync-test-state");
