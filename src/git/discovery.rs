@@ -54,6 +54,65 @@ pub(crate) fn discover_git_repos(
         !exlude_set.contains(&abs) && !exlude_set.contains(&name)
     });
 
+    // Submodule pass: for each discovered repo, look for submodules
+    // declared in .gitmodules and add a candidate path for each
+    // one. The candidate path is computed from the canonical
+    // .gitmodules name (`web-games-polis`) using the same anchor
+    // root that the daemon discovered the parent under, so that
+    // the resulting path is something the daemon can both
+    // materialize (if it doesn't exist yet) and skip (if it
+    // already does).
+    //
+    // Why we anchor on the watch_roots the parent was found under,
+    // not on the parent's own path: the operator's intent is for
+    // these to live as standalone worktrees at the top of the
+    // watch root (e.g. `/home/dracon/Dev/polis/`), NOT nested
+    // inside the parent (`/home/dracon/Dev/dracon-platform/web/
+    // games/wip/polis/`). The nested location is the SUBMODULE'S
+    // gitlink pointer (a `.git` file pointing into the parent's
+    // `.git/modules/`), not a real standalone checkout.
+    //
+    // The candidate path uses the .gitmodules name (e.g.
+    // `web-games-polis`) so the materialize step is unambiguous
+    // even if the parent has multiple submodules with the same
+    // path basename.
+    //
+    // If a worktree already exists at the candidate path, it's
+    // NOT added again (the standard `retain` step will dedup).
+    //
+    // ADDED 2026-06-30, goal `mr10pdzr-i495vy`:
+    // "Make the daemon discover submodules as proper repos".
+    //
+    // Note: collect candidates first then push, because iterating
+    // `&repos` and pushing to `repos` simultaneously is a
+    // borrow-checker error.
+    let mut submodule_candidates: Vec<PathBuf> = Vec::new();
+    for parent in &repos {
+        for sub in list_submodules(parent) {
+            // Use the path basename as the worktree name. This
+            // matches how the existing daemon reports the
+            // ghost rows in `repos` (e.g. `polis`, not
+            // `web-games-polis`), and produces URLs of the form
+            // `DraconDev/{repo}.git` via the existing
+            // `push_url` template. If the operator wants the
+            // longer `DraconDev/web-games-polis.git` form, a
+            // `repo_name_map` entry can map it.
+            let worktree_name = Path::new(&sub.path)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| sub.name.clone());
+            if let Some(anchor) = find_anchor_root(parent, roots) {
+                let candidate = anchor.join(&worktree_name);
+                submodule_candidates.push(candidate);
+            }
+        }
+    }
+    for candidate in submodule_candidates {
+        if !repos.contains(&candidate) {
+            repos.push(candidate);
+        }
+    }
+
     // Always include system_repo if it exists and is a git repo
     if let Some(system) = system_repo {
         let system_path = PathBuf::from(system);
@@ -73,6 +132,24 @@ pub(crate) fn discover_git_repos(
     }
 
     repos
+}
+
+/// Find the watch root that contains `parent`. Used to anchor
+/// submodule worktree candidate paths (e.g. `/home/dracon/Dev/`)
+/// so the worktree is at the same level as its parent (not nested
+/// inside the parent's working tree). Returns `None` if no watch
+/// root contains the parent (defensive — should not happen for
+/// repos discovered by `discover_git_repos_recursive`).
+fn find_anchor_root(parent: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
+    let parent_canon = parent.canonicalize().ok()?;
+    for root in roots {
+        if let Ok(root_canon) = root.canonicalize() {
+            if parent_canon.starts_with(&root_canon) {
+                return Some(root_canon);
+            }
+        }
+    }
+    None
 }
 
 fn discover_git_repos_recursive(
@@ -664,5 +741,86 @@ mod submodule_tests {
         let entries = list_submodules(&parent);
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].name, "web-games-polis");
+    }
+
+    #[test]
+    fn discover_git_repos_finds_submodule_candidates() {
+        // End-to-end: a parent repo with 3 submodules in .gitmodules
+        // should produce 4 candidates: the parent + 3 submodule
+        // worktree anchor paths under the watch root.
+        let tmp = tempfile::tempdir().unwrap();
+        let parent_dir = tmp.path().join("dracon-platform");
+        fs::create_dir_all(&parent_dir).unwrap();
+        let _head = init_parent_repo(&parent_dir);
+
+        // 3 submodules in .gitmodules.
+        let gitmodules = "[submodule \"web-games-polis\"]\n\
+                          \tpath = web/games/wip/polis\n\
+                          \turl = git@github.com:DraconDev/web-games-polis.git\n\
+                          [submodule \"web-games-deathrun\"]\n\
+                          \tpath = web/games/wip/deathrun\n\
+                          \turl = git@github.com:DraconDev/web-games-deathrun.git\n\
+                          [submodule \"web-games-junk-runner\"]\n\
+                          \tpath = web/games/wip/junk-runner\n\
+                          \turl = git@github.com:DraconDev/web-games-junk-runner.git\n";
+        fs::write(parent_dir.join(".gitmodules"), gitmodules).unwrap();
+        // Stage gitlinks in the index.
+        let head = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap()
+            .stdout;
+        let head_sha = String::from_utf8_lossy(&head).trim().to_string();
+        for path in ["web/games/wip/polis", "web/games/wip/deathrun", "web/games/wip/junk-runner"] {
+            Command::new("git")
+                .args(["update-index", "--add", "--cacheinfo", &format!("160000,{},{}", head_sha, path)])
+                .current_dir(&parent_dir)
+                .output()
+                .unwrap();
+        }
+
+        // Watch root is `tmp.path()` (the dir containing
+        // `dracon-platform/`). discover_git_repos should find
+        // the parent + 3 submodule candidate paths under tmp.path().
+        let roots = vec![tmp.path().to_path_buf()];
+        let excluded: BTreeSet<String> = BTreeSet::new();
+        let exclude_repos: Vec<String> = vec![];
+        let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
+
+        // The parent + 3 submodule candidates.
+        assert_eq!(
+            discovered.len(),
+            4,
+            "expected 1 parent + 3 submodules = 4 entries, got: {:?}",
+            discovered
+        );
+
+        // The parent must be present.
+        assert!(discovered.contains(&parent_dir), "parent not in discovered list");
+
+        // The 3 submodule candidates (under tmp.path() because
+        // tmp.path() is the anchor root).
+        assert!(discovered.contains(&tmp.path().join("polis")));
+        assert!(discovered.contains(&tmp.path().join("deathrun")));
+        assert!(discovered.contains(&tmp.path().join("junk-runner")));
+    }
+
+    #[test]
+    fn discover_git_repos_finds_no_submodule_candidates_when_no_gitmodules() {
+        // Parent with no .gitmodules: discover should return
+        // just the parent (no submodule candidates).
+        let tmp = tempfile::tempdir().unwrap();
+        let parent_dir = tmp.path().join("dracon-platform");
+        fs::create_dir_all(&parent_dir).unwrap();
+        let _head = init_parent_repo(&parent_dir);
+
+        let roots = vec![tmp.path().to_path_buf()];
+        let excluded: BTreeSet<String> = BTreeSet::new();
+        let exclude_repos: Vec<String> = vec![];
+        let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
+
+        assert_eq!(discovered.len(), 1, "expected 1 parent, got: {:?}", discovered);
+        assert_eq!(discovered[0], parent_dir);
     }
 }
