@@ -3051,3 +3051,163 @@ pub(crate) async fn run_daemon(
     Ok(())
 }
 
+#[cfg(test)]
+mod submodule_materialize_tests {
+    use super::*;
+    use std::process::Command;
+
+    /// Build a fixture parent with N submodules whose
+    /// `.git/modules/<name>` gitdirs exist (mimicking
+    /// post-`git submodule update --init` state). The watch root
+    /// is the tempdir itself. Returns `(parent, [submodule_names])`.
+    fn build_fixture_with_submodules(tmp: &Path, sub_names: &[&str]) -> (PathBuf, Vec<String>) {
+        let parent = tmp.join("dracon-platform");
+        std::fs::create_dir_all(&parent).unwrap();
+        let run = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .current_dir(&parent)
+                .output()
+                .unwrap()
+        };
+        assert!(run(&["init", "-q"]).status.success());
+        assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run(&["config", "user.name", "Test"]).status.success());
+        assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
+        assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
+        std::fs::write(parent.join("README.md"), b"# p\n").unwrap();
+        assert!(run(&["add", "README.md"]).status.success());
+        assert!(run(&["commit", "-q", "-m", "init"]).status.success());
+
+        // Build each submodule's gitdir and a `.gitmodules` entry.
+        // The `.gitmodules` path's basename determines the
+        // worktree name (the daemon does
+        // `Path::new(&sub.path).file_name()` to anchor the
+        // worktree), so we put the worktree name as the leaf of
+        // the path. In the real dracon-platform case this is
+        // `web/games/wip/polis` -> basename `polis`.
+        let mut gitmodules = String::new();
+        let mut names: Vec<String> = Vec::new();
+        for (i, subname) in sub_names.iter().enumerate() {
+            // The worktree name is the part of the subname
+            // after the last `-` (matching the real
+            // dracon-platform naming where `web-games-polis`
+            // materializes to `/home/dracon/Dev/polis/`).
+            let basename = subname
+                .rsplitn(2, '-')
+                .next()
+                .unwrap_or(subname)
+                .to_string();
+            let path_in_parent = format!("sub/{}", basename);
+            let sub_gitdir = parent.join(".git/modules").join(subname);
+            std::fs::create_dir_all(&sub_gitdir).unwrap();
+            let run_sub = |args: &[&str]| {
+                Command::new("git")
+                    .args(args)
+                    .current_dir(&sub_gitdir)
+                    .output()
+                    .unwrap()
+            };
+            assert!(run_sub(&["init", "-q"]).status.success());
+            assert!(run_sub(&["config", "user.email", "test@example.com"]).status.success());
+            assert!(run_sub(&["config", "user.name", "Test"]).status.success());
+            assert!(run_sub(&["config", "commit.gpgsign", "false"]).status.success());
+            assert!(run_sub(&["config", "tag.gpgsign", "false"]).status.success());
+            std::fs::write(sub_gitdir.join("README.md"), b"# sub\n").unwrap();
+            assert!(run_sub(&["add", "README.md"]).status.success());
+            assert!(run_sub(&["commit", "-q", "-m", "init"]).status.success());
+            let _ = run_sub(&["config", "--unset-all", "core.worktree"]);
+            let _ = run_sub(&["reset"]);
+            let sub_head = String::from_utf8_lossy(&run_sub(&["rev-parse", "HEAD"]).stdout)
+                .trim()
+                .to_string();
+            // Write .git file in the parent so git treats it as
+            // a submodule of the right path.
+            std::fs::create_dir_all(parent.join(&path_in_parent)).unwrap();
+            std::fs::write(
+                parent.join(format!("{}/.git", path_in_parent)),
+                format!("gitdir: {}\n", sub_gitdir.display()),
+            )
+            .unwrap();
+            // Stage the gitlink.
+            Command::new("git")
+                .args([
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("160000,{},{}", sub_head, path_in_parent),
+                ])
+                .current_dir(&parent)
+                .output()
+                .unwrap();
+            // Append to .gitmodules.
+            gitmodules.push_str(&format!(
+                "[submodule \"{}\"]\n\tpath = {}\n\turl = git@github.com:DraconDev/{}.git\n",
+                subname, path_in_parent, subname
+            ));
+            names.push((*subname).to_string());
+        }
+        std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
+        (parent, names)
+    }
+
+    #[tokio::test]
+    async fn daemon_cycle_materializes_3_submodules() {
+        // Build a parent with 3 submodules, run the
+        // materialize pass, assert all 3 worktrees appear.
+        let tmp = tempfile::tempdir().unwrap();
+        let watch_root = tmp.path().to_path_buf();
+        let (parent, _names) = build_fixture_with_submodules(
+            &watch_root,
+            &["web-games-polis", "web-games-deathrun", "web-games-junk-runner"],
+        );
+
+        let repos = vec![parent.clone()];
+        let roots = vec![watch_root.clone()];
+        materialize_pending_submodules(&repos, &roots).await;
+
+        // After materialize, all 3 worktrees must exist at the
+        // path-basename anchor (e.g. /tmp/.../polis/).
+        for name in &["polis", "deathrun", "junk-runner"] {
+            let wt = watch_root.join(name);
+            assert!(
+                wt.exists(),
+                "worktree for {} not materialized at {}",
+                name,
+                wt.display()
+            );
+            assert!(wt.join(".git").exists(), ".git file missing for {}", name);
+        }
+    }
+
+    #[tokio::test]
+    async fn daemon_cycle_idempotent_when_submodule_already_materialized() {
+        // Pre-create one worktree; verify the materialize pass
+        // does NOT clobber it.
+        let tmp = tempfile::tempdir().unwrap();
+        let watch_root = tmp.path().to_path_buf();
+        let (parent, _names) = build_fixture_with_submodules(
+            &watch_root,
+            &["web-games-polis", "web-games-deathrun"],
+        );
+
+        // Pre-create polis worktree with a marker file.
+        let polis = watch_root.join("polis");
+        std::fs::create_dir_all(&polis).unwrap();
+        std::fs::write(polis.join("marker.txt"), b"keep me").unwrap();
+
+        let repos = vec![parent.clone()];
+        let roots = vec![watch_root.clone()];
+        materialize_pending_submodules(&repos, &roots).await;
+
+        // Polis marker must still exist (not clobbered).
+        assert!(
+            polis.join("marker.txt").exists(),
+            "pre-existing worktree was clobbered"
+        );
+        // Deathrun must have been materialized.
+        let deathrun = watch_root.join("deathrun");
+        assert!(deathrun.exists(), "deathrun was not materialized");
+    }
+}
+
