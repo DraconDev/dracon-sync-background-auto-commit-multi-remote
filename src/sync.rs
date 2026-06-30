@@ -1443,29 +1443,17 @@ async fn fast_forward_daemon_standalone_to_main(repo: &Path) -> std::io::Result<
     let gitdir_rel = gitdir_rel.trim();
     // The .git file's gitdir is `<submodule_gitdir>/worktrees/<name>`.
     // The shared gitdir (where refs/heads/main lives) is the
-    // parent of `worktrees/<name>`.
+    // parent of `worktrees/<name>`. Resolve by stripping the
+    // trailing `/worktrees/<worktree_name>` segment.
     let worktree_gitdir = Path::new(gitdir_rel);
+    // Find the shared gitdir by walking up until we find a
+    // directory whose `refs/heads/main` exists. (Cheaper than
+    // hardcoding the path layout which depends on the parent
+    // repo being a submodule of dracon-platform specifically.)
     let shared_gitdir = worktree_gitdir
         .ancestors()
-        .find(|p| p.ends_with(".git") || p.parent().is_some_and(|pp| pp.ends_with(".git")))
+        .find(|p| p.join("refs/heads/main").exists())
         .unwrap_or(worktree_gitdir);
-    // Actually, the structure is:
-    //   shared_gitdir = <parent>/.git/modules/<name>
-    //   worktree_gitdir = shared_gitdir/worktrees/<worktree_name>
-    // So shared_gitdir is the parent of `worktrees` (or the
-    // worktree_gitdir itself if there's no `worktrees` segment).
-    let shared_gitdir = if worktree_gitdir.ends_with("worktrees")
-        || worktree_gitdir.parent().is_some_and(|p| p.ends_with("worktrees"))
-    {
-        // worktree_gitdir is e.g. <shared>/worktrees/<name>;
-        // the shared gitdir is two levels up.
-        worktree_gitdir
-            .ancestors()
-            .nth(if worktree_gitdir.ends_with("worktrees") { 1 } else { 2 })
-            .unwrap_or(worktree_gitdir)
-    } else {
-        worktree_gitdir
-    };
     // Check if main exists in the shared gitdir.
     let main_ref = shared_gitdir.join("refs/heads/main");
     let standalone_ref = shared_gitdir.join("refs/heads/daemon-standalone");
@@ -1510,6 +1498,7 @@ async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
         Err(_) => return,
     };
     if post_commit_status.behind > 0 && post_commit_status.is_clean {
+        eprintln!(
             "📥 post-commit pull for {} ({} behind)",
             repo.display(),
             post_commit_status.behind
