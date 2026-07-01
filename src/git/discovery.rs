@@ -276,13 +276,12 @@ pub(crate) fn is_nested_submodule_with_standalone(
     // real `.git/` directory).
     let dot_git = path.join(".git");
     if !dot_git.is_file() {
-        eprintln!("🐛 is_nested_submodule_with_standalone({}): no .git file", path.display());
         return false;
     }
     let Ok(content) = std::fs::read_to_string(&dot_git) else {
-        eprintln!("🐛 is_nested_submodule_with_standalone({}): can't read .git", path.display());
         return false;
     };
+    eprintln!("🐛 is_nested: path={} content={:?}", path.display(), content.trim());
     let Some(rest) = content.trim().strip_prefix("gitdir:") else {
         return false;
     };
@@ -292,8 +291,10 @@ pub(crate) fn is_nested_submodule_with_standalone(
     let base = path;
     let resolved = base.join(gitdir_rel);
     let Ok(canonical_target) = std::fs::canonicalize(&resolved) else {
+        eprintln!("🐛 is_nested: canonicalize failed for {}", resolved.display());
         return false;
     };
+    eprintln!("🐛 is_nested: canonical_target={}", canonical_target.display());
 
     // Check if this gitdir is a `/modules/<name>` subdir under
     // any already-discovered repo's `.git/` directory.
@@ -305,8 +306,10 @@ pub(crate) fn is_nested_submodule_with_standalone(
             continue;
         };
         let parent_git = parent_canon.join(".git");
+        let modules_path = parent_git.join("modules");
+        eprintln!("🐛 is_nested: parent={} parent_git={} modules_path={} starts_with={}", parent.display(), parent_git.display(), modules_path.display(), canonical_target.starts_with(&modules_path));
         // Is `canonical_target` under `<parent>/.git/modules/`?
-        if canonical_target.starts_with(parent_git.join("modules")) {
+        if canonical_target.starts_with(&modules_path) {
             // AND does a standalone worktree exist at the watch
             // root for this submodule? The standalone path comes
             // from the submodule's name (basename of the nested
@@ -977,16 +980,9 @@ mod submodule_tests {
         //
         // Discovery must return the parent + the standalone
         // (NOT the nested submodule).
-        //
-        // Note on /tmp canonicalization: tests in CI may have
-        // /tmp on a path that gets canonicalized to /private/tmp
-        // (macOS) or stays at /tmp (Linux). The test therefore
-        // checks BOTH canonical and non-canonical versions of
-        // each path so it works on either filesystem layout.
         let tmp = tempfile::tempdir().unwrap();
-        let canonical_tmp = tmp.path().canonicalize().unwrap_or(tmp.path().to_path_buf());
-        let parent_dir = canonical_tmp.join("dracon-platform");
-        let standalone_dir = canonical_tmp.join("polis");
+        let parent_dir = tmp.path().join("dracon-platform");
+        let standalone_dir = tmp.path().join("polis");
         let nested_dir = parent_dir.join("web/games/wip/polis");
 
         fs::create_dir_all(&parent_dir).unwrap();
@@ -1028,43 +1024,28 @@ mod submodule_tests {
             .output()
             .unwrap();
 
-        // Materialize the standalone at <canonical_tmp>/polis.
+        // Materialize the standalone at <tmp.path()>/polis.
         // It must point to the same shared gitdir.
         fs::create_dir_all(&standalone_dir).unwrap();
         fs::write(standalone_dir.join(".git"), b"gitdir: ../dracon-platform/.git/modules/web-games-polis\n").unwrap();
 
-        let roots = vec![canonical_tmp.clone()];
+        let roots = vec![tmp.path().to_path_buf()];
         let excluded: BTreeSet<String> = BTreeSet::new();
         let exclude_repos: Vec<String> = vec![];
         let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
 
-        // We accept either canonical (preferred) or non-canonical forms in discovered.
-        let contains_any = |targets: &[PathBuf]| -> bool {
-            targets.iter().any(|t| {
-                discovered.contains(t)
-                    || discovered.contains(&canonical_tmp.join(t.file_name().unwrap_or_default()))
-            })
-        };
-
         assert!(
-            contains_any(&[parent_dir.clone()]),
+            discovered.contains(&parent_dir),
             "parent must be in discovered list: {:?}",
             discovered
         );
         assert!(
-            contains_any(&[standalone_dir.clone()]),
+            discovered.contains(&standalone_dir),
             "standalone must be in discovered list: {:?}",
             discovered
         );
-        // The nested submodule must NOT be in discovered.
-        // Compare via canonical/non-canonical equivalence.
-        let nested_present = discovered.iter().any(|p| {
-            p == &nested_dir
-                || p.canonicalize().map(|c| c == nested_dir.canonicalize().unwrap_or_default())
-                    .unwrap_or(false)
-        });
         assert!(
-            !nested_present,
+            !discovered.contains(&nested_dir),
             "nested submodule must be filtered out (already represented by standalone): {:?}",
             discovered
         );
