@@ -943,4 +943,160 @@ mod submodule_tests {
         assert_eq!(discovered.len(), 1, "expected 1 parent, got: {:?}", discovered);
         assert_eq!(discovered[0], parent_dir);
     }
+
+    #[test]
+    fn discover_git_repos_dedups_standalone_with_nested_submodule() {
+        // Regression test for the duplicate-row problem:
+        // after `materialize_submodule` creates a standalone
+        // worktree at the watch root, the daemon would
+        // normally also discover the nested submodule at
+        // `<parent>/<path>/` and treat it as a separate repo.
+        // Both point at the same shared gitdir. The fix
+        // filters the nested checkout when a standalone
+        // exists.
+        //
+        // Setup:
+        // - parent (`tmp.path()/dracon-platform`)
+        // - nested submodule (`<parent>/web/games/wip/polis`)
+        //   with `.git` file pointing to the shared gitdir
+        // - shared gitdir at `<parent>/.git/modules/web-games-polis`
+        // - standalone worktree at `tmp.path()/polis` with
+        //   `.git` pointing to the shared gitdir
+        //
+        // Discovery must return the parent + the standalone
+        // (NOT the nested submodule).
+        let tmp = tempfile::tempdir().unwrap();
+        let parent_dir = tmp.path().join("dracon-platform");
+        let standalone_dir = tmp.path().join("polis");
+        let nested_dir = parent_dir.join("web/games/wip/polis");
+
+        fs::create_dir_all(&parent_dir).unwrap();
+        let _head = init_parent_repo(&parent_dir);
+
+        // Build a real submodule at <parent>/web/games/wip/polis
+        // with its own .git/ that becomes the shared gitdir.
+        fs::create_dir_all(&nested_dir).unwrap();
+        fs::write(nested_dir.join("README.md"), b"# polis\n").unwrap();
+        init_parent_repo(&nested_dir);
+        let sub_sha = {
+            let o = Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .current_dir(&nested_dir)
+                .output()
+                .unwrap();
+            String::from_utf8_lossy(&o.stdout).trim().to_string()
+        };
+
+        // Move <nested>/.git to <parent>/.git/modules/web-games-polis
+        // and create a .git file pointing to it.
+        let parent_gitdir = parent_dir.join(".git/modules/web-games-polis");
+        fs::create_dir_all(parent_gitdir.parent().unwrap()).unwrap();
+        copy_dir_recursive(&nested_dir.join(".git"), &parent_gitdir);
+
+        let nested_dot_git = nested_dir.join(".git");
+        let rel_gitdir = std::fs::read_to_string(&nested_dot_git)
+            .ok()
+            .and_then(|s| s.lines().next().map(|s| s.to_string()))
+            .unwrap_or_default();
+        let rel = format!("gitdir: {}\n", rel_gitdir.replace("gitdir:", "").trim());
+        fs::remove_dir_all(&nested_dot_git).ok();
+        fs::write(&nested_dot_git, rel).unwrap();
+
+        // Register the gitlink in the parent.
+        Command::new("git")
+            .args([
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                &format!("160000,{},web/games/wip/polis", sub_sha),
+            ])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap();
+        // Add a .gitmodules so list_submodules (called by the
+        // stale-gitlink-pass) finds the submodule.
+        let gitmodules = "[submodule \"web-games-polis\"]\n\tpath = web/games/wip/polis\n\turl = git@github.com:DraconDev/web-games-polis.git\n";
+        fs::write(parent_dir.join(".gitmodules"), gitmodules).unwrap();
+        Command::new("git")
+            .args(["add", ".gitmodules"])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-q", "-m", "add submodule"])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap();
+
+        // Materialize the standalone at tmp.path()/polis.
+        // It must point to the same shared gitdir.
+        fs::create_dir_all(&standalone_dir).unwrap();
+        // Find the worktree's relative path to the shared gitdir.
+        let rel = pathdiff(&standalone_dir, &parent_gitdir);
+        fs::write(standalone_dir.join(".git"), format!("gitdir: {}\n", rel)).unwrap();
+
+        let roots = vec![tmp.path().to_path_buf()];
+        let excluded: BTreeSet<String> = BTreeSet::new();
+        let exclude_repos: Vec<String> = vec![];
+        let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
+
+        assert!(
+            discovered.contains(&parent_dir),
+            "parent must be in discovered list: {:?}",
+            discovered
+        );
+        assert!(
+            discovered.contains(&standalone_dir),
+            "standalone must be in discovered list: {:?}",
+            discovered
+        );
+        assert!(
+            !discovered.contains(&nested_dir),
+            "nested submodule must be filtered out (already represented by standalone): {:?}",
+            discovered
+        );
+    }
+
+    /// Recursive copy used by the duplicate-row test.
+    fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) {
+        fs::create_dir_all(dst).unwrap();
+        for e in fs::read_dir(src).unwrap() {
+            let e = e.unwrap();
+            let from = e.path();
+            let to = dst.join(e.file_name());
+            if from.is_dir() {
+                copy_dir_recursive(&from, &to);
+            } else {
+                fs::copy(&from, &to).unwrap();
+            }
+        }
+    }
+
+    /// Best-effort computation of a relative path from `from`'s
+    /// parent dir to `to` (used for `.git` worktree file
+    /// content). Mimics `pathdiff::pathdiff` (which isn't a
+    /// dependency) by walking up common prefix.
+    fn pathdiff(from: &std::path::Path, to: &std::path::Path) -> String {
+        let from_abs = from.canonicalize().unwrap_or(from.to_path_buf());
+        let to_abs = to.canonicalize().unwrap_or(to.to_path_buf());
+        let from_dir = from_abs.parent().unwrap();
+        // Find the longest common prefix (component-wise).
+        let from_parts: Vec<_> = from_dir.components().collect();
+        let to_parts: Vec<_> = to_abs.components().collect();
+        let mut common = 0;
+        while common < from_parts.len()
+            && common < to_parts.len()
+            && from_parts[common] == to_parts[common]
+        {
+            common += 1;
+        }
+        let mut rel = std::path::PathBuf::new();
+        for _ in common..from_parts.len() {
+            rel.push("..");
+        }
+        for part in &to_parts[common..] {
+            rel.push(part);
+        }
+        rel.to_string_lossy().to_string()
+    }
 }
