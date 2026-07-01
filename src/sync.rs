@@ -941,6 +941,25 @@ async fn stage_existing_files(
 ///   invocation) because the parent can have multiple distinct
 ///   gitlink entries in a single commit, and a failure on one
 ///   should not block the others.
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// When the parent has a gitlink entry whose NESTED submodule is
+/// also a separate worktree of a SHARED gitdir (the typical layout
+/// for `materialize_submodule`-created standalone worktrees at
+/// `/home/dracon/Dev/<name>/`), `git add <path>` from the parent
+/// reads the NESTED submodule's HEAD — which may have been
+/// advanced by the daemon making its own commits there, completely
+/// independently from the standalone worktree's `daemon-standalone`
+/// branch. This causes the parent's gitlink to drift away from the
+/// standalone's actual HEAD, breaking the convergence invariant
+/// (standalone HEAD == parent gitlink).
+///
+/// To fix: prefer `git update-index --cacheinfo 160000,<sha>,<path>`
+/// with the SHARED gitdir's `refs/heads/main` SHA (which is what
+/// `fast_forward_daemon_standalone_to_main` advances after each
+/// standalone commit). Fall back to plain `git add <path>` when the
+/// shared gitdir isn't found (e.g., the parent has no `.gitmodules`
+/// or the submodule isn't materialized as a standalone worktree).
 async fn stage_gitlink_updates(
     repo: &Path,
     gitlinks: &[String],
@@ -963,28 +982,59 @@ async fn stage_gitlink_updates(
         return Ok(());
     }
     for p in gitlinks {
-        // `git add <path>` (no -A, no --) updates the index entry
-        // to the submodule's current HEAD without recursing. This
-        // is the canonical way to propagate a submodule pointer
-        // update in git.
-        if let Err(e) = run_git_with_timeout(
-            repo,
-            &["add", "--", p.as_str()],
-            stage_timeout_secs,
-            "add (gitlink)",
-        )
-        .await
-        {
-            eprintln!(
-                "⚠️ {} git add (gitlink) failed for path {:?}: {}",
-                repo.display(),
-                p,
-                e
-            );
-            // Non-fatal: a single failed gitlink update is
-            // retried on the next daemon cycle (the entry
-            // remains in `MOD` and the partition will reselect
-            // it).
+        // Prefer the SHARED gitdir's `refs/heads/main` SHA when
+        // available — this is what `fast_forward_daemon_standalone_to_main`
+        // keeps in lockstep with the standalone worktree's HEAD.
+        let shared_sha =
+            crate::exclude::shared_submodule_main_sha(repo, std::path::Path::new(p));
+        if let Some(shared_sha) = shared_sha {
+            // Use `git update-index --cacheinfo` to set the
+            // gitlink explicitly to the shared `main` ref SHA.
+            // This bypasses the nested submodule's HEAD and
+            // ensures the parent's gitlink tracks the
+            // standalone's commits, not the nested submodule's
+            // own (possibly divergent) state.
+            let cacheinfo = format!("160000,{},{}", shared_sha, p);
+            if let Err(e) = run_git_with_timeout(
+                repo,
+                &["update-index", "--add", "--cacheinfo", &cacheinfo],
+                stage_timeout_secs,
+                "update-index (gitlink -> shared main)",
+            )
+            .await
+            {
+                eprintln!(
+                    "⚠️ {} git update-index (gitlink) failed for path {:?}: {}",
+                    repo.display(),
+                    p,
+                    e
+                );
+                // Non-fatal: a single failed gitlink update is
+                // retried on the next daemon cycle.
+            }
+        } else {
+            // Fallback: no shared gitdir found. Use plain
+            // `git add <path>` which reads the nested
+            // submodule's HEAD (the original behavior before
+            // the materialize-submodule-as-standalone-worktree
+            // feature).
+            if let Err(e) = run_git_with_timeout(
+                repo,
+                &["add", "--", p.as_str()],
+                stage_timeout_secs,
+                "add (gitlink)",
+            )
+            .await
+            {
+                eprintln!(
+                    "⚠️ {} git add (gitlink) failed for path {:?}: {}",
+                    repo.display(),
+                    p,
+                    e
+                );
+                // Non-fatal: a single failed gitlink update is
+                // retried on the next daemon cycle.
+            }
         }
     }
     Ok(())

@@ -953,6 +953,29 @@ fn shared_submodule_gitdir(repo: &Path, path: &Path) -> Option<std::path::PathBu
     Some(canonical)
 }
 
+/// Read the SHARED gitdir's `refs/heads/main` SHA for a nested
+/// submodule at `<repo>/<path>`. Returns `None` if the path is
+/// not a gitlink-style submodule, or the shared gitdir has no
+/// `main` branch.
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// Used by `stage_gitlink_updates` (in `src/sync.rs`) to record
+/// the parent's gitlink explicitly with the standalone
+/// worktree's HEAD SHA. Without this, `git add <path>` from
+/// the parent would read the NESTED submodule's HEAD (which
+/// may have drifted from the standalone's commits) and the
+/// parent's gitlink would diverge from the standalone.
+pub(crate) fn shared_submodule_main_sha(repo: &Path, path: &Path) -> Option<String> {
+    let shared_gitdir = shared_submodule_gitdir(repo, path)?;
+    let main_ref = shared_gitdir.join("refs/heads/main");
+    let content = std::fs::read_to_string(&main_ref).ok()?;
+    let sha = content.trim().to_string();
+    if sha.is_empty() || sha.len() != 40 {
+        return None;
+    }
+    Some(sha)
+}
+
 /// Check if a path is a gitlink (mode 160000) with an unchanged pointer.
 /// Returns true if the entry is a submodule-like directory whose HEAD commit
 /// matches what the parent repo tracks, meaning the "dirty" state is just
