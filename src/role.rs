@@ -100,10 +100,6 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
 
     for (i, _row) in rows.iter().enumerate() {
         let my_path = &abs_paths[i];
-        let my_basename = my_path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
 
         // 1. Check parent role: does my .gitmodules declare any submods?
         let my_subs = list_submodules(my_path);
@@ -141,7 +137,6 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
                 break;
             }
         }
-        let _ = my_basename; // silence unused (reserved for future heuristics)
 
         // 3. Priority: submod > parent > standalone.
         let final_role = submod_role

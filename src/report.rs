@@ -3263,6 +3263,49 @@ impl crate::report::RepoReportRow {
     pub(crate) fn repo_path(&self) -> &str {
         &self.repo
     }
+
+    /// Default-constructed row with only `repo` set. Used by
+    /// `crate::role` tests to build synthetic rows without exposing
+    /// the private field list.
+    #[cfg(test)]
+    pub(crate) fn for_tests(repo_path: &str) -> Self {
+        Self {
+            repo: repo_path.to_string(),
+            state_flags: vec![],
+            branch: String::new(),
+            upstream: String::new(),
+            publish_state: crate::report::PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            ahead: 0,
+            behind: 0,
+            last_hash: "-".into(),
+            last_author: String::new(),
+            last_when: String::new(),
+            last_msg: String::new(),
+            last_unix: 0,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: String::new(),
+            push_status: String::new(),
+            push_error: String::new(),
+            push_to_remotes: vec![],
+            excluded_remotes: vec![],
+            git_size_bytes: None,
+            token_health: crate::report::TokenHealthSummary::default(),
+            concern: false,
+            warn: false,
+            hint: String::new(),
+            state_cause: crate::report::StateCause::Healthy,
+            state_cause_label: "healthy".into(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: "none".into(),
+        }
+    }
 }
 
 /// Build a comfy-table cell for the role classification column.
