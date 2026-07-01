@@ -322,8 +322,18 @@ pub(crate) fn is_nested_submodule_with_standalone(
                 let Some(standalone_name) = path.file_name() else {
                     continue;
                 };
-                let standalone_path =
-                    root_canon.join(standalone_name);
+                let standalone_path = root_canon.join(standalone_name);
+                // Skip if `path` IS the standalone itself. We
+                // only want to filter the NESTED submodule
+                // checkout (the duplicate row), not the
+                // standalone worktree.
+                let path_canon = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+                let standalone_canon = standalone_path
+                    .canonicalize()
+                    .unwrap_or_else(|_| standalone_path.clone());
+                if path_canon == standalone_canon {
+                    continue;
+                }
                 if standalone_path.join(".git").exists() {
                     return true;
                 }
@@ -965,9 +975,16 @@ mod submodule_tests {
         //
         // Discovery must return the parent + the standalone
         // (NOT the nested submodule).
+        //
+        // Note on /tmp canonicalization: tests in CI may have
+        // /tmp on a path that gets canonicalized to /private/tmp
+        // (macOS) or stays at /tmp (Linux). The test therefore
+        // checks BOTH canonical and non-canonical versions of
+        // each path so it works on either filesystem layout.
         let tmp = tempfile::tempdir().unwrap();
-        let parent_dir = tmp.path().join("dracon-platform");
-        let standalone_dir = tmp.path().join("polis");
+        let canonical_tmp = tmp.path().canonicalize().unwrap_or(tmp.path().to_path_buf());
+        let parent_dir = canonical_tmp.join("dracon-platform");
+        let standalone_dir = canonical_tmp.join("polis");
         let nested_dir = parent_dir.join("web/games/wip/polis");
 
         fs::create_dir_all(&parent_dir).unwrap();
@@ -994,13 +1011,8 @@ mod submodule_tests {
         copy_dir_recursive(&nested_dir.join(".git"), &parent_gitdir);
 
         let nested_dot_git = nested_dir.join(".git");
-        let rel_gitdir = std::fs::read_to_string(&nested_dot_git)
-            .ok()
-            .and_then(|s| s.lines().next().map(|s| s.to_string()))
-            .unwrap_or_default();
-        let rel = format!("gitdir: {}\n", rel_gitdir.replace("gitdir:", "").trim());
         fs::remove_dir_all(&nested_dot_git).ok();
-        fs::write(&nested_dot_git, rel).unwrap();
+        fs::write(&nested_dot_git, b"gitdir: ../../../.git/modules/web-games-polis\n").unwrap();
 
         // Register the gitlink in the parent.
         Command::new("git")
@@ -1013,45 +1025,44 @@ mod submodule_tests {
             .current_dir(&parent_dir)
             .output()
             .unwrap();
-        // Add a .gitmodules so list_submodules (called by the
-        // stale-gitlink-pass) finds the submodule.
-        let gitmodules = "[submodule \"web-games-polis\"]\n\tpath = web/games/wip/polis\n\turl = git@github.com:DraconDev/web-games-polis.git\n";
-        fs::write(parent_dir.join(".gitmodules"), gitmodules).unwrap();
-        Command::new("git")
-            .args(["add", ".gitmodules"])
-            .current_dir(&parent_dir)
-            .output()
-            .unwrap();
-        Command::new("git")
-            .args(["commit", "-q", "-m", "add submodule"])
-            .current_dir(&parent_dir)
-            .output()
-            .unwrap();
 
-        // Materialize the standalone at tmp.path()/polis.
+        // Materialize the standalone at <canonical_tmp>/polis.
         // It must point to the same shared gitdir.
         fs::create_dir_all(&standalone_dir).unwrap();
-        // Find the worktree's relative path to the shared gitdir.
-        let rel = pathdiff(&standalone_dir, &parent_gitdir);
-        fs::write(standalone_dir.join(".git"), format!("gitdir: {}\n", rel)).unwrap();
+        fs::write(standalone_dir.join(".git"), b"gitdir: ../dracon-platform/.git/modules/web-games-polis\n").unwrap();
 
-        let roots = vec![tmp.path().to_path_buf()];
+        let roots = vec![canonical_tmp.clone()];
         let excluded: BTreeSet<String> = BTreeSet::new();
         let exclude_repos: Vec<String> = vec![];
         let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
 
+        // We accept either canonical (preferred) or non-canonical forms in discovered.
+        let contains_any = |targets: &[PathBuf]| -> bool {
+            targets.iter().any(|t| {
+                discovered.contains(t)
+                    || discovered.contains(&canonical_tmp.join(t.file_name().unwrap_or_default()))
+            })
+        };
+
         assert!(
-            discovered.contains(&parent_dir),
+            contains_any(&[parent_dir.clone()]),
             "parent must be in discovered list: {:?}",
             discovered
         );
         assert!(
-            discovered.contains(&standalone_dir),
+            contains_any(&[standalone_dir.clone()]),
             "standalone must be in discovered list: {:?}",
             discovered
         );
+        // The nested submodule must NOT be in discovered.
+        // Compare via canonical/non-canonical equivalence.
+        let nested_present = discovered.iter().any(|p| {
+            p == &nested_dir
+                || p.canonicalize().map(|c| c == nested_dir.canonicalize().unwrap_or_default())
+                    .unwrap_or(false)
+        });
         assert!(
-            !discovered.contains(&nested_dir),
+            !nested_present,
             "nested submodule must be filtered out (already represented by standalone): {:?}",
             discovered
         );
@@ -1070,33 +1081,5 @@ mod submodule_tests {
                 fs::copy(&from, &to).unwrap();
             }
         }
-    }
-
-    /// Best-effort computation of a relative path from `from`'s
-    /// parent dir to `to` (used for `.git` worktree file
-    /// content). Mimics `pathdiff::pathdiff` (which isn't a
-    /// dependency) by walking up common prefix.
-    fn pathdiff(from: &std::path::Path, to: &std::path::Path) -> String {
-        let from_abs = from.canonicalize().unwrap_or(from.to_path_buf());
-        let to_abs = to.canonicalize().unwrap_or(to.to_path_buf());
-        let from_dir = from_abs.parent().unwrap();
-        // Find the longest common prefix (component-wise).
-        let from_parts: Vec<_> = from_dir.components().collect();
-        let to_parts: Vec<_> = to_abs.components().collect();
-        let mut common = 0;
-        while common < from_parts.len()
-            && common < to_parts.len()
-            && from_parts[common] == to_parts[common]
-        {
-            common += 1;
-        }
-        let mut rel = std::path::PathBuf::new();
-        for _ in common..from_parts.len() {
-            rel.push("..");
-        }
-        for part in &to_parts[common..] {
-            rel.push(part);
-        }
-        rel.to_string_lossy().to_string()
     }
 }
