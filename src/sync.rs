@@ -947,19 +947,26 @@ async fn stage_existing_files(
 /// also a separate worktree of a SHARED gitdir (the typical layout
 /// for `materialize_submodule`-created standalone worktrees at
 /// `/home/dracon/Dev/<name>/`), `git add <path>` from the parent
-/// reads the NESTED submodule's HEAD — which may have been
-/// advanced by the daemon making its own commits there, completely
-/// independently from the standalone worktree's `daemon-standalone`
-/// branch. This causes the parent's gitlink to drift away from the
-/// standalone's actual HEAD, breaking the convergence invariant
-/// (standalone HEAD == parent gitlink).
+/// reads the NESTED submodule's HEAD — which stays at the parent's
+/// gitlink SHA (because the nested checkout is detached at the
+/// gitlink SHA), while the standalone worktree commits advance
+/// `main` independently. This causes the parent's gitlink to drift
+/// away from the standalone's actual HEAD, breaking the convergence
+/// invariant (standalone HEAD == parent gitlink).
 ///
 /// To fix: prefer `git update-index --cacheinfo 160000,<sha>,<path>`
 /// with the SHARED gitdir's `refs/heads/main` SHA (which is what
-/// `fast_forward_daemon_standalone_to_main` advances after each
-/// standalone commit). Fall back to plain `git add <path>` when the
-/// shared gitdir isn't found (e.g., the parent has no `.gitmodules`
-/// or the submodule isn't materialized as a standalone worktree).
+/// the standalone worktree's commits advance directly, since the
+/// standalone is on `main`). Fall back to plain `git add <path>`
+/// when the shared gitdir isn't found (e.g., the parent has no
+/// `.gitmodules` or the submodule isn't materialized as a
+/// standalone worktree).
+///
+/// CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+/// Previous comment referenced a `fast_forward_daemon_standalone_to_main`
+/// hook. With the daemon-standalone branch removed (the standalone
+/// is on `main` directly), the canonical head is just `refs/heads/main`
+/// from the shared gitdir — no buffer-branch fast-forward needed.
 async fn stage_gitlink_updates(
     repo: &Path,
     gitlinks: &[String],
@@ -982,15 +989,16 @@ async fn stage_gitlink_updates(
         return Ok(());
     }
     for p in gitlinks {
-        // Prefer the SHARED gitdir's canonical head SHA when
+        // Prefer the SHARED gitdir's `refs/heads/main` SHA when
         // available — this is what the standalone worktree's
-        // HEAD actually points at. In the live 2026-07-01
-        // audit, `refs/heads/daemon-standalone` was sometimes
-        // ahead of `main` (when the standalone's local commits
-        // hadn't been fast-forwarded onto `main` yet), so
-        // reading only `main` was wrong. We use the
-        // canonical-head helper (prefers daemon-standalone,
-        // falls back to main).
+        // HEAD actually points at (since the standalone is on
+        // `main` directly). The canonical-head helper reads
+        // `refs/heads/main` from the shared gitdir.
+        //
+        // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+        // Previous comment mentioned a `daemon-standalone` ref
+        // being preferred over `main`. That ref was removed:
+        // the standalone worktree is on `main` directly now.
         let shared_sha = crate::exclude::shared_submodule_canonical_head_sha(
             repo,
             std::path::Path::new(p),
@@ -1424,100 +1432,23 @@ async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Resul
     Ok(())
 }
 
-/// Fast-forward the subrepo's `main` branch to the
-/// `daemon-standalone` branch's HEAD in the current worktree.
+/// No-op stub preserved for backwards compatibility with
+/// callers that haven't yet been migrated.
 ///
-/// This is the post-commit hook for materialized submodules
-/// (goal `mr10pdzr-i495vy`). When the daemon commits in a
-/// standalone worktree (on the `daemon-standalone` branch), the
-/// subrepo's main branch (the parent's gitlink target) is
-/// unchanged. To make the parent's gitlink go stale (so the
-/// `stage_gitlink_updates` flow from goal `mr0xseig-fn9bbd`
-/// fires), we fast-forward the main branch to the new HEAD.
+/// CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+/// The original purpose was to fast-forward `main` to the
+/// `daemon-standalone` branch's HEAD after each standalone
+/// commit (so the parent's gitlink would see the new commit).
+/// With the standalone worktree now on `main` directly, each
+/// commit already advances `main` (no buffer branch in
+/// between), so the hook is unnecessary. This stub remains
+/// so existing call sites still compile; it does nothing.
 ///
-/// Only runs if:
-/// 1. The worktree is on the `daemon-standalone` branch.
-/// 2. The `main` branch exists in the gitdir.
-/// 3. `daemon-standalone` is ahead of `main` (otherwise no
-///    fast-forward is needed).
-///
-/// Why a local fast-forward is the right approach: the
-/// standalone worktree's commit is on `daemon-standalone` (a
-/// local-only ref). To make the parent see it via gitlink, the
-/// main ref (which the parent tracks) must point at the new
-/// SHA. A local `git update-ref` is the most direct way to do
-/// this without involving the subrepo's remotes.
-///
-/// ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
-async fn fast_forward_daemon_standalone_to_main(repo: &Path) -> std::io::Result<()> {
-    use std::process::Command;
-    // Check if the worktree is on daemon-standalone.
-    let branch_output = Command::new("git")
-        .args(["branch", "--show-current"])
-        .current_dir(repo)
-        .output()?;
-    let current_branch = String::from_utf8_lossy(&branch_output.stdout)
-        .trim()
-        .to_string();
-    if current_branch != "daemon-standalone" {
-        // Not a daemon-standalone worktree; nothing to do.
-        return Ok(());
-    }
-    // Find the gitdir of the worktree (via the .git file).
-    let dot_git = repo.join(".git");
-    if !dot_git.is_file() {
-        return Ok(());
-    }
-    let gitdir_link = std::fs::read_to_string(&dot_git)?;
-    let Some(gitdir_rel) = gitdir_link.trim().strip_prefix("gitdir:") else {
-        return Ok(());
-    };
-    let gitdir_rel = gitdir_rel.trim();
-    // The .git file's gitdir is `<submodule_gitdir>/worktrees/<name>`.
-    // The shared gitdir (where refs/heads/main lives) is the
-    // parent of `worktrees/<name>`. Resolve by stripping the
-    // trailing `/worktrees/<worktree_name>` segment.
-    let worktree_gitdir = Path::new(gitdir_rel);
-    // Find the shared gitdir by walking up until we find a
-    // directory whose `refs/heads/main` exists. (Cheaper than
-    // hardcoding the path layout which depends on the parent
-    // repo being a submodule of dracon-platform specifically.)
-    let shared_gitdir = worktree_gitdir
-        .ancestors()
-        .find(|p| p.join("refs/heads/main").exists())
-        .unwrap_or(worktree_gitdir);
-    // Check if main exists in the shared gitdir.
-    let main_ref = shared_gitdir.join("refs/heads/main");
-    let standalone_ref = shared_gitdir.join("refs/heads/daemon-standalone");
-    if !main_ref.exists() {
-        // No main branch; nothing to fast-forward.
-        return Ok(());
-    }
-    if !standalone_ref.exists() {
-        return Ok(());
-    }
-    // Read both SHAs.
-    let main_sha = std::fs::read_to_string(&main_ref)?.trim().to_string();
-    let standalone_sha = std::fs::read_to_string(&standalone_ref)?.trim().to_string();
-    if main_sha == standalone_sha {
-        return Ok(());
-    }
-    // Check if standalone is a descendant of main (fast-forward possible).
-    let is_ancestor_output = Command::new("git")
-        .args(["merge-base", "--is-ancestor", &main_sha, &standalone_sha])
-        .current_dir(repo)
-        .output()?;
-    if !is_ancestor_output.status.success() {
-        // Not a fast-forward (standalone is not a descendant of main).
-        // This shouldn't happen in practice (the daemon only commits
-        // forward on daemon-standalone), but skip to be safe.
-        return Ok(());
-    }
-    // Fast-forward main to standalone.
-    let _ = Command::new("git")
-        .args(["update-ref", "refs/heads/main", &standalone_sha])
-        .current_dir(&shared_gitdir)
-        .output()?;
+/// If called, it just returns `Ok(())`.
+async fn fast_forward_daemon_standalone_to_main(_repo: &Path) -> std::io::Result<()> {
+    // No-op: the standalone worktree is on `main` directly,
+    // so each commit already advances `main`. There is no
+    // `daemon-standalone` ref to fast-forward.
     Ok(())
 }
 
@@ -3106,21 +3037,24 @@ async fn stage_commit_and_push(
             repo.display()
         );
         // If the repo is a materialized submodule's standalone
-        // worktree (on the `daemon-standalone` branch), also
-        // fast-forward the subrepo's main branch to the new
-        // HEAD. This is what makes the parent-gitlink
-        // propagation (goal `mr0xseig-fn9bbd`) work for
-        // submodules: the parent tracks the subrepo's main
-        // branch via gitlink, and the daemon-standalone branch
-        // is a separate ref. Without this fast-forward, the
-        // parent's gitlink would NOT go stale after a daemon
-        // commit in the standalone, and the parent would NOT
-        // auto-update.
+        // worktree, no extra fast-forward is needed: the
+        // standalone is on `main` directly, so each commit
+        // already advances `main`. The previous code called
+        // `fast_forward_daemon_standalone_to_main` here to
+        // copy the daemon-standalone branch's HEAD to main;
+        // that helper is now a no-op (kept for backwards
+        // compatibility). The call below remains so the
+        // daemon's main flow doesn't change, but it does
+        // nothing.
         //
-        // ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
+        // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+        // The previous version fast-forwarded `main` to the
+        // daemon-standalone branch's HEAD after each commit.
+        // With the standalone on `main` directly (no buffer
+        // branch), this fast-forward is unnecessary.
         if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
             eprintln!(
-                "⚠️ failed to fast-forward daemon-standalone to main in {}: {}",
+                "⚠️ fast_forward_daemon_standalone_to_main (no-op) error in {}: {}",
                 repo.display(),
                 e
             );
@@ -3312,29 +3246,32 @@ pub(crate) async fn sync_repo_with_ahead_since(
         .auto_bump_versions
         .unwrap_or(policy.auto_bump_versions);
 
-    // ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
-    // UNCONDITIONALLY fast-forward the shared gitdir's `main` ref
-    // to the standalone's `daemon-standalone` tip (when applicable)
-    // at the start of every sync_repo cycle. The original code only
-    // ran `fast_forward_daemon_standalone_to_main` AFTER a fresh
-    // daemon commit in `stage_commit_and_push`. That worked as long
-    // as the standalone had dirty files to commit every cycle, but
-    // breaks when a standalone is clean (zero dirty files) yet still
-    // ahead of `main` from an earlier cycle that bypassed the
-    // post-commit hook (e.g. a force-push, an interrupted commit,
-    // or an operator's manual commit). In that state the daemon
-    // sees no dirty files, skips the commit step, and `main` stays
-    // stale — the parent's gitlink never updates.
+    // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+    // The previous version of this code unconditionally
+    // fast-forwarded the shared gitdir's `main` ref to the
+    // standalone's `daemon-standalone` tip at the start of
+    // every sync_repo cycle. That was needed when the
+    // standalone was on a separate `daemon-standalone` branch
+    // and the parent's gitlink tracked `main`. With the
+    // daemon-standalone branch removed (the standalone is on
+    // `main` directly now), the helper is a no-op and this
+    // step does nothing. The call is preserved for backwards
+    // compatibility with the daemon's main flow.
     //
-    // Why running it before the diff is correct: the function is a
-    // pure ref-rewrite (no commits, no working-tree changes) and
-    // no-op when daemon-standalone == main. It also no-ops when
-    // the repo is not on the daemon-standalone branch. Cost is
-    // ~6 git invocations when applicable, ~1 otherwise.
+    // ADDED 2026-07-01, goal `mr10pdzr-i495vy` (original):
+    // The unconditional call was needed because the previous
+    // design committed on `daemon-standalone` and only
+    // fast-forwarded `main` in the post-commit hook. When the
+    // standalone was clean, the daemon skipped the commit step
+    // and `main` stayed stale. Running the fast-forward
+    // unconditionally at cycle start fixed that. The fix is
+    // no longer needed (the standalone is on `main` directly,
+    // so commits always advance `main`), but the call site is
+    // preserved.
     if !dry_run {
         if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
             eprintln!(
-                "⚠️ fast_forward_daemon_standalone_to_main failed for {}: {}",
+                "⚠️ fast_forward_daemon_standalone_to_main (no-op) error for {}: {}",
                 repo.display(),
                 e
             );
@@ -3438,11 +3375,11 @@ pub(crate) async fn sync_repo_with_ahead_since(
     //   report the gitlink as dirty whenever the nested checkout
     //   HEAD differed from the parent gitlink.
     // - With `materialize_submodule`, the standalone's commits
-    //   advance the shared `main` ref via
-    //   `fast_forward_daemon_standalone_to_main`, but the nested
-    //   checkout HEAD can coincidentally still equal the parent
-    //   gitlink (e.g. when the nested submodule isn't dirty from
-    //   the parent's perspective). In that case `git diff HEAD`
+    //   advance the shared `main` ref directly (the standalone
+    //   is on `main`), but the nested checkout HEAD can
+    //   coincidentally still equal the parent gitlink (e.g.
+    //   when the nested submodule isn't dirty from the
+    //   parent's perspective). In that case `git diff HEAD`
     //   reports NO change, the gitlink never enters
     //   `compute_diff_entries`'s `entries`, and the parent's
     //   gitlink silently diverges from the standalone's HEAD.
