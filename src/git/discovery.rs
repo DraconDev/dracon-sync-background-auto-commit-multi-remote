@@ -257,9 +257,14 @@ pub(crate) fn is_git_worktree_file(dot_git: &Path) -> bool {
 /// "git repos" — both have a `.git` (one a file, one a dir).
 /// But the daemon should sync only one of them per cycle.
 /// The standalone is preferred because it has a proper branch
-/// (`daemon-standalone`), the parent-gitlink propagation is
-/// designed around it, and the nested checkout is just the
-/// parent's gitlink target.
+/// (`main`), the parent-gitlink propagation is designed around
+/// it, and the nested checkout is just the parent's gitlink
+/// target (kept detached at the gitlink SHA).
+///
+/// CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+/// Previously the standalone was on a `daemon-standalone`
+/// branch (now removed). The standalone is on `main` directly
+/// now, so the comment is updated.
 ///
 /// Strategy: read `<path>/.git` content. If it's a `gitdir:`
 /// pointer that resolves (via canonicalize) to a directory
