@@ -3409,10 +3409,80 @@ pub(crate) async fn sync_repo_with_ahead_since(
     clean_staged_paths(&ctx).await?;
 
     let DiffResult {
-        status,
-        entries,
+        mut status,
+        mut entries,
         filter_only_cleared,
     } = compute_diff_entries(&svc, repo).await?;
+
+    // ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+    // Inject synthetic DiffFile entries for any tracked gitlink whose
+    // SHARED gitdir's `refs/heads/main` is ahead of the parent's
+    // tracked gitlink SHA. This is the propagation-fix half of the
+    // submodule-as-standalone-worktree feature:
+    //
+    // - Without `materialize_submodule`, the standalone worktree at
+    //   `/home/dracon/Dev/<name>/` and the parent's nested submodule
+    //   at `<parent>/<submodule_path>/` would be the same view of
+    //   the shared gitdir, so `git diff HEAD` on the parent would
+    //   report the gitlink as dirty whenever the nested checkout
+    //   HEAD differed from the parent gitlink.
+    // - With `materialize_submodule`, the standalone's commits
+    //   advance the shared `main` ref via
+    //   `fast_forward_daemon_standalone_to_main`, but the nested
+    //   checkout HEAD can coincidentally still equal the parent
+    //   gitlink (e.g. when the nested submodule isn't dirty from
+    //   the parent's perspective). In that case `git diff HEAD`
+    //   reports NO change, the gitlink never enters
+    //   `compute_diff_entries`'s `entries`, and the parent's
+    //   gitlink silently diverges from the standalone's HEAD.
+    //
+    // Fix: enumerate the stale gitlinks here and inject them into
+    // `entries` with status = Modified so they flow through the same
+    // partition-and-stage pipeline as naturally-dirty entries.
+    // `stage_gitlink_updates` then reads the shared `main` ref via
+    // `shared_submodule_main_sha` and writes the correct SHA into the
+    // parent's index via `git update-index --cacheinfo 160000,<sha>,
+    // <path>`.
+    //
+    // Status must be Modified (not Added) so that:
+    // 1. The entry is not dropped by the "auto_stage_untracked = false"
+    //    filter that runs against `Added` entries.
+    // 2. The path is already tracked in the parent, which is correct
+    //    (gitlinks are tracked entries with mode 160000).
+    //
+    // Empty `mut entries` is fine — extend() appends without
+    // disturbing any existing entries (which would already represent
+    // dirty gitlinks from this commit's perspective).
+    let stale_paths = crate::exclude::stale_gitlink_paths(repo);
+    if !stale_paths.is_empty() {
+        if debug_enabled() {
+            eprintln!(
+                "🐛 {} injecting {} stale gitlink(s) from shared main: {:?}",
+                repo.display(),
+                stale_paths.len(),
+                stale_paths
+            );
+        }
+        // If libgit2 thought the repo was clean (no dirty entries at
+        // all), the auto-commit branch downstream would be skipped via
+        // the `!status.is_clean` guard. Stale gitlink entries are
+        // effectively dirty (their pointer needs to advance), so flip
+        // is_clean off so the auto-commit pipeline runs them.
+        status.is_clean = false;
+        status.modified_files += stale_paths.len();
+        for p in stale_paths {
+            // Defensive dedup: if `entries` already contains this
+            // path (e.g. from a natural `git diff HEAD` dirty
+            // gitlink), don't double-inject.
+            if entries.iter().any(|e| e.path == p) {
+                continue;
+            }
+            entries.push(dracon_git::types::DiffFile::new(
+                p,
+                dracon_git::types::FileStatus::Modified,
+            ));
+        }
+    }
 
     // filter_only_cleared: changes present but all filtered out by clean/smudge.
     // Don't stage/commit — return NothingToDo so the daemon applies a cooldown.

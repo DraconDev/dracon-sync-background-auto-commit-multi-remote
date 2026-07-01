@@ -691,7 +691,18 @@ mod tests {
         ];
         let update_refs: Vec<&str> = update_args.iter().map(String::as_str).collect();
         git_c(&parent, &update_refs);
-        git_c(&parent, &["commit", "-q", "-m", "add submodule"]);
+        // Also write a `.gitmodules` file so `list_submodules`
+        // (and therefore `stale_gitlink_paths`) can find the
+        // submodule. `stale_gitlink_paths` walks
+        // `.gitmodules`; without this file, no submodules
+        // surface and `stale_gitlink_paths` returns empty
+        // even when the shared gitdir's main ref is ahead.
+        let gitmodules = format!(
+            "[submodule \"web-games-foo\"]\n\tpath = nested/foo\n\turl = git@gitlab.com:DraconDev/web-games-foo.git\n"
+        );
+        std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
+        git_c(&parent, &["add", ".gitmodules"]);
+        git_c(&parent, &["commit", "-q", "-m", "add submodule .gitmodules"]);
 
         (td, parent, standalone_dir, sub_sha)
     }
@@ -757,6 +768,82 @@ mod tests {
             is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
             "is_gitlink_unchanged must return true when shared main == parent gitlink",
         );
+    }
+
+    #[test]
+    fn test_stale_gitlink_paths_returns_stale_path() {
+        // Regression test for the 6/9 submodule propagation bug,
+        // follow-up to `test_is_gitlink_unchanged_false_when_shared_main_ahead_of_parent`.
+        //
+        // Build a parent + standalone-submodule pair (via the
+        // `build_parent_with_standalone_submodule` helper, which
+        // mirrors `materialize_submodule`'s output). Then advance
+        // the shared gitdir's `refs/heads/main` to a NEW SHA
+        // (simulating the daemon's
+        // `fast_forward_daemon_standalone_to_main` hook running
+        // after a standalone commit). `stale_gitlink_paths` MUST
+        // return the parent's gitlink path, because the parent's
+        // tracked gitlink still points at the OLD SHA.
+        //
+        // After we rewind shared main to match the parent gitlink,
+        // `stale_gitlink_paths` MUST return empty (the parent's
+        // gitlink already matches the standalone's main ref).
+        let (_td, parent, _standalone, _initial_sub_sha) =
+            build_parent_with_standalone_submodule();
+
+        let shared_gitdir = parent.join(".git/modules/web-games-foo");
+        let main_ref = shared_gitdir.join("refs/heads/main");
+        let main_sha_before = std::fs::read_to_string(&main_ref)
+            .unwrap()
+            .trim()
+            .to_string();
+
+        // Initially, shared main == parent gitlink, so no stale paths.
+        assert!(
+            stale_gitlink_paths(&parent).is_empty(),
+            "expected no stale gitlinks when shared main == parent gitlink",
+        );
+
+        // Advance shared main to a NEW commit. Now the parent's
+        // gitlink (still at main_sha_before) is stale.
+        let new_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+        std::fs::write(&main_ref, format!("{}\n", new_sha)).unwrap();
+
+        let stale = stale_gitlink_paths(&parent);
+        assert_eq!(
+            stale.len(),
+            1,
+            "stale_gitlink_paths must return exactly one path, got: {:?}",
+            stale
+        );
+        assert_eq!(
+            stale[0],
+            std::path::PathBuf::from("nested/foo"),
+            "stale path must be the parent's gitlink path 'nested/foo'",
+        );
+
+        // Rewind shared main to match parent gitlink: no more stale.
+        std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
+        assert!(
+            stale_gitlink_paths(&parent).is_empty(),
+            "stale_gitlink_paths must be empty after rewinding shared main to match parent",
+        );
+    }
+
+    #[test]
+    fn test_stale_gitlink_paths_skips_when_no_submodules() {
+        // When the parent has no .gitmodules, stale_gitlink_paths
+        // must return empty (not panic on missing file).
+        let td = tempfile::tempdir().unwrap();
+        let parent = td.path().join("parent");
+        std::fs::create_dir_all(&parent).unwrap();
+        git_c(&parent, &["init", "-q", "-b", "main"]);
+        git_c(&parent, &["config", "user.email", "t@t"]);
+        git_c(&parent, &["config", "user.name", "t"]);
+        std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
+        git_c(&parent, &["add", "README.md"]);
+        git_c(&parent, &["commit", "-q", "-m", "init"]);
+        assert!(stale_gitlink_paths(&parent).is_empty());
     }
 }
 
@@ -951,6 +1038,71 @@ fn shared_submodule_gitdir(repo: &Path, path: &Path) -> Option<std::path::PathBu
         return None;
     }
     Some(canonical)
+}
+
+/// Find all tracked gitlink paths in `repo` whose SHARED gitdir's
+/// `refs/heads/main` SHA is ahead of the parent's tracked gitlink
+/// SHA. Returns the relative gitlink paths (e.g. `web/games/wip/polis`)
+/// that need re-staging so the parent's gitlink catches up to the
+/// standalone worktree's commits.
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// This is the upstream-of-the-filter helper that allows the
+/// parent-gitlink propagation fix to work even when `git diff HEAD`
+/// does NOT report the path as dirty. After
+/// `materialize_submodule` creates a standalone worktree of the
+/// shared gitdir, the standalone commits advance the shared
+/// `main` ref while the parent's index stays at the OLD gitlink
+/// SHA. `git diff HEAD` doesn't show the gitlink as changed
+/// (the nested checkout's HEAD happens to match the parent —
+/// coincidentally — so `git diff HEAD` reports nothing). Without
+/// this helper, the daemon's entry-filter step (which uses
+/// `is_gitlink_unchanged`) drops the gitlink from `to_stage`,
+/// and the parent's gitlink silently diverges from the standalone.
+///
+/// The fix: this helper enumerates stale gitlinks so the caller
+/// can inject synthetic DiffFile entries into `to_stage` for
+/// each one. `stage_gitlink_updates` then explicitly writes the
+/// shared `main` SHA into the parent's index via
+/// `git update-index --cacheinfo 160000,<sha>,<path>`.
+pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
+    let mut stale = Vec::new();
+    // Walk the parent's `.gitmodules` (so we know what the
+    // operator-declared submodule paths are).
+    let subs = crate::git::list_submodules(repo);
+    for sub in &subs {
+        let p = std::path::PathBuf::from(&sub.path);
+        // Get the parent's tracked gitlink SHA from the index.
+        let output = crate::git::git_cmd()
+            .current_dir(repo)
+            .args(["ls-files", "--stage", "--"])
+            .arg(&p)
+            .output();
+        let Ok(out) = output else { continue };
+        if !out.status.success() {
+            continue;
+        }
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        // Format: "160000 <sha>\t<path>".
+        // First line is the staged version, second (if present)
+        // is the worktree version. For a gitlink the staged
+        // version is the relevant one.
+        let Some(first_line) = stdout.lines().next() else { continue };
+        let mut parts = first_line.split_whitespace();
+        let mode = parts.next().unwrap_or("");
+        if mode != "160000" {
+            // Not a gitlink (e.g. untracked module); skip.
+            continue;
+        }
+        let parent_sha = parts.next().unwrap_or("");
+        let shared = shared_submodule_main_sha(repo, &p);
+        if let Some(shared_sha) = shared {
+            if shared_sha != parent_sha {
+                stale.push(p);
+            }
+        }
+    }
+    stale
 }
 
 /// Read the SHARED gitdir's `refs/heads/main` SHA for a nested
