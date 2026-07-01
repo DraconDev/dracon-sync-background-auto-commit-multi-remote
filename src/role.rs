@@ -229,47 +229,7 @@ mod tests {
 
         // No .gitmodules → no parent role; no other watched rows → no
         // submod role. Result: Standalone.
-        let row = crate::report::RepoReportRow {
-            repo: repo.display().to_string(),
-            // Default-zero-init the rest of the fields. RepoReportRow
-            // has many fields; we use ..Default-style defaults through
-            // a helper-free struct literal. For simplicity, only the
-            // `repo` field is consulted by classify_roles, so the
-            // other fields can take their `Default` values.
-            state_flags: vec![],
-            branch: String::new(),
-            upstream: String::new(),
-            publish_state: crate::report::PublishState::Ok,
-            modified: 0,
-            staged: 0,
-            untracked: 0,
-            ahead: 0,
-            behind: 0,
-            last_hash: "-".into(),
-            last_author: String::new(),
-            last_when: String::new(),
-            last_msg: String::new(),
-            last_unix: 0,
-            commits_1h: 0,
-            commits_6h: 0,
-            commits_24h: 0,
-            last_push: String::new(),
-            push_status: String::new(),
-            push_error: String::new(),
-            push_to_remotes: vec![],
-            excluded_remotes: vec![],
-            git_size_bytes: None,
-            token_health: crate::report::TokenHealthSummary::default(),
-            concern: false,
-            warn: false,
-            hint: String::new(),
-            state_cause: crate::report::StateCause::Healthy,
-            state_cause_label: "healthy".into(),
-            daemon_last_action_unix: 0,
-            daemon_last_action: String::new(),
-            daemon_last_result: String::new(),
-            daemon_last_action_when: "none".into(),
-        };
+        let row = crate::report::RepoReportRow::for_tests(&repo.display().to_string());
         let rows = vec![row];
         let roles = classify_roles(&rows);
         assert_eq!(roles.len(), 1);
@@ -298,42 +258,7 @@ mod tests {
         stage_gitlink(&parent_path, "sub/b", &head);
         stage_gitlink(&parent_path, "sub/c", &head);
 
-        let row = crate::report::RepoReportRow {
-            repo: parent_path.display().to_string(),
-            state_flags: vec![],
-            branch: String::new(),
-            upstream: String::new(),
-            publish_state: crate::report::PublishState::Ok,
-            modified: 0,
-            staged: 0,
-            untracked: 0,
-            ahead: 0,
-            behind: 0,
-            last_hash: "-".into(),
-            last_author: String::new(),
-            last_when: String::new(),
-            last_msg: String::new(),
-            last_unix: 0,
-            commits_1h: 0,
-            commits_6h: 0,
-            commits_24h: 0,
-            last_push: String::new(),
-            push_status: String::new(),
-            push_error: String::new(),
-            push_to_remotes: vec![],
-            excluded_remotes: vec![],
-            git_size_bytes: None,
-            token_health: crate::report::TokenHealthSummary::default(),
-            concern: false,
-            warn: false,
-            hint: String::new(),
-            state_cause: crate::report::StateCause::Healthy,
-            state_cause_label: "healthy".into(),
-            daemon_last_action_unix: 0,
-            daemon_last_action: String::new(),
-            daemon_last_result: String::new(),
-            daemon_last_action_when: "none".into(),
-        };
+        let row = crate::report::RepoReportRow::for_tests(&parent_path.display().to_string());
         let rows = vec![row];
         let roles = classify_roles(&rows);
         assert_eq!(roles.len(), 1);
@@ -355,41 +280,16 @@ mod tests {
         fs::write(parent_path.join(".gitmodules"), gitmodules).unwrap();
         stage_gitlink(&parent_path, "sub/child", &head);
 
-        // And a real sub-repo at <parent>/sub/child with its own .git.
-        // `list_submodules` only reads .gitmodules + the parent's
-        // index; we don't need a real submodule here for the parent
-        // test. But for the SUBMOD test we need a second row whose
-        // absolute path matches <parent>/sub/child.
+        // Real sub-repo at <parent>/sub/child with its own .git so the
+        // classify_roles submod-of-parent path resolution succeeds.
         let child_dir = parent_path.join("sub/child");
         fs::create_dir_all(&child_dir).unwrap();
         init_repo(&child_dir);
 
-        let row_parent = crate::report::RepoReportRow {
-            repo: parent_path.display().to_string(),
-            state_flags: vec![],
-            branch: String::new(),
-            upstream: String::new(),
-            publish_state: crate::report::PublishState::Ok,
-            modified: 0, staged: 0, untracked: 0, ahead: 0, behind: 0,
-            last_hash: "-".into(), last_author: String::new(),
-            last_when: String::new(), last_msg: String::new(),
-            last_unix: 0, commits_1h: 0, commits_6h: 0, commits_24h: 0,
-            last_push: String::new(), push_status: String::new(),
-            push_error: String::new(), push_to_remotes: vec![],
-            excluded_remotes: vec![], git_size_bytes: None,
-            token_health: crate::report::TokenHealthSummary::default(),
-            concern: false, warn: false, hint: String::new(),
-            state_cause: crate::report::StateCause::Healthy,
-            state_cause_label: "healthy".into(),
-            daemon_last_action_unix: 0,
-            daemon_last_action: String::new(),
-            daemon_last_result: String::new(),
-            daemon_last_action_when: "none".into(),
-        };
-        let row_child = crate::report::RepoReportRow {
-            repo: child_dir.display().to_string(),
-            ..row_parent.clone()
-        };
+        let row_parent =
+            crate::report::RepoReportRow::for_tests(&parent_path.display().to_string());
+        let row_child =
+            crate::report::RepoReportRow::for_tests(&child_dir.display().to_string());
         let rows = vec![row_parent, row_child];
         let roles = classify_roles(&rows);
 
@@ -437,29 +337,11 @@ mod tests {
         fs::create_dir_all(&leaf).unwrap();
         init_repo(&leaf);
 
-        let mk_row = |path: &Path| crate::report::RepoReportRow {
-            repo: path.display().to_string(),
-            state_flags: vec![],
-            branch: String::new(),
-            upstream: String::new(),
-            publish_state: crate::report::PublishState::Ok,
-            modified: 0, staged: 0, untracked: 0, ahead: 0, behind: 0,
-            last_hash: "-".into(), last_author: String::new(),
-            last_when: String::new(), last_msg: String::new(),
-            last_unix: 0, commits_1h: 0, commits_6h: 0, commits_24h: 0,
-            last_push: String::new(), push_status: String::new(),
-            push_error: String::new(), push_to_remotes: vec![],
-            excluded_remotes: vec![], git_size_bytes: None,
-            token_health: crate::report::TokenHealthSummary::default(),
-            concern: false, warn: false, hint: String::new(),
-            state_cause: crate::report::StateCause::Healthy,
-            state_cause_label: "healthy".into(),
-            daemon_last_action_unix: 0,
-            daemon_last_action: String::new(),
-            daemon_last_result: String::new(),
-            daemon_last_action_when: "none".into(),
-        };
-        let rows = vec![mk_row(&grand), mk_row(&middle), mk_row(&leaf)];
+        let rows = vec![
+            crate::report::RepoReportRow::for_tests(&grand.display().to_string()),
+            crate::report::RepoReportRow::for_tests(&middle.display().to_string()),
+            crate::report::RepoReportRow::for_tests(&leaf.display().to_string()),
+        ];
         let roles = classify_roles(&rows);
 
         // Grand: Parent only (no submod-of for grand here).
