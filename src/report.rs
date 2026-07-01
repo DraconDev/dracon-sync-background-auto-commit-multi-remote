@@ -3044,6 +3044,7 @@ fn print_repos_full_table(
         Cell::new("#"),
         mk_h("🏷", "STATUS"),
         mk_h("📦", "REPO"),
+        mk_h("🔗", "ROLE"),
         mk_h("🌿", "BRANCH"),
         mk_h("🔗", "PUBLISH"),
         mk_h("📝", "MOD"),
@@ -3080,6 +3081,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(35)), // ROLE (header 7 + 2 + 26 buffer for 'submod (of dracon-platform/web/games/wip/junk-runner)')
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUBLISH (header 10 + 2 + 5 buffer)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // MOD (header 6 + 2 pad = 8)
@@ -3100,6 +3102,10 @@ fn print_repos_full_table(
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // DAEMON (header 9 + 2 + 6 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
     ]);
+
+    // Classify each row's topology role (parent / submod / standalone).
+    // Computed once before the row loop, not per-row at render time.
+    let roles = crate::role::classify_roles(rows);
 
     for (idx, row) in rows.iter().enumerate() {
         let (status_text, status_color) = if row.concern {
@@ -3132,6 +3138,7 @@ fn print_repos_full_table(
             Cell::new(idx + 1),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
+            role_cell(&roles[idx]),
             Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),

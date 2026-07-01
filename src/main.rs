@@ -15,6 +15,7 @@ mod policy;
 mod print;
 mod release;
 mod report;
+mod role;
 mod secrets;
 mod standard_files;
 mod sync;
