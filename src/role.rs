@@ -494,5 +494,3 @@ mod tests {
 fn _suppress_submodule_entry_unused(_e: &SubmoduleEntry) {
     let _ = _e.name.len();
 }
-</content>
-</invoke>

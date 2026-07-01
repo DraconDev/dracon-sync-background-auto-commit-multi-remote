@@ -3256,18 +3256,26 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
     }
 }
 
+/// Public accessor: the absolute path of the watched repo's working
+/// tree as a string. Used by `crate::role::classify_roles` to find
+/// each row's path without exposing the private `repo` field.
+impl crate::report::RepoReportRow {
+    pub(crate) fn repo_path(&self) -> &str {
+        &self.repo
+    }
+}
+
 /// Build a comfy-table cell for the role classification column.
 /// Parents get green (they own submods); submods get cyan (they're
 /// nested); standalone gets white (the default for non-actionable).
-fn role_cell(role: &crate::role::RoleKind) -> Cell {
+fn role_cell(role: &crate::role::RoleKind) -> comfy_table::Cell {
     let label = role.label();
     let color = match role {
-        crate::role::RoleKind::Parent(_) => Color::Green,
-        crate::role::RoleKind::Submod { .. } => Color::Cyan,
-        crate::role::RoleKind::Standalone => Color::White,
+        crate::role::RoleKind::Parent(_) => comfy_table::Color::Green,
+        crate::role::RoleKind::Submod { .. } => comfy_table::Color::Cyan,
+        crate::role::RoleKind::Standalone => comfy_table::Color::White,
     };
-    Cell::new(label).fg(color)
-}
+    comfy_table::Cell::new(label).fg(color)
 }
 
 // ---------------------------------------------------------------------------
