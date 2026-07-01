@@ -1163,6 +1163,16 @@ pub(crate) async fn materialize_submodule(
 
     // Idempotency: if target_path/.git already exists and points
     // to a worktree of this same gitdir, return Ok.
+    //
+    // The worktree is expected to be on `main` (the canonical
+    // branch; the daemon-standalone branch was removed in goal
+    // `mr1x7j5i-zioba9`). We don't auto-fix the branch here —
+    // the operator (or a follow-up daemon cycle) can manually
+    // `git -C <target_path> checkout main` if the worktree is
+    // on a different branch. The daemon-standalone branch
+    // migration was a one-time thing for the 9 game submodules
+    // + hegemon and is now done (see the design doc at
+    // `docs/design/daemon-standalone-removal-2026-07-01.md`).
     if target_path.exists() {
         let target_dot_git = target_path.join(".git");
         if target_dot_git.exists() {
@@ -1174,46 +1184,6 @@ pub(crate) async fn materialize_submodule(
                     // We accept any worktree of this submodule's
                     // gitdir, not just one with a specific name.
                     if Path::new(gitdir).starts_with(&submodule_gitdir) {
-                        // Additional check: if the worktree is
-                        // on a detached HEAD, convert it to a
-                        // branch (`daemon-standalone`) so the
-                        // daemon can `git push` it end-to-end.
-                        // Detached worktrees can be committed in
-                        // locally but `git push` refuses with
-                        // "not a full refname". This is a one-way
-                        // migration: any worktree that was
-                        // previously detached is converted to a
-                        // branch. The HEAD content is preserved
-                        // (we don't move any commits).
-                        let head_branch = crate::policy::tokio_git_command()
-                            .arg("-C")
-                            .arg(target_path)
-                            .args(["symbolic-ref", "--quiet", "HEAD"])
-                            .output()
-                            .await
-                            .ok();
-                        if head_branch.is_none()
-                            || !head_branch.as_ref().is_some_and(|o| o.status.success())
-                        {
-                            // Detached. Create the daemon-standalone
-                            // branch at HEAD, then check it out.
-                            let _ = crate::policy::tokio_git_command()
-                                .arg("-C")
-                                .arg(target_path)
-                                .args([
-                                    "branch",
-                                    "daemon-standalone",
-                                    "HEAD",
-                                ])
-                                .output()
-                                .await;
-                            let _ = crate::policy::tokio_git_command()
-                                .arg("-C")
-                                .arg(target_path)
-                                .args(["checkout", "-q", "daemon-standalone"])
-                                .output()
-                                .await;
-                        }
                         return Ok(());
                     }
                 }
@@ -1277,36 +1247,40 @@ pub(crate) async fn materialize_submodule(
     // IS where the daemon should commit on the subrepo going
     // forward).
     //
-    // Why we use a new branch (`daemon-standalone`) instead of
-    // the main branch: a fresh branch lets the standalone be
-    // created without checking out the main worktree (which
-    // is the parent's nested submodule, currently checked out
-    // at the parent's index). Two worktrees on the same branch
-    // is not allowed in git; a separate branch sidesteps this.
+    // Why this works now (where it didn't before): the
+    // parent's nested submodule checkout is kept DETACHED
+    // (at the parent's tracked gitlink SHA) by the daemon's
+    // adopt/submodule initialization. Git allows a detached
+    // worktree and a separate worktree on the same branch
+    // to coexist, because the detached worktree's HEAD is
+    // independent of any branch ref. So we can have the
+    // standalone on `main` directly while the nested checkout
+    // is detached at the parent's gitlink SHA.
+    //
+    // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
+    // The previous design used `-b daemon-standalone` to
+    // create the standalone on a separate branch. That worked
+    // around the "two worktrees on the same branch" git
+    // restriction by using a buffer branch, then
+    // fast-forwarding `main` after each commit. The buffer
+    // branch caused confusion (it looked like a separate
+    // repo, the canonical-head helper preferred it over
+    // `main` causing stale-gitlink bugs, and the post-commit
+    // fast-forward hook added complexity). Removing it: the
+    // nested checkout is detached, the standalone is on `main`,
+    // and `main` advances directly with each commit.
     //
     // ADDED 2026-06-30, goal `mr10pdzr-i495vy`: original
     // implementation used `--detach` which worked for parent
-    // gitlink propagation but broke `git push` end-to-end.
-    // The `daemon-standalone` branch keeps the standalone
-    // worktree pushable while letting the daemon's commits
-    // advance the subrepo's main branch (the parent's gitlink
-    // target).
-    //
-    // CHANGED 2026-06-30 (round 3 of fix): for parent-gitlink
-    // propagation to work end-to-end, the standalone's
-    // commits must also advance the main branch that the
-    // parent tracks. We do this by ALSO fast-forwarding
-    // `main` to the standalone's HEAD after each commit
-    // (in `materialize_pending_submodules`'s post-commit hook
-    // for materialized submodules). For the materialize call
-    // itself, the worktree is created on `daemon-standalone`
-    // because the subrepo's main worktree (inside the parent)
-    // is currently checked out, so we can't create a second
-    // worktree on the same branch.
+    // gitlink propagation but broke `git push` end-to-end
+    // (detached worktrees can't be `git push`ed). The buffer
+    // branch was the workaround. With the nested checkout
+    // detached (which is the new invariant), the standalone
+    // can be on `main` directly without losing push.
     let output = crate::policy::tokio_git_command()
         .arg("-C")
         .arg(&submodule_gitdir)
-        .args(["worktree", "add", "-b", "daemon-standalone"])
+        .args(["worktree", "add"])
         .arg(target_path)
         .arg(sha)
         .output()
