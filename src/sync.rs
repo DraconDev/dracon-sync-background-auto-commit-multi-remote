@@ -8005,114 +8005,63 @@ auto_bump_versions = false
         let tmp = tempfile::tempdir().unwrap();
         let parent = tmp.path().join("parent");
         std::fs::create_dir_all(&parent).unwrap();
+        let parent_s = parent.to_string_lossy().to_string();
+
+        let run_in = |cwd: &str, args: &[&str]| {
+            let mut real = vec!["git", "-C", cwd];
+            real.extend_from_slice(args);
+            Command::new(real[0]).args(&real[1..]).output().unwrap()
+        };
 
         // 1. Build the parent repo.
-        for args in [
-            vec!["init", "-q", "-b", "main"],
-            vec!["config", "user.email", "t@t"],
-            vec!["config", "user.name", "t"],
-        ] {
-            Command::new("git")
-                .args({
-                    let mut v = vec!["-C", &parent.to_string_lossy()];
-                    v.extend_from_slice(&args);
-                    v
-                })
-                .output()
-                .unwrap();
-        }
+        run_in(&parent_s, &["init", "-q", "-b", "main"]);
+        run_in(&parent_s, &["config", "user.email", "t@t"]);
+        run_in(&parent_s, &["config", "user.name", "t"]);
         std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
-        for args in [
-            vec!["-C", &parent.to_string_lossy(), "add", "-A"],
-            vec!["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "init"],
-        ] {
-            let mut real = vec!["git"];
-            real.extend_from_slice(&args);
-            Command::new(real[0]).args(&real[1..]).output().unwrap();
-        }
+        run_in(&parent_s, &["add", "-A"]);
+        run_in(&parent_s, &["commit", "-q", "-m", "init"]);
 
         // 2. Build the subrepo at `parent/sub/` with its own
-        //    `.git/`. The subrepo starts at one commit.
+        //    `.git/`.
         let sub_path = parent.join("sub");
         std::fs::create_dir_all(&sub_path).unwrap();
-        for args in [
-            vec!["init", "-q", "-b", "main"],
-            vec!["config", "user.email", "t@t"],
-            vec!["config", "user.name", "t"],
-        ] {
-            Command::new("git")
-                .args({
-                    let mut v = vec!["-C", &sub_path.to_string_lossy()];
-                    v.extend_from_slice(&args);
-                    v
-                })
-                .output()
-                .unwrap();
-        }
+        let sub_s = sub_path.to_string_lossy().to_string();
+        run_in(&sub_s, &["init", "-q", "-b", "main"]);
+        run_in(&sub_s, &["config", "user.email", "t@t"]);
+        run_in(&sub_s, &["config", "user.name", "t"]);
         std::fs::write(sub_path.join("README.md"), b"# sub\n").unwrap();
-        for args in [
-            vec!["-C", &sub_path.to_string_lossy(), "add", "-A"],
-            vec!["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "init"],
-        ] {
-            let mut real = vec!["git"];
-            real.extend_from_slice(&args);
-            Command::new(real[0]).args(&real[1..]).output().unwrap();
-        }
+        run_in(&sub_s, &["add", "-A"]);
+        run_in(&sub_s, &["commit", "-q", "-m", "init"]);
         let sub_head_initial = String::from_utf8_lossy(
-            &Command::new("git")
-                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&sub_s, &["rev-parse", "HEAD"]).stdout,
         )
         .trim()
         .to_string();
 
         // 3. Register the subrepo as a gitlink in the parent.
-        Command::new("git")
-            .args([
-                "-C",
-                &parent.to_string_lossy(),
+        run_in(
+            &parent_s,
+            &[
                 "update-index",
                 "--add",
                 "--cacheinfo",
                 &format!("160000,{},sub", sub_head_initial),
-            ])
-            .output()
-            .unwrap();
-        Command::new("git")
-            .args(["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "add sub"])
-            .output()
-            .unwrap();
+            ],
+        );
+        run_in(&parent_s, &["commit", "-q", "-m", "add sub"]);
 
-        // 4. Make a STANDALONE COMMIT in `sub_path/` (this is
-        //    what `materialize_submodule`'s user does in
-        //    practice — edits the standalone worktree, the
-        //    daemon auto-commits it, and we need the parent
-        //    gitlink to follow).
+        // 4. Make a STANDALONE COMMIT in `sub_path/`.
         std::fs::write(sub_path.join("README.md"), b"# updated sub\n").unwrap();
-        Command::new("git")
-            .args(["-C", &sub_path.to_string_lossy(), "add", "README.md"])
-            .output()
-            .unwrap();
-        Command::new("git")
-            .args(["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "update"])
-            .output()
-            .unwrap();
+        run_in(&sub_s, &["add", "README.md"]);
+        run_in(&sub_s, &["commit", "-q", "-m", "update"]);
         let sub_head_v1 = String::from_utf8_lossy(
-            &Command::new("git")
-                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&sub_s, &["rev-parse", "HEAD"]).stdout,
         )
         .trim()
         .to_string();
         assert_ne!(sub_head_initial, sub_head_v1);
 
-        // 5. Run the daemon's gitlink-update stage. This is the
-        //    function called by `stage_commit_and_push` on each
-        //    cycle when it sees modified gitlink entries.
+        // 5. Run the daemon's gitlink-update stage.
         let result =
             stage_gitlink_updates(&parent, &["sub".to_string()], false, 30).await;
         assert!(
@@ -8123,17 +8072,7 @@ auto_bump_versions = false
 
         // 6. Parent index must now point at sub_head_v1.
         let index_sha_after_v1 = String::from_utf8_lossy(
-            &Command::new("git")
-                .args([
-                    "-C",
-                    &parent.to_string_lossy(),
-                    "ls-files",
-                    "--stage",
-                    "sub",
-                ])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&parent_s, &["ls-files", "--stage", "sub"]).stdout,
         )
         .to_string();
         assert!(
@@ -8145,17 +8084,7 @@ auto_bump_versions = false
 
         // 7. NO subrepo file leaked into the parent index.
         let staged_files = String::from_utf8_lossy(
-            &Command::new("git")
-                .args([
-                    "-C",
-                    &parent.to_string_lossy(),
-                    "diff",
-                    "--cached",
-                    "--name-only",
-                ])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&parent_s, &["diff", "--cached", "--name-only"]).stdout,
         )
         .to_string();
         assert!(
@@ -8165,24 +8094,12 @@ auto_bump_versions = false
         );
 
         // 8. SECOND commit in the standalone — convergence must
-        //    hold across repeated standalone commits, not just
-        //    a one-off. (This catches the case where a stale
-        //    ref write sticks after the first cycle.)
+        //    hold across repeated standalone commits.
         std::fs::write(sub_path.join("extra.txt"), b"extra\n").unwrap();
-        Command::new("git")
-            .args(["-C", &sub_path.to_string_lossy(), "add", "extra.txt"])
-            .output()
-            .unwrap();
-        Command::new("git")
-            .args(["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "more"])
-            .output()
-            .unwrap();
+        run_in(&sub_s, &["add", "extra.txt"]);
+        run_in(&sub_s, &["commit", "-q", "-m", "more"]);
         let sub_head_v2 = String::from_utf8_lossy(
-            &Command::new("git")
-                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&sub_s, &["rev-parse", "HEAD"]).stdout,
         )
         .trim()
         .to_string();
@@ -8196,17 +8113,7 @@ auto_bump_versions = false
             result2
         );
         let index_sha_after_v2 = String::from_utf8_lossy(
-            &Command::new("git")
-                .args([
-                    "-C",
-                    &parent.to_string_lossy(),
-                    "ls-files",
-                    "--stage",
-                    "sub",
-                ])
-                .output()
-                .unwrap()
-                .stdout,
+            &run_in(&parent_s, &["ls-files", "--stage", "sub"]).stdout,
         )
         .to_string();
         assert!(
