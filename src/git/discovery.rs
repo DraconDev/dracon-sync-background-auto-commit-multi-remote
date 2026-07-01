@@ -3,6 +3,8 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use crate::policy::debug_enabled;
+
 /// One submodule entry as declared in the parent repo's `.gitmodules`.
 ///
 /// `name` is the .gitmodules key (e.g. `web-games-polis`).
@@ -45,14 +47,39 @@ pub(crate) fn discover_git_repos(
         }
         discover_git_repos_recursive(root, excluded_dir_names, &mut repos, 0, 4);
     }
-    repos.retain(|r| {
-        let abs = r.to_string_lossy().to_lowercase();
-        let name = r
-            .file_name()
-            .map(|n| n.to_string_lossy().to_lowercase())
-            .unwrap_or_default();
-        !exlude_set.contains(&abs) && !exlude_set.contains(&name)
-    });
+    // Compute the surviving set imperatively so we can call
+    // `is_nested_submodule_with_standalone` which needs to
+    // inspect the FULL list of already-collected repos (we
+    // need every parent in scope to evaluate the helper for
+    // each child — `retain` can only see items not yet
+    // visited). The helper then decides whether to skip
+    // nested submodule checkouts whose shared gitdir is the
+    // same as a standalone worktree (the duplicate-row
+    // filter added 2026-07-01 for goal `mr10pdzr-i495vy`).
+    {
+        let mut surviving: Vec<PathBuf> = Vec::with_capacity(repos.len());
+        for r in &repos {
+            let abs = r.to_string_lossy().to_lowercase();
+            let name = r
+                .file_name()
+                .map(|n| n.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if exlude_set.contains(&abs) || exlude_set.contains(&name) {
+                continue;
+            }
+            if is_nested_submodule_with_standalone(r, &repos, roots) {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 skipping nested submodule {} (already represented by standalone)",
+                        r.display()
+                    );
+                }
+                continue;
+            }
+            surviving.push(r.clone());
+        }
+        repos = surviving;
+    }
 
     // Submodule pass: for each discovered repo, look for submodules
     // declared in .gitmodules and add a candidate path for each
@@ -211,6 +238,99 @@ pub(crate) fn is_git_worktree_file(dot_git: &Path) -> bool {
     std::fs::read_to_string(dot_git)
         .map(|content| content.trim().starts_with("gitdir:"))
         .unwrap_or(false)
+}
+
+/// Returns true if `path` is a nested submodule checkout whose
+/// shared gitdir is the same as a sibling standalone repo (one
+/// already in `discovered` or computable from a watch root).
+///
+/// Used by `discover_git_repos` to filter out the duplicate-row
+/// case where the daemon would otherwise treat both the
+/// standalone `/home/dracon/Dev/<name>/` and the nested
+/// submodule at `<parent>/<path>/` as separate repos.
+///
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+/// After `materialize_submodule` runs, the nested submodule
+/// at `<parent>/<submodule_path>/` and the standalone
+/// worktree at the watch root point at the SAME shared gitdir
+/// (`<parent>/.git/modules/<name>`). Both are technically valid
+/// "git repos" — both have a `.git` (one a file, one a dir).
+/// But the daemon should sync only one of them per cycle.
+/// The standalone is preferred because it has a proper branch
+/// (`daemon-standalone`), the parent-gitlink propagation is
+/// designed around it, and the nested checkout is just the
+/// parent's gitlink target.
+///
+/// Strategy: read `<path>/.git` content. If it's a `gitdir:`
+/// pointer that resolves (via canonicalize) to a directory
+/// under `<discovered_repo>/.git/modules/<name>/` for any
+/// already-discovered parent, AND a standalone exists at one
+/// of `roots` (or at least the parent's gitdir matches),
+/// return true (skip this repo).
+pub(crate) fn is_nested_submodule_with_standalone(
+    path: &Path,
+    discovered: &[PathBuf],
+    roots: &[PathBuf],
+) -> bool {
+    // The path must be a worktree-style `.git` file (not a
+    // real `.git/` directory).
+    let dot_git = path.join(".git");
+    if !dot_git.is_file() {
+        return false;
+    }
+    let Ok(content) = std::fs::read_to_string(&dot_git) else {
+        return false;
+    };
+    let Some(rest) = content.trim().strip_prefix("gitdir:") else {
+        return false;
+    };
+    let gitdir_rel = rest.trim();
+    // Resolve the gitdir. It's relative to the path's working
+    // directory (the submodule's working tree root).
+    let base = path;
+    let resolved = base.join(gitdir_rel);
+    let Ok(canonical_target) = std::fs::canonicalize(&resolved) else {
+        return false;
+    };
+
+    // Check if this gitdir is a `/modules/<name>` subdir under
+    // any already-discovered repo's `.git/` directory.
+    // Pattern: `<discovered_repo>/.git/modules/<name>/...`
+    for parent in discovered {
+        // Canonicalize the discovered parent so we can compare
+        // both sides by absolute path.
+        let Ok(parent_canon) = parent.canonicalize() else {
+            continue;
+        };
+        let parent_git = parent_canon.join(".git");
+        // Is `canonical_target` under `<parent>/.git/modules/`?
+        if canonical_target.starts_with(parent_git.join("modules")) {
+            // AND does a standalone worktree exist at the watch
+            // root for this submodule? The standalone path comes
+            // from the submodule's name (basename of the nested
+            // path), and lives at any watch_root that contains
+            // the parent.
+            for root in roots {
+                let Ok(root_canon) = root.canonicalize() else {
+                    continue;
+                };
+                if !parent_canon.starts_with(&root_canon) {
+                    continue;
+                }
+                // The standalone name is derived from the
+                // nested path's basename.
+                let Some(standalone_name) = path.file_name() else {
+                    continue;
+                };
+                let standalone_path =
+                    root_canon.join(standalone_name);
+                if standalone_path.join(".git").exists() {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 /// Read `.gitmodules` from a parent repo and return the list of
