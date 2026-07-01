@@ -286,13 +286,12 @@ pub(crate) fn is_nested_submodule_with_standalone(
     };
     let gitdir_rel = rest.trim();
     // Resolve the gitdir. It's relative to the path's working
-    // directory (the submodule's working tree root).
+    // directory (the submodule's working tree root). Canonicalize
+    // the base first so any symlinks in the path (e.g. `/tmp` ->
+    // `/private/tmp` on macOS) are resolved before joining the
+    // relative gitdir, otherwise `..` segments in the gitdir
+    // don't traverse the canonicalized ancestor properly.
     let base = path;
-    let resolved = base.join(gitdir_rel);
-    // canonicalize via dunce-canonicalize-style: first clean the
-    // path (resolve `..` segments) then canonicalize. The base
-    // path might be a symlink (e.g. /tmp -> /private/tmp on
-    // macOS), so canonicalize the base path itself first.
     let base_canon = std::fs::canonicalize(base).unwrap_or_else(|_| base.to_path_buf());
     let resolved = base_canon.join(gitdir_rel);
     let Ok(canonical_target) = std::fs::canonicalize(&resolved) else {
