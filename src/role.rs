@@ -25,7 +25,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::git::discovery::{list_submodules, SubmoduleEntry};
+use crate::git::list_submodules;
 
 /// Which structural role a single repo plays in the daemon's topology.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,7 +83,7 @@ impl RoleKind {
 /// of the watched repo's working tree) is read — no other fields are
 /// needed for the role decision.
 pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleKind> {
-    let abs_paths: Vec<PathBuf> = rows.iter().map(|r| PathBuf::from(&r.repo)).collect();
+    let abs_paths: Vec<PathBuf> = rows.iter().map(|r| PathBuf::from(r.repo_path())).collect();
 
     // For each row, precompute:
     //  - Is this row a parent? (use list_submodules on its path)
@@ -98,7 +98,7 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
 
     let mut results: Vec<RoleKind> = Vec::with_capacity(rows.len());
 
-    for (i, row) in rows.iter().enumerate() {
+    for (i, _row) in rows.iter().enumerate() {
         let my_path = &abs_paths[i];
         let my_basename = my_path
             .file_name()
@@ -129,7 +129,7 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
                     let parent_basename = other_path
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| other_row.repo.clone());
+                        .unwrap_or_else(|| other_row.repo_path().to_string());
                     submod_role = Some(RoleKind::Submod {
                         parent_basename,
                         sub_path: entry.path.clone(),
@@ -488,9 +488,4 @@ mod tests {
     }
 }
 
-// Suppress unused-variable warnings for `entry` field references that
-// may be unused depending on feature flags.
-#[allow(dead_code)]
-fn _suppress_submodule_entry_unused(_e: &SubmoduleEntry) {
-    let _ = _e.name.len();
-}
+// (no trailing helpers needed)
