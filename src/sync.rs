@@ -3330,6 +3330,35 @@ pub(crate) async fn sync_repo_with_ahead_since(
         .auto_bump_versions
         .unwrap_or(policy.auto_bump_versions);
 
+    // ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
+    // UNCONDITIONALLY fast-forward the shared gitdir's `main` ref
+    // to the standalone's `daemon-standalone` tip (when applicable)
+    // at the start of every sync_repo cycle. The original code only
+    // ran `fast_forward_daemon_standalone_to_main` AFTER a fresh
+    // daemon commit in `stage_commit_and_push`. That worked as long
+    // as the standalone had dirty files to commit every cycle, but
+    // breaks when a standalone is clean (zero dirty files) yet still
+    // ahead of `main` from an earlier cycle that bypassed the
+    // post-commit hook (e.g. a force-push, an interrupted commit,
+    // or an operator's manual commit). In that state the daemon
+    // sees no dirty files, skips the commit step, and `main` stays
+    // stale — the parent's gitlink never updates.
+    //
+    // Why running it before the diff is correct: the function is a
+    // pure ref-rewrite (no commits, no working-tree changes) and
+    // no-op when daemon-standalone == main. It also no-ops when
+    // the repo is not on the daemon-standalone branch. Cost is
+    // ~6 git invocations when applicable, ~1 otherwise.
+    if !dry_run {
+        if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
+            eprintln!(
+                "⚠️ fast_forward_daemon_standalone_to_main failed for {}: {}",
+                repo.display(),
+                e
+            );
+        }
+    }
+
     // Compute the auto-commit backstop. The backstop fires when
     // a repo has more than `auto_commit_backstop_threshold`
     // unpushed commits AND the push has been pending
