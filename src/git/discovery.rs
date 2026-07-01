@@ -276,9 +276,11 @@ pub(crate) fn is_nested_submodule_with_standalone(
     // real `.git/` directory).
     let dot_git = path.join(".git");
     if !dot_git.is_file() {
+        eprintln!("🐛 is_nested_submodule_with_standalone({}): no .git file", path.display());
         return false;
     }
     let Ok(content) = std::fs::read_to_string(&dot_git) else {
+        eprintln!("🐛 is_nested_submodule_with_standalone({}): can't read .git", path.display());
         return false;
     };
     let Some(rest) = content.trim().strip_prefix("gitdir:") else {
