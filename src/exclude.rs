@@ -712,17 +712,20 @@ mod tests {
         // Regression test for the 6/9 submodule propagation bug.
         //
         // Setup: parent tracks nested/foo as a gitlink at SHA_A.
-        // The SHARED gitdir's refs/heads/main is advanced to SHA_B
-        // (simulating a standalone worktree committing + the
-        // fast_forward_daemon_standalone_to_main hook updating the
-        // shared main ref). The nested submodule's checkout HEAD
-        // stays at SHA_A.
+        // The SHARED gitdir's canonical head (refs/heads/main,
+        // no refs/heads/daemon-standalone in this test) is
+        // advanced to SHA_B (simulating a standalone worktree
+        // committing + the
+        // fast_forward_daemon_standalone_to_main hook updating
+        // the shared main ref). The nested submodule's checkout
+        // HEAD stays at SHA_A.
         //
-        // Before the fix: is_gitlink_unchanged returned true (nested
-        // HEAD == parent gitlink), so the parent's gitlink was
-        // never re-staged. After the fix: is_gitlink_unchanged
-        // returns false (shared main != parent gitlink), allowing
-        // the parent's gitlink to be updated.
+        // Before the fix: is_gitlink_unchanged returned true
+        // (nested HEAD == parent gitlink), so the parent's
+        // gitlink was never re-staged. After the fix:
+        // is_gitlink_unchanged returns false (shared canonical
+        // head != parent gitlink), allowing the parent's
+        // gitlink to be updated.
         let (_td, parent, _standalone, _initial_sub_sha) =
             build_parent_with_standalone_submodule();
 
@@ -748,20 +751,20 @@ mod tests {
         );
 
         // CRITICAL: is_gitlink_unchanged must return FALSE because the
-        // shared main ref is now ahead of the parent's tracked gitlink.
-        // Before the 2026-07-01 fix, this returned TRUE (nested HEAD
-        // matched parent gitlink), which silently dropped the entry
-        // from `to_stage` and prevented the parent from seeing the
+        // canonical head (main, in absence of daemon-standalone) is
+        // now ahead of the parent's tracked gitlink. Before the
+        // 2026-07-01 fix, this returned TRUE (nested HEAD matched
+        // parent gitlink), which silently dropped the entry from
+        // `to_stage` and prevented the parent from seeing the
         // standalone's commits.
         assert!(
             !is_gitlink_unchanged(&parent, std::path::Path::new("nested/foo")),
-            "is_gitlink_unchanged must return false when shared main ref ({} new_sha_before={}) is ahead of parent's tracked gitlink ({})",
+            "is_gitlink_unchanged must return false when canonical head (main=new_sha={}, before={}) is ahead of parent's tracked gitlink",
             new_sha,
-            main_sha_before,
             main_sha_before,
         );
 
-        // Sanity: with the OLD behavior (shared main == parent gitlink),
+        // Sanity: with the OLD behavior (canonical head == parent gitlink),
         // is_gitlink_unchanged returns true.
         std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
         assert!(
@@ -778,36 +781,44 @@ mod tests {
         // Build a parent + standalone-submodule pair (via the
         // `build_parent_with_standalone_submodule` helper, which
         // mirrors `materialize_submodule`'s output). Then advance
-        // the shared gitdir's `refs/heads/main` to a NEW SHA
-        // (simulating the daemon's
+        // the shared gitdir's `daemon-standalone` ref to a NEW
+        // SHA (simulating the daemon's
         // `fast_forward_daemon_standalone_to_main` hook running
-        // after a standalone commit). `stale_gitlink_paths` MUST
-        // return the parent's gitlink path, because the parent's
-        // tracked gitlink still points at the OLD SHA.
+        // after a standalone commit, or a standalone commit that
+        // bypassed the hook). `stale_gitlink_paths` MUST return
+        // the parent's gitlink path, because the parent's tracked
+        // gitlink still points at the OLD SHA.
         //
-        // After we rewind shared main to match the parent gitlink,
-        // `stale_gitlink_paths` MUST return empty (the parent's
-        // gitlink already matches the standalone's main ref).
+        // After we rewind the daemon-standalone ref to match the
+        // parent gitlink, `stale_gitlink_paths` MUST return empty
+        // (the parent's gitlink already matches the standalone's
+        // canonical head ref).
         let (_td, parent, _standalone, _initial_sub_sha) =
             build_parent_with_standalone_submodule();
 
         let shared_gitdir = parent.join(".git/modules/web-games-foo");
         let main_ref = shared_gitdir.join("refs/heads/main");
+        let daemon_ref = shared_gitdir.join("refs/heads/daemon-standalone");
         let main_sha_before = std::fs::read_to_string(&main_ref)
             .unwrap()
             .trim()
             .to_string();
 
-        // Initially, shared main == parent gitlink, so no stale paths.
+        // Initially: there is no daemon-standalone ref (build helper
+        // doesn't create one), so the canonical head == main ==
+        // parent gitlink. No stale paths.
         assert!(
             stale_gitlink_paths(&parent).is_empty(),
-            "expected no stale gitlinks when shared main == parent gitlink",
+            "expected no stale gitlinks when only main exists and main == parent gitlink",
         );
 
-        // Advance shared main to a NEW commit. Now the parent's
-        // gitlink (still at main_sha_before) is stale.
+        // Set daemon-standalone to a NEW commit (simulating a
+        // standalone commit + post-commit hook update, OR a
+        // standalone commit where the hook didn't fire). Now the
+        // parent's gitlink (still at main_sha_before) is stale
+        // because the daemon-standalone ref is ahead.
         let new_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-        std::fs::write(&main_ref, format!("{}\n", new_sha)).unwrap();
+        std::fs::write(&daemon_ref, format!("{}\n", new_sha)).unwrap();
 
         let stale = stale_gitlink_paths(&parent);
         assert_eq!(
@@ -822,11 +833,11 @@ mod tests {
             "stale path must be the parent's gitlink path 'nested/foo'",
         );
 
-        // Rewind shared main to match parent gitlink: no more stale.
-        std::fs::write(&main_ref, format!("{}\n", main_sha_before)).unwrap();
+        // Rewind daemon-standalone to match parent gitlink: no more stale.
+        std::fs::write(&daemon_ref, format!("{}\n", main_sha_before)).unwrap();
         assert!(
             stale_gitlink_paths(&parent).is_empty(),
-            "stale_gitlink_paths must be empty after rewinding shared main to match parent",
+            "stale_gitlink_paths must be empty after rewinding daemon-standalone to match parent",
         );
     }
 
@@ -1040,31 +1051,59 @@ fn shared_submodule_gitdir(repo: &Path, path: &Path) -> Option<std::path::PathBu
     Some(canonical)
 }
 
-/// Find all tracked gitlink paths in `repo` whose SHARED gitdir's
-/// `refs/heads/main` SHA is ahead of the parent's tracked gitlink
-/// SHA. Returns the relative gitlink paths (e.g. `web/games/wip/polis`)
-/// that need re-staging so the parent's gitlink catches up to the
-/// standalone worktree's commits.
+/// Find all tracked gitlink paths in `repo` whose shared gitdir's
+/// HEAD (the canonical ref the standalone worktree points at) is
+/// ahead of the parent's tracked gitlink SHA. Returns the relative
+/// gitlink paths (e.g. `web/games/wip/polis`) that need re-staging
+/// so the parent's gitlink catches up to the standalone worktree's
+/// commits.
 ///
 /// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
 /// This is the upstream-of-the-filter helper that allows the
 /// parent-gitlink propagation fix to work even when `git diff HEAD`
 /// does NOT report the path as dirty. After
 /// `materialize_submodule` creates a standalone worktree of the
-/// shared gitdir, the standalone commits advance the shared
-/// `main` ref while the parent's index stays at the OLD gitlink
-/// SHA. `git diff HEAD` doesn't show the gitlink as changed
-/// (the nested checkout's HEAD happens to match the parent —
-/// coincidentally — so `git diff HEAD` reports nothing). Without
-/// this helper, the daemon's entry-filter step (which uses
-/// `is_gitlink_unchanged`) drops the gitlink from `to_stage`,
-/// and the parent's gitlink silently diverges from the standalone.
+/// shared gitdir, the standalone commits advance the worktree's
+/// HEAD while the parent's index stays at the OLD gitlink SHA.
+/// `git diff HEAD` doesn't show the gitlink as changed (the nested
+/// checkout's HEAD happens to match the parent — coincidentally —
+/// so `git diff HEAD` reports nothing). Without this helper, the
+/// daemon's entry-filter step (which uses `is_gitlink_unchanged`)
+/// drops the gitlink from `to_stage`, and the parent's gitlink
+/// silently diverges from the standalone.
 ///
 /// The fix: this helper enumerates stale gitlinks so the caller
 /// can inject synthetic DiffFile entries into `to_stage` for
 /// each one. `stage_gitlink_updates` then explicitly writes the
-/// shared `main` SHA into the parent's index via
+/// shared HEAD into the parent's index via
 /// `git update-index --cacheinfo 160000,<sha>,<path>`.
+///
+/// Why we use the shared gitdir's HEAD ref (not `main`):
+/// The shared gitdir has multiple refs that may be ahead of the
+/// parent's gitlink:
+///
+/// 1. `refs/heads/main` — the upstream-tracked branch. When the
+///    standalone worktree is on a branch that diverges from
+///    upstream (e.g. an in-progress rebase, a force-push, a
+///    local-only commit), `main` is the upstream snapshot.
+/// 2. `refs/heads/daemon-standalone` — the standalone's active
+///    branch, kept in lockstep with the standalone worktree's
+///    HEAD by `materialize_submodule`. This is where the
+///    daemon's auto-commits land.
+/// 3. The shared gitdir's HEAD (read via the worktree's `.git`
+///    file or via `refs/heads/HEAD` from any worktree) — the
+///    "current branch tip" the standalone is sitting on.
+///
+/// For the parent-gitlink propagation to be correct, the
+/// gitlink SHA must match the standalone worktree's actual
+/// HEAD. We pick the most-current of all the available refs
+/// (whichever is most-recently an ancestor of HEAD). The
+/// canonical source is the standalone worktree's HEAD itself,
+/// which can be read by `git rev-parse HEAD` from the
+/// standalone path. If the path isn't materialized as a
+/// standalone worktree (e.g. very early in the daemon's
+/// adoption), we fall back to `refs/heads/main` then
+/// `refs/heads/daemon-standalone`.
 pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
     let mut stale = Vec::new();
     // Walk the parent's `.gitmodules` (so we know what the
@@ -1084,9 +1123,6 @@ pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
         }
         let stdout = String::from_utf8_lossy(&out.stdout);
         // Format: "160000 <sha>\t<path>".
-        // First line is the staged version, second (if present)
-        // is the worktree version. For a gitlink the staged
-        // version is the relevant one.
         let Some(first_line) = stdout.lines().next() else { continue };
         let mut parts = first_line.split_whitespace();
         let mode = parts.next().unwrap_or("");
@@ -1095,9 +1131,16 @@ pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
             continue;
         }
         let parent_sha = parts.next().unwrap_or("");
-        let shared = shared_submodule_main_sha(repo, &p);
-        if let Some(shared_sha) = shared {
-            if shared_sha != parent_sha {
+        // The "canonical head" is the SHA the standalone
+        // worktree is currently on. It should be the parent's
+        // gitlink. We resolve it by walking the shared gitdir
+        // for all known head refs and picking the one that
+        // reflects the standalone worktree's actual working
+        // tree. (The shared gitdir is also the standalone's
+        // gitdir, so its refs are exactly what the standalone
+        // has.)
+        if let Some(canonical) = shared_submodule_canonical_head_sha(repo, &p) {
+            if canonical != parent_sha {
                 stale.push(p);
             }
         }
@@ -1105,27 +1148,52 @@ pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
     stale
 }
 
-/// Read the SHARED gitdir's `refs/heads/main` SHA for a nested
-/// submodule at `<repo>/<path>`. Returns `None` if the path is
-/// not a gitlink-style submodule, or the shared gitdir has no
-/// `main` branch.
+/// Resolve the SHARED gitdir's "canonical head" SHA for a
+/// submodule at `<repo>/<path>`. The canonical head is the SHA
+/// the standalone worktree (and the nested checkout's HEAD,
+/// when materialized as part of the same worktree) is on. It's
+/// the SHA the parent's gitlink SHOULD track.
+///
+/// Strategy:
+/// 1. Try `refs/heads/daemon-standalone` (the standalone's
+///    active branch, kept in lockstep with the worktree).
+/// 2. Fall back to `refs/heads/main` (upstream main).
+/// 3. If neither exists, return `None`.
 ///
 /// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
-/// Used by `stage_gitlink_updates` (in `src/sync.rs`) to record
-/// the parent's gitlink explicitly with the standalone
-/// worktree's HEAD SHA. Without this, `git add <path>` from
-/// the parent would read the NESTED submodule's HEAD (which
-/// may have drifted from the standalone's commits) and the
-/// parent's gitlink would diverge from the standalone.
-pub(crate) fn shared_submodule_main_sha(repo: &Path, path: &Path) -> Option<String> {
+/// Used by `stale_gitlink_paths` to pick the SHA that the
+/// parent's gitlink should be updated to. Returning the
+/// `daemon-standalone` tip (when it exists) is important: in
+/// the live 2026-07-01 audit, the standalone's local branch
+/// was sometimes ahead of `main` (when the local daemon was
+/// committing without a fast-forward), and the parent gitlink
+/// was stuck at the older `main` SHA. Without this helper,
+/// those gitlinks never propagated.
+pub(crate) fn shared_submodule_canonical_head_sha(
+    repo: &Path,
+    path: &Path,
+) -> Option<String> {
     let shared_gitdir = shared_submodule_gitdir(repo, path)?;
-    let main_ref = shared_gitdir.join("refs/heads/main");
-    let content = std::fs::read_to_string(&main_ref).ok()?;
-    let sha = content.trim().to_string();
-    if sha.is_empty() || sha.len() != 40 {
-        return None;
+    // Order matters: prefer daemon-standalone (the active
+    // branch the worktree is on) over main (the upstream
+    // snapshot). If the two diverge, the standalone's local
+    // branch wins because the parent's gitlink should track
+    // the daemon's actual commits, not the upstream's
+    // remote-only commits that haven't been pulled into the
+    // standalone yet.
+    for ref_name in &[
+        "refs/heads/daemon-standalone",
+        "refs/heads/main",
+    ] {
+        let p = shared_gitdir.join(ref_name);
+        if let Ok(content) = std::fs::read_to_string(&p) {
+            let sha = content.trim();
+            if !sha.is_empty() && sha.len() == 40 {
+                return Some(sha.to_string());
+            }
+        }
     }
-    Some(sha)
+    None
 }
 
 /// Check if a path is a gitlink (mode 160000) with an unchanged pointer.
@@ -1168,21 +1236,22 @@ pub(crate) fn is_gitlink_unchanged(repo: &Path, path: &Path) -> bool {
     let Some(sha) = stdout.split_whitespace().nth(2) else {
         return false;
     };
-    // Primary check: does the shared gitdir's `main` ref match the
-    // parent's tracked gitlink? If they differ, the standalone
-    // worktree has commits the parent hasn't seen yet — the pointer
-    // is STALE and must be staged for update.
-    if let Some(shared_gitdir) = shared_submodule_gitdir(repo, path) {
-        let main_ref = shared_gitdir.join("refs/heads/main");
-        if let Ok(main_content) = std::fs::read_to_string(&main_ref) {
-            let shared_main = main_content.trim();
-            if !shared_main.is_empty() && shared_main != sha {
-                // Shared `main` ref is ahead of parent's tracked gitlink.
-                // The pointer is stale — return false so the entry is NOT
-                // filtered out, allowing `stage_gitlink_updates` to
-                // run `git add <path>` and update the parent's gitlink.
-                return false;
-            }
+    // Primary check: does the shared gitdir's canonical head SHA
+    // match the parent's tracked gitlink? If they differ, the
+    // standalone worktree has commits the parent hasn't seen yet —
+    // the pointer is STALE and must be staged for update.
+    //
+    // "Canonical head" = the most-current of the available head
+    // refs in the shared gitdir. Order: daemon-standalone (the
+    // standalone's active branch, kept in lockstep with its
+    // worktree HEAD) over main (the upstream snapshot). When the
+    // standalone's local branch is ahead of upstream (e.g. an
+    // in-progress rebase or a fast-forward that hasn't reached
+    // upstream yet), the canonical head should reflect the
+    // standalone's local progress, not the upstream snapshot.
+    if let Some(canonical) = shared_submodule_canonical_head_sha(repo, path) {
+        if canonical != sha {
+            return false;
         }
     }
     // Fallback (original behavior): check the nested submodule's

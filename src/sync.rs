@@ -982,16 +982,24 @@ async fn stage_gitlink_updates(
         return Ok(());
     }
     for p in gitlinks {
-        // Prefer the SHARED gitdir's `refs/heads/main` SHA when
-        // available — this is what `fast_forward_daemon_standalone_to_main`
-        // keeps in lockstep with the standalone worktree's HEAD.
-        let shared_sha =
-            crate::exclude::shared_submodule_main_sha(repo, std::path::Path::new(p));
+        // Prefer the SHARED gitdir's canonical head SHA when
+        // available — this is what the standalone worktree's
+        // HEAD actually points at. In the live 2026-07-01
+        // audit, `refs/heads/daemon-standalone` was sometimes
+        // ahead of `main` (when the standalone's local commits
+        // hadn't been fast-forwarded onto `main` yet), so
+        // reading only `main` was wrong. We use the
+        // canonical-head helper (prefers daemon-standalone,
+        // falls back to main).
+        let shared_sha = crate::exclude::shared_submodule_canonical_head_sha(
+            repo,
+            std::path::Path::new(p),
+        );
         if let Some(shared_sha) = shared_sha {
             // Use `git update-index --cacheinfo` to set the
-            // gitlink explicitly to the shared `main` ref SHA.
-            // This bypasses the nested submodule's HEAD and
-            // ensures the parent's gitlink tracks the
+            // gitlink explicitly to the shared canonical head
+            // SHA. This bypasses the nested submodule's HEAD
+            // and ensures the parent's gitlink tracks the
             // standalone's commits, not the nested submodule's
             // own (possibly divergent) state.
             let cacheinfo = format!("160000,{},{}", shared_sha, p);
@@ -999,7 +1007,7 @@ async fn stage_gitlink_updates(
                 repo,
                 &["update-index", "--add", "--cacheinfo", &cacheinfo],
                 stage_timeout_secs,
-                "update-index (gitlink -> shared main)",
+                "update-index (gitlink -> shared canonical head)",
             )
             .await
             {
