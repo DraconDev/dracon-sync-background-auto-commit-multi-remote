@@ -302,7 +302,6 @@ pub(crate) fn is_nested_submodule_with_standalone(
     // Check if this gitdir is a `/modules/<name>` subdir under
     // any already-discovered repo's `.git/` directory.
     // Pattern: `<discovered_repo>/.git/modules/<name>/...`
-    eprintln!("🐛 is_nested: path={} canonical_target={}", path.display(), canonical_target.display());
     for parent in discovered {
         // Canonicalize the discovered parent so we can compare
         // both sides by absolute path.
@@ -343,7 +342,6 @@ pub(crate) fn is_nested_submodule_with_standalone(
                     continue;
                 }
                 if standalone_path.join(".git").exists() {
-                    eprintln!("🐛 is_nested: returning TRUE for path={} (standalone={})", path.display(), standalone_path.display());
                     return true;
                 }
             }
@@ -1015,10 +1013,11 @@ mod submodule_tests {
         let nested_dot_git = nested_dir.join(".git");
         fs::remove_dir_all(&nested_dot_git).ok();
         // Nested path: <tmp>/dracon-platform/web/games/wip/polis
-        // Need 4 `..` to reach <tmp>/, then dracon-platform/.git/modules/web-games-polis.
+        // 4 `..` from here reaches <tmp>/dracon-platform/, so the
+        // gitdir is `.git/modules/web-games-polis` from there.
         fs::write(
             &nested_dot_git,
-            b"gitdir: ../../../../dracon-platform/.git/modules/web-games-polis\n",
+            b"gitdir: ../../../../.git/modules/web-games-polis\n",
         )
         .unwrap();
 
