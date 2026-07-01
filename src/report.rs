@@ -2906,6 +2906,7 @@ fn print_repos_compact_table(
         Cell::new("#"),
         mk_h("🏷", "STATUS"),
         mk_h("📦", "REPO"),
+        mk_h("🔗", "ROLE"),
         mk_h("🌿", "BRANCH"),
         mk_h("🔗", "PUBLISH"),
         mk_h("M", "MOD"),
@@ -2922,12 +2923,13 @@ fn print_repos_compact_table(
 
     // Set minimum widths so the table never letter-wraps content.
     // Each minimum = max(header_text_width + 2 padding, content_min_width).
-    // Sum: 3+11+18+11+18+8+8+7+9+11+13+18+18+17+22 = 192 + 15 borders = 207 cols min
+    // Sum: 3+11+18+7+11+18+8+8+7+9+11+13+18+18+17+22 = 199 + 16 borders = 215 cols min
     // Compact tier is 250-299 cols so this fits comfortably.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 7 + 2 + 2 buffer for '⚠️  WARN')
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(7)),  // ROLE (header 5 + 2 + 0 buffer - tight for compact)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUBLISH (header 8 + 2 + 8 buffer)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // M (header 4 + 2 + 2 for digit)
@@ -2991,10 +2993,15 @@ fn print_repos_compact_table(
         // Push cell (icon + label)
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
 
+        // Classify each row's topology role (parent / submod / standalone).
+        // Computed once before the row loop, not per-row at render time.
+        let roles = crate::role::classify_roles(rows);
+
         table.add_row(vec![
             Cell::new(idx + 1),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
+            role_cell(&roles[idx]),
             Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
@@ -3247,6 +3254,20 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
         "STUCK" => ("🛑 STUCK", Color::Red),
         _ => ("?", Color::White),
     }
+}
+
+/// Build a comfy-table cell for the role classification column.
+/// Parents get green (they own submods); submods get cyan (they're
+/// nested); standalone gets white (the default for non-actionable).
+fn role_cell(role: &crate::role::RoleKind) -> Cell {
+    let label = role.label();
+    let color = match role {
+        crate::role::RoleKind::Parent(_) => Color::Green,
+        crate::role::RoleKind::Submod { .. } => Color::Cyan,
+        crate::role::RoleKind::Standalone => Color::White,
+    };
+    Cell::new(label).fg(color)
+}
 }
 
 // ---------------------------------------------------------------------------
