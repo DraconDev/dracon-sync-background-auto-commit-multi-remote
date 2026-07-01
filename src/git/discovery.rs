@@ -281,7 +281,6 @@ pub(crate) fn is_nested_submodule_with_standalone(
     let Ok(content) = std::fs::read_to_string(&dot_git) else {
         return false;
     };
-    eprintln!("🐛 is_nested: path={} content={:?}", path.display(), content.trim());
     let Some(rest) = content.trim().strip_prefix("gitdir:") else {
         return false;
     };
@@ -290,11 +289,15 @@ pub(crate) fn is_nested_submodule_with_standalone(
     // directory (the submodule's working tree root).
     let base = path;
     let resolved = base.join(gitdir_rel);
+    // canonicalize via dunce-canonicalize-style: first clean the
+    // path (resolve `..` segments) then canonicalize. The base
+    // path might be a symlink (e.g. /tmp -> /private/tmp on
+    // macOS), so canonicalize the base path itself first.
+    let base_canon = std::fs::canonicalize(base).unwrap_or_else(|_| base.to_path_buf());
+    let resolved = base_canon.join(gitdir_rel);
     let Ok(canonical_target) = std::fs::canonicalize(&resolved) else {
-        eprintln!("🐛 is_nested: canonicalize failed for {}", resolved.display());
         return false;
     };
-    eprintln!("🐛 is_nested: canonical_target={}", canonical_target.display());
 
     // Check if this gitdir is a `/modules/<name>` subdir under
     // any already-discovered repo's `.git/` directory.
@@ -307,7 +310,6 @@ pub(crate) fn is_nested_submodule_with_standalone(
         };
         let parent_git = parent_canon.join(".git");
         let modules_path = parent_git.join("modules");
-        eprintln!("🐛 is_nested: parent={} parent_git={} modules_path={} starts_with={}", parent.display(), parent_git.display(), modules_path.display(), canonical_target.starts_with(&modules_path));
         // Is `canonical_target` under `<parent>/.git/modules/`?
         if canonical_target.starts_with(&modules_path) {
             // AND does a standalone worktree exist at the watch
@@ -340,6 +342,7 @@ pub(crate) fn is_nested_submodule_with_standalone(
                     continue;
                 }
                 if standalone_path.join(".git").exists() {
+                    eprintln!("🐛 is_nested: returning TRUE for path={} (standalone={})", path.display(), standalone_path.display());
                     return true;
                 }
             }
