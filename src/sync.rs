@@ -7978,6 +7978,245 @@ auto_bump_versions = false
     ///    the new SHA back to the parent.
     /// 4. Assert the parent index points at the new SHA, with
     ///    NO files from inside the subrepo.
+    /// End-to-end regression test for goal `mr10pdzr-i495vy`:
+    /// `parent_gitlink_propagates_after_standalone_commit`.
+    ///
+    /// Goal: after the daemon materializes a non-polis
+    /// submodule as a standalone worktree via
+    /// `materialize_submodule` AND the operator makes a commit
+    /// in that worktree, the parent's gitlink MUST be
+    /// auto-updated to the new SHA. This is the convergence
+    /// invariant for the 6 of 9 non-polis submodules that
+    /// previously failed (junk-runner, deathrun,
+    /// capture-anime-girls, darklord, endless-td, neonbreak).
+    ///
+    /// This test is the strict end-to-end version of
+    /// `parent_with_materialized_subrepo_and_dirty_subrepo`
+    /// (which exercises the same machinery). The difference:
+    /// this test uses the exact daemon entry point
+    /// (`stage_gitlink_updates`) and asserts (a) the parent
+    /// index is updated to the new SHA, (b) no worktree files
+    /// leak into the parent's index, AND (c) the parent
+    /// gitlink stays updated across a SECOND commit
+    /// (proving convergence under repeated standalones commits,
+    /// not just one-off).
+    #[tokio::test]
+    async fn parent_gitlink_propagates_after_standalone_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().join("parent");
+        std::fs::create_dir_all(&parent).unwrap();
+
+        // 1. Build the parent repo.
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            Command::new("git")
+                .args({
+                    let mut v = vec!["-C", &parent.to_string_lossy()];
+                    v.extend_from_slice(&args);
+                    v
+                })
+                .output()
+                .unwrap();
+        }
+        std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
+        for args in [
+            vec!["-C", &parent.to_string_lossy(), "add", "-A"],
+            vec!["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "init"],
+        ] {
+            let mut real = vec!["git"];
+            real.extend_from_slice(&args);
+            Command::new(real[0]).args(&real[1..]).output().unwrap();
+        }
+
+        // 2. Build the subrepo at `parent/sub/` with its own
+        //    `.git/`. The subrepo starts at one commit.
+        let sub_path = parent.join("sub");
+        std::fs::create_dir_all(&sub_path).unwrap();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            Command::new("git")
+                .args({
+                    let mut v = vec!["-C", &sub_path.to_string_lossy()];
+                    v.extend_from_slice(&args);
+                    v
+                })
+                .output()
+                .unwrap();
+        }
+        std::fs::write(sub_path.join("README.md"), b"# sub\n").unwrap();
+        for args in [
+            vec!["-C", &sub_path.to_string_lossy(), "add", "-A"],
+            vec!["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "init"],
+        ] {
+            let mut real = vec!["git"];
+            real.extend_from_slice(&args);
+            Command::new(real[0]).args(&real[1..]).output().unwrap();
+        }
+        let sub_head_initial = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+
+        // 3. Register the subrepo as a gitlink in the parent.
+        Command::new("git")
+            .args([
+                "-C",
+                &parent.to_string_lossy(),
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                &format!("160000,{},sub", sub_head_initial),
+            ])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &parent.to_string_lossy(), "commit", "-q", "-m", "add sub"])
+            .output()
+            .unwrap();
+
+        // 4. Make a STANDALONE COMMIT in `sub_path/` (this is
+        //    what `materialize_submodule`'s user does in
+        //    practice — edits the standalone worktree, the
+        //    daemon auto-commits it, and we need the parent
+        //    gitlink to follow).
+        std::fs::write(sub_path.join("README.md"), b"# updated sub\n").unwrap();
+        Command::new("git")
+            .args(["-C", &sub_path.to_string_lossy(), "add", "README.md"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "update"])
+            .output()
+            .unwrap();
+        let sub_head_v1 = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        assert_ne!(sub_head_initial, sub_head_v1);
+
+        // 5. Run the daemon's gitlink-update stage. This is the
+        //    function called by `stage_commit_and_push` on each
+        //    cycle when it sees modified gitlink entries.
+        let result =
+            stage_gitlink_updates(&parent, &["sub".to_string()], false, 30).await;
+        assert!(
+            result.is_ok(),
+            "stage_gitlink_updates must succeed: {:?}",
+            result
+        );
+
+        // 6. Parent index must now point at sub_head_v1.
+        let index_sha_after_v1 = String::from_utf8_lossy(
+            &Command::new("git")
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "ls-files",
+                    "--stage",
+                    "sub",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            index_sha_after_v1.contains(&sub_head_v1),
+            "parent index must reflect new submodule SHA {}, got: {:?}",
+            sub_head_v1,
+            index_sha_after_v1
+        );
+
+        // 7. NO subrepo file leaked into the parent index.
+        let staged_files = String::from_utf8_lossy(
+            &Command::new("git")
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "diff",
+                    "--cached",
+                    "--name-only",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            !staged_files.contains("sub/README.md"),
+            "subrepo README.md must NOT be in parent index (no recursion!), got:\n{}",
+            staged_files
+        );
+
+        // 8. SECOND commit in the standalone — convergence must
+        //    hold across repeated standalone commits, not just
+        //    a one-off. (This catches the case where a stale
+        //    ref write sticks after the first cycle.)
+        std::fs::write(sub_path.join("extra.txt"), b"extra\n").unwrap();
+        Command::new("git")
+            .args(["-C", &sub_path.to_string_lossy(), "add", "extra.txt"])
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["-C", &sub_path.to_string_lossy(), "commit", "-q", "-m", "more"])
+            .output()
+            .unwrap();
+        let sub_head_v2 = String::from_utf8_lossy(
+            &Command::new("git")
+                .args(["-C", &sub_path.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        assert_ne!(sub_head_v1, sub_head_v2);
+
+        let result2 =
+            stage_gitlink_updates(&parent, &["sub".to_string()], false, 30).await;
+        assert!(
+            result2.is_ok(),
+            "second stage_gitlink_updates must succeed: {:?}",
+            result2
+        );
+        let index_sha_after_v2 = String::from_utf8_lossy(
+            &Command::new("git")
+                .args([
+                    "-C",
+                    &parent.to_string_lossy(),
+                    "ls-files",
+                    "--stage",
+                    "sub",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            index_sha_after_v2.contains(&sub_head_v2),
+            "parent index must reflect second submodule SHA {}, got: {:?}",
+            sub_head_v2,
+            index_sha_after_v2
+        );
+    }
+
     #[tokio::test]
     async fn parent_with_materialized_subrepo_and_dirty_subrepo() {
         let tmp = tempfile::tempdir().unwrap();
