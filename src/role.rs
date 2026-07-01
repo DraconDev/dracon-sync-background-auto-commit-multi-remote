@@ -88,10 +88,10 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
     // For each row, precompute:
     //  - Is this row a parent? (use list_submodules on its path)
     //  - For each OTHER row, does this row's .gitmodules declare a
-    //    submod whose path ends at <this row's basename> AND the
-    //    absolute path of that nested submod equals this row's
-    //    absolute path? That tells us this row is a Submod of
-    //    <other row>.
+    //    submod whose name (or path-tail) matches the current row's
+    //    basename? That tells us this row is a Submod of <other row>
+    //    even when the submod is also checked out as a standalone
+    //    at a different path.
     //
     // We do this with O(N*M) work where N=rows and M=submods-per-row;
     // for the current 26-row watch set that's <100 comparisons.
@@ -100,6 +100,10 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
 
     for (i, _row) in rows.iter().enumerate() {
         let my_path = &abs_paths[i];
+        let my_basename = my_path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
 
         // 1. Check parent role: does my .gitmodules declare any submods?
         let my_subs = list_submodules(my_path);
@@ -110,7 +114,11 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
         };
 
         // 2. Check submod role: do any OTHER rows' .gitmodules declare
-        //    a submod that points to me?
+        //    a submod whose name (or path-tail) matches my basename?
+        //    The submod's `name` in .gitmodules is conventionally
+        //    derived from the repo's directory name. The `path`
+        //    tail (last `/`-segment) is the actual nested path, e.g.
+        //    `web/games/wip/polis` → tail `polis`. We match either.
         let mut submod_role: Option<RoleKind> = None;
         for (j, other_row) in rows.iter().enumerate() {
             if i == j {
@@ -119,9 +127,16 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
             let other_path = &abs_paths[j];
             let other_subs = list_submodules(other_path);
             for entry in &other_subs {
-                // The submod's absolute path is <other_path>/<entry.path>.
-                let entry_abs = other_path.join(&entry.path);
-                if paths_match(&entry_abs, my_path) {
+                let last_segment = entry
+                    .path
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(&entry.path)
+                    .to_string();
+                let name_matches = entry.name == my_basename;
+                let path_tail_matches =
+                    !my_basename.is_empty() && last_segment == my_basename;
+                if name_matches || path_tail_matches {
                     let parent_basename = other_path
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
@@ -146,14 +161,6 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
     }
 
     results
-}
-
-/// Compare two paths by canonicalizing both, falling back to literal
-/// string comparison if canonicalize fails (e.g. one side is missing).
-fn paths_match(a: &Path, b: &Path) -> bool {
-    let a_can = a.canonicalize().unwrap_or_else(|_| a.to_path_buf());
-    let b_can = b.canonicalize().unwrap_or_else(|_| b.to_path_buf());
-    a_can == b_can
 }
 
 // ---------------------------------------------------------------------------
