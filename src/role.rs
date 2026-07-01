@@ -214,7 +214,7 @@ mod tests {
             .args(["-C"])
             .arg(parent)
             .args(["update-index", "--add", "--cacheinfo"])
-            .arg(format!("160000,{},{}", &sha[..8.min(sha.len())], sub_path))
+            .arg(format!("160000,{},{}", sha, sub_path))
             .status()
             .expect("git update-index");
         assert!(status.success(), "git update-index failed for {sub_path}");
