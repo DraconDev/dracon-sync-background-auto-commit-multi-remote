@@ -992,9 +992,25 @@ pub(crate) fn default_trusted_authors() -> Vec<String> {
 }
 
 pub(crate) fn default_trusted_remote_hosts() -> Vec<String> {
+    // CHANGED 2026-07-02 (goal `354fe3cb`):
+    // Added case-insensitive entries for `DraconDev` (uppercase D)
+    // because the SSH remote URL convention in this monorepo is
+    // `git@gitlab.com:DraconDev/<repo>.git` (capital D), but the
+    // legacy trusted list used `dracondev` (lowercase). The case
+    // mismatch caused the daemon's ownership detector to flag
+    // every DraconDev-owned repo on gitlab as `untrusted_origin`
+    // and skip auto-push.
+    //
+    // Case-insensitive matching is left to the caller so the
+    // existing list can be tightened later. The lowercase forms
+    // are retained for backwards compatibility with any policy
+    // file overrides.
     vec![
         "github.com/DraconDev".to_string(),
+        "github.com/dracondev".to_string(),
+        "gitlab.com/DraconDev".to_string(),
         "gitlab.com/dracondev".to_string(),
+        "codeberg.org/DraconDev".to_string(),
         "codeberg.org/dracondev".to_string(),
     ]
 }
