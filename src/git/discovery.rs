@@ -1012,8 +1012,13 @@ mod submodule_tests {
     #[test]
     fn discover_git_repos_finds_submodule_candidates() {
         // End-to-end: a parent repo with 3 submodules in .gitmodules
-        // should produce 4 candidates: the parent + 3 submodule
-        // worktree anchor paths under the watch root.
+        // should produce just 1 candidate (the parent) when the
+        // nested paths exist as worktrees (nested-on-main
+        // architecture, goal `mr3g843f-lajfpg`).
+        //
+        // OLD BEHAVIOR (removed 2026-07-02):
+        // produced 4 candidates: the parent + 3 submodule worktree
+        // anchor paths under the watch root.
         let tmp = tempfile::tempdir().unwrap();
         let parent_dir = tmp.path().join("dracon-platform");
         fs::create_dir_all(&parent_dir).unwrap();
@@ -1097,9 +1102,14 @@ mod submodule_tests {
         // worktree at the watch root, the daemon would
         // normally also discover the nested submodule at
         // `<parent>/<path>/` and treat it as a separate repo.
-        // Both point at the same shared gitdir. The fix
-        // filters the nested checkout when a standalone
-        // exists.
+        // Both point at the same shared gitdir.
+        //
+        // CHANGED 2026-07-02 (goal `mr3g843f-lajfpg`):
+        // Nested-on-main architecture. The NESTED submodule
+        // checkout is now the canonical watch path. The
+        // standalone at the watch root is the duplicate that
+        // gets filtered out. The fix filters the standalone
+        // when the nested submodule is also discovered.
         //
         // Setup:
         // - parent (`tmp.path()/dracon-platform`)
@@ -1178,13 +1188,13 @@ mod submodule_tests {
             discovered
         );
         assert!(
-            discovered.contains(&standalone_dir),
-            "standalone must be in discovered list: {:?}",
+            discovered.contains(&nested_dir),
+            "nested submodule must be in discovered list (canonical watch path): {:?}",
             discovered
         );
         assert!(
-            !discovered.contains(&nested_dir),
-            "nested submodule must be filtered out (already represented by standalone): {:?}",
+            !discovered.contains(&standalone_dir),
+            "standalone must be filtered out (duplicate of nested submodule): {:?}",
             discovered
         );
     }
