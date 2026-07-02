@@ -93,9 +93,23 @@ pub(crate) async fn push_with_transport_fallbacks(
     op_label: &str,
 ) -> Result<()> {
     let ssh_hardening = crate::git::git_ssh_hardening();
+    // CHANGED 2026-07-02 (goal `354fe3cb`):
+    // When the worktree is detached, `git push origin HEAD` fails with
+    // "The destination you provided is not a full refname" because HEAD
+    // is a SHA, not a ref. Build a fully-qualified refspec instead.
+    // This is the case for nested-on-main architectures where the
+    // nested submodule path is watched while still detached at the
+    // parent's gitlink SHA (during migration windows).
+    let branch_for_refspec = crate::git::branch::current_branch(repo)
+        .unwrap_or_else(|| "main".to_string());
+    let ssh_refspec = if crate::git::branch::current_branch(repo).is_some() {
+        "HEAD".to_string()
+    } else {
+        format!("HEAD:refs/heads/{}", branch_for_refspec)
+    };
     match super::run_git_with_timeout_env_progress(
         repo,
-        &["push", "--no-verify", "origin", "HEAD"],
+        &["push", "--no-verify", "origin", &ssh_refspec],
         timeout_secs,
         &format!("{op_label}-ssh-hardened"),
         &[
@@ -144,9 +158,19 @@ pub(crate) async fn push_with_retries(
     let mut last_err: Option<anyhow::Error> = None;
     let mut tried_pull = false;
     for attempt in 1..=attempts {
+        // CHANGED 2026-07-02 (goal `354fe3cb`):
+        // When the worktree is detached, `git push origin HEAD` fails.
+        // Build a fully-qualified refspec instead.
+        let branch_for_refspec = crate::git::branch::current_branch(repo)
+            .unwrap_or_else(|| "main".to_string());
+        let ssh_refspec = if crate::git::branch::current_branch(repo).is_some() {
+            "HEAD".to_string()
+        } else {
+            format!("HEAD:refs/heads/{}", branch_for_refspec)
+        };
         match super::run_git_with_timeout_env_progress(
             repo,
-            &["push", "--no-verify", "origin", "HEAD"],
+            &["push", "--no-verify", "origin", &ssh_refspec],
             timeout_secs,
             op_label,
             &[
