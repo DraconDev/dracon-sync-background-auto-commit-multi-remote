@@ -75,6 +75,8 @@ pub(crate) fn discover_git_repos(
                     );
                 }
                 continue;
+            } else {
+                eprintln!("DEBUG dedup: kept {}", r.display());
             }
             surviving.push(r.clone());
         }
@@ -292,60 +294,75 @@ pub(crate) fn is_duplicate_standalone_for_nested(
     roots: &[PathBuf],
 ) -> bool {
     let _ = roots; // unused in pairwise logic
+    eprintln!("DEBUG is_dup called for: {}", path.display());
     let Some(own_gitdir) = path_gitdir(path) else {
+        eprintln!("DEBUG is_dup: path_gitdir returned None for {}", path.display());
         return false;
     };
+    let Some(own_primary) = resolve_primary_gitdir(&own_gitdir) else {
+        eprintln!("DEBUG is_dup: resolve_primary_gitdir returned None for {}", path.display());
+        return false;
+    };
+    eprintln!(
+        "DEBUG is_dup: path={} own_gitdir={} own_primary={}",
+        path.display(), own_gitdir.display(), own_primary.display()
+    );
 
     // Pairwise check: walk `discovered` looking for any OTHER path
-    // whose canonical gitdir is the SAME directory as `path`'s
-    // gitdir. If so, the nested submodule (which lives inside its
-    // parent's working tree) AND `path` (a sibling) are both
-    // pointing at the same shared gitdir — `path` is the duplicate
-    // standalone and should be filtered.
+    // whose PRIMARY gitdir (chopping `/worktrees/<X>`) is the same
+    // as `path`'s primary gitdir. If so, the nested submodule
+    // (which is the primary worktree of the shared gitdir) AND
+    // `path` (which is a secondary worktree at the watch root) are
+    // both pointing at the same shared gitdir — `path` is the
+    // duplicate standalone and should be filtered.
+    //
+    // For the case where BOTH paths point at the same PRIMARY
+    // gitdir (e.g. the test's synthetic setup or a non-`worktree
+    // add` standalone), we tiebreak by checking which one is
+    // nested inside a discovered parent.
     for other in discovered {
         if other == path {
             continue;
         }
-        // Compare canonical paths so symlink-equivalent paths match.
         let path_canon = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         let other_canon = std::fs::canonicalize(other).unwrap_or_else(|_| other.to_path_buf());
         if path_canon == other_canon {
-            // Same path; skip
             continue;
         }
         let Some(other_gitdir) = path_gitdir(other) else {
             continue;
         };
-        if own_gitdir == other_gitdir {
-            // Two discovered paths share the same gitdir. The one
-            // with `.git/` (a directory) is the canonical primary
-            // worktree; the one with `.git` (a file) is also
-            // primary. If both are at module level, both are
-            // "primary" — we need another tiebreak.
-            //
-            // Tiebreak: prefer the one that's NESTED inside a
-            // parent repo's working tree (path contains at least
-            // one `/` between two non-`/` segments after the
-            // watch root, e.g. `web/games/wip/polis/`).
-            // Otherwise, prefer the one at the watch root.
-            //
-            // For this nested-on-main architecture: keep the
-            // nested (which is inside its parent) and drop the
-            // sibling at watch root. If both are at the watch
-            // root, doesn't matter (next iteration dedups them).
-            //
-            // Simpler tiebreak: keep the path with a parent
-            // containing `.gitmodules`-declared submodule path.
-            // For now: if `other` is INSIDE a discovered
-            // parent's working tree, keep `other`. So `path` is
-            // the duplicate.
-            //
-            // Heuristic: `other`'s parent dir contains a
-            // `.gitmodules` file or `other` is inside a discovered
-            // discovered-parent's directory tree.
-            if is_inside_a_discovered_parent(other, discovered) {
-                return true;
-            }
+        let Some(other_primary) = resolve_primary_gitdir(&other_gitdir) else {
+            continue;
+        };
+        if own_primary != other_primary {
+            continue;
+        }
+
+        // Both share the same primary gitdir. Determine which is
+        // the canonical nested submodule and which is the
+        // duplicate standalone.
+        //
+        // Case 1: `path` is a secondary worktree (its gitdir is
+        // `<primary>/worktrees/<X>`) and `other` is the primary
+        // worktree (its gitdir is `<primary>`). Then `path` is the
+        // duplicate standalone.
+        if own_gitdir != own_primary && other_gitdir == other_primary {
+            return true;
+        }
+        // Case 2: `path` is the primary worktree and `other` is
+        // the secondary. Then `other` is the duplicate, NOT path.
+        // Don't return true here (continue to next).
+        if other_gitdir != other_primary && own_gitdir == own_primary {
+            return false; // `path` is the primary; keep it
+        }
+        // Case 3: Both are primary (or both secondary) — tiebreak
+        // by checking which is nested inside a discovered parent.
+        // The nested one is canonical; the sibling is duplicate.
+        let own_is_nested = is_inside_a_discovered_parent(path, discovered);
+        let other_is_nested = is_inside_a_discovered_parent(other, discovered);
+        if other_is_nested && !own_is_nested {
+            return true;
         }
     }
 
@@ -389,6 +406,44 @@ fn path_gitdir(path: &Path) -> Option<PathBuf> {
     } else {
         None
     }
+}
+
+/// Given a gitdir path, return its PRIMARY gitdir. For
+/// `/foo/.git/modules/<name>/worktrees/<X>/`, the primary
+/// is `/foo/.git/modules/<name>/` (chop `/worktrees/<X>`).
+/// For `/foo/.git/modules/<name>/`, the primary IS
+/// `/foo/.git/modules/<name>/`. For nested repos that
+/// share a gitdir via `gitdir: <relative>` (e.g. nested
+/// submodules' main worktree points at the primary
+/// gitdir), the result is the gitdir itself.
+fn resolve_primary_gitdir(gitdir: &Path) -> Option<PathBuf> {
+    // Walk up the components looking for a "worktrees" segment.
+    // If we find one, the primary gitdir is the components
+    // BEFORE `/worktrees/<X>/...` (i.e., the parent of `/worktrees`).
+    // If we don't find one, the primary IS the gitdir itself.
+    let canon = std::fs::canonicalize(gitdir)
+        .ok()
+        .unwrap_or_else(|| gitdir.to_path_buf());
+    let mut components: Vec<std::path::Component> =
+        canon.components().collect();
+    // Find a "worktrees" segment in the path.
+    let worktrees_idx = components
+        .iter()
+        .position(|c| c.as_os_str() == "worktrees");
+    if let Some(idx) = worktrees_idx {
+        // Primary = components[..idx] (the components BEFORE
+        // `/worktrees`).
+        if idx == 0 {
+            return Some(canon);
+        }
+        let mut primary = std::path::PathBuf::new();
+        for c in &components[..idx] {
+            primary.push(c);
+        }
+        return Some(primary);
+    }
+    // No /worktrees/ segment. Primary is the gitdir itself.
+    Some(canon)
 }
 
 /// Read `.gitmodules` from a parent repo and return the list of
