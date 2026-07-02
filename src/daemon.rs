@@ -1925,6 +1925,46 @@ pub(crate) async fn materialize_pending_submodules(
                 None => continue,
             };
             let target_path = anchor.join(&worktree_name);
+            // CHANGED 2026-07-02 (goal `mr3g843f-lajfpg`):
+            // Nested-on-main architecture. The canonical watch
+            // path for a submodule is the nested submodule
+            // path inside the parent (e.g. `<parent>/<sub.path>`),
+            // not the standalone at the watch root. If the
+            // nested submodule path exists AND is checked out
+            // on a real branch (e.g. main), the standalone at
+            // `target_path` is redundant — skip the materialize
+            // step entirely.
+            //
+            // This prevents the daemon from re-creating the
+            // standalone worktree on every cycle, which would
+            // race with the operator's removal of the standalone
+            // and cause the canonical path to flip-flop.
+            let nested_submodule_path = parent.join(&sub.path);
+            let nested_on_main = nested_submodule_path.exists()
+                && nested_submodule_path.join(".git").exists()
+                && is_on_main_branch(&nested_submodule_path);
+            if nested_on_main {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 skipping materialize for {} (nested submodule at {} is on main, canonical watch path)",
+                        sub.name,
+                        nested_submodule_path.display()
+                    );
+                }
+                // Still configure remotes on the nested path so
+                // the daemon can push from there. Fall through
+                // to the multi-remote configure step but using
+                // the nested path as the target.
+                let repo_override =
+                    crate::policy::load_repo_override(&nested_submodule_path);
+                crate::git::multi_remote::configure_all_remotes(
+                    &nested_submodule_path,
+                    &policy.remotes,
+                    &worktree_name,
+                    &repo_override.exclude_remotes,
+                );
+                continue;
+            }
             // Skip if the target is already a real .git dir
             // (worktree already exists). materialize_submodule
             // itself is idempotent, but checking here lets us
@@ -1987,6 +2027,55 @@ fn find_anchor_root(parent: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
         }
     }
     None
+}
+
+/// Returns true if the worktree at `path` is checked out on a real
+/// branch (e.g. `main`), not in detached HEAD state. Used by
+/// `materialize_pending_submodules` to decide whether the nested
+/// submodule path is the canonical watch path (skip standalone
+/// materialize) or whether the legacy standalone-at-watch-root is
+/// still needed.
+///
+/// ADDED 2026-07-02 (goal `mr3g843f-lajfpg`).
+fn is_on_main_branch(path: &Path) -> bool {
+    // We can't directly use `git -C <path> branch --show-current`
+    // from a sync context (it would block if a long-running
+    // operation is in progress), so we read the worktree's HEAD
+    // file directly. For worktree-style checkouts (`.git` file
+    // pointing to `<shared_gitdir>/worktrees/<X>`), the HEAD
+    // file is at `<shared_gitdir>/worktrees/<X>/HEAD`.
+    let dot_git = path.join(".git");
+    if !dot_git.exists() {
+        return false;
+    }
+    // For `.git` files (worktree-style), the HEAD is in
+    // `<gitdir>/HEAD`. For `.git/` directories (main worktree),
+    // the HEAD is `<gitdir>/HEAD`.
+    let head_path = if dot_git.is_file() {
+        let Ok(content) = std::fs::read_to_string(&dot_git) else {
+            return false;
+        };
+        let Some(rest) = content.trim().strip_prefix("gitdir:") else {
+            return false;
+        };
+        let gitdir_rel = rest.trim();
+        let base_canon =
+            std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let resolved = base_canon.join(gitdir_rel);
+        let Ok(canon_resolved) = std::fs::canonicalize(&resolved) else {
+            return false;
+        };
+        canon_resolved.join("HEAD")
+    } else {
+        std::fs::canonicalize(&dot_git)
+            .ok()
+            .map(|p| p.join("HEAD"))
+            .unwrap_or_else(|| dot_git.join("HEAD"))
+    };
+    let Ok(head_content) = std::fs::read_to_string(&head_path) else {
+        return false;
+    };
+    head_content.starts_with("ref: refs/heads/")
 }
 
 pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
