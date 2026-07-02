@@ -75,8 +75,6 @@ pub(crate) fn discover_git_repos(
                     );
                 }
                 continue;
-            } else {
-                eprintln!("DEBUG dedup: kept {}", r.display());
             }
             surviving.push(r.clone());
         }
@@ -294,19 +292,12 @@ pub(crate) fn is_duplicate_standalone_for_nested(
     roots: &[PathBuf],
 ) -> bool {
     let _ = roots; // unused in pairwise logic
-    eprintln!("DEBUG is_dup called for: {}", path.display());
     let Some(own_gitdir) = path_gitdir(path) else {
-        eprintln!("DEBUG is_dup: path_gitdir returned None for {}", path.display());
         return false;
     };
     let Some(own_primary) = resolve_primary_gitdir(&own_gitdir) else {
-        eprintln!("DEBUG is_dup: resolve_primary_gitdir returned None for {}", path.display());
         return false;
     };
-    eprintln!(
-        "DEBUG is_dup: path={} own_gitdir={} own_primary={}",
-        path.display(), own_gitdir.display(), own_primary.display()
-    );
 
     // Pairwise check: walk `discovered` looking for any OTHER path
     // whose PRIMARY gitdir (chopping `/worktrees/<X>`) is the same
