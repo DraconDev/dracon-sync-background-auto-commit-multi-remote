@@ -100,12 +100,9 @@ pub(crate) async fn push_with_transport_fallbacks(
     // This is the case for nested-on-main architectures where the
     // nested submodule path is watched while still detached at the
     // parent's gitlink SHA (during migration windows).
-    let branch_for_refspec = crate::git::branch::current_branch(repo)
-        .unwrap_or_else(|| "main".to_string());
-    let ssh_refspec = if crate::git::branch::current_branch(repo).is_some() {
-        "HEAD".to_string()
-    } else {
-        format!("HEAD:refs/heads/{}", branch_for_refspec)
+    let ssh_refspec = match crate::git::branch::current_branch(repo) {
+        Some(branch) => "HEAD".to_string(),
+        None => "HEAD:refs/heads/main".to_string(),
     };
     match super::run_git_with_timeout_env_progress(
         repo,
@@ -161,12 +158,9 @@ pub(crate) async fn push_with_retries(
         // CHANGED 2026-07-02 (goal `354fe3cb`):
         // When the worktree is detached, `git push origin HEAD` fails.
         // Build a fully-qualified refspec instead.
-        let branch_for_refspec = crate::git::branch::current_branch(repo)
-            .unwrap_or_else(|| "main".to_string());
-        let ssh_refspec = if crate::git::branch::current_branch(repo).is_some() {
-            "HEAD".to_string()
-        } else {
-            format!("HEAD:refs/heads/{}", branch_for_refspec)
+        let ssh_refspec = match crate::git::branch::current_branch(repo) {
+            Some(branch) => "HEAD".to_string(),
+            None => "HEAD:refs/heads/main".to_string(),
         };
         match super::run_git_with_timeout_env_progress(
             repo,

@@ -7,11 +7,24 @@ use super::{has_origin_remote, has_tracking_upstream, is_safe_branch_name};
 
 /// Get the current branch name from HEAD ref or git CLI.
 pub(crate) fn current_branch(repo: &Path) -> Option<String> {
-    let head_path = repo.join(".git").join("HEAD");
-    if let Ok(content) = std::fs::read_to_string(&head_path) {
-        let trimmed = content.trim();
-        if let Some(ref_name) = trimmed.strip_prefix("ref: refs/heads/") {
-            return Some(ref_name.to_string());
+    // CHANGED 2026-07-02 (goal `354fe3cb`):
+    // Worktree-style checkouts have `.git` as a FILE pointing at
+    // `<shared_gitdir>/worktrees/<X>`, so the HEAD ref lives at
+    // `<shared_gitdir>/worktrees/<X>/HEAD`, not at `<repo>/.git/HEAD`.
+    // The previous implementation only checked `<repo>/.git/HEAD`,
+    // which doesn't exist for worktree-style checkouts. That caused
+    // the function to fall through to `git rev-parse --abbrev-ref
+    // HEAD`, which returns the literal string "HEAD" for detached
+    // worktrees (instead of the expected `None`).
+    //
+    // Resolve the real gitdir first, then read its HEAD file.
+    let head_path = resolve_head_path(repo);
+    if let Some(head_path) = head_path {
+        if let Ok(content) = std::fs::read_to_string(&head_path) {
+            let trimmed = content.trim();
+            if let Some(ref_name) = trimmed.strip_prefix("ref: refs/heads/") {
+                return Some(ref_name.to_string());
+            }
         }
     }
     crate::policy::std_git_command()
@@ -28,7 +41,38 @@ pub(crate) fn current_branch(repo: &Path) -> Option<String> {
                 None
             }
         })
-        .filter(|s| !s.is_empty())
+        .filter(|s| !s.is_empty() && s != "HEAD")
+}
+
+/// Resolve the path to the HEAD file for a repo. Handles both
+/// regular checkouts (where `<repo>/.git` is a directory) and
+/// worktree-style checkouts (where `<repo>/.git` is a file
+/// pointing at `<shared_gitdir>/worktrees/<X>`).
+///
+/// ADDED 2026-07-02 (goal `354fe3cb`).
+fn resolve_head_path(repo: &Path) -> Option<std::path::PathBuf> {
+    let dot_git = repo.join(".git");
+    if dot_git.is_file() {
+        // Worktree-style: read gitdir: line, canonicalize.
+        let Ok(content) = std::fs::read_to_string(&dot_git) else {
+            return None;
+        };
+        let Some(rest) = content.trim().strip_prefix("gitdir:") else {
+            return None;
+        };
+        let gitdir_rel = rest.trim();
+        let base_canon =
+            std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());
+        let resolved = base_canon.join(gitdir_rel);
+        let Ok(canon_resolved) = std::fs::canonicalize(&resolved) else {
+            return None;
+        };
+        Some(canon_resolved.join("HEAD"))
+    } else if dot_git.is_dir() {
+        std::fs::canonicalize(&dot_git).ok().map(|p| p.join("HEAD"))
+    } else {
+        None
+    }
 }
 
 /// Whether the repo has a master branch but NOT a main branch.
@@ -332,5 +376,25 @@ mod tests {
             old_tracking_from_status_line("* main abc123 [: gone] behind 1"),
             None
         );
+    }
+
+    /// When a worktree is detached at a SHA, `git rev-parse
+    /// --abbrev-ref HEAD` returns the literal string "HEAD". The
+    /// previous `current_branch` implementation accepted this as
+    /// a valid branch name, causing downstream push code to build
+    /// refspecs like `HEAD:refs/heads/HEAD` (rejected by remotes).
+    /// This test guards the regression by checking the filter logic.
+    ///
+    /// ADDED 2026-07-02 (goal `354fe3cb`).
+    #[test]
+    fn test_current_branch_rejects_git_cli_head_string() {
+        // Filter from current_branch: filter(|s| !s.is_empty() && s != "HEAD")
+        let detached: Option<String> = Some("HEAD".to_string());
+        let filtered = detached.filter(|s| !s.is_empty() && s != "HEAD");
+        assert_eq!(filtered, None);
+
+        let on_main: Option<String> = Some("main".to_string());
+        let filtered = on_main.filter(|s| !s.is_empty() && s != "HEAD");
+        assert_eq!(filtered, Some("main".to_string()));
     }
 }

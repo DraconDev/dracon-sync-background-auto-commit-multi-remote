@@ -192,7 +192,9 @@ pub(crate) async fn push_to_named_remote(
     retries: u32,
     force_when_behind: bool,
 ) -> Result<()> {
-    let branch = current_branch(repo).unwrap_or_else(|| "main".to_string());
+    let branch = current_branch(repo)
+        .filter(|b| b != "HEAD")
+        .unwrap_or_else(|| "main".to_string());
     let refspec = format!("HEAD:refs/heads/{}", branch);
     let ssh_hardening = git_ssh_hardening();
 
