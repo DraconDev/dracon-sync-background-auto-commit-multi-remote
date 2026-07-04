@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dracon_git::GitService;
-use futures::stream::{StreamExt, FuturesUnordered};
+use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 use std::fs::OpenOptions;
