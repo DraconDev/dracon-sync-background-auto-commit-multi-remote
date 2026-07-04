@@ -261,7 +261,12 @@ enum ConfigCommands {
     Validate,
 }
 
-#[tokio::main]
+// CHANGED 2026-07-04 (goal mr5s1530-755tj8): use the multi-thread
+// runtime flavor so the per-repo work in `run_repos_report` actually runs
+// in parallel. The default `current_thread` flavor would serialize the
+// futures even though they are wrapped in `buffer_unordered(16)`, because
+// there is no other worker thread to schedule them on.
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     // If output is piped (e.g. `dracon-sync repos | head`), stdout can become a broken pipe.
     // Rust's default printing panics on write errors; convert that specific panic into a clean exit.
