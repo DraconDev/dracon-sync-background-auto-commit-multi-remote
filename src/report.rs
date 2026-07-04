@@ -2594,7 +2594,7 @@ pub(crate) async fn run_repos_report(
 
         let (upstream_label, publish_state) =
             branch_upstream(&repo, &effective_status.branch);
-        rows.push(RepoReportRow {
+        Some(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
             branch: effective_status.branch.clone(),
