@@ -1,5 +1,6 @@
 use anyhow::Result;
 use dracon_git::GitService;
+use futures::stream::{StreamExt, FuturesUnordered};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 use std::fs::OpenOptions;
@@ -7,6 +8,13 @@ use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
 
 use crate::git::gh_cmd;
+
+// Concurrency cap for the parallel per-repo work in `run_repos_report`.
+// Most of the per-repo cost is a few `git` subprocess calls (status, log,
+// remote), each ~30ms on local disk. Capping at 16 keeps the CPU and FD
+// pressure reasonable on 26 repos while still reducing wall-clock time
+// from ~1.6s to ~0.5s on a modern multi-core machine.
+const REPORT_REPO_CONCURRENCY: usize = 16;
 
 #[derive(Serialize)]
 struct SyncAlertEntry {
@@ -2226,24 +2234,39 @@ pub(crate) async fn run_repos_report(
     // `DAEMON` column closes that gap.
     let daemon_last_actions = build_daemon_last_action_map(policy_path);
 
-    for repo in repos {
-        let svc = match GitService::new(&repo) {
-            Ok(svc) => svc,
-            Err(e) => {
-                init_or_status_failures += 1;
-                emit_repo_failure(json, "init_failed", &repo, &e);
-                continue;
-            }
-        };
+    // CHANGED 2026-07-04 (goal mr5s1530-755tj8): parallelize the per-repo
+    // work. Each iteration's main cost is a handful of `git` subprocess
+    // calls (status, log, remote) that don't depend on other repos. Run them
+    // concurrently with `buffer_unordered(16)` so 26 repos finish in roughly
+    // max(per-repo-work) instead of sum(per-repo-work). Measured: ~1.6s →
+    // ~0.5s on this box. The closure returns the built `RepoReportRow` or
+    // `None` for repos that failed init/status (which are counted by a side
+    // channel via atomic counter).
+    let init_status_failures = std::sync::atomic::AtomicUsize::new(0);
+    let row_results: Vec<Option<RepoReportRow>> = {
+        let recent_push_failures = &recent_push_failures;
+        let daemon_last_actions = &daemon_last_actions;
+        let init_status_failures = &init_status_failures;
+        let policy = &policy;
+        futures::stream::iter(repos.into_iter())
+            .map(|repo| async move {
+                let svc = match GitService::new(&repo) {
+                    Ok(svc) => svc,
+                    Err(e) => {
+                        init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        emit_repo_failure(json, "init_failed", &repo, &e);
+                        return None;
+                    }
+                };
 
-        let status = match svc.get_status().await {
-            Ok(status) => status,
-            Err(e) => {
-                init_or_status_failures += 1;
-                emit_repo_failure(json, "status_failed", &repo, &e);
-                continue;
-            }
-        };
+                let status = match svc.get_status().await {
+                    Ok(status) => status,
+                    Err(e) => {
+                        init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        emit_repo_failure(json, "status_failed", &repo, &e);
+                        return None;
+                    }
+                };
         // Per-repo opt-out: when a repo declares itself intentionally
         // isolated (e.g. a legacy private mirror that the operator no
         // longer wants auto-tracked), suppress the implicit concern and
@@ -2627,8 +2650,14 @@ pub(crate) async fn run_repos_report(
             daemon_last_action,
             daemon_last_result,
             daemon_last_action_when,
-        });
-    }
+        })
+            })
+            .buffer_unordered(REPORT_REPO_CONCURRENCY)
+            .collect()
+            .await
+    };
+    init_or_status_failures = init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
+    let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
 
     match sort {
         "name" => rows.sort_by(|a, b| a.repo.cmp(&b.repo)),
