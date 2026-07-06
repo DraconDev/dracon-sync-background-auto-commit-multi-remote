@@ -7644,7 +7644,3 @@ mod tests {
         assert!(
             width <= content_max,
             "PUSH-TO cell {width} cols exceeds content area {content_max} cols. \
-             Widen the column or shorten the format."
-        );
-    }
-}
