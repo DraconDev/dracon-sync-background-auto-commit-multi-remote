@@ -534,7 +534,7 @@ fn format_push_to_remotes_cell(
 ///
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
-fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
+pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
     let git_path = repo.join(".git");
     if !git_path.exists() {
         return None;

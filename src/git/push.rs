@@ -119,7 +119,10 @@ pub(crate) async fn push_with_transport_fallbacks(
         Ok(()) => Ok(()),
         Err(e) => {
             let err_msg = e.to_string();
-            if is_permanent_push_rejection(&err_msg) {
+            // Server-side policy errors AND oversized-pack errors cannot be
+            // fixed by retries. Return immediately so the caller logs one
+            // incident per cycle instead of burning the retry budget.
+            if is_permanent_push_rejection(&err_msg) || is_pack_too_large(&err_msg) {
                 return Err(e);
             }
             let origin = super::origin_url(repo).unwrap_or_default();
@@ -178,10 +181,11 @@ pub(crate) async fn push_with_retries(
             Err(e) => {
                 let err_msg = e.to_string();
                 // Server-side policy errors (protected branch, hook declined,
-                // etc.) cannot be fixed by retries, pull, or HTTPS fallback.
-                // Return immediately so the caller logs one incident per
-                // cycle instead of burning the retry budget.
-                if is_permanent_push_rejection(&err_msg) {
+                // etc.) AND oversized-pack errors cannot be fixed by retries,
+                // pull, or HTTPS fallback. Return immediately so the caller
+                // logs one incident per cycle instead of burning the retry
+                // budget.
+                if is_permanent_push_rejection(&err_msg) || is_pack_too_large(&err_msg) {
                     return Err(e);
                 }
                 last_err = Some(e);
@@ -268,6 +272,33 @@ pub(crate) fn is_permanent_push_rejection(err_msg: &str) -> bool {
         || err_msg.contains("hook declined")
 }
 
+/// Check if an error message indicates the push was rejected because the
+/// pack (or a single file) exceeds the remote's size limit. These are NOT
+/// fixable by retrying — the history must be rewritten (or the asset moved
+/// out of git) before the push can succeed.
+///
+/// github's hard limit is 2 GiB per pack; GitLab/Codeberg have much higher
+/// (or no practical) limits, so this is overwhelmingly a github-specific
+/// failure. Retrying it is pure waste: git still has to re-pack the entire
+/// local history (slow, and it saturates the daemon's push semaphore),
+/// only for the remote to reject it again. Treat as permanent — stop
+/// retrying this remote immediately.
+///
+/// Proactive handling (skipping the push entirely when `.git` > 2 GB) lives
+/// in `push_background` via `measure_git_size_bytes`; this function is the
+/// defensive backstop for when the remote actually returns the error.
+pub(crate) fn is_pack_too_large(err_msg: &str) -> bool {
+    let lower = err_msg.to_lowercase();
+    lower.contains("gh001")
+        || lower.contains("large files detected")
+        || lower.contains("pack exceeds")
+        || lower.contains("exceeds the maximum allowed size")
+        || lower.contains("maximum allowed size")
+        || lower.contains("remote error: pack")
+        || lower.contains("pack is too large")
+        || lower.contains("deny updating a hidden ref")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,5 +331,36 @@ mod tests {
             "[rejected] main -> main (non-fast-forward)"
         ));
         assert!(!is_push_rejected("connection timed out"));
+    }
+
+    #[test]
+    fn test_is_pack_too_large_recognises_github_gh001() {
+        // github's oversized-pack / large-file rejection.
+        let msg = "remote: error: GH001: Large files detected.\nremote: error: File static/assets/music/theme.mp3 is 2500.00 MB; this exceeds GitHub's file size limit.";
+        assert!(is_pack_too_large(msg));
+    }
+
+    #[test]
+    fn test_is_pack_too_large_recognises_pack_exceeds() {
+        let msg = "remote: error: pack exceeds the maximum allowed size of 2 GB";
+        assert!(is_pack_too_large(msg));
+    }
+
+    #[test]
+    fn test_is_pack_too_large_case_insensitive() {
+        // The matcher lowercases, so an all-caps remote message still matches.
+        let msg = "REMOTE ERROR: PACK IS TOO LARGE";
+        assert!(is_pack_too_large(msg));
+    }
+
+    #[test]
+    fn test_is_pack_too_large_ignores_transient_errors() {
+        // A non-fast-forward is recoverable, not a size rejection.
+        assert!(!is_pack_too_large("non-fast-forward"));
+        // A network timeout is transient.
+        assert!(!is_pack_too_large("connection timed out"));
+        // A protected-branch policy error is permanent but NOT size-related
+        // (covered by is_permanent_push_rejection, not is_pack_too_large).
+        assert!(!is_pack_too_large("protected branch hook declined"));
     }
 }

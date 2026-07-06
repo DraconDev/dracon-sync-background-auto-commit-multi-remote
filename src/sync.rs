@@ -1626,25 +1626,58 @@ async fn push_background(
             ahead_count
         );
     }
+    // ── Proactive oversized-pack guard (github 2 GiB limit) ──────────────
+    // github rejects packs > 2 GiB. Retrying is vain: git still re-packs the
+    // entire local history (slow, and it saturates the daemon's push
+    // semaphore) only for github to reject it again — which is exactly what
+    // stalled small repos behind hegemon. If `.git` already exceeds 2 GiB,
+    // skip the github push entirely. gitlab/codeberg have no such limit and
+    // keep working. Self-healing: once the repo is shrunk below 2 GiB
+    // (history rewrite / OVH migration) the push resumes automatically.
+    const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+    let git_size = crate::report::measure_git_size_bytes(repo);
+    let too_big_for_github = git_size.is_some_and(|s| s >= GITHUB_PACK_LIMIT_BYTES);
+    // Whether github was already flagged, so we notify once per regression
+    // rather than spamming the journal every cycle.
+    let github_already_flagged = remote_failures
+        .as_ref()
+        .map(|rf| rf.get("github").copied().unwrap_or(0) > 0)
+        .unwrap_or(false);
+
     // Push to origin (if the repo has one — mirror-only repos like .dracon
     // skip this and go straight to mirror remotes)
     if has_origin {
-        match push_with_retries(
-            repo,
-            scaled_timeout,
-            policy.push_retries,
-            "push",
-        )
-        .await
-        {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!(
-                    "⚠️ background push to origin failed for {}: {}",
+        // Skip origin if it points at github and the pack is too big for
+        // github's 2 GiB limit (defensive; most repos' origin is codeberg).
+        let origin_is_github = crate::git::multi_remote::get_remote_url(repo, "origin")
+            .map(|u| u.contains("github.com"))
+            .unwrap_or(false);
+        if too_big_for_github && origin_is_github {
+            if !github_already_flagged {
+                log_warn!(
+                    "🚫 skipping origin (github) push for {}: .git is {:.2} GiB (exceeds github's 2 GiB limit)",
                     repo.display(),
-                    e
+                    git_size.unwrap_or(0) as f64 / (1024.0 * 1024.0 * 1024.0)
                 );
-                return Ok(false);
+            }
+        } else {
+            match push_with_retries(
+                repo,
+                scaled_timeout,
+                policy.push_retries,
+                "push",
+            )
+            .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!(
+                        "⚠️ background push to origin failed for {}: {}",
+                        repo.display(),
+                        e
+                    );
+                    return Ok(false);
+                }
             }
         }
     }
@@ -1657,13 +1690,39 @@ async fn push_background(
         // specific mirror (e.g. gitlab for a repo over the free-tier
         // storage quota) without affecting other repos.
         let repo_override = crate::policy::load_repo_override(repo);
+        let mut combined_exclude: Vec<String> = repo_override.exclude_remotes.clone();
+        if too_big_for_github {
+            if !combined_exclude.iter().any(|e| e == "github") {
+                combined_exclude.push("github".to_string());
+            }
+            // Record the skip so the one-time notification doesn't re-fire
+            // every cycle, and so the repo shows as intentionally-skipped.
+            if let Some(rf) = remote_failures.as_deref_mut() {
+                *rf.entry("github".to_string()).or_insert(0) += 1;
+            }
+            if !github_already_flagged {
+                log_warn!(
+                    "🚫 skipping github push for {}: .git is {:.2} GiB (exceeds github's 2 GiB pack limit). Needs history rewrite / OVH migration; will resume once shrunk below 2 GiB.",
+                    repo.display(),
+                    git_size.unwrap_or(0) as f64 / (1024.0 * 1024.0 * 1024.0)
+                );
+                if let Some(url) = &policy.webhook_url {
+                    notify_webhook_failure(
+                        url,
+                        repo,
+                        "github",
+                        "PACK_TOO_LARGE: .git exceeds github's 2 GiB pack limit; skipping push. Rewrite history (git filter-repo) or move assets to OVH bucket.",
+                    );
+                }
+            }
+        }
         let push_results = push_mirror_remotes(
             repo,
             &policy.remotes,
             policy.push_op_timeout_secs,
             policy.push_retries,
             private,
-            &repo_override.exclude_remotes,
+            &combined_exclude,
         )
         .await;
         let all_ok = push_results.iter().all(|(_, r)| r.is_ok());
@@ -1681,9 +1740,13 @@ async fn push_background(
             }
             return Ok(false);
         } else if let Some(rf) = remote_failures {
-            // Successful push — clear any prior failure count for these remotes.
-            for name in policy.remotes.iter().map(|r| r.name.clone()) {
-                rf.remove(&name);
+            // Successful push — clear any prior failure count for the
+            // remotes we actually pushed to. (Remotes we deliberately
+            // skipped — e.g. github when `.git` > 2 GiB — are NOT in
+            // `push_results`, so their skip marker survives until the
+            // repo shrinks and they push successfully.)
+            for (name, _) in &push_results {
+                rf.remove(name);
             }
         }
     }
