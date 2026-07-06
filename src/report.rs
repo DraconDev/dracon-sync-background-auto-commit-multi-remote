@@ -7653,4 +7653,8 @@ mod tests {
         let content_max = push_to_col - 2;
         assert!(
             width <= content_max,
-            "PUSH-TO cell {width} cols exceeds content area {content_max} cols. \
+            "PUSH-TO cell {width} cols exceeds content area {content_max} cols."
+        );
+    }
+}
+
