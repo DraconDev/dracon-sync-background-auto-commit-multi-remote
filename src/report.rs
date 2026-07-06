@@ -531,11 +531,31 @@ fn format_push_to_remotes_cell(
 /// `None` if the measurement fails or exceeds the 2-second timeout.
 /// `du -sb` is fast even on large .git dirs (40ms for 20 GiB) so the
 /// timeout is just a safety net for slow network filesystems.
+///
+/// For worktrees/submodules where `.git` is a file (not a directory),
+/// reads the `gitdir:` pointer and measures the shared gitdir instead.
 fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
-    let git_dir = repo.join(".git");
+    let git_path = repo.join(".git");
+    if !git_path.exists() {
+        return None;
+    }
+
+    // Handle worktrees/submodules: `.git` is a file containing
+    // `gitdir: <path>`. Resolve the actual gitdir.
+    let git_dir = if git_path.is_file() {
+        let content = std::fs::read_to_string(&git_path).ok()?;
+        let gitdir_line = content.lines().find(|l| l.starts_with("gitdir:"))?;
+        let rel_path = gitdir_line.strip_prefix("gitdir:")?.trim();
+        // Resolve relative path against the repo root.
+        repo.join(rel_path)
+    } else {
+        git_path
+    };
+
     if !git_dir.exists() {
         return None;
     }
+
     // Use `du -sb` (POSIX) to get total size in bytes. Fall back to
     // `du -s --block-size=1` if `du` is busybox without `-b`.
     let output = std::process::Command::new("du")
