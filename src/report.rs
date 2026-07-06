@@ -2787,9 +2787,19 @@ pub(crate) async fn run_repos_report(
     println!();
 
     // ---- Legend line (one-liner mapping column codes to their meaning) ----
-    println!(
-        "ℹ️  Legend: MOD = modified tracked · STG = staged · UT = untracked · 🔗 = VS Code publish upstream — green when healthy (e.g. `github/main`), yellow ⚠️ none when no upstream is configured, yellow ⚠️ <remote/branch> (gone) when the upstream is configured but its remote-tracking ref does not exist locally · ↑ = ahead of upstream · ↓ = behind upstream · PUSH = push status · 📊 1h/6h/24h = commits in last 1h/6h/24h · STATE = derived cause (working=daemon just synced/committing/pushing/synced=clean & in sync/stalled/dirty/untracked-only/intentional/failed/idle/cold/healthy) · ACTIVITY = real activity indicator (now=daemon processing this repo · pushing Xm (N ahead)=push in progress, N unpushed commits · dirty Xm=dirty repo, last commit X minutes ago · synced/idle/cold=clean & waiting) · DAEMON = daemon's last recorded action (e.g. '23s sync_triage') so you can tell the daemon is working through dirty rows vs. you're editing right now"
-    );
+    // ---- Multi-line legend (grouped by category) ----
+    println!("ℹ️  Columns:");
+    println!("   MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead · ↓ = behind");
+    println!("   📊 1h/6h/24h = commits in that window · 📜 LAST = most recent commit summary");
+    println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream");
+    println!("   ⚠️ none = no upstream configured · ⚠️ <remote/branch> (gone) = upstream ref missing");
+    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
+    println!("   🟠 dirty = has changes · 🟣 pushing/working/committing = daemon active");
+    println!("   ⏳ stalled = no progress · ⚫ idle/cold = waiting · ⬛ failed = error");
+    println!("ℹ️  Activity: now = daemon processing · pushing Xm (N) = pushing, N unpushed");
+    println!("   dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
+    println!("ℹ️  Daemon = last recorded action so you can tell the daemon is working");
+    println!("⚠️  PACK SIZE: .git > 2 GB may fail to push to github (repo-level hint)");
     println!();
 
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
