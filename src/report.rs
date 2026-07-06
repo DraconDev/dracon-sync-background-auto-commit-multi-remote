@@ -1828,6 +1828,9 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     if flags.iter().any(|f| f.starts_with("BEHIND:")) {
         return "run repair-concerns --apply (pull/merge)".to_string();
     }
+    if flags.iter().any(|f| f == "PACK_SIZE_WARNING") {
+        return ".git exceeds 2 GB (github limit) — may fail to push to github".to_string();
+    }
     if warn {
         return "daemon handles after changes settle; run sync-now --warns to force now"
             .to_string();
@@ -2303,6 +2306,10 @@ pub(crate) async fn run_repos_report(
         // repos before this point.
         let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
 
+        // Measure `.git` size early so the pack-size warning can be
+        // added to flags. `du -sb` is fast (~40ms for 20 GiB).
+        let git_size_bytes = measure_git_size_bytes(&repo);
+
         // Classification: a repo is WARN if it has TRACKED modifications or
         // staged changes. Untracked files (e.g., target/, node_modules/) are
         // NOT counted — they are build artifacts that shouldn't trigger
@@ -2356,6 +2363,17 @@ pub(crate) async fn run_repos_report(
         );
         if repo_override.intentional_no_upstream {
             flags = apply_intentional_no_upstream(flags);
+        }
+
+        // ── Pack size warning (2 GB = github's hard limit) ─────────
+        // When the .git directory exceeds 2 GB, the repo is likely too
+        // big for github. Add a flag so the operator sees the warning
+        // in the HINT column.
+        const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
+        if let Some(size) = git_size_bytes {
+            if size >= GITHUB_PACK_LIMIT_BYTES {
+                flags.push("PACK_SIZE_WARNING".to_string());
+            }
         }
 
         // ── Ownership override (compute early) ─────────
@@ -2634,7 +2652,7 @@ pub(crate) async fn run_repos_report(
             // times out, we record `None` and the renderer shows a
             // dash. 2-second cap to keep the report snappy even on
             // network filesystems.
-            git_size_bytes: measure_git_size_bytes(&repo),
+            git_size_bytes,
             // Probe each forge's token file. We check both the modern
             // `~/.dracon/utilities/sync/secrets/` dir and the legacy
             // `~/.dracon/secrets/pat/` dir (the daemon's `load_secret`
