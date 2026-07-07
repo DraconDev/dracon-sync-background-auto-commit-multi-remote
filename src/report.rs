@@ -2389,9 +2389,20 @@ pub(crate) async fn run_repos_report(
         // When the .git directory exceeds 2 GB, the repo is likely too
         // big for github. Add a flag so the operator sees the warning
         // in the HINT column.
+        //
+        // Only warn if GitHub is actually a push target. If the operator
+        // has explicitly excluded GitHub (e.g. a repo too large to ever
+        // push there, like dracon-platform at ~17 GiB), the warning is
+        // moot — suppress it so the audit stays green. (The daemon's
+        // push path already skips GitHub on size regardless; this just
+        // keeps the HINT column honest about whether GitHub is in scope.)
         const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
+        let github_excluded = repo_override
+            .exclude_remotes
+            .iter()
+            .any(|r| r.eq_ignore_ascii_case("github"));
         if let Some(size) = git_size_bytes {
-            if size >= GITHUB_PACK_LIMIT_BYTES {
+            if size >= GITHUB_PACK_LIMIT_BYTES && !github_excluded {
                 flags.push("PACK_SIZE_WARNING".to_string());
             }
         }
