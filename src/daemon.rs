@@ -33,7 +33,7 @@ use crate::git::{
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
-use crate::sync::{materialize_submodule, sync_repo, sync_repo_with_ahead_since, SyncOutcome};
+use crate::sync::{sync_repo, sync_repo_with_ahead_since, SyncOutcome};
 use crate::git::list_submodules;
 
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
@@ -1870,28 +1870,27 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
     (repo_set, locks_removed)
 }
 
-/// Walk the just-discovered repos and materialize any submodules
-/// declared in their `.gitmodules` as standalone worktrees under
-/// the matching watch root. Idempotent: existing worktrees are
-/// detected by `materialize_submodule` and skipped.
+/// Walk the just-discovered repos and ensure each submodule declared in
+/// `.gitmodules` has its multi-remote set (github / gitlab / codeberg)
+/// configured on the **nested** submodule path when that path is checked
+/// out on `main`. The daemon syncs the nested path directly (the
+/// nested-on-main architecture); it does NOT materialize a standalone
+/// worktree at the watch root.
 ///
-/// For each newly-materialized worktree, the daemon also adds
-/// the standard mirror remotes (github / gitlab / codeberg) from
-/// the policy, so the worktree can push to all 3 forges. The
-/// inherited `origin` remote (pointing at git@gitlab.com) is
-/// preserved — the multi-remote set is added alongside it.
+/// Materializing standalone worktrees at `/home/dracon/Dev/<name>/` was
+/// added 2026-06-30 (goal `mr10pdzr-i495vy`) but contradicted the
+/// documented design ("there is no standalone at /home/dracon/Dev/<name>/"),
+/// and was removed 2026-07-08 (goal `730eaf2a`): discovery filters the
+/// standalone out, so it is never synced, and detached-agent checkouts
+/// kept recreating it.
 ///
-/// Logs each materialize at INFO level (`🔧 Materializing ...`)
-/// and logs failures as warnings. The daemon cycle is NOT
-/// aborted on a failed materialize — the operator can recover
-/// with `cd <parent> && git submodule update --init` and the
-/// next cycle will retry.
-///
-/// ADDED 2026-06-30, goal `mr10pdzr-i495vy`:
-/// "Make the daemon discover, materialize, and sync submodules".
+/// If the nested submodule is NOT on `main` (detached HEAD or not yet
+/// initialized), the daemon simply skips it — it does not create a
+/// redundant standalone. Any pre-existing standalone is pruned
+/// out-of-band by the operator (`git worktree remove --force`).
 pub(crate) async fn materialize_pending_submodules(
     repos: &[PathBuf],
-    roots: &[PathBuf],
+    _roots: &[PathBuf],
     policy: &SyncPolicy,
 ) {
     for parent in repos {
@@ -1920,25 +1919,13 @@ pub(crate) async fn materialize_pending_submodules(
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| sub.name.clone());
-            let anchor = match find_anchor_root(parent, roots) {
-                Some(a) => a,
-                None => continue,
-            };
-            let target_path = anchor.join(&worktree_name);
-            // CHANGED 2026-07-02 (goal `mr3g843f-lajfpg`):
-            // Nested-on-main architecture. The canonical watch
-            // path for a submodule is the nested submodule
-            // path inside the parent (e.g. `<parent>/<sub.path>`),
-            // not the standalone at the watch root. If the
-            // nested submodule path exists AND is checked out
-            // on a real branch (e.g. main), the standalone at
-            // `target_path` is redundant — skip the materialize
-            // step entirely.
-            //
-            // This prevents the daemon from re-creating the
-            // standalone worktree on every cycle, which would
-            // race with the operator's removal of the standalone
-            // and cause the canonical path to flip-flop.
+            // Nested-on-main architecture: the canonical watch path is the
+            // nested submodule path inside the parent (e.g.
+            // `<parent>/<sub.path>`). The daemon syncs that path directly
+            // and must NOT create a standalone worktree at the watch root.
+            // Materialization was removed 2026-07-08 (goal `730eaf2a`) because
+            // it contradicted the documented design and kept being recreated
+            // by detached-agent checkouts.
             let nested_submodule_path = parent.join(&sub.path);
             let nested_on_main = nested_submodule_path.exists()
                 && nested_submodule_path.join(".git").exists()
@@ -1965,69 +1952,21 @@ pub(crate) async fn materialize_pending_submodules(
                 );
                 continue;
             }
-            // Skip if the target is already a real .git dir
-            // (worktree already exists). materialize_submodule
-            // itself is idempotent, but checking here lets us
-            // avoid even the "gitdir" check on every cycle.
-            // HOWEVER: we still want to ensure the multi-remote
-            // set is configured for pre-existing worktrees, so
-            // we don't `continue` here — we fall through to the
-            // remote-configure step below.
-            if !target_path.join(".git").exists() {
-                eprintln!(
-                    "🔧 Materializing submodule {} -> {}",
-                    sub.name,
-                    target_path.display()
-                );
-                if let Err(e) =
-                    materialize_submodule(parent, &sub.name, &target_path, &sub.sha).await
-                {
-                    eprintln!(
-                        "⚠️ failed to materialize submodule {} from {}: {}",
-                        sub.name,
-                        parent.display(),
-                        e
-                    );
-                    continue;
-                }
-            }
-            // Add (or re-add) the standard mirror remotes to the
-            // worktree. The inherited `origin` (pointing at
-            // git@gitlab.com) is preserved; this adds `github`
-            // and `codeberg` alongside it so the daemon's
-            // multi-remote push flow works end-to-end.
-            //
-            // We always run this, even for pre-existing
-            // worktrees, so a worktree that was materialized
-            // before the multi-remote step was added gets the
-            // remotes retroactively on the next cycle.
-            let repo_override = crate::policy::load_repo_override(&target_path);
-            crate::git::multi_remote::configure_all_remotes(
-                &target_path,
-                &policy.remotes,
-                &worktree_name,
-                &repo_override.exclude_remotes,
-            );
+            // Nested submodule is NOT on `main` (detached HEAD, or not yet
+            // initialized). Per the nested-on-main architecture the daemon
+            // syncs the nested path directly and must NOT materialize a
+            // redundant standalone worktree at the watch root: discovery
+            // filters the standalone out (so it is never synced), and
+            // creating it contradicts the documented design ("there is no
+            // standalone at /home/dracon/Dev/<name>/"). Any pre-existing
+            // standalone is pruned out-of-band by the operator
+            // (`git worktree remove --force`); the daemon simply skips it
+            // here.
+            continue;
         }
     }
 }
 
-/// Find the watch root that contains `parent`. Mirrors the
-/// `find_anchor_root` helper in `git::discovery` but lives here
-/// because the daemon module doesn't re-export private
-/// functions. Returns `None` if no watch root contains the
-/// parent.
-fn find_anchor_root(parent: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
-    let parent_canon = parent.canonicalize().ok()?;
-    for root in roots {
-        if let Ok(root_canon) = root.canonicalize() {
-            if parent_canon.starts_with(&root_canon) {
-                return Some(root_canon);
-            }
-        }
-    }
-    None
-}
 
 /// Returns true if the worktree at `path` is checked out on a real
 /// branch (e.g. `main`), not in detached HEAD state. Used by
