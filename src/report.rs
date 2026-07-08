@@ -2397,7 +2397,7 @@ pub(crate) async fn run_repos_report(
         // this HINT stays accurate after the dracon-platform github
         // exclusion is removed (the daemon pushes GitHub whenever the
         // pushable branch fits).
-        if crate::git::github_pack_too_large(repo).0 {
+        if crate::git::github_pack_too_large(&repo).0 {
             flags.push("PACK_SIZE_WARNING".to_string());
         }
 
