@@ -89,54 +89,79 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
     if shas.is_empty() {
         return 0;
     }
-    // Batch-check object sizes; skip missing objects (submodule gitlinks
-    // reference commits that live in nested repos, not this one).
+
+    // Spawn `git cat-file --batch-check` to size each object.
+    //
+    // CRITICAL deadlock avoidance: the SHA list for a large branch can be
+    // tens of MiB. Writing the *entire* list to cat-file's piped stdin up
+    // front (while nobody is yet draining cat-file's piped stdout) fills the
+    // 64 KiB stdin pipe and deadlocks — cat-file blocks on its own stdout
+    // write (unread) and never reads stdin, so our stdin write blocks
+    // forever. So we feed stdin from a SEPARATE thread and drain stdout
+    // concurrently from this one. Both directions make progress -> no
+    // deadlock. This is what broke dracon-platform's push (huge main).
     let mut cmd = git_cmd();
     cmd.current_dir(repo)
         .args(["cat-file", "--batch-check=%(objecttype) %(objectsize)"])
         .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped());
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(_) => return u64::MAX,
     };
-    use std::io::Write;
-    if let Some(mut stdin) = child.stdin.take() {
-        if stdin.write_all(shas.as_bytes()).is_err() {
-            return u64::MAX;
-        }
-    }
-    let out = match child.wait_with_output() {
-        Ok(o) => o,
-        Err(_) => return u64::MAX,
+    let mut cat_stdin = match child.stdin.take() {
+        Some(s) => s,
+        None => return u64::MAX,
     };
-    if !out.status.success() {
-        return u64::MAX;
-    }
-    let text = String::from_utf8_lossy(&out.stdout);
+    // Writer thread: stream the SHA list, then drop stdin -> pipe EOF.
+    let writer = std::thread::spawn(move || {
+        use std::io::Write;
+        let _ = cat_stdin.write_all(shas.as_bytes());
+        // `cat_stdin` dropped here -> pipe EOF -> cat-file flushes.
+    });
+
+    // Reader: drain cat-file's stdout line-by-line, summing sizes.
+    use std::io::{BufRead, BufReader};
     let mut total: u64 = 0;
-    for line in text.lines() {
-        // Format from `cat-file --batch-check='%(objecttype) %(objectsize)'`:
-        // either `<type> <size>` (no SHA echoed) or `<sha> <type> <size>`
-        // (SHA echoed). Skip a leading 40-hex SHA if present, then read the
-        // type and size.
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        let mut i = 0;
-        if parts
-            .first()
-            .map_or(false, |p| p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit()))
-        {
-            i += 1;
-        }
-        let ty = parts.get(i);
-        let size = parts.get(i + 1);
-        if ty == Some(&"missing") {
-            continue;
-        }
-        if let Some(s) = size.and_then(|s| s.parse::<u64>().ok()) {
-            total = total.saturating_add(s);
+    if let Some(stdout) = child.stdout.take() {
+        let mut reader = BufReader::new(stdout);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => break, // EOF
+                Ok(_) => {
+                    let trimmed = line.trim_end();
+                    if trimmed.is_empty() {
+                        continue;
+                    }
+                    // Format from `cat-file --batch-check='%(objecttype)
+                    // %(objectsize)'`: either `<type> <size>` (no SHA echoed)
+                    // or `<sha> <type> <size>` (SHA echoed). Skip a leading
+                    // 40-hex SHA if present, then read type and size.
+                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                    let mut i = 0;
+                    if parts.first().map_or(false, |p| {
+                        p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit())
+                    }) {
+                        i += 1;
+                    }
+                    let ty = parts.get(i);
+                    let size = parts.get(i + 1);
+                    if ty == Some(&"missing") {
+                        continue;
+                    }
+                    if let Some(s) = size.and_then(|s| s.parse::<u64>().ok()) {
+                        total = total.saturating_add(s);
+                    }
+                }
+                Err(_) => break,
+            }
         }
     }
+    let _ = child.wait();
+    let _ = writer.join();
     total
 }
 
