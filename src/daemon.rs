@@ -3194,9 +3194,13 @@ mod submodule_materialize_tests {
     }
 
     #[tokio::test]
-    async fn daemon_cycle_materializes_3_submodules() {
-        // Build a parent with 3 submodules, run the
-        // materialize pass, assert all 3 worktrees appear.
+    async fn materialize_pending_submodules_does_not_create_standalone_worktrees() {
+        // REGRESSION for goal `730eaf2a` (2026-07-08): the daemon must
+        // NOT materialize top-level standalone worktrees at
+        // `<watch_root>/<name>` (e.g. /tmp/.../polis/). Submodules are
+        // watched only via their nested checkout. Build a parent with 3
+        // submodules, run the materialize pass, and assert that NO
+        // standalone worktrees appear at the path-basename anchor.
         let tmp = tempfile::tempdir().unwrap();
         let watch_root = tmp.path().to_path_buf();
         let parent = build_fixture_with_submodules(
@@ -3220,24 +3224,25 @@ mod submodule_materialize_tests {
         let test_policy = crate::policy::SyncPolicy::default();
         materialize_pending_submodules(&repos, &roots, &test_policy).await;
 
-        // After materialize, all 3 worktrees must exist at the
-        // path-basename anchor (e.g. /tmp/.../polis/).
+        // After the pass, NO standalone worktrees may exist at the
+        // path-basename anchor (e.g. /tmp/.../polis/). This is the
+        // core invariant fixed by goal 730eaf2a.
         for name in &["polis", "deathrun", "junk-runner"] {
             let wt = watch_root.join(name);
             assert!(
-                wt.exists(),
-                "worktree for {} not materialized at {}",
-                name,
+                !wt.exists(),
+                "materialize_pending_submodules must NOT create a standalone worktree at {} (goal 730eaf2a)",
                 wt.display()
             );
-            assert!(wt.join(".git").exists(), ".git file missing for {}", name);
         }
     }
 
     #[tokio::test]
-    async fn daemon_cycle_idempotent_when_submodule_already_materialized() {
-        // Pre-create one worktree; verify the materialize pass
-        // does NOT clobber it.
+    async fn materialize_pending_submodules_leaves_existing_dirs_untouched() {
+        // REGRESSION for goal `730eaf2a`: even if a directory happens to
+        // exist at the path-basename anchor (e.g. a user-created dir or a
+        // leftover from a previous layout), the materialize pass must NOT
+        // create/clobber a standalone worktree there.
         let tmp = tempfile::tempdir().unwrap();
         let watch_root = tmp.path().to_path_buf();
         let parent = build_fixture_with_submodules(
@@ -3248,7 +3253,8 @@ mod submodule_materialize_tests {
             ],
         );
 
-        // Pre-create polis worktree with a marker file.
+        // Pre-create a polis directory with a marker file (simulating an
+        // unrelated dir at the basename anchor).
         let polis = watch_root.join("polis");
         std::fs::create_dir_all(&polis).unwrap();
         std::fs::write(polis.join("marker.txt"), b"keep me").unwrap();
@@ -3258,14 +3264,16 @@ mod submodule_materialize_tests {
         let test_policy = crate::policy::SyncPolicy::default();
         materialize_pending_submodules(&repos, &roots, &test_policy).await;
 
-        // Polis marker must still exist (not clobbered).
+        // The marker must still exist (not clobbered into a worktree).
         assert!(
             polis.join("marker.txt").exists(),
-            "pre-existing worktree was clobbered"
+            "pre-existing dir at basename anchor was clobbered"
         );
-        // Deathrun must have been materialized.
-        let deathrun = watch_root.join("deathrun");
-        assert!(deathrun.exists(), "deathrun was not materialized");
+        // And no standalone worktree was created for deathrun either.
+        assert!(
+            !watch_root.join("deathrun").exists(),
+            "materialize_pending_submodules must NOT create a standalone worktree at deathrun (goal 730eaf2a)"
+        );
     }
 }
 
