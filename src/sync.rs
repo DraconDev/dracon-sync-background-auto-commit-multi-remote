@@ -1411,15 +1411,14 @@ async fn push_background(
     }
     // ── Proactive oversized-pack guard (github 2 GiB limit) ──────────────
     // github rejects packs > 2 GiB. Retrying is vain: git still re-packs the
-    // entire local history (slow, and it saturates the daemon's push
-    // semaphore) only for github to reject it again — which is exactly what
-    // stalled small repos behind hegemon. If `.git` already exceeds 2 GiB,
-    // skip the github push entirely. gitlab/codeberg have no such limit and
-    // keep working. Self-healing: once the repo is shrunk below 2 GiB
-    // (history rewrite / OVH migration) the push resumes automatically.
-    const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-    let git_size = crate::report::measure_git_size_bytes(repo);
-    let too_big_for_github = git_size.is_some_and(|s| s >= GITHUB_PACK_LIMIT_BYTES);
+    // history (slow, and it saturates the daemon's push semaphore) only for
+    // github to reject it again. The relevant size is the pack we would
+    // actually send for the pushed branch — NOT the whole `.git` (which can
+    // be huge for unrelated reasons, e.g. dracon-platform's 332 tags). So we
+    // measure the pushable branch via `github_pack_too_large`. gitlab/codeberg
+    // have no such limit and keep working. Self-healing: once the pushed
+    // branch shrinks below 2 GiB the push resumes automatically.
+    let (too_big_for_github, pushable_size) = crate::git::github_pack_too_large(repo);
     // Whether github was already flagged, so we notify once per regression
     // rather than spamming the journal every cycle.
     let github_already_flagged = remote_failures
@@ -1438,9 +1437,9 @@ async fn push_background(
         if too_big_for_github && origin_is_github {
             if !github_already_flagged {
                 log_warn!(
-                    "🚫 skipping origin (github) push for {}: .git is {:.2} GiB (exceeds github's 2 GiB limit)",
+                    "🚫 skipping origin (github) push for {}: pushable branch is {:.2} GiB (exceeds github's 2 GiB pack limit)",
                     repo.display(),
-                    git_size.unwrap_or(0) as f64 / (1024.0 * 1024.0 * 1024.0)
+                    pushable_size as f64 / (1024.0 * 1024.0 * 1024.0)
                 );
             }
         } else {
@@ -1485,16 +1484,16 @@ async fn push_background(
             }
             if !github_already_flagged {
                 log_warn!(
-                    "🚫 skipping github push for {}: .git is {:.2} GiB (exceeds github's 2 GiB pack limit). Needs history rewrite / OVH migration; will resume once shrunk below 2 GiB.",
+                    "🚫 skipping github push for {}: pushable branch is {:.2} GiB (exceeds github's 2 GiB pack limit). Needs history rewrite / OVH migration; will resume once shrunk below 2 GiB.",
                     repo.display(),
-                    git_size.unwrap_or(0) as f64 / (1024.0 * 1024.0 * 1024.0)
+                    pushable_size as f64 / (1024.0 * 1024.0 * 1024.0)
                 );
                 if let Some(url) = &policy.webhook_url {
                     notify_webhook_failure(
                         url,
                         repo,
                         "github",
-                        "PACK_TOO_LARGE: .git exceeds github's 2 GiB pack limit; skipping push. Rewrite history (git filter-repo) or move assets to OVH bucket.",
+                        "PACK_TOO_LARGE: pushable branch exceeds github's 2 GiB pack limit; skipping push. Rewrite history (git filter-repo) or move assets to OVH bucket.",
                     );
                 }
             }

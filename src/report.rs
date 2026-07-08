@@ -2386,25 +2386,19 @@ pub(crate) async fn run_repos_report(
         }
 
         // ── Pack size warning (2 GB = github's hard limit) ─────────
-        // When the .git directory exceeds 2 GB, the repo is likely too
-        // big for github. Add a flag so the operator sees the warning
-        // in the HINT column.
+        // GitHub rejects packs > 2 GiB. Add a PACK_SIZE_WARNING flag so the
+        // operator sees, in the HINT column, that the daemon is skipping
+        // GitHub for this repo.
         //
-        // Only warn if GitHub is actually a push target. If the operator
-        // has explicitly excluded GitHub (e.g. a repo too large to ever
-        // push there, like dracon-platform at ~17 GiB), the warning is
-        // moot — suppress it so the audit stays green. (The daemon's
-        // push path already skips GitHub on size regardless; this just
-        // keeps the HINT column honest about whether GitHub is in scope.)
-        const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
-        let github_excluded = repo_override
-            .exclude_remotes
-            .iter()
-            .any(|r| r.eq_ignore_ascii_case("github"));
-        if let Some(size) = git_size_bytes {
-            if size >= GITHUB_PACK_LIMIT_BYTES && !github_excluded {
-                flags.push("PACK_SIZE_WARNING".to_string());
-            }
+        // The flag reflects whether the daemon would actually skip GitHub
+        // because the pushable branch exceeds 2 GiB — NOT the whole `.git`,
+        // which can be large for unrelated reasons (e.g. dracon-platform's
+        // 332 tags). `github_pack_too_large` measures the pushed branch, so
+        // this HINT stays accurate after the dracon-platform github
+        // exclusion is removed (the daemon pushes GitHub whenever the
+        // pushable branch fits).
+        if crate::git::github_pack_too_large(repo).0 {
+            flags.push("PACK_SIZE_WARNING".to_string());
         }
 
         // ── Ownership override (compute early) ─────────

@@ -13,6 +13,210 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
     crate::policy::tokio_git_command()
 }
 
+/// GitHub's hard limit is 2 GiB per pack. Returns `(too_big_for_github,
+/// size_used_for_decision)` where `too_big_for_github` is true only when the
+/// pack we would actually send for the pushed branch exceeds 2 GiB.
+///
+/// The relevant size is the pack for the branch we push — NOT the entire
+/// `.git`. A repo can have a huge `.git` (dracon-platform: ~19 GiB, dominated
+/// by 332 tags + other non-`main` refs) while the pushable `main` is only
+/// ~1.4 GiB and fits GitHub fine. Measuring the whole `.git` wrongly skips
+/// GitHub for such repos, breaking push-to-all.
+///
+/// Fast path: if the whole `.git` is already < 2 GiB, GitHub can receive any
+/// branch we push (the pack is at most the whole history), so we never skip.
+/// Only when `.git` is large do we refine by measuring the objects reachable
+/// from the pushed branch. That is an upper bound on the actual pack (which
+/// is compressed and excludes objects GitHub already has), so it is
+/// conservative: we still skip only if even the full branch exceeds 2 GiB.
+///
+/// The `is_pack_too_large` backstop in the push path catches any mis-estimate:
+/// if a push we allow is somehow rejected by GitHub, the daemon stops retrying
+/// instead of looping.
+pub(crate) fn github_pack_too_large(repo: &std::path::Path) -> (bool, u64) {
+    const LIMIT: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
+    // Fast path: small .git -> never too big (unchanged behavior for the vast
+    // majority of repos; no extra git subprocess).
+    if let Some(size) = crate::report::measure_git_size_bytes(repo) {
+        if size < LIMIT {
+            return (false, size);
+        }
+    }
+    // Large .git: refine using the pushed branch's reachable objects.
+    let pushable = pushed_branch_pushable_bytes(repo);
+    if pushable == u64::MAX {
+        // Couldn't measure the branch (e.g. detached HEAD, git error). Fall
+        // back to the whole .git size (conservative: skip).
+        let whole = crate::report::measure_git_size_bytes(repo).unwrap_or(u64::MAX);
+        (whole >= LIMIT, whole)
+    } else {
+        (pushable >= LIMIT, pushable)
+    }
+}
+
+/// Estimate the raw byte size of objects reachable from the branch the daemon
+/// pushes (the checked-out branch), excluding submodule gitlink objects (which
+/// live in nested repos, not this one). This is an upper bound on the pack
+/// GitHub would receive for that branch.
+///
+/// Returns `u64::MAX` when the branch can't be determined or git errors.
+fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
+    // The daemon pushes the checked-out branch.
+    let branch = match git_capture_stdout(repo, &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        Some(s) => {
+            let b = s.trim().to_string();
+            if b.is_empty() || b == "HEAD" {
+                return u64::MAX; // detached HEAD -> can't determine
+            }
+            b
+        }
+        None => return u64::MAX,
+    };
+    let objects = match git_capture_stdout(repo, &["rev-list", "--objects", &branch]) {
+        Some(s) => s,
+        None => return u64::MAX,
+    };
+    // Collect object SHAs (first whitespace-delimited token per line).
+    let mut shas = String::new();
+    for line in objects.lines() {
+        if let Some(sha) = line.split_whitespace().next() {
+            if sha.len() == 40 {
+                shas.push_str(sha);
+                shas.push('\n');
+            }
+        }
+    }
+    if shas.is_empty() {
+        return 0;
+    }
+    // Batch-check object sizes; skip missing objects (submodule gitlinks
+    // reference commits that live in nested repos, not this one).
+    let mut cmd = git_cmd();
+    cmd.current_dir(repo)
+        .args(["cat-file", "--batch-check=%(objecttype) %(objectsize)"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(_) => return u64::MAX,
+    };
+    use std::io::Write;
+    if let Some(mut stdin) = child.stdin.take() {
+        if stdin.write_all(shas.as_bytes()).is_err() {
+            return u64::MAX;
+        }
+    }
+    let out = match child.wait_with_output() {
+        Ok(o) => o,
+        Err(_) => return u64::MAX,
+    };
+    if !out.status.success() {
+        return u64::MAX;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut total: u64 = 0;
+    for line in text.lines() {
+        // `<sha> <type> <size>` or `<sha> missing`
+        let mut parts = line.split_whitespace();
+        let _sha = parts.next();
+        let ty = parts.next();
+        let size = parts.next();
+        if ty == Some("missing") {
+            continue;
+        }
+        if let Some(s) = size.and_then(|s| s.parse::<u64>().ok()) {
+            total = total.saturating_add(s);
+        }
+    }
+    total
+}
+
+/// Run a git command in `repo` and return its stdout as a `String`, or `None`
+/// on failure / non-zero exit.
+fn git_capture_stdout(repo: &std::path::Path, args: &[&str]) -> Option<String> {
+    let out = git_cmd().current_dir(repo).args(args).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    String::from_utf8(out.stdout).ok()
+}
+
+#[cfg(test)]
+mod github_pack_tests {
+    use super::*;
+
+    fn real_git() -> std::path::PathBuf {
+        for c in [
+            "/run/current-system/sw/bin/git",
+            "/usr/bin/git",
+            "/bin/git",
+        ] {
+            if std::path::Path::new(c).exists() {
+                return std::path::PathBuf::from(c);
+            }
+        }
+        std::path::PathBuf::from("git")
+    }
+
+    fn init_repo(dir: &std::path::Path) -> std::path::PathBuf {
+        let repo = dir.join("repo");
+        std::process::Command::new(real_git())
+            .args(["init", "-q", &repo.to_string_lossy()])
+            .output()
+            .unwrap();
+        std::process::Command::new(real_git())
+            .args(["config", "user.email", "test@dracon.dev"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new(real_git())
+            .args(["config", "user.name", "test"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("a.txt"), "hello world").unwrap();
+        std::process::Command::new(real_git())
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::process::Command::new(real_git())
+            .args(["commit", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        repo
+    }
+
+    #[test]
+    fn small_repo_is_not_too_big_for_github() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let repo = init_repo(tmp.path());
+        let (too_big, size) = github_pack_too_large(&repo);
+        assert!(!too_big, "a tiny repo must never be skipped for github");
+        assert!(
+            size > 0 && size < 2 * 1024 * 1024 * 1024,
+            "pushable size should be the small .git, got {size}"
+        );
+    }
+
+    #[test]
+    fn pushed_branch_size_is_subset_of_whole_git() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let repo = init_repo(tmp.path());
+        let bytes = pushed_branch_pushable_bytes(&repo);
+        assert!(
+            bytes > 0 && bytes != u64::MAX,
+            "pushable bytes should be the repo's own objects, got {bytes}"
+        );
+        let whole = crate::report::measure_git_size_bytes(&repo).unwrap();
+        assert!(
+            bytes <= whole,
+            "pushable {bytes} must be <= whole .git {whole}"
+        );
+    }
+}
+
 mod branch;
 pub(crate) use branch::*;
 mod config;
