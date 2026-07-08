@@ -89,6 +89,9 @@ enum Command {
         /// Show full repo paths instead of short names.
         #[arg(long)]
         full_path: bool,
+        /// Print the column legend and exit (no table). Use when a column is unclear.
+        #[arg(long)]
+        legend: bool,
     },
     /// Check daemon health (policy valid, daemon responsive, repos healthy).
     Health {
@@ -640,6 +643,7 @@ async fn main() -> Result<()> {
             sort,
             filter: filter_name,
             full_path,
+            legend,
         } => {
             let filter = if only_concern {
                 RepoFilter::Concern
@@ -655,6 +659,7 @@ async fn main() -> Result<()> {
                 &sort,
                 filter_name.as_deref(),
                 full_path,
+                legend,
             )
             .await?;
         }
