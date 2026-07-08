@@ -1473,10 +1473,17 @@ async fn push_background(
         // storage quota) without affecting other repos.
         let repo_override = crate::policy::load_repo_override(repo);
         let mut combined_exclude: Vec<String> = repo_override.exclude_remotes.clone();
+        // ALWAYS keep github out of the mirror path. `origin` (github) is
+        // pushed by the dedicated `push_with_retries` call above; routing
+        // github through `push_mirror_remotes` instead makes it run
+        // `auto_create_all_remotes` (`gh repo create`), which stalls
+        // against an already-existing repo and blocks the gitlab/codeberg
+        // pushes that follow in the same call. The 2 GiB pack limit is
+        // still enforced by the `too_big_for_github` skip above.
+        if !combined_exclude.iter().any(|e| e == "github") {
+            combined_exclude.push("github".to_string());
+        }
         if too_big_for_github {
-            if !combined_exclude.iter().any(|e| e == "github") {
-                combined_exclude.push("github".to_string());
-            }
             // Record the skip so the one-time notification doesn't re-fire
             // every cycle, and so the repo shows as intentionally-skipped.
             if let Some(rf) = remote_failures.as_deref_mut() {
