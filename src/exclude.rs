@@ -579,7 +579,7 @@ mod tests {
     // compared the parent's tracked gitlink against the nested
     // submodule's CHECKOUT HEAD. When the daemon also creates a
     // STANDALONE worktree of the same shared gitdir (via
-    // `materialize_submodule`), the standalone commits advance the
+    // `standalone-worktree materialization`), the standalone commits advance the
     // shared gitdir's `refs/heads/main` while the nested checkout
     // HEAD stays at the OLD SHA. Result: the parent's gitlink
     // silently falls behind, and `is_gitlink_unchanged` returns
@@ -591,7 +591,7 @@ mod tests {
     // differ, return false (the entry is "changed" and must be
     // staged via `git add <path>`).
     //
-    // This test simulates the structure produced by `materialize_submodule`:
+    // This test simulates the structure produced by `standalone-worktree materialization`:
     // - `<parent>/.git/modules/web-games-polis/` is the SHARED gitdir
     // - `<parent>/web/games/wip/polis/.git` is a file pointing to it
     // - `<parent>/web/games/wip/polis/HEAD` (the main worktree) is
@@ -601,7 +601,7 @@ mod tests {
     // -----------------------------------------------------------------
 
     /// Build a parent + standalone worktree pair in the style of
-    /// `materialize_submodule`. Returns (parent_path, standalone_path,
+    /// `standalone-worktree materialization`. Returns (parent_path, standalone_path,
     /// initial_sub_sha). The shared gitdir is at
     /// `<parent>/.git/modules/<sub_name>` and is laid out so the
     /// nested submodule at `<parent>/<sub_path>/.git` is a file
@@ -776,7 +776,7 @@ mod tests {
         //
         // Build a parent + standalone-submodule pair (via the
         // `build_parent_with_standalone_submodule` helper, which
-        // mirrors `materialize_submodule`'s output). Then advance
+        // mirrors `standalone-worktree materialization`'s output). Then advance
         // the shared gitdir's `refs/heads/main` to a NEW SHA
         // (simulating a standalone commit, since the standalone
         // worktree is on `main` directly). `stale_gitlink_paths`
@@ -1052,7 +1052,7 @@ fn shared_submodule_gitdir(repo: &Path, path: &Path) -> Option<std::path::PathBu
 /// This is the upstream-of-the-filter helper that allows the
 /// parent-gitlink propagation fix to work even when `git diff HEAD`
 /// does NOT report the path as dirty. After
-/// `materialize_submodule` creates a standalone worktree of the
+/// `standalone-worktree materialization` creates a standalone worktree of the
 /// shared gitdir, the standalone commits advance the worktree's
 /// HEAD while the parent's index stays at the OLD gitlink SHA.
 /// `git diff HEAD` doesn't show the gitlink as changed (the nested
@@ -1160,7 +1160,7 @@ pub(crate) fn shared_submodule_canonical_head_sha(
 /// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
 /// The original implementation compared the parent's tracked gitlink SHA
 /// against the nested submodule's CHECKOUT HEAD (`git -C <path> rev-parse
-/// HEAD`). That works for the `materialize_submodule` use case where the
+/// HEAD`). That works for the `standalone-worktree materialization` use case where the
 /// nested submodule IS the only worktree of the shared gitdir. But after
 /// the daemon also creates a STANDALONE worktree (`/home/dracon/Dev/<name>/`)
 /// of the same shared gitdir, the standalone commits advance the shared

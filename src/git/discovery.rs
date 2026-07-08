@@ -263,7 +263,7 @@ pub(crate) fn is_git_worktree_file(dot_git: &Path) -> bool {
 /// `<parent>/<path>/` as separate repos.
 ///
 /// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
-/// After `materialize_submodule` runs, the nested submodule
+/// After `standalone-worktree materialization` runs, the nested submodule
 /// at `<parent>/<submodule_path>/` and the standalone
 /// worktree at the watch root point at the SAME shared gitdir
 /// (`<parent>/.git/modules/<name>`). Both are technically valid
@@ -1056,7 +1056,7 @@ mod submodule_tests {
     #[test]
     fn discover_git_repos_dedups_standalone_with_nested_submodule() {
         // Regression test for the duplicate-row problem:
-        // after `materialize_submodule` creates a standalone
+        // after `standalone-worktree materialization` creates a standalone
         // worktree at the watch root, the daemon would
         // normally also discover the nested submodule at
         // `<parent>/<path>/` and treat it as a separate repo.

@@ -942,17 +942,18 @@ async fn stage_existing_files(
 ///   gitlink entries in a single commit, and a failure on one
 ///   should not block the others.
 ///
-/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
-/// When the parent has a gitlink entry whose NESTED submodule is
-/// also a separate worktree of a SHARED gitdir (the typical layout
-/// for `materialize_submodule`-created standalone worktrees at
-/// `/home/dracon/Dev/<name>/`), `git add <path>` from the parent
-/// reads the NESTED submodule's HEAD — which stays at the parent's
-/// gitlink SHA (because the nested checkout is detached at the
-/// gitlink SHA), while the standalone worktree commits advance
-/// `main` independently. This causes the parent's gitlink to drift
-/// away from the standalone's actual HEAD, breaking the convergence
-/// invariant (standalone HEAD == parent gitlink).
+/// ADDED 2026-07-01, goal `mr10pdzr-i495vy`; revised 2026-07-08
+/// (goal `730eaf2a`): the daemon no longer materializes top-level
+/// standalone worktrees at `/home/dracon/Dev/<name>/` (see AGENTS.md
+/// "Submodule standalone worktree design"). Submodules are watched
+/// only via their nested checkout at `<parent>/<submodule_path>/`,
+/// which is detached at the parent's gitlink SHA while the shared
+/// gitdir's `refs/heads/main` advances independently. `git add
+/// <path>` from the parent reads the NESTED submodule's HEAD (the
+/// gitlink SHA), not `main`, so it cannot observe `main`'s
+/// advances. This causes the parent's gitlink to drift away from
+/// `main`, breaking the convergence invariant (main SHA == parent
+/// gitlink).
 ///
 /// To fix: prefer `git update-index --cacheinfo 160000,<sha>,<path>`
 /// with the SHARED gitdir's `refs/heads/main` SHA (which is what
@@ -3213,21 +3214,13 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // tracked gitlink SHA. This is the propagation-fix half of the
     // submodule-as-standalone-worktree feature:
     //
-    // - Without `materialize_submodule`, the standalone worktree at
-    //   `/home/dracon/Dev/<name>/` and the parent's nested submodule
-    //   at `<parent>/<submodule_path>/` would be the same view of
-    //   the shared gitdir, so `git diff HEAD` on the parent would
-    //   report the gitlink as dirty whenever the nested checkout
-    //   HEAD differed from the parent gitlink.
-    // - With `materialize_submodule`, the standalone's commits
-    //   advance the shared `main` ref directly (the standalone
-    //   is on `main`), but the nested checkout HEAD can
-    //   coincidentally still equal the parent gitlink (e.g.
-    //   when the nested submodule isn't dirty from the
-    //   parent's perspective). In that case `git diff HEAD`
-    //   reports NO change, the gitlink never enters
-    //   `compute_diff_entries`'s `entries`, and the parent's
-    //   gitlink silently diverges from the standalone's HEAD.
+    // - The nested submodule checkout at `<parent>/<submodule_path>/`
+    //   is detached at the parent's gitlink SHA, while the shared
+    //   gitdir's `main` advances independently. When the nested HEAD
+    //   still equals the parent gitlink, `git diff HEAD` reports NO
+    //   change and the gitlink never enters `compute_diff_entries`'s
+    //   `entries`, so the parent's gitlink silently diverges from
+    //   `main`.
     //
     // Fix: enumerate the stale gitlinks here and inject them into
     // `entries` with status = Modified so they flow through the same
@@ -7519,7 +7512,7 @@ auto_bump_versions = false
     /// Regression test for goal `mr10pdzr-i495vy`:
     /// `parent_with_materialized_subrepo_and_dirty_subrepo`. After
     /// the daemon materializes a submodule as a standalone worktree
-    /// (using `materialize_submodule`) AND the operator makes a
+    /// (using `standalone-worktree materialization`) AND the operator makes a
     /// commit in the worktree, the parent's gitlink MUST be
     /// auto-updated to point at the new SHA (no recursion, no
     /// files from the worktree leaking into the parent's index).
@@ -7537,7 +7530,7 @@ auto_bump_versions = false
     /// `<parent>/sub/`. The parent's gitlink is registered
     /// pointing at the subrepo's HEAD. We then:
     /// 1. Materialize the subrepo as a standalone worktree via
-    ///    `materialize_submodule`.
+    ///    `standalone-worktree materialization`.
     /// 2. Advance the subrepo's HEAD by directly creating a
     ///    commit on the subrepo's main branch (via the gitdir).
     /// 3. Run the daemon's `stage_gitlink_updates` to propagate
@@ -7549,7 +7542,7 @@ auto_bump_versions = false
     ///
     /// Goal: after the daemon materializes a non-polis
     /// submodule as a standalone worktree via
-    /// `materialize_submodule` AND the operator makes a commit
+    /// `standalone-worktree materialization` AND the operator makes a commit
     /// in that worktree, the parent's gitlink MUST be
     /// auto-updated to the new SHA. This is the convergence
     /// invariant for the 6 of 9 non-polis submodules that
