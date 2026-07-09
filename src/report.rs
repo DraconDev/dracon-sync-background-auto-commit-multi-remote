@@ -2223,7 +2223,6 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
     }
 }
 
-/// Count tracked modified files in `repo` that are NOT covered by
 /// Print the `repos` column legend. Invoked by `dracon-sync repos --legend`
 /// so the default report stays uncluttered; the legend is available on demand
 /// when a column is unclear.
@@ -2237,7 +2236,34 @@ fn print_repos_legend() {
     println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
     println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
     println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
-    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only un
+    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
+    println!("   🟠 dirty = uncommitted changes · 🟣 pushing/working/committing = daemon has an active task");
+    println!("   ⏳ stalled = daemon made NO progress for a long time (gave up / hard-blocked)");
+    println!("   ⚫ idle/cold = waiting for changes · ⬛ failed = last sync errored");
+    println!("ℹ️  Activity: now = processing · pushing Xm (N) = uploading, N commits not yet on all remotes");
+    println!("   dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
+    println!("ℹ️  Daemon = last action + timestamp (e.g. '23s sync_commit') — proof the daemon is alive");
+    println!("⚠️  PACK SIZE: github rejects packs > 2 GiB, measured on the PUSHABLE branch (not whole .git);");
+    println!("   gitlab/codeberg have no such limit. A large repo may show 'pushing' for minutes during a");
+    println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
+}
+
+pub(crate) async fn run_repos_report(
+    policy_path: &Path,
+    filter: RepoFilter,
+    json: bool,
+    sort: &str,
+    filter_name: Option<&str>,
+    full_path: bool,
+    legend: bool,
+) -> Result<()> {
+    // `--legend` prints the column legend and exits. The default report stays
+    // uncluttered; the legend is available on demand when a column is unclear.
+    if legend {
+        print_repos_legend();
+        return Ok(());
+    }
+    let policy = SyncPolicy::load(policy_path)?;
     let roots = policy.watch_root_paths();
     let excluded_dir_names = excluded_dir_names_set(&policy);
     let repos = discover_git_repos(
@@ -2796,32 +2822,12 @@ fn print_repos_legend() {
     );
     println!();
 
-    // ---- Multi-line legend (grouped by category) ----
-    // Strengthened 2026-07-08: added ROLE / PUSH / PUSH-TO, and clarified the
-    // "pushing" vs "stalled" distinction (a large repo can show 'pushing' for
-    // minutes during a slow catch-up of a big pack — that is an upload in
-    // progress, NOT a stall; 'stalled' is a separate daemon state set only when
-    // it has given up / is hard-blocked).
-    println!("ℹ️  Columns:");
-    println!("   MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead · ↓ = behind upstream");
-    println!("   📊 1h/6h/24h = commits in that window · 📜 LAST = most recent commit summary");
-    println!("   ROLE = parent (tracks submodules) · submod (nested in a parent) · standalone");
-    println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
-    println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
-    println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
-    println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
-    println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
-    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
-    println!("   🟠 dirty = uncommitted changes · 🟣 pushing/working/committing = daemon has an active task");
-    println!("   ⏳ stalled = daemon made NO progress for a long time (gave up / hard-blocked)");
-    println!("   ⚫ idle/cold = waiting for changes · ⬛ failed = last sync errored");
-    println!("ℹ️  Activity: now = processing · pushing Xm (N) = uploading, N commits not yet on all remotes");
-    println!("   dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
-    println!("ℹ️  Daemon = last action + timestamp (e.g. '23s sync_commit') — proof the daemon is alive");
-    println!("⚠️  PACK SIZE: github rejects packs > 2 GiB, measured on the PUSHABLE branch (not whole .git);");
-    println!("   gitlab/codeberg have no such limit. A large repo may show 'pushing' for minutes during a");
-    println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
-    println!();
+    // Legend moved to `dracon-sync repos --legend` (2026-07-08): the default
+    // report stays uncluttered; the legend is printed on demand when confused.
+    // See `print_repos_legend()` above for the text and the rationale.
+    println!(
+        "ℹ️  Confused by a column? Run `dracon-sync repos --legend` for the full key."
+    );
 
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
     // PUSH_STUCK used to render as letter-wrapped cells (P/U/S/H/_/S/T/U/C/K on separate
