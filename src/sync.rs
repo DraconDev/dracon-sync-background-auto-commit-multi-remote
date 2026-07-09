@@ -1513,6 +1513,19 @@ async fn push_background(
             combined_exclude.push("github".to_string());
         }
         if too_big_for_github {
+            // ACTUALLY exclude github from the mirror push. The log message
+            // below says "skipping github push", but unless we add it to
+            // `combined_exclude` the `push_mirror_remotes` call below still
+            // routes github through `auto_create_all_remotes` +
+            // `push_to_all_remotes`, spawning a `git push github` that github
+            // rejects (2 GiB pack limit). That hangs uploading the oversized
+            // pack and leaks an orphaned git process the daemon re-dispatches
+            // every cycle (see 2026-07-09 sync-stall audit). This is the
+            // mirror-path counterpart of the origin-github skip above, which
+            // does actually skip (it omits the `push_with_retries` call).
+            if !combined_exclude.iter().any(|e| e == "github") {
+                combined_exclude.push("github".to_string());
+            }
             // Record the skip so the one-time notification doesn't re-fire
             // every cycle, and so the repo shows as intentionally-skipped.
             if let Some(rf) = remote_failures.as_deref_mut() {
