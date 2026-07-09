@@ -365,6 +365,27 @@ pub(crate) struct SyncPolicy {
     pub(crate) system_repo: String,
     #[serde(default = "default_pulse_interval")]
     pub(crate) pulse_interval_secs: u64,
+    /// Maximum seconds to wait for dispatched sync tasks to complete during
+    /// the trailing-drain phase before clearing them from `in_flight` so the
+    /// next cycle can re-dispatch.
+    ///
+    /// The trailing-drain phase runs after the apply-phase deadline
+    /// (`pulse_interval_secs * 2`) to clean up slow pushes that didn't
+    /// finish in time. If this deadline is too short, pushes that take
+    /// longer (e.g. github first-push with a cold pack cache) get killed
+    /// and the next cycle spawns a duplicate push, causing a traffic jam
+    /// that delays smaller pushes.
+    ///
+    /// The default (120s) gives most pushes enough time to complete while
+    /// still bounding the daemon's cycle time. Set higher for repos with
+    /// very large histories (e.g. 2+ GiB packs).
+    ///
+    /// ADDED 2026-07-09 (goal fb8ddd6b — repo-discovery audit): the
+    /// previous code reused `pulse_interval_secs * 2` (default 2s) which
+    /// was way too short for github pushes, causing the 9-submodule
+    /// github lag that the audit surfaced.
+    #[serde(default = "default_trailing_drain_deadline_secs")]
+    pub(crate) trailing_drain_deadline_secs: u64,
     #[serde(default = "default_inactivity_push_delay_secs")]
     pub(crate) inactivity_push_delay_secs: u64,
     #[serde(default = "default_true")]
@@ -801,6 +822,10 @@ pub(crate) fn default_true() -> bool {
 
 pub(crate) fn default_pulse_interval() -> u64 {
     1
+}
+
+pub(crate) fn default_trailing_drain_deadline_secs() -> u64 {
+    120
 }
 
 pub(crate) fn default_inactivity_push_delay_secs() -> u64 {

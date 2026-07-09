@@ -2951,7 +2951,21 @@ pub(crate) async fn run_daemon(
             // slow task is recoverable (the new task will fail
             // with a lock conflict or remote rejection), while
             // permanent skip is not.
-            let trailing_deadline = Duration::from_secs(policy.pulse_interval_secs.max(1) * 2);
+            //
+            // CHANGED 2026-07-09 (goal fb8ddd6b — repo-discovery
+            // audit): the trailing-drain deadline now uses a
+            // dedicated `trailing_drain_deadline_secs` policy field
+            // (default 120s) instead of `pulse_interval_secs * 2`
+            // (default 2s). The 2s deadline was killing github
+            // pushes for the 9 nested submodules (first-push cold
+            // pack cache takes 10-60s), causing the next cycle to
+            // spawn a duplicate push and creating a traffic jam
+            // that delayed smaller pushes. 120s gives most pushes
+            // enough time to complete while still bounding the
+            // daemon's cycle time. Override higher for repos with
+            // very large histories.
+            let trailing_deadline =
+                Duration::from_secs(policy.trailing_drain_deadline_secs.max(1));
             let trailing_deadline_at = tokio::time::Instant::now() + trailing_deadline;
             let mut dispatched_this_cycle: HashSet<PathBuf> = in_flight.clone();
             loop {
