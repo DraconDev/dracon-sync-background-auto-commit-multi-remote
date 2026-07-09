@@ -2224,15 +2224,20 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 }
 
 /// Count tracked modified files in `repo` that are NOT covered by
-pub(crate) async fn run_repos_report(
-    policy_path: &Path,
-    filter: RepoFilter,
-    json: bool,
-    sort: &str,
-    filter_name: Option<&str>,
-    full_path: bool,
-) -> Result<()> {
-    let policy = SyncPolicy::load(policy_path)?;
+/// Print the `repos` column legend. Invoked by `dracon-sync repos --legend`
+/// so the default report stays uncluttered; the legend is available on demand
+/// when a column is unclear.
+fn print_repos_legend() {
+    println!("ℹ️  Columns:");
+    println!("   MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead · ↓ = behind upstream");
+    println!("   📊 1h/6h/24h = commits in that window · 📜 LAST = most recent commit summary");
+    println!("   ROLE = parent (tracks submodules) · submod (nested in a parent) · standalone");
+    println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
+    println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
+    println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
+    println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
+    println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
+    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only un
     let roots = policy.watch_root_paths();
     let excluded_dir_names = excluded_dir_names_set(&policy);
     let repos = discover_git_repos(
