@@ -1426,14 +1426,34 @@ async fn push_background(
         .map(|rf| rf.get("github").copied().unwrap_or(0) > 0)
         .unwrap_or(false);
 
+    // Detect whether `origin` points at github. This matters for the
+    // mirror-path github-exclusion logic below: if `origin` IS github,
+    // github is already pushed by the `push_with_retries` block above and
+    // must be excluded from the mirror path (to avoid the
+    // `auto_create_all_remotes` stall that motivated the original
+    // exclusion). If `origin` is NOT github (e.g. the 10 nested game
+    // submodules of `dracon-platform` where `.gitmodules` lists codeberg
+    // first and git picked that as `origin`), github MUST be pushed via
+    // the mirror path or it never reaches the forge.
+    // FIXED 2026-07-09 (goal fb8ddd6b — repo-discovery audit): the
+    // previous logic unconditionally excluded github from the mirror
+    // path, assuming `origin` = github for every repo. That assumption
+    // is violated for any repo cloned from a non-github-first
+    // `.gitmodules` (or with `origin` reassigned post-clone). The fix:
+    // only exclude github from the mirror path when `origin` is github.
+    let origin_is_github = if has_origin {
+        crate::git::multi_remote::get_remote_url(repo, "origin")
+            .map(|u| u.contains("github.com"))
+            .unwrap_or(false)
+    } else {
+        false
+    };
+
     // Push to origin (if the repo has one — mirror-only repos like .dracon
     // skip this and go straight to mirror remotes)
     if has_origin {
         // Skip origin if it points at github and the pack is too big for
         // github's 2 GiB limit (defensive; most repos' origin is codeberg).
-        let origin_is_github = crate::git::multi_remote::get_remote_url(repo, "origin")
-            .map(|u| u.contains("github.com"))
-            .unwrap_or(false);
         if too_big_for_github && origin_is_github {
             if !github_already_flagged {
                 log_warn!(
@@ -1473,14 +1493,23 @@ async fn push_background(
         // storage quota) without affecting other repos.
         let repo_override = crate::policy::load_repo_override(repo);
         let mut combined_exclude: Vec<String> = repo_override.exclude_remotes.clone();
-        // ALWAYS keep github out of the mirror path. `origin` (github) is
-        // pushed by the dedicated `push_with_retries` call above; routing
-        // github through `push_mirror_remotes` instead makes it run
-        // `auto_create_all_remotes` (`gh repo create`), which stalls
-        // against an already-existing repo and blocks the gitlab/codeberg
-        // pushes that follow in the same call. The 2 GiB pack limit is
-        // still enforced by the `too_big_for_github` skip above.
-        if !combined_exclude.iter().any(|e| e == "github") {
+        // CONDITIONAL github exclusion from the mirror path. When
+        // `origin` IS github, github is already pushed by the
+        // `push_with_retries` block above; routing it through
+        // `push_mirror_remotes` would re-trigger `auto_create_all_remotes`
+        // (`gh repo create`), which historically stalled against an
+        // already-existing repo and blocked the gitlab/codeberg pushes
+        // that follow in the same call. (The stall was later mitigated
+        // by `remote_repo_exists` — 2026-06-20 — but the exclusion
+        // remains to avoid the redundant work.) When `origin` is NOT
+        // github (e.g. the 10 nested game submodules of `dracon-platform`
+        // where `.gitmodules` lists codeberg first and git picked that
+        // as `origin`), github MUST be pushed via the mirror path or it
+        // never reaches the forge — which is exactly the push-to-all
+        // violation the 2026-07-09 audit (goal fb8ddd6b) surfaced. The
+        // 2 GiB pack limit is still enforced by the `too_big_for_github`
+        // skip above regardless of which path pushes github.
+        if origin_is_github && !combined_exclude.iter().any(|e| e == "github") {
             combined_exclude.push("github".to_string());
         }
         if too_big_for_github {
