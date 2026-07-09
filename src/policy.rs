@@ -1608,6 +1608,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
     SyncPolicy {
         system_repo: String::new(),
         pulse_interval_secs: 1,
+        trailing_drain_deadline_secs: 120,
         inactivity_push_delay_secs: 5,
         auto_commit: true,
         auto_bump_versions: true,
