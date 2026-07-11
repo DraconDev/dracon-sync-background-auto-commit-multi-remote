@@ -833,6 +833,10 @@ mod submodule_tests {
         assert!(run(&["config", "user.name", "Test"]).status.success());
         assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
         assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        assert!(run(&["config", "core.hooksPath", "/dev/null"]).status.success());
         // Need at least one commit for the index to be readable by
         // `git ls-files --stage`. Add an empty commit so HEAD exists.
         fs::write(dir.join("README.md"), b"# test\n").unwrap();

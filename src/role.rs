@@ -194,11 +194,32 @@ mod tests {
             .arg(path)
             .output()
             .expect("git init");
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        Command::new("git")
+            .args(["-C"])
+            .arg(path)
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .output()
+            .expect("git config core.hooksPath");
+        Command::new("git")
+            .args(["-C"])
+            .arg(path)
+            .args(["config", "user.email", "test@example.com"])
+            .output()
+            .expect("git config user.email");
+        Command::new("git")
+            .args(["-C"])
+            .arg(path)
+            .args(["config", "user.name", "Test"])
+            .output()
+            .expect("git config user.name");
         // Need a commit for `git rev-parse HEAD` to succeed.
         Command::new("git")
             .args(["-C"])
             .arg(path)
-            .args(["commit", "--allow-empty", "-m", "init", "-q"])
+            .args(["commit", "--no-verify", "--allow-empty", "-m", "init", "-q"])
             .output()
             .expect("git commit");
         let head_out = Command::new("git")

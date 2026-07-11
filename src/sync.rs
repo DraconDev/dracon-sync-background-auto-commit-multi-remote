@@ -6616,6 +6616,13 @@ auto_bump_versions = false
             .args(["-C", &dir.to_string_lossy(), "config", "user.name", "t"])
             .status()
             .unwrap();
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        crate::git::git_cmd()
+            .args(["-C", &dir.to_string_lossy(), "config", "core.hooksPath", "/dev/null"])
+            .status()
+            .unwrap();
         // Ensure we have an initial commit so HEAD is valid.
         let _ = git_stdout(
             dir,
@@ -6649,6 +6656,13 @@ auto_bump_versions = false
             .unwrap();
         crate::git::git_cmd()
             .args(["-C", &sibling.to_string_lossy(), "config", "user.name", "t"])
+            .status()
+            .unwrap();
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "config", "core.hooksPath", "/dev/null"])
             .status()
             .unwrap();
         // First commit at SHA-A.
@@ -7624,6 +7638,10 @@ auto_bump_versions = false
         run_in(&parent_s, &["init", "-q", "-b", "main"]);
         run_in(&parent_s, &["config", "user.email", "t@t"]);
         run_in(&parent_s, &["config", "user.name", "t"]);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        run_in(&parent_s, &["config", "core.hooksPath", "/dev/null"]);
         std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
         run_in(&parent_s, &["add", "-A"]);
         run_in(&parent_s, &["commit", "-q", "-m", "init"]);
@@ -7636,6 +7654,7 @@ auto_bump_versions = false
         run_in(&sub_s, &["init", "-q", "-b", "main"]);
         run_in(&sub_s, &["config", "user.email", "t@t"]);
         run_in(&sub_s, &["config", "user.name", "t"]);
+        run_in(&sub_s, &["config", "core.hooksPath", "/dev/null"]);
         std::fs::write(sub_path.join("README.md"), b"# sub\n").unwrap();
         run_in(&sub_s, &["add", "-A"]);
         run_in(&sub_s, &["commit", "-q", "-m", "init"]);

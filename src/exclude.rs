@@ -489,6 +489,10 @@ mod tests {
         git_c(&repo, &["init", "-q", "-b", "main"]);
         git_c(&repo, &["config", "user.email", "t@t"]);
         git_c(&repo, &["config", "user.name", "t"]);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        git_c(&repo, &["config", "core.hooksPath", "/dev/null"]);
 
         // Build a real nested git repo at parent/submod/{.git,foo.txt}.
         let sub = repo.join("submod");
@@ -497,6 +501,7 @@ mod tests {
         git_c(&sub, &["init", "-q", "-b", "main"]);
         git_c(&sub, &["config", "user.email", "t@t"]);
         git_c(&sub, &["config", "user.name", "t"]);
+        git_c(&sub, &["config", "core.hooksPath", "/dev/null"]);
         git_c(&sub, &["add", "foo.txt"]);
         git_c(&sub, &["commit", "-q", "-m", "init"]);
         let sub_sha = git_c(&sub, &["rev-parse", "HEAD"]).trim().to_string();
@@ -619,6 +624,10 @@ mod tests {
         git_c(&parent, &["init", "-q", "-b", "main"]);
         git_c(&parent, &["config", "user.email", "t@t"]);
         git_c(&parent, &["config", "user.name", "t"]);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        git_c(&parent, &["config", "core.hooksPath", "/dev/null"]);
         std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
         git_c(&parent, &["add", "README.md"]);
         git_c(&parent, &["commit", "-q", "-m", "init"]);
@@ -640,6 +649,10 @@ mod tests {
         git_c(&nested_dir, &["init", "-q", "-b", "main"]);
         git_c(&nested_dir, &["config", "user.email", "t@t"]);
         git_c(&nested_dir, &["config", "user.name", "t"]);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        git_c(&nested_dir, &["config", "core.hooksPath", "/dev/null"]);
         git_c(&nested_dir, &["add", "README.md"]);
         git_c(&nested_dir, &["commit", "-q", "-m", "init"]);
 
@@ -841,6 +854,10 @@ mod tests {
         git_c(&parent, &["init", "-q", "-b", "main"]);
         git_c(&parent, &["config", "user.email", "t@t"]);
         git_c(&parent, &["config", "user.name", "t"]);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        git_c(&parent, &["config", "core.hooksPath", "/dev/null"]);
         std::fs::write(parent.join("README.md"), b"# parent\n").unwrap();
         git_c(&parent, &["add", "README.md"]);
         git_c(&parent, &["commit", "-q", "-m", "init"]);

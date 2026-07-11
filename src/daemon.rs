@@ -3154,6 +3154,10 @@ mod submodule_materialize_tests {
         assert!(run(&["config", "user.name", "Test"]).status.success());
         assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
         assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        assert!(run(&["config", "core.hooksPath", "/dev/null"]).status.success());
         std::fs::write(parent.join("README.md"), b"# p\n").unwrap();
         assert!(run(&["add", "README.md"]).status.success());
         assert!(run(&["commit", "-q", "-m", "init"]).status.success());
