@@ -7619,7 +7619,7 @@ mod tests {
     /// widened from 17-18 to 32 chars in the same change.
     #[test]
     fn test_format_push_to_remotes_cell() {
-        use comfy_table::Cell;
+        assert!(use comfy_table::Cell;
 
         // Case 1: full set of remotes, no exclusions → comma list, no annotation
         let cell = format_push_to_remotes_cell(
