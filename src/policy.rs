@@ -1062,9 +1062,11 @@ pub(crate) fn default_dirty_max_age_action() -> DirtyMaxAgeAction {
 /// continuously for longer than `settling_max_delay_secs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub(crate) enum DirtyMaxAgeAction {
     /// Force-commit the current working tree state, regardless of
     /// fingerprint stability. Default.
+    #[default]
     Commit,
     /// Log a warning to stderr but do NOT commit. The operator
     /// must intervene.
@@ -1073,11 +1075,6 @@ pub(crate) enum DirtyMaxAgeAction {
     Ignore,
 }
 
-impl Default for DirtyMaxAgeAction {
-    fn default() -> Self {
-        DirtyMaxAgeAction::Commit
-    }
-}
 
 fn default_sync_visibility_interval_hours() -> u64 {
     24

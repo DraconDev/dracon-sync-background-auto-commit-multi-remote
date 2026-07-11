@@ -142,7 +142,7 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
                     // 40-hex SHA if present, then read type and size.
                     let parts: Vec<&str> = trimmed.split_whitespace().collect();
                     let mut i = 0;
-                    if parts.first().map_or(false, |p| {
+                    if parts.first().is_some_and(|p| {
                         p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit())
                     }) {
                         i += 1;

@@ -512,15 +512,14 @@ pub(crate) fn list_submodules(parent: &Path) -> Vec<SubmoduleEntry> {
         let entry = by_name.entry(name).or_insert((None, None));
         match key {
             "path" => entry.0 = Some(value.to_string()),
-            "url" => {
+            "url"
                 // .gitmodules may declare multiple URLs (one per
                 // forge) — keep the first one (any is fine; the
                 // daemon's multi-remote config will rebuild the
                 // per-remote URLs from the canonical name).
-                if entry.1.is_none() {
+                if entry.1.is_none() => {
                     entry.1 = Some(value.to_string());
                 }
-            }
             _ => {}
         }
     }

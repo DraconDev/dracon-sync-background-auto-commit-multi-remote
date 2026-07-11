@@ -388,7 +388,7 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
         return format!(
             "⏳ dirty {}",
             last_when_mins
-                .map(|m| shorten_mins(m))
+                .map(shorten_mins)
                 .unwrap_or_else(|| "?".to_string())
         );
     }
@@ -418,9 +418,7 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
             }
         });
     if let Some(upstream) = upstream.filter(|s| !s.is_empty()) {
-        let state = remote_tracking_ref_exists(repo, &upstream)
-            .then_some(PublishState::Ok)
-            .unwrap_or(PublishState::Gone);
+        let state = if remote_tracking_ref_exists(repo, &upstream) { PublishState::Ok } else { PublishState::Gone };
         return (upstream, state);
     }
 
@@ -458,9 +456,7 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
             let branch = merge.strip_prefix("refs/heads/").unwrap_or("");
             if crate::git::is_safe_branch_name(branch) {
                 let label = format!("{remote}/{branch}");
-                let state = remote_tracking_ref_exists(repo, &label)
-                    .then_some(PublishState::Ok)
-                    .unwrap_or(PublishState::Gone);
+                let state = if remote_tracking_ref_exists(repo, &label) { PublishState::Ok } else { PublishState::Gone };
                 (label, state)
             } else {
                 ("-".to_string(), PublishState::Missing)
@@ -2017,7 +2013,7 @@ pub(crate) fn terminal_width() -> Option<u16> {
     }
     use terminal_size::{terminal_size, Height, Width};
     if let Some((Width(w), Height(_))) = terminal_size() {
-        if w >= 40 && w <= 1000 {
+        if (40..=1000).contains(&w) {
             return Some(w);
         }
     }
@@ -2262,7 +2258,7 @@ pub(crate) async fn run_repos_report(
     // (`init_status_failures.load(...)`), so the initial value is
     // never read. Removing it silences the `unused_assignments`
     // warning without changing behavior.
-    let init_or_status_failures: usize;
+    
 
     // Read the incident ledger once and build a per-repo map of "did the
 
@@ -2293,7 +2289,7 @@ pub(crate) async fn run_repos_report(
         let daemon_last_actions = &daemon_last_actions;
         let init_status_failures = &init_status_failures;
         let policy = &policy;
-        futures::stream::iter(repos.into_iter())
+        futures::stream::iter(repos)
             .map(|repo| async move {
                 let svc = match GitService::new(&repo) {
                     Ok(svc) => svc,
@@ -2587,7 +2583,7 @@ pub(crate) async fn run_repos_report(
         // signals above into a single small-vocabulary label. This is the
         // field the user actually reads to decide whether a repo is
         // actively being worked on, stalling, or cold-idle.
-        let thresholds = StateCauseThresholds::from_policy(&policy, &repo_override);
+        let thresholds = StateCauseThresholds::from_policy(policy, &repo_override);
         let last_commit_minutes = parse_relative_minutes(&last_when);
         let last_push_minutes = parse_relative_minutes(&last_push);
         let inputs = StateCauseInputs {
@@ -2721,7 +2717,7 @@ pub(crate) async fn run_repos_report(
             .collect()
             .await
     };
-    init_or_status_failures = init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
+    let init_or_status_failures: usize = init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
     let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
 
     match sort {

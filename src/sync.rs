@@ -798,7 +798,7 @@ async fn stage_existing_files(
                         continue;
                     }
                     if meta.is_file() {
-                        if let Some(rel) = cp.strip_prefix(repo).ok() {
+                        if let Ok(rel) = cp.strip_prefix(repo) {
                             expanded.push(rel.to_string_lossy().to_string());
                         }
                         continue;
@@ -3021,7 +3021,7 @@ async fn stage_commit_and_push(
                 eprintln!("⚠️ push failed for {}", repo.display());
                 crate::daemon::record_push_failure(
                     repo,
-                    &format!("git push returned non-zero (see daemon log)"),
+                    &"git push returned non-zero (see daemon log)".to_string(),
                 );
             }
             Err(e) => {
@@ -3458,7 +3458,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 eprintln!("⚠️ push failed for {}", ctx.repo.display());
                 crate::daemon::record_push_failure(
                     ctx.repo,
-                    &format!("git push returned non-zero (see daemon log)"),
+                    &"git push returned non-zero (see daemon log)".to_string(),
                 );
             }
             Err(e) => {
