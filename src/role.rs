@@ -174,6 +174,7 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::Path;
     use std::process::Command;
     use tempfile::tempdir;
 

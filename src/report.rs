@@ -2262,8 +2262,9 @@ pub(crate) async fn run_repos_report(
     // (`init_status_failures.load(...)`), so the initial value is
     // never read. Removing it silences the `unused_assignments`
     // warning without changing behavior.
-    let mut init_or_status_failures: usize;
-    #[allow(unused_mut)] // rustc thinks the reassignment below is in a different scope; verified to compile.
+    let init_or_status_failures: usize;
+
+    // Read the incident ledger once and build a per-repo map of "did the
 
     // Read the incident ledger once and build a per-repo map of "did the
     // daemon record a push failure in the last 10 minutes?". This lets the
