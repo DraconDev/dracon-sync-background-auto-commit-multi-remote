@@ -6786,6 +6786,13 @@ auto_bump_versions = false
             .args(["-C", &sibling.to_string_lossy(), "config", "user.name", "t"])
             .status()
             .unwrap();
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos that lack `.gitattributes` with
+        // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "config", "core.hooksPath", "/dev/null"])
+            .status()
+            .unwrap();
         std::fs::write(sibling.join("a.txt"), "v1\n").unwrap();
         crate::git::git_cmd()
             .args(["-C", &sibling.to_string_lossy(), "add", "a.txt"])
