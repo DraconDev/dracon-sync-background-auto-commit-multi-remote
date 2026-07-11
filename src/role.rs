@@ -62,18 +62,10 @@ impl RoleKind {
         }
     }
 
-    /// Full, untruncated detail for design docs / debug output. The
-    /// `label()` form is what shows up in the table cell.
-    pub(crate) fn detail(&self) -> String {
-        match self {
-            RoleKind::Parent(n) => format!("Parent role: this repo has {} submodules in its .gitmodules", n),
-            RoleKind::Submod { parent_basename, sub_path } => format!(
-                "Submod role: this repo is checked out at <{}>/<{}> as a submodule",
-                parent_basename, sub_path
-            ),
-            RoleKind::Standalone => "Standalone role: no submodule relationship with any watched repo".to_string(),
-        }
-    }
+    // NOTE: `detail()` method removed 2026-07-11 (audit
+    // AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6). It had no callers
+    // anywhere in the codebase. The shorter `label()` form is what
+    // shows up in the table cell.
 }
 
 /// Classify the role of each row in `rows`. The returned vector has the

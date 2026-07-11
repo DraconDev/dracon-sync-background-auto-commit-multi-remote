@@ -486,6 +486,7 @@ pub(crate) struct SyncPolicy {
     /// Default: 30s.
     /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
     #[serde(default = "default_push_debounce_secs")]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) push_debounce_secs: u64,
 
     /// When the untracked-file count exceeds this threshold, the
@@ -592,18 +593,21 @@ pub(crate) struct SyncPolicy {
     /// have stale dirty state from previous sessions. Default
     /// 60s. Set to 0 to disable (back to 5s fingerprint wait).
     #[serde(default = "default_settling_max_delay_secs")]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) settling_max_delay_secs: u64,
     /// Action to take when a dirty repo exceeds
     /// `settling_max_delay_secs`. `Commit` (default) force-
     /// commits the current state; `Warn` logs a warning but
     /// does not commit; `Ignore` does nothing.
     #[serde(default = "default_dirty_max_age_action")]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) dirty_max_age_action: DirtyMaxAgeAction,
     /// Minimum time between consecutive auto-commits for the
     /// same repo. Prevents thrashing when the operator is
     /// actively editing. Default 5s. Setting this too high will
     /// make the daemon appear to "stall" on dirty repos.
     #[serde(default = "default_min_commit_interval_secs")]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) min_commit_interval_secs: u64,
 
     #[serde(default)]
@@ -794,10 +798,12 @@ pub(crate) struct RepoPolicyOverride {
     /// inherits the global value. See
     /// [`SyncPolicy::settling_max_delay_secs`].
     #[serde(default)]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) settling_max_delay_secs: Option<u64>,
     /// Per-repo override for `dirty_max_age_action`. None
     /// inherits the global value.
     #[serde(default)]
+    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) dirty_max_age_action: Option<DirtyMaxAgeAction>,
     /// Per-repo list of remote names to skip when configuring
     /// and pushing mirrors. Each entry is a remote name as

@@ -323,9 +323,10 @@ pub(crate) struct StuckRepoEntry {
 /// before the daemon stops auto-pushing and surfaces a
 /// `🛑 push-stuck` state in the ACTIVITY column. The operator
 /// can override via `push_max_retries` in the policy.
-fn default_push_max_retries() -> u32 {
-    5
-}
+// NOTE: removed 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
+// CONCERN #6). The canonical `default_push_max_retries` lives in
+// `policy.rs` (used by `#[serde(default = "...")]` on
+// `SyncPolicy::push_max_retries`). The duplicate here was dead code.
 
 #[cfg(test)]
 mod tests {

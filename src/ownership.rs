@@ -58,6 +58,7 @@ impl OwnershipReport {
     /// Short human-readable label suitable for the ACTIVITY column.
     /// Format: `<icon> <reason>: <detail>`. Detail is truncated to
     /// 60 chars to keep the table narrow.
+    #[allow(dead_code)] // intentional public API for future CLI consumers
     pub fn label(&self) -> String {
         match self {
             OwnershipReport::Owned { reason } => format!("✓ owned ({})", reason),
@@ -73,6 +74,7 @@ impl OwnershipReport {
     }
 
     /// Hint text for the HINT column.
+    #[allow(dead_code)] // intentional public API for future CLI consumers
     pub fn hint(&self) -> &'static str {
         match self {
             OwnershipReport::Owned { .. } => "owned by operator",
@@ -83,6 +85,14 @@ impl OwnershipReport {
     }
 }
 
+// NOTE: `truncate` helper kept 2026-07-11 (audit
+// AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6) because it is the
+// only consumer of the (also `#[allow(dead_code)]`) public-API
+// `OwnershipReport::label` and `::hint` methods. The whole
+// `label`/`hint`/`truncate` cluster is intentionally retained as
+// public API surface for future CLI consumers; the methods
+// are reachable from tests but not from current production.
+#[allow(dead_code)] // paired with `OwnershipReport::label` / `::hint`
 fn truncate(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()

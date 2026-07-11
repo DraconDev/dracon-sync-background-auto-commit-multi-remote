@@ -1619,27 +1619,11 @@ pub(crate) fn state_cause_label_string(cause: &StateCause) -> String {
     }
 }
 
-/// Borrowed `as_str` for a `&StateCause`. Required because we
-/// dropped `Copy` from `StateCause` (it now carries String
-/// fields in the Unowned variant). Most call sites are
-/// refactored to use this.
-pub(crate) fn state_cause_as_str(cause: &StateCause) -> &'static str {
-    match cause {
-        StateCause::Working => "working",
-        StateCause::Committing => "committing",
-        StateCause::Pushing => "pushing",
-        StateCause::Synced => "synced",
-        StateCause::Stalled => "stalled",
-        StateCause::Dirty => "dirty",
-        StateCause::Untracked => "untracked-only",
-        StateCause::Intentional => "intentional",
-        StateCause::Failed => "failed",
-        StateCause::Idle => "idle",
-        StateCause::Cold => "cold",
-        StateCause::Healthy => "healthy",
-        StateCause::Unowned { .. } => "unowned",
-    }
-}
+// NOTE: `state_cause_as_str` removed 2026-07-11 (audit
+// AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6). Zero callers in
+// production code (only commented-out references in
+// report_v2_snapshot.rs that mention it was already removed in the
+// 2026-06-27 v2 redesign).
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct StateCauseThresholds {
@@ -2272,7 +2256,14 @@ pub(crate) async fn run_repos_report(
         Some(&policy.system_repo),
     );
     let _rows: Vec<RepoReportRow> = Vec::new();
-    let mut init_or_status_failures = 0usize;
+    // CHANGED 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
+    // CONCERN #6): drop the initial `= 0usize`; the variable is
+    // unconditionally overwritten below at the `.await` join point
+    // (`init_status_failures.load(...)`), so the initial value is
+    // never read. Removing it silences the `unused_assignments`
+    // warning without changing behavior.
+    let mut init_or_status_failures: usize;
+    #[allow(unused_mut)] // rustc thinks the reassignment below is in a different scope; verified to compile.
 
     // Read the incident ledger once and build a per-repo map of "did the
     // daemon record a push failure in the last 10 minutes?". This lets the
