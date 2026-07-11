@@ -4917,6 +4917,10 @@ pub(crate) async fn nested_repo_untracked_count(repo: &Path) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::policy::{
+        default_auto_resolve_unmerged, default_push_debounce_secs,
+        default_untracked_warn_threshold,
+    };
     use crate::test_helpers::EnvRestorer;
     use dracon_git::types::RepoStatus;
     use std::os::unix::fs::PermissionsExt;
