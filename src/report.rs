@@ -168,7 +168,6 @@ use crate::git::{
     top_level_dir,
 };
 use crate::policy::{
-    default_auto_resolve_unmerged, default_push_debounce_secs, default_untracked_warn_threshold,
     timestamp_secs, RepoPolicyOverride, SyncPolicy, DEFAULT_GIT_HOST_BLOB_LIMIT_BYTES,
 };
 
@@ -2272,7 +2271,7 @@ pub(crate) async fn run_repos_report(
         &policy.exclude_repos,
         Some(&policy.system_repo),
     );
-    let mut rows: Vec<RepoReportRow> = Vec::new();
+    let _rows: Vec<RepoReportRow> = Vec::new();
     let mut init_or_status_failures = 0usize;
 
     // Read the incident ledger once and build a per-repo map of "did the

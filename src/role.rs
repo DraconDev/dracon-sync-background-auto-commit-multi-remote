@@ -23,7 +23,7 @@
 //! whose `path` ends at the row's basename for submod-of-parent
 //! detection. No shelling out to `git submodule status`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::git::list_submodules;
 

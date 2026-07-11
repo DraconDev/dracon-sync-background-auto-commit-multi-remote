@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 use crate::log_warn;

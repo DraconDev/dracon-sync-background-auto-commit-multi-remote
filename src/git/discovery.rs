@@ -415,7 +415,7 @@ fn resolve_primary_gitdir(gitdir: &Path) -> Option<PathBuf> {
     let canon = std::fs::canonicalize(gitdir)
         .ok()
         .unwrap_or_else(|| gitdir.to_path_buf());
-    let mut components: Vec<std::path::Component> =
+    let components: Vec<std::path::Component> =
         canon.components().collect();
     // Find a "worktrees" segment in the path.
     let worktrees_idx = components

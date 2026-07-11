@@ -101,7 +101,7 @@ pub(crate) async fn push_with_transport_fallbacks(
     // nested submodule path is watched while still detached at the
     // parent's gitlink SHA (during migration windows).
     let ssh_refspec = match crate::git::branch::current_branch(repo) {
-        Some(branch) => "HEAD".to_string(),
+        Some(_branch) => "HEAD".to_string(),
         None => "HEAD:refs/heads/main".to_string(),
     };
     match super::run_git_with_timeout_env_progress(
@@ -162,7 +162,7 @@ pub(crate) async fn push_with_retries(
         // When the worktree is detached, `git push origin HEAD` fails.
         // Build a fully-qualified refspec instead.
         let ssh_refspec = match crate::git::branch::current_branch(repo) {
-            Some(branch) => "HEAD".to_string(),
+            Some(_branch) => "HEAD".to_string(),
             None => "HEAD:refs/heads/main".to_string(),
         };
         match super::run_git_with_timeout_env_progress(
