@@ -350,12 +350,12 @@ mod tests {
     fn test_configure_standard_remotes_if_missing_adds_remotes() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "master"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
+            .success());
         let mut policy = crate::policy::test_sync_policy();
         policy.remotes = vec![RemoteConfig {
             name: "github".to_string(),
@@ -381,18 +381,18 @@ mod tests {
     fn test_configure_standard_remotes_if_missing_preserves_existing_remote() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "master"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "origin", "git@github.com:Other/test-repo.git"])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
-            .success();
+            .success());
         let mut policy = crate::policy::test_sync_policy();
         policy.remotes = vec![RemoteConfig {
             name: "github".to_string(),
@@ -422,49 +422,49 @@ mod tests {
     fn test_configure_publish_upstream_if_missing_adds_github_upstream() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("user.email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(&repo)
             .status()
             .expect("user.name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "core.hooksPath", "/dev/null"])
             .current_dir(&repo)
             .status()
             .expect("hooksPath")
-            .success();
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["add", "README.md"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "-m", "initial"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
-            .success();
+            .success());
 
         let policy = crate::policy::test_sync_policy();
         assert!(configure_publish_upstream_if_missing(&repo, &policy).expect("configure upstream"));
@@ -480,24 +480,24 @@ mod tests {
     fn test_configure_publish_upstream_if_missing_preserves_existing_upstream() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.remote", "origin"])
             .current_dir(&repo)
             .status()
             .expect("remote config")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .expect("merge config")
-            .success();
+            .success());
 
         let policy = crate::policy::test_sync_policy();
         assert!(!configure_publish_upstream_if_missing(&repo, &policy).expect("preserve upstream"));
@@ -509,74 +509,74 @@ mod tests {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
         let bare = tmp.path().join("remote.git");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "--bare"])
             .arg(&bare)
             .status()
             .expect("bare init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("user.email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(&repo)
             .status()
             .expect("user.name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "core.hooksPath", "/dev/null"])
             .current_dir(&repo)
             .status()
             .expect("hooksPath")
-            .success();
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["add", "README.md"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "-m", "initial"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "github"])
             .arg(&bare)
             .current_dir(&repo)
             .status()
             .expect("git remote add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.remote", "github"])
             .current_dir(&repo)
             .status()
             .expect("remote config")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .expect("merge config")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["push", "github", "main"])
             .current_dir(&repo)
             .status()
             .expect("initial push")
-            .success();
+            .success());
         crate::git::git_cmd()
             .args(["update-ref", "-d", "refs/remotes/github/main"])
             .current_dir(&repo)
@@ -598,67 +598,67 @@ mod tests {
     async fn test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("user.email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(&repo)
             .status()
             .expect("user.name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "core.hooksPath", "/dev/null"])
             .current_dir(&repo)
             .status()
             .expect("hooksPath")
-            .success();
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["add", "README.md"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "-m", "initial"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "origin", "https://github.com/DraconDev/test-repo.git"])
             .current_dir(&repo)
             .status()
             .expect("git remote add origin")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
             .current_dir(&repo)
             .status()
             .expect("git remote add github")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.remote", "origin"])
             .current_dir(&repo)
             .status()
             .expect("remote config")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .expect("merge config")
-            .success();
+            .success());
 
         let policy = crate::policy::test_sync_policy();
         // Should skip cleanly (return false) without attempting HTTPS fetch.
@@ -671,48 +671,48 @@ mod tests {
         let bare = tmp.path().join("remote.git");
         let repo = tmp.path().join("work");
         let bare_path = bare.to_str().expect("bare path");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "--bare", "-q", bare_path])
             .status()
             .expect("git init --bare")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "master"])
             .arg(&repo)
             .status()
             .expect("git init work")
-            .success();
+            .success());
         std::fs::write(repo.join("file.txt"), "hello\n").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("git config email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test User"])
             .current_dir(&repo)
             .status()
             .expect("git config name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["add", "file.txt"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "--no-verify", "-q", "-m", "init"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "github", bare_path])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
-            .success();
+            .success());
 
         let remotes = vec!["github".to_string()];
         assert_eq!(
@@ -720,12 +720,12 @@ mod tests {
             1,
             "local HEAD should be unpushed before the first push"
         );
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["push", "--no-verify", "-q", "github", "master:refs/heads/master"])
             .current_dir(&repo)
             .status()
             .expect("git push")
-            .success();
+            .success());
         assert_eq!(
             count_unpushed_vs_configured_remotes(&repo, &remotes),
             0,

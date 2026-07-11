@@ -6322,43 +6322,43 @@ mod tests {
     fn test_branch_upstream_missing_when_no_config() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("user.email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(&repo)
             .status()
             .expect("user.name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "core.hooksPath", "/dev/null"])
             .current_dir(&repo)
             .status()
             .expect("hooksPath")
-            .success();
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["add", "README.md"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "-m", "initial"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
+            .success());
         let (label, state) = branch_upstream(&repo, "main");
         assert_eq!(label, "-");
         assert_eq!(state, PublishState::Missing);
@@ -6368,61 +6368,61 @@ mod tests {
     fn test_branch_upstream_gone_when_remote_tracking_ref_missing() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["init", "-q", "-b", "main"])
             .arg(&repo)
             .status()
             .expect("git init")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.email", "test@example.com"])
             .current_dir(&repo)
             .status()
             .expect("user.email")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(&repo)
             .status()
             .expect("user.name")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "core.hooksPath", "/dev/null"])
             .current_dir(&repo)
             .status()
             .expect("hooksPath")
-            .success();
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        crate::git::git_cmd()
+        assert!(crate::git::git_cmd()
             .args(["add", "README.md"])
             .current_dir(&repo)
             .status()
             .expect("git add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["commit", "-m", "initial"])
             .current_dir(&repo)
             .status()
             .expect("git commit")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.remote", "github"])
             .current_dir(&repo)
             .status()
             .expect("remote config")
-            .success();
-        crate::git::git_cmd()
+            .success());
+        assert!(crate::git::git_cmd()
             .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .expect("merge config")
-            .success();
+            .success());
         let (label, state) = branch_upstream(&repo, "main");
         assert_eq!(label, "github/main");
         assert_eq!(state, PublishState::Gone);
@@ -7619,8 +7619,6 @@ mod tests {
     /// widened from 17-18 to 32 chars in the same change.
     #[test]
     fn test_format_push_to_remotes_cell() {
-        assert!(use comfy_table::Cell;
-
         // Case 1: full set of remotes, no exclusions → comma list, no annotation
         let cell = format_push_to_remotes_cell(
             &["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
