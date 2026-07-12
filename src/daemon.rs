@@ -44,7 +44,7 @@ pub(crate) type SyncTaskResult =
 
 /// Join handle for a spawned sync task, tagged with the repo path so
 /// the in-flight collector can route the result back to the right repo.
-pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<(PathBuf, SyncTaskResult)>;
+pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 
 /// Join handle for a spawned sync task that returns the full trio
 /// (repo path, counters, outcome) used by the in-flight collector.
@@ -2250,7 +2250,7 @@ pub(crate) async fn run_daemon(
         materialize_pending_submodules(&repos, &roots, &policy).await;
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
-        let mut to_sync: Vec<SyncTaskJoin> = Vec::new();
+        let mut to_sync: Vec<(PathBuf, SyncTaskJoin)> = Vec::new();
         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
 
         activity.retain(|repo, _| {
@@ -2796,9 +2796,8 @@ pub(crate) async fn run_daemon(
         // threads, so 4+ repos can be in-flight simultaneously.
         if !to_sync.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
-            // poll.
             for (repo_path, handle) in to_sync.drain(..) {
-                let _ = sem_max; // suppress unused warning; cap is enforced by tokio's scheduler via spawned tasks
+
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
