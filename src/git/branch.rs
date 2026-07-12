@@ -57,9 +57,7 @@ fn resolve_head_path(repo: &Path) -> Option<std::path::PathBuf> {
         let Ok(content) = std::fs::read_to_string(&dot_git) else {
             return None;
         };
-        let Some(rest) = content.trim().strip_prefix("gitdir:") else {
-            return None;
-        };
+        let rest = content.trim().strip_prefix("gitdir:")?;
         let gitdir_rel = rest.trim();
         let base_canon =
             std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());

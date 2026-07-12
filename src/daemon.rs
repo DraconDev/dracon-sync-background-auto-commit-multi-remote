@@ -36,6 +36,23 @@ use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
 use crate::sync::{sync_repo, sync_repo_with_ahead_since, SyncOutcome};
 use crate::git::list_submodules;
 
+
+/// Result of a single spawned `sync_repo` task: the per-repo counters
+/// (incremented during the sync) and the outcome the sync reported.
+pub(crate) type SyncTaskResult =
+    (HashMap<String, usize>, Result<SyncOutcome, anyhow::Error>);
+
+/// Join handle for a spawned sync task, tagged with the repo path so
+/// the in-flight collector can route the result back to the right repo.
+pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<(PathBuf, SyncTaskResult)>;
+
+/// Join handle for a spawned sync task that returns the full trio
+/// (repo path, counters, outcome) used by the in-flight collector.
+pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
+    PathBuf,
+    HashMap<String, usize>,
+    Result<SyncOutcome, anyhow::Error>,
+)>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
 /// Count unpushed commits by comparing local HEAD to configured remote HEADs.
@@ -273,9 +290,7 @@ fn configured_branch_remote(repo: &Path, branch: &str) -> Option<String> {
                 None
             }
         })?;
-    let Some(remote_branch) = merge.strip_prefix("refs/heads/") else {
-        return None;
-    };
+    let remote_branch = merge.strip_prefix("refs/heads/")?;
     if is_safe_branch_name(remote_branch) {
         Some(remote)
     } else {
@@ -2235,17 +2250,8 @@ pub(crate) async fn run_daemon(
         materialize_pending_submodules(&repos, &roots, &policy).await;
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
-        let repos = discover_git_repos(
-            &roots,
-            &excluded_dir_names,
-            &policy.exclude_repos,
-            Some(&policy.system_repo),
-        );
+        let mut to_sync: Vec<SyncTaskJoin> = Vec::new();
         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
-        let mut to_sync: Vec<(
-            PathBuf,
-            tokio::task::JoinHandle<(HashMap<String, usize>, Result<SyncOutcome, anyhow::Error>)>,
-        )> = Vec::new();
 
         activity.retain(|repo, _| {
             let keep = repo_set.contains(repo);
@@ -2789,20 +2795,8 @@ pub(crate) async fn run_daemon(
         // schedules the spawned sync_repo tasks across worker
         // threads, so 4+ repos can be in-flight simultaneously.
         if !to_sync.is_empty() {
-            let sem_max = policy.sem_max_concurrent_sync.max(1);
-            // Move each (repo, handle) into a small tokio task that
-            // awaits the handle and forwards the result. We add a
-            // 1-tick yield between iterations to give the spawned
-            // sync_repo tasks a chance to start running, so we
-            // don't accidentally block the runtime on the in_flight
+            let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             // poll.
-            let mut in_flight_tasks: FuturesUnordered<
-                tokio::task::JoinHandle<(
-                    PathBuf,
-                    HashMap<String, usize>,
-                    Result<SyncOutcome, anyhow::Error>,
-                )>,
-            > = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
                 let _ = sem_max; // suppress unused warning; cap is enforced by tokio's scheduler via spawned tasks
                 in_flight_tasks.push(tokio::spawn(async move {

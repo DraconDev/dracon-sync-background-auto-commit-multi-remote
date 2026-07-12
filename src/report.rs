@@ -306,11 +306,11 @@ fn shorten_when(s: &str) -> String {
 /// across many rows. This function returns a real activity label:
 ///
 ///   - "now"        : daemon has an in-flight task for this repo
-///                    (currently being processed)
+///     (currently being processed)
 ///   - "pushing Xm" : push_status=PENDING, push has been in
-///                    progress for X minutes
+///     progress for X minutes
 ///   - "dirty Xm"    : dirty tracked work exists, last commit
-///                    was X minutes ago
+///     was X minutes ago
 ///   - "synced Xm"  : clean, in sync, recent commit (within 1h)
 ///   - "idle Xm"    : clean, no in-flight, last commit 1h-24h ago
 ///   - "cold Xd"    : clean, no activity for > 24h
@@ -1169,11 +1169,12 @@ fn build_recent_push_failure_map(policy_path: &Path) -> Option<HashMap<String, b
 }
 
 /// Build a per-repo map of the daemon's last recorded action (timestamp
-/// + action label + result) from the incident ledger. Used by the report
-/// to show the user that the daemon IS actively working through dirty
-/// repos — the `last_when`/`last_push` columns show the last *commit*
-/// and *push* times, but those reset to the moment of the daemon's own
-/// commit, so they don't distinguish "user is editing" from "daemon is
+/// + action label + result) from the incident ledger.
+
+/// Used by the report to show the user that the daemon IS actively working
+/// through dirty repos — the `last_when`/`last_push` columns show the last
+/// *commit* and *push* times, but those reset to the moment of the daemon's
+/// own commit, so they don't distinguish "user is editing" from "daemon is
 /// handling dirty work". The `DAEMON` column closes that gap.
 ///
 /// Returns `None` if the ledger is missing or unreadable so the report

@@ -1100,9 +1100,8 @@ async fn stage_gitlink_updates(
 ///
 /// ADDED 2026-06-30, goal `mr10pdzr-i495vy`:
 /// "Make the daemon materialize submodules as standalone worktrees".
-
 /// Partition paths into (force_add, normal_add) based on .gitignore.
-/// - Paths already tracked in git → force_add (git add -f). Tracked files
+/// - Paths already tracked in git → force_add (git add -f).
 ///   that match a gitignore rule (e.g. `**/.wxt/types/`) still get refused
 ///   by `git add <path>` even though `git check-ignore` reports them as
 ///   "not ignored" (gitignore is bypassed for tracked files in check-ignore,
@@ -3021,7 +3020,7 @@ async fn stage_commit_and_push(
                 eprintln!("⚠️ push failed for {}", repo.display());
                 crate::daemon::record_push_failure(
                     repo,
-                    &"git push returned non-zero (see daemon log)".to_string(),
+                    "git push returned non-zero (see daemon log)",
                 );
             }
             Err(e) => {
@@ -3458,7 +3457,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 eprintln!("⚠️ push failed for {}", ctx.repo.display());
                 crate::daemon::record_push_failure(
                     ctx.repo,
-                    &"git push returned non-zero (see daemon log)".to_string(),
+                    "git push returned non-zero (see daemon log)",
                 );
             }
             Err(e) => {
