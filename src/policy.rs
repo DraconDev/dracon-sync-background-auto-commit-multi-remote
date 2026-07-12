@@ -522,6 +522,7 @@ pub(crate) struct SyncPolicy {
     #[serde(default = "default_max_push_blob_bytes")]
     pub(crate) max_push_blob_bytes: u64,
     #[serde(default = "default_sem_max_concurrent_sync")]
+    #[allow(dead_code)] // removed semaphore gate; field retained for config compatibility
     pub(crate) sem_max_concurrent_sync: usize,
     #[serde(default = "default_incident_ledger_max_lines")]
     pub(crate) incident_ledger_max_lines: usize,

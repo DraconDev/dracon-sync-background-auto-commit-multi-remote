@@ -1170,12 +1170,11 @@ fn build_recent_push_failure_map(policy_path: &Path) -> Option<HashMap<String, b
 
 /// Build a per-repo map of the daemon's last recorded action (timestamp
 /// + action label + result) from the incident ledger.
-
-/// Used by the report to show the user that the daemon IS actively working
-/// through dirty repos — the `last_when`/`last_push` columns show the last
-/// *commit* and *push* times, but those reset to the moment of the daemon's
-/// own commit, so they don't distinguish "user is editing" from "daemon is
-/// handling dirty work". The `DAEMON` column closes that gap.
+///   Used by the report to show the user that the daemon IS actively working
+///   through dirty repos — the `last_when`/`last_push` columns show the last
+///   *commit* and *push* times, but those reset to the moment of the daemon's
+///   own commit, so they don't distinguish "user is editing" from "daemon is
+///   handling dirty work". The `DAEMON` column closes that gap.
 ///
 /// Returns `None` if the ledger is missing or unreadable so the report
 /// still works in degraded mode.

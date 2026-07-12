@@ -942,9 +942,8 @@ pub(crate) fn is_excluded_file(file_path: &Path, excluded_patterns: &[String]) -
 /// 1. Simple basename match (e.g. `note.md` matches `subdir/note.md`)
 /// 2. Glob match against the full path relative to repo (e.g.
 ///    `**/scratch/**` matches `foo/scratch/bar.txt`).
-
-/// Used by the `untracked_exclude_patterns` policy field to keep user
-/// notes, scratch research, and audit evidence out of auto-stage.
+///    This keeps user notes, scratch research, and audit evidence
+///    out of auto-stage.
 pub(crate) fn matches_untracked_exclude(
     repo: &Path,
     file_path: &Path,
