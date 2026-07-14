@@ -40,7 +40,7 @@ use policy::freeze_reason;
 use policy::{resolve_policy_path, timestamp_secs, SyncPolicy};
 use report::{
     push_large_blob_threshold_bytes, run_repair_concerns, run_repair_warns, run_repos_report,
-    ConcernRepairFilter, RepoFilter,
+    run_scan_bloat_report, ConcernRepairFilter, RepoFilter,
 };
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
@@ -166,6 +166,30 @@ enum Command {
         explain: bool,
         /// Emit machine-readable JSON.
         #[arg(long, conflicts_with = "explain")]
+        json: bool,
+    },
+
+    /// Scan watched repos for untracked collection directories that are
+    /// not yet in `untracked_exclude_patterns`. The operator's discovery
+    /// loop for forward-compatibility: future tools that drop a new
+    /// directory name into working trees are auto-flagged here, and the
+    /// operator decides whether to extend the daemon's exclude list, add
+    /// to `.gitignore`, or leave them as intentional content.
+    ///
+    /// Buckets are aggregated by directory leaf name across repos (so
+    /// `test-results/` recurring in N repos becomes one row). Singletons
+    /// (`min_repo_count < 2`) and tiny dirs (`min_size_mib < 5`) are
+    /// filtered out by default; tune with the flags below. See
+    /// `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
+    ScanBloat {
+        /// Minimum total size per bucket (MiB). Default: 5.
+        #[arg(long, default_value_t = 5)]
+        min_size_mib: u64,
+        /// Minimum number of repos a bucket must appear in. Default: 2.
+        #[arg(long, default_value_t = 2)]
+        min_repo_count: usize,
+        /// Emit machine-readable JSON.
+        #[arg(long)]
         json: bool,
     },
 }
@@ -1191,6 +1215,13 @@ async fn main() -> Result<()> {
             json,
         } => {
             cmd_ownership(&policy_path, repo.as_deref(), explain, json)?;
+        }
+        Command::ScanBloat {
+            min_size_mib,
+            min_repo_count,
+            json,
+        } => {
+            run_scan_bloat_report(&policy_path, min_size_mib, min_repo_count, json).await?;
         }
     }
 

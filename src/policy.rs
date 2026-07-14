@@ -887,14 +887,14 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 ///   (now committed by default): user notes (`**/note.md`,
 ///   `**/notes.md`, `**/scratch.md`), audit/evidence dirs, and image/
 ///   video extensions — see `AUDIT-3-UTILITIES-2026-07-10.md`.
-/// - 2026-07-13 (codeberg quota leak fix): added 8 DIR-level patterns
+/// - 2026-07-13 (codeberg quota leak fix): added 9 DIR-level patterns
 ///   for unambiguous collection directories that appeared as untracked
 ///   noise on every game/heavy repo. These are NAME-BASED, not
 ///   extension-based, so they do not collide with intentional shipping
 ///   art (PNGs/MP3s in `static/`, `assets/`, `screenshots/<game>/`).
 ///   See `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
 ///
-/// The 8 added patterns (verified empirically against 17 watched repos,
+/// The 9 added patterns (verified empirically against 17 watched repos,
 /// no false positives on intentional content like 1mg marketing shots
 /// or audit REPORTS in `docs/audit-*.md` / `scripts/audit-*.mjs`):
 ///   - `**/.pi/**`           universal agent dir (.pi/, .pi-tmp/,
@@ -906,6 +906,9 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 ///   - `**/chrome-screenshots/**` chrome agent output
 ///   - `**/chrome-*/**`      chrome-fixes, chrome-consistency, etc.
 ///   - `**/sign-in-flash-audit/**` one-off verification dir
+///   - `**/~/**`             home-dir leak (e.g. browser-extensions-
+///                             shared had a stray `~/` from a misrouted
+///                             extraction; this catches it globally)
 ///
 /// Forward-compatibility: any future agent tool that drops a
 /// screenshot into one of these names is automatically excluded from
@@ -941,6 +944,7 @@ pub(crate) fn default_untracked_exclude_patterns() -> Vec<String> {
         "**/chrome-screenshots/**",
         "**/chrome-*/**",
         "**/sign-in-flash-audit/**",
+        "**/~/**",
     ]
     .into_iter()
     .map(String::from)
@@ -1761,6 +1765,7 @@ mod tests {
             "**/chrome-screenshots/**",
             "**/chrome-*/**",
             "**/sign-in-flash-audit/**",
+            "**/~/**",
         ] {
             assert!(
                 patterns.contains(&required.to_string()),

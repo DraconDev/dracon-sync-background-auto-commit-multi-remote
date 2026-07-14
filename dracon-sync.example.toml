@@ -195,6 +195,7 @@ untracked_exclude_patterns = [
     "**/chrome-screenshots/**",
     "**/chrome-*/**",
     "**/sign-in-flash-audit/**",
+    "**/~/**",
 ]
 
 # Per-repo override for tracked files the daemon should NEVER auto-

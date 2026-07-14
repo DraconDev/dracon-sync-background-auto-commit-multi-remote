@@ -2965,6 +2965,282 @@ fn print_repos_vertical(
     }
 }
 
+// Codeberg quota leak fix (2026-07-13): scans all watched repos for untracked
+// collection directories that are NOT currently excluded by
+// `untracked_exclude_patterns`. Surfaces them to the operator with size +
+// count, grouped by directory leaf name across repos. The operator uses the
+// output to decide whether to extend the daemon's untracked-exclude list
+// (manual `.dracon/dracon-sync.toml` edit) or to add `.gitignore` rules.
+//
+// Thresholds (defaults): flag a bucket when its total size across all repos
+// exceeds `min_size_mib` (default 5 MiB) AND its appearance count is at
+// least `min_repo_count` (default 2). Singletons and tiny dirs are noise;
+// aggregating by leaf name avoids drowning the operator in one-off noise.
+//
+// Forward-compatibility design:
+//   - Operator "did not think of" a future tool like `~verify-logs-2026-08/`?
+//     It shows up next time `scan-bloat` runs. No silent leak.
+//   - Operator decides to keep it? `git add` it, OR add to gitignore, OR
+//     add to `untracked_exclude_patterns` in policy. Whatever suits.
+//
+// This is the discovery loop that complements the 8-pattern static list
+// in `default_untracked_exclude_patterns()`.
+// ---------------------------------------------------------------------------
+
+pub(crate) async fn run_scan_bloat_report(
+    policy_path: &Path,
+    min_size_mib: u64,
+    min_repo_count: usize,
+    json: bool,
+) -> Result<()> {
+    let policy = SyncPolicy::load(policy_path)?;
+    let roots = policy.watch_root_paths();
+    let excluded_dir_names = excluded_dir_names_set(&policy);
+    let repos = discover_git_repos(
+        &roots,
+        &excluded_dir_names,
+        &policy.exclude_repos,
+        Some(&policy.system_repo),
+    );
+
+    // Walk each repo (sequentially — git calls are fast, 0.5s/repo on this box
+    // for ~26 repos gives ~13s total). Sequential keeps the logic obvious.
+    #[derive(Default, Clone, Debug)]
+    struct BucketAgg {
+        total_size_bytes: u64,
+        repo_paths: Vec<String>,
+        file_count: usize,
+    }
+    let mut buckets: std::collections::BTreeMap<String, BucketAgg> =
+        std::collections::BTreeMap::new();
+
+    for repo in &repos {
+        if let Some((leaf, sz, cnt)) = scan_one_repo_for_bloat(
+            repo,
+            &policy.untracked_exclude_patterns,
+            min_size_mib * 1024 * 1024,
+        ) {
+            let bucket = buckets.entry(leaf).or_default();
+            bucket.total_size_bytes += sz;
+            bucket.repo_paths.push(
+                repo.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(repo.to_string_lossy().as_ref())
+                    .to_string(),
+            );
+            bucket.file_count += cnt;
+        }
+    }
+
+    // Filter by thresholds
+    let threshold_bytes = min_size_mib * 1024 * 1024;
+    let mut findings: Vec<(String, BucketAgg)> = buckets
+        .into_iter()
+        .filter(|(_, b)| {
+            b.total_size_bytes >= threshold_bytes && b.repo_paths.len() >= min_repo_count
+        })
+        .collect();
+    findings.sort_by(|a, b| b.1.total_size_bytes.cmp(&a.1.total_size_bytes));
+
+    if json {
+        #[derive(serde::Serialize)]
+        struct Out {
+            threshold_bytes: u64,
+            min_repo_count: usize,
+            buckets: Vec<OutBucket>,
+        }
+        #[derive(serde::Serialize)]
+        struct OutBucket {
+            leaf: String,
+            total_size_bytes: u64,
+            total_size_human: String,
+            repo_count: usize,
+            file_count: usize,
+            suggested_pattern: String,
+            sample_repos: Vec<String>,
+        }
+        let out = Out {
+            threshold_bytes,
+            min_repo_count,
+            buckets: findings
+                .into_iter()
+                .map(|(leaf, b)| OutBucket {
+                    leaf: leaf.clone(),
+                    total_size_bytes: b.total_size_bytes,
+                    total_size_human: human_bytes(b.total_size_bytes),
+                    repo_count: b.repo_paths.len(),
+                    file_count: b.file_count,
+                    suggested_pattern: suggested_pattern_for(&leaf),
+                    sample_repos: {
+                        let mut sample = b.repo_paths.clone();
+                        sample.sort();
+                        sample.truncate(5);
+                        sample
+                    },
+                })
+                .collect(),
+        };
+        println!("{}", serde_json::to_string_pretty(&out)?);
+        return Ok(());
+    }
+
+    if findings.is_empty() {
+        println!(
+            "✅ No untracked bloat buckets found (thresholds: ≥ {} MiB total, ≥ {} repos).",
+            min_size_mib, min_repo_count
+        );
+        return Ok(());
+    }
+
+    println!(
+        "🔎 Scanned {} repo(s) for untracked bloat (thresholds: ≥ {} MiB total, ≥ {} repos).",
+        repos.len(),
+        min_size_mib,
+        min_repo_count,
+    );
+    println!();
+    println!(
+        "{:30} {:>10} {:>7} {:>8}  {}",
+        "DIRECTORY", "SIZE", "REPOS", "FILES", "SUGGESTED EXCLUDE"
+    );
+    println!("{}", "-".repeat(95));
+    let mut total_bytes = 0u64;
+    for (leaf, b) in &findings {
+        total_bytes += b.total_size_bytes;
+        println!(
+            "{:30} {:>10} {:>7} {:>8}  {}",
+            truncate(&leaf, 30),
+            human_bytes(b.total_size_bytes),
+            b.repo_paths.len(),
+            b.file_count,
+            suggested_pattern_for(&leaf)
+        );
+    }
+    println!("{}", "-".repeat(95));
+    println!(
+        "{:30} {:>10}",
+        "(TOTAL)",
+        human_bytes(total_bytes),
+    );
+    println!();
+    println!("💡 Each row suggests a pattern like `**/<dir>/**` that you can add");
+    println!("   to `untracked_exclude_patterns` in `~/.dracon/utilities/sync/dracon-sync.toml`");
+    println!("   (global) or per-repo at `<repo>/.dracon/dracon-sync.toml`.");
+    println!("   Pick the names that correspond to genuine clutter; intentional");
+    println!("   assets (game art, marketing screenshots) typically live elsewhere");
+    println!("   and won't appear here unless they trip the threshold.");
+    Ok(())
+}
+
+/// Walk one repo: list untracked directories via
+/// `git ls-files --others --exclude-standard --directory`. Aggregate by leaf
+/// name within the repo scope, filtering out anything already covered by
+/// the operator's `untracked_exclude_patterns`. Returns the largest bucket
+/// in this repo as `(leaf, total_size_bytes, total_file_count)`, or `None`
+/// if no bucket exceeds `min_bucket_size_bytes`.
+///
+/// The outer loop sums per-repo buckets across repos by leaf name to
+/// produce a single row per recurring directory name in the final report.
+fn scan_one_repo_for_bloat(
+    repo: &Path,
+    exclude_patterns: &[String],
+    min_bucket_size_bytes: u64,
+) -> Option<(String, u64, usize)> {
+    use std::process::Command;
+
+    let output = Command::new("git")
+        .current_dir(repo)
+        .args(["ls-files", "--others", "--exclude-standard", "--directory"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Per-repo aggregation, keyed on leaf name.
+    let mut by_leaf: std::collections::HashMap<String, (u64, usize)> =
+        std::collections::HashMap::new();
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if !trimmed.ends_with('/') {
+            continue; // only dirs
+        }
+        let rel = trimmed.trim_end_matches('/');
+        // Skip if already excluded.
+        if crate::exclude::matches_untracked_exclude(
+            repo,
+            Path::new(rel),
+            exclude_patterns,
+        ) {
+            continue;
+        }
+        // Skip noisy paths the operator clearly knows about (the static list
+        // covers them, but guard anyway in case the user removed the default).
+        if rel.starts_with("node_modules/") || rel.starts_with("target/") || rel.contains("/target/")
+            || rel.starts_with("dist/") || rel.starts_with("build/")
+        {
+            continue;
+        }
+        let leaf = rel.rsplit('/').next().unwrap_or(rel);
+        if leaf.is_empty() || leaf == "." || leaf == "/" {
+            continue;
+        }
+        let leaf = leaf.to_string();
+        let abs = repo.join(rel);
+        let size = dir_size_bytes(&abs).unwrap_or(0);
+        let count = dir_file_count(&abs).unwrap_or(0);
+        if size < min_bucket_size_bytes {
+            continue;
+        }
+        let entry = by_leaf.entry(leaf).or_insert((0, 0));
+        entry.0 += size;
+        entry.1 += count;
+    }
+
+    by_leaf.into_iter().max_by_key(|(_, v)| v.0).map(|(leaf, (sz, cnt))| (leaf, sz, cnt))
+}
+
+fn dir_size_bytes(p: &Path) -> std::io::Result<u64> {
+    use std::process::Command;
+    let out = Command::new("du").args(["-sb", "--"]).arg(p).output()?;
+    if !out.status.success() {
+        return Ok(0);
+    }
+    let s = String::from_utf8_lossy(&out.stdout);
+    let n = s.split_whitespace().next().and_then(|t| t.parse::<u64>().ok());
+    Ok(n.unwrap_or(0))
+}
+
+fn dir_file_count(p: &Path) -> std::io::Result<usize> {
+    use std::process::Command;
+    let out = Command::new("find")
+        .arg(p)
+        .args(["-type", "f"])
+        .output()?;
+    if !out.status.success() {
+        return Ok(0);
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).lines().filter(|l| !l.is_empty()).count())
+}
+
+fn suggested_pattern_for(leaf: &str) -> String {
+    format!("**/{}/**", leaf)
+}
+
+fn human_bytes(b: u64) -> String {
+    const UNITS: &[&str] = &["B", "KiB", "MiB", "GiB", "TiB"];
+    let mut v = b as f64;
+    let mut i = 0;
+    while v >= 1024.0 && i < UNITS.len() - 1 {
+        v /= 1024.0;
+        i += 1;
+    }
+    if i == 0 {
+        format!("{} {}", b, UNITS[0])
+    } else {
+        format!("{:.2} {}", v, UNITS[i])
+    }
+}
 // ---------------------------------------------------------------------------
 // Layout tier 2: compact (terminal 120-200 cols)
 // 14 columns. Drops: 1h/6h/24h split, AUTHOR (moved to HINT suffix), PUSHED
