@@ -184,6 +184,17 @@ untracked_exclude_patterns = [
     ".demon/**",
     ".sisyphus/**",
     ".ralph/**",
+    # 2026-07-13 codeberg quota leak fix: 8 dir-level patterns for
+    # unambiguous agent/harness/verification collection dirs.
+    # See `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
+    "**/.pi/**",
+    "**/test-results/**",
+    "**/verify-screenshots/**",
+    "**/__screenshots__/**",
+    "**/.state-recon/**",
+    "**/chrome-screenshots/**",
+    "**/chrome-*/**",
+    "**/sign-in-flash-audit/**",
 ]
 
 # Per-repo override for tracked files the daemon should NEVER auto-

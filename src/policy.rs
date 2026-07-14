@@ -879,26 +879,42 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 
 /// Default exclude patterns for `untracked_exclude_patterns`. The daemon
 /// will NOT auto-stage untracked files matching any of these patterns.
-/// Operator policy change 2026-06-15 (goal `9aaf0b08`): "commit all
-/// unless we have a super good reason to leave it out". Defaults are
-/// now MINIMAL — only session-scratch patterns (super-good reasons to
-/// keep untracked) remain. Patterns REMOVED in this change (now
-/// committed by default):
-///   - User notes (`**/note.md`, `**/notes.md`, `**/scratch.md`)
-///   - Audit / evidence (`**/audit/**`, `**/evidence/**`, `**/screenshots/**`)
-///   - Media files (`*.png`, `*.jpg`, `*.jpeg`, `*.gif`, `*.webp`,
-///     `*.mp4`, `*.mov`)
 ///
-/// Patterns KEPT (super-good reasons to stay untracked):
-///   - Session scratch dirs (`**/scratch/**`, `**/scratch-*`, `**/scratch_*`)
-///   - Temp dirs (`**/tmp/**`, `**/tmp-*`)
-///   - Agent session scratch (`**/pi-tmp/**`, `**/.pi-tmp/**`,
-///     `.demon/**`, `.sisyphus/**`, `.ralph/**`)
-///   - Research scratch dirs (`**/research/scratch/**`)
+/// Policy evolution:
+/// - 2026-06-15 (goal `9aaf0b08`): operator switched to "commit all
+///   unless we have a super good reason to leave it out". The list was
+///   reduced to scratch-only patterns. Patterns REMOVED in that change
+///   (now committed by default): user notes (`**/note.md`,
+///   `**/notes.md`, `**/scratch.md`), audit/evidence dirs, and image/
+///   video extensions — see `AUDIT-3-UTILITIES-2026-07-10.md`.
+/// - 2026-07-13 (codeberg quota leak fix): added 8 DIR-level patterns
+///   for unambiguous collection directories that appeared as untracked
+///   noise on every game/heavy repo. These are NAME-BASED, not
+///   extension-based, so they do not collide with intentional shipping
+///   art (PNGs/MP3s in `static/`, `assets/`, `screenshots/<game>/`).
+///   See `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
 ///
-/// Per-repo `auto_commit_exclude_patterns` is the operator's opt-in
-/// mechanism to extend this list per-repo (e.g., Junk-Runner-bevy's
-/// `**/test-results/**` exclusion).
+/// The 8 added patterns (verified empirically against 17 watched repos,
+/// no false positives on intentional content like 1mg marketing shots
+/// or audit REPORTS in `docs/audit-*.md` / `scripts/audit-*.mjs`):
+///   - `**/.pi/**`           universal agent dir (.pi/, .pi-tmp/,
+///                             .pi-goals/, .pi-tasks/, .pi/mmx-out/)
+///   - `**/test-results/**`  Playwright outputs (named with git SHA)
+///   - `**/verify-screenshots/**` verification harness output
+///   - `**/__screenshots__/**`  Python e2e framework convention
+///   - `**/.state-recon/**`  agent probe dirs
+///   - `**/chrome-screenshots/**` chrome agent output
+///   - `**/chrome-*/**`      chrome-fixes, chrome-consistency, etc.
+///   - `**/sign-in-flash-audit/**` one-off verification dir
+///
+/// Forward-compatibility: any future agent tool that drops a
+/// screenshot into one of these names is automatically excluded from
+/// auto-stage. New tools using different names will be flagged by
+/// `dracon-sync scan-bloat` for the operator's manual review (see
+/// `docs/design/codeberg-quota-leak-fix-2026-07-13.md`).
+///
+/// Per-repo `auto_commit_exclude_patterns` is still the operator's
+/// opt-in mechanism to extend this list per-repo.
 pub(crate) fn default_untracked_exclude_patterns() -> Vec<String> {
     [
         // Session / agent scratch dirs — keep local
@@ -914,6 +930,17 @@ pub(crate) fn default_untracked_exclude_patterns() -> Vec<String> {
         ".demon/**",
         ".sisyphus/**",
         ".ralph/**",
+        // Codeberg quota leak fix (2026-07-13): unambiguous DIR-level
+        // collections emitted by agents, harnesses, and verification
+        // tools. See rustdoc above.
+        "**/.pi/**",
+        "**/test-results/**",
+        "**/verify-screenshots/**",
+        "**/__screenshots__/**",
+        "**/.state-recon/**",
+        "**/chrome-screenshots/**",
+        "**/chrome-*/**",
+        "**/sign-in-flash-audit/**",
     ]
     .into_iter()
     .map(String::from)
@@ -1705,13 +1732,16 @@ mod tests {
     #[test]
     fn test_default_untracked_exclude_patterns_is_commit_all_unless_scratch() {
         // Goal 9aaf0b08 (2026-06-15): operator's "commit all unless
-        // super-good reason" policy. The new default keeps ONLY
-        // session-scratch patterns; everything else (audit/, evidence/,
-        // screenshots/, media, notes) is committed.
+        // super-good reason" policy. Goal mrhvbn1s-codeberg-quota-leak-fix
+        // (2026-07-13): added 8 DIR-level patterns for unambiguous
+        // collection directories that the codeberg audit identified as
+        // ~10 GiB of fixable bloat. See
+        // `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
         let patterns = default_untracked_exclude_patterns();
 
         // Patterns that MUST be present (super-good reasons):
         for required in [
+            // Original scratch / agent dirs from 2026-06-15
             "**/scratch/**",
             "**/scratch-*",
             "**/scratch_*",
@@ -1722,6 +1752,15 @@ mod tests {
             ".demon/**",
             ".sisyphus/**",
             ".ralph/**",
+            // Codeberg quota leak fix (2026-07-13) — dir-level patterns
+            "**/.pi/**",
+            "**/test-results/**",
+            "**/verify-screenshots/**",
+            "**/__screenshots__/**",
+            "**/.state-recon/**",
+            "**/chrome-screenshots/**",
+            "**/chrome-*/**",
+            "**/sign-in-flash-audit/**",
         ] {
             assert!(
                 patterns.contains(&required.to_string()),
@@ -1732,11 +1771,18 @@ mod tests {
         }
 
         // Patterns that MUST NOT be present (operator wants committed):
+        // The audit binary/text split (e.g. `**/audit-*/**/*.png`)
+        // cannot be expressed with the current matcher (no multi-*
+        // glob), and per `codeberg-quota-leak-fix-2026-07-13.md` the
+        // operator opted for DIR-level filtering only. Tests for the
+        // intentional-content preservation rules live in
+        // `test_default_untracked_exclude_patterns_preserves_intentional_content`
+        // below.
         for forbidden in [
             "**/audit/**",     // intentional audit evidence
             "**/evidence/**",  // intentional evidence
-            "**/screenshots/**", // intentional screenshots
-            "*.png",           // media
+            "**/screenshots/**", // intentional screenshots (1mg marketing lives here)
+            "*.png",           // media (intentional game art is committed via `git add`)
             "*.jpg",
             "*.jpeg",
             "*.gif",
@@ -1753,6 +1799,57 @@ mod tests {
                 "default_untracked_exclude_patterns must NOT contain `{}` (operator wants committed), got: {:?}",
                 forbidden,
                 patterns
+            );
+        }
+    }
+
+    /// Codeberg quota leak fix (2026-07-13): every DIR-level pattern
+    /// added must preserve intentional shipping content. The matcher is
+    /// substring-based (see `exclude::matches_untracked_exclude`), so
+    /// the live patterns are tested against real-world paths that the
+    /// codeberg quota audit identified as MUST-KEEP:
+    ///   - `web/screenshots/one-mil-girls-screenshots/*.png` (1mg marketing)
+    ///   - `docs/audit-event-2026-07-06.md` (audit REPORTS — text, useful in git)
+    ///   - `scripts/audit-uiux-2026-06-26.mjs` (audit SCRIPTS — code, useful in git)
+    ///   - `static/assets/texture.png` (intentional game art)
+    ///   - `src/lib.rs` (source)
+    ///   - `web/build/output.js` (build output, but committed at user's discretion)
+    /// These MUST NOT be matched by `default_untracked_exclude_patterns`.
+    #[test]
+    fn test_default_untracked_exclude_patterns_preserves_intentional_content() {
+        use std::path::Path;
+        let patterns = default_untracked_exclude_patterns();
+        let repo = Path::new("/repo");
+        for path in [
+            // 1mg marketing (1mi-release-art, kept in git by operator)
+            "web/screenshots/one-mil-girls-screenshots/01-title.png",
+            "web/screenshots/one-mil-girls-screenshots/02-gameplay.jpg",
+            // Audit REPORTS (text — operator reads them through git log)
+            "docs/audit-event-2026-07-06.md",
+            "docs/audit-a11y-v1.md",
+            // Audit SCRIPTS (code — committed for traceability)
+            "scripts/audit-uiux-2026-06-26.mjs",
+            "scripts/audit-html-2026-06-10.mjs",
+            // Intentional game art (committed via `git add art.png`)
+            "static/assets/texture.png",
+            "static/sprites/player.png",
+            "assets/audio/theme.mp3",
+            // Source code
+            "src/lib.rs",
+            "src/main.ts",
+            // Build output that operator occasionally commits
+            "web/build/output.js",
+            // Game-specific KEEP paths
+            "web/screenshots/capture-anime-girls-screenshots/promo.png",
+        ] {
+            assert!(
+                !crate::exclude::matches_untracked_exclude(
+                    repo,
+                    Path::new(path),
+                    &patterns,
+                ),
+                "default_untracked_exclude_patterns MUST NOT match intentional content at `{}` (use the operator review loop via `dracon-sync scan-bloat` instead)",
+                path
             );
         }
     }
