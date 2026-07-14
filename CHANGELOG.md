@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added
+- **Codeberg quota leak fix (`default_untracked_exclude_patterns`):**
+  added 9 DIR-level patterns (`**/.pi/**`, `**/test-results/**`,
+  `**/verify-screenshots/**`, `**/__screenshots__/**`,
+  `**/.state-recon/**`, `**/chrome-screenshots/**`,
+  `**/chrome-*/**`, `**/sign-in-flash-audit/**`, `**/~/**`) that
+  catch the unambiguous collection directories identified by the
+  2026-07-13 codeberg audit. Forward-compatible: any future agent
+  tool using one of these names is auto-excluded from auto-stage.
+  Empirical verification: 17 watched repos scanned, no false
+  positives on intentional content like 1mg marketing screenshots,
+  audit REPORTS (`docs/audit-*.md`), audit SCRIPTS
+  (`scripts/audit-*.mjs`), or intentional game art. See
+  `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
+
+- **`scan-bloat` subcommand:** new `dracon-sync scan-bloat` that
+  walks every watched repo, finds untracked collection directories
+  not yet covered by `untracked_exclude_patterns`, aggregates
+  them by leaf name across repos, and emits a sorted-by-size
+  report with a suggested glob per bucket (e.g.
+  `**/dracon-sync/**` for the per-crate build-artifact leak the
+  audit found). The operator's manual review loop for forward
+  compatibility — new tools using novel directory names will
+  surface here instead of silently accumulating. Flags:
+  `--min-size-mib <N>` (default 5) and `--min-repo-count <N>`
+  (default 2), plus `--json` for machine-readable output. See
+  `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
+
 ## [0.112.14] - 2026-06-22
 
 ### Fixed
