@@ -209,6 +209,23 @@ mod github_pack_tests {
     }
 
     #[test]
+    fn precomputed_small_size_short_circuits_without_git() {
+        // A small precomputed size must return (false, size) without touching
+        // the filesystem (no `du` / `git` subprocess).
+        let p = std::path::Path::new("/nonexistent/path/that/does/not/exist");
+        assert_eq!(github_pack_too_large(p, Some(1024)), (false, 1024));
+    }
+
+    #[test]
+    fn precomputed_large_size_falls_back_when_branch_unmeasurable() {
+        // A large precomputed size with an unmeasurable branch (nonexistent
+        // path) falls back to the precomputed size -> (true, size).
+        let p = std::path::Path::new("/nonexistent/path/that/does/not/exist");
+        let big = 3 * 1024 * 1024 * 1024;
+        assert_eq!(github_pack_too_large(p, Some(big)), (true, big));
+    }
+
+    #[test]
     fn pushed_branch_size_is_reported_for_small_repo() {
         let repo = daemon_repo();
         let bytes = pushed_branch_pushable_bytes(repo);

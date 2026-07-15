@@ -2227,6 +2227,77 @@ fn print_repos_legend() {
     println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
 }
 
+/// Cached `.git` size + GitHub pack-size guard for a single repo. Keyed by
+/// repo path and invalidated by the resolved gitdir's mtime (any commit or
+/// push updates it), so correctness is preserved across `repos` invocations
+/// while avoiding repeated `du -sb` / `git rev-list` work on large repos.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct CachedRepoSize {
+    git_size_bytes: u64,
+    pack_too_large: bool,
+    pack_pushable_bytes: u64,
+    /// Mtime (nanos since epoch) of the resolved gitdir; a mismatch forces
+    /// recomputation.
+    gitdir_sig: u64,
+}
+
+/// Cache file lives next to the policy toml (a config dir, never a watched
+/// git repo, so it is never auto-committed by the daemon).
+fn repo_size_cache_path(policy_path: &Path) -> PathBuf {
+    policy_path
+        .parent()
+        .map(|p| p.join("repos-size-cache.json"))
+        .unwrap_or_else(|| PathBuf::from("repos-size-cache.json"))
+}
+
+fn load_repo_size_cache(path: &Path) -> std::collections::HashMap<String, CachedRepoSize> {
+    match std::fs::read_to_string(path) {
+        Ok(s) => serde_json::from_str(&s).unwrap_or_default(),
+        Err(_) => std::collections::HashMap::new(),
+    }
+}
+
+fn save_repo_size_cache(
+    path: &Path,
+    cache: &std::collections::HashMap<String, CachedRepoSize>,
+) {
+    if let Ok(s) = serde_json::to_string(cache) {
+        // Best-effort: a failed cache write must never break the report.
+        let _ = std::fs::write(path, s);
+    }
+}
+
+/// Resolve a repo's actual gitdir (handling worktree/submodule `.git` files)
+/// and return its mtime as a cache signature. Returns 0 if unresolvable.
+fn gitdir_signature(repo: &Path) -> u64 {
+    let git_path = repo.join(".git");
+    let git_dir = if git_path.is_file() {
+        let content = match std::fs::read_to_string(&git_path) {
+            Ok(c) => c,
+            Err(_) => return 0,
+        };
+        let gitdir_line = match content.lines().find(|l| l.starts_with("gitdir:")) {
+            Some(l) => l,
+            None => return 0,
+        };
+        let rel = match gitdir_line.strip_prefix("gitdir:") {
+            Some(r) => r.trim(),
+            None => return 0,
+        };
+        repo.join(rel)
+    } else {
+        git_path
+    };
+    std::fs::metadata(&git_dir)
+        .and_then(|m| m.modified())
+        .map(|t| {
+            t.duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos() as u64)
+                .unwrap_or(0)
+        })
+        .unwrap_or(0)
+}
+
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
@@ -2251,6 +2322,15 @@ pub(crate) async fn run_repos_report(
         &policy.exclude_repos,
         Some(&policy.system_repo),
     );
+    // Per-repo `.git` size + GitHub pack-size guard, cached by gitdir mtime
+    // so repeat `repos` runs skip the expensive `du -sb` / `git rev-list`
+    // work on multi-GiB .git dirs (the recent slowdown regression).
+    let cache_path = repo_size_cache_path(policy_path);
+    let mut size_cache = load_repo_size_cache(&cache_path);
+    let cache_lookup = std::sync::Arc::new(size_cache.clone());
+    let cache_record = std::sync::Arc::new(std::sync::Mutex::new(
+        std::collections::HashMap::new(),
+    ));
     let _rows: Vec<RepoReportRow> = Vec::new();
     // CHANGED 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
     // CONCERN #6): drop the initial `= 0usize`; the variable is
@@ -2289,8 +2369,13 @@ pub(crate) async fn run_repos_report(
         let daemon_last_actions = &daemon_last_actions;
         let init_status_failures = &init_status_failures;
         let policy = &policy;
+        let cache_lookup = std::sync::Arc::clone(&cache_lookup);
+        let cache_record = std::sync::Arc::clone(&cache_record);
         futures::stream::iter(repos)
-            .map(|repo| async move {
+            .map(move |repo| {
+                let cache_lookup = std::sync::Arc::clone(&cache_lookup);
+                let cache_record = std::sync::Arc::clone(&cache_record);
+                async move {
                 let svc = match GitService::new(&repo) {
                     Ok(svc) => svc,
                     Err(e) => {
@@ -2344,9 +2429,31 @@ pub(crate) async fn run_repos_report(
         // repos before this point.
         let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
 
-        // Measure `.git` size early so the pack-size warning can be
-        // added to flags. `du -sb` is fast (~40ms for 20 GiB).
-        let git_size_bytes = measure_git_size_bytes(&repo);
+        // Per-repo `.git` size + pack-guard, served from the mtime-keyed
+        // cache when unchanged (avoids re-running `du -sb` on multi-GiB
+        // .git dirs on every `repos` invocation — the recent slowdown).
+        let cache_key = repo.to_string_lossy().to_string();
+        let gitdir_sig = gitdir_signature(&repo);
+        let (git_size_bytes, pack_too_large) = match cache_lookup.get(&cache_key) {
+            Some(c) if c.gitdir_sig == gitdir_sig => (
+                Some(c.git_size_bytes),
+                (c.pack_too_large, c.pack_pushable_bytes),
+            ),
+            _ => {
+                let size = measure_git_size_bytes(&repo);
+                let pack = crate::git::github_pack_too_large(&repo, size);
+                cache_record.lock().unwrap().insert(
+                    cache_key.clone(),
+                    CachedRepoSize {
+                        git_size_bytes: size.unwrap_or(0),
+                        pack_too_large: pack.0,
+                        pack_pushable_bytes: pack.1,
+                        gitdir_sig,
+                    },
+                );
+                (size, pack)
+            }
+        };
 
         // Classification: a repo is WARN if it has TRACKED modifications or
         // staged changes. Untracked files (e.g., target/, node_modules/) are
@@ -2415,7 +2522,7 @@ pub(crate) async fn run_repos_report(
         // this HINT stays accurate after the dracon-platform github
         // exclusion is removed (the daemon pushes GitHub whenever the
         // pushable branch fits).
-        if crate::git::github_pack_too_large(&repo).0 {
+        if pack_too_large.0 {
             flags.push("PACK_SIZE_WARNING".to_string());
         }
 
@@ -2712,11 +2819,17 @@ pub(crate) async fn run_repos_report(
             daemon_last_result,
             daemon_last_action_when,
         })
-            })
+            }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
             .collect()
             .await
     };
+    // Persist freshly-computed sizes so subsequent `repos` invocations skip
+    // the `du -sb` / `git rev-list` work on multi-GiB .git dirs.
+    for (k, v) in cache_record.lock().unwrap().drain() {
+        size_cache.insert(k, v);
+    }
+    save_repo_size_cache(&cache_path, &size_cache);
     let init_or_status_failures: usize = init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
     let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
 
@@ -7948,6 +8061,67 @@ mod tests {
             width <= content_max,
             "PUSH-TO cell {width} cols exceeds content area {content_max} cols."
         );
+    }
+}
+
+#[cfg(test)]
+mod size_cache_tests {
+    use super::*;
+
+    #[test]
+    fn cache_path_sits_next_to_policy() {
+        let p = std::path::Path::new("/home/dracon/.dracon/utilities/sync/dracon-sync.toml");
+        let c = repo_size_cache_path(p);
+        assert_eq!(
+            c,
+            std::path::Path::new("/home/dracon/.dracon/utilities/sync/repos-size-cache.json")
+        );
+    }
+
+    #[test]
+    fn cache_roundtrips_through_json() {
+        let dir = std::env::temp_dir().join("dracon-sync-cache-test");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("repos-size-cache.json");
+        let mut cache = std::collections::HashMap::new();
+        cache.insert(
+            "/home/dracon/Dev/example".to_string(),
+            CachedRepoSize {
+                git_size_bytes: 1234,
+                pack_too_large: false,
+                pack_pushable_bytes: 1234,
+                gitdir_sig: 99,
+            },
+        );
+        save_repo_size_cache(&path, &cache);
+        let loaded = load_repo_size_cache(&path);
+        assert_eq!(loaded.len(), 1);
+        let entry = loaded.get("/home/dracon/Dev/example").unwrap();
+        assert_eq!(entry.git_size_bytes, 1234);
+        assert!(!entry.pack_too_large);
+        assert_eq!(entry.gitdir_sig, 99);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn gitdir_signature_zero_without_gitdir() {
+        let tmp = std::env::temp_dir().join("dracon-sync-sig-test-none");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        // No `.git` -> signature is 0 (unresolvable).
+        assert_eq!(gitdir_signature(&tmp), 0);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn gitdir_signature_nonzero_with_gitdir() {
+        let tmp = std::env::temp_dir().join("dracon-sync-sig-test-has");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::create_dir_all(tmp.join(".git")).unwrap();
+        let sig = gitdir_signature(&tmp);
+        assert!(sig > 0, "signature should be non-zero for a dir with .git");
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
 
