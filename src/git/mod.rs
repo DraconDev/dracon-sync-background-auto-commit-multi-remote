@@ -33,11 +33,20 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
 /// The `is_pack_too_large` backstop in the push path catches any mis-estimate:
 /// if a push we allow is somehow rejected by GitHub, the daemon stops retrying
 /// instead of looping.
-pub(crate) fn github_pack_too_large(repo: &std::path::Path) -> (bool, u64) {
+/// `precomputed_size`, when `Some`, is a previously measured `.git` size in
+/// bytes supplied by the caller to avoid re-running `du -sb`. When `None` the
+/// size is measured internally (original behavior). Returns
+/// `(too_big_for_github, size_or_pushable_bytes)`.
+pub(crate) fn github_pack_too_large(
+    repo: &std::path::Path,
+    precomputed_size: Option<u64>,
+) -> (bool, u64) {
     const LIMIT: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
+    // Use the precomputed size when supplied; otherwise measure `.git`.
+    let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
     // Fast path: small .git -> never too big (unchanged behavior for the vast
     // majority of repos; no extra git subprocess).
-    if let Some(size) = crate::report::measure_git_size_bytes(repo) {
+    if let Some(size) = measured {
         if size < LIMIT {
             return (false, size);
         }
@@ -46,8 +55,9 @@ pub(crate) fn github_pack_too_large(repo: &std::path::Path) -> (bool, u64) {
     let pushable = pushed_branch_pushable_bytes(repo);
     if pushable == u64::MAX {
         // Couldn't measure the branch (e.g. detached HEAD, git error). Fall
-        // back to the whole .git size (conservative: skip).
-        let whole = crate::report::measure_git_size_bytes(repo).unwrap_or(u64::MAX);
+        // back to the measured/whole .git size (conservative: skip).
+        let whole = measured
+            .unwrap_or_else(|| crate::report::measure_git_size_bytes(repo).unwrap_or(u64::MAX));
         (whole >= LIMIT, whole)
     } else {
         (pushable >= LIMIT, pushable)
@@ -190,7 +200,7 @@ mod github_pack_tests {
     #[test]
     fn small_repo_is_not_too_big_for_github() {
         let repo = daemon_repo();
-        let (too_big, size) = github_pack_too_large(repo);
+        let (too_big, size) = github_pack_too_large(repo, None);
         assert!(!too_big, "a small repo must never be skipped for github");
         assert!(
             size > 0 && size < 2 * 1024 * 1024 * 1024,
