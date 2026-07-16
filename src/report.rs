@@ -2240,7 +2240,7 @@ fn print_repos_legend() {
     println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
     println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
     println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
-    println!("ℹ️  STATUS (🏷): ✅ OK = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) · 🚫 unowned = ownership guard tripped");
+    println!("ℹ️  STATUS (🏷): ✅ CLEAN = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) · 🚫 unowned = ownership guard tripped");
     println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
     println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
     println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
@@ -2941,7 +2941,7 @@ pub(crate) async fn run_repos_report(
         }
     }
     // ---- Summary one-liner (color-aware, no raw ANSI when piped) ----
-    let ok_str = ansi("32", &format!("✅ OK {ok_count}"));
+    let ok_str = ansi("32", &format!("✅ CLEAN {ok_count}"));
     let active_str = ansi("36", &format!("🔄 ACTIVE {active_count}"));
     let warn_str = ansi("33", &format!("⚠️  WARN {warn_count}"));
     let concern_str = ansi("31", &format!("❌ CONCERN {concern_count}"));
@@ -3006,7 +3006,7 @@ fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
     } else if row.warn {
         ("⚠️  WARN", Color::Yellow)
     } else {
-        ("✅ OK", Color::Green)
+        ("✅ CLEAN", Color::Green)
     }
 }
 
