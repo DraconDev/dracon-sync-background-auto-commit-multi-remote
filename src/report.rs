@@ -812,6 +812,14 @@ pub(crate) struct RepoReportRow {
     token_health: TokenHealthSummary,
     concern: bool,
     warn: bool,
+    /// True when the daemon is actively working this repo right now
+    /// (push in progress, or dirty-but-recent that normal sync will
+    /// pick up). Distinct from `warn`: an ACTIVE repo is "plausibly not
+    /// broken" (the daemon is handling it), whereas a `warn` repo that
+    /// is NOT active is a genuine issue (stalled / gave up). Drives the
+    /// new `🔄 ACTIVE` STATUS value in `dracon-sync repos`. See
+    /// [`repo_is_active`].
+    active: bool,
     hint: String,
     /// Derived "rough cause" of the row's current state. Combines the
     /// last-commit time, last-push time, dirty state, ahead/behind, and
@@ -843,6 +851,7 @@ pub(crate) struct RepoReportJson {
     filter: String,
     repos: usize,
     ok: usize,
+    active: usize,
     warn: usize,
     concern: usize,
     failures: usize,
@@ -1505,6 +1514,24 @@ pub(crate) fn repo_is_warn(
 }
 
 /// Coarse "what is this repo doing right now?" classification derived
+/// True when the daemon is in-flight on this repo or will imminently
+/// handle its dirty state. Mirrors [`repo_is_warn`] / [`repo_is_concern`]
+/// so the `repos` table can show an `ACTIVE` status distinct from `WARN`.
+///
+/// An ACTIVE repo is "plausibly not broken": the daemon is pushing
+/// (`push_status = PENDING`), or the [`StateCause`] is `Working` /
+/// `Pushing` / `Committing` (clean and just synced / mid-cycle) or
+/// `Dirty` (recent uncommitted work the daemon will pick up). A repo
+/// that is dirty but `Stalled` (no progress for a long time) is NOT
+/// active — it is a genuine `WARN`.
+pub(crate) fn repo_is_active(push_status: &str, state_cause: &StateCause) -> bool {
+    push_status == "PENDING"
+        || matches!(
+            state_cause,
+            StateCause::Working | StateCause::Pushing | StateCause::Committing | StateCause::Dirty
+        )
+}
+
 /// from the existing signals — last-commit time, last-push time, dirty
 /// state, ahead/behind, and push status. The vocabulary is intentionally
 /// small so the user can scan the table at a glance and tell apart
@@ -2213,6 +2240,7 @@ fn print_repos_legend() {
     println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
     println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
     println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
+    println!("ℹ️  STATUS (🏷): ✅ OK = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) · 🚫 unowned = ownership guard tripped");
     println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
     println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
     println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
@@ -2762,6 +2790,7 @@ pub(crate) async fn run_repos_report(
 
         let (upstream_label, publish_state) =
             branch_upstream(&repo, &effective_status.branch);
+        let active = repo_is_active(&push_status, &state_cause);
         Some(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
@@ -2811,6 +2840,7 @@ pub(crate) async fn run_repos_report(
             token_health: probe_token_health(),
             concern,
             warn,
+            active,
             hint,
             state_cause: state_cause.clone(),
             state_cause_label: state_cause_label_string(&state_cause),
@@ -2842,14 +2872,15 @@ pub(crate) async fn run_repos_report(
     }
 
     let concern_count_all = rows.iter().filter(|r| r.concern).count();
-    let warn_count_all = rows.iter().filter(|r| r.warn).count();
+    let active_count_all = rows.iter().filter(|r| r.active && !r.concern).count();
+    let warn_count_all = rows.iter().filter(|r| r.warn && !r.active).count();
     let ok_count_all = rows
         .len()
-        .saturating_sub(concern_count_all + warn_count_all);
+        .saturating_sub(concern_count_all + active_count_all + warn_count_all);
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => rows.retain(|r| r.concern),
-        RepoFilter::Warn => rows.retain(|r| r.warn),
+        RepoFilter::Warn => rows.retain(|r| r.warn && !r.active),
     }
 
     if let Some(pattern) = filter_name {
@@ -2864,8 +2895,11 @@ pub(crate) async fn run_repos_report(
     }
 
     let concern_count = rows.iter().filter(|r| r.concern).count();
-    let warn_count = rows.iter().filter(|r| r.warn).count();
-    let ok_count = rows.len().saturating_sub(concern_count + warn_count);
+    let active_count = rows.iter().filter(|r| r.active && !r.concern).count();
+    let warn_count = rows.iter().filter(|r| r.warn && !r.active).count();
+    let ok_count = rows
+        .len()
+        .saturating_sub(concern_count + active_count + warn_count);
     let filter_text = match filter {
         RepoFilter::All => "all",
         RepoFilter::Concern => "only_concern",
@@ -2878,6 +2912,7 @@ pub(crate) async fn run_repos_report(
             filter: filter_text.to_string(),
             repos: rows.len(),
             ok: ok_count,
+            active: active_count,
             warn: warn_count,
             concern: concern_count,
             failures: init_or_status_failures,
@@ -2907,17 +2942,18 @@ pub(crate) async fn run_repos_report(
     }
     // ---- Summary one-liner (color-aware, no raw ANSI when piped) ----
     let ok_str = ansi("32", &format!("✅ OK {ok_count}"));
+    let active_str = ansi("36", &format!("🔄 ACTIVE {active_count}"));
     let warn_str = ansi("33", &format!("⚠️  WARN {warn_count}"));
     let concern_str = ansi("31", &format!("❌ CONCERN {concern_count}"));
     let filter_note = match filter {
         RepoFilter::All => String::new(),
         RepoFilter::Concern | RepoFilter::Warn => format!(
-            "  (all: OK {} WARN {} CONCERN {})",
-            ok_count_all, warn_count_all, concern_count_all
+            "  (all: OK {} ACTIVE {} WARN {} CONCERN {})",
+            ok_count_all, active_count_all, warn_count_all, concern_count_all
         ),
     };
     println!(
-        "📦 {total} repos  {ok_str}  {warn_str}  {concern_str}  ⛔ init/status failed: {init_or_status_failures}{filter_note}",
+        "📦 {total} repos  {ok_str}  {active_str}  {warn_str}  {concern_str}  ⛔ init/status failed: {init_or_status_failures}{filter_note}",
         total = rows.len(),
     );
     println!();
@@ -2951,6 +2987,29 @@ pub(crate) async fn run_repos_report(
 }
 
 // ---------------------------------------------------------------------------
+/// STATUS column label + color for a repo row. Priority order:
+/// `concern` > `unowned` > `active` > `warn` > `ok`.
+///
+/// `unowned` is rendered explicitly here (it was previously only in the
+/// ACTIVITY column) so the operator sees the ownership guard tripped at
+/// a glance. `active` is the new 🔄 ACTIVE state — the daemon is in
+/// flight on this repo (push/commit/dirty-recent), i.e. plausibly not
+/// broken. Only dirty repos that are NOT active (e.g. `Stalled`) fall
+/// through to `warn`.
+fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
+    if row.concern {
+        ("❌ CONCERN", Color::Red)
+    } else if matches!(row.state_cause, StateCause::Unowned { .. }) {
+        ("🚫 unowned", Color::Red)
+    } else if row.active {
+        ("🔄 ACTIVE", Color::Cyan)
+    } else if row.warn {
+        ("⚠️  WARN", Color::Yellow)
+    } else {
+        ("✅ OK", Color::Green)
+    }
+}
+
 // Layout tier 1: vertical (terminal < 120 cols)
 // One repo per multi-line block. No table borders — fixed-width column labels.
 // ---------------------------------------------------------------------------
@@ -2968,13 +3027,7 @@ fn print_repos_vertical(
     // Reserve 1 for trailing newline already handled by println!
 
     for (idx, row) in rows.iter().enumerate() {
-        let (status_text, status_color) = if row.concern {
-            ("❌ CONCERN", Color::Red)
-        } else if row.warn {
-            ("⚠️  WARN", Color::Yellow)
-        } else {
-            ("✅ OK", Color::Green)
-        };
+        let (status_text, status_color) = status_pair(row);
 
         let repo_name = if full_path {
             row.repo.clone()
@@ -2991,13 +3044,7 @@ fn print_repos_vertical(
 
         // HINT cell (one-liner)
         let hint_text = truncate_unicode_width(&row.hint, width.saturating_sub(2));
-        let hint_color = if row.concern {
-            Color::Red
-        } else if row.warn {
-            Color::Yellow
-        } else {
-            Color::Green
-        };
+        let hint_color = status_color;
         let hint_styled = colorize(&hint_text, hint_color);
 
         // State + activity combined
@@ -3425,13 +3472,7 @@ fn print_repos_compact_table(
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
-        let (status_text, status_color) = if row.concern {
-            ("❌ CONCERN", Color::Red)
-        } else if row.warn {
-            ("⚠️  WARN", Color::Yellow)
-        } else {
-            ("✅ OK", Color::Green)
-        };
+        let (status_text, status_color) = status_pair(row);
 
         let repo_name = if full_path {
             row.repo.clone()
@@ -3462,13 +3503,7 @@ fn print_repos_compact_table(
         if !row.last_author.is_empty() && row.last_author != "-" {
             hint_text = format!("{} · by {}", hint_text, row.last_author);
         }
-        let hint_color = if row.concern {
-            Color::Red
-        } else if row.warn {
-            Color::Yellow
-        } else {
-            Color::Green
-        };
+        let hint_color = status_color;
 
         // Push cell (icon + label)
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
@@ -3595,13 +3630,7 @@ fn print_repos_full_table(
     let roles = crate::role::classify_roles(rows);
 
     for (idx, row) in rows.iter().enumerate() {
-        let (status_text, status_color) = if row.concern {
-            ("❌ CONCERN", Color::Red)
-        } else if row.warn {
-            ("⚠️  WARN", Color::Yellow)
-        } else {
-            ("✅ OK", Color::Green)
-        };
+        let (status_text, status_color) = status_pair(row);
 
         let repo_name = if full_path {
             row.repo.clone()
@@ -3658,13 +3687,7 @@ fn print_repos_full_table(
             } else {
                 Color::Cyan
             }),
-            Cell::new(&row.hint).fg(if row.concern {
-                Color::Red
-            } else if row.warn {
-                Color::Yellow
-            } else {
-                Color::Green
-            }),
+            Cell::new(&row.hint).fg(status_color),
         ]);
     }
 
@@ -3777,6 +3800,7 @@ impl crate::report::RepoReportRow {
             token_health: crate::report::TokenHealthSummary::default(),
             concern: false,
             warn: false,
+            active: false,
             hint: String::new(),
             state_cause: crate::report::StateCause::Healthy,
             state_cause_label: "healthy".into(),
@@ -5942,6 +5966,27 @@ mod tests {
     }
 
     #[test]
+    fn test_repo_is_active() {
+        // PENDING push => active regardless of state cause.
+        assert!(repo_is_active("PENDING", &StateCause::Healthy));
+        assert!(repo_is_active("PENDING", &StateCause::Stalled));
+        // In-flight / recently-dirty causes are active.
+        assert!(repo_is_active("OK", &StateCause::Pushing));
+        assert!(repo_is_active("OK", &StateCause::Committing));
+        assert!(repo_is_active("OK", &StateCause::Working));
+        assert!(repo_is_active("OK", &StateCause::Dirty));
+        // Genuine problems / idle states are NOT active.
+        assert!(!repo_is_active("OK", &StateCause::Stalled));
+        assert!(!repo_is_active("OK", &StateCause::Healthy));
+        assert!(!repo_is_active("OK", &StateCause::Synced));
+        assert!(!repo_is_active("OK", &StateCause::Idle));
+        assert!(!repo_is_active("OK", &StateCause::Cold));
+        assert!(!repo_is_active("OK", &StateCause::Untracked));
+        assert!(!repo_is_active("OK", &StateCause::Intentional));
+        assert!(!repo_is_active("OK", &StateCause::Failed));
+    }
+
+    #[test]
     fn test_repo_is_warn_not_concern() {
         let status = make_status(false, 0, 0);
         // has_origin=false, has_any_remote=false → still a concern,
@@ -6680,6 +6725,7 @@ mod tests {
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
             warn: false,
+            active: false,
             hint: "healthy".to_string(),
             state_cause: StateCause::Healthy,
             state_cause_label: "healthy".to_string(),
@@ -6867,6 +6913,7 @@ mod tests {
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
             warn: false,
+            active: false,
             hint: "test".to_string(),
             state_cause,
             state_cause_label: label,
@@ -7157,6 +7204,7 @@ mod tests {
             filter: "all".to_string(),
             repos: 1,
             ok: 1,
+            active: 0,
             warn: 0,
             concern: 0,
             failures: 0,
@@ -7500,6 +7548,7 @@ mod tests {
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: true,
             warn: false,
+            active: false,
             hint: "run repair-concerns --apply (push or rewrite)".to_string(),
             state_cause: StateCause::Failed,
             state_cause_label: "failed".to_string(),
