@@ -1429,17 +1429,26 @@ pub(crate) fn repo_is_concern(
 /// `behind > 0` remains a concern unconditionally: the local is older
 /// than the remote and risks losing history if the divergence grows.
 ///
+/// CHANGED 2026-07-17 (goal 013b3827): two additional conditions now make
+/// a repo a CONCERN, both per the operator's "having no remote to push to
+/// is a massive problem" directive:
+///   1. `!has_upstream` — a repo with no tracking upstream is data-at-risk
+///      even when push remotes exist. This REVERTS the 2026-06-20 SSH
+///      migration leniency that cleared NO_UPSTREAM (the daemon pushes via
+///      explicit refspecs). The `intentional_no_upstream` override still
+///      exempts repos the operator explicitly isolated.
+///   2. working-tree content (untracked/modified/staged) **and**
+///      `last_commit_hash.is_none()` (no commits at all) — the content is
+///      unbacked-up on every remote and exists only on local disk.
+///
 /// `has_any_remote` follows the same logic as [`repo_is_concern`]: a
 /// repo with at least one configured remote is not concerning for
-/// "no origin" alone, and a repo with any configured remote is not
-/// concerning for "no upstream" alone — the daemon's multi-mirror
-/// push path uses explicit `git push <remote> HEAD:refs/heads/<branch>`
-/// refspecs, so it does not require `branch.<name>.remote` to be set
-/// in the local config. The hint text and the `NO_UPSTREAM` flag are
-/// still emitted (so the operator can see the gap), but the row is
-/// no longer classified as a CONCERN that auto-repair will try to
-/// remediate via `git push -u origin HEAD` against a non-existent
-/// `origin`. See `docs/design/no-origin-concern-ssh-2026-06-20.md`.
+/// "no origin" alone (still handled by the `!has_origin &&
+/// !has_any_remote` arm above). The `NO_UPSTREAM` flag and hint text are
+/// still emitted so the operator can see the gap. See
+/// `docs/design/no-origin-concern-ssh-2026-06-20.md` (reverted for the
+/// NO_UPSTREAM case by goal 013b3827) and
+/// `docs/design/repos-no-push-target-concern-2026-07-17.md`.
 pub(crate) fn repo_is_concern_with_push_failure(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
@@ -1454,6 +1463,30 @@ pub(crate) fn repo_is_concern_with_push_failure(
         return true;
     }
     if status.ahead > 0 && has_origin && has_upstream && recent_push_failure {
+        return true;
+    }
+    // CHANGED 2026-07-17 (goal 013b3827): a repo with NO tracking
+    // upstream is a genuine concern. The operator considers "having no
+    // remote to push to" a massive problem — content that is not wired
+    // to an upstream is data-at-risk even when push remotes exist. The
+    // 2026-06-20 SSH-migration change deliberately cleared this case
+    // (the daemon pushes via explicit refspecs, so it does not require
+    // `branch.<name>.remote`); this reverts that leniency for the
+    // NO_UPSTREAM case. The `intentional_no_upstream` override applied
+    // at the call site still exempts repos the operator explicitly
+    // isolated.
+    if !has_upstream {
+        return true;
+    }
+    // CHANGED 2026-07-17 (goal 013b3827): a repo that has working-tree
+    // content (untracked / modified / staged) but NO commits at all is
+    // unbacked-up on every remote — its content exists only on local
+    // disk. Surface it as a concern so the operator sees the risk and
+    // can commit + push it.
+    let has_content = status.untracked_files > 0
+        || status.modified_files > 0
+        || status.staged_files > 0;
+    if has_content && status.last_commit_hash.is_none() {
         return true;
     }
     false
@@ -2240,7 +2273,7 @@ fn print_repos_legend() {
     println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
     println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
     println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
-    println!("ℹ️  STATUS (🏷): ✅ CLEAN = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) · 🚫 unowned = ownership guard tripped");
+    println!("ℹ️  STATUS (🏷): ✅ CLEAN = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) / no upstream / unbacked-up content (no commits) · 🚫 unowned = ownership guard tripped");
     println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
     println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
     println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
@@ -5959,6 +5992,54 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn test_repo_is_concern_no_upstream_with_remotes() {
+        // CHANGED 2026-07-17 (goal 013b3827): a repo with remotes but no
+        // tracking upstream is now a CONCERN (reverts the 2026-06-20
+        // SSH-migration leniency). Live case: opencode-plugins.
+        let status = make_status(true, 0, 0);
+        assert!(repo_is_concern_with_push_failure(
+            &status,
+            false,
+            false,
+            true,
+            false
+        ));
+    }
+
+    #[test]
+    fn test_repo_is_concern_unbacked_up_content_no_commits() {
+        // CHANGED 2026-07-17 (goal 013b3827): working-tree content but no
+        // commits at all => unbacked-up on every remote => CONCERN.
+        let mut status = RepoStatus::default();
+        status.untracked_files = 6;
+        status.last_commit_hash = None;
+        assert!(repo_is_concern_with_push_failure(
+            &status,
+            true,
+            true,
+            true,
+            false
+        ));
+    }
+
+    #[test]
+    fn test_repo_is_concern_not_unbacked_when_has_commits() {
+        // Content + commits (last_commit_hash present) is NOT the
+        // unbacked-up case, and upstream exists => not a concern.
+        let mut status = RepoStatus::default();
+        status.untracked_files = 6;
+        status.last_commit_hash = Some("abc123".to_string());
+        assert!(!repo_is_concern_with_push_failure(
+            &status,
+            true,
+            true,
+            true,
+            false
+        ));
+    }
+
+    #[test]
     #[test]
     fn test_repo_is_warn_dirty() {
         let status = make_status(false, 0, 0);
