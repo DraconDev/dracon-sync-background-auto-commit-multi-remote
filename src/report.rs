@@ -5937,8 +5937,11 @@ mod tests {
         // Old behavior: any ahead was a concern. The new
         // repo_is_concern_with_push_failure requires a recent push
         // failure signal; without it, ahead is just "has unpushed
-        // commits" and is a WARN, not a CONCERN.
-        let status = make_status(false, 5, 0);
+        // commits" and is a WARN, not a CONCERN. Give the repo a
+        // commit hash so the unbacked-up-content concern (no commits)
+        // does not mask the ahead logic under test.
+        let mut status = make_status(false, 5, 0);
+        status.last_commit_hash = Some("deadbeef".to_string());
         assert!(repo_is_concern_with_push_failure(
             &status,
             true,
@@ -5957,7 +5960,10 @@ mod tests {
 
     #[test]
     fn test_repo_is_concern_behind() {
-        let status = make_status(false, 0, 3);
+        // Give the repo a commit hash so the unbacked-up-content
+        // concern (no commits) does not mask the behind logic.
+        let mut status = make_status(false, 0, 3);
+        status.last_commit_hash = Some("deadbeef".to_string());
         assert!(repo_is_concern_with_push_failure(
             &status,
             true,
