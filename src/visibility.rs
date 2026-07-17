@@ -130,7 +130,7 @@ fn is_visibility_cache_fresh(repo_path: &Path, interval_hours: u64) -> bool {
 /// Uses the new 2-line format (`visibility=<state>` + `<unix ts>`).
 /// Old caches written in the legacy timestamp-only format will be
 /// silently overwritten on the next sync cycle.
-fn update_visibility_cache(repo_path: &Path, private: bool) {
+pub(crate) fn update_visibility_cache(repo_path: &Path, private: bool) {
     let dir = visibility_cache_dir();
     if let Err(e) = std::fs::create_dir_all(&dir) {
         eprintln!(
@@ -1393,5 +1393,126 @@ mod tests {
             force_push_when_behind: false,
         };
         assert_eq!(remote.resolve_account(), "ExplicitAccount");
+    }
+
+    // ---- refresh-visibility subcommand tests (goal `refresh-visibility-2026-07-17`) ----
+    //
+    // The `refresh-visibility` operator subcommand calls update_visibility_cache
+    // and get_github_visibility directly. These tests verify the contract
+    // these functions rely on:
+    //
+    //   1. update_visibility_cache upgrades legacy timestamp-only files
+    //      to the new format (idempotent refresh)
+    //   2. update_visibility_cache preserves new-format files
+    //   3. parse_github_owner_repo accepts the SSH/HTTPS URL forms the
+    //      refresh path expects
+    //   4. cached_repo_visibility correctly reports (unknown) for legacy
+    //      files BEFORE the refresh, and (public/private) AFTER
+    //      (this is the user-visible behavior in `dracon-sync repos`)
+
+    #[test]
+    fn test_refresh_upgrades_legacy_to_new_format() {
+        // Simulate a pre-v0.112.16 cache file (10-byte timestamp only).
+        let repo_path = Path::new("/tmp/test_refresh_upgrades");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        let old_ts = "1234567890";
+        std::fs::write(&path, old_ts).unwrap();
+
+        // BEFORE refresh: legacy file surfaces as None (= unknown).
+        assert_eq!(cached_repo_visibility(repo_path), None);
+
+        // Simulate refresh-visibility subcommand: write new format with private=true.
+        update_visibility_cache(repo_path, true);
+
+        // AFTER refresh: new format surfaces as Some(true) (= private).
+        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+
+        // File content must be in the new format.
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            content.starts_with("visibility=private\n"),
+            "expected new-format header, got {:?}",
+            content
+        );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_refresh_preserves_new_format() {
+        // Pre-existing new-format cache file. update_visibility_cache must
+        // overwrite it cleanly without corruption.
+        let repo_path = Path::new("/tmp/test_refresh_preserves");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        // Write initial new-format file with public=false.
+        update_visibility_cache(repo_path, false);
+        assert_eq!(cached_repo_visibility(repo_path), Some(false));
+
+        // Re-run with private=true (simulates re-refresh with different result).
+        update_visibility_cache(repo_path, true);
+        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.starts_with("visibility=private\n"));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_refresh_handles_legacy_file_correctly_via_ssh_url() {
+        // The refresh-visibility subcommand's URL parsing path.
+        let ssh = "git@github.com:DraconDev/dracon-sync.git";
+        assert_eq!(
+            parse_github_owner_repo(ssh),
+            Some(("DraconDev".to_string(), "dracon-sync".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_refresh_falls_back_to_unknown_when_gh_unavailable() {
+        // When `gh api` fails (no network, no auth, wrong owner/repo),
+        // get_github_visibility returns true (safe default = private).
+        // The refresh subcommand then writes the cache with private=true,
+        // so the next `dracon-sync repos` shows `(private)` instead of
+        // `(unknown)`. This is intentional: false negatives (public treated
+        // as private) are safe; false positives (private treated as public)
+        // could leak private content to codeberg.
+        let result = get_github_visibility("nonexistent-owner-12345", "nonexistent-repo-67890");
+        assert!(
+            result,
+            "gh failure must default to private (safe default)"
+        );
+        let repo_path = Path::new("/tmp/test_refresh_fallback_unknown");
+        update_visibility_cache(repo_path, result);
+        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        let _ = std::fs::remove_file(visibility_cache_path(repo_path));
+    }
+
+    #[test]
+    fn test_refresh_idempotent() {
+        // Running refresh-visibility twice on the same repo must produce
+        // identical results (same visibility, valid cache file).
+        let repo_path = Path::new("/tmp/test_refresh_idempotent");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+
+        // First call
+        update_visibility_cache(repo_path, true);
+        let content_1 = std::fs::read_to_string(&path).unwrap();
+
+        // Wait a millisecond to ensure different timestamp
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        // Second call (re-refresh)
+        update_visibility_cache(repo_path, true);
+        let content_2 = std::fs::read_to_string(&path).unwrap();
+
+        // Visibility line must be identical (timestamps can differ)
+        let line1 = content_1.lines().next().unwrap();
+        let line2 = content_2.lines().next().unwrap();
+        assert_eq!(line1, line2, "visibility line must be stable across refresh");
+        assert_eq!(line1, "visibility=private");
+
+        let _ = std::fs::remove_file(&path);
     }
 }

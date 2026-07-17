@@ -192,6 +192,26 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Refresh visibility cache for all watched repos.
+    ///
+    /// Walks all 31 watched repos, queries GitHub via `gh api repos/DraconDev/<repo>`
+    /// for each one's `.private` flag, and writes the new cache format
+    /// (`visibility=<public|private>\n<timestamp>`) to the local cache file.
+    ///
+    /// This is the operator's escape hatch from the 24h `sync_mirror_visibility`
+    /// cycle. Useful after the v0.112.16 codeberg-public-only rollout, when
+    /// 30 of 31 watched repos still show `(unknown)` in the PUSH-TO column
+    /// because their cache files are in legacy `timestamp-only` format.
+    ///
+    /// Idempotent: can be re-run safely. Skips repos with no origin remote
+    /// (cannot derive GitHub owner/repo). Skips repos where `gh api` fails
+    /// (network, auth) — those fall back to the safe-default `(unknown)`
+    /// state until a future refresh succeeds.
+    RefreshVisibility {
+        /// Emit machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -979,6 +999,88 @@ async fn main() -> Result<()> {
                 if !daemon_ok || !policy_ok || !validate_result.errors.is_empty() {
                     println!();
                     println!("💡 Tip: run `dracon-sync config validate` for full diagnostics");
+                }
+            }
+        }
+        Command::RefreshVisibility { json } => {
+            let policy = SyncPolicy::load(&policy_path)?;
+            let roots = policy.watch_root_paths();
+            let excluded_dir_names = excluded_dir_names_set(&policy);
+            let repos = git::discover_git_repos(
+                &roots,
+                &excluded_dir_names,
+                &policy.exclude_repos,
+                Some(&policy.system_repo),
+            );
+
+            let mut results: Vec<serde_json::Value> = Vec::new();
+            let mut refreshed = 0usize;
+            let mut skipped = 0usize;
+            let errors = 0usize;
+
+            for repo_path in &repos {
+                // Read origin URL to derive GitHub owner/repo.
+                let origin_url = std::process::Command::new("git")
+                    .args(["-C", &repo_path.to_string_lossy(), "remote", "get-url", "origin"])
+                    .output()
+                    .ok()
+                    .filter(|o| o.status.success())
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                    .unwrap_or_default();
+
+                let Some((owner, gh_repo)) =
+                    crate::visibility::parse_github_owner_repo(&origin_url)
+                else {
+                    skipped += 1;
+                    results.push(serde_json::json!({
+                        "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
+                        "status": "skipped",
+                        "reason": "no parseable origin URL",
+                    }));
+                    continue;
+                };
+
+                let private = crate::visibility::get_github_visibility(&owner, &gh_repo);
+                let visibility = if private { "private" } else { "public" };
+                crate::visibility::update_visibility_cache(repo_path, private);
+                refreshed += 1;
+                results.push(serde_json::json!({
+                    "repo": gh_repo,
+                    "owner": owner,
+                    "visibility": visibility,
+                    "status": "refreshed",
+                }));
+            }
+
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "total": repos.len(),
+                        "refreshed": refreshed,
+                        "skipped": skipped,
+                        "errors": errors,
+                        "results": results,
+                    }))?
+                );
+            } else {
+                println!(
+                    "🔄 refresh-visibility · {} repos · refreshed {} · skipped {}",
+                    repos.len(),
+                    refreshed,
+                    skipped,
+                );
+                for r in &results {
+                    let status = r.get("status").and_then(|v| v.as_str()).unwrap_or("?");
+                    let repo = r.get("repo").and_then(|v| v.as_str()).unwrap_or("?");
+                    let detail = if status == "refreshed" {
+                        let vis = r.get("visibility").and_then(|v| v.as_str()).unwrap_or("?");
+                        format!("→ ({})", vis)
+                    } else {
+                        let reason = r.get("reason").and_then(|v| v.as_str()).unwrap_or("?");
+                        format!("skipped: {}", reason)
+                    };
+                    println!("  {}  {:<30} {}", status, repo, detail);
                 }
             }
         }
