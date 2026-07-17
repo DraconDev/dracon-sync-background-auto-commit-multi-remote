@@ -79,7 +79,29 @@ fn simple_hash(s: &str) -> String {
     format!("{:016x}", hash)
 }
 
+/// Parse the cached visibility file. Format is two lines:
+///   `visibility=<public|private>`
+///   `<unix timestamp>`
+/// The first line was added 2026-07-17 (goal `codeberg-public-only`).
+/// Older caches written before that date contain only the timestamp;
+/// for those we return `None` for the visibility (unknown).
+fn parse_visibility_cache(content: &str) -> Option<(bool, u64)> {
+    let mut lines = content.lines();
+    let vis_line = lines.next()?;
+    let ts_line = lines.next()?;
+    let vis_str = vis_line.strip_prefix("visibility=")?.trim();
+    let visibility = match vis_str {
+        "public" => false,  // false = public
+        "private" => true,  // true = private
+        _ => return None,
+    };
+    let ts = ts_line.trim().parse::<u64>().ok()?;
+    Some((visibility, ts))
+}
+
 /// Check whether the visibility cache is fresh (within `interval_hours`).
+/// Backward-compatible: reads either the new `visibility=<state>` format
+/// or the legacy timestamp-only format.
 fn is_visibility_cache_fresh(repo_path: &Path, interval_hours: u64) -> bool {
     let path = visibility_cache_path(repo_path);
     if !path.exists() {
@@ -88,7 +110,12 @@ fn is_visibility_cache_fresh(repo_path: &Path, interval_hours: u64) -> bool {
     let Ok(content) = std::fs::read_to_string(&path) else {
         return false;
     };
-    let Ok(last_ts) = content.trim().parse::<u64>() else {
+    // Try new format first; fall back to legacy timestamp-only.
+    let ts = if let Some((_, ts)) = parse_visibility_cache(&content) {
+        ts
+    } else if let Ok(legacy_ts) = content.trim().parse::<u64>() {
+        legacy_ts
+    } else {
         return false;
     };
     let now = SystemTime::now()
@@ -96,11 +123,14 @@ fn is_visibility_cache_fresh(repo_path: &Path, interval_hours: u64) -> bool {
         .unwrap_or_default()
         .as_secs();
     let interval_secs = interval_hours.saturating_mul(3600);
-    now.saturating_sub(last_ts) < interval_secs
+    now.saturating_sub(ts) < interval_secs
 }
 
-/// Write the current timestamp to the visibility cache for a repo.
-fn update_visibility_cache(repo_path: &Path) {
+/// Write the current visibility state AND timestamp to the cache.
+/// Uses the new 2-line format (`visibility=<state>` + `<unix ts>`).
+/// Old caches written in the legacy timestamp-only format will be
+/// silently overwritten on the next sync cycle.
+fn update_visibility_cache(repo_path: &Path, private: bool) {
     let dir = visibility_cache_dir();
     if let Err(e) = std::fs::create_dir_all(&dir) {
         eprintln!(
@@ -115,13 +145,51 @@ fn update_visibility_cache(repo_path: &Path) {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    if let Err(e) = std::fs::write(&path, now.to_string()) {
+    let vis = if private { "private" } else { "public" };
+    let content = format!("visibility={vis}\n{now}");
+    if let Err(e) = std::fs::write(&path, content) {
         eprintln!(
             "⚠️ failed to write visibility cache {}: {}",
             path.display(),
             e
         );
     }
+}
+
+/// Look up the cached visibility for a repo. Returns `Some(true)` if
+/// the cache says private, `Some(false)` if public, `None` if no cache
+/// exists OR the cache is in legacy timestamp-only format (the next
+/// sync cycle will refresh it).
+///
+/// This is the cheap read path used by the `repos` command and the
+/// push-time codeberg gate. The actual `gh api` call lives in
+/// `sync_mirror_visibility` and runs only when the cache is stale.
+///
+/// Backward compatibility: old timestamp-only cache files are
+/// treated as `None` (unknown) so the safe-default path (skip codeberg)
+/// fires until the cache refreshes.
+pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
+    let path = visibility_cache_path(repo_path);
+    let Ok(content) = std::fs::read_to_string(&path) else {
+        return None;
+    };
+    parse_visibility_cache(&content).map(|(private, _)| private)
+}
+
+/// Test-only accessor for the cache path. Lives here so tests in
+/// other modules (e.g. `report.rs`) can populate the visibility cache
+/// without depending on internal layout. Production code should use
+/// the `cached_repo_visibility` / `update_visibility_cache` helpers.
+#[cfg(test)]
+pub(crate) fn visibility_cache_path_test(repo_path: &Path) -> PathBuf {
+    visibility_cache_path(repo_path)
+}
+
+/// Test-only accessor for the cache dir. Same rationale as
+/// `visibility_cache_path_test`.
+#[cfg(test)]
+pub(crate) fn visibility_cache_dir_test() -> PathBuf {
+    visibility_cache_dir()
 }
 
 /// Parse `owner/repo` from a GitHub remote URL.
@@ -399,7 +467,7 @@ pub(crate) fn sync_mirror_visibility(
 
     // Update cache even on partial failures — we don't want to hammer APIs
     // on every sync cycle when a token is permanently missing.
-    update_visibility_cache(repo_path);
+    update_visibility_cache(repo_path, github_private);
 }
 
 /// Repo metadata fetched from GitHub: description + topics.
@@ -768,7 +836,7 @@ mod tests {
     #[test]
     fn test_visibility_cache_fresh_when_recent() {
         let repo_path = Path::new("/tmp/test_cache_fresh");
-        update_visibility_cache(repo_path);
+        update_visibility_cache(repo_path, true);
         assert!(is_visibility_cache_fresh(repo_path, 24));
         // Cleanup
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
@@ -798,9 +866,11 @@ mod tests {
         std::fs::create_dir_all(visibility_cache_dir()).unwrap();
         std::fs::write(&path, old_ts).unwrap();
         // Update
-        update_visibility_cache(repo_path);
+        update_visibility_cache(repo_path, true);
         let new_content = std::fs::read_to_string(&path).unwrap();
-        let new_ts = new_content.trim().parse::<u64>().unwrap();
+        // New format: "visibility=private\n<unix_ts>". Parse the second line.
+        let new_ts_line = new_content.lines().nth(1).unwrap();
+        let new_ts = new_ts_line.trim().parse::<u64>().unwrap();
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -826,7 +896,7 @@ mod tests {
     #[test]
     fn test_sync_mirror_visibility_skips_when_cache_fresh() {
         let repo_path = Path::new("/tmp/test_skip_cached");
-        update_visibility_cache(repo_path);
+        update_visibility_cache(repo_path, true);
         // Should return immediately without error even with bad remotes
         let remotes = vec![RemoteConfig {
             name: "gitlab".to_string(),
@@ -972,7 +1042,7 @@ mod tests {
     #[test]
     fn test_cache_prevents_repeated_api_calls() {
         let repo_path = Path::new("/tmp/test_idempotency_cache");
-        update_visibility_cache(repo_path);
+        update_visibility_cache(repo_path, true);
         // Second call with fresh cache should skip entirely
         assert!(is_visibility_cache_fresh(repo_path, 24));
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
@@ -1036,6 +1106,102 @@ mod tests {
             !is_visibility_cache_fresh(repo_path, 24),
             "corrupt cache should be treated as stale"
         );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    // ---- Tests for codeberg-public-only visibility cache wiring ----
+    // ---- (goal `codeberg-public-only`, 2026-07-17)             ----
+
+    #[test]
+    fn test_parse_visibility_cache_new_format_public() {
+        let content = "visibility=public\n1234567890";
+        let parsed = parse_visibility_cache(content);
+        assert_eq!(parsed, Some((false, 1234567890)));
+    }
+
+    #[test]
+    fn test_parse_visibility_cache_new_format_private() {
+        let content = "visibility=private\n1234567890";
+        let parsed = parse_visibility_cache(content);
+        assert_eq!(parsed, Some((true, 1234567890)));
+    }
+
+    #[test]
+    fn test_parse_visibility_cache_rejects_legacy_timestamp_only() {
+        // Old format (just the timestamp) must NOT be parseable by
+        // the new helper — it returns None, which `cached_repo_visibility`
+        // surfaces as None (= unknown visibility = safe default).
+        // This is the backward-compatibility contract.
+        let legacy = "1234567890";
+        assert_eq!(parse_visibility_cache(legacy), None);
+    }
+
+    #[test]
+    fn test_parse_visibility_cache_rejects_malformed() {
+        assert_eq!(parse_visibility_cache("visibility=wat\n1"), None);
+        assert_eq!(parse_visibility_cache("visibility=public\n"), None);
+        assert_eq!(parse_visibility_cache(""), None);
+    }
+
+    #[test]
+    fn test_cached_repo_visibility_returns_none_when_no_file() {
+        let repo_path = Path::new("/tmp/test_no_cache_file");
+        let _ = std::fs::remove_file(visibility_cache_path(repo_path));
+        assert_eq!(cached_repo_visibility(repo_path), None);
+    }
+
+    #[test]
+    fn test_cached_repo_visibility_returns_private() {
+        let repo_path = Path::new("/tmp/test_cached_private");
+        update_visibility_cache(repo_path, true);
+        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        let _ = std::fs::remove_file(visibility_cache_path(repo_path));
+    }
+
+    #[test]
+    fn test_cached_repo_visibility_returns_public() {
+        let repo_path = Path::new("/tmp/test_cached_public");
+        update_visibility_cache(repo_path, false);
+        assert_eq!(cached_repo_visibility(repo_path), Some(false));
+        let _ = std::fs::remove_file(visibility_cache_path(repo_path));
+    }
+
+    #[test]
+    fn test_cached_repo_visibility_treats_legacy_format_as_unknown() {
+        // Backward compat: cache files written before the new
+        // format (timestamp only) must surface as None, not as
+        // false (=public). This forces the safe-default path
+        // (skip codeberg) until the next visibility sync refreshes
+        // the cache with the new format.
+        let repo_path = Path::new("/tmp/test_legacy_cache");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        std::fs::write(&path, "1234567890").unwrap();
+        assert_eq!(
+            cached_repo_visibility(repo_path),
+            None,
+            "legacy timestamp-only cache must surface as None (unknown)"
+        );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_visibility_cache_freshness_works_for_both_formats() {
+        // Freshness check (is_visibility_cache_fresh) must accept
+        // BOTH the new format AND the legacy timestamp-only format.
+        // This is the backward-compat path for the freshness check.
+        let repo_path = Path::new("/tmp/test_freshness_both");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+
+        // Legacy format
+        std::fs::write(&path, "999999999999999").unwrap();
+        assert!(is_visibility_cache_fresh(repo_path, 24));
+
+        // New format
+        std::fs::write(&path, "visibility=private\n999999999999999").unwrap();
+        assert!(is_visibility_cache_fresh(repo_path, 24));
+
         let _ = std::fs::remove_file(&path);
     }
 

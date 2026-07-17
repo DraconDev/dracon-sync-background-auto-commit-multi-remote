@@ -501,6 +501,7 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 fn format_push_to_remotes_cell(
     push_to_remotes: &[String],
     excluded_remotes: &[String],
+    codeberg_skip_reason: Option<&str>,
 ) -> comfy_table::Cell {
     use comfy_table::Cell;
     if push_to_remotes.is_empty() && excluded_remotes.is_empty() {
@@ -516,10 +517,52 @@ fn format_push_to_remotes_cell(
         // Format mirrors the text-mode renderer at line 2699: bracket
         // annotation is more readable than a Unicode minus sign,
         // especially when terminal fonts differ.
+        //
+        // ADDED 2026-07-17: when `codeberg_skip_reason` is set
+        // (policy-driven skip), annotate which reason so the
+        // operator can distinguish policy from manual exclusion.
         let excl = excluded_remotes.join(",");
-        Cell::new(format!("{main} [excl:{excl}]"))
-            .fg(comfy_table::Color::Yellow)
+        let mut cell_text = format!("{main} [excl:{excl}]");
+        if let Some(reason) = codeberg_skip_reason {
+            cell_text.push_str(&format!(" ({reason})"));
+        }
+        Cell::new(cell_text).fg(comfy_table::Color::Yellow)
     }
+}
+
+/// Compute the effective `excluded_remotes` for a repo by combining
+/// the per-repo `exclude_remotes` override with the
+/// `codeberg_public_only` policy gate. This is the SAME logic the
+/// daemon runs in `sync.rs` and `daemon.rs` at push time, so the
+/// `repos` table and the daemon's actual behavior stay in sync.
+///
+/// Returns a `Vec<String>` of remote names to exclude. The order
+/// matches the order in `repo_override.exclude_remotes`, with any
+/// policy-driven `"codeberg"` appended at the end (preserving
+/// deterministic output for tests).
+///
+/// ADDED 2026-07-17 (goal `codeberg-public-only`).
+pub(crate) fn effective_excluded_remotes(
+    policy: &crate::policy::SyncPolicy,
+    repo_override: &crate::policy::RepoPolicyOverride,
+    repo_path: &std::path::Path,
+) -> Vec<String> {
+    let mut combined: Vec<String> = repo_override.exclude_remotes.clone();
+    let codeberg_public_only_effective = repo_override
+        .codeberg_public_only
+        .unwrap_or(policy.codeberg_public_only);
+    if codeberg_public_only_effective {
+        let cached_priv = crate::visibility::cached_repo_visibility(repo_path);
+        let skip_codeberg = match cached_priv {
+            Some(true) => true,
+            Some(false) => false,
+            None => true, // safe default
+        };
+        if skip_codeberg && !combined.iter().any(|e| e == "codeberg") {
+            combined.push("codeberg".to_string());
+        }
+    }
+    combined
 }
 
 /// Measure the size of `<repo>/.git` in bytes using `du -sb`. Returns
@@ -799,6 +842,17 @@ pub(crate) struct RepoReportRow {
     /// uses the full default remote set. Always present (not Option) so
     /// downstream callers don't have to handle None.
     excluded_remotes: Vec<String>,
+    /// Reason codeberg is in `excluded_remotes` for this repo, when the
+    /// skip is driven by the `codeberg_public_only` policy rather than
+    /// a manual `exclude_remotes = ["codeberg"]` in the per-repo override.
+    /// Possible values:
+    /// - `Some("private")` — repo is private per cached visibility, codeberg
+    ///   skipped by policy.
+    /// - `Some("unknown")` — no cached visibility yet, safe default fires.
+    /// - `None` — codeberg not excluded, OR excluded by manual override
+    ///   (operator already knows why; no annotation needed).
+    /// ADDED 2026-07-17 (goal `codeberg-public-only`).
+    codeberg_skip_reason: Option<String>,
     /// Size of the repo's `.git` directory in bytes (i.e. the data that
     /// would be pushed to remotes). Measured with `du -sb` at report
     /// time. `None` if the measurement failed or timed out. Useful for
@@ -2848,17 +2902,41 @@ pub(crate) async fn run_repos_report(
             push_error,
             // Effective remotes the daemon will push to for this repo,
             // computed by applying the per-repo `exclude_remotes` filter
-            // to the global `policy.remotes` — the SAME logic the daemon
-            // runs in `push_mirror_remotes` at sync time. What you see
-            // in the table is what the daemon will do.
+            // AND the codeberg-public-only gate to the global
+            // `policy.remotes` — the SAME logic the daemon runs in
+            // `push_mirror_remotes` at sync time. What you see in the
+            // table is what the daemon will do.
             push_to_remotes: {
+                let effective_exclude =
+                    effective_excluded_remotes(policy, &repo_override, repo.as_ref());
                 let filtered = crate::git::multi_remote::filter_remotes_by_exclude(
                     &policy.remotes,
-                    &repo_override.exclude_remotes,
+                    &effective_exclude,
                 );
                 filtered.iter().map(|r| r.name.clone()).collect()
             },
-            excluded_remotes: repo_override.exclude_remotes.clone(),
+            excluded_remotes: effective_excluded_remotes(policy, &repo_override, repo.as_ref()),
+            // When codeberg is in excluded_remotes AND the skip came
+            // from the public-only policy (not a manual per-repo
+            // `exclude_remotes`), record why so the renderer can
+            // annotate the row distinctly from a manual exclusion.
+            codeberg_skip_reason: {
+                let eff = effective_excluded_remotes(policy, &repo_override, repo.as_ref());
+                if eff.iter().any(|r| r == "codeberg")
+                    && !repo_override.exclude_remotes.iter().any(|r| r == "codeberg")
+                {
+                    // Policy-driven skip; visibility cache tells us why.
+                    Some(
+                        match crate::visibility::cached_repo_visibility(repo.as_ref()) {
+                            Some(true) => "private".to_string(),
+                            Some(false) => "public".to_string(), // shouldn't happen
+                            None => "unknown".to_string(),
+                        },
+                    )
+                } else {
+                    None
+                }
+            },
             // Measure `.git` size in bytes. `du -sb` is fast (~40ms for
             // a 20 GiB .git) so we can call it inline. If it fails or
             // times out, we record `None` and the renderer shows a
@@ -3559,7 +3637,11 @@ fn print_repos_compact_table(
             Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
             Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
             Cell::new(push_text).fg(push_color),
-            format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes),
+            format_push_to_remotes_cell(
+                &row.push_to_remotes,
+                &row.excluded_remotes,
+                row.codeberg_skip_reason.as_deref(),
+            ),
             Cell::new(commit_summary),
             Cell::new(state_plus_act).fg(state_plus_act_color),
             Cell::new(hint_text).fg(hint_color),
@@ -3697,7 +3779,11 @@ fn print_repos_full_table(
             Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
             Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
             Cell::new(push_text).fg(push_color),
-            format_push_to_remotes_cell(&row.push_to_remotes, &row.excluded_remotes),
+            format_push_to_remotes_cell(
+                &row.push_to_remotes,
+                &row.excluded_remotes,
+                row.codeberg_skip_reason.as_deref(),
+            ),
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
             Cell::new(activity_label(row)),
@@ -3829,6 +3915,7 @@ impl crate::report::RepoReportRow {
             push_error: String::new(),
             push_to_remotes: vec![],
             excluded_remotes: vec![],
+            codeberg_skip_reason: None,
             git_size_bytes: None,
             token_health: crate::report::TokenHealthSummary::default(),
             concern: false,
@@ -6682,6 +6769,7 @@ mod tests {
             sync_visibility: false,
             sync_visibility_interval_hours: 24,
             sync_metadata: false,
+            codeberg_public_only: true, // default; tests that need override set explicitly
             auto_tag: true,
             auto_release: false,
             auto_publish: false,
@@ -6808,6 +6896,7 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
             excluded_remotes: vec![],
+            codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
@@ -6996,6 +7085,7 @@ mod tests {
             push_error: String::new(),
             push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
             excluded_remotes: vec![],
+            codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
@@ -7631,6 +7721,7 @@ mod tests {
             push_error: "ahead=5, push failing".to_string(),
             push_to_remotes: vec!["codeberg".to_string()],
             excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
+            codeberg_skip_reason: None,
             git_size_bytes: Some(20_518_397_949),
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: true,
@@ -8138,12 +8229,19 @@ mod tests {
     /// `codeberg −github,gitlab` to brackets `codeberg [excl:github,gitlab]`
     /// for consistency with the text-mode renderer. PUSH-TO column was
     /// widened from 17-18 to 32 chars in the same change.
+    ///
+    /// ADDED 2026-07-17 (goal `codeberg-public-only`): the renderer
+    /// accepts an optional `codeberg_skip_reason` that annotates the
+    /// policy-driven skip with the visibility cache's value
+    /// ("private" or "unknown"). Manual `exclude_remotes` overrides
+    /// pass `None`.
     #[test]
     fn test_format_push_to_remotes_cell() {
         // Case 1: full set of remotes, no exclusions → comma list, no annotation
         let cell = format_push_to_remotes_cell(
             &["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
             &[],
+            None,
         );
         assert_eq!(cell.content(), "codeberg,github,gitlab");
 
@@ -8151,11 +8249,12 @@ mod tests {
         let cell = format_push_to_remotes_cell(
             &["codeberg".to_string()],
             &["github".to_string(), "gitlab".to_string()],
+            None,
         );
         assert_eq!(cell.content(), "codeberg [excl:github,gitlab]");
 
         // Case 3: no remotes, no exclusions → dash
-        let cell = format_push_to_remotes_cell(&[], &[]);
+        let cell = format_push_to_remotes_cell(&[], &[], None);
         assert_eq!(cell.content(), "-");
 
         // Case 4: no active remotes, only exclusions → still bracket annotation
@@ -8163,6 +8262,7 @@ mod tests {
         let cell = format_push_to_remotes_cell(
             &[],
             &["github".to_string(), "gitlab".to_string()],
+            None,
         );
         assert_eq!(cell.content(), " [excl:github,gitlab]");
 
@@ -8171,7 +8271,7 @@ mod tests {
         let active = vec!["codeberg".to_string()];
         let excluded = vec!["github".to_string(), "gitlab".to_string()];
         let text_mode = format!("{} [excl:{}]", active.join(","), excluded.join(","));
-        let cell = format_push_to_remotes_cell(&active, &excluded);
+        let cell = format_push_to_remotes_cell(&active, &excluded, None);
         assert_eq!(
             cell.content(),
             text_mode,
@@ -8185,6 +8285,7 @@ mod tests {
         let cell = format_push_to_remotes_cell(
             &["codeberg".to_string()],
             &["github".to_string(), "gitlab".to_string()],
+            None,
         );
         let width: usize = cell
             .content()
@@ -8258,6 +8359,225 @@ mod size_cache_tests {
         let sig = gitdir_signature(&tmp);
         assert!(sig > 0, "signature should be non-zero for a dir with .git");
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+}
+
+// ---- Tests for effective_excluded_remotes (the codeberg-public-only gate) ----
+// ---- Goal: `codeberg-public-only`, 2026-07-17                              ----
+
+#[cfg(test)]
+mod codeberg_public_only_tests {
+    use super::*;
+    use crate::policy::{test_sync_policy, RemoteConfig, RepoPolicyOverride, SyncPolicy};
+
+    fn policy_with_remotes() -> SyncPolicy {
+        SyncPolicy {
+            codeberg_public_only: true,
+            remotes: vec![
+                RemoteConfig {
+                    name: "codeberg".to_string(),
+                    push_url: "git@codeberg.org:example/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::Codeberg,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+                RemoteConfig {
+                    name: "github".to_string(),
+                    push_url: "git@github.com:example/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitHub,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+            ],
+            ..test_sync_policy()
+        }
+    }
+
+    fn write_visibility_cache(repo_path: &std::path::Path, private: Option<bool>) {
+        // Clean any prior cache, then optionally write the new format.
+        let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(repo_path));
+        if let Some(p) = private {
+            let dir = crate::visibility::visibility_cache_dir_test();
+            std::fs::create_dir_all(&dir).unwrap();
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            let vis = if p { "private" } else { "public" };
+            std::fs::write(
+                crate::visibility::visibility_cache_path_test(repo_path),
+                format!("visibility={vis}\n{now}"),
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn effective_excludes_codeberg_when_private() {
+        // Cached visibility says private → codeberg must be in
+        // the exclude list even though no manual `exclude_remotes`
+        // is set.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride::default();
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            eff.iter().any(|r| r == "codeberg"),
+            "codeberg must be excluded for private repos, got {:?}",
+            eff
+        );
+    }
+
+    #[test]
+    fn effective_does_not_exclude_codeberg_when_public() {
+        // Cached visibility says public → codeberg must NOT be in
+        // the exclude list (it gets pushed to).
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(false));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride::default();
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            !eff.iter().any(|r| r == "codeberg"),
+            "codeberg must NOT be excluded for public repos, got {:?}",
+            eff
+        );
+    }
+
+    #[test]
+    fn effective_excludes_codeberg_when_visibility_unknown_safe_default() {
+        // No cache (None) must fall back to the safe default: skip
+        // codeberg. This protects us from accidentally pushing to
+        // codeberg before the first visibility sync has run.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), None);
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride::default();
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            eff.iter().any(|r| r == "codeberg"),
+            "codeberg must be excluded when visibility unknown (safe default), got {:?}",
+            eff
+        );
+    }
+
+    #[test]
+    fn effective_per_repo_override_false_disables_gate() {
+        // Per-repo `codeberg_public_only = false` must win over
+        // the global default of `true`, even for private repos.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride {
+            codeberg_public_only: Some(false),
+            ..RepoPolicyOverride::default()
+        };
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            !eff.iter().any(|r| r == "codeberg"),
+            "per-repo override Some(false) must disable the gate, got {:?}",
+            eff
+        );
+    }
+
+    #[test]
+    fn effective_per_repo_override_true_is_noop_when_global_true() {
+        // Per-repo `codeberg_public_only = true` is a no-op when
+        // the global default is already true. Sanity check.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride {
+            codeberg_public_only: Some(true),
+            ..RepoPolicyOverride::default()
+        };
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            eff.iter().any(|r| r == "codeberg"),
+            "global default + per-repo Some(true) must skip codeberg for private repo"
+        );
+    }
+
+    #[test]
+    fn effective_per_repo_override_true_overrides_global_false() {
+        // Global default false (operator disables site-wide), but
+        // per-repo override true (operator wants this one private
+        // repo to skip codeberg). Per-repo must win.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let mut policy = policy_with_remotes();
+        policy.codeberg_public_only = false;
+        let override_ = RepoPolicyOverride {
+            codeberg_public_only: Some(true),
+            ..RepoPolicyOverride::default()
+        };
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            eff.iter().any(|r| r == "codeberg"),
+            "per-repo Some(true) must override global false for private repo"
+        );
+    }
+
+    #[test]
+    fn effective_global_disabled_disables_gate_globally() {
+        // Operator flips global default to false → even private
+        // repos get codeberg push (the original pre-policy
+        // behavior).
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let mut policy = policy_with_remotes();
+        policy.codeberg_public_only = false;
+        let override_ = RepoPolicyOverride::default();
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(
+            !eff.iter().any(|r| r == "codeberg"),
+            "global codeberg_public_only=false must disable the gate"
+        );
+    }
+
+    #[test]
+    fn effective_manual_exclude_remotes_is_preserved() {
+        // A repo with manual `exclude_remotes = ["github"]` plus
+        // a private visibility must end up with both `github` AND
+        // `codeberg` in the exclude list.
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride {
+            exclude_remotes: vec!["github".to_string()],
+            ..RepoPolicyOverride::default()
+        };
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        assert!(eff.iter().any(|r| r == "github"), "manual exclude must be preserved");
+        assert!(eff.iter().any(|r| r == "codeberg"), "policy skip must be added");
+    }
+
+    #[test]
+    fn effective_no_double_add_when_already_excluded() {
+        // If the operator manually added `exclude_remotes =
+        // ["codeberg"]` AND the policy would also skip it, the
+        // helper must NOT add "codeberg" twice (no duplicates).
+        let dir = tempfile::tempdir().unwrap();
+        write_visibility_cache(dir.path(), Some(true));
+        let policy = policy_with_remotes();
+        let override_ = RepoPolicyOverride {
+            exclude_remotes: vec!["codeberg".to_string()],
+            ..RepoPolicyOverride::default()
+        };
+        let eff = effective_excluded_remotes(&policy, &override_, dir.path());
+        let count = eff.iter().filter(|r| *r == "codeberg").count();
+        assert_eq!(count, 1, "codeberg must appear at most once in exclude list, got {:?}", eff);
     }
 }
 

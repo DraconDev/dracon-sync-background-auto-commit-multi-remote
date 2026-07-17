@@ -42,6 +42,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (default 2), plus `--json` for machine-readable output. See
   `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
 
+### v0.112.16 — 2026-07-17 — Codeberg public-only policy
+
+The structural problem: codeberg has an 85 GiB global quota across
+ALL private repos in an account, while github and gitlab use
+per-repo limits with no global cap. On 2026-07-17, all codeberg
+pushes were failing with `remote: Forgejo: Quota exceeded` even
+though github and gitlab pushes succeeded for every repo. This
+release implements the operator's strategic decision: use codeberg
+as a curated marketing surface for public repos only.
+
+**New policy field: `codeberg_public_only` (default `true`).**
+The daemon now reads the cached GitHub visibility state (populated
+by the existing `sync_mirror_visibility` cycle, 24h interval by
+default) and automatically excludes the codeberg remote when a
+repo is private. Public repos are unaffected. The safe-default
+path (skip codeberg) fires when no cache exists yet, so private
+work is never accidentally pushed to codeberg before the first
+visibility sync.
+
+**Per-repo override:**
+```toml
+# <repo>/.dracon/dracon-sync.toml
+codeberg_public_only = false   # force codeberg push for this private repo
+```
+
+**Visibility cache file format change** (backward-compatible):
+old `timestamp-only` files still pass freshness checks but surface
+as `None` (unknown) so the safe-default skip fires until the next
+sync rewrites them in the new `visibility=<public|private>\n<ts>`
+format.
+
+**`repos` output change:** the PUSH-TO column annotates the
+policy-driven exclusion with the visibility reason:
+`github,gitlab [excl:codeberg] (private)` (yellow). Manual
+`exclude_remotes = ["codeberg"]` overrides are unchanged.
+
+**24 new tests** (701 total). Design doc:
+`docs/design/codeberg-public-only-policy-2026-07-17.md` (13.6 KiB).
+
 ## [0.112.14] - 2026-06-22
 
 ### Fixed

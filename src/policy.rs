@@ -619,6 +619,34 @@ pub(crate) struct SyncPolicy {
     /// Uses the same interval as visibility sync.
     #[serde(default)]
     pub(crate) sync_metadata: bool,
+    /// When true (default), the daemon AUTOMATICALLY skips the
+    /// `codeberg` remote when pushing to a private repo. Codeberg's
+    /// 85 GiB global quota makes it unsuitable as a private-repo
+    /// backup target — the quota fills up fast with game art /
+    /// source. By keeping codeberg out of the private-repo push
+    /// path, we preserve the 85 GiB for the small handful of
+    /// public repos where codeberg is genuinely useful as a
+    /// non-corporate marketing surface.
+    ///
+    /// Per-repo override via `codeberg_public_only = false` in
+    /// `<repo>/.dracon/dracon-sync.toml` (forces codeberg push
+    /// regardless of repo visibility). Per-repo override
+    /// `codeberg_public_only = true` is a no-op since the global
+    /// default is already true.
+    ///
+    /// The visibility check reads the cached state written by
+    /// `sync_visibility` / `sync_mirror_visibility` in
+    /// `visibility.rs`. If no cache exists yet, the daemon
+    /// falls back to "private" (safe default: skip codeberg)
+    /// until the next visibility sync refreshes it.
+    ///
+    /// Set to false to restore the pre-policy behavior of
+    /// pushing every repo to every remote.
+    ///
+    /// ADDED 2026-07-17 (goal `codeberg-public-only`):
+    /// see `docs/design/codeberg-public-only-policy-2026-07-17.md`.
+    #[serde(default = "default_codeberg_public_only")]
+    pub(crate) codeberg_public_only: bool,
     /// When true, version bumps automatically create a git tag (e.g. v0.2.0).
     /// Tags are cheap and reversible — default is true.
     /// Per-repo override via `auto_tag` in .dracon/dracon-sync.toml.
@@ -820,6 +848,23 @@ pub(crate) struct RepoPolicyOverride {
     /// affecting other repos that use it.
     #[serde(default)]
     pub(crate) exclude_remotes: Vec<String>,
+
+    /// Per-repo override for `codeberg_public_only`. Some(false)
+    /// forces the daemon to push this PRIVATE repo to codeberg
+    /// (opt-in override of the global public-only default).
+    /// Some(true) is a no-op (already the global default).
+    /// None inherits the global `policy.codeberg_public_only`.
+    ///
+    /// Use case: a repo that's currently private but the operator
+    /// has decided needs a codeberg backup regardless (e.g. a
+    /// critical config repo that's small enough to not threaten
+    /// the 85 GiB quota). Setting this to `false` is the explicit
+    /// operator authorization for codeberg push on a private repo.
+    ///
+    /// ADDED 2026-07-17 (goal `codeberg-public-only`):
+    /// see `docs/design/codeberg-public-only-policy-2026-07-17.md`.
+    #[serde(default)]
+    pub(crate) codeberg_public_only: Option<bool>,
 
 }
 
@@ -1110,6 +1155,13 @@ pub(crate) enum DirtyMaxAgeAction {
 
 fn default_sync_visibility_interval_hours() -> u64 {
     24
+}
+
+fn default_codeberg_public_only() -> bool {
+    // Default true: codeberg has an 85 GiB global quota, so it's only
+    // safe as a public-repo marketing mirror. See SyncPolicy field
+    // docstring for rationale. ADDED 2026-07-17.
+    true
 }
 
 impl SyncPolicy {
@@ -1695,6 +1747,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         sync_visibility: false,
         sync_visibility_interval_hours: 24,
         sync_metadata: false,
+        codeberg_public_only: true, // default; tests that need override set explicitly
         auto_tag: true,
         auto_release: false,
         auto_publish: false,
@@ -2197,6 +2250,106 @@ auto_bump_versions = false
             override_.exclude_remotes.is_empty(),
             "default exclude_remotes must be empty, got {:?}",
             override_.exclude_remotes
+        );
+    }
+
+    // ---- Tests for codeberg_public_only policy (goal ----
+    // ---- `codeberg-public-only`, 2026-07-17)                ----
+
+    #[test]
+    fn test_default_codeberg_public_only_is_true() {
+        // The global default for `codeberg_public_only` must be `true`
+        // so that out-of-the-box the daemon uses codeberg as a
+        // public-only marketing mirror. Operators can flip it off via
+        // `codeberg_public_only = false` in the global config, or via
+        // the per-repo override.
+        assert!(
+            default_codeberg_public_only(),
+            "global default for codeberg_public_only must be true"
+        );
+    }
+
+    #[test]
+    fn test_load_repo_override_codeberg_public_only_some_false() {
+        // Per-repo override `codeberg_public_only = false` must
+        // round-trip through `load_repo_override` as `Some(false)`.
+        // This is the explicit operator opt-in to push a private
+        // repo to codeberg.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "codeberg_public_only = false\n",
+        )
+        .unwrap();
+        let override_ = load_repo_override(repo);
+        assert_eq!(override_.codeberg_public_only, Some(false));
+    }
+
+    #[test]
+    fn test_load_repo_override_codeberg_public_only_some_true() {
+        // Per-repo override `codeberg_public_only = true` must
+        // round-trip as `Some(true)`. This is a no-op when the global
+        // default is already true, but useful when the operator has
+        // flipped the global default off for most repos and wants to
+        // re-enable it for one specific private repo.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "codeberg_public_only = true\n",
+        )
+        .unwrap();
+        let override_ = load_repo_override(repo);
+        assert_eq!(override_.codeberg_public_only, Some(true));
+    }
+
+    #[test]
+    fn test_load_repo_override_codeberg_public_only_default_none() {
+        // When the per-repo override file is absent OR the field is
+        // not set, `codeberg_public_only` must default to `None` so
+        // the per-repo override inherits the global policy. This is
+        // the "default" path for the ~30 watched repos that don't
+        // need an explicit per-repo declaration.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let override_ = load_repo_override(repo);
+        assert_eq!(
+            override_.codeberg_public_only, None,
+            "default per-repo codeberg_public_only must be None (inherit global), got {:?}",
+            override_.codeberg_public_only
+        );
+    }
+
+    #[test]
+    fn test_sync_policy_codeberg_public_only_field_default_true() {
+        // Loading a minimal TOML that doesn't mention
+        // `codeberg_public_only` must produce a `SyncPolicy` with
+        // `codeberg_public_only = true` (the global default).
+        let toml = r#"
+            system_repo = "/tmp/test"
+        "#;
+        let policy: SyncPolicy = toml::from_str(toml).unwrap();
+        assert!(
+            policy.codeberg_public_only,
+            "default SyncPolicy.codeberg_public_only must be true, got {}",
+            policy.codeberg_public_only
+        );
+    }
+
+    #[test]
+    fn test_sync_policy_codeberg_public_only_explicit_false() {
+        // Operator can disable the policy site-wide by setting
+        // `codeberg_public_only = false` in the global config.
+        let toml = r#"
+            codeberg_public_only = false
+        "#;
+        let policy: SyncPolicy = toml::from_str(toml).unwrap();
+        assert!(
+            !policy.codeberg_public_only,
+            "explicit codeberg_public_only = false must be honored"
         );
     }
 

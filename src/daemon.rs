@@ -128,11 +128,33 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
         // every push — leaving a useless remote entry in
         // `.git/config`.
         let repo_override = crate::policy::load_repo_override(repo);
+        let mut combined_exclude = repo_override.exclude_remotes.clone();
+        // ADDED 2026-07-17 (goal `codeberg-public-only`): also exclude
+        // codeberg at auto-configure time when the public-only policy
+        // is active AND the cached visibility says private. Without
+        // this, the codeberg remote would be added to `.git/config`
+        // even though the push path would skip it — leaving a dead
+        // entry that confuses `git remote -v` and any other tooling
+        // that walks the remote list. See
+        // `docs/design/codeberg-public-only-policy-2026-07-17.md`.
+        let codeberg_public_only_effective = repo_override
+            .codeberg_public_only
+            .unwrap_or(policy.codeberg_public_only);
+        if codeberg_public_only_effective {
+            let cached_priv = crate::visibility::cached_repo_visibility(repo.as_ref());
+            let skip_codeberg = match cached_priv {
+                Some(true) | None => true,
+                Some(false) => false,
+            };
+            if skip_codeberg && !combined_exclude.iter().any(|e| e == "codeberg") {
+                combined_exclude.push("codeberg".to_string());
+            }
+        }
         crate::git::multi_remote::configure_all_remotes(
             repo,
             &policy.remotes,
             &repo_name,
-            &repo_override.exclude_remotes,
+            &combined_exclude,
         );
         true
     } else {
@@ -1960,11 +1982,30 @@ pub(crate) async fn materialize_pending_submodules(
                 // the nested path as the target.
                 let repo_override =
                     crate::policy::load_repo_override(&nested_submodule_path);
+                let mut combined_exclude = repo_override.exclude_remotes.clone();
+                // ADDED 2026-07-17 (goal `codeberg-public-only`):
+                // same gate as the standalone path above. Nested
+                // submodules need the same exclusion so they
+                // don't accumulate dead codeberg entries.
+                let codeberg_public_only_effective = repo_override
+                    .codeberg_public_only
+                    .unwrap_or(policy.codeberg_public_only);
+                if codeberg_public_only_effective {
+                    let cached_priv =
+                        crate::visibility::cached_repo_visibility(&nested_submodule_path);
+                    let skip_codeberg = match cached_priv {
+                        Some(true) | None => true,
+                        Some(false) => false,
+                    };
+                    if skip_codeberg && !combined_exclude.iter().any(|e| e == "codeberg") {
+                        combined_exclude.push("codeberg".to_string());
+                    }
+                }
                 crate::git::multi_remote::configure_all_remotes(
                     &nested_submodule_path,
                     &policy.remotes,
                     &worktree_name,
-                    &repo_override.exclude_remotes,
+                    &combined_exclude,
                 );
                 continue;
             }

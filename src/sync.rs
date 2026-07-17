@@ -25,7 +25,8 @@ use crate::git::{
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
-    get_github_visibility, parse_github_owner_repo, sync_mirror_metadata, sync_mirror_visibility,
+    cached_repo_visibility, get_github_visibility, parse_github_owner_repo, sync_mirror_metadata,
+    sync_mirror_visibility,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1492,6 +1493,45 @@ async fn push_background(
         // storage quota) without affecting other repos.
         let repo_override = crate::policy::load_repo_override(repo);
         let mut combined_exclude: Vec<String> = repo_override.exclude_remotes.clone();
+        // CONDITIONAL codeberg exclusion: when the global
+        // `codeberg_public_only` policy is on (default true) AND the
+        // per-repo override doesn't disable it (`Some(false)`), AND the
+        // cached repo visibility says private (or is unknown, which is
+        // the safe default), skip the codeberg remote. This keeps
+        // codeberg's 85 GiB global quota available for public-repo
+        // marketing mirrors only. ADDED 2026-07-17 (goal
+        // `codeberg-public-only`); see
+        // `docs/design/codeberg-public-only-policy-2026-07-17.md`.
+        let codeberg_public_only_effective = repo_override
+            .codeberg_public_only
+            .unwrap_or(policy.codeberg_public_only);
+        if codeberg_public_only_effective {
+            let cached_priv = cached_repo_visibility(repo.as_ref());
+            // Skip codeberg when:
+            //   (a) cached visibility says private, OR
+            //   (b) cache is empty (legacy or never-visibility-synced) —
+            //       safe default until cache refreshes.
+            // Don't skip when:
+            //   (c) cached visibility says public.
+            let skip_codeberg = match cached_priv {
+                Some(true) => true,   // (a) explicitly private
+                Some(false) => false, // (c) explicitly public
+                None => true,         // (b) unknown — safe default
+            };
+            if skip_codeberg
+                && !combined_exclude.iter().any(|e| e == "codeberg")
+            {
+                combined_exclude.push("codeberg".to_string());
+                if crate::policy::debug_enabled() {
+                    eprintln!(
+                        "🐛 codeberg gate: skipping codeberg push for {} \
+                         (public_only policy + visibility cache says {:?})",
+                        repo.display(),
+                        cached_priv.map(|p| if p { "private" } else { "public" })
+                    );
+                }
+            }
+        }
         // CONDITIONAL github exclusion from the mirror path. When
         // `origin` IS github, github is already pushed by the
         // `push_with_retries` block above; routing it through

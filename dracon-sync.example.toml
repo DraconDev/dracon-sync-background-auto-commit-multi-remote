@@ -248,11 +248,40 @@ name = "gitlab"
 push_url = "git@gitlab.com:dracondev/{repo}.git"
 auto_create = true
 
-# Codeberg (push-to-create disabled in Forgejo)
+# Codeberg (push-to-create disabled in Forgejo).
+# IMPORTANT: codeberg has an 85 GiB global quota across ALL private
+# repos. Pushing large/heavy private repos to codeberg burns the quota
+# fast. The `codeberg_public_only` policy below (default true) makes
+# codeberg a public-only marketing mirror by default; private repos
+# are auto-excluded unless overridden per-repo.
 [[remotes]]
 name = "codeberg"
 push_url = "git@codeberg.org:dracondev/{repo}.git"
 auto_create = false
+
+# When true (default), the daemon AUTOMATICALLY skips the `codeberg`
+# remote for any PRIVATE repo. Codeberg's 85 GiB global quota is
+# unsuitable as a private-repo backup target — private work needs
+# unbounded growth and github/gitlab per-repo limits are far more
+# permissive. By keeping codeberg out of the private-repo push path,
+# we preserve the 85 GiB for the small handful of public repos where
+# codeberg is genuinely useful as a non-corporate marketing surface.
+#
+# The visibility check reads the cached state written by
+# `sync_visibility` / `sync_mirror_visibility` (see SECTION 7). If
+# no cache exists yet, the daemon falls back to "private" (safe
+# default: skip codeberg) until the next visibility sync refreshes
+# it.
+#
+# Per-repo override via `codeberg_public_only = false` in
+# `<repo>/.dracon/dracon-sync.toml` forces codeberg push for a
+# specific private repo (operator's explicit authorization). Set
+# `codeberg_public_only = true` here to false to restore the
+# pre-policy behavior of pushing every repo to every remote.
+#
+# ADDED 2026-07-17 (goal `codeberg-public-only`):
+# see `docs/design/codeberg-public-only-policy-2026-07-17.md`.
+# codeberg_public_only = true
 
 # Per-remote repo name mapping (e.g. for dot-prefixed dirs on GitLab)
 # [[remotes]]
