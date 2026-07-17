@@ -1019,14 +1019,30 @@ async fn main() -> Result<()> {
             let errors = 0usize;
 
             for repo_path in &repos {
-                // Read origin URL to derive GitHub owner/repo.
-                let origin_url = std::process::Command::new("git")
-                    .args(["-C", &repo_path.to_string_lossy(), "remote", "get-url", "origin"])
-                    .output()
-                    .ok()
-                    .filter(|o| o.status.success())
-                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-                    .unwrap_or_default();
+                // Try `origin` first (most common), then fall back to `github`
+                // (some repos — e.g. opencode-plugins — use `github` as the
+                // remote name instead of `origin`).
+                let mut origin_url = String::new();
+                for remote_name in ["origin", "github"] {
+                    if let Ok(o) = std::process::Command::new("git")
+                        .args([
+                            "-C",
+                            &repo_path.to_string_lossy(),
+                            "remote",
+                            "get-url",
+                            remote_name,
+                        ])
+                        .output()
+                    {
+                        if o.status.success() {
+                            let url = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                            if !url.is_empty() {
+                                origin_url = url;
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 let Some((owner, gh_repo)) =
                     crate::visibility::parse_github_owner_repo(&origin_url)
@@ -1035,7 +1051,7 @@ async fn main() -> Result<()> {
                     results.push(serde_json::json!({
                         "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
                         "status": "skipped",
-                        "reason": "no parseable origin URL",
+                        "reason": "no parseable github remote (tried origin, github)",
                     }));
                     continue;
                 };
