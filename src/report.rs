@@ -3381,11 +3381,11 @@ pub(crate) async fn run_scan_bloat_report(
         total_bytes += b.total_size_bytes;
         println!(
             "{:30} {:>10} {:>7} {:>8}  {}",
-            truncate(&leaf, 30),
+            truncate(leaf, 30),
             human_bytes(b.total_size_bytes),
             b.repo_paths.len(),
             b.file_count,
-            suggested_pattern_for(&leaf)
+            suggested_pattern_for(leaf)
         );
     }
     println!("{}", "-".repeat(95));
@@ -7250,7 +7250,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs().saturating_sub(120))
             .unwrap_or(0);
-        let _ = crate::daemon::save_in_flight_for_test(
+        crate::daemon::save_in_flight_for_test(
             &[std::path::PathBuf::from(
                 "/home/dracon/Dev/this-is-a-fake-repo-for-staleness-test",
             )],
@@ -7272,7 +7272,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        let _ = crate::daemon::save_in_flight_for_test(
+        crate::daemon::save_in_flight_for_test(
             &[std::path::PathBuf::from(
                 "/home/dracon/Dev/another-fake-repo-for-staleness-test",
             )],
@@ -7293,7 +7293,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs().saturating_sub(10))
             .unwrap_or(0);
-        let _ = crate::daemon::save_in_flight_for_test(
+        crate::daemon::save_in_flight_for_test(
             &[std::path::PathBuf::from(
                 "/home/dracon/Dev/repo-with-10s-old-inflight",
             )],
@@ -7318,7 +7318,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        let _ = crate::daemon::save_in_flight_for_test(
+        crate::daemon::save_in_flight_for_test(
             &[std::path::PathBuf::from(
                 "/home/dracon/Dev/repo-clean-but-listed-as-inflight",
             )],

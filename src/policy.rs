@@ -943,7 +943,7 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 /// no false positives on intentional content like 1mg marketing shots
 /// or audit REPORTS in `docs/audit-*.md` / `scripts/audit-*.mjs`):
 ///   - `**/.pi/**`           universal agent dir (.pi/, .pi-tmp/,
-///       .pi-goals/, .pi-tasks/, .pi/mmx-out/)
+///     .pi-goals/, .pi-tasks/, .pi/mmx-out/)
 ///   - `**/test-results/**`  Playwright outputs (named with git SHA)
 ///   - `**/verify-screenshots/**` verification harness output
 ///   - `**/__screenshots__/**`  Python e2e framework convention
@@ -952,8 +952,8 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 ///   - `**/chrome-*/**`      chrome-fixes, chrome-consistency, etc.
 ///   - `**/sign-in-flash-audit/**` one-off verification dir
 ///   - `**/~/**`             home-dir leak (e.g. browser-extensions-
-///       shared had a stray `~/` from a misrouted
-///       extraction; this catches it globally)
+///     shared had a stray `~/` from a misrouted
+///     extraction; this catches it globally)
 ///
 /// Forward-compatibility: any future agent tool that drops a
 /// screenshot into one of these names is automatically excluded from
@@ -2132,7 +2132,7 @@ auto_bump_versions = false
     fn test_apply_deadline_derived_from_pulse_interval() {
         // Default pulse_interval_secs is 1; the deadline is 1*2 = 2.
         let p = SyncPolicy::default();
-        let expected = (p.pulse_interval_secs.max(1) * 2) as u64;
+        let expected = p.pulse_interval_secs.max(1) * 2;
         assert_eq!(expected, 2);
     }
 
