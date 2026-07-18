@@ -696,7 +696,7 @@ mod tests {
         // sub_sha was captured earlier (before .git was replaced with
         // a file pointing to the shared gitdir).
         let cacheinfo = format!("160000,{sub_sha},nested/foo");
-        let update_args = vec![
+        let update_args: [String; 4] = [
             "update-index".to_string(),
             "--add".to_string(),
             "--cacheinfo".to_string(),

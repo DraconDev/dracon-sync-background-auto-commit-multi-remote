@@ -943,7 +943,7 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 /// no false positives on intentional content like 1mg marketing shots
 /// or audit REPORTS in `docs/audit-*.md` / `scripts/audit-*.mjs`):
 ///   - `**/.pi/**`           universal agent dir (.pi/, .pi-tmp/,
-///                             .pi-goals/, .pi-tasks/, .pi/mmx-out/)
+///       .pi-goals/, .pi-tasks/, .pi/mmx-out/)
 ///   - `**/test-results/**`  Playwright outputs (named with git SHA)
 ///   - `**/verify-screenshots/**` verification harness output
 ///   - `**/__screenshots__/**`  Python e2e framework convention
@@ -952,8 +952,8 @@ pub(crate) fn default_exclude_file_patterns() -> Vec<String> {
 ///   - `**/chrome-*/**`      chrome-fixes, chrome-consistency, etc.
 ///   - `**/sign-in-flash-audit/**` one-off verification dir
 ///   - `**/~/**`             home-dir leak (e.g. browser-extensions-
-///                             shared had a stray `~/` from a misrouted
-///                             extraction; this catches it globally)
+///       shared had a stray `~/` from a misrouted
+///       extraction; this catches it globally)
 ///
 /// Forward-compatibility: any future agent tool that drops a
 /// screenshot into one of these names is automatically excluded from
@@ -1872,6 +1872,7 @@ mod tests {
     ///   - `static/assets/texture.png` (intentional game art)
     ///   - `src/lib.rs` (source)
     ///   - `web/build/output.js` (build output, but committed at user's discretion)
+    ///
     /// These MUST NOT be matched by `default_untracked_exclude_patterns`.
     #[test]
     fn test_default_untracked_exclude_patterns_preserves_intentional_content() {

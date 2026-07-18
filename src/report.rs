@@ -851,6 +851,7 @@ pub(crate) struct RepoReportRow {
     /// - `Some("unknown")` — no cached visibility yet, safe default fires.
     /// - `None` — codeberg not excluded, OR excluded by manual override
     ///   (operator already knows why; no annotation needed).
+    ///
     /// ADDED 2026-07-17 (goal `codeberg-public-only`).
     codeberg_skip_reason: Option<String>,
     /// Size of the repo's `.git` directory in bytes (i.e. the data that
@@ -3311,7 +3312,7 @@ pub(crate) async fn run_scan_bloat_report(
             b.total_size_bytes >= threshold_bytes && b.repo_paths.len() >= min_repo_count
         })
         .collect();
-    findings.sort_by(|a, b| b.1.total_size_bytes.cmp(&a.1.total_size_bytes));
+    findings.sort_by_key(|f| std::cmp::Reverse(f.1.total_size_bytes));
 
     if json {
         #[derive(serde::Serialize)]
@@ -3371,8 +3372,8 @@ pub(crate) async fn run_scan_bloat_report(
     );
     println!();
     println!(
-        "{:30} {:>10} {:>7} {:>8}  {}",
-        "DIRECTORY", "SIZE", "REPOS", "FILES", "SUGGESTED EXCLUDE"
+        "{:30} {:>10} {:>7} {:>8}  SUGGESTED EXCLUDE",
+        "DIRECTORY", "SIZE", "REPOS", "FILES"
     );
     println!("{}", "-".repeat(95));
     let mut total_bytes = 0u64;
@@ -6133,7 +6134,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_repo_is_warn_dirty() {
         let status = make_status(false, 0, 0);
         assert!(repo_is_warn(&status, true, true, true));
@@ -7874,7 +7874,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        let lines = vec![
+        let lines = [
             format!(
                 "{{\"ts_unix\":{},\"scope\":\"sync\",\"repo\":\"/tmp/repo-a\",\"reason\":\"\",\"action\":\"sync_commit\",\"result\":\"ok\"}}",
                 now - 60
