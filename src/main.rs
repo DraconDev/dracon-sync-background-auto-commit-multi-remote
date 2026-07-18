@@ -92,6 +92,11 @@ enum Command {
         /// Print the column legend and exit (no table). Use when a column is unclear.
         #[arg(long)]
         legend: bool,
+        /// Force a specific layout tier (vertical / compact / full) regardless of
+        /// detected terminal width. Useful when piped output auto-picks the wrong
+        /// layout, or when scripting for a known terminal size.
+        #[arg(long, value_parser = ["vertical", "compact", "full"])]
+        layout: Option<String>,
     },
     /// Check daemon health (policy valid, daemon responsive, repos healthy).
     Health {
@@ -688,6 +693,7 @@ async fn main() -> Result<()> {
             filter: filter_name,
             full_path,
             legend,
+            layout,
         } => {
             let filter = if only_concern {
                 RepoFilter::Concern
@@ -704,6 +710,7 @@ async fn main() -> Result<()> {
                 filter_name.as_deref(),
                 full_path,
                 legend,
+                layout.as_deref(),
             )
             .await?;
         }

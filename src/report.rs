@@ -2117,13 +2117,30 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
 
 /// Detect the terminal width in columns.
 ///
-/// - Returns `None` if stdout/stderr/stdin is not a TTY (e.g. piped to file)
-/// - Falls back to a default of 200 columns (the v3 full-table minimum) if detection fails
-/// - Can be overridden with the `DRACON_SYNC_TERM_WIDTH` env var (for scripting)
+/// Resolution order:
+/// 1. `DRACON_SYNC_TERM_WIDTH` env var (operator override, e.g. `80` to force Vertical)
+/// 2. `COLUMNS` env var (ncurses convention; respected by many shells & scripts)
+/// 3. `terminal_size()` against stdout/stderr/stdin (real TTY only)
+/// 4. Default fallback of `120` cols (Compact layout) — safe for log files and most pipes.
+///
+/// The fallback of 120 (Compact) instead of the previously-used 300 (Full) fixes the
+/// 538-char-wide broken table that piped / scripted / agent-captured output produced.
+/// Compact (15 cols, ~215-col minimum width) fits in 120+ cols via comfy-table's Dynamic
+/// arrangement; Full (22 cols, ~293-col minimum) needs 300+ cols and visibly breaks at
+/// narrower widths. See `docs/design/repos-table-fix-2026-07-18.md`.
 pub(crate) fn terminal_width() -> Option<u16> {
     if let Ok(s) = std::env::var("DRACON_SYNC_TERM_WIDTH") {
         if let Ok(n) = s.parse::<u16>() {
-            return Some(n);
+            if (40..=1000).contains(&n) {
+                return Some(n);
+            }
+        }
+    }
+    if let Ok(s) = std::env::var("COLUMNS") {
+        if let Ok(n) = s.parse::<u16>() {
+            if (40..=1000).contains(&n) {
+                return Some(n);
+            }
         }
     }
     use terminal_size::{terminal_size, Height, Width};
@@ -2132,8 +2149,8 @@ pub(crate) fn terminal_width() -> Option<u16> {
             return Some(w);
         }
     }
-    // Default: assume a wide terminal (300 cols) when piping to file
-    Some(300)
+    // Default: Compact (120 cols) for piped / scripted / non-TTY output.
+    Some(120)
 }
 
 /// Tier classification for the `dracon-sync repos` output.
@@ -2147,24 +2164,27 @@ pub(crate) enum LayoutTier {
     Full,
 }
 
+/// Pick the layout tier from terminal width.
+///
+/// - `< 120` cols → **Vertical** (one repo per multi-line block; fits any width)
+/// - `120-219` cols → **Vertical** (Compact's 215-col minimum doesn't fit; Vertical
+///   is the safer fallback than letter-wrapped cells)
+/// - `220-299` cols → **Compact** (15-col table; min ~215 cols + comfy-table width-fitting)
+/// - `>= 300` cols → **Full** (22-col v1 table; min ~293 cols + headroom)
+///
+/// The Compact threshold was raised from `< 250` to `< 300` because the 15-column
+/// Compact layout's LowerBoundary constraints sum to ~215 cols minimum; comfy-table
+/// letter-wraps cell content below that (e.g., 'PUSH' / 'PENDING' on separate
+/// lines, 'STATUS' header → 'STA/TUS'). Routing 120-219 to Vertical avoids the
+/// letter-wrap artifact entirely. See `docs/design/repos-table-fix-2026-07-18.md`.
 pub(crate) fn choose_layout_tier() -> LayoutTier {
-    let w = terminal_width().unwrap_or(300);
-    if w < 120 {
+    let w = terminal_width().unwrap_or(120);
+    if w < 220 {
         LayoutTier::Vertical
-    } else if w < 250 {
+    } else if w < 300 {
         LayoutTier::Compact
     } else {
-        // Full tier only kicks in at >= 300 cols because the minimum sum of
-        // 22 column widths (with 2-col cell padding per column) + 23 borders
-        // is 293 cols. At 250-299 cols the comfy-table Dynamic arrangement
-        // cannot honor all LowerBoundary constraints and wraps content mid-cell
-        // (e.g., 'PUSH'/'PENDING' on separate lines, 'STATUS' header → 'STA/TUS').
-        // 300+ gives 7+ cols of headroom for clean render.
-        if w >= 300 {
-            LayoutTier::Full
-        } else {
-            LayoutTier::Compact
-        }
+        LayoutTier::Full
     }
 }
 
@@ -2422,6 +2442,7 @@ pub(crate) async fn run_repos_report(
     filter_name: Option<&str>,
     full_path: bool,
     legend: bool,
+    layout_override: Option<&str>,
 ) -> Result<()> {
     // `--legend` prints the column legend and exits. The default report stays
     // uncluttered; the legend is available on demand when a column is unclear.
@@ -3082,7 +3103,25 @@ pub(crate) async fn run_repos_report(
     // lines) because `ContentArrangement::Dynamic` shrinks 22 columns to ~3 chars each at
     // 80-col terminals. Now we pick a layout tier based on terminal width and render with
     // proper column constraints. See `docs/design/push-stuck-render-investigation-2026-06-29.md`.
-    let tier = choose_layout_tier();
+    //
+    // `--layout <tier>` (passed as `layout_override`) bypasses terminal-width detection and
+    // forces the requested tier. Useful when piping to a file (where terminal_size() returns
+    // None and the fallback picks Compact) but the operator actually wants Vertical or Full.
+    let tier = match layout_override {
+        Some(s) => match s.to_ascii_lowercase().as_str() {
+            "vertical" | "v" => LayoutTier::Vertical,
+            "compact" | "c" => LayoutTier::Compact,
+            "full" | "f" => LayoutTier::Full,
+            other => {
+                eprintln!(
+                    "⚠️ unknown --layout value {:?}; expected one of vertical|compact|full. Using auto-detected tier.",
+                    other
+                );
+                choose_layout_tier()
+            }
+        },
+        None => choose_layout_tier(),
+    };
     match tier {
         LayoutTier::Vertical => {
             print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
@@ -3536,6 +3575,15 @@ fn print_repos_compact_table(
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
+    // Force the table to fit the actual terminal width. Without this, comfy-table's
+    // Dynamic arrangement uses each column's natural content width, producing 553+
+    // char rows in 200-299 col terminals (Compact tier). With set_width, columns
+    // shrink to fit and cell content is truncated (with …) instead of letter-wrapped.
+    if let Some(w) = terminal_width() {
+        if (40..=2000).contains(&w) {
+            table.set_width(w);
+        }
+    }
 
     let mk_h = |icon: &str, label: &str| -> Cell {
         Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
@@ -3674,6 +3722,12 @@ fn print_repos_full_table(
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
+    // See compact_table for why this matters: force the table to fit the terminal width.
+    if let Some(w) = terminal_width() {
+        if (40..=2000).contains(&w) {
+            table.set_width(w);
+        }
+    }
     let mk_h = |icon: &str, label: &str| -> Cell {
         Cell::new(format!("{icon} {label}")).add_attribute(Attribute::Bold)
     };
@@ -7967,12 +8021,16 @@ mod tests {
     fn test_choose_layout_tier_vertical() {
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "80");
-        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
-        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "100");
-        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
-        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "119");
-        assert_eq!(choose_layout_tier(), LayoutTier::Vertical);
+        // < 220 cols → Vertical (covers the new compact-min 215-col cutoff)
+        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219] {
+            std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
+            assert_eq!(
+                choose_layout_tier(),
+                LayoutTier::Vertical,
+                "width {} should be Vertical",
+                w
+            );
+        }
         // Restore
         match prev {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
@@ -7983,7 +8041,8 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [120, 150, 180, 199, 220, 249, 299] {
+        // 220-299 cols → Compact (Compact's 215-col minimum fits)
+        for w in [220, 249, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -8013,6 +8072,63 @@ mod tests {
         match prev {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
             None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+    }
+
+    #[test]
+    fn test_terminal_width_columns_env_var() {
+        // COLUMNS env var (ncurses convention) should be respected as a fallback
+        // when DRACON_SYNC_TERM_WIDTH is unset.
+        let prev_width = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
+        let prev_cols = std::env::var("COLUMNS").ok();
+        std::env::remove_var("DRACON_SYNC_TERM_WIDTH");
+        std::env::set_var("COLUMNS", "150");
+        let w = terminal_width();
+        assert_eq!(w, Some(150), "COLUMNS=150 should yield Some(150)");
+        std::env::set_var("COLUMNS", "999");
+        let w = terminal_width();
+        // 999 is in the (40..=1000) range
+        assert_eq!(w, Some(999), "COLUMNS=999 should yield Some(999)");
+        std::env::set_var("COLUMNS", "30");
+        let w = terminal_width();
+        // 30 is outside (40..=1000), so falls through to next check
+        // (terminal_size returns None in tests), so fallback Some(120) applies
+        assert_eq!(w, Some(120), "COLUMNS=30 (out of range) falls through to fallback 120");
+        // DRACON_SYNC_TERM_WIDTH still takes precedence
+        std::env::set_var("DRACON_SYNC_TERM_WIDTH", "80");
+        let w = terminal_width();
+        assert_eq!(w, Some(80), "DRACON_SYNC_TERM_WIDTH takes precedence over COLUMNS");
+        // Restore
+        match prev_width {
+            Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
+            None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+        match prev_cols {
+            Some(v) => std::env::set_var("COLUMNS", v),
+            None => std::env::remove_var("COLUMNS"),
+        }
+    }
+
+    #[test]
+    fn test_terminal_width_fallback_is_compact() {
+        // When neither env var is set and terminal_size fails (test env),
+        // the fallback must be 120 (Compact), NOT 300 (Full).
+        let prev_width = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
+        let prev_cols = std::env::var("COLUMNS").ok();
+        std::env::remove_var("DRACON_SYNC_TERM_WIDTH");
+        std::env::remove_var("COLUMNS");
+        let w = terminal_width();
+        assert_eq!(w, Some(120), "fallback for non-TTY must be Some(120), got {:?}", w);
+        // Verify it picks Compact, not Full
+        assert_eq!(choose_layout_tier(), LayoutTier::Compact, "fallback must yield Compact");
+        // Restore
+        match prev_width {
+            Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
+            None => std::env::remove_var("DRACON_SYNC_TERM_WIDTH"),
+        }
+        match prev_cols {
+            Some(v) => std::env::set_var("COLUMNS", v),
+            None => std::env::remove_var("COLUMNS"),
         }
     }
 
