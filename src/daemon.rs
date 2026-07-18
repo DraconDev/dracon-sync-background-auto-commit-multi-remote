@@ -141,7 +141,7 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             .codeberg_public_only
             .unwrap_or(policy.codeberg_public_only);
         if codeberg_public_only_effective {
-            let cached_priv = crate::visibility::cached_repo_visibility(repo.as_ref());
+            let cached_priv = crate::visibility::cached_repo_visibility(repo);
             let skip_codeberg = match cached_priv {
                 Some(true) | None => true,
                 Some(false) => false,
@@ -364,7 +364,6 @@ pub(crate) struct StuckRepoEntry {
 // CONCERN #6). The canonical `default_push_max_retries` lives in
 // `policy.rs` (used by `#[serde(default = "...")]` on
 // `SyncPolicy::push_max_retries`). The duplicate here was dead code.
-
 #[cfg(test)]
 mod tests {
     use super::*;

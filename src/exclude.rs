@@ -695,7 +695,7 @@ mod tests {
         // Register the submodule as a gitlink in the parent.
         // sub_sha was captured earlier (before .git was replaced with
         // a file pointing to the shared gitdir).
-        let cacheinfo = format!("160000,{},nested/foo", sub_sha);
+        let cacheinfo = format!("160000,{sub_sha},nested/foo");
         let update_args = vec![
             "update-index".to_string(),
             "--add".to_string(),
@@ -710,9 +710,7 @@ mod tests {
         // `.gitmodules`; without this file, no submodules
         // surface and `stale_gitlink_paths` returns empty
         // even when the shared gitdir's main ref is ahead.
-        let gitmodules = format!(
-            "[submodule \"web-games-foo\"]\n\tpath = nested/foo\n\turl = git@gitlab.com:DraconDev/web-games-foo.git\n"
-        );
+        let gitmodules = "[submodule \"web-games-foo\"]\n\tpath = nested/foo\n\turl = git@gitlab.com:DraconDev/web-games-foo.git\n";
         std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
         git_c(&parent, &["add", ".gitmodules"]);
         git_c(&parent, &["commit", "-q", "-m", "add submodule .gitmodules"]);

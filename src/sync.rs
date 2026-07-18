@@ -1506,7 +1506,7 @@ async fn push_background(
             .codeberg_public_only
             .unwrap_or(policy.codeberg_public_only);
         if codeberg_public_only_effective {
-            let cached_priv = cached_repo_visibility(repo.as_ref());
+            let cached_priv = cached_repo_visibility(repo);
             // Skip codeberg when:
             //   (a) cached visibility says private, OR
             //   (b) cache is empty (legacy or never-visibility-synced) —
@@ -6784,8 +6784,8 @@ auto_bump_versions = false
             staged_files
         );
         assert!(
-            staged_files.lines().all(|l| l != "sibling" || true),
-            "staged files line listing: {}",
+            staged_files.lines().all(|l| l != "sibling"),
+            "staged files must not contain bare gitlink name 'sibling', got: {}",
             staged_files
         );
     }
@@ -6975,7 +6975,7 @@ auto_bump_versions = false
         // Write a different blob for "theirs"
         let theirs_path = repo.join(path);
         let original = std::fs::read(&theirs_path).unwrap_or_default();
-        let theirs_content = format!("theirs-conflict-content\n");
+        let theirs_content = "theirs-conflict-content\n".to_string();
         std::fs::write(&theirs_path, &theirs_content).unwrap();
         let theirs_hash = String::from_utf8_lossy(
             &std::process::Command::new("git")
