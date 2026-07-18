@@ -38,6 +38,34 @@ The `dracon-sync repos` output renders a 22-column v1 Full table (~620 chars wid
 
 ## [Unreleased]
 
+### v0.112.20 — 2026-07-18 — `dracon-git` v94.7.1 patch (libgit2 ssh-agent fix)
+
+The 2 CONCERNs surfaced by `dracon-sync repos` on 2026-07-18 (`endless-td` 53-ahead push-stuck with 35 consecutive failures, `neonbreak` 4-minute PENDING with 6 ahead / 4 behind) were caused by a libgit2 fetch bug in the external `dracon-git` crate v94.7.0. The daemon's `fetch()` function used `git2::Cred::ssh_key_from_agent`, which requires a running ssh-agent — the operator's wezterm/NixOS session has no ssh-agent (only a wezterm socket at `/run/user/1000/wezterm/agent.25368`), so every libgit2 fetch failed with `unsupported URL protocol; class=Net (12)`.
+
+This release **doesn't change any daemon source code**. Instead, it patches the workspace `Cargo.toml` to use a locally-built `dracon-git v94.7.1` (from `DraconDev/dracon-libs`) where `fetch()` is rewritten: **CLI primary path** (`std::process::Command("git fetch origin")` which respects `~/.ssh/config` and the `IdentitiesOnly yes` + `IdentityFile ~/.ssh/id_ed25519` pattern that std::process ssh reads) **+ libgit2 fallback** (the original `Cred::ssh_key_from_agent` code) for repos where the CLI path fails (binary blob edge cases).
+
+The phantom MERGE_HEAD state (a side effect of the failed libgit2 fetch leaving `MERGE_HEAD` and `MERGE_MSG` files in the working tree's gitdir) was resolved automatically once `git fetch` started working and updated the remote tracking refs. No daemon-side handling needed.
+
+**Operator's manual intervention for endless-td:** chose reset+replay strategy (per `ask_user_question`): saved 3 untracked files, `git merge --abort`, `git reset --hard origin/main`, `git cherry-pick` of the 57 local-only commits, resolved 2 conflicts on `TASKLIST_FIXES.md` by taking "theirs" (the cherry-picked version, which is the correct new state). Result: 0 ahead / 0 behind, all 3 remotes at HEAD `16720ca7`.
+
+**Operator's manual intervention for neonbreak:** none — auto-recovered once `git fetch origin` updated the remote tracking ref.
+
+**Endless-td CONCERN resolution** (Cherry-pick: 57 commits replayed, 2 TASKLIST_FIXES.md conflicts auto-resolved by taking theirs, push to github + gitlab + origin all succeeded, ~6 seconds each).
+
+**1 new test** in `dracon-git` (33 total, up from 32): `test_fetch_uses_cli_path_successfully` — verifies `fetch()` succeeds against a local bare remote (no ssh involved), confirming the CLI primary path works end-to-end.
+
+**Live verification**: 890 tests pass, clippy clean, deny clean. Tally: `📦 32 repos · ✅ CLEAN 28 · 🔄 ACTIVE 4 · ⚠️ WARN 0 · ❌ CONCERN 0`. Both endless-td and neonbreak ✅ CLEAN (0/0 ahead/behind, healthy daemon state). The 32nd repo is `dracon-libs` itself (auto-discovered after the clone).
+
+**Workspace `Cargo.toml` patch**:
+```toml
+[patch.crates-io]
+dracon-git = { path = "/home/dracon/Dev/dracon-libs/tools/sync/dracon-git" }
+```
+
+This patch should be removed once `dracon-git v94.7.1` is published to crates.io (requires operator's `CARGO_REGISTRY_TOKEN`).
+
+**Design doc**: `docs/design/concerns-investigation-2026-07-18.md` (14.7 KiB). **Release notes**: `release-notes-v0.112.20.md`. **AUDIT update pending**: `AUDIT_FULL_2026-07-18.md` §F5.
+
 ### Added
 - **Codeberg quota leak fix (`default_untracked_exclude_patterns`):**
   added 9 DIR-level patterns (`**/.pi/**`, `**/test-results/**`,
