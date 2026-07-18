@@ -1,6 +1,6 @@
 [package]
 name = "dracon-sync"
-version = "0.112.18"
+version = "0.112.19"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "Invisible git sync daemon for deterministic AI-assisted development"

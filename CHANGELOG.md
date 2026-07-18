@@ -14,6 +14,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.19 — 2026-07-18 — `repos` table fix for narrow terminals
+
+The `dracon-sync repos` output renders a 22-column v1 Full table (~620 chars wide) at any terminal width where `terminal_size()` cannot determine the width (piped, scripted, agent-captured output). At 80-col wezterm ptys with redirected stdout (e.g. `script -q -c '...'`, piped logs, agent stdout capture), the result is 600+-char rows that wrap mid-cell, misaligning header/separator/data rows and producing visually broken tables. This was observed live by the operator on 2026-07-18 against 31 watched repos.
+
+**Fix:** change the non-TTY fallback width from `Some(300)` (Full) to `Some(120)` (Compact-friendly) in `report.rs::terminal_width()`. Add `COLUMNS` env var support as a fallback after `DRACON_SYNC_TERM_WIDTH` (ncurses convention). Raise the Compact-tier threshold from `< 250` to `< 300` because the 15-column Compact layout's `LowerBoundary` constraints sum to ~215 cols minimum; comfy-table's `Dynamic` arrangement letter-wraps cell content (e.g. `PUSH` / `PENDING` on separate lines, `STATUS` header → `STA` / `TUS`) when the available width is below the sum of minimums. Routing 120–219 cols to Vertical instead avoids the letter-wrap artifact entirely.
+
+**New CLI flag: `--layout <vertical|compact|full>`.** Bypasses terminal-width detection and forces the requested tier. Useful when piping to a file (where `terminal_size()` returns None and the fallback picks Compact) but the operator actually wants Vertical or Full. Emits a warning and falls back to auto-detection for unknown values; clap rejects invalid values up front.
+
+**`comfy_table::Table::set_width(w)` applied to Compact and Full tables.** Forces the table to fit the actual terminal width; columns shrink to fit and cell content is truncated (with `…`) instead of letter-wrapped. Combined with the new tier thresholds, this means:
+
+| Width | Tier | Max line length | Notes |
+|---|---|---|---|
+| 80 | Vertical | 86 | one repo per multi-line block |
+| 120 | Vertical | 116 | (was 553, now readable) |
+| 220 | Compact | 231 | (was 553, now readable) |
+| 300 | Full | 346 | (was 616, now readable) |
+| 400 | Full | 400 | (was 620, now readable) |
+
+**3 new tests** (890 total, up from 887): `test_terminal_width_columns_env_var`, `test_terminal_width_fallback_is_compact`, `test_choose_layout_tier_fallback_no_env_no_tty_yields_compact_or_smaller`. Updated existing tier tests to match the new threshold (`< 220` → Vertical, `220-299` → Compact, `≥ 300` → Full). `cargo build --release --locked`, `cargo test --workspace --locked`, `cargo clippy --workspace --locked --all-targets -- -D warnings`, `cargo deny check` all clean.
+
+**Design doc:** `docs/design/repos-table-fix-2026-07-18.md` — root cause, threshold rationale, before/after pty captures at 80/120/220/300/400 cols.
+
+## [Unreleased]
+
 ### Added
 - **Codeberg quota leak fix (`default_untracked_exclude_patterns`):**
   added 9 DIR-level patterns (`**/.pi/**`, `**/test-results/**`,
