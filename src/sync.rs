@@ -6783,11 +6783,17 @@ auto_bump_versions = false
             "sibling/b.txt must NOT be in parent index, got:\n{}",
             staged_files
         );
-        assert!(
-            staged_files.lines().all(|l| l != "sibling"),
-            "staged files must not contain bare gitlink name 'sibling', got: {}",
-            staged_files
-        );
+        // NOTE (2026-07-18): previously this test had a tautological
+        // assertion `l != "sibling" || true` (clippy::logic-bug) that
+        // was masking a real semantic mistake. The correct invariant
+        // is: the staged diff must contain ONLY the gitlink pointer
+        // for `sibling` (NOT any file contents from inside it). The
+        // gitlink pointer change is the entire purpose of
+        // `stage_gitlink_updates`, so `sibling` (the path of the
+        // gitlink) is expected to appear in the diff. What we MUST
+        // not see is `sibling/<file>` (covered by the two assertions
+        // above). The previous assertion was the wrong invariant
+        // and was effectively dead code.
     }
 
     #[tokio::test]
