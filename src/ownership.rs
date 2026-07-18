@@ -247,29 +247,110 @@ pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipRepo
 
 /// Check whether a remote URL's host (and account path segment) is
 /// in the trusted list. The trusted list uses substrings like
-/// `github.com/DraconDev` so we match anywhere in the URL.
+/// Trusted-origin matching.
+///
+/// SECURITY (F39 fix, 2026-07-18): the previous implementation used a
+/// substring match (`normalized.contains(trusted)`) which is exploitable:
+///
+///   trusted_hosts = ["github.com/DraconDev"]
+///   url           = "https://github.com/DraconDev.evil.com/foo.git"
+///   url.contains("github.com/DraconDev") → true (bypass!)
+///
+/// This is the daemon's primary safety guard against auto-pushing to
+/// attacker-controlled infra. We now extract (host, first-path-segment)
+/// from each URL form atomically and match the trusted entries as
+/// `(host, owner)` tuples, which a substring match cannot bypass.
 ///
 /// Handles both HTTPS (`https://github.com/DraconDev/repo.git`) and
-/// SSH (`git@github.com:DraconDev/repo.git`) URL formats by
-/// normalizing the SSH form to the HTTPS form before matching.
+/// SSH (`git@github.com:DraconDev/repo.git`) URL forms. Also handles
+/// `git+ssh://git@host/path` (modern git origin syntax).
 fn is_trusted_origin(url: &str, trusted_hosts: &[String]) -> bool {
     if trusted_hosts.is_empty() {
         return false;
     }
-    // Normalize SSH form `git@host:path` → `host/path` so the same
-    // trusted substring works for both.
-    let normalized = if let Some(idx) = url.find('@') {
-        if let Some(colon_idx) = url[idx..].find(':') {
-            let host = &url[idx + 1..idx + colon_idx];
-            let path = &url[idx + colon_idx + 1..];
-            format!("{}/{}", host, path)
-        } else {
-            url.to_string()
-        }
-    } else {
-        url.to_string()
+    let Some((host, owner)) = parse_origin(url) else {
+        // Unparseable URLs (ssh://, weird schemes, etc.) are NOT
+        // trusted by default. The classifier falls through to
+        // Unknown/UnknownOrigin in that case. This is the safe side
+        // of the trade-off — false negatives get investigated, false
+        // positives leak tokens.
+        return false;
     };
-    trusted_hosts.iter().any(|h| normalized.contains(h))
+    if host.is_empty() || owner.is_empty() {
+        return false;
+    }
+    trusted_hosts.iter().any(|h| {
+        let Some((th, to)) = parse_origin(h) else {
+            return false;
+        };
+        th == host && to == owner
+    })
+}
+
+/// Extract `(host, first_path_segment)` from common git URL forms.
+/// Returns `None` for unparseable URLs.
+///
+/// Recognises:
+/// - `https://host/owner/repo(.git)`
+/// - `http://host/owner/repo(.git)`
+/// - `ssh://[user@]host[:port]/owner/repo(.git)`
+/// - `git@host:owner/repo(.git)` (scp-like)
+/// - `git+ssh://[user@]host/owner/repo(.git)`
+///
+/// The "owner" here is the FIRST non-empty path segment after the host,
+/// which corresponds to the GitHub/GitLab/Codeberg organisation or
+/// personal namespace.
+fn parse_origin(url: &str) -> Option<(&str, &str)> {
+    // Strip trailing `.git`
+    let url = url.trim_end_matches('/');
+    let url = url.strip_suffix(".git").unwrap_or(url);
+
+    // SSH scp-like form: `[user@]host:path`
+    // Must check this BEFORE the `://` split because there is no `://`
+    if !url.contains("://") {
+        if let Some(at) = url.find('@') {
+            // scp-like with optional user: user@host:path
+            let after_at = &url[at + 1..];
+            if let Some(colon) = after_at.find(':') {
+                let host = &after_at[..colon];
+                let path = &after_at[colon + 1..];
+                return Some((host, path.trim_start_matches('/').split('/').next()?));
+            }
+            // No colon, no path separator — unparseable.
+            return None;
+        }
+        // Bare `host:path` form without user@, treat the colon as
+        // the path separator.
+        if let Some(colon) = url.find(':') {
+            let host = &url[..colon];
+            let path = &url[colon + 1..];
+            if path.contains('/') {
+                return Some((host, path.trim_start_matches('/').split('/').next()?));
+            }
+            return None;
+        }
+        // No scheme, no scp form — fall through.
+        return None;
+    }
+
+    // Scheme-form: scheme://[user@]host[:port]/path
+    let after_scheme = url.splitn(2, "://").nth(1)?;
+    // Strip optional userinfo (user@) and port
+    let host_and_path = if let Some(slash) = after_scheme.find('/') {
+        &after_scheme[..slash]
+    } else {
+        // No path at all — `https://github.com` — no owner.
+        return None;
+    };
+    let host = host_and_path
+        .rsplitn(2, '@')
+        .next()?
+        .split(':')
+        .next()?; // strip optional `:port`
+    let path_start = after_scheme.find('/').map(|i| i + 1)?;
+    let path = &after_scheme[path_start..];
+    let owner = path.trim_start_matches('/').split('/').next()?;
+    Some((host, owner))
 }
 
 /// Aggregated trust lists built from `SyncPolicy`.
@@ -553,6 +634,89 @@ mod tests {
             "https://github.com/gi-dellav/repo.git",
             &hosts
         ));
+        // F39 regression: substrings must NOT match.
+        assert!(!is_trusted_origin(
+            "https://github.com/DraconDev.evil.com/foo.git",
+            &hosts
+        ));
+        assert!(!is_trusted_origin(
+            "git@github.com.DraconDev.malicious.com:attacker/repo.git",
+            &hosts
+        ));
+        assert!(!is_trusted_origin(
+            "https://evil.com/?ref=github.com/DraconDev/anything",
+            &hosts
+        ));
+    }
+
+    #[test]
+    fn test_is_trusted_origin_ssh_schemes() {
+        let hosts = vec!["github.com/DraconDev".to_string()];
+        // Modern ssh:// form
+        assert!(is_trusted_origin(
+            "ssh://git@github.com/DraconDev/repo.git",
+            &hosts
+        ));
+        // git+ssh:// form (used by some clients)
+        assert!(is_trusted_origin(
+            "git+ssh://git@github.com/DraconDev/repo.git",
+            &hosts
+        ));
+        // With port
+        assert!(is_trusted_origin(
+            "ssh://git@github.com:22/DraconDev/repo.git",
+            &hosts
+        ));
+        // Unrelated repo with same host but different owner
+        assert!(!is_trusted_origin(
+            "ssh://git@github.com/attacker/repo.git",
+            &hosts
+        ));
+    }
+
+    #[test]
+    fn test_is_trusted_origin_unparseable() {
+        let hosts = vec!["github.com/DraconDev".to_string()];
+        // Unparseable URLs must NOT silently match.
+        assert!(!is_trusted_origin("", &hosts));
+        assert!(!is_trusted_origin("not-a-url", &hosts));
+        assert!(!is_trusted_origin("https://github.com", &hosts));
+        // Untrusted owners of an otherwise-trusted host must not match.
+        assert!(!is_trusted_origin(
+            "https://github.com/gi-dellav/repo.git",
+            &hosts
+        ));
+    }
+
+    #[test]
+    fn test_parse_origin_direct() {
+        // Direct unit tests for the URL parser.
+        assert_eq!(
+            parse_origin("https://github.com/DraconDev/repo.git"),
+            Some(("github.com", "DraconDev"))
+        );
+        assert_eq!(
+            parse_origin("git@github.com:DraconDev/repo.git"),
+            Some(("github.com", "DraconDev"))
+        );
+        assert_eq!(
+            parse_origin("ssh://git@github.com/DraconDev/repo.git"),
+            Some(("github.com", "DraconDev"))
+        );
+        // Port stripping
+        assert_eq!(
+            parse_origin("ssh://git@gitlab.com:22/owner/repo.git"),
+            Some(("gitlab.com", "owner"))
+        );
+        // F39-bypass must be classified as attacker infra.
+        assert_eq!(
+            parse_origin("https://github.com/DraconDev.evil.com/repo.git"),
+            Some(("github.com", "DraconDev.evil.com"))
+        );
+        // Unparseable
+        assert_eq!(parse_origin(""), None);
+        assert_eq!(parse_origin("https://github.com"), None);
+        assert_eq!(parse_origin("not-a-url"), None);
     }
 
     #[test]
