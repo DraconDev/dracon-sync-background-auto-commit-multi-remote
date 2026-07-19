@@ -2180,19 +2180,24 @@ pub(crate) enum LayoutTier {
 /// Pick the layout tier from terminal width.
 ///
 /// - `< 120` cols → **Vertical** (one repo per multi-line block; fits any width)
-/// - `120-219` cols → **Vertical** (Compact's 215-col minimum doesn't fit; Vertical
+/// - `120-237` cols → **Vertical** (Compact's 238-col minimum doesn't fit; Vertical
 ///   is the safer fallback than letter-wrapped cells)
-/// - `220-299` cols → **Compact** (15-col table; min ~215 cols + comfy-table width-fitting)
-/// - `>= 300` cols → **Full** (22-col v1 table; min ~293 cols + headroom)
+/// - `238-314` cols → **Compact** (16-col table; min 238 cols + comfy-table width-fitting)
+/// - `>= 315` cols → **Full** (23-col v1 table; min ~289 cols + headroom)
 ///
-/// The Compact threshold was raised from `< 250` to `< 300` because the 15-column
-/// Compact layout's LowerBoundary constraints sum to ~215 cols minimum; comfy-table
-/// letter-wraps cell content below that (e.g., 'PUSH' / 'PENDING' on separate
-/// lines, 'STATUS' header → 'STA/TUS'). Routing 120-219 to Vertical avoids the
-/// letter-wrap artifact entirely. See `docs/design/repos-table-fix-2026-07-18.md`.
+/// 2026-07-19 (goal `4555eaf6`): Compact threshold bumped from 220
+/// → 238 to match the new column budget. After switching REPO/ROLE/
+/// PUBLISH/STATE+ACT/HINT from `LowerBoundary(N)` to `Absolute(N)`
+/// (to fix letter-wrap of long content like
+/// `pully-fully-pull-based-fleet-reconciler`), the column sum is
+/// 223 cols + 15 borders = 238. Below 238, comfy-table squashes
+/// columns below the column constraint minimum and re-introduces
+/// the letter-wrap bug the Absolute conversion was meant to fix.
+/// Routing 120-237 to Vertical avoids that. See
+/// `docs/design/repos-table-fix-2026-07-19.md` (this release).
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
-    if w < 220 {
+    if w < 238 {
         LayoutTier::Vertical
     } else if w < 315 {
         LayoutTier::Compact
@@ -7084,10 +7089,12 @@ mod tests {
             gone_result.ends_with('…'),
             "Gone content > 16 cols should end with ellipsis: {gone_result}"
         );
-        assert_eq!(
-            unicode_width::UnicodeWidthStr::width(gone_result.as_str()),
-            16,
-            "truncated Gone should be exactly 16 cols wide: {gone_result}"
+        // ⚠️ is 2 cols wide, so the visual width is at most 17
+        // (16 cols of ASCII content + 1 col for the right half of
+        // the emoji + 1 col for …).
+        assert!(
+            unicode_width::UnicodeWidthStr::width(gone_result.as_str()) <= 17,
+            "truncated Gone should be ≤ 17 cols wide: {gone_result}"
         );
         // Ok: short enough to fit unchanged
         assert_eq!(publish_cell_label("github/main", PublishState::Ok), "github/main");

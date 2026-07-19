@@ -332,7 +332,10 @@ mod tests {
         let roles = classify_roles(&rows);
         assert_eq!(roles.len(), 1);
         assert_eq!(roles[0], RoleKind::Parent(3));
-        assert_eq!(roles[0].label(), "parent (3 submods)");
+        // 2026-07-19 (goal `4555eaf6`): parent label format changed
+        // from `parent (N submods)` (20 chars) to `parent·N` (9 chars)
+        // to fit the 14-col ROLE column on narrow terminals.
+        assert_eq!(roles[0].label(), "parent·3");
     }
 
     #[test]
