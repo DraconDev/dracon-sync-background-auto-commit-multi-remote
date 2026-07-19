@@ -193,12 +193,31 @@ pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipRepo
             .as_ref()
             .map(|n| trusted.authors.iter().any(|t| t == n))
             .unwrap_or(false);
-        if !head_email_trusted && !head_name_trusted {
+        // SECURITY (F44 fix, 2026-07-18): the previous logic flagged
+        // unowned only if BOTH email AND name were untrusted
+        // (`!email && !name`). That is too lax — a single trusted
+        // value would bypass the check. We now flag if EITHER
+        // available signal is untrusted, and warn-but-pass if exactly
+        // one of the two is trusted (an asymmetry worth noting).
+        let email_untrusted = inputs.head_author_email.is_some() && !head_email_trusted;
+        let name_untrusted = inputs.head_author_name.is_some() && !head_name_trusted;
+        if email_untrusted || name_untrusted {
             let detail = match (&inputs.head_author_email, &inputs.head_author_name) {
                 (Some(e), Some(n)) => format!("HEAD author = {} <{}>", n, e),
                 (Some(e), None) => format!("HEAD author email = {}", e),
                 (None, Some(n)) => format!("HEAD author name = {}", n),
                 (None, None) => "no HEAD author".to_string(),
+            };
+            // Asymmetry warning: if ONE signal is trusted and the
+            // other is not, surface it explicitly so the operator
+            // can decide. The flag still fires (we treat asymmetry
+            // as suspicious).
+            let flag_asymmetry = (email_untrusted && head_name_trusted)
+                || (name_untrusted && head_email_trusted);
+            let detail = if flag_asymmetry {
+                format!("{} (asymmetric trust — one signal untrusted, one trusted)", detail)
+            } else {
+                detail
             };
             return OwnershipReport::Unowned {
                 reason: "untrusted_author".to_string(),
@@ -280,9 +299,19 @@ fn is_trusted_origin(url: &str, trusted_hosts: &[String]) -> bool {
         return false;
     }
     trusted_hosts.iter().any(|h| {
-        let Some((th, to)) = parse_origin(h) else {
+        // Trusted entries are `<host>/<owner>` shorthand, NOT full
+        // git URLs. Split on the first '/' and match both parts.
+        // This avoids the F39 substring bypass:
+        //   trusted = "github.com/DraconDev"
+        //   url     = "https://github.com/DraconDev.evil.com/foo.git"
+        //   host    = "github.com"
+        //   owner   = "DraconDev.evil.com"
+        //   → owner != "DraconDev" → not trusted.
+        let Some(slash) = h.find('/') else {
             return false;
         };
+        let th = &h[..slash];
+        let to = &h[slash + 1..];
         th == host && to == owner
     })
 }
@@ -548,6 +577,48 @@ mod tests {
                 assert!(detail.contains("Dracon"));
             }
             other => panic!("expected Unowned, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_classify_f44_asymmetric_trust_flags_unowned() {
+        // F44: a single trusted signal (name OR email) used to bypass
+        // the unowned flag. After the fix, asymmetric trust must be
+        // flagged Unowned with the "asymmetric trust" detail.
+        let inputs = OwnershipInputs {
+            user_email: Some("dracsharp@gmail.com".to_string()),
+            head_author_email: Some("evil@bad.com".to_string()),   // untrusted email
+            head_author_name: Some("DraconDev".to_string()),       // trusted name
+            origin_url: Some("git@github.com:DraconDev/x.git".to_string()),
+            override_owned: None,
+        };
+        let report = classify(&inputs, &default_trusted());
+        match report {
+            OwnershipReport::Unowned { reason, detail } => {
+                assert_eq!(reason, "untrusted_author");
+                assert!(
+                    detail.contains("asymmetric trust"),
+                    "expected asymmetry detail, got: {detail}"
+                );
+            }
+            other => panic!("expected Unowned on F44 asymmetric trust, got {:?}", other),
+        }
+
+        // Mirror case: trusted email, untrusted name.
+        let inputs2 = OwnershipInputs {
+            user_email: Some("dracsharp@gmail.com".to_string()),
+            head_author_email: Some("dracsharp@gmail.com".to_string()), // trusted
+            head_author_name: Some("NotDraconDev".to_string()),         // untrusted
+            origin_url: Some("git@github.com:DraconDev/x.git".to_string()),
+            override_owned: None,
+        };
+        let report2 = classify(&inputs2, &default_trusted());
+        match report2 {
+            OwnershipReport::Unowned { reason, detail } => {
+                assert_eq!(reason, "untrusted_author");
+                assert!(detail.contains("asymmetric trust"));
+            }
+            other => panic!("expected Unowned on F44 name-side asymmetry, got {:?}", other),
         }
     }
 
