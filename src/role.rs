@@ -47,17 +47,43 @@ pub(crate) enum RoleKind {
 impl RoleKind {
     /// Render the role as a short, single-line label for the table cell.
     ///
-    /// Truncates to keep the cell width bounded so the comfy-table
-    /// layout doesn't break on long submod paths. The full
-    /// information is still recoverable from `detail()` (used by the
-    /// design doc and tests).
+    /// CHANGED 2026-07-19 (goal `4555eaf6`): shortened the submod
+    /// label to drop the redundant `submod (of <parent_basename>/`
+    /// prefix. The parent's identity is already implicit from the
+    /// row grouping (the parent row sits above its submods in the
+    /// table, sorted by discovery order) and from the REPO column
+    /// (each row's REPO name is the submod's own basename, e.g.
+    /// `hegemon`). Repeating the parent name in every submod row
+    /// doubled the ROLE cell width for no operational value.
+    ///
+    /// Now a submod of `dracon-platform/web/games/wip/hegemon` is
+    /// rendered as `wip/hegemon` (just the part of the path below
+    /// the parent's `web/games/` segment — the `wip/` vs `released/`
+    /// tier marker is informative because the daemon has separate
+    /// policies for the two). Standalones and parents are unchanged.
+    ///
+    /// If a submod path doesn't start with `web/games/<tier>/` (e.g.
+    /// a future topology where submods sit outside the
+    /// canonical games directory), we fall back to the full path
+    /// below the parent to keep the cell unambiguous.
     pub(crate) fn label(&self) -> String {
         match self {
             RoleKind::Parent(n) => format!("parent ({} submods)", n),
             RoleKind::Submod {
-                parent_basename,
+                parent_basename: _,
                 sub_path,
-            } => format!("submod (of {}/{})", parent_basename, sub_path),
+            } => {
+                // sub_path looks like `web/games/wip/hegemon` or
+                // `web/games/released/one-mil-girls`. Strip the
+                // canonical `web/games/` prefix when present so the
+                // cell stays compact and the `wip`/`released` tier
+                // marker is visible.
+                if let Some(stripped) = sub_path.strip_prefix("web/games/") {
+                    stripped.to_string()
+                } else {
+                    sub_path.clone()
+                }
+            }
             RoleKind::Standalone => "standalone".to_string(),
         }
     }
@@ -442,5 +468,53 @@ mod tests {
             "expected submod, got {:?}",
             roles[2]
         );
+    }
+
+    /// Goal `4555eaf6` (2026-07-19): the ROLE column should render
+    /// submod labels compactly. For a submod of
+    /// `dracon-platform/web/games/wip/hegemon` the label is just
+    /// `wip/hegemon` (the part of the path below the canonical
+    /// `web/games/` prefix). For non-standard layouts (e.g. a
+    /// future topology where submods sit outside `web/games/`)
+    /// the full sub_path is used as a fallback.
+    #[test]
+    fn label_compact_submod_strips_web_games_prefix() {
+        let r = RoleKind::Submod {
+            parent_basename: "dracon-platform".to_string(),
+            sub_path: "web/games/wip/hegemon".to_string(),
+        };
+        assert_eq!(r.label(), "wip/hegemon");
+    }
+
+    #[test]
+    fn label_compact_submod_keeps_released_tier() {
+        let r = RoleKind::Submod {
+            parent_basename: "dracon-platform".to_string(),
+            sub_path: "web/games/released/one-mil-girls".to_string(),
+        };
+        assert_eq!(r.label(), "released/one-mil-girls");
+    }
+
+    #[test]
+    fn label_compact_submod_falls_back_when_no_web_games_prefix() {
+        // Hypothetical future layout where submods live outside
+        // `web/games/`. We should not silently produce a
+        // confusingly short label — fall back to the full sub_path.
+        let r = RoleKind::Submod {
+            parent_basename: "myparent".to_string(),
+            sub_path: "packages/my-sub".to_string(),
+        };
+        assert_eq!(r.label(), "packages/my-sub");
+    }
+
+    #[test]
+    fn label_parent_unchanged() {
+        assert_eq!(RoleKind::Parent(10).label(), "parent (10 submods)");
+        assert_eq!(RoleKind::Parent(1).label(), "parent (1 submods)");
+    }
+
+    #[test]
+    fn label_standalone_unchanged() {
+        assert_eq!(RoleKind::Standalone.label(), "standalone");
     }
 }
