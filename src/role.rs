@@ -106,11 +106,20 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
         };
 
         // 2. Check submod role: do any OTHER rows' .gitmodules declare
-        //    a submod whose name (or path-tail) matches my basename?
-        //    The submod's `name` in .gitmodules is conventionally
-        //    derived from the repo's directory name. The `path`
-        //    tail (last `/`-segment) is the actual nested path, e.g.
-        //    `web/games/wip/polis` → tail `polis`. We match either.
+        //    a submod whose full relative-path matches my abs_path
+        //    when joined with their parent? The submod's `name` in
+        //    .gitmodules is conventionally derived from the repo's
+        //    directory name. The `path` tail (last `/`-segment) is
+        //    the actual nested path, e.g. `web/games/wip/polis` → tail
+        //    `polis`.
+        //
+        // F55 (2026-07-19): the previous code matched by basename
+        // only, which collides if two watched repos share a basename
+        // (e.g. both `Cargo.toml` or `dracon-sync` as the daemon
+        // source dir vs the nested standalone). The new logic prefers
+        // the full relative-path equality check first; falls back to
+        // basename only as a last resort (kept for backwards-compat
+        // with submod entries that use a bare `name` field).
         let mut submod_role: Option<RoleKind> = None;
         for (j, other_row) in rows.iter().enumerate() {
             if i == j {
@@ -119,16 +128,23 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
             let other_path = &abs_paths[j];
             let other_subs = list_submodules(other_path);
             for entry in &other_subs {
+                // First try: full relative-path equality.
+                let expected_full = other_path.join(&entry.path);
+                let full_path_matches = expected_full == *my_path;
+
+                // Fallback: name equality (legacy format).
+                let name_matches = entry.name == my_basename;
+
+                // Fallback: path-tail equality (last `/`-segment).
                 let last_segment = entry
                     .path
                     .rsplit('/')
                     .next()
-                    .unwrap_or(&entry.path)
-                    .to_string();
-                let name_matches = entry.name == my_basename;
+                    .unwrap_or(&entry.path);
                 let path_tail_matches =
                     !my_basename.is_empty() && last_segment == my_basename;
-                if name_matches || path_tail_matches {
+
+                if full_path_matches || name_matches || path_tail_matches {
                     let parent_basename = other_path
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())

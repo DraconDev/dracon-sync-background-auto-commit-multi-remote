@@ -13,13 +13,35 @@ use tokio::sync::mpsc;
 /// Put those children in their own process group before spawning, then kill the
 /// group on timeout so a timed-out operation cannot keep running in the daemon
 /// cgroup and overlap with the next retry.
+///
+/// F47 (2026-07-19): the previous 200ms SIGTERM→SIGKILL gap was
+/// tight for processes that need cleanup time (large git filter-repo
+/// unpacking, etc.). Now: SIGTERM, wait 2s for graceful cleanup, then
+/// SIGKILL. Also: if `kill` is not on PATH (sandboxed envs), fall
+/// back to `nix-kill-process-group` crate (TODO) — for now, the
+/// spawn-failure is silently dropped but a future enhancement can
+/// surface it.
 #[cfg(unix)]
 fn kill_process_group(pid: u32) {
     let pid_s = format!("-{pid}");
-    let _ = std::process::Command::new("kill")
+    // Use `setsid` + `kill` shell-out to send signals to the
+    // process group created by `process_group(0)` in
+    // `configure_git_process_group`. The shell-out form is
+    // portable across glibc/musl/distros; libc::killpg would
+    // require a new direct dependency.
+    let term_ok = std::process::Command::new("kill")
         .args(["-TERM", pid_s.as_str()])
-        .output();
-    std::thread::sleep(Duration::from_millis(200));
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+    if !term_ok {
+        eprintln!(
+            "⚠️ kill_process_group: SIGTERM to pgid {} failed (kill missing or no perm)",
+            pid
+        );
+        return;
+    }
+    std::thread::sleep(Duration::from_secs(2));
     let _ = std::process::Command::new("kill")
         .args(["-KILL", pid_s.as_str()])
         .output();
