@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.24 — 2026-07-19 — goal `4555eaf6` (unowned + codeberg-as-main + role layout)
+
+Four operator-visible issues from `repos` table:
+
+1. **hegemon was `🚫 unowned`** (HEAD author `Hegemon Audit <hegemon@local>`, F44 flags when either name OR email is untrusted):
+   - Added `hegemon@local` to global `trusted_emails`
+   - Amended the 2 audit-script commits on hegemon's main to use canonical `DraconDev` name (was `Hegemon Audit`)
+   - Force-pushed to github + gitlab
+
+2. **`opencode-plugins` (PRIVATE) showed `PUBLISH = codeberg/main`** because no `origin` remote existed:
+   - New `ensure_origin_for_vscode()` in `multi_remote.rs` adds `origin = github URL` when mirrors exist but origin is missing
+   - Never overwrites an existing origin (operator override wins)
+   - One-time `git fetch origin` for existing repos
+
+3. **ROLE column was 51 chars wide** for submods:
+   - `RoleKind::Submod` now renders just `wip/<name>` (strips `web/games/` prefix)
+   - Preserves `wip` vs `released` tier marker
+   - Falls back to full sub_path for non-standard layouts
+
+4. **Audit-script identity impersonation**: fixed by the hegemon amend
+
+**+8 new regression tests** (924 total daemon tests). `cargo build/test/clippy/deny` all green.
+
 ### v0.112.23 — 2026-07-19 — UI rendering fix
 
 `repos` table layout was broken — cells were wrapping to 2-5 lines per row. Root cause: `LowerBoundary` constraints allowed columns to GROW to fit the longest content (152-char auto-commit subjects), and `truncate_unicode_width()` wasn't being applied to cells.
