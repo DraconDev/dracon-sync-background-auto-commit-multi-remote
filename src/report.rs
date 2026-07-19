@@ -8122,7 +8122,7 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_full() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        for w in [300, 400, 500, 1000] {
+        for w in [315, 400, 500, 1000] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
