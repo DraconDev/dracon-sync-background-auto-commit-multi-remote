@@ -3650,13 +3650,14 @@ fn print_repos_compact_table(
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
         } else {
-            // F30v2 (2026-07-19): truncate to match the Absolute(18)
-            // LAST COMMIT constraint. Without this, a 152-char auto-commit
-            // subject widens the column and breaks the layout.
+            // F30v2 (2026-07-19): truncate to fit the LAST COMMIT column.
+            // The column constraint is Absolute(18) which means total
+            // column width including comfy-table's default left+right
+            // cell padding (1 col each side, so 16 cols of content).
+            // Without subtracting the padding, content exactly at the
+            // column limit overflows by 2 cols and wraps to a 2nd line.
             let raw = format!("{} {}", row.last_hash, row.last_msg);
-            let t = truncate_unicode_width(&raw, 18);
-            eprintln!("DEBUG F30v2: hash={:?} msg_len={} -> commit_summary={:?}", row.last_hash, row.last_msg.len(), t);
-            t
+            truncate_unicode_width(&raw, 16)
         };
 
         // Combine state + activity into one cell to save horizontal space
@@ -3846,10 +3847,9 @@ fn print_repos_full_table(
             // `truncate_unicode_width`; the full tier forgot to.
             // Use the same helper here. Width = 17 cols (matches the
             // ColumnConstraint::Absolute below) minus 2 for cell
-            // padding = 15 visible chars + "…" + 7-char hash = 22
-            // total in the rendered cell.
+            // padding = 15 visible chars in the rendered cell.
             let raw = format!("{} {}", row.last_hash, row.last_msg);
-            truncate_unicode_width(&raw, 17)
+            truncate_unicode_width(&raw, 15)
         };
 
         table.add_row(vec![
