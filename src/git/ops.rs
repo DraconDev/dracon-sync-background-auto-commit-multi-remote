@@ -108,16 +108,34 @@ where
         let mut stderr_output = String::new();
         if let Some(mut stderr) = stderr_handle {
             let mut lines = BufReader::new(&mut stderr).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                if let Some(is_progress) = progress_predicate.as_mut() {
-                    if is_progress(&line) {
-                        let _ = progress_tx.send(Instant::now());
+            loop {
+                // F50 (2026-07-18): a broken pipe (subprocess OOM-killed,
+                // pipe closed early) returns Err; the previous
+                // `while let Ok(Some(line))` silently dropped the
+                // error. Surface the pipe break so the caller's
+                // diagnostic distinguishes pipe error from timeout.
+                match lines.next_line().await {
+                    Ok(Some(line)) => {
+                        if let Some(is_progress) = progress_predicate.as_mut() {
+                            if is_progress(&line) {
+                                let _ = progress_tx.send(Instant::now());
+                            }
+                        }
+                        if !stderr_output.is_empty() {
+                            stderr_output.push('\n');
+                        }
+                        stderr_output.push_str(&line);
+                    }
+                    Ok(None) => break,
+                    Err(e) => {
+                        eprintln!(
+                            "stderr pipe error during git op (likely child crashed): {}",
+                            e
+                        );
+                        stderr_output.push_str(&format!("<stderr pipe error: {}>", e));
+                        break;
                     }
                 }
-                if !stderr_output.is_empty() {
-                    stderr_output.push('\n');
-                }
-                stderr_output.push_str(&line);
             }
         }
         stderr_output
@@ -417,6 +435,29 @@ mod tests {
             "remote: Resolving deltas: 100% (10/10)"
         ));
         assert!(!is_git_push_progress_line("fatal: could not read Username"));
+    }
+
+    #[test]
+    fn test_f48_tightened_progress_predicate() {
+        // F48 regression: the new predicate must NOT extend the
+        // deadline on error messages that happen to contain `delta`
+        // or `bytes`.
+        assert!(!is_git_push_progress_line(
+            "error: cannot merge without a merge base (use --allow-unrelated-histories for a delta-branch merge strategy)"
+        ));
+        assert!(!is_git_push_progress_line(
+            "[trace] 0 bytes allocated"
+        ));
+        assert!(!is_git_push_progress_line(
+            "fatal: protocol error: bad bandle 42"
+        ));
+        // And it MUST still match the legitimate patterns.
+        assert!(is_git_push_progress_line(
+            "remote: Total 42 (delta 1), reused 0 (delta 0)"
+        ));
+        assert!(is_git_push_progress_line(
+            "remote: Processing 1234"
+        ));
     }
 
     #[cfg(unix)]
