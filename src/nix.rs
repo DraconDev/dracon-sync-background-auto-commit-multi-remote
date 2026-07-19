@@ -59,7 +59,10 @@ fn update_version_in_flake_nix(content: &str, new_version: &str) -> String {
             }
         }
 
-        if in_build_rust_package && line.contains("version = \"") {
+        if in_build_rust_package
+            && !trimmed.starts_with('#') // F42 (2026-07-18): skip comment lines so an inline comment containing `version = "x"` is not clobbered.
+            && line.contains("version = \"")
+        {
             if let Some(start_idx) = line.find("version = \"") {
                 let after_quote = start_idx + 10;
                 if let Some(end_quote_relative) = line[after_quote + 1..].find('"') {
@@ -307,6 +310,36 @@ mod tests {
         assert!(
             updated.contains("1.1.0"),
             "missing 1.1.0, got:\n{}",
+            updated
+        );
+    }
+
+    #[test]
+    fn test_update_version_in_flake_nix_skips_version_in_comment() {
+        // F42 (2026-07-18): a comment line containing `version = "..."`
+        // inside a buildRustPackage block must NOT be rewritten.
+        let content = r#"{
+  packages.x86_64-linux.default = pkgs.rustPlatform.buildRustPackage {
+    pname = "my-app";
+    # bumped from version = "0.9.0" originally
+    version = "1.0.0";
+    src = ./.;
+  };
+}"#;
+        let updated = update_version_in_flake_nix(content, "1.1.0");
+        assert!(
+            updated.contains("# bumped from version = \"0.9.0\" originally"),
+            "comment was clobbered by version replacement:\n{}",
+            updated
+        );
+        assert!(
+            updated.contains("version = \"1.1.0\""),
+            "real version was not bumped:\n{}",
+            updated
+        );
+        assert!(
+            !updated.contains("version = \"1.0.0\""),
+            "old version still present after bump:\n{}",
             updated
         );
     }

@@ -406,4 +406,48 @@ mod tests {
         ));
         assert!(!is_git_push_progress_line("fatal: could not read Username"));
     }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_git_askpass_script_atomic_0o700_create_and_cleanup() {
+        use std::os::unix::fs::PermissionsExt;
+        use super::{git_askpass_script, AskpassScript};
+
+        // F41 regression: the file must be created with mode 0o700
+        // atomically (no world-readable window) and cleaned up by
+        // the Drop guard.
+        let path = git_askpass_script("ghp_abc123XYZtestToken00000")
+            .await
+            .expect("script create");
+        let meta = tokio::fs::metadata(&path).await.expect("metadata");
+        let mode = meta.permissions().mode();
+        // Mode should be EXACTLY 0o700 (no world-read, no group-read).
+        assert_eq!(
+            mode & 0o777,
+            0o700,
+            "askpass script created with mode {:o} (expected 0o700); the world-readable race window is back",
+            mode
+        );
+
+        // Drop the cleanup guard and verify the file is unlinked.
+        let cleanup_path = path.clone();
+        {
+            let _guard = AskpassScript::new(cleanup_path);
+            assert!(tokio::fs::metadata(&path).await.is_ok(), "file exists in scope");
+        }
+        // After drop, file should be gone.
+        assert!(
+            tokio::fs::metadata(&path).await.is_err(),
+            "askpass script was not unlinked after Drop"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_git_askpass_script_rejects_single_quote() {
+        // F59: tokens with single quotes break POSIX shell quoting;
+        // we refuse them outright rather than risk shell injection.
+        let result = super::git_askpass_script("abc'def").await;
+        assert!(result.is_err(), "single-quote token must be rejected");
+    }
 }
