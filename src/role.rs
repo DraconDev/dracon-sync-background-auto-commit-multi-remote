@@ -400,7 +400,6 @@ mod tests {
             other => panic!("expected Submod for leaf, got {:?}", other),
         }
     }
-}
 
     /// F55 (2026-07-19): when two watched repos share a basename
     /// but live at different paths, full-path equality must

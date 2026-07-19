@@ -164,7 +164,12 @@ where
     });
 
     let mut deadline = Instant::now() + Duration::from_secs(timeout_secs);
-    let poll_interval = Duration::from_millis(250);
+    // F49 (2026-07-19): the previous 250ms poll was longer than
+    // needed for try_wait accuracy; reduce to 100ms. The progress
+    // wakeup is already event-driven via progress_rx in the
+    // tokio::select! below; this poll is just the safety net to
+    // catch child exit between progress events.
+    let poll_interval = Duration::from_millis(100);
 
     loop {
         if let Some(status) = child
