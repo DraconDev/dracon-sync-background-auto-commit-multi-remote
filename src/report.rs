@@ -3626,7 +3626,7 @@ fn print_repos_compact_table(
     // LowerBoundary(32) so it can fit when terminal is wide.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 7 + 2 + 2 buffer for '⚠️  WARN')
+        ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(7)),  // ROLE (header 5 + 2 + 0 buffer - tight for compact)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
@@ -3815,7 +3815,7 @@ fn print_repos_full_table(
     // COMMIT and Absolute(11) for AUTHOR.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(18)), // ROLE (was 35, F30: trim to 18; long paths → truncated)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
@@ -8291,7 +8291,7 @@ mod tests {
         // auto-commit subjects) is truncated instead of widening the
         // column. Array values unchanged.
         let minimums: [u16; 23] = [
-            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
+            4, 13, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
         // F30v2 (2026-07-19): values unchanged but constraint type for
         // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
@@ -8324,7 +8324,7 @@ mod tests {
     fn test_compact_table_min_width_within_250() {
         // The values here MUST match the set_constraints in print_repos_compact_table.
         let minimums: [u16; 15] = [
-            3, 11, 18, 11, 18, 8, 8, 7, 9, 11, 13, 18, 18, 17, 22,
+            3, 13, 18, 11, 18, 8, 8, 7, 9, 11, 13, 18, 18, 17, 22,
         ];
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
