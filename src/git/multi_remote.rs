@@ -66,6 +66,23 @@ pub(crate) fn filter_remotes_by_exclude(
 /// Configure all remotes from policy for a given repo, skipping any
 /// remote in `exclude`. `exclude` is a list of remote names (e.g.
 /// `["gitlab"]`); an empty list is a no-op filter.
+///
+/// ADDED 2026-07-19 (goal `4555eaf6`): after configuring the
+/// mirror remotes, ensure `origin` exists. The daemon pushes to
+/// mirrors by explicit refspec so `origin` is NOT required for
+/// sync, but VS Code's `git push` button uses `origin` by
+/// convention. Without an `origin`, the branch's
+/// `branch.<name>.remote` falls back to the alphabetically-first
+/// remote — which for some operators is `codeberg`, leading to a
+/// misleading `PUBLISH = codeberg/main` cell even though the
+/// daemon (correctly) skips codeberg under the public-only
+/// policy.
+///
+/// We set `origin` to the github mirror URL when one is configured
+/// and `origin` is missing. If no github mirror is in policy
+/// (unusual), `origin` is left untouched. We NEVER overwrite an
+/// existing `origin` — operators who deliberately set a different
+/// `origin` (e.g. an internal gitlab) are preserved.
 pub(crate) fn configure_all_remotes(
     repo: &Path,
     remotes: &[RemoteConfig],
@@ -82,6 +99,65 @@ pub(crate) fn configure_all_remotes(
                 repo.display(),
                 e
             );
+        }
+    }
+
+    // ADDED 2026-07-19: ensure origin points at the github mirror
+    // when no origin is configured. See doc-comment above.
+    ensure_origin_for_vscode(repo, &filtered);
+}
+
+/// ADDED 2026-07-19 (goal `4555eaf6`): if the repo has no
+/// `origin` remote AND a github mirror is in the configured
+/// remotes, set `origin` to the github URL and `branch.<default>.remote`
+/// to `origin`. This makes VS Code's `git push` work as expected
+/// and produces a sane `PUBLISH` cell in the `repos` table.
+///
+/// Never overwrites an existing origin (operator override wins).
+fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig]) {
+    if crate::git::status::has_origin_remote(repo) {
+        return;
+    }
+    let Some(github) = configured.iter().find(|r| r.name == "github") else {
+        return;
+    };
+    let Some(repo_name) = repo.file_name().and_then(|n| n.to_str()) else {
+        return;
+    };
+    let url = github.resolve_push_url(repo_name);
+    if let Err(e) = std_git_command()
+        .args(["remote", "add", "origin", &url])
+        .current_dir(repo)
+        .status()
+    {
+        eprintln!(
+            "⚠️ failed to add origin for {}: {}",
+            repo.display(),
+            e
+        );
+        return;
+    }
+    // Also set branch.<name>.remote = origin if a default branch
+    // exists and its remote config is unset. This is what makes
+    // `git push` (with no args) and `git status` report the right
+    // upstream.
+    if let Ok(output) = std_git_command()
+        .args(["symbolic-ref", "--short", "HEAD"])
+        .current_dir(repo)
+        .output()
+    {
+        if output.status.success() {
+            let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !branch.is_empty() && crate::git::is_safe_branch_name(&branch) {
+                let _ = std_git_command()
+                    .args([
+                        "config",
+                        &format!("branch.{branch}.remote"),
+                        "origin",
+                    ])
+                    .current_dir(repo)
+                    .status();
+            }
         }
     }
 }
