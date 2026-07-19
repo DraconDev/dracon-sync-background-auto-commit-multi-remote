@@ -14,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.21 — 2026-07-19 — post-v0.112.20 audit remediation
+
+8 daemon HIGH + 3 warden HIGH findings remediated from `AUDIT_FULL_2026-07-18-POSTFIX.md`. Critical changes:
+
+- **F30 — Full table layout constraint sum 345 → 299 cols**: the v0.112.19 fix was incomplete because the test array had 22 entries but production had 23 (ROLE was added but never propagated to the test). At terminal width 300, the v0.112.19 table letter-wrapped ROLE and PUSH-TO columns. This release: (1) trims ROLE 35→18, PUSH-TO 32→22, LAST COMMIT 22→17, ACTIVITY 17→11, DAEMON 17→15, HINT 22→15; (2) updates the test array to match production (now 23 entries summing to 275+24=299); (3) replaces the stale "Sum: 268/Plus 23 borders: 291" comment with the actual values. New floor 299 cols fits any 300+ terminal.
+
+- **F39 — ownership substring bypass** ([ownership.rs:267](src/ownership.rs)): `is_trusted_origin("https://github.com/DraconDev.evil.com/x.git", ...)` matched the trusted entry `"github.com/DraconDev"`. New `parse_origin()` extracts `(host, first_path_segment)` atomically and the matcher requires tuple equality, not substring. Also `redact_origin_credentials()` strips `user:password@` from URLs before logging.
+
+- **F40 — `standard_files` path traversal** (policy.rs: validate_config): rejects absolute `target` paths, `..` components, Windows-prefix paths, and absolute `source` paths. A config typo `{target = "/etc/cron.daily/evil"}` is now an error rather than a write-anywhere primitive.
+
+- **F41 — `git_askpass_script` token leak** ([git/ops.rs:263](src/git/ops.rs)): file is now created with `O_EXCL | O_NOFOLLOW` and mode `0o700` atomically (no world-readable race between write and chmod). New `AskpassScript` Drop guard for RAII cleanup. Tokens containing `'` (F59) are refused outright.
+
+- **F42 — nix.rs comment clobber** ([nix.rs:65](src/nix.rs)): `update_version_in_flake_nix` now skips `version = "..."` lines that begin with `#`.
+
+- **F43 — TOML trailing `;`** ([bump.rs:16](src/bump.rs)): `extract_version_from_cargo` strips a trailing `;` before the closing-`"` check.
+
+- **F44 — classify step 3 OR-of-untrusted** ([ownership.rs:185](src/ownership.rs)): now flags Unowned if EITHER email OR name is untrusted. Previous logic was too lax: a single trusted value bypassed the check.
+
+- **F45 — mem::forget TempDir leak** ([test_helpers.rs:67](src/test_helpers.rs)): temp dirs are now registered in a global `TEST_TEMPS` Vec and reaped at process exit, instead of being permanently stranded.
+
+- **F46 — EnvRestorer Drop UB** ([test_helpers.rs:222](src/test_helpers.rs)): documented the racy `set_var` during unwinding; relies on `--test-threads=1` discipline in `.cargo/config.toml`.
+
+- **F32/F48/F50/F51/F52/F53/F54** MEDIUMs (selected): `restore_paths` now validates paths; `is_git_push_progress_line` switched to a regex (substring `delta`/`bytes` no longer extend the deadline on error messages); stderr-task `Err` is now surfaced instead of silently dropped; `extract_version_from_json` uses `serde_json` (handles escaped quotes); `load_secret` refuses env values with control characters; SSH `ssh://host:port` URLs now parse correctly; logged origins redact `user:password@`.
+
+Test count: 906 (was 890, +16 new regression tests). `cargo build/test/clippy/deny` all green.
+
 ### v0.112.19 — 2026-07-18 — `repos` table fix for narrow terminals
 
 The `dracon-sync repos` output renders a 22-column v1 Full table (~620 chars wide) at any terminal width where `terminal_size()` cannot determine the width (piped, scripted, agent-captured output). At 80-col wezterm ptys with redirected stdout (e.g. `script -q -c '...'`, piped logs, agent stdout capture), the result is 600+-char rows that wrap mid-cell, misaligning header/separator/data rows and producing visually broken tables. This was observed live by the operator on 2026-07-18 against 31 watched repos.
