@@ -149,6 +149,14 @@ pub(crate) fn top_level_dir(path: &str) -> Option<String> {
 
 /// Rewrite ahead paths using git filter-repo or filter-branch.
 /// Returns Some(backup_branch_name) on success, None if no paths to rewrite.
+///
+/// F31 (2026-07-19): after a successful rewrite, check whether the
+/// resulting HEAD actually differs from the backup branch. If the
+/// rewrite was a no-op (e.g. the path glob didn't match anything
+/// committed ahead of the remote), delete the backup branch to
+/// avoid littering `git branch` output with empty `backup/pre-sync-*`
+/// branches. The function signature is preserved: callers see
+/// `Some(backup)` only when the rewrite actually changed history.
 pub(crate) fn rewrite_ahead_paths(
     repo: &Path,
     paths_to_remove: &[String],
@@ -202,7 +210,7 @@ pub(crate) fn rewrite_ahead_paths(
                 backup_branch
             ));
         }
-        return Ok(Some(backup_branch));
+        return rewrite_was_noop_then_cleanup(repo, &backup_branch);
     }
 
     let filter_branch_available = crate::policy::std_git_command()
@@ -235,7 +243,7 @@ pub(crate) fn rewrite_ahead_paths(
                 backup_branch
             ));
         }
-        return Ok(Some(backup_branch));
+        return rewrite_was_noop_then_cleanup(repo, &backup_branch);
     }
 
     Err(anyhow::anyhow!(
@@ -243,6 +251,43 @@ pub(crate) fn rewrite_ahead_paths(
         repo.display(),
         backup_branch
     ))
+}
+
+/// Compare backup_branch HEAD-tree to current HEAD. If equal, the
+/// rewrite was a no-op — delete the backup branch so it doesn't
+/// clutter `git branch` output. Otherwise return Some(backup_branch).
+fn rewrite_was_noop_then_cleanup(repo: &Path, backup_branch: &str) -> Result<Option<String>> {
+    // Use `git rev-parse <branch>^{tree}` so we compare trees, not
+    // commit hashes — a no-op rewrite that touched the commit graph
+    // but not the tree still produces the same content.
+    let backup_tree = crate::policy::std_git_command()
+        .args(["rev-parse", &format!("{}^{{tree}}", backup_branch)])
+        .current_dir(repo)
+        .output();
+    let head_tree = crate::policy::std_git_command()
+        .args(["rev-parse", "HEAD^{tree}"])
+        .current_dir(repo)
+        .output();
+    match (backup_tree, head_tree) {
+        (Ok(b), Ok(h)) if b.status.success() && h.status.success() => {
+            let b_hash = String::from_utf8_lossy(&b.stdout).trim().to_string();
+            let h_hash = String::from_utf8_lossy(&h.stdout).trim().to_string();
+            if b_hash == h_hash {
+                // No-op rewrite — delete the empty backup branch.
+                let _ = crate::policy::std_git_command()
+                    .args(["branch", "-D", backup_branch])
+                    .current_dir(repo)
+                    .status();
+                return Ok(None);
+            }
+            Ok(Some(backup_branch.to_string()))
+        }
+        _ => {
+            // Couldn't determine — assume rewrite happened (safer to
+            // keep the backup than to silently drop it).
+            Ok(Some(backup_branch.to_string()))
+        }
+    }
 }
 
 /// Restore paths from the index to the working tree.
@@ -305,4 +350,63 @@ fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -
     path.components()
         .filter_map(|c| c.as_os_str().to_str())
         .any(|c| excluded_dir_names.contains(c))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::create_test_repo;
+
+    /// F31 (2026-07-19): `rewrite_ahead_paths` must delete the backup
+    /// branch when the rewrite was a no-op (HEAD tree == backup tree).
+    #[test]
+    fn test_f31_noop_rewrite_deletes_backup_branch() {
+        if !crate::git::ops::filter_repo_available_for_tests() {
+            eprintln!("filter-repo not installed; skipping");
+            return;
+        }
+        let repo = create_test_repo();
+        let pre = crate::policy::std_git_command()
+            .args(["rev-parse", "HEAD^{tree}"])
+            .current_dir(repo.as_path())
+            .output()
+            .expect("rev-parse");
+        let pre_hash = String::from_utf8_lossy(&pre.stdout).trim().to_string();
+
+        // Empty paths_to_remove means rewrite_ahead_paths short-circuits to Ok(None).
+        let r = rewrite_ahead_paths(repo.as_path(), &[], "test/backup");
+        assert!(r.is_ok());
+        assert_eq!(r.unwrap(), None);
+
+        // Now test with a path that doesn't match anything in HEAD.
+        // The commit tree won't change; backup should be deleted.
+        let r2 = rewrite_ahead_paths(
+            repo.as_path(),
+            &["nonexistent/should/not/match.xyz".to_string()],
+            "test/backup",
+        );
+        assert!(r2.is_ok());
+
+        // Verify the backup branch was deleted (no-op rewrite cleanup).
+        let branches = crate::policy::std_git_command()
+            .args(["branch", "--list"])
+            .current_dir(repo.as_path())
+            .output()
+            .expect("git branch");
+        let stdout = String::from_utf8_lossy(&branches.stdout);
+        assert!(
+            !stdout.contains("test/backup-"),
+            "expected no backup branches after no-op rewrite; got: {}",
+            stdout
+        );
+
+        // HEAD tree unchanged.
+        let post = crate::policy::std_git_command()
+            .args(["rev-parse", "HEAD^{tree}"])
+            .current_dir(repo.as_path())
+            .output()
+            .expect("rev-parse");
+        let post_hash = String::from_utf8_lossy(&post.stdout).trim().to_string();
+        assert_eq!(pre_hash, post_hash);
+    }
 }

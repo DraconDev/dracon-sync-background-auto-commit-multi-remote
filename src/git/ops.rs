@@ -419,6 +419,17 @@ pub(crate) fn run_git_capture_output(repo: &Path, args: &[&str], op_label: &str)
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+/// Test helper: returns whether `git filter-repo` is on PATH.
+/// Used by F31 regression test to skip when filter-repo is absent.
+pub(crate) fn filter_repo_available_for_tests() -> bool {
+    use std::process::Command;
+    Command::new("git")
+        .args(["filter-repo", "--version"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::is_git_push_progress_line;
