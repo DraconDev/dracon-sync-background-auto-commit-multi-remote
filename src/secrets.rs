@@ -136,10 +136,17 @@ fn check_secrets_dir_permissions(dir: &Path) -> Result<(), String> {
     }
     let metadata = std::fs::metadata(dir).map_err(|e| format!("cannot read metadata: {}", e))?;
     let mode = metadata.permissions().mode();
-    if mode & 0o002 != 0 {
+    // F60 (2026-07-19): the previous check was world-writable (0o002)
+    // only. Group-writable (0o020) on a secrets directory lets any
+    // user in the daemon's group inject/override secrets. Refuse
+    // both world- AND group-writable (the daemon typically runs as
+    // a single user; group access adds risk without value).
+    if mode & 0o022 != 0 {
         return Err(format!(
-            "directory is world-writable (mode {:o}). Refusing to load secrets.",
-            mode & 0o7777
+            "directory is group- or world-writable (mode {:o}). Refusing to load secrets. \
+             Run: chmod go-w {}",
+            mode & 0o7777,
+            dir.display()
         ));
     }
     Ok(())

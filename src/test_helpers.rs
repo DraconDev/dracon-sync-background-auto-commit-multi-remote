@@ -29,7 +29,15 @@
 /// # Git Command Helper
 ///
 /// Use `test_git_cmd()` instead of direct process construction in tests.
-/// This respects `DRACON_SYNC_GIT_BIN`, serializes git invocations, and avoids PATH races in parallel runs.
+/// This respects `DRACON_SYNC_GIT_BIN`.
+///
+/// F61 (2026-07-19): the previous doc-comment claimed this helper
+/// "serializes git invocations". That was WRONG — see F20 in the
+/// audit: `GIT_COMMAND_LOCK` (policy.rs:9-69) is broken because the
+/// guard is dropped immediately on return. This helper is just a
+/// thin wrapper around `crate::git::git_cmd()`; it provides
+/// `DRACON_SYNC_GIT_BIN` override and a single point of edit, but
+/// does NOT serialize git invocations.
 ///
 /// ```ignore
 /// let output = test_git_cmd().current_dir(&repo).args(["status"]).output()?;
