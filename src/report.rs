@@ -531,9 +531,9 @@ fn format_push_to_remotes_cell(
         if let Some(reason) = codeberg_skip_reason {
             cell_text.push_str(&format!(" ({reason})"));
         }
-        // F30v2: truncate to fit the Absolute(24) PUSH-TO column
-        // minus 2 padding = 22 cols content.
-        Cell::new(truncate_unicode_width(&cell_text, 22))
+        // F30v2: truncate to fit the Absolute(32) PUSH-TO column
+        // minus 2 padding = 30 cols content.
+        Cell::new(truncate_unicode_width(&cell_text, 30))
             .fg(comfy_table::Color::Yellow)
     }
 }
@@ -2189,7 +2189,7 @@ pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
     if w < 220 {
         LayoutTier::Vertical
-    } else if w < 300 {
+    } else if w < 315 {
         LayoutTier::Compact
     } else {
         LayoutTier::Full
@@ -3826,7 +3826,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::Absolute(Width::Fixed(24)),    // PUSH-TO (F30v2: Absolute — truncate cell content; 22 cols fits 'codeberg,github,gitlab' = 22 chars + 2 padding)
+        ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (F30v2: Absolute — 30 cols content fits 'codeberg [excl:github,gitlab]' = 28 chars + 2 padding headroom)
         ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
@@ -8273,8 +8273,8 @@ mod tests {
     // ---- Wrap-detection tests (goal: no cell wraps mid-content at tier boundaries) ----
 
     /// Verify the sum of all 22 column minimums in `print_repos_full_table`
-    /// plus 23 borders is < 300 cols (the full tier threshold).
-    /// If this sum grows past 300, the full tier won't fit and content will wrap.
+    /// plus 23 borders is < 315 cols (the full tier threshold).
+    /// If this sum grows past 315, the full tier won't fit and content will wrap.
     #[test]
     fn test_full_table_min_width_within_300() {
         // The values here MUST match the set_constraints in print_repos_full_table.
@@ -8291,7 +8291,7 @@ mod tests {
         // auto-commit subjects) is truncated instead of widening the
         // column. Array values unchanged.
         let minimums: [u16; 23] = [
-            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 24, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
+            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
         // F30v2 (2026-07-19): values unchanged but constraint type for
         // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
@@ -8300,8 +8300,8 @@ mod tests {
         let borders: u32 = 24;
         let total = sum + borders;
         assert!(
-            total <= 300,
-            "Full table minimum width {total} exceeds 300-col tier threshold. \
+            total <= 315,
+            "Full table minimum width {total} exceeds 315-col tier threshold. \
              Lower some LowerBoundaries or push the tier boundary higher."
         );
         // F30 regression: the test array count must match the
