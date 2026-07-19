@@ -901,4 +901,142 @@ exit 1
         // The original `remotes` slice is never mutated.
         assert_eq!(remotes.len(), 3, "input must not be mutated");
     }
+
+    // ========================================================================
+    // Tests for `configure_all_remotes` origin-bootstrap (goal
+    // `4555eaf6`, 2026-07-19).
+    //
+    // The repo has no `origin` and only mirror remotes
+    // (`github`/`gitlab`/`codeberg`). VS Code's `git push` uses
+    // `origin`, and the daemon's `PUBLISH` cell reads
+    // `branch.<name>.remote` which falls back to the
+    // alphabetically-first remote when `origin` is absent. The
+    // fallback for many setups is `codeberg`, which is misleading
+    // for private repos where codeberg is excluded under the
+    // public-only policy.
+    //
+    // `configure_all_remotes` now sets `origin` to the github
+    // mirror's URL when no `origin` exists, so both VS Code and
+    // the daemon's PUBLISH cell agree on the canonical remote.
+    // ========================================================================
+
+    /// Helper: build a minimal RemoteConfig for the origin tests
+    /// (re-using `make_remote` to keep the tests consistent).
+    fn make_three_remotes() -> Vec<RemoteConfig> {
+        vec![
+            make_remote("github", 1),
+            make_remote("gitlab", 2),
+            make_remote("codeberg", 3),
+        ]
+    }
+
+    /// Helper: initialise a fresh git repo at `path` with a
+    /// `main` branch (so `symbolic-ref HEAD` works).
+    fn init_bare_repo(path: &Path) {
+        std::fs::create_dir_all(path).unwrap();
+        crate::policy::std_git_command()
+            .args(["init", "--initial-branch=main"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+        // Need at least one commit so HEAD resolves.
+        std::fs::write(path.join("README.md"), "x").unwrap();
+        crate::policy::std_git_command()
+            .args(["add", "README.md"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+        crate::policy::std_git_command()
+            .args([
+                "-c", "user.email=test@example.com",
+                "-c", "user.name=test",
+                "commit", "-m", "init",
+            ])
+            .current_dir(path)
+            .output()
+            .unwrap();
+    }
+
+    /// Goal `4555eaf6`: a fresh repo with no `origin` should get
+    /// `origin = github URL` after `configure_all_remotes` runs.
+    /// The github remote is also added (the existing behavior),
+    /// and the branch's `branch.main.remote` is set to `origin`.
+    #[test]
+    fn test_configure_all_remotes_bootstraps_origin_when_missing() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("my-repo");
+        init_bare_repo(&repo);
+
+        let remotes = make_three_remotes();
+        configure_all_remotes(&repo, &remotes, "my-repo", &[]);
+
+        // github remote URL should match what `make_remote` produces.
+        let origin_url = crate::git::multi_remote::get_remote_url(&repo, "origin")
+            .expect("origin should be set");
+        assert_eq!(origin_url, "git@invalid.example.com:github.git");
+        // All three mirrors should also be configured.
+        for name in ["github", "gitlab", "codeberg"] {
+            assert!(
+                crate::git::multi_remote::get_remote_url(&repo, name).is_some(),
+                "missing {} remote",
+                name
+            );
+        }
+        // branch.main.remote = origin
+        let branch_remote = crate::policy::std_git_command()
+            .args(["config", "--get", "branch.main.remote"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(branch_remote.status.success());
+        assert_eq!(
+            String::from_utf8_lossy(&branch_remote.stdout).trim(),
+            "origin"
+        );
+    }
+
+    /// Goal `4555eaf6`: if `origin` already exists, `configure_all_remotes`
+    /// must NOT overwrite it. Operators who deliberately point
+    /// `origin` at e.g. an internal gitlab keep their config.
+    #[test]
+    fn test_configure_all_remotes_does_not_overwrite_existing_origin() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("my-repo");
+        init_bare_repo(&repo);
+
+        // Pre-set origin to a deliberately-unusual URL.
+        crate::policy::std_git_command()
+            .args(["remote", "add", "origin", "git@internal.example.com:keep.git"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        let remotes = make_three_remotes();
+        configure_all_remotes(&repo, &remotes, "my-repo", &[]);
+
+        let origin_url = crate::git::multi_remote::get_remote_url(&repo, "origin")
+            .expect("origin should be set");
+        assert_eq!(
+            origin_url, "git@internal.example.com:keep.git",
+            "configure_all_remotes must not overwrite an existing origin"
+        );
+    }
+
+    /// Goal `4555eaf6`: when policy has no github remote (unusual),
+    /// `configure_all_remotes` should leave `origin` untouched
+    /// rather than inventing one from another mirror.
+    #[test]
+    fn test_configure_all_remotes_no_origin_when_no_github_in_policy() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("my-repo");
+        init_bare_repo(&repo);
+
+        let remotes = vec![make_remote("gitlab", 1)];
+        configure_all_remotes(&repo, &remotes, "my-repo", &[]);
+
+        assert!(
+            crate::git::multi_remote::get_remote_url(&repo, "origin").is_none(),
+            "origin should NOT be set when policy has no github remote"
+        );
+    }
 }
