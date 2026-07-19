@@ -439,7 +439,11 @@ mod tests {
     }
     #[test]
     fn test_parse_name_status_line_renamed() {
-        let result = parse_name_status_line("R\told.rs\tnew.rs");
+        // F33 (2026-07-19): update to include a real rename score
+        // suffix. The previous `R\told\tnew` form is now rejected
+        // (no score). `git diff --name-status -M` always emits
+        // `R<score>\t<old>\t<new>`.
+        let result = parse_name_status_line("R100\told.rs\tnew.rs");
         assert!(result.is_some());
         let (path, status) = result.unwrap();
         assert_eq!(path, PathBuf::from("new.rs"));
