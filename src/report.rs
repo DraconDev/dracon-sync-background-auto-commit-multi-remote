@@ -8301,6 +8301,59 @@ mod tests {
         );
     }
 
+    /// F30v2 regression (2026-07-19): a 152-char commit subject must
+    /// be truncated to fit the LAST COMMIT column (17 chars for full
+    /// tier, 18 for compact) — NOT passed through to comfy-table,
+    /// which would widen the column and break table layout.
+    #[test]
+    fn test_long_commit_subject_truncated_to_last_commit_width() {
+        // Worst-case auto-commit subject seen in our watched repos
+        // (152 chars): "1 file(s) in .pi-tmp [.pi-tmp/audit-part2-main-policy-exclude-vis-release.md] DELTA:+128/-0 | NEW:.pi-tmp/audit-part2-main-policy-exclude-vis-release.md"
+        let long_msg = "1 file(s) in .pi-tmp [.pi-tmp/audit-part2-main-policy-exclude-vis-release.md] DELTA:+128/-0 | NEW:.pi-tmp/audit-part2-main-policy-exclude-vis-release.md";
+        assert!(
+            long_msg.chars().count() > 100,
+            "test setup: long_msg should be >100 chars, got {}",
+            long_msg.chars().count()
+        );
+        // 7-char hash + space + message:
+        let raw = format!("abcdef1 {}", long_msg);
+
+        let width = |s: &str| -> usize {
+            s.chars()
+                .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+                .sum()
+        };
+
+        // Full tier truncation: 17 cols
+        let truncated_full = truncate_unicode_width(&raw, 17);
+        assert!(
+            width(&truncated_full) <= 17,
+            "Full-tier truncation failed: got {} cols for {:?}",
+            width(&truncated_full),
+            truncated_full
+        );
+        // Must contain "…" (the ellipsis marker)
+        assert!(
+            truncated_full.ends_with('…'),
+            "Full-tier truncation should end with … (U+2026): got {:?}",
+            truncated_full
+        );
+
+        // Compact tier truncation: 18 cols
+        let truncated_compact = truncate_unicode_width(&raw, 18);
+        assert!(
+            width(&truncated_compact) <= 18,
+            "Compact-tier truncation failed: got {} cols for {:?}",
+            width(&truncated_compact),
+            truncated_compact
+        );
+        assert!(
+            truncated_compact.ends_with('…'),
+            "Compact-tier truncation should end with …: got {:?}",
+            truncated_compact
+        );
+    }
+
     /// Verify each header text width fits within its column minimum (with 2 cols
     /// of cell padding subtracted). If a header is wider than its column minus
     /// 2 padding, comfy-table will wrap the header across two lines.
