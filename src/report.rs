@@ -3654,7 +3654,9 @@ fn print_repos_compact_table(
             // LAST COMMIT constraint. Without this, a 152-char auto-commit
             // subject widens the column and breaks the layout.
             let raw = format!("{} {}", row.last_hash, row.last_msg);
-            truncate_unicode_width(&raw, 18)
+            let t = truncate_unicode_width(&raw, 18);
+            eprintln!("DEBUG F30v2: hash={:?} msg_len={} -> commit_summary={:?}", row.last_hash, row.last_msg.len(), t);
+            t
         };
 
         // Combine state + activity into one cell to save horizontal space
