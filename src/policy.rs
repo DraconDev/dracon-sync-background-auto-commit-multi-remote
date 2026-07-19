@@ -1429,6 +1429,50 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
         }
     }
 
+    // F40 (2026-07-18): standard_files[].target must be a relative
+    // path with no `..` segments. Otherwise `repo.join(target)` either
+    // replaces the base entirely (absolute path) or escapes the repo
+    // (parent traversal). A config typo would be a write-anywhere
+    // primitive under the daemon's UID.
+    for (idx, sf) in policy.standard_files.iter().enumerate() {
+        let target_str = sf.target.as_str();
+        if target_str.is_empty() {
+            result.error(format!(
+                "standard_files[{}].target is empty",
+                idx
+            ));
+            continue;
+        }
+        let target_path = std::path::Path::new(target_str);
+        let abs = target_path.is_absolute();
+        let has_parent = target_path
+            .components()
+            .any(|c| matches!(c, std::path::Component::ParentDir));
+        let has_root = target_path
+            .components()
+            .any(|c| matches!(c, std::path::Component::RootDir));
+        let has_prefix = target_path
+            .components()
+            .any(|c| matches!(c, std::path::Component::Prefix(_)));
+        if abs || has_parent || has_root || has_prefix {
+            result.error(format!(
+                "standard_files[{}].target '{}' is not a relative path inside the repo \
+                 (must not be absolute, contain '..', or contain a Windows drive prefix)",
+                idx, target_str
+            ));
+        }
+        // Source must also be a path-component (not absolute, not `..`).
+        let source_str = sf.source.as_str();
+        let source_path = std::path::Path::new(source_str);
+        if source_path.is_absolute() {
+            result.error(format!(
+                "standard_files[{}].source '{}' is an absolute path \
+                 (sources are resolved relative to the policy sync base dir)",
+                idx, source_str
+            ));
+        }
+    }
+
     if policy.auto_github_private && policy.auto_github_private_account.is_empty() {
         result
             .error("auto_github_private=true but auto_github_private_account is empty".to_string());
@@ -2681,6 +2725,64 @@ remotes = []
         assert!(
             result.errors.iter().any(|e| e.contains("does not exist")),
             "should mention missing path"
+        );
+    }
+
+    #[test]
+    fn test_validate_config_rejects_path_traversal_in_standard_files() {
+        // F40 (2026-07-18): standard_files target must be a relative
+        // path inside the repo; absolute or `..` targets escape.
+        for (bad_target, why) in [
+            (r#""/etc/cron.daily/evil""#, "absolute path"),
+            (r#""../escape.txt""#, "parent traversal"),
+            (r#""a/../../b""#, "parent traversal mid-path"),
+        ] {
+            let tmp = tempfile::TempDir::new().unwrap();
+            let content = format!(
+                r#"
+auto_github_private = false
+watch_roots = ["/tmp"]
+remotes = []
+standard_files = [{{ source = "templates/LICENSE", target = {bad_target}, overwrite = false }}]
+"#
+            );
+            std::fs::write(tmp.path().join("policy.toml"), content).unwrap();
+            let result = validate_config(tmp.path().join("policy.toml").as_path());
+            assert!(
+                !result.is_valid(),
+                "target {} ({}) must be rejected, got errors = {:?}",
+                bad_target,
+                why,
+                result.errors
+            );
+            assert!(
+                result.errors.iter().any(|e| e.contains("not a relative path")),
+                "target {} ({}) error message missing, got {:?}",
+                bad_target,
+                why,
+                result.errors
+            );
+        }
+    }
+
+    #[test]
+    fn test_validate_config_rejects_absolute_source_in_standard_files() {
+        // F40 follow-up: source is also a config field; reject if
+        // absolute (we want sources to live under the policy base).
+        let tmp = tempfile::TempDir::new().unwrap();
+        let content = r#"
+auto_github_private = false
+watch_roots = ["/tmp"]
+remotes = []
+standard_files = [{ source = "/etc/passwd", target = "README.md", overwrite = false }]
+"#;
+        std::fs::write(tmp.path().join("policy.toml"), content).unwrap();
+        let result = validate_config(tmp.path().join("policy.toml").as_path());
+        assert!(!result.is_valid(), "absolute source must be rejected");
+        assert!(
+            result.errors.iter().any(|e| e.contains("absolute path")),
+            "source error message missing, got {:?}",
+            result.errors
         );
     }
 
