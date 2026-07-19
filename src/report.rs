@@ -7103,8 +7103,7 @@ mod tests {
             parent_basename: "dracon-platform".to_string(),
             sub_path: "web/games/released/one-mil-girls".to_string(),
         };
-        let rendered = role_cell(&long).content();
-        let rendered_str = rendered.as_ref().map(|c| c.to_string()).unwrap_or_default();
+        let rendered_str = role_cell(&long).content();
         // `released/one-mil-girls` = 22 chars > 12 → truncated to 12
         // cols with … (so 11 chars of content + …).
         assert!(
@@ -7121,25 +7120,11 @@ mod tests {
             parent_basename: "dracon-platform".to_string(),
             sub_path: "web/games/wip/hegemon".to_string(),
         };
-        let rendered_short = role_cell(&short).content();
-        assert_eq!(
-            rendered_short
-                .as_ref()
-                .map(|c| c.to_string())
-                .unwrap_or_default(),
-            "wip/hegemon"
-        );
+        assert_eq!(role_cell(&short).content(), "wip/hegemon");
 
         // Parent and Standalone unaffected (parent is now `parent·10` = 9 chars).
         let parent = RoleKind::Parent(10);
-        let rendered_parent = role_cell(&parent).content();
-        assert_eq!(
-            rendered_parent
-                .as_ref()
-                .map(|c| c.to_string())
-                .unwrap_or_default(),
-            "parent·10"
-        );
+        assert_eq!(role_cell(&parent).content(), "parent·10");
     }
 
     #[test]
