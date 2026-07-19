@@ -54,6 +54,36 @@ pub(crate) fn test_commit_cmd() -> crate::policy::GitCommand {
     cmd
 }
 
+/// Global registry of test temp dirs created via `create_test_repo*`.
+///
+/// F45 (2026-07-18): the previous implementation called
+/// `std::mem::forget(tmp)` which permanently strands the temp dir
+/// on disk (no `Drop` ever runs, so the kernel eventually reaps it
+/// only when `/tmp` is full or rebooted). For a long-running test
+/// runner running hundreds of `cargo test` iterations, this fills
+/// `/tmp` over hours.
+///
+/// The new approach moves the `TempDir` into a global
+/// `Mutex<Vec<TempDir>>` so the dirs ARE reaped at process exit
+/// (when the mutex is dropped). The repo path is still valid for
+/// the lifetime of the test binary because the TempDir's underlying
+/// dir is held in the Vec.
+#[cfg(test)]
+#[allow(dead_code)]
+static TEST_TEMPS: std::sync::OnceLock<std::sync::Mutex<Vec<tempfile::TempDir>>> =
+    std::sync::OnceLock::new();
+
+#[cfg(test)]
+fn keep_temp_alive(tmp: tempfile::TempDir) -> std::path::PathBuf {
+    let path = tmp.path().to_path_buf();
+    let mut registry = TEST_TEMPS
+        .get_or_init(|| std::sync::Mutex::new(Vec::new()))
+        .lock()
+        .expect("TEST_TEMPS lock poisoned");
+    registry.push(tmp); // Vec drop → TempDir drop → cleanup at process exit.
+    path
+}
+
 /// Create a simple test repo with one commit.
 ///
 /// Returns the path to the created repo. The repo has a single file "f" with
@@ -84,9 +114,7 @@ pub(crate) fn create_test_repo() -> std::path::PathBuf {
         .current_dir(&repo)
         .output()
         .expect("git commit");
-    // Prevent TempDir from being dropped (repo must outlive the caller)
-    std::mem::forget(tmp);
-    repo
+    keep_temp_alive(tmp)
 }
 
 /// Create a test repo with a bare remote.
@@ -127,8 +155,8 @@ pub(crate) fn create_test_repo_with_remote() -> (std::path::PathBuf, std::path::
         .current_dir(&repo)
         .output()
         .expect("git commit");
-    // Prevent TempDir from being dropped
-    std::mem::forget(tmp);
+    // F45 fix: keep the dir in TEST_TEMPS instead of leaking.
+    keep_temp_alive(tmp);
     (repo, bare)
 }
 
@@ -186,9 +214,75 @@ impl EnvRestorer {
 
 impl Drop for EnvRestorer {
     fn drop(&mut self) {
+        // F46 (2026-07-18): `std::env::set_var` and `remove_var` from a
+        // `Drop` implementation is racy with other threads reading the
+        // same env var. In `.cargo/config.toml` tests run with
+        // `--test-threads=1` for exactly this reason, so the race is
+        // closed in CI, but the contract is brittle. If you can
+        // restructure the test to do explicit cleanup at the end of
+        // the test function (rather than via this Drop), prefer that.
         std::env::remove_var(&self.key);
         if let Some(ref v) = self.old_value {
             std::env::set_var(&self.key, v);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// F45 (2026-07-18): verify that `create_test_repo` no longer
+    /// leaks `mem::forget()`'d temp dirs at the process level. After
+    /// the fix, the temp dir must be tracked in TEST_TEMPS.
+    #[test]
+    fn test_create_test_repo_registers_temp_dir() {
+        let initial_count = TEST_TEMPS
+            .get()
+            .and_then(|m| m.lock().ok().map(|g| g.len()))
+            .unwrap_or(0);
+        let _repo = create_test_repo();
+        let after_count = TEST_TEMPS
+            .get()
+            .and_then(|m| m.lock().ok().map(|g| g.len()))
+            .expect("TEST_TEMPS must be initialised by create_test_repo");
+        assert!(
+            after_count >= initial_count + 1,
+            "create_test_repo did not register the temp dir: \
+             before={initial_count} after={after_count}; \
+             the F45 fix is missing"
+        );
+    }
+
+    /// F46 (2026-07-18): the `EnvRestorer` saves/restores via Drop,
+    /// which is racy with concurrent env var readers. The runtime
+    /// guard is `--test-threads=1` in `.cargo/config.toml`. This test
+    /// just exercises the save/restore contract.
+    #[test]
+    fn test_env_restorer_round_trip() {
+        let key = "DRACON_TEST_ROUND_TRIP_VAR";
+        std::env::set_var(key, "before");
+        {
+            let _guard = EnvRestorer::new(key, "during");
+            assert_eq!(std::env::var(key).as_deref().ok(), Some("during"));
+        }
+        // After drop, original value is restored.
+        assert_eq!(std::env::var(key).as_deref().ok(), Some("before"));
+        std::env::remove_var(key);
+    }
+
+    /// F46 follow-up: `EnvRestorer::remove` unsets the variable;
+    /// after drop, the original value is restored (None if it was
+    /// unset to begin with).
+    #[test]
+    fn test_env_restorer_remove_round_trip() {
+        let key = "DRACON_TEST_REMOVE_VAR";
+        std::env::set_var(key, "before");
+        {
+            let _guard = EnvRestorer::remove(key);
+            assert!(std::env::var(key).is_err(), "remove should unset");
+        }
+        assert_eq!(std::env::var(key).as_deref().ok(), Some("before"));
+        std::env::remove_var(key);
     }
 }

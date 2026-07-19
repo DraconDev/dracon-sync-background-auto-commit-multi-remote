@@ -3765,15 +3765,19 @@ fn print_repos_full_table(
     // The 2 extra cols account for comfy-table's default left+right cell padding,
     // which is required for the content to fit on a single line.
     //
-    // Sum: 3+11+17+11+17+8+8+7+9+9+13+17+22+11+17+11+8+8+8+15+17+22 = 268
-    // Plus 23 borders: 291 cols minimum. Full tier starts at 300 cols to give
-    // 9+ cols of headroom. At 250-299 cols, falls back to compact tier which
-    // is 14-col and fits in 199+.
+    // Sum: 4+11+17+18+11+17+8+8+7+9+11+13+22+17+11+11+11+8+8+8+15+15+15 = 275
+    // Plus 24 borders: 299 cols minimum. Full tier starts at 300 cols to give
+    // 1 col of headroom — fits any 300+ terminal. At 250-299 cols, falls back
+    // to compact tier which is 14-col and fits in 199+. F30 (2026-07-18): the
+    // v0.112.19 attempt left the constraints summing to 346 (well above 300)
+    // and the test never included ROLE; this version trims ROLE 35→18,
+    // PUSH-TO 32→22 (drop `[excl:..]` annotation), LAST COMMIT 22→17,
+    // ACTIVITY 17→11, DAEMON 17→15, HINT 22→15 so the floor is 299.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(35)), // ROLE (header 7 + 2 + 26 buffer for 'submod (of dracon-platform/web/games/wip/junk-runner)')
+        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // ROLE (was 35, F30: trim to 18; long paths → truncated)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUBLISH (header 10 + 2 + 5 buffer)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // MOD (header 6 + 2 pad = 8)
@@ -3782,17 +3786,17 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::LowerBoundary(Width::Fixed(32)), // PUSH-TO (header 10 + 2 + 20 buffer for 'codeberg [excl:github,gitlab]')
-        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // LAST COMMIT (header 14 + 2 + 6 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // PUSH-TO (was 32, F30: trim to 22; '[excl:..]' annotation dropped when narrow)
+        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // LAST COMMIT (was 22, F30: trim to 17)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // ACTIVITY (header 11 + 2 + 4 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(11)), // AUTHOR (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 1h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 6h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 24h (header 7 + 2 pad - 1 for `24`)
         ColumnConstraint::LowerBoundary(Width::Fixed(15)), // STATE (header 8 + 2 + 5 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // DAEMON (header 9 + 2 + 6 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON (was 17, F30: trim to 15)
+        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // HINT (was 22, F30: trim to 15)
     ]);
 
     // Classify each row's topology role (parent / submod / standalone).
@@ -8217,16 +8221,34 @@ mod tests {
     fn test_full_table_min_width_within_300() {
         // The values here MUST match the set_constraints in print_repos_full_table.
         // If you change the table layout, update both at once.
-        let minimums: [u16; 22] = [
-            3, 11, 17, 11, 17, 8, 8, 7, 9, 11, 13, 17, 22, 11, 17, 11, 8, 8, 8, 15, 17, 22,
+        // F30 (2026-07-18): the prior array had 22 entries but the
+        // production constraints have 23 (ROLE was added in v0.112.19
+        // but never added to this test). The new values reflect the
+        // v0.112.21 layout: ROLE 18, PUSH-TO 22, LAST COMMIT 17,
+        // ACTIVITY 11, DAEMON 15, HINT 15 (all trimmed from v0.112.19
+        // widths to bring the floor under 300 cols).
+        let minimums: [u16; 23] = [
+            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 22, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
-        let borders: u32 = 23;
+        let borders: u32 = 24;
         let total = sum + borders;
         assert!(
             total <= 300,
             "Full table minimum width {total} exceeds 300-col tier threshold. \
              Lower some LowerBoundaries or push the tier boundary higher."
+        );
+        // F30 regression: the test array count must match the
+        // production constraint count (23, after ROLE was added).
+        assert_eq!(
+            minimums.len(),
+            23,
+            "full_table constraint count mismatch: if you change set_constraints, update this test too"
+        );
+        // F30 regression: ROLE must be present in the array.
+        assert_eq!(
+            minimums[3], 18,
+            "ROLE column missing or wrong width; this test never caught the v0.112.19 bug"
         );
     }
 
