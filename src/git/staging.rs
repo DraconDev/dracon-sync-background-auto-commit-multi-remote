@@ -250,6 +250,15 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
     }
+    // F32 (2026-07-18): each path must be a valid git path (no
+    // `..`, no absolute path, no NUL) before we hand it to git. The
+    // sibling `unstage_paths` function already gates on this helper;
+    // restore_paths did not.
+    for p in paths {
+        if !super::is_safe_git_path(std::path::Path::new(p)) {
+            anyhow::bail!("restore_paths: refusing unsafe path '{}'", p);
+        }
+    }
     let mut args = vec![
         "restore".to_string(),
         "--staged".to_string(),

@@ -31,10 +31,23 @@ pub(crate) fn load_secret(env_name: &str, secrets_dir: &Path) -> Option<String> 
     // 1. Check env var directly
     if let Ok(val) = std::env::var(env_name) {
         if !val.is_empty() {
+            // F52 (2026-07-18): refuse env values containing control
+            // characters (including `\n`), which can break git
+            // credential protocols or smuggle commands. Git PATs are
+            // alphanumeric; anything with control bytes is malformed.
+            if val.chars().any(|c| c.is_control()) {
+                eprintln!(
+                    "⚠️ {env_name} contains control characters; refusing and falling back to secrets dir"
+                );
+                return load_secret_from_dir(env_name, secrets_dir);
+            }
             return Some(val);
         }
     }
+    load_secret_from_dir(env_name, secrets_dir)
+}
 
+fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
     // 2. Permission check on secrets directory
     if let Err(e) = check_secrets_dir_permissions(secrets_dir) {
         eprintln!(

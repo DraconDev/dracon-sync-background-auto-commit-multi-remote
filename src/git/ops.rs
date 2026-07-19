@@ -42,15 +42,27 @@ fn configure_git_process_group(_cmd: &mut TokioCommand) {}
 /// large but active pack can legitimately run longer than the base timeout, so
 /// progress output extends the deadline instead of aborting a healthy push.
 pub(crate) fn is_git_push_progress_line(line: &str) -> bool {
-    let lower = line.to_ascii_lowercase();
-    lower.contains("counting objects")
-        || lower.contains("compressing objects")
-        || lower.contains("writing objects")
-        || lower.contains("receiving objects")
-        || lower.contains("remote: ")
-        || lower.contains("bytes")
-        || lower.contains("delta")
-        || lower.contains("uploaded")
+    // F48 (2026-07-18): the previous predicate used loose substring
+    // matches like `delta` and `bytes` which fired on unrelated
+    // stderr (e.g. `error: cannot merge — delta-branch merge`),
+    // extending the deadline on adversarial input. Tighten to the
+    // patterns git actually emits on progress paths.
+    use std::sync::OnceLock;
+    static RE: OnceLock<regex::Regex> = OnceLock::new();
+    let re = RE.get_or_init(|| {
+        regex::Regex::new(
+            r"(?xi)               # case-insensitive, multi-line (anchors per line)
+            ^\s*(?:                 # line-start, optional indent
+                (?:counting|writing|compressing|receiving|resolving)\s+objects:\s+\d+% |
+                Total\s+\d+.*\(\S+\s+\d+/\d+\) |
+                \d+\s*KiB\s*\|\s*\d+\.\d+\s+MiB/s |
+                \d+%?\s*\(\d+/\d+\),\s*\d+\.\d+\s+KiB\s*\|\s*\d+\.\d+\s+MiB/s |
+                (?:\d+ bytes|\d+\.\d+\s+\w+)\s*\|
+            )
+            |^remote:\s+\S" // any 'remote: ...' line emitted by server-side hooks.
+        ).expect("static regex compiles")
+    });
+    re.is_match(line)
 }
 
 fn child_status_result(
