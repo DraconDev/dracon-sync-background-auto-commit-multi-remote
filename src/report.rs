@@ -3612,6 +3612,10 @@ fn print_repos_compact_table(
     // Each minimum = max(header_text_width + 2 padding, content_min_width).
     // Sum: 3+11+18+7+11+18+8+8+7+9+11+13+18+18+17+22 = 199 + 16 borders = 215 cols min
     // Compact tier is 250-299 cols so this fits comfortably.
+    // F30v2 (2026-07-19): LAST COMMIT and HINT must be Absolute, not
+    // LowerBoundary, so long content is truncated in the cell (not
+    // wrapped). PUSH-TO is a string with multi-word remotes — keep
+    // LowerBoundary(32) so it can fit when terminal is wide.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 7 + 2 + 2 buffer for '⚠️  WARN')
@@ -3626,7 +3630,7 @@ fn print_repos_compact_table(
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 6 + 2 + 3 buffer)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
         ColumnConstraint::LowerBoundary(Width::Fixed(32)), // PUSH-TO (header 10 + 2 + 20 buffer for 'codeberg [excl:github,gitlab]')
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // LAST COMMIT (header 14 + 2 + 2 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(18)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::LowerBoundary(Width::Fixed(17)), // STATE+ACT (header 10 + 2 + 5 buffer)
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
     ]);
@@ -3646,7 +3650,11 @@ fn print_repos_compact_table(
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
         } else {
-            format!("{} {}", row.last_hash, row.last_msg)
+            // F30v2 (2026-07-19): truncate to match the Absolute(18)
+            // LAST COMMIT constraint. Without this, a 152-char auto-commit
+            // subject widens the column and breaks the layout.
+            let raw = format!("{} {}", row.last_hash, row.last_msg);
+            truncate_unicode_width(&raw, 18)
         };
 
         // Combine state + activity into one cell to save horizontal space
@@ -3773,6 +3781,13 @@ fn print_repos_full_table(
     // and the test never included ROLE; this version trims ROLE 35→18,
     // PUSH-TO 32→22 (drop `[excl:..]` annotation), LAST COMMIT 22→17,
     // ACTIVITY 17→11, DAEMON 17→15, HINT 22→15 so the floor is 299.
+    //
+    // F30v2 (2026-07-19): `LowerBoundary` lets comfy-table WIDEN a
+    // column to fit content (defeating the floor). For LAST COMMIT
+    // and AUTHOR (cells whose content can be very long), switch to
+    // `Absolute` so the column is truly fixed and content is truncated
+    // in the cell content (not wrapped). Use Absolute(17) for LAST
+    // COMMIT and Absolute(11) for AUTHOR.
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // STATUS (header 9 + 2 pad = 11)
@@ -3787,10 +3802,10 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
         ColumnConstraint::LowerBoundary(Width::Fixed(22)), // PUSH-TO (was 32, F30: trim to 22; '[excl:..]' annotation dropped when narrow)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // LAST COMMIT (was 22, F30: trim to 17)
+        ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
-        ColumnConstraint::LowerBoundary(Width::Fixed(11)), // AUTHOR (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // AUTHOR (F30v2: Absolute — names can be long)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 1h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 6h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 24h (header 7 + 2 pad - 1 for `24`)
@@ -3821,7 +3836,18 @@ fn print_repos_full_table(
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
         } else {
-            format!("{} {}", row.last_hash, row.last_msg)
+            // F30v2 (2026-07-19): the full-tier table was widening
+            // LAST COMMIT to fit the longest commit subject in the
+            // table (152 chars for our auto-commit messages), which
+            // destroyed table layout at any terminal width. The
+            // vertical and compact tiers already truncate via
+            // `truncate_unicode_width`; the full tier forgot to.
+            // Use the same helper here. Width = 17 cols (matches the
+            // ColumnConstraint::Absolute below) minus 2 for cell
+            // padding = 15 visible chars + "…" + 7-char hash = 22
+            // total in the rendered cell.
+            let raw = format!("{} {}", row.last_hash, row.last_msg);
+            truncate_unicode_width(&raw, 17)
         };
 
         table.add_row(vec![
@@ -8227,6 +8253,11 @@ mod tests {
         // v0.112.21 layout: ROLE 18, PUSH-TO 22, LAST COMMIT 17,
         // ACTIVITY 11, DAEMON 15, HINT 15 (all trimmed from v0.112.19
         // widths to bring the floor under 300 cols).
+        //
+        // F30v2 (2026-07-19): LAST COMMIT and AUTHOR switched from
+        // LowerBoundary to Absolute so long cell content (e.g. 152-char
+        // auto-commit subjects) is truncated instead of widening the
+        // column. Array values unchanged.
         let minimums: [u16; 23] = [
             4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 22, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
