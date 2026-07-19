@@ -3826,7 +3826,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // PUSH-TO (was 32, F30: trim to 22; '[excl:..]' annotation dropped when narrow)
+        ColumnConstraint::Absolute(Width::Fixed(22)),    // PUSH-TO (F30v2: Absolute — truncate cell content)
         ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
@@ -8293,6 +8293,9 @@ mod tests {
         let minimums: [u16; 23] = [
             4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 22, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
+        // F30v2 (2026-07-19): values unchanged but constraint type for
+        // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
+        // to Absolute. The values still match the production constraints.
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 24;
         let total = sum + borders;
