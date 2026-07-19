@@ -510,10 +510,10 @@ fn format_push_to_remotes_cell(
     let main = push_to_remotes.join(",");
     if excluded_remotes.is_empty() {
         // F30v2 (2026-07-19): truncate PUSH-TO to fit the column.
-        // The cell can be "github,gitlab,codeberg" (21 chars) plus
-        // padding. Without truncation, LowerBoundary(32) makes the
-        // column grow to fit, distorting the table.
-        Cell::new(truncate_unicode_width(&main, 20))
+        // The cell can be "github,gitlab,codeberg" (22 chars) plus
+        // padding. Without truncation, LowerBoundary makes the column
+        // grow to fit, distorting the table.
+        Cell::new(truncate_unicode_width(&main, 22))
             .fg(comfy_table::Color::Green)
     } else {
         // Active remotes in green, excluded annotation in dim yellow
@@ -531,9 +531,9 @@ fn format_push_to_remotes_cell(
         if let Some(reason) = codeberg_skip_reason {
             cell_text.push_str(&format!(" ({reason})"));
         }
-        // F30v2: truncate to fit the LowerBoundary(32) PUSH-TO column
-        // minus 2 padding = 30 cols content. Cell renders as 32 cols.
-        Cell::new(truncate_unicode_width(&cell_text, 30))
+        // F30v2: truncate to fit the Absolute(24) PUSH-TO column
+        // minus 2 padding = 22 cols content.
+        Cell::new(truncate_unicode_width(&cell_text, 22))
             .fg(comfy_table::Color::Yellow)
     }
 }
@@ -3826,7 +3826,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::Absolute(Width::Fixed(22)),    // PUSH-TO (F30v2: Absolute — truncate cell content)
+        ColumnConstraint::Absolute(Width::Fixed(24)),    // PUSH-TO (F30v2: Absolute — truncate cell content; 22 cols fits 'codeberg,github,gitlab' = 22 chars + 2 padding)
         ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
         ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
@@ -8291,7 +8291,7 @@ mod tests {
         // auto-commit subjects) is truncated instead of widening the
         // column. Array values unchanged.
         let minimums: [u16; 23] = [
-            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 22, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
+            4, 11, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 24, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
         // F30v2 (2026-07-19): values unchanged but constraint type for
         // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
