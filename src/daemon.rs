@@ -111,6 +111,22 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             && policy.remotes.iter().any(|r| {
                 crate::git::multi_remote::get_remote_url(repo, &r.name).is_some()
             });
+
+    // ADDED 2026-07-19 (goal `4555eaf6`): if the repo has mirror
+    // remotes (github/gitlab/codeberg) but no `origin`, ensure
+    // `origin` is set to the github mirror. This is the case for
+    // older repos that were added to the watch list before
+    // `origin` was the convention. Without this, VS Code's
+    // `git push` falls back to the alphabetically-first remote
+    // (often codeberg) and the daemon's PUBLISH cell reads
+    // `codeberg/main` for what is actually a github-primary repo.
+    //
+    // Only fires when mirrors exist but origin is absent. If the
+    // repo has no mirrors at all (truly bare), we fall through to
+    // the existing configure-mirrors-if-missing path below.
+    if has_any_remote && !has_origin_remote(repo) {
+        crate::git::multi_remote::ensure_origin_for_vscode(repo, &policy.remotes);
+    }
     if !has_any_remote && !policy.remotes.is_empty() {
         let repo_name = repo
             .file_name()

@@ -114,7 +114,7 @@ pub(crate) fn configure_all_remotes(
 /// and produces a sane `PUBLISH` cell in the `repos` table.
 ///
 /// Never overwrites an existing origin (operator override wins).
-fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig]) {
+pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig]) {
     if crate::git::status::has_origin_remote(repo) {
         return;
     }
