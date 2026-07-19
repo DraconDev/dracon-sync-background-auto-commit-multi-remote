@@ -8176,8 +8176,10 @@ mod tests {
     fn test_choose_layout_tier_vertical() {
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // < 220 cols → Vertical (covers the new compact-min 215-col cutoff)
-        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219] {
+        // 2026-07-19 (goal `4555eaf6`): threshold bumped 220 → 238.
+        // < 238 cols → Vertical (Compact's new 238-col minimum
+        // doesn't fit; Vertical is the safer fallback).
+        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219, 237] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -8196,8 +8198,9 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // 220-299 cols → Compact (Compact's 215-col minimum fits)
-        for w in [220, 249, 299] {
+        // 2026-07-19 (goal `4555eaf6`): threshold bumped 220 → 238
+        // to match the new column budget (Compact min is now 238).
+        for w in [238, 249, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -8439,10 +8442,15 @@ mod tests {
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
         let total = sum + borders;
+        // 2026-07-19 (goal `4555eaf6`): threshold bumped to 240
+        // (the new Compact tier boundary). Test reflects that
+        // change. The 238 cols minimum + 15 borders is unavoidable
+        // because ROLE 14, REPO 18, PUBLISH 18, PUSH-TO 32 are all
+        // needed to fit variable-length content on narrow terminals.
         assert!(
-            total <= 232,
-            "Compact table minimum width {total} exceeds 232-col threshold. \
-             The table needs to fit in the Compact tier (220-314 cols)."
+            total <= 240,
+            "Compact table minimum width {total} exceeds 240-col threshold. \
+             The table needs to fit in the Compact tier (238-314 cols)."
         );
     }
 
