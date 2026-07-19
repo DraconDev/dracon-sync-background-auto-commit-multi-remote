@@ -509,7 +509,12 @@ fn format_push_to_remotes_cell(
     }
     let main = push_to_remotes.join(",");
     if excluded_remotes.is_empty() {
-        Cell::new(main).fg(comfy_table::Color::Green)
+        // F30v2 (2026-07-19): truncate PUSH-TO to fit the column.
+        // The cell can be "github,gitlab,codeberg" (21 chars) plus
+        // padding. Without truncation, LowerBoundary(32) makes the
+        // column grow to fit, distorting the table.
+        Cell::new(truncate_unicode_width(&main, 20))
+            .fg(comfy_table::Color::Green)
     } else {
         // Active remotes in green, excluded annotation in dim yellow
         // so the operator can see at a glance that the repo has been
@@ -526,7 +531,10 @@ fn format_push_to_remotes_cell(
         if let Some(reason) = codeberg_skip_reason {
             cell_text.push_str(&format!(" ({reason})"));
         }
-        Cell::new(cell_text).fg(comfy_table::Color::Yellow)
+        // F30v2: truncate to fit the LowerBoundary(32) PUSH-TO column
+        // minus 2 padding = 30 cols content. Cell renders as 32 cols.
+        Cell::new(truncate_unicode_width(&cell_text, 30))
+            .fg(comfy_table::Color::Yellow)
     }
 }
 
@@ -3660,12 +3668,19 @@ fn print_repos_compact_table(
             truncate_unicode_width(&raw, 16)
         };
 
-        // Combine state + activity into one cell to save horizontal space
-        let state_plus_act = format!(
-            "{} {} · {}",
-            row.state_cause.icon(),
-            row.state_cause.as_str(),
-            activity_label(row)
+        // Combine state + activity into one cell to save horizontal space.
+        // F30v2 (2026-07-19): truncate to fit the LowerBoundary(17)
+        // STATE+ACT column. Without truncation, content like
+        // "🟠 dirty · ⏳ dirty 1h · daemon handles after changes settle"
+        // grows the column to 60+ chars.
+        let state_plus_act = truncate_unicode_width(
+            &format!(
+                "{} {} · {}",
+                row.state_cause.icon(),
+                row.state_cause.as_str(),
+                activity_label(row)
+            ),
+            15, // LowerBoundary(17) minus 2 padding = 15
         );
         let state_plus_act_color = state_color_for(&row.state_cause);
 
@@ -3674,6 +3689,13 @@ fn print_repos_compact_table(
         if !row.last_author.is_empty() && row.last_author != "-" {
             hint_text = format!("{} · by {}", hint_text, row.last_author);
         }
+        // F30v2 (2026-07-19): truncate to fit the HINT column.
+        // HINT is LowerBoundary(22), so without truncation the column
+        // grows to 80+ chars to fit long content like
+        // "daemon handles after changes settle; run sync-now --warns to force now · by dracon".
+        // With 250-col terminal and 23 columns, HINT can swallow half the table.
+        // Truncate to the column's LowerBoundary minimum (22) minus 2 padding = 20 cols.
+        hint_text = truncate_unicode_width(&hint_text, 20);
         let hint_color = status_color;
 
         // Push cell (icon + label)
@@ -3873,16 +3895,24 @@ fn print_repos_full_table(
             ),
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
-            Cell::new(activity_label(row)),
-            Cell::new(&row.last_author),
+            // F30v2: truncate ACTIVITY to fit LowerBoundary(11) - 2 padding = 9
+            Cell::new(truncate_unicode_width(&activity_label(row), 9)),
+            // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
+            Cell::new(truncate_unicode_width(&row.last_author, 9)),
             Cell::new(row.commits_1h),
             Cell::new(row.commits_6h),
             Cell::new(row.commits_24h),
-            Cell::new(format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()))
-                .fg(state_color_for(&row.state_cause)),
-            Cell::new(format!(
-                "{} {}",
-                row.daemon_last_action_when, row.daemon_last_action
+            Cell::new(truncate_unicode_width(
+                &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
+                13, // LowerBoundary(15) - 2 padding
+            ))
+            .fg(state_color_for(&row.state_cause)),
+            Cell::new(truncate_unicode_width(
+                &format!(
+                    "{} {}",
+                    row.daemon_last_action_when, row.daemon_last_action
+                ),
+                13, // LowerBoundary(15) - 2 padding
             ))
             .fg(if row.daemon_last_result == "fail" {
                 Color::Red
@@ -3893,7 +3923,7 @@ fn print_repos_full_table(
             } else {
                 Color::Cyan
             }),
-            Cell::new(&row.hint).fg(status_color),
+            Cell::new(truncate_unicode_width(&row.hint, 13)).fg(status_color),
         ]);
     }
 
