@@ -68,7 +68,13 @@ impl RoleKind {
     /// below the parent to keep the cell unambiguous.
     pub(crate) fn label(&self) -> String {
         match self {
-            RoleKind::Parent(n) => format!("parent ({} submods)", n),
+            // Compact parent label: `parent·10` instead of
+            // `parent (10 submods)`. The "submods" word is implied
+            // by the submod rows that visually sit under the parent
+            // in the table (rendered by `classify_roles` which groups
+            // submods directly below their parent). Saves 11 chars
+            // and keeps ROLE column to ≤ 12 chars in all cases.
+            RoleKind::Parent(n) => format!("parent·{n}"),
             RoleKind::Submod {
                 parent_basename: _,
                 sub_path,
@@ -509,8 +515,11 @@ mod tests {
 
     #[test]
     fn label_parent_unchanged() {
-        assert_eq!(RoleKind::Parent(10).label(), "parent (10 submods)");
-        assert_eq!(RoleKind::Parent(1).label(), "parent (1 submods)");
+        // 2026-07-19 (goal `4555eaf6`): changed to compact `parent·N`
+        // to fit the 14-col ROLE column on narrow terminals (was
+        // `parent (N submods)` = 20 chars which wrapped to 2 lines).
+        assert_eq!(RoleKind::Parent(10).label(), "parent·10");
+        assert_eq!(RoleKind::Parent(1).label(), "parent·1");
     }
 
     #[test]

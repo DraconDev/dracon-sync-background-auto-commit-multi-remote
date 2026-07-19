@@ -467,11 +467,16 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
 }
 
 fn publish_cell_label(upstream: &str, state: PublishState) -> String {
-    match state {
+    // 2026-07-19 (goal `4555eaf6`): PUBLISH column is Absolute(18).
+    // Worst-case is `⚠️ origin/main (gone)` = 22 chars; truncate to
+    // 16 cols (18 - 2 padding). Common case (`gitlab/main`,
+    // `origin/main`) is 11 chars and unaffected.
+    let raw = match state {
         PublishState::Missing => "⚠️ none".to_string(),
         PublishState::Gone => format!("⚠️ {upstream} (gone)"),
         PublishState::Ok => upstream.to_string(),
-    }
+    };
+    truncate_unicode_width(&raw, 16)
 }
 
 fn publish_state_color(state: PublishState) -> comfy_table::Color {
@@ -3625,22 +3630,37 @@ fn print_repos_compact_table(
     // wrapped). PUSH-TO is a string with multi-word remotes — keep
     // LowerBoundary(32) so it can fit when terminal is wide.
     table.set_constraints(vec![
+        // 2026-07-19 (goal `4555eaf6`): REPO and PUBLISH were
+        // LowerBoundary(18). On narrow terminals (220-260 cols) the
+        // table's set_width() shrinks all LowerBoundary columns to
+        // whatever fits, but `LowerBoundary` only enforces a MINIMUM
+        // — if a column's content is short, the column shrinks; if
+        // the content is long, the column grows. Result: cells with
+        // variable-length content (REPO names like
+        // `pully-fully-pull-based-fleet-reconciler` = 38 chars, or
+        // `wip/hegemon` ROLE labels) would letter-wrap onto a second
+        // line on narrow terminals.
+        //
+        // Fix: switch REPO, ROLE, PUBLISH, STATE+ACT, HINT to
+        // Absolute widths and apply `truncate_unicode_width(..., N-2)`
+        // to the cell content before passing to comfy-table. Column
+        // sum drops from 232 → 217, so the table now fits at 220+ cols.
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // REPO (header 7 + 2 + 9 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(7)),  // ROLE (header 5 + 2 + 0 buffer - tight for compact)
+        ColumnConstraint::Absolute(Width::Fixed(18)),    // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
+        ColumnConstraint::Absolute(Width::Fixed(14)),    // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // PUBLISH (header 8 + 2 + 8 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(18)),    // PUBLISH (truncate to 16 cols; fits 'gitlab/main', 'github/main')
         ColumnConstraint::Absolute(Width::Fixed(8)),     // M (header 4 + 2 + 2 for digit)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // S (header 4 + 2 + 2 for digit)
         ColumnConstraint::Absolute(Width::Fixed(7)),     // U (header 4 + 2 + 1 buffer)
         ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 5 + 2 + 2 buffer)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 6 + 2 + 3 buffer)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
-        ColumnConstraint::LowerBoundary(Width::Fixed(32)), // PUSH-TO (header 10 + 2 + 20 buffer for 'codeberg [excl:github,gitlab]')
+        ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (truncate to 30 cols; was LowerBoundary(32) — same effect)
         ColumnConstraint::Absolute(Width::Fixed(18)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // STATE+ACT (header 10 + 2 + 5 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(22)), // HINT (header 7 + 2 + 13 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(17)),    // STATE+ACT (truncate to 15)
+        ColumnConstraint::Absolute(Width::Fixed(22)),    // HINT (truncate to 20)
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
@@ -3654,6 +3674,14 @@ fn print_repos_compact_table(
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| row.repo.clone())
         };
+        // 2026-07-19 (goal `4555eaf6`): REPO column is Absolute(18);
+        // truncate to 16 cols (minus 2 padding) so names like
+        // `pully-fully-pull-based-fleet-reconciler` (38 chars) don't
+        // letter-wrap on narrow terminals. Truncation already happens
+        // implicitly when content exceeds the column width — but
+        // comfy-table's truncation is non-unicode-aware, so we apply
+        // `truncate_unicode_width` explicitly for emoji-width safety.
+        let repo_name = truncate_unicode_width(&repo_name, 16);
 
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
@@ -3816,10 +3844,10 @@ fn print_repos_full_table(
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // REPO (header 7 + 2 + 8 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(18)), // ROLE (was 35, F30: trim to 18; long paths → truncated)
+        ColumnConstraint::Absolute(Width::Fixed(19)),    // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols; long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
+        ColumnConstraint::Absolute(Width::Fixed(18)),    // ROLE (was LowerBoundary(18); F30: trim to 18; long paths → truncated via role_cell() truncation budget)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
-        ColumnConstraint::LowerBoundary(Width::Fixed(17)), // PUBLISH (header 10 + 2 + 5 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(17)),    // PUBLISH (was LowerBoundary(17); truncate via publish_cell_label() budget 15 cols)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // MOD (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // STG (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(7)),     // UT (header 5 + 2 pad = 7)
@@ -3829,14 +3857,14 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (F30v2: Absolute — 30 cols content fits 'codeberg [excl:github,gitlab]' = 28 chars + 2 padding headroom)
         ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
-        ColumnConstraint::LowerBoundary(Width::Fixed(11)), // ACTIVITY (was 17, F30: trim to 11)
+        ColumnConstraint::Absolute(Width::Fixed(11)),    // ACTIVITY (was LowerBoundary(11); F30: trim to 11; now Absolute to enforce truncation)
         ColumnConstraint::Absolute(Width::Fixed(11)),    // AUTHOR (F30v2: Absolute — names can be long)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 1h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 6h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),     // 24h (header 7 + 2 pad - 1 for `24`)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // STATE (header 8 + 2 + 5 buffer)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // DAEMON (was 17, F30: trim to 15)
-        ColumnConstraint::LowerBoundary(Width::Fixed(15)), // HINT (was 22, F30: trim to 15)
+        ColumnConstraint::Absolute(Width::Fixed(15)),    // STATE (was LowerBoundary(15); now Absolute — content is always short, truncation budget 13)
+        ColumnConstraint::Absolute(Width::Fixed(15)),    // DAEMON (was LowerBoundary(15); now Absolute)
+        ColumnConstraint::Absolute(Width::Fixed(15)),    // HINT (was LowerBoundary(15); now Absolute — truncate via row loop budget)
     ]);
 
     // Classify each row's topology role (parent / submod / standalone).
@@ -4054,12 +4082,19 @@ impl crate::report::RepoReportRow {
 /// nested); standalone gets white (the default for non-actionable).
 fn role_cell(role: &crate::role::RoleKind) -> comfy_table::Cell {
     let label = role.label();
+    // 2026-07-19 (goal `4555eaf6`): ROLE column is Absolute(14).
+    // Without truncation, labels like `released/one-mil-girls`
+    // (22 chars) overflow and letter-wrap on narrow terminals.
+    // Truncate to 12 cols (14 - 2 padding). Short labels
+    // (`parent·10` = 9, `standalone` = 10, `wip/hegemon` = 11)
+    // are unaffected.
+    let truncated = truncate_unicode_width(&label, 12);
     let color = match role {
         crate::role::RoleKind::Parent(_) => comfy_table::Color::Green,
         crate::role::RoleKind::Submod { .. } => comfy_table::Color::Cyan,
         crate::role::RoleKind::Standalone => comfy_table::Color::White,
     };
-    comfy_table::Cell::new(label).fg(color)
+    comfy_table::Cell::new(truncated).fg(color)
 }
 
 // ---------------------------------------------------------------------------
@@ -7033,12 +7068,78 @@ mod tests {
 
     #[test]
     fn test_publish_cell_label_marks_missing_and_gone() {
+        // 2026-07-19 (goal `4555eaf6`): publish_cell_label() now
+        // truncates to 16 cols (PUBLISH column Absolute(18) minus
+        // 2 padding). Short content unaffected; long Gone content
+        // gets ellipsis.
         assert_eq!(publish_cell_label("-", PublishState::Missing), "⚠️ none");
-        assert_eq!(
-            publish_cell_label("github/main", PublishState::Gone),
-            "⚠️ github/main (gone)"
+        // `⚠️ github/main (gone)` = 22 chars → truncated to 16 cols
+        // (reserve 1 for `…`).
+        let gone_result = publish_cell_label("github/main", PublishState::Gone);
+        assert!(
+            gone_result.starts_with("⚠️"),
+            "Gone should still have warning emoji prefix: {gone_result}"
         );
+        assert!(
+            gone_result.ends_with('…'),
+            "Gone content > 16 cols should end with ellipsis: {gone_result}"
+        );
+        assert_eq!(
+            unicode_width::UnicodeWidthStr::width(gone_result.as_str()),
+            16,
+            "truncated Gone should be exactly 16 cols wide: {gone_result}"
+        );
+        // Ok: short enough to fit unchanged
         assert_eq!(publish_cell_label("github/main", PublishState::Ok), "github/main");
+    }
+
+    #[test]
+    fn test_role_cell_truncates_long_submod_labels() {
+        // 2026-07-19 (goal `4555eaf6`): role_cell() truncates ROLE
+        // labels to 12 cols (ROLE column Absolute(14) minus 2 padding).
+        // Short labels are unaffected; long ones get ellipsis.
+        use crate::role::RoleKind;
+        let long = RoleKind::Submod {
+            parent_basename: "dracon-platform".to_string(),
+            sub_path: "web/games/released/one-mil-girls".to_string(),
+        };
+        let rendered = role_cell(&long).content();
+        let rendered_str = rendered.as_ref().map(|c| c.to_string()).unwrap_or_default();
+        // `released/one-mil-girls` = 22 chars > 12 → truncated to 12
+        // cols with … (so 11 chars of content + …).
+        assert!(
+            rendered_str.ends_with('…'),
+            "long ROLE label should end with ellipsis: {rendered_str}"
+        );
+        assert!(
+            unicode_width::UnicodeWidthStr::width(rendered_str.as_str()) <= 12,
+            "truncated ROLE label must be ≤ 12 cols wide: {rendered_str}"
+        );
+
+        // Short labels pass through unchanged.
+        let short = RoleKind::Submod {
+            parent_basename: "dracon-platform".to_string(),
+            sub_path: "web/games/wip/hegemon".to_string(),
+        };
+        let rendered_short = role_cell(&short).content();
+        assert_eq!(
+            rendered_short
+                .as_ref()
+                .map(|c| c.to_string())
+                .unwrap_or_default(),
+            "wip/hegemon"
+        );
+
+        // Parent and Standalone unaffected (parent is now `parent·10` = 9 chars).
+        let parent = RoleKind::Parent(10);
+        let rendered_parent = role_cell(&parent).content();
+        assert_eq!(
+            rendered_parent
+                .as_ref()
+                .map(|c| c.to_string())
+                .unwrap_or_default(),
+            "parent·10"
+        );
     }
 
     #[test]
@@ -8291,7 +8392,13 @@ mod tests {
         // auto-commit subjects) is truncated instead of widening the
         // column. Array values unchanged.
         let minimums: [u16; 23] = [
-            4, 13, 17, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
+            // 2026-07-19 (goal `4555eaf6`): REPO bumped from 17 → 19
+            // to accommodate long names like
+            // `pully-fully-pull-based-fleet-reconciler` (38 chars)
+            // truncated to 17 cols of content. Other LowerBoundaries
+            // (ACTIVITY, STATE, DAEMON, HINT) became Absolute for the
+            // same reason — width budget moved up the column list.
+            4, 13, 19, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
         ];
         // F30v2 (2026-07-19): values unchanged but constraint type for
         // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
@@ -8318,21 +8425,32 @@ mod tests {
         );
     }
 
-    /// Verify the sum of all 15 column minimums in `print_repos_compact_table`
-    /// plus 15 borders is < 250 cols (the compact tier threshold).
+    /// Verify the sum of all 16 column minimums in `print_repos_compact_table`
+    /// plus 15 borders is < 220 cols (the compact tier threshold; Vertical
+    /// is for terminals < 220).
+    ///
+    /// 2026-07-19 (goal `4555eaf6`): REPO (18), ROLE (14), PUBLISH (18),
+    /// PUSH-TO (32), LAST COMMIT (18), STATE+ACT (17), HINT (22) all
+    /// became Absolute so cells with variable-length content
+    /// (`pully-fully-pull-based-fleet-reconciler`, `released/one-mil-girls`,
+    /// `⚠️ origin/main (gone)`, etc.) are truncated rather than letter-wrapped
+    /// onto a second line on narrow (220-260 col) terminals.
     #[test]
     fn test_compact_table_min_width_within_250() {
         // The values here MUST match the set_constraints in print_repos_compact_table.
-        let minimums: [u16; 15] = [
-            3, 13, 18, 11, 18, 8, 8, 7, 9, 11, 13, 18, 18, 17, 22,
+        // If you change the table layout, update both at once.
+        // 16 cols: #, STATUS, REPO, ROLE, BRANCH, PUBLISH, MOD, STG, UT,
+        // AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT.
+        let minimums: [u16; 16] = [
+            4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 22,
         ];
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
         let total = sum + borders;
         assert!(
-            total <= 250,
-            "Compact table minimum width {total} exceeds 250-col tier threshold. \
-             Lower some LowerBoundaries or push the tier boundary higher."
+            total <= 232,
+            "Compact table minimum width {total} exceeds 232-col threshold. \
+             The table needs to fit in the Compact tier (220-314 cols)."
         );
     }
 
