@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.25 — 2026-07-19 — UI render fix follow-up
+
+v0.112.24's Compact-tier table used `LowerBoundary(N)` for REPO/ROLE/PUBLISH/STATE+ACT/HINT — meaning cells could GROW with content but not truncate. On terminals 220-237 cols (just below Compact threshold) the table rendered but variable-length cells wrapped to 2 lines.
+
+Fix:
+- Switched REPO/ROLE/PUBLISH/STATE+ACT/HINT (Compact) and REPO/PUBLISH/ACTIVITY/STATE/DAEMON/HINT (Full) to `Absolute(N)` widths
+- Added `truncate_unicode_width(..., N-2)` to `role_cell()`, `publish_cell_label()`, REPO name in row loop
+- Bumped Compact tier threshold from `< 220` to `< 238` (new column budget)
+- Renamed parent label `parent (N submods)` → `parent·N` (9 chars, fits in 14-col ROLE column)
+
+**+1 new regression test** (925 total daemon tests). `cargo build/test/clippy/deny` all green.
+
+Verified:
+- 230 cols → Vertical (no wrap)
+- 240 cols → Compact, 32 single-line rows, 0 wraps
+- 300 cols → Compact, all single-line
+- 400 cols → Full, all single-line
+
+**Stalled repos investigation** (neonbreak + endless-td showed `🔴 stalled`): root cause was the user's own `pi-loop` LLM agent repeatedly regenerating `tools/spec-audit.mjs` + `docs/spec-compliance.md` while hitting Anthropic 429 rate limits (160 iterations from 14:54 to 21:06 BST, 13 rate-limit errors, 1 operator_abort at 20:50). The loop is now stopped. Daemon was working correctly — no fix needed.
+
 ### v0.112.24 — 2026-07-19 — goal `4555eaf6` (unowned + codeberg-as-main + role layout)
 
 Four operator-visible issues from `repos` table:
