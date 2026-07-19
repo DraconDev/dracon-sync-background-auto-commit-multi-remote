@@ -232,7 +232,8 @@ pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipRepo
         if !is_trusted_origin(url, &trusted.remote_hosts) {
             return OwnershipReport::Unowned {
                 reason: "untrusted_origin".to_string(),
-                detail: format!("origin = {}", url),
+                // F54: redact user:password@ URL components before logging.
+                detail: format!("origin = {}", redact_origin_credentials(url)),
             };
         }
     }
@@ -389,6 +390,46 @@ pub struct TrustedSet {
     pub authors: Vec<String>,
     pub remote_hosts: Vec<String>,
 }
+
+/// Strip `user:password@` from URLs to keep credentials out of
+/// operator logs and JSON reports. F54 (2026-07-18).
+///
+///   in:  "https://user:secret@github.com/DraconDev/repo.git"
+///   out: "https://user@github.com/DraconDev/repo.git"
+///
+/// URLs without credentials pass through unchanged. `user@host`
+/// (no password) is preserved verbatim. Tokens at random positions
+/// (e.g. inside a path or querystring) are not handled here — that's
+/// the caller's responsibility.
+fn redact_origin_credentials(url: &str) -> String {
+    let Some(scheme_end) = url.find("://") else {
+        return url.to_string();
+    };
+    let after_scheme = &url[scheme_end + 3..];
+    // The `@` we care about is the LAST `@` before the first `/`,
+    // so that `@` in the path (rare but possible) is not mis-parsed.
+    let slash = after_scheme.find('/').unwrap_or(after_scheme.len());
+    let (authority, tail) = after_scheme.split_at(slash);
+    let Some(at_in_authority) = authority.rfind('@') else {
+        return url.to_string();
+    };
+    let auth_userinfo = &authority[..at_in_authority];
+    let host_part = &authority[at_in_authority + 1..]; // after the '@'
+    // auth_userinfo is either "user" or "user:password".
+    // Keep the user, drop the password if any.
+    let user_only = match auth_userinfo.find(':') {
+        Some(colon) => &auth_userinfo[..colon],
+        None => auth_userinfo,
+    };
+    format!(
+        "{prefix}{user}@{host}{tail}",
+        prefix = &url[..scheme_end + 3],
+        user = user_only,
+        host = host_part,
+        tail = tail,
+    )
+}
+
 
 /// Read the signals from a git repo. Each `git` invocation is
 /// independent — failures on any one do not block the others.
@@ -795,6 +836,41 @@ mod tests {
         // Empty trusted list → nothing is trusted. Forces Unowned.
         let hosts: Vec<String> = vec![];
         assert!(!is_trusted_origin("https://github.com/DraconDev/r.git", &hosts));
+    }
+
+    #[test]
+    fn test_redact_origin_credentials() {
+        // F54: password-bearing URLs must have the password stripped.
+        assert_eq!(
+            redact_origin_credentials("https://user:secret@github.com/DraconDev/repo.git"),
+            "https://user@github.com/DraconDev/repo.git"
+        );
+        // user@ without password is preserved.
+        assert_eq!(
+            redact_origin_credentials("https://user@github.com/DraconDev/repo.git"),
+            "https://user@github.com/DraconDev/repo.git"
+        );
+        // No credentials → unchanged.
+        assert_eq!(
+            redact_origin_credentials("https://github.com/DraconDev/repo.git"),
+            "https://github.com/DraconDev/repo.git"
+        );
+        // ssh:// form.
+        assert_eq!(
+            redact_origin_credentials("ssh://git:token@gitlab.com/owner/repo.git"),
+            "ssh://git@gitlab.com/owner/repo.git"
+        );
+        // scp-like form has no scheme → pass through.
+        assert_eq!(
+            redact_origin_credentials("git@github.com:DraconDev/repo.git"),
+            "git@github.com:DraconDev/repo.git"
+        );
+        // Path containing `@` is not touched (the authority `@` is
+        // rfind()-bounded to the last one BEFORE the first `/`).
+        assert_eq!(
+            redact_origin_credentials("https://user:secret@gitlab.com/owner/u@v.git"),
+            "https://user@gitlab.com/owner/u@v.git"
+        );
     }
 
     #[test]
