@@ -421,6 +421,7 @@ pub(crate) fn run_git_capture_output(repo: &Path, args: &[&str], op_label: &str)
 
 /// Test helper: returns whether `git filter-repo` is on PATH.
 /// Used by F31 regression test to skip when filter-repo is absent.
+#[cfg(test)]
 pub(crate) fn filter_repo_available_for_tests() -> bool {
     use std::process::Command;
     Command::new("git")

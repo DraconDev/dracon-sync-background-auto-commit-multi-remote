@@ -279,6 +279,9 @@ enum RepairCommands {
     DualBranchRepair {
         /// The repository path to consolidate.
         repo: PathBuf,
+        /// Actually delete the master branch (without this, dry-run only).
+        #[arg(long)]
+        apply: bool,
     },
 }
 
@@ -835,9 +838,21 @@ async fn main() -> Result<()> {
                     println!("\n🔧 Run 'dracon-sync repair dual-branch-repair <path>' to consolidate to main");
                 }
             }
-            RepairCommands::DualBranchRepair { repo } => {
+            RepairCommands::DualBranchRepair { repo, apply } => {
                 if !has_both_main_and_master(&repo) {
                     println!("ℹ️ {} does not have both main and master", repo.display());
+                    return Ok(());
+                }
+                if !apply {
+                    // F34 (2026-07-19): the previous command always
+                    // deleted the master branch locally + remotely
+                    // without explicit confirmation. Dry-run by default;
+                    // require `--apply` to actually delete.
+                    println!(
+                        "🔍 DRY-RUN: would consolidate {} to main (deletes master locally + remotely).",
+                        repo.display()
+                    );
+                    println!("   Pass --apply to actually perform the deletion.");
                     return Ok(());
                 }
                 println!("🔧 Consolidating {} to main...", repo.display());
