@@ -252,15 +252,33 @@ fn extract_repo_name(repo: &Path) -> anyhow::Result<String> {
 
     let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
-    if url.starts_with("git@") {
-        Ok(url
-            .strip_prefix("git@")
-            .and_then(|s| s.split_once(':'))
-            .map(|(_, path)| path.trim_end_matches(".git").to_string())
-            .unwrap_or_else(|| url.clone()))
-    } else if url.starts_with("https://") {
+    // F53 (2026-07-18): the previous `split_once(':')` matched the
+    // first colon, which is the PORT colon in `ssh://git@host:22/path`
+    // and not the path separator. The path was then dropped. Use the
+    // URL parser shared with ownership.rs.
+    if url.starts_with("git@") || url.starts_with("ssh://") || url.starts_with("git+ssh://") {
+        let path = if let Some(idx) = url.find("://") {
+            // ssh://git@github.com:22/owner/repo(.git)
+            // Split on first `/` after the authority.
+            let after_scheme = &url[idx + 3..];
+            after_scheme
+                .find('/')
+                .map(|p| &after_scheme[p + 1..])
+                .unwrap_or(after_scheme)
+        } else {
+            // git@host:owner/repo(.git) → strip git@, then host:...
+            // Find the colon-after-host (NOT in path).
+            let after_at = url.strip_prefix("git@").unwrap_or(&url);
+            after_at
+                .split_once('/')
+                .map(|(_, p)| p)
+                .unwrap_or(after_at)
+        };
+        Ok(path.trim_end_matches(".git").to_string())
+    } else if url.starts_with("https://") || url.starts_with("http://") {
         Ok(url
             .trim_start_matches("https://")
+            .trim_start_matches("http://")
             .trim_end_matches(".git")
             .split('/')
             .skip(1)

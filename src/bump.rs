@@ -22,23 +22,13 @@ pub(crate) fn extract_version_from_cargo(content: &str) -> Option<String> {
 }
 
 pub(crate) fn extract_version_from_json(content: &str, key: &str) -> Option<String> {
-    let needle = format!("\"{}\"", key);
-    if let Some(idx) = content.find(&needle) {
-        let key_pos = idx;
-        let after_key = key_pos + needle.len();
-        let rest = &content[after_key..];
-        let colon_rel = rest.find(':')?;
-        let after_colon = after_key + colon_rel + 1;
-        let rest2 = &content[after_colon..];
-        let q1_rel = rest2.find('"')?;
-        let q1 = after_colon + q1_rel + 1;
-        let rest3 = &content[q1..];
-        let q2_rel = rest3.find('"')?;
-        let q2 = q1 + q2_rel;
-        Some(content[q1..q2].to_string())
-    } else {
-        None
-    }
+    // F51 (2026-07-18): replaced the manual byte-search with a
+    // serde_json parse so values containing escaped quotes (e.g.
+    // `{"version": "1.0.0\"hotfix"}`) are handled correctly. The
+    // previous implementation matched the first `"` after `q1`,
+    // which could be the `\"` escape and produce garbage.
+    let v: serde_json::Value = serde_json::from_str(content).ok()?;
+    v.get(key).and_then(|val| val.as_str()).map(|s| s.to_string())
 }
 
 #[cfg(test)]
@@ -122,6 +112,17 @@ version = "1.0.0""#;
     fn test_extract_version_from_json_not_found() {
         let content = r#"{"name": "test"}"#;
         assert_eq!(extract_version_from_json(content, "version"), None);
+    }
+
+    #[test]
+    fn test_extract_version_from_json_escaped_quotes() {
+        // F51 (2026-07-18): a value containing an escaped quote must
+        // be returned verbatim, not truncated at the first `\"`.
+        let content = r#"{"version": "1.0.0\"hotfix"}"#;
+        assert_eq!(
+            extract_version_from_json(content, "version"),
+            Some(r#"1.0.0"hotfix"#.to_string())
+        );
     }
 
     #[test]
