@@ -14,6 +14,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.22 — 2026-07-19 — MEDIUM-sweep follow-up
+
+5 MEDIUM + 2 LOW deferred from v0.112.21, now remediated:
+
+- **F31** `git/staging.rs`: `rewrite_ahead_paths` now compares
+  `backup_branch^{tree}` vs `HEAD^{tree}` after the rewrite and
+  deletes the empty backup branch on a no-op. Test:
+  test_f31_noop_rewrite_deletes_backup_branch.
+- **F33** `git/diff.rs`: `parse_name_status_line` now requires a
+  digit suffix on rename (`R100`, not bare `R`). 7 new tests cover
+  the matrix.
+- **F34** `main.rs`: `dual-branch-repair` defaults to DRY-RUN; pass
+  `--apply` to actually delete master locally + remotely.
+- **F47** `git/ops.rs`: `kill_process_group` SIGTERM→SIGKILL gap
+  extended from 200ms to 2s with `kill`-missing diagnostic.
+- **F49** `git/ops.rs`: child-wait poll interval 250ms → 100ms (the
+  `tokio::select!` was already event-driven via `progress_rx`).
+- **F55** `role.rs`: `classify_roles` now prefers full-path equality
+  over basename-only. Test: f55_full_path_distinguishes_same_basename_repos.
+- **F60** `secrets.rs`: `check_secrets_dir_permissions` refuses
+  group-writable (was world-writable only).
+- **F61** `test_helpers.rs`: corrected doc-comment that falsely
+  claimed `test_git_cmd()` serializes git invocations.
+
+Test count: 915 (was 906, +9 new). `cargo build/test/clippy/deny` all green.
+
 ### v0.112.21 — 2026-07-19 — post-v0.112.20 audit remediation
 
 8 daemon HIGH + 3 warden HIGH findings remediated from `AUDIT_FULL_2026-07-18-POSTFIX.md`. Critical changes:
