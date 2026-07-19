@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.23 — 2026-07-19 — UI rendering fix
+
+`repos` table layout was broken — cells were wrapping to 2-5 lines per row. Root cause: `LowerBoundary` constraints allowed columns to GROW to fit the longest content (152-char auto-commit subjects), and `truncate_unicode_width()` wasn't being applied to cells.
+
+Fix:
+- LAST COMMIT, AUTHOR, STATUS, PUSH-TO: `LowerBoundary` → `Absolute`
+  so columns are truly fixed at the listed width
+- Every cell with variable-length content: `truncate_unicode_width(..., column - 2)` before passing to comfy-table
+- STATUS 11 → 13 cols (so `🚫 unowned` = 11 cols + 2 padding fits)
+- Full-tier threshold 300 → 315 cols (sum 287 + 24 borders = 311)
+- New regression test: `test_long_commit_subject_truncated_to_last_commit_width`
+
+Truncation budgets (column_width - 2 padding):
+LAST COMMIT 17 → 15, PUSH-TO 32 → 30, HINT 15 → 13, ACTIVITY 11 → 9,
+AUTHOR 11 → 9, STATE 15 → 13, DAEMON 15 → 13, STATE+ACT 17 → 15.
+
+Test count: 916 (was 915, +1 new). `cargo build/test/clippy/deny` all green.
+All 30 data rows now render on single lines.
+
 ### v0.112.22 — 2026-07-19 — MEDIUM-sweep follow-up
 
 5 MEDIUM + 2 LOW deferred from v0.112.21, now remediated:
