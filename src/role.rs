@@ -402,4 +402,46 @@ mod tests {
     }
 }
 
-// (no trailing helpers needed)
+    /// F55 (2026-07-19): when two watched repos share a basename
+    /// but live at different paths, full-path equality must
+    /// distinguish them. The previous basename-only matcher would
+    /// have misclassified a sibling-foo standalone as a submod of
+    /// any other parent that declared a submod named `foo`.
+    #[test]
+    fn f55_full_path_distinguishes_same_basename_repos() {
+        let dir = tempdir().unwrap();
+        let parent = dir.path().join("parent");
+        let sibling = dir.path().join("sibling-foo");
+        let nested = parent.join("nested-foo");
+        fs::create_dir_all(&parent).unwrap();
+        fs::create_dir_all(&sibling).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+        // Parent's .gitmodules declares a submod `nested-foo`.
+        fs::write(
+            parent.join(".gitmodules"),
+            "[submodule \"nested-foo\"]\n\tpath = nested-foo\n\turl = https://example.com/foo.git\n"
+        ).unwrap();
+        let rows = vec![
+            crate::report::RepoReportRow::for_tests(&parent.to_string_lossy()),
+            crate::report::RepoReportRow::for_tests(&sibling.to_string_lossy()),
+            crate::report::RepoReportRow::for_tests(&nested.to_string_lossy()),
+        ];
+        let roles = classify_roles(&rows);
+        // parent is a Parent(1).
+        assert!(matches!(roles[0], RoleKind::Parent(1)));
+        // sibling-foo at /tmp/.../sibling-foo is STANDALONE
+        // (parent's .gitmodules path=nested-foo resolves to
+        // /tmp/.../parent/nested-foo, NOT /tmp/.../sibling-foo).
+        assert!(
+            matches!(roles[1], RoleKind::Standalone),
+            "expected standalone, got {:?}",
+            roles[1]
+        );
+        // nested-foo at /tmp/.../parent/nested-foo IS a submod of parent.
+        assert!(
+            matches!(roles[2], RoleKind::Submod { .. }),
+            "expected submod, got {:?}",
+            roles[2]
+        );
+    }
+}
