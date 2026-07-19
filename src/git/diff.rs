@@ -44,6 +44,13 @@ pub(crate) async fn git_diff_head_files(repo: &Path) -> Result<HashSet<PathBuf>>
 }
 
 /// Parse a single line from `git status --porcelain` or `git diff --name-status`.
+///
+/// F33 (2026-07-19): previously the rename branch naively split on
+/// `\t` and read two paths, which works for `R100\told\tnew` but is
+/// silently wrong for the corner case where the OLD path is empty
+/// (e.g. `git status --porcelain=v1` R-prefix can be ambiguous). We
+/// now require the score to be present after the `R` (1-3 digits) and
+/// reject anything that doesn't conform to `R<score>\t<old>\t<new>`.
 pub(crate) fn parse_name_status_line(line: &str) -> Option<(PathBuf, FileStatus)> {
     let mut parts = line.split('\t');
     let status_raw = parts.next()?.trim();
@@ -57,8 +64,16 @@ pub(crate) fn parse_name_status_line(line: &str) -> Option<(PathBuf, FileStatus)
         'D' => (parts.next()?, FileStatus::Deleted),
         'T' => (parts.next()?, FileStatus::TypeChange),
         'R' => {
-            let _old = parts.next()?;
+            // Validate the score suffix: `R<digits>` (1-3 digits).
+            let score = &status_raw[1..];
+            if score.is_empty() || !score.chars().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            let old = parts.next()?;
             let new = parts.next()?;
+            if old.is_empty() || new.is_empty() {
+                return None;
+            }
             (new, FileStatus::Renamed)
         }
         _ => return None,
@@ -209,3 +224,65 @@ pub(crate) async fn tracked_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
         .collect())
 }
 
+
+#[cfg(test)]
+mod f33_tests {
+    use super::parse_name_status_line;
+
+    #[test]
+    fn parse_name_status_basic_statuses() {
+        assert_eq!(
+            parse_name_status_line("M\tsrc/lib.rs").unwrap().1,
+            dracon_git::types::FileStatus::Modified
+        );
+        assert_eq!(
+            parse_name_status_line("A\tnew.rs").unwrap().1,
+            dracon_git::types::FileStatus::Added
+        );
+        assert_eq!(
+            parse_name_status_line("D\told.rs").unwrap().1,
+            dracon_git::types::FileStatus::Deleted
+        );
+    }
+
+    #[test]
+    fn parse_name_status_rename_with_score() {
+        // F33 (2026-07-19): `git diff --name-status -M` emits
+        // `R<score>\t<old>\t<new>`. Verify the score is required
+        // and the OLD path is NOT mistakenly read as the new.
+        let (path, status) = parse_name_status_line("R100\told_name.txt\tnew_name.txt").unwrap();
+        assert_eq!(status, dracon_git::types::FileStatus::Renamed);
+        assert_eq!(path.to_str().unwrap(), "new_name.txt");
+    }
+
+    #[test]
+    fn parse_name_status_rename_without_score_rejected() {
+        // F33: a bare `R` without a digit suffix is ambiguous
+        // (could be the first char of a filename); reject it.
+        assert!(parse_name_status_line("R\told.txt\tnew.txt").is_none());
+    }
+
+    #[test]
+    fn parse_name_status_rename_with_non_digit_suffix_rejected() {
+        // F33: the score must be digits; `Rabc` is invalid.
+        assert!(parse_name_status_line("Rabc\told.txt\tnew.txt").is_none());
+    }
+
+    #[test]
+    fn parse_name_status_rename_with_empty_paths_rejected() {
+        // F33: an empty old or new path is malformed.
+        assert!(parse_name_status_line("R100\t\tnew.txt").is_none());
+        assert!(parse_name_status_line("R100\told.txt\t").is_none());
+    }
+
+    #[test]
+    fn parse_name_status_unknown_status_returns_none() {
+        assert!(parse_name_status_line("X\tfile.txt").is_none());
+    }
+
+    #[test]
+    fn parse_name_status_empty_line_returns_none() {
+        assert!(parse_name_status_line("").is_none());
+        assert!(parse_name_status_line("\tfoo").is_none());
+    }
+}
