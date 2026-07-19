@@ -364,7 +364,7 @@ fn parse_origin(url: &str) -> Option<(&str, &str)> {
     }
 
     // Scheme-form: scheme://[user@]host[:port]/path
-    let after_scheme = url.splitn(2, "://").nth(1)?;
+    let after_scheme = url.split_once("://")?.1;
     // Strip optional userinfo (user@) and port
     let host_and_path = if let Some(slash) = after_scheme.find('/') {
         &after_scheme[..slash]
@@ -372,11 +372,7 @@ fn parse_origin(url: &str) -> Option<(&str, &str)> {
         // No path at all — `https://github.com` — no owner.
         return None;
     };
-    let host = host_and_path
-        .rsplitn(2, '@')
-        .next()?
-        .split(':')
-        .next()?; // strip optional `:port`
+    let host = host_and_path.rsplit('@').next()?.split(':').next()?; // strip optional `:port`
     let path_start = after_scheme.find('/').map(|i| i + 1)?;
     let path = &after_scheme[path_start..];
     let owner = path.trim_start_matches('/').split('/').next()?;
