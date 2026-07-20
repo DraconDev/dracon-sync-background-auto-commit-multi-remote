@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.26 — 2026-07-19 — UI polish follow-up (clean STATE+ACT truncation + wider HINT)
+
+After v0.112.25, two cosmetic artifacts were still visible in the `repos` table:
+
+1. **STATE+ACT mid-emoji truncation**: `🟠 dirty · ⏳ …` — the second emoji (⏳) was kept but the trailing text was clipped, leaving a dangling emoji + ellipsis.
+2. **HINT column too narrow**: `daemon handles afte…` clipped the operator-friendly phrase mid-word.
+
+Fix:
+- New `state_plus_act_cell()` helper drops the activity part **cleanly** when the 15-col budget is tight. State always renders (`🟠 dirty`); activity only when there's room (`🟠 dirty · ⏳ dirty 1h`). State is preserved over activity because state is the actionable classification.
+- Widened HINT column from `Absolute(22)` → `Absolute(26)` (budget 20 → 24 cols). Now fits `daemon handles after ch…` instead of `daemon handles afte…`.
+- Bumped Compact tier threshold from `< 238` to `< 242` to match the new HINT width.
+
+**+3 new regression tests** (`test_state_plus_act_cell_drops_activity_when_tight`, `..._keeps_activity_when_it_fits`, `..._handles_dash_activity`). **928 total daemon tests** passing. `cargo build/test/clippy/deny` all green.
+
+Verified:
+- 240 cols → Vertical (no wrap)
+- 300 cols → Compact, all single-line, clean truncation (no `⏳ …` artifacts)
+- 400 cols → Full, all single-line
+
 ### v0.112.25 — 2026-07-19 — UI render fix follow-up
 
 v0.112.24's Compact-tier table used `LowerBoundary(N)` for REPO/ROLE/PUBLISH/STATE+ACT/HINT — meaning cells could GROW with content but not truncate. On terminals 220-237 cols (just below Compact threshold) the table rendered but variable-length cells wrapped to 2 lines.
