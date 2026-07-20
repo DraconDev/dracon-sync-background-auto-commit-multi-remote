@@ -369,6 +369,118 @@ enum ConfigCommands {
 // in parallel. The default `current_thread` flavor would serialize the
 // futures even though they are wrapped in `buffer_unordered(16)`, because
 // there is no other worker thread to schedule them on.
+/// Flip a repository's visibility across all configured remotes.
+/// Used by both `make-public` and `make-private` subcommands.
+///
+/// `target_private = true` means make private; `false` means make public.
+/// Skips codeberg by default; pass `include_codeberg=true` to flip it
+/// (opt-in to protect the 85 GiB grace quota).
+///
+/// ADDED 2026-07-20 (v0.112.28).
+fn handle_visibility_flip(
+    policy_path: &std::path::Path,
+    repo_name: &str,
+    include_codeberg: bool,
+    no_cache_update: bool,
+    target_private: bool,
+) -> Result<()> {
+    let policy = SyncPolicy::load(policy_path)?;
+    let roots = policy.watch_root_paths();
+    let excluded_dir_names = excluded_dir_names_set(&policy);
+    let repos = git::discover_git_repos(
+        &roots,
+        &excluded_dir_names,
+        &policy.exclude_repos,
+        Some(&policy.system_repo),
+    );
+
+    // Find the repo by basename.
+    let repo_path = repos.into_iter().find(|p| {
+        p.file_name()
+            .map(|n| n.to_string_lossy() == repo_name)
+            .unwrap_or(false)
+    });
+    let Some(repo_path) = repo_path else {
+        anyhow::bail!(
+            "repo '{}' not found in watch roots ({}); pass the basename, e.g. `dracon-sync`",
+            repo_name,
+            roots
+                .iter()
+                .map(|r| r.to_string_lossy().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    };
+
+    // Get origin URL.
+    let origin_url = std::process::Command::new("git")
+        .current_dir(&repo_path)
+        .args(["config", "--get", "remote.origin.url"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default();
+
+    if origin_url.is_empty() {
+        anyhow::bail!(
+            "repo '{}' has no origin remote; cannot flip visibility without a github origin",
+            repo_name
+        );
+    }
+
+    let visibility_str = if target_private { "private" } else { "public" };
+    println!(
+        "🔁 flipping {} → {} across github + gitlab{}",
+        repo_name,
+        visibility_str,
+        if include_codeberg { " + codeberg" } else { "" }
+    );
+
+    let results = visibility::flip_repo_visibility(
+        &origin_url,
+        &policy.remotes,
+        repo_name,
+        target_private,
+        include_codeberg,
+    );
+
+    let mut any_fail = false;
+    for (remote_name, result) in &results {
+        match result {
+            Ok(()) => println!("  ✅ {} → {}", remote_name, visibility_str),
+            Err(e) => {
+                any_fail = true;
+                println!("  ❌ {}: {}", remote_name, e);
+            }
+        }
+    }
+
+    if any_fail {
+        println!(
+            "\n⚠️  some remotes failed; the flip is partial. Re-run to retry."
+        );
+    } else {
+        println!("\n✅ all remotes flipped to {}", visibility_str);
+    }
+
+    // Update visibility cache so `repos` reflects the new state.
+    if !no_cache_update {
+        let any_success = results.iter().any(|(_, r)| r.is_ok());
+        if any_success {
+            visibility::update_visibility_cache(&repo_path, target_private);
+            if policy::debug_enabled() {
+                eprintln!("🐛 updated visibility cache for {}", repo_path.display());
+            }
+        }
+    }
+
+    if any_fail {
+        std::process::exit(2);
+    }
+    Ok(())
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     // If output is piped (e.g. `dracon-sync repos | head`), stdout can become a broken pipe.
@@ -1178,83 +1290,15 @@ async fn main() -> Result<()> {
             repo,
             include_codeberg,
             no_cache_update,
+        } => {
+            handle_visibility_flip(&policy_path, &repo, include_codeberg, no_cache_update, false)?;
         }
-        | Command::MakePrivate {
+        Command::MakePrivate {
             repo,
             include_codeberg,
             no_cache_update,
         } => {
-            let private = matches!(
-                std::mem::discriminant(&Command::MakePublic {
-                    repo: repo.clone(),
-                    include_codeberg,
-                    no_cache_update,
-                }),
-                std::mem::discriminant(&Command::MakePublic {
-                    repo: String::new(),
-                    include_codeberg: false,
-                    no_cache_update: false,
-                })
-            ) && !matches!(
-                std::any::type_name::<Command>(),
-                "" // unreachable
-            );
-            // Simpler: compute target directly from the variant name.
-            let target_private = matches!(
-                std::mem::discriminant(&Command::MakePublic {
-                    repo: String::new(),
-                    include_codeberg: false,
-                    no_cache_update: false,
-                }),
-                std::mem::discriminant(&Command::MakePrivate {
-                    repo: String::new(),
-                    include_codeberg: false,
-                    no_cache_update: false,
-                })
-            );
-            // ↑ the above is convoluted and unreliable across variants.
-            // Just compute from the active match arm's pattern:
-            let _ = (private, target_private);
-            let target_private = {
-                // The match arm is OR'd between MakePublic and MakePrivate;
-                // we can detect by re-matching a fresh enum value.
-                let probe_pub = Command::MakePublic {
-                    repo: String::new(),
-                    include_codeberg: false,
-                    no_cache_update: false,
-                };
-                std::mem::discriminant(&probe_pub)
-                    == std::mem::discriminant(
-                        &Command::MakePrivate {
-                            repo: String::new(),
-                            include_codeberg: false,
-                            no_cache_update: false,
-                        },
-                    )
-                    .then_some(false)
-                    .unwrap_or(true)
-            };
-            // ↑ still unreliable. Use a clean discriminator check:
-            let probe_pub = Command::MakePublic {
-                repo: String::new(),
-                include_codeberg: false,
-                no_cache_update: false,
-            };
-            let probe_priv = Command::MakePrivate {
-                repo: String::new(),
-                include_codeberg: false,
-                no_cache_update: false,
-            };
-            // The discriminant of MakePublic differs from MakePrivate, so
-            // we can detect which arm matched by checking the live Command:
-            // ... but we can't access the matched enum here without re-arming.
-            //
-            // WORKAROUND (clean): dispatch the visibility flip into a helper
-            // that takes an explicit `private: bool` and call it from each
-            // arm. Restructure:
-            let _ = (probe_pub, probe_priv);
-            // — replaced below by an explicit if/else —
-            unreachable!("restructured below");
+            handle_visibility_flip(&policy_path, &repo, include_codeberg, no_cache_update, true)?;
         }
         Command::Metrics => {
             let policy = SyncPolicy::load(&policy_path)?;
