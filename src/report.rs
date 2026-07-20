@@ -4330,7 +4330,7 @@ fn print_repos_summary(
     table.set_content_arrangement(ContentArrangement::Dynamic);
     if let Some(w) = terminal_width() {
         if (40..=2000).contains(&w) {
-            table.set_width(w as u16);
+            table.set_width(w);
         }
     }
 
