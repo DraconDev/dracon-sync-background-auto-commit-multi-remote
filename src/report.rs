@@ -2532,6 +2532,8 @@ pub(crate) async fn run_repos_report(
     full_path: bool,
     legend: bool,
     layout_override: Option<&str>,
+    summary: bool,
+    summary_by_severity: bool,
 ) -> Result<()> {
     // `--legend` prints the column legend and exits. The default report stays
     // uncluttered; the legend is available on demand when a column is unclear.
@@ -3211,6 +3213,16 @@ pub(crate) async fn run_repos_report(
         },
         None => choose_layout_tier(),
     };
+    // ---- Summary view (2026-07-19, goal `4555eaf6` v0.112.27) ----
+    // ADDED: `--summary` / `-s` flag routes to a glance-friendly 3-column
+    // view (STATUS · REPO · WHAT) with severity-sorted rows. The default
+    // `repos` table is dense (16 columns) for deep inspection; the summary
+    // is for "is anything broken?" health checks. Always uses the Vertical
+    // tier so the WHAT column can be as wide as the terminal allows.
+    if summary {
+        print_repos_summary(&rows, &filter, full_path, summary_by_severity);
+        return Ok(());
+    }
     match tier {
         LayoutTier::Vertical => {
             print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
@@ -4171,6 +4183,150 @@ fn role_cell(role: &crate::role::RoleKind) -> comfy_table::Cell {
         crate::role::RoleKind::Standalone => comfy_table::Color::White,
     };
     comfy_table::Cell::new(truncated).fg(color)
+}
+
+// ---------------------------------------------------------------------------
+// Summary view (--summary / -s). 3-column glance-friendly format
+// (STATUS · REPO · WHAT), no headers, severity-sorted by default.
+// ---------------------------------------------------------------------------
+
+/// Numeric severity for the summary view's `--summary-by-severity`
+/// ordering. Lower number = more urgent, so sort ascending puts
+/// concerns at the top.
+///
+/// 2026-07-19 (goal `4555eaf6` v0.112.27): tier 0 = concerns
+/// (WARN+concern, anything genuinely broken); tier 1 = warns
+/// (WARN-only, e.g. stalled without a concern); tier 2 = active
+/// (the daemon is working on it); tier 3 = clean (idle / cold /
+/// healthy).
+fn severity_tier(row: &RepoReportRow) -> u8 {
+    if row.concern {
+        0
+    } else if row.warn {
+        1
+    } else if row.active {
+        2
+    } else {
+        3
+    }
+}
+
+/// One-line "WHAT" descriptor for the summary view. Combines
+/// state icon, activity (if any), push status (if pending),
+/// and the operator hint into a single human-readable string.
+/// Width-bounded by `budget`.
+fn summary_what(row: &RepoReportRow, budget: usize) -> String {
+    let state_text = format!("{} {}", row.state_cause.icon(), row.state_cause.as_str());
+    let activity = state_plus_act_cell(
+        row.state_cause.icon(),
+        row.state_cause.as_str(),
+        &activity_label(row),
+        30, // wide budget for the unsquashed state+activity (the truncation below is the real cap)
+    );
+    // State + activity is the primary WHAT. If the activity got
+    // dropped (budget too small inside state_plus_act_cell), we
+    // already have just the state — that's fine.
+    let mut parts: Vec<String> = vec![activity.clone()];
+    // Append push status if pending (so "🟣 pushing" alone is
+    // visible on stalled rows even when activity is "—").
+    if row.push_status == "PENDING" {
+        let ahead = if row.ahead > 0 {
+            format!(" ({} ahead)", row.ahead)
+        } else {
+            String::new()
+        };
+        let push_note = format!("push: pending{ahead}");
+        parts.push(push_note);
+    } else if row.push_status == "STUCK" || row.push_status == "FAIL" {
+        parts.push(format!("push: {}", row.push_status.to_lowercase()));
+    }
+    // Append dirty counts so the operator can see at a glance
+    // HOW MUCH dirty work exists, not just that some exists.
+    let mut dirty_parts: Vec<String> = Vec::new();
+    if row.modified > 0 {
+        dirty_parts.push(format!("{} mod", row.modified));
+    }
+    if row.staged > 0 {
+        dirty_parts.push(format!("{} stg", row.staged));
+    }
+    if row.untracked > 0 {
+        dirty_parts.push(format!("{} ut", row.untracked));
+    }
+    if !dirty_parts.is_empty() {
+        parts.push(dirty_parts.join(" + "));
+    }
+    // Append operator hint (e.g. "run repair-concerns --apply",
+    // "daemon handles after changes settle"). This is the most
+    // actionable bit — tells the operator what to do next.
+    if !row.hint.is_empty() && row.hint != "-" {
+        parts.push(row.hint.clone());
+    }
+    // Append author for context.
+    if !row.last_author.is_empty() && row.last_author != "-" {
+        parts.push(format!("by {}", row.last_author));
+    }
+    let _ = state_text; // unused — kept for future per-state formatting
+    let joined = parts.join(" · ");
+    truncate_unicode_width(&joined, budget)
+}
+
+/// Print the summary view.
+///
+/// 2026-07-19 (goal `4555eaf6` v0.112.27): added in response to
+/// operator feedback that the default `repos` table is "noisy at
+/// a glance" — 16 columns are too many when the question is just
+/// "is anything broken?". The summary view is intentionally
+/// spartan: one row per repo, no headers, no borders. STATUS
+/// is the per-repo severity icon (❌/⚠️/🔄/✅), REPO is the
+/// short name, WHAT is the merged context string.
+fn print_repos_summary(
+    rows: &[RepoReportRow],
+    _filter: &RepoFilter,
+    full_path: bool,
+    by_severity: bool,
+) {
+    // Build (idx, row) pairs so we can number the rows in the
+    // post-sort order. The summary shows ROW NUMBER (severity
+    // position), not file-system order, because the operator
+    // scanning the summary needs to find row 1 first.
+    let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
+    if by_severity {
+        // Stable sort by severity_tier (ascending: concerns first).
+        // Within a tier, preserve the original (updated) order.
+        indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
+    }
+    let width = terminal_width().unwrap_or(120) as usize;
+    // Reserve col widths for "  N. STATUS  " and trailing pad.
+    // The REPO column gets a fixed slice (24 cols, max REPO name
+    // length in this repo set); the WHAT column gets the rest.
+    const REPO_COL: usize = 24;
+    const STATUS_COL: usize = 13; // "❌ CONCERN  " (11) + 2 buffer
+    let what_budget = width.saturating_sub(REPO_COL + STATUS_COL + 8);
+    let repo_budget = REPO_COL.saturating_sub(2);
+    for (display_idx, (orig_idx, row)) in indexed.iter().enumerate() {
+        let _ = orig_idx;
+        let (status_text, status_color) = status_pair(row);
+        let repo_name = if full_path {
+            row.repo.clone()
+        } else {
+            std::path::Path::new(&row.repo)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| row.repo.clone())
+        };
+        let repo_short = truncate_unicode_width(&repo_name, repo_budget);
+        let what = summary_what(row, what_budget);
+        let status_styled = colorize(status_text, status_color);
+        let what_styled = colorize(&what, status_color);
+        // "{:>3}. STATUS  REPO  WHAT"
+        println!(
+            "{:>3}. {}  {:<repo_budget$}  {}",
+            display_idx + 1,
+            status_styled,
+            colorize(&repo_short, Color::White),
+            what_styled,
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------

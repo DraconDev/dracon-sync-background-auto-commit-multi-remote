@@ -97,6 +97,21 @@ enum Command {
         /// layout, or when scripting for a known terminal size.
         #[arg(long, value_parser = ["vertical", "compact", "full"])]
         layout: Option<String>,
+        /// Glance view: 3-column summary (STATUS · REPO · WHAT), no headers,
+        /// sorted by severity (concerns first, clean last). Use when you just
+        /// want to know "is anything broken?". Combine with --only_concern or
+        /// --only_warn to focus on problems.
+        ///
+        /// ADDED 2026-07-19 (goal `4555eaf6` v0.112.27): the default
+        /// `repos` table is dense (16 columns) for deep inspection.
+        /// The summary view is for at-a-glance health checks.
+        #[arg(long, short = 's')]
+        summary: bool,
+        /// Sort the summary view by severity (concern → warn → active → clean)
+        /// instead of the default `updated` order. Convenience flag for the
+        /// most common summary use case.
+        #[arg(long)]
+        summary_by_severity: bool,
     },
     /// Check daemon health (policy valid, daemon responsive, repos healthy).
     Health {
@@ -697,6 +712,8 @@ async fn main() -> Result<()> {
             full_path,
             legend,
             layout,
+            summary,
+            summary_by_severity,
         } => {
             let filter = if only_concern {
                 RepoFilter::Concern
@@ -714,6 +731,8 @@ async fn main() -> Result<()> {
                 full_path,
                 legend,
                 layout.as_deref(),
+                summary,
+                summary_by_severity,
             )
             .await?;
         }
