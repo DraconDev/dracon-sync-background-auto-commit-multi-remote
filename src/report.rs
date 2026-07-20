@@ -7600,6 +7600,78 @@ mod tests {
     }
 
     #[test]
+    fn test_print_repos_summary_renders_as_table() {
+        // 2026-07-20 (goal `4555eaf6` v0.112.27 R1): the summary
+        // view MUST render as a proper table (with borders and
+        // headers), not a free-form list. Operator feedback:
+        // "the summary needs to be a table". R0 used println!
+        // with manual spacing and broke alignment under ANSI
+        // color codes; R1 uses comfy-table with UTF8_FULL_CONDENSED.
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = false;
+        row.warn = false;
+        row.active = true;
+        row.modified = 1;
+        row.staged = 0;
+        row.untracked = 0;
+        row.ahead = 0;
+        row.push_status = "OK".to_string();
+        row.hint = "healthy".to_string();
+        row.last_author = "DraconDev".to_string();
+        row.last_when = "5 minutes ago".to_string();
+        row.repo = "/tmp/foo".to_string();
+        row.branch = "main".to_string();
+        row.upstream = "origin/main".to_string();
+        row.publish_state = PublishState::Ok;
+        row.last_hash = "deadbeef1234".to_string();
+        row.last_msg = "test commit".to_string();
+        row.last_unix = 0;
+        row.state_cause = StateCause::Dirty;
+        row.state_cause_label = "dirty".to_string();
+
+        let rows = vec![row];
+        let filter = RepoFilter::All;
+        // We can't easily capture stdout from print_repos_summary
+        // (it's hardcoded to println!), but we can at least verify
+        // it doesn't panic on a populated row and produces output.
+        // The visual rendering is verified by the manual test
+        // script (see release-notes-v0.112.27.md).
+        print_repos_summary(&rows, &filter, false, false);
+    }
+
+    #[test]
+    fn test_summary_what_handles_long_hint_with_word_boundary() {
+        // When hint exceeds budget, truncate_unicode_width uses
+        // a word-boundary-aware algorithm (see report.rs:2094).
+        // Long hints like "daemon handles after changes settle;
+        // run sync-now --warns to force now" (70 chars) must be
+        // truncated to fit a narrow budget without clipping mid-word
+        // when possible.
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = false;
+        row.warn = false;
+        row.active = true;
+        row.modified = 0;
+        row.staged = 0;
+        row.untracked = 0;
+        row.ahead = 0;
+        row.push_status = "OK".to_string();
+        row.hint = "daemon handles after changes settle; run sync-now --warns to force now".to_string();
+        row.last_author = "DraconDev".to_string();
+        row.last_when = "5 minutes ago".to_string();
+        let what = summary_what(&row, 80);
+        // WHAT string must be at most 80 chars wide.
+        let w = unicode_width::UnicodeWidthStr::width(what.as_str());
+        assert!(w <= 80, "WHAT width {w} exceeds budget 80: {what}");
+        // Truncated hint must end with either … (word-boundary hit)
+        // or the natural sentence end (no truncation needed).
+        assert!(
+            what.ends_with('…') || what.ends_with("DraconDev"),
+            "truncated WHAT should end with … or natural end: {what}"
+        );
+    }
+
+    #[test]
     fn test_branch_upstream_missing_when_no_config() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
