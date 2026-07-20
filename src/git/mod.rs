@@ -1454,9 +1454,52 @@ exit 0
                 std::env::var("PATH").unwrap_or_default()
             ),
         );
-        let result = multi_remote::create_repo_on_github("testuser", "my-repo");
+        let result = multi_remote::create_repo_on_github("testuser", "my-repo", true);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "https://github.com/testuser/my-repo.git");
+    }
+    /// ADDED 2026-07-20 (v0.112.28): when the caller passes `private = false`,
+    /// the daemon MUST invoke `gh repo create --public` (not `--private`).
+    /// Before this fix, the `--private` flag was hardcoded regardless of the
+    /// parameter, making public auto-create impossible. We assert this by
+    /// making the mock gh record its argv and checking for `--public`.
+    #[test]
+    fn test_create_repo_on_github_public_flag_when_private_false() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let gh_mock = tmp.path().join("gh");
+        // Mock gh that records its argv to a file and exits 0 with a fake URL.
+        let argv_log = tmp.path().join("gh_argv.log");
+        std::fs::write(
+            &gh_mock,
+            format!(
+                "#!/bin/sh\necho \"$@\" > {}\nexit 0\n",
+                argv_log.to_string_lossy()
+            ),
+        )
+        .expect("write gh mock");
+        std::fs::set_permissions(&gh_mock, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+        let _path_lock = acquire_path_lock();
+        let _path_guard = EnvRestorer::new(
+            "PATH",
+            &format!(
+                "{}:{}",
+                tmp.path().to_string_lossy(),
+                std::env::var("PATH").unwrap_or_default()
+            ),
+        );
+        let result = multi_remote::create_repo_on_github("testuser", "public-repo", false);
+        assert!(result.is_ok(), "public create should succeed: {:?}", result);
+        let argv = std::fs::read_to_string(&argv_log).expect("read argv log");
+        assert!(
+            argv.contains("--public"),
+            "private=false must pass --public, got argv: {}",
+            argv
+        );
+        assert!(
+            !argv.contains("--private"),
+            "private=false must NOT pass --private, got argv: {}",
+            argv
+        );
     }
     #[test]
     fn test_create_repo_on_github_already_exists_returns_url_without_suffix() {
@@ -1477,7 +1520,7 @@ exit 0
                 std::env::var("PATH").unwrap_or_default()
             ),
         );
-        let result = multi_remote::create_repo_on_github("testuser", "dracon-demons");
+        let result = multi_remote::create_repo_on_github("testuser", "dracon-demons", true);
         assert!(result.is_ok());
         let url = result.unwrap();
         assert!(!url.contains("-1"), "should NOT have suffix -1: {}", url);
@@ -1504,7 +1547,7 @@ exit 0
                 std::env::var("PATH").unwrap_or_default()
             ),
         );
-        let result = multi_remote::create_repo_on_github("testuser", "test-repo");
+        let result = multi_remote::create_repo_on_github("testuser", "test-repo", true);
         assert!(result.is_ok());
     }
     #[test]

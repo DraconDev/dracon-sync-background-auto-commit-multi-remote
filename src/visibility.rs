@@ -369,6 +369,173 @@ fn set_codeberg_visibility(owner: &str, repo: &str, token: &str, private: bool) 
     }
 }
 
+/// Set GitHub repo visibility using `gh api -X PATCH`.
+/// `private=true` → private, `private=false` → public.
+/// On success the HTTP status code is 200; on failure the stderr from
+/// `gh` is surfaced.
+///
+/// ADDED 2026-07-20 (v0.112.28) for the `make-public` / `make-private`
+/// CLI subcommand. Mirrors the existing `set_gitlab_visibility` and
+/// `set_codeberg_visibility` pattern but uses `gh` instead of `curl`.
+fn set_github_visibility(owner: &str, repo: &str, private: bool) -> Result<()> {
+    let private_field = if private { "true" } else { "false" };
+    let output = gh_cmd()
+        .args([
+            "api",
+            "-X",
+            "PATCH",
+            &format!("repos/{}/{}", owner, repo),
+            "-f",
+            &format!("private={}", private_field),
+        ])
+        .output()
+        .with_context(|| "gh api failed for GitHub visibility update")?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let trimmed = stderr.trim();
+    // gh returns "Not Found" for repos that don't exist on the
+    // authenticated account. Match the existing 404 surface so the
+    // CLI can present a clear "repo not found" error.
+    if trimmed.contains("Not Found") || trimmed.contains("404") {
+        return Err(anyhow::anyhow!(
+            "GitHub visibility update failed: repo not found"
+        ));
+    }
+    if trimmed.contains("401") || trimmed.contains("Unauthorized") {
+        return Err(anyhow::anyhow!(
+            "GitHub visibility update failed: unauthorized (gh auth issue)"
+        ));
+    }
+    Err(anyhow::anyhow!(
+        "GitHub visibility update failed: {}",
+        trimmed
+    ))
+}
+
+/// Flip repo visibility to the target `private` value across all
+/// configured remotes (GitHub + GitLab + optional Codeberg).
+/// Returns the list of `(remote_name, Result<()>)` for each remote
+/// attempted.
+///
+/// ADDED 2026-07-20 (v0.112.28) for the `make-public` / `make-private`
+/// CLI subcommand. Unlike `sync_mirror_visibility` (which reads GitHub
+/// as the source of truth and propagates to mirrors), this is an
+/// EXPLICIT operator command that pushes the target visibility to
+/// every remote.
+///
+/// Parameters:
+/// - `origin_url`: the origin remote URL (e.g. `git@github.com:owner/repo.git`)
+/// - `remotes`: full configured remotes slice
+/// - `repo_name`: local repo basename (e.g. `dracon-sync`)
+/// - `private`: target visibility (`true` = private, `false` = public)
+/// - `include_codeberg`: whether to flip codeberg too (default false
+///   to protect the 85 GiB grace quota). Codeberg is opt-in.
+pub(crate) fn flip_repo_visibility(
+    origin_url: &str,
+    remotes: &[RemoteConfig],
+    repo_name: &str,
+    private: bool,
+    include_codeberg: bool,
+) -> Vec<(String, Result<()>)> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let _ = COUNTER.fetch_add(1, Ordering::Relaxed);
+
+    let visibility_str = if private { "private" } else { "public" };
+    let mut results = Vec::new();
+
+    // 1. GitHub (canonical — set via `gh api`).
+    if let Some((owner, gh_repo)) = parse_github_owner_repo(origin_url) {
+        let resolved = remotes
+            .iter()
+            .find(|r| r.name == "github" || r.effective_auth_type() == AuthType::GitHub)
+            .map(|r| r.resolve_repo_name(&gh_repo))
+            .unwrap_or(gh_repo);
+        let result = set_github_visibility(&owner, &resolved, private);
+        results.push(("github".to_string(), result));
+    } else {
+        results.push((
+            "github".to_string(),
+            Err(anyhow::anyhow!(
+                "no github origin URL found for {}",
+                repo_name
+            )),
+        ));
+    }
+
+    // 2. GitLab (if configured).
+    for remote in remotes {
+        if remote.effective_auth_type() != AuthType::GitLab {
+            continue;
+        }
+        let account = remote.resolve_account();
+        let resolved = remote.resolve_repo_name(repo_name);
+        let token_var = remote
+            .auto_create_token_var
+            .as_deref()
+            .unwrap_or("GITLAB_TOKEN");
+        match load_secret(token_var, &sync_secrets_dir()) {
+            Some(token) => {
+                let result = set_gitlab_visibility(&account, &resolved, &token, private);
+                results.push((remote.name.clone(), result));
+            }
+            None => {
+                results.push((
+                    remote.name.clone(),
+                    Err(anyhow::anyhow!(
+                        "no {} env / secret file; cannot flip visibility",
+                        token_var
+                    )),
+                ));
+            }
+        }
+    }
+
+    // 3. Codeberg (opt-in only — quota is the concern).
+    if include_codeberg {
+        for remote in remotes {
+            if remote.effective_auth_type() != AuthType::Codeberg {
+                continue;
+            }
+            let account = remote.resolve_account();
+            let resolved = remote.resolve_repo_name(repo_name);
+            let token_var = remote
+                .auto_create_token_var
+                .as_deref()
+                .unwrap_or("CODEBERG_TOKEN");
+            match load_secret(token_var, &sync_secrets_dir()) {
+                Some(token) => {
+                    let result = set_codeberg_visibility(&account, &resolved, &token, private);
+                    results.push((remote.name.clone(), result));
+                }
+                None => {
+                    results.push((
+                        remote.name.clone(),
+                        Err(anyhow::anyhow!(
+                            "no {} env / secret file; cannot flip visibility",
+                            token_var
+                        )),
+                    ));
+                }
+            }
+        }
+    }
+
+    if crate::policy::debug_enabled() {
+        eprintln!(
+            "🐛 flip_repo_visibility({}): {} remotes, include_codeberg={}, target={}",
+            repo_name,
+            results.len(),
+            include_codeberg,
+            visibility_str
+        );
+    }
+
+    results
+}
+
 /// Query GitHub for the current visibility of the origin repo, then update
 /// all configured mirrors (GitLab, Codeberg) to match.
 ///
