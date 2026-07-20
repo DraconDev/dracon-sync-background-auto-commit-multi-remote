@@ -7395,6 +7395,146 @@ mod tests {
     }
 
     #[test]
+    fn test_summary_what_clean_idle_repo() {
+        // 2026-07-19 (goal `4555eaf6` v0.112.27): summary view
+        // for a clean idle repo should NOT include `push: pending`
+        // or dirty counts (there are none).
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = false;
+        row.warn = false;
+        row.active = false;
+        row.modified = 0;
+        row.staged = 0;
+        row.untracked = 0;
+        row.ahead = 0;
+        row.push_status = "OK".to_string();
+        row.hint = "healthy".to_string();
+        row.last_author = "DraconDev".to_string();
+        // last_when = "13 hours ago" so activity_label returns
+        // "⚪ idle 13h" (which is what makes the summary interesting).
+        row.last_when = "13 hours ago".to_string();
+        let what = summary_what(&row, 200);
+        // Activity for clean idle is `⚪ idle 13h`.
+        assert!(
+            what.contains("⚪ idle"),
+            "expected idle activity in summary: {what}"
+        );
+        assert!(what.contains("healthy"), "expected hint: {what}");
+        assert!(
+            !what.contains("push:"),
+            "clean repo should not include push: status: {what}"
+        );
+        assert!(
+            !what.contains(" mod"),
+            "clean repo should not include dirty counts: {what}"
+        );
+    }
+
+    #[test]
+    fn test_summary_what_dirty_repo_includes_dirty_counts_and_hint() {
+        // A dirty repo with a hint must show dirty counts + hint
+        // + author, all in a single WHAT string.
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = false;
+        row.warn = false;
+        row.active = true;
+        row.modified = 2;
+        row.staged = 0;
+        row.untracked = 1;
+        row.ahead = 0;
+        row.push_status = "OK".to_string();
+        row.hint = "daemon handles after changes settle".to_string();
+        row.last_author = "DraconDev".to_string();
+        row.last_when = "5 minutes ago".to_string();
+        let what = summary_what(&row, 200);
+        assert!(what.contains("⏳ dirty"), "activity: {what}");
+        assert!(what.contains("2 mod"), "modified count: {what}");
+        assert!(what.contains("1 ut"), "untracked count: {what}");
+        assert!(
+            what.contains("daemon handles"),
+            "hint visible: {what}"
+        );
+        assert!(what.contains("by DraconDev"), "author: {what}");
+    }
+
+    #[test]
+    fn test_summary_what_pending_push_drops_redundant_ahead_note() {
+        // When push is PENDING, the activity already encodes the
+        // ahead count inline (`🟣 pushing 0m (1 ahead)`). The
+        // summary must NOT add a separate `1 ahead` segment on
+        // top of that (was a duplication bug in v0.112.27 R0).
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = false;
+        row.warn = false;
+        row.active = true;
+        row.modified = 0;
+        row.staged = 0;
+        row.untracked = 0;
+        row.ahead = 1;
+        row.push_status = "PENDING".to_string();
+        row.hint = "daemon will push after changes settle".to_string();
+        row.last_author = "DraconDev".to_string();
+        let what = summary_what(&row, 200);
+        // Activity `🟣 pushing Xm (N ahead)` already covers the
+        // ahead count; the standalone `1 ahead` note must NOT
+        // appear (would be a duplicate).
+        let ahead_occurrences = what.matches("1 ahead").count();
+        assert_eq!(
+            ahead_occurrences, 1,
+            "ahead count should appear exactly once (from activity): {what}"
+        );
+    }
+
+    #[test]
+    fn test_summary_what_stuck_push_shows_status() {
+        // When push is STUCK or FAIL, the activity does NOT show
+        // it (activity only covers PENDING), so the summary must
+        // surface it explicitly.
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = true;
+        row.warn = false;
+        row.active = true;
+        row.modified = 0;
+        row.staged = 0;
+        row.untracked = 0;
+        row.ahead = 0;
+        row.push_status = "STUCK".to_string();
+        row.hint = "run repair-concerns --apply".to_string();
+        row.last_author = "DraconDev".to_string();
+        let what = summary_what(&row, 200);
+        assert!(
+            what.contains("push: stuck"),
+            "STUCK should surface as push: stuck: {what}"
+        );
+        assert!(
+            what.contains("run repair-concerns"),
+            "hint visible: {what}"
+        );
+    }
+
+    #[test]
+    fn test_severity_tier_ordering() {
+        // Concern < Warn < Active < Clean. Lower tier = more urgent.
+        let mut row = RepoReportRow::for_tests("/tmp/foo");
+        row.concern = true;
+        row.warn = true;
+        row.active = true;
+        assert_eq!(severity_tier(&row), 0, "concern is tier 0");
+
+        row.concern = false;
+        row.warn = true;
+        row.active = true;
+        assert_eq!(severity_tier(&row), 1, "warn is tier 1");
+
+        row.warn = false;
+        row.active = true;
+        assert_eq!(severity_tier(&row), 2, "active is tier 2");
+
+        row.active = false;
+        assert_eq!(severity_tier(&row), 3, "clean is tier 3");
+    }
+
+    #[test]
     fn test_branch_upstream_missing_when_no_config() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
