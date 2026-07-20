@@ -439,10 +439,6 @@ pub(crate) fn flip_repo_visibility(
     private: bool,
     include_codeberg: bool,
 ) -> Vec<(String, Result<()>)> {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    static COUNTER: AtomicUsize = AtomicUsize::new(0);
-    let _ = COUNTER.fetch_add(1, Ordering::Relaxed);
-
     let visibility_str = if private { "private" } else { "public" };
     let mut results = Vec::new();
 
