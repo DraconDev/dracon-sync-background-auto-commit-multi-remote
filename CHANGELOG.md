@@ -20,7 +20,7 @@ The `repos` command had grown to 16 columns (ROLE, BRANCH, PUBLISH, M/S/U counts
 
 Fix:
 - Added `--summary` / `-s` flag to `repos`: proper 3-column `comfy-table` (STATUS · REPO · WHAT) with UTF8_FULL_CONDENSED borders.
-- WHAT = `activity + dirty-counts + push-status-if-stuck + hint + author` joined by ` · `, truncated to terminal width.
+- WHAT = `activity + dirty-counts + push-status-if-stuck + hint` joined by ` · `, truncated to terminal width.
 - `#` / `STATUS` / `REPO` columns use fixed `Absolute(N)` widths; `WHAT` uses `Dynamic` to absorb leftover terminal width.
 - Works with `--only-concern` / `--only-warn` for "show me just the broken ones".
 - Added `--summary-by-severity` to sort concerns first, clean last.
@@ -28,6 +28,8 @@ Fix:
 - Fixed R0 duplication bug: `🟣 pushing 0m (1 ahead)` no longer followed by a separate `1 ahead`.
 
 **R1 fix**: operator feedback was "the summary needs to be a table." R0 used `println!` with manual spacing which broke alignment under ANSI color codes. R1 uses `comfy-table` for correct unicode width + ANSI handling.
+
+**R2 fix**: operator feedback "the authors are wrong, we're freestyling some of it" — dropped the `by {author}` suffix from the summary WHAT. The author is `git log -1 --format=%an` (git commit author of the latest commit); for a solo operator who freestyles git identities (`DraconDev` / `dracon` / `darklord-dev`), this misleadingly implies multiple people. The detailed 16-col table keeps the author (dedicated column); the summary trades it for width + clarity.
 
 **+7 new regression tests** (`test_summary_what_clean_idle_repo`, `..._dirty_repo_includes_dirty_counts_and_hint`, `..._pending_push_drops_redundant_ahead_note`, `..._stuck_push_shows_status`, `test_severity_tier_ordering`, `test_print_repos_summary_renders_as_table`, `test_summary_what_handles_long_hint_with_word_boundary`). **935 total daemon tests** passing. `cargo build/test/clippy/deny` all green.
 
