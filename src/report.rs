@@ -4212,36 +4212,40 @@ fn severity_tier(row: &RepoReportRow) -> u8 {
 }
 
 /// One-line "WHAT" descriptor for the summary view. Combines
-/// state icon, activity (if any), push status (if pending),
-/// and the operator hint into a single human-readable string.
-/// Width-bounded by `budget`.
+/// the activity state (with icon), dirty counts, push status
+/// (when PENDING/STUCK), the operator hint, and the author
+/// into a single human-readable string. Width-bounded by `budget`.
+///
+/// 2026-07-19 (goal `4555eaf6` v0.112.27) revision: dropped the
+/// redundant `{state} + {activity}` prefix when they're the same
+/// (e.g., `🟣 pushing` activity covers state `pushing`); also
+/// dropped the standalone `push: pending (N ahead)` note because
+/// the activity already says `🟣 pushing Xm`. This gives cleaner
+/// output:
+///
+///   Before: `🟣 pushing · push: pending (1 ahead) · 1 mod · ...`
+///   After:  `🟣 pushing 1m · 1 mod · daemon will push after ...`
 fn summary_what(row: &RepoReportRow, budget: usize) -> String {
-    let state_text = format!("{} {}", row.state_cause.icon(), row.state_cause.as_str());
-    let activity = state_plus_act_cell(
-        row.state_cause.icon(),
-        row.state_cause.as_str(),
-        &activity_label(row),
-        30, // wide budget for the unsquashed state+activity (the truncation below is the real cap)
-    );
-    // State + activity is the primary WHAT. If the activity got
-    // dropped (budget too small inside state_plus_act_cell), we
-    // already have just the state — that's fine.
-    let mut parts: Vec<String> = vec![activity.clone()];
-    // Append push status if pending (so "🟣 pushing" alone is
-    // visible on stalled rows even when activity is "—").
-    if row.push_status == "PENDING" {
-        let ahead = if row.ahead > 0 {
-            format!(" ({} ahead)", row.ahead)
-        } else {
-            String::new()
-        };
-        let push_note = format!("push: pending{ahead}");
-        parts.push(push_note);
-    } else if row.push_status == "STUCK" || row.push_status == "FAIL" {
+    // Activity already encodes the state icon + word + age.
+    // `🟣 pushing 1m`, `🟠 dirty 0m`, `🔄 working · 🟢 synced 3m`,
+    // `⚪ idle 13h`, `⚫ cold 5d`. Use it as-is for the lead.
+    let activity = activity_label(row);
+    let mut parts: Vec<String> = Vec::new();
+    // Only include activity if it's not the bare "—" (which means
+    // "nothing to say" — we'll fall through to hint + author).
+    if activity != "—" {
+        parts.push(activity);
+    }
+    // Push status note ONLY when not already covered by activity.
+    // Activity already says `🟣 pushing 0m (1 ahead)` when PENDING
+    // (with the ahead count inline) — see activity_label() at
+    // line ~318. The old standalone `push: pending (N ahead)` was
+    // pure duplication, and a separate `N ahead` note is too.
+    if row.push_status == "STUCK" || row.push_status == "FAIL" {
         parts.push(format!("push: {}", row.push_status.to_lowercase()));
     }
-    // Append dirty counts so the operator can see at a glance
-    // HOW MUCH dirty work exists, not just that some exists.
+    // Dirty counts (how much work exists). For clean repos this
+    // contributes nothing and is skipped.
     let mut dirty_parts: Vec<String> = Vec::new();
     if row.modified > 0 {
         dirty_parts.push(format!("{} mod", row.modified));
@@ -4255,17 +4259,14 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     if !dirty_parts.is_empty() {
         parts.push(dirty_parts.join(" + "));
     }
-    // Append operator hint (e.g. "run repair-concerns --apply",
-    // "daemon handles after changes settle"). This is the most
-    // actionable bit — tells the operator what to do next.
+    // Operator hint — the most actionable bit.
     if !row.hint.is_empty() && row.hint != "-" {
         parts.push(row.hint.clone());
     }
-    // Append author for context.
+    // Author.
     if !row.last_author.is_empty() && row.last_author != "-" {
         parts.push(format!("by {}", row.last_author));
     }
-    let _ = state_text; // unused — kept for future per-state formatting
     let joined = parts.join(" · ");
     truncate_unicode_width(&joined, budget)
 }
