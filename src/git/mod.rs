@@ -1468,11 +1468,14 @@ exit 0
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let gh_mock = tmp.path().join("gh");
         // Mock gh that records its argv to a file and exits 0 with a fake URL.
+        // APPEND (>>) is critical: `create_repo_on_github` invokes gh TWICE
+        // (once for `gh repo create ...`, once for the default_branch PATCH).
+        // The second call would overwrite the log if we used single `>`.
         let argv_log = tmp.path().join("gh_argv.log");
         std::fs::write(
             &gh_mock,
             format!(
-                "#!/bin/sh\necho \"$@\" > {}\nexit 0\n",
+                "#!/bin/sh\necho \"$@\" >> {}\nexit 0\n",
                 argv_log.to_string_lossy()
             ),
         )
@@ -1490,15 +1493,20 @@ exit 0
         let result = multi_remote::create_repo_on_github("testuser", "public-repo", false);
         assert!(result.is_ok(), "public create should succeed: {:?}", result);
         let argv = std::fs::read_to_string(&argv_log).expect("read argv log");
+        // Check that AT LEAST ONE invocation passed --public (the `gh repo create` call).
+        let create_argv = argv
+            .lines()
+            .find(|l| l.starts_with("repo create") || l.starts_with("repo create "))
+            .unwrap_or("");
         assert!(
-            argv.contains("--public"),
-            "private=false must pass --public, got argv: {}",
+            create_argv.contains("--public"),
+            "private=false must pass --public in the `gh repo create` call, got argv lines: {:?}",
             argv
         );
         assert!(
-            !argv.contains("--private"),
-            "private=false must NOT pass --private, got argv: {}",
-            argv
+            !create_argv.contains("--private"),
+            "private=false must NOT pass --private in the `gh repo create` call, got: {}",
+            create_argv
         );
     }
     #[test]
