@@ -7588,6 +7588,10 @@ mod tests {
             what.contains("run repair-concerns"),
             "hint visible: {what}"
         );
+        assert!(
+            !what.contains("by DraconDev"),
+            "author must be omitted from summary (v0.112.27 R2): {what}"
+        );
     }
 
     #[test]
