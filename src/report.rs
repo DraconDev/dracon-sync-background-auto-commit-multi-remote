@@ -2261,11 +2261,11 @@ pub(crate) enum LayoutTier {
 /// - `>= 315` cols → **Full** (23-col v1 table; min ~289 cols + headroom)
 ///
 /// 2026-07-19 (goal `4555eaf6` v0.112.25): Compact threshold bumped
-/// 238 → 242 to match the HINT column bump (22 → 26 cols to fit
+/// 238 to 242 to match the HINT column bump (22 to 26 cols to fit
 /// "daemon handles after changes settle"). New column sum is 227
-/// + 15 borders = 242. Below 242, comfy-table squashes columns
-/// below their Absolute constraint and re-introduces the
-/// letter-wrap bug.
+/// plus 15 borders, totalling 242. When the terminal is narrower
+/// than 242, comfy-table squashes columns to fit, which overrides
+/// the Absolute constraint and reintroduces the letter-wrap bug.
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
     if w < 242 {
