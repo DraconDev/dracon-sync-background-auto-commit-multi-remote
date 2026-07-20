@@ -2128,6 +2128,81 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     format!("{}…", &value[..end])
 }
 
+/// Build a state + activity cell that fits a 15-col budget without
+/// leaving a dangling emoji.
+///
+/// Strategy (priority: state first, activity second):
+/// 1. Always show `{state_icon} {state_word}` (e.g., `🟠 dirty`)
+/// 2. If there's room, append ` · {activity_icon} {activity_text}`
+///    (e.g., `🟠 dirty · ⏳ dirty 1h`)
+/// 3. If not, drop the activity part entirely rather than leaving
+///    a partial emoji + ellipsis (`🟠 dirty · ⏳ …`).
+/// 4. If state alone doesn't fit, truncate state with `…`.
+///
+/// 2026-07-19 (goal `4555eaf6` v0.112.25 follow-up): the previous
+/// `truncate_unicode_width` approach clipped the second emoji
+/// (⏳) when budget was tight, leaving an ungrammatical
+/// `🟠 dirty · ⏳ …` cell. This helper preserves the state
+/// component (the most important) and cleanly drops activity
+/// when it can't fit. See docs/design/repos-table-fix-2026-07-19.md.
+pub(crate) fn state_plus_act_cell(
+    state_icon: &str,
+    state_word: &str,
+    activity_full: &str,
+    budget: usize,
+) -> String {
+    let state_part = format!("{state_icon} {state_word}");
+    // Split the activity string into (icon, text). Activity strings
+    // look like `⏳ dirty 5m`, `🟢 synced 3m`, `⚫ cold 2d`, etc.
+    // - the first char-cluster is the emoji (1 or 2 visual cols),
+    // - the rest is the text after a space.
+    let (activity_icon, activity_text) = split_activity(activity_full);
+    // 1) state alone fits?
+    if unicode_width::UnicodeWidthStr::width(state_part.as_str()) <= budget {
+        if let Some(act) = activity_part(&activity_icon, &activity_text) {
+            let combined = format!("{state_part} · {act}");
+            if unicode_width::UnicodeWidthStr::width(combined.as_str()) <= budget {
+                return combined;
+            }
+        }
+        return state_part;
+    }
+    // 2) truncate state itself
+    truncate_unicode_width(&state_part, budget)
+}
+
+/// Build the activity-part string `icon text`, or `None` if there
+/// is no activity (e.g., the activity was "—", a bare dash).
+fn activity_part(icon: &str, text: &str) -> Option<String> {
+    if text.is_empty() || text == "—" {
+        None
+    } else {
+        Some(format!("{icon} {text}"))
+    }
+}
+
+/// Split an activity string (e.g., `⏳ dirty 5m`) into
+/// (icon, text). The icon is the leading emoji (1 unicode
+/// char-cluster, possibly wide); the text is everything after
+/// the next ASCII space. Returns ("", input) if no leading
+/// emoji is present.
+fn split_activity(s: &str) -> (String, String) {
+    let mut chars = s.chars();
+    let first = chars.next();
+    match first {
+        None => (String::new(), String::new()),
+        Some(c) => {
+            // Skip leading ASCII spaces before the emoji (none in practice)
+            let _ = c;
+            // Take the first char-cluster; if it's an emoji (wide or
+            // not), it's the icon. Then skip one space, take the rest.
+            let rest = &s[c.len_utf8()..];
+            let after_space = rest.strip_prefix(' ').unwrap_or(rest);
+            (c.to_string(), after_space.to_string())
+        }
+    }
+}
+
 /// Detect the terminal width in columns.
 ///
 /// Resolution order:
@@ -2180,24 +2255,20 @@ pub(crate) enum LayoutTier {
 /// Pick the layout tier from terminal width.
 ///
 /// - `< 120` cols → **Vertical** (one repo per multi-line block; fits any width)
-/// - `120-237` cols → **Vertical** (Compact's 238-col minimum doesn't fit; Vertical
+/// - `120-241` cols → **Vertical** (Compact's 242-col minimum doesn't fit; Vertical
 ///   is the safer fallback than letter-wrapped cells)
-/// - `238-314` cols → **Compact** (16-col table; min 238 cols + comfy-table width-fitting)
+/// - `242-314` cols → **Compact** (16-col table; min 242 cols + comfy-table width-fitting)
 /// - `>= 315` cols → **Full** (23-col v1 table; min ~289 cols + headroom)
 ///
-/// 2026-07-19 (goal `4555eaf6`): Compact threshold bumped from 220
-/// → 238 to match the new column budget. After switching REPO/ROLE/
-/// PUBLISH/STATE+ACT/HINT from `LowerBoundary(N)` to `Absolute(N)`
-/// (to fix letter-wrap of long content like
-/// `pully-fully-pull-based-fleet-reconciler`), the column sum is
-/// 223 cols + 15 borders = 238. Below 238, comfy-table squashes
-/// columns below the column constraint minimum and re-introduces
-/// the letter-wrap bug the Absolute conversion was meant to fix.
-/// Routing 120-237 to Vertical avoids that. See
-/// `docs/design/repos-table-fix-2026-07-19.md` (this release).
+/// 2026-07-19 (goal `4555eaf6` v0.112.25): Compact threshold bumped
+/// 238 → 242 to match the HINT column bump (22 → 26 cols to fit
+/// "daemon handles after changes settle"). New column sum is 227
+/// + 15 borders = 242. Below 242, comfy-table squashes columns
+/// below their Absolute constraint and re-introduces the
+/// letter-wrap bug.
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
-    if w < 238 {
+    if w < 242 {
         LayoutTier::Vertical
     } else if w < 315 {
         LayoutTier::Compact
@@ -3665,7 +3736,7 @@ fn print_repos_compact_table(
         ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (truncate to 30 cols; was LowerBoundary(32) — same effect)
         ColumnConstraint::Absolute(Width::Fixed(18)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(17)),    // STATE+ACT (truncate to 15)
-        ColumnConstraint::Absolute(Width::Fixed(22)),    // HINT (truncate to 20)
+        ColumnConstraint::Absolute(Width::Fixed(26)),    // HINT (2026-07-19 bump 22→26; truncate to 24 to fit 'daemon handles after changes settle' = 33 → 'daemon handles after chan…')
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
@@ -3702,18 +3773,17 @@ fn print_repos_compact_table(
         };
 
         // Combine state + activity into one cell to save horizontal space.
-        // F30v2 (2026-07-19): truncate to fit the LowerBoundary(17)
-        // STATE+ACT column. Without truncation, content like
-        // "🟠 dirty · ⏳ dirty 1h · daemon handles after changes settle"
-        // grows the column to 60+ chars.
-        let state_plus_act = truncate_unicode_width(
-            &format!(
-                "{} {} · {}",
-                row.state_cause.icon(),
-                row.state_cause.as_str(),
-                activity_label(row)
-            ),
-            15, // LowerBoundary(17) minus 2 padding = 15
+        // 2026-07-19 (goal `4555eaf6` v0.112.25 follow-up): use
+        // `state_plus_act_cell` so the activity part is dropped
+        // cleanly when the 15-col budget is tight, instead of being
+        // truncated mid-emoji (e.g., `🟠 dirty · ⏳ …`). Activity
+        // is informative but secondary — the state component
+        // (healthy/dirty/cold/etc.) is what the operator needs.
+        let state_plus_act = state_plus_act_cell(
+            row.state_cause.icon(),
+            row.state_cause.as_str(),
+            &activity_label(row),
+            15, // Absolute(17) minus 2 padding = 15
         );
         let state_plus_act_color = state_color_for(&row.state_cause);
 
@@ -3723,12 +3793,13 @@ fn print_repos_compact_table(
             hint_text = format!("{} · by {}", hint_text, row.last_author);
         }
         // F30v2 (2026-07-19): truncate to fit the HINT column.
-        // HINT is LowerBoundary(22), so without truncation the column
-        // grows to 80+ chars to fit long content like
+        // HINT is Absolute(26) (was LowerBoundary(22) in v0.112.24),
+        // so without truncation the column grows to 80+ chars to fit
+        // long content like
         // "daemon handles after changes settle; run sync-now --warns to force now · by dracon".
         // With 250-col terminal and 23 columns, HINT can swallow half the table.
-        // Truncate to the column's LowerBoundary minimum (22) minus 2 padding = 20 cols.
-        hint_text = truncate_unicode_width(&hint_text, 20);
+        // Truncate to the column width minus 2 padding = 24 cols.
+        hint_text = truncate_unicode_width(&hint_text, 24);
         let hint_color = status_color;
 
         // Push cell (icon + label)
@@ -7135,6 +7206,38 @@ mod tests {
     }
 
     #[test]
+    fn test_state_plus_act_cell_drops_activity_when_tight() {
+        // 2026-07-19 (goal `4555eaf6` v0.112.25 follow-up):
+        // when budget is tight, the activity part should be
+        // dropped cleanly rather than leaving a dangling emoji
+        // + ellipsis (`🟠 dirty · ⏳ …`).
+        let result = state_plus_act_cell("🟠", "dirty", "⏳ dirty 5m", 15);
+        assert_eq!(result, "🟠 dirty", "activity part dropped: {result}");
+        // Sanity: state-only fits the 15-col budget.
+        assert!(
+            unicode_width::UnicodeWidthStr::width(result.as_str()) <= 15,
+            "should fit 15-col budget: {result}"
+        );
+    }
+
+    #[test]
+    fn test_state_plus_act_cell_keeps_activity_when_it_fits() {
+        // When both state and activity fit, the cell shows both.
+        let result = state_plus_act_cell("🟠", "dirty", "⏳ dirty 5m", 30);
+        assert_eq!(
+            result, "🟠 dirty · ⏳ dirty 5m",
+            "state + activity shown: {result}"
+        );
+    }
+
+    #[test]
+    fn test_state_plus_act_cell_handles_dash_activity() {
+        // A `—` activity (no useful info) should be dropped.
+        let result = state_plus_act_cell("🟢", "synced", "—", 15);
+        assert_eq!(result, "🟢 synced", "dash activity dropped: {result}");
+    }
+
+    #[test]
     fn test_branch_upstream_missing_when_no_config() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
@@ -8176,10 +8279,10 @@ mod tests {
     fn test_choose_layout_tier_vertical() {
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // 2026-07-19 (goal `4555eaf6`): threshold bumped 220 → 238.
-        // < 238 cols → Vertical (Compact's new 238-col minimum
-        // doesn't fit; Vertical is the safer fallback).
-        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219, 237] {
+        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
+        // 238 → 242. < 242 cols → Vertical (Compact's new 242-col
+        // minimum doesn't fit; Vertical is the safer fallback).
+        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219, 237, 241] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -8198,9 +8301,9 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // 2026-07-19 (goal `4555eaf6`): threshold bumped 220 → 238
-        // to match the new column budget (Compact min is now 238).
-        for w in [238, 249, 299] {
+        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
+        // 238 → 242 to match the HINT column bump (22 → 26 cols).
+        for w in [242, 249, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -8442,15 +8545,16 @@ mod tests {
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
         let total = sum + borders;
-        // 2026-07-19 (goal `4555eaf6`): threshold bumped to 240
-        // (the new Compact tier boundary). Test reflects that
-        // change. The 238 cols minimum + 15 borders is unavoidable
-        // because ROLE 14, REPO 18, PUBLISH 18, PUSH-TO 32 are all
-        // needed to fit variable-length content on narrow terminals.
+        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
+        // 240 → 244 to match the new HINT column bump (22 → 26).
+        // The 227 cols minimum + 15 borders + 2 headroom is
+        // unavoidable because PUSH-TO 32, HINT 26, REPO 18, ROLE 14,
+        // PUBLISH 18 are all needed to fit variable-length content
+        // on narrow terminals.
         assert!(
-            total <= 240,
-            "Compact table minimum width {total} exceeds 240-col threshold. \
-             The table needs to fit in the Compact tier (238-314 cols)."
+            total <= 244,
+            "Compact table minimum width {total} exceeds 244-col threshold. \
+             The table needs to fit in the Compact tier (242-314 cols)."
         );
     }
 
