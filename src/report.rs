@@ -3804,7 +3804,7 @@ fn print_repos_compact_table(
         // The author is `git log -1 --format=%an`; for a solo
         // operator who freestyles git identities, appending
         // `· by DraconDev` to the hint is misleading noise.
-        let hint_text = row.hint.clone();
+        let mut hint_text = row.hint.clone();
         // F30v2 (2026-07-19): truncate to fit the HINT column.
         // HINT is Absolute(26) (was LowerBoundary(22) in v0.112.24),
         // so without truncation the column grows to 80+ chars to fit
