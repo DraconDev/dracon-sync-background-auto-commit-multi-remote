@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.27 — 2026-07-20 — operator UX: glance view for `repos`
+
+The `repos` command had grown to 16 columns (ROLE, BRANCH, PUBLISH, M/S/U counts, AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT). For the common "is anything broken?" check, this is too noisy.
+
+Fix:
+- Added `--summary` / `-s` flag to `repos`: 3-column glance view (STATUS · REPO · WHAT), one row per repo, no headers/borders.
+- WHAT = `activity + dirty-counts + push-status-if-stuck + hint + author` joined by ` · `, truncated to terminal width.
+- Works with `--only-concern` / `--only-warn` for "show me just the broken ones".
+- Added `--summary-by-severity` to sort concerns first, clean last.
+- New helpers: `severity_tier()` (0=concern, 1=warn, 2=active, 3=clean), `summary_what()` (builds WHAT), `print_repos_summary()` (3-col renderer).
+- Fixed R0 duplication bug: `🟣 pushing 0m (1 ahead)` no longer followed by a separate `1 ahead`.
+
+**+5 new regression tests** (`test_summary_what_clean_idle_repo`, `..._dirty_repo_includes_dirty_counts_and_hint`, `..._pending_push_drops_redundant_ahead_note`, `..._stuck_push_shows_status`, `test_severity_tier_ordering`). **933 total daemon tests** passing. `cargo build/test/clippy/deny` all green.
+
+Verified:
+- `repos -s` → 3-col glance view, 31 rows
+- `repos -s --only-concern` → filters to concern rows only
+- `repos -s --summary-by-severity` → concerns first, clean last
+
 ### v0.112.26 — 2026-07-19 — UI polish follow-up (clean STATE+ACT truncation + wider HINT)
 
 After v0.112.25, two cosmetic artifacts were still visible in the `repos` table:
