@@ -3366,9 +3366,10 @@ fn print_repos_vertical(
         println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
         println!("{gutter}activity:  {activity}");
         println!("{gutter}state:     {state_styled}");
-        if !row.last_author.is_empty() && row.last_author != "-" {
-            println!("{gutter}author:    {}", row.last_author);
-        }
+        // NOTE: author intentionally omitted (v0.112.27 R2). The
+        // author is `git log -1 --format=%an` — for a solo operator
+        // who freestyles git identities (DraconDev / dracon /
+        // darklord-dev), this misleadingly implies multiple people.
         if !hint_text.is_empty() {
             println!("{gutter}hint:      {hint_styled}");
         }
@@ -3799,11 +3800,11 @@ fn print_repos_compact_table(
         );
         let state_plus_act_color = state_color_for(&row.state_cause);
 
-        // HINT with author suffix
-        let mut hint_text = row.hint.clone();
-        if !row.last_author.is_empty() && row.last_author != "-" {
-            hint_text = format!("{} · by {}", hint_text, row.last_author);
-        }
+        // HINT — author suffix intentionally omitted (v0.112.27 R2).
+        // The author is `git log -1 --format=%an`; for a solo
+        // operator who freestyles git identities, appending
+        // `· by DraconDev` to the hint is misleading noise.
+        let hint_text = row.hint.clone();
         // F30v2 (2026-07-19): truncate to fit the HINT column.
         // HINT is Absolute(26) (was LowerBoundary(22) in v0.112.24),
         // so without truncation the column grows to 80+ chars to fit
