@@ -4314,12 +4314,15 @@ fn print_repos_summary(
     //   - REPO column: 24 chars (worst case: long names truncated)
     //   - WHAT column: rest of the terminal
     // Borders: 5 chars per row in UTF8_FULL_CONDENSED ("| # | ... | ... | ... |").
+    // Cell padding: comfy-table adds 2 chars per cell by default
+    // (left + right space). 3 cells get padding, so +6 chars.
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     const REPO_COL: usize = 24;
-    const BORDER_OVERHEAD: usize = 5; // ASCII box-drawing chars + leading separator
+    const BORDER_OVERHEAD: usize = 5; // box-drawing chars + leading separator
+    const CELL_PADDING: usize = 6;    // 3 padded cells × 2 chars each
     let what_col = width
-        .saturating_sub(NUM_COL + STATUS_COL + REPO_COL + BORDER_OVERHEAD)
+        .saturating_sub(NUM_COL + STATUS_COL + REPO_COL + BORDER_OVERHEAD + CELL_PADDING)
         .max(20);
 
     let mut table = Table::new();
