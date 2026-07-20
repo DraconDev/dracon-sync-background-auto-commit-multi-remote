@@ -4700,6 +4700,7 @@ async fn handle_ahead(
                         push_retries,
                         true,
                         &repo_override.exclude_remotes,
+                        repo_override.auto_create_on_codeberg,
                     )
                     .await;
                     for (name, result) in &mirror_results {
@@ -4913,6 +4914,7 @@ async fn handle_ahead(
                                                 push_retries,
                                                 true,
                                                 &repo_override.exclude_remotes,
+                                                repo_override.auto_create_on_codeberg,
                                             )
                                             .await;
                                         }
@@ -5017,6 +5019,7 @@ async fn handle_ahead(
                                                 push_retries,
                                                 true,
                                                 &repo_override.exclude_remotes,
+                                                repo_override.auto_create_on_codeberg,
                                             )
                                             .await;
                                         }

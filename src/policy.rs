@@ -866,6 +866,24 @@ pub(crate) struct RepoPolicyOverride {
     #[serde(default)]
     pub(crate) codeberg_public_only: Option<bool>,
 
+    /// Per-repo opt-in to codeberg auto-create when the global
+    /// `[[remotes]]` config has `auto_create = false` for codeberg
+    /// (the v0.112.28 default, to protect the 85 GiB grace quota).
+    /// Some(true) re-enables codeberg auto-create for this specific
+    /// repo. Some(false) is a no-op (already the global default).
+    /// None inherits the global `auto_create` per remote.
+    ///
+    /// Use case: a repo the operator explicitly wants on codeberg
+    /// (e.g. for archival or because the operator has verified it
+    /// is small + non-bloat-prone). Set in
+    /// `<repo>/.dracon/dracon-sync.toml`.
+    ///
+    /// ADDED 2026-07-20 (goal v0.112.28):
+    /// see `docs/design/codeberg-quota-leak-fix-2026-07-13.md` for
+    /// the 85 GiB context.
+    #[serde(default)]
+    pub(crate) auto_create_on_codeberg: Option<bool>,
+
 }
 
 pub(crate) fn default_true() -> bool {

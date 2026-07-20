@@ -174,6 +174,7 @@ pub(crate) async fn push_mirror_remotes(
     retries: u32,
     private: bool,
     exclude: &[String],
+    codeberg_override: Option<bool>,
 ) -> Vec<(String, Result<()>)> {
     let repo_name = repo
         .file_name()
@@ -185,7 +186,7 @@ pub(crate) async fn push_mirror_remotes(
     configure_all_remotes(repo, &filtered, &repo_name, &[]);
 
     for (remote_name, create_result) in
-        auto_create_all_remotes(&filtered, &repo_name, private, Some(repo)).await
+        auto_create_all_remotes(&filtered, &repo_name, private, Some(repo), codeberg_override).await
     {
         match create_result {
             Ok(_) => {}
@@ -486,10 +487,25 @@ pub(crate) async fn push_to_all_remotes(
     results
 }
 
-/// Create a private repo on GitHub using `gh` CLI.
-pub(crate) fn create_repo_on_github(account: &str, repo_name: &str) -> Result<String> {
+/// Create a repo on GitHub using `gh` CLI.
+///
+/// FIXED 2026-07-20 (v0.112.28): the `--private` flag was previously
+/// hardcoded regardless of the caller's intent. This now honors the
+/// `private` parameter so the daemon can auto-create PUBLIC repos
+/// (e.g. for the new `make-public` workflow). See
+/// `docs/design/codeberg-quota-leak-fix-2026-07-13.md` for context.
+pub(crate) fn create_repo_on_github(
+    account: &str,
+    repo_name: &str,
+    private: bool,
+) -> Result<String> {
     let mut cmd = gh_cmd();
-    cmd.args(["repo", "create", repo_name, "--private"]);
+    cmd.args(["repo", "create", repo_name]);
+    if private {
+        cmd.arg("--private");
+    } else {
+        cmd.arg("--public");
+    }
 
     let output = cmd.output().with_context(|| "gh repo create failed")?;
 
@@ -590,7 +606,7 @@ pub(crate) async fn auto_create_repo(
 ) -> Result<String> {
     let account = config.resolve_account();
     match config.effective_auth_type() {
-        AuthType::GitHub => create_repo_on_github(&account, repo_name),
+        AuthType::GitHub => create_repo_on_github(&account, repo_name, private),
         AuthType::GitLab => create_repo_on_gitlab(&account, repo_name, private),
         AuthType::Codeberg => {
             let token_var = config
@@ -610,15 +626,29 @@ pub(crate) async fn auto_create_repo(
 }
 
 /// Auto-create all configured remotes for a repo.
+///
+/// `codeberg_override` is a per-repo opt-in for codeberg auto-create.
+/// `Some(true)` forces codeberg auto-create even if the global
+/// `remote.auto_create = false` (the v0.112.28 default). `Some(false)`
+/// or `None` respects the global config. ADDED 2026-07-20 (goal
+/// v0.112.28) for the codeberg quota posture — see
+/// `docs/design/codeberg-quota-leak-fix-2026-07-13.md`.
 pub(crate) async fn auto_create_all_remotes(
     remotes: &[RemoteConfig],
     repo_name: &str,
     private: bool,
     repo: Option<&Path>,
+    codeberg_override: Option<bool>,
 ) -> Vec<(String, Result<String>)> {
     let mut results = Vec::new();
     for remote in remotes {
-        if remote.auto_create {
+        // Resolve effective auto_create for THIS remote: global OR
+        // per-repo opt-in (codeberg only, since quota is the concern).
+        let effective_auto_create = match remote.auth_type {
+            AuthType::Codeberg => remote.auto_create || codeberg_override.unwrap_or(false),
+            _ => remote.auto_create,
+        };
+        if effective_auto_create {
             let resolved_name = remote.resolve_repo_name(repo_name);
             // CHANGED 2026-06-20: check if the repo already exists on the
             // remote before attempting to create it. This avoids spamming

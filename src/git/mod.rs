@@ -1024,10 +1024,92 @@ exit 0
             },
         ];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None).await;
         assert!(
             results.is_empty(),
             "should return empty vec when no remotes have auto_create=true"
+        );
+    }
+    /// ADDED 2026-07-20 (v0.112.28): when global codeberg `auto_create = false`
+    /// (the new quota-safe default), a per-repo `codeberg_override = Some(true)`
+    /// re-enables codeberg auto-create for that specific repo. Non-codeberg
+    /// remotes ignore the override.
+    #[tokio::test]
+    async fn test_auto_create_all_remotes_codeberg_override_opt_in() {
+        let remotes = vec![
+            RemoteConfig {
+                name: "github".to_string(),
+                push_url: "git@github.com:test/repo.git".to_string(),
+                auto_create: true,
+                auto_create_account: "test".to_string(),
+                auth_type: AuthType::GitHub,
+                priority: 50,
+                api_endpoint: None,
+                auto_create_token_var: None,
+                repo_name_map: Default::default(),
+                force_push_when_behind: false,
+            },
+            // Codeberg with auto_create = false (the v0.112.28 default).
+            RemoteConfig {
+                name: "codeberg".to_string(),
+                push_url: "git@codeberg.org:test/repo.git".to_string(),
+                auto_create: false,
+                auto_create_account: "test".to_string(),
+                auth_type: AuthType::Codeberg,
+                priority: 60,
+                api_endpoint: None,
+                auto_create_token_var: None,
+                repo_name_map: Default::default(),
+                force_push_when_behind: false,
+            },
+        ];
+        // With codeberg_override = Some(true), BOTH remotes should be in
+        // results (github natively, codeberg via the override). The
+        // github call would actually try to run `gh repo create` in
+        // CI; to avoid that we use `gh` not available, so we just check
+        // that the codeberg remote is attempted. We can't easily mock
+        // `gh` here, so this test asserts the FILTERING logic by
+        // passing codeberg_override = Some(true) with all auto_create
+        // = false, which should now produce 1 entry (codeberg).
+        let codeberg_only = vec![RemoteConfig {
+            name: "codeberg".to_string(),
+            push_url: "git@codeberg.org:test/repo.git".to_string(),
+            auto_create: false,
+            auto_create_account: "test".to_string(),
+            auth_type: AuthType::Codeberg,
+            priority: 60,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: Default::default(),
+            force_push_when_behind: false,
+        }];
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &codeberg_only,
+            "test-repo",
+            true,
+            None,
+            Some(true),
+        )
+        .await;
+        assert_eq!(
+            results.len(),
+            1,
+            "codeberg with override=true should produce 1 entry even with auto_create=false"
+        );
+        assert_eq!(results[0].0, "codeberg");
+
+        // With override = None or Some(false), codeberg should be skipped.
+        let results_none = crate::git::multi_remote::auto_create_all_remotes(
+            &codeberg_only,
+            "test-repo",
+            true,
+            None,
+            None,
+        )
+        .await;
+        assert!(
+            results_none.is_empty(),
+            "codeberg with override=None and auto_create=false should be skipped"
         );
     }
     #[tokio::test]
@@ -1045,7 +1127,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None).await;
         assert_eq!(results.len(), 1);
         assert!(results[0].1.is_err(), "Generic auth should return error");
         let err_msg = format!("{}", results[0].1.as_ref().unwrap_err());
@@ -1073,7 +1155,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None).await;
         assert_eq!(results.len(), 1);
         assert!(
             results[0].1.is_err(),
@@ -1115,7 +1197,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None).await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "https://github.com/testaccount/test-repo.git");
@@ -1150,7 +1232,7 @@ exit 0
             force_push_when_behind: false,
         }];
         let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None).await;
+            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None).await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "git@gitlab.com:testaccount/test-repo.git");
@@ -1351,7 +1433,7 @@ exit 0
             .arg(&repo)
             .status()
             .expect("git init");
-        let results = crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true, &[]).await;
+        let results = crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true, &[], None).await;
         assert!(
             results.is_empty(),
             "should return empty results for empty remotes"

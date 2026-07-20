@@ -1593,6 +1593,7 @@ async fn push_background(
             policy.push_retries,
             private,
             &combined_exclude,
+            repo_override.auto_create_on_codeberg,
         )
         .await;
         let all_ok = push_results.iter().all(|(_, r)| r.is_ok());
