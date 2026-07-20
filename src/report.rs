@@ -4276,36 +4276,99 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
 /// 2026-07-19 (goal `4555eaf6` v0.112.27): added in response to
 /// operator feedback that the default `repos` table is "noisy at
 /// a glance" — 16 columns are too many when the question is just
-/// "is anything broken?". The summary view is intentionally
-/// spartan: one row per repo, no headers, no borders. STATUS
-/// is the per-repo severity icon (❌/⚠️/🔄/✅), REPO is the
-/// short name, WHAT is the merged context string.
+/// "is anything broken?". The summary view is a proper 3-column
+/// table (STATUS · REPO · WHAT) using `comfy-table` with the
+/// UTF8_FULL_CONDENSED preset so rows are aligned with column
+/// separators. Sorted by severity (concerns first) by default.
+///
+/// REVISION 2026-07-20 (v0.112.27 R1): operator requested this
+/// be a TABLE not a free-form one-line-per-repo list. R0 used
+/// `println!` with manual spacing, which broke alignment under
+/// ANSI color codes (each emoji-colored STATUS ate a variable
+/// number of visible chars). R1 switches to `comfy-table` which
+/// handles unicode width + ANSI correctly.
 fn print_repos_summary(
     rows: &[RepoReportRow],
     _filter: &RepoFilter,
     full_path: bool,
     by_severity: bool,
 ) {
-    // Build (idx, row) pairs so we can number the rows in the
-    // post-sort order. The summary shows ROW NUMBER (severity
-    // position), not file-system order, because the operator
-    // scanning the summary needs to find row 1 first.
+    use comfy_table::{
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
+    };
+    let _ = _filter;
+
+    // Sort: severity (concern → warn → active → clean) ascending
+    // by default, but skip the sort when the operator didn't ask
+    // for it (preserves the `updated` ordering of the detailed view).
     let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
     if by_severity {
-        // Stable sort by severity_tier (ascending: concerns first).
-        // Within a tier, preserve the original (updated) order.
         indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
     }
+
     let width = terminal_width().unwrap_or(120) as usize;
-    // Reserve col widths for "  N. STATUS  " and trailing pad.
-    // The REPO column gets a fixed slice (24 cols, max REPO name
-    // length in this repo set); the WHAT column gets the rest.
+    // Width budget split:
+    //   - # column: 4 chars ("1.")
+    //   - STATUS column: 12 chars (the longest is "❌ CONCERN" = 10)
+    //   - REPO column: 24 chars (worst case: long names truncated)
+    //   - WHAT column: rest of the terminal
+    // Borders: 5 chars per row in UTF8_FULL_CONDENSED ("| # | ... | ... | ... |").
+    const NUM_COL: usize = 4;
+    const STATUS_COL: usize = 12;
     const REPO_COL: usize = 24;
-    const STATUS_COL: usize = 13; // "❌ CONCERN  " (11) + 2 buffer
-    let what_budget = width.saturating_sub(REPO_COL + STATUS_COL + 8);
-    let repo_budget = REPO_COL.saturating_sub(2);
-    for (display_idx, (orig_idx, row)) in indexed.iter().enumerate() {
-        let _ = orig_idx;
+    const BORDER_OVERHEAD: usize = 5; // ASCII box-drawing chars + leading separator
+    let what_col = width
+        .saturating_sub(NUM_COL + STATUS_COL + REPO_COL + BORDER_OVERHEAD)
+        .max(20);
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL_CONDENSED);
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    if let Some(w) = terminal_width() {
+        if (40..=2000).contains(&w) {
+            table.set_width(w as u16);
+        }
+    }
+
+    // Header row. Header cells are styled white-bold for contrast
+    // against the row-level STATUS colors.
+    table.set_header(vec![
+        Cell::new("#")
+            .fg(Color::White)
+            .add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("STATUS")
+            .fg(Color::White)
+            .add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("REPO")
+            .fg(Color::White)
+            .add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("WHAT")
+            .fg(Color::White)
+            .add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    // Fixed column widths so the WHAT column can absorb extra
+    // terminal width via Dynamic arrangement. Use Absolute so
+    // long REPO names truncate (`pully-fully-pull-base…`) instead
+    // of letter-wrapping.
+    table
+        .column_mut(0)
+        .expect("# column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(NUM_COL as u16)));
+    table
+        .column_mut(1)
+        .expect("STATUS column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(STATUS_COL as u16)));
+    table
+        .column_mut(2)
+        .expect("REPO column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REPO_COL as u16)));
+    // WHAT column gets the leftover width (comfy-table expands it
+    // to fit terminal width under Dynamic arrangement).
+
+    let repo_budget = REPO_COL.saturating_sub(2); // 2 for comfy-table padding
+    for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
         let (status_text, status_color) = status_pair(row);
         let repo_name = if full_path {
             row.repo.clone()
@@ -4316,18 +4379,17 @@ fn print_repos_summary(
                 .unwrap_or_else(|| row.repo.clone())
         };
         let repo_short = truncate_unicode_width(&repo_name, repo_budget);
-        let what = summary_what(row, what_budget);
-        let status_styled = colorize(status_text, status_color);
-        let what_styled = colorize(&what, status_color);
-        // "{:>3}. STATUS  REPO  WHAT"
-        println!(
-            "{:>3}. {}  {:<repo_budget$}  {}",
-            display_idx + 1,
-            status_styled,
-            colorize(&repo_short, Color::White),
-            what_styled,
-        );
+        let what = summary_what(row, what_col);
+
+        table.add_row(vec![
+            Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
+            Cell::new(status_text).fg(status_color),
+            Cell::new(repo_short).fg(Color::White),
+            Cell::new(what).fg(Color::White),
+        ]);
     }
+
+    println!("{table}");
 }
 
 // ---------------------------------------------------------------------------
