@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.28 — 2026-07-20 — visibility-flip CLI + codeberg quota opt-in
+
+**Operator-visible changes:**
+
+1. **New `dracon-sync make-public <repo>` and `make-private <repo>` subcommands.** Flip repo visibility across github + gitlab. Codeberg skipped by default (85 GiB grace quota); pass `--include-codeberg` to flip it too. Updates the local visibility cache on success so `repos` reflects the new state immediately.
+2. **New repos skip codeberg by default.** Global config `codeberg.auto_create` changed from `true` to `false`. Per-repo opt-in: set `auto_create_on_codeberg = true` in `<repo>/.dracon/dracon-sync.toml`.
+3. **GitHub noreply identities whitelisted.** `trusted_emails` in the global config now includes `dracon@users.noreply.github.com` and `DraconDev@users.noreply.github.com` — the GitHub web-UI default identity for known usernames. Fixes the `🚫 unowned` warning on repos authored via the GitHub web editor (e.g. `pi-goal-loop-audit`).
+
+**Internal:**
+
+- `multi_remote.rs:create_repo_on_github` no longer hardcodes `--private`. Honors the `private` parameter so `auto_create_repo(..., private=false)` actually creates a public repo.
+- `auto_create_all_remotes` takes a new `codeberg_override: Option<bool>` parameter (per-repo opt-in for codeberg).
+- `visibility.rs:flip_repo_visibility(...)` is the new helper for the CLI subcommands. Calls `set_github_visibility` (new), `set_gitlab_visibility` (existing), and `set_codeberg_visibility` (existing) per remote.
+- `RepoPolicyOverride.auto_create_on_codeberg: Option<bool>` is the per-repo config field.
+
+**Tests:** 755 daemon tests pass (+2 new). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.27 — 2026-07-20 — operator UX: glance view for `repos` (3-column table)
 
 The `repos` command had grown to 16 columns (ROLE, BRANCH, PUBLISH, M/S/U counts, AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT). For the common "is anything broken?" check, this is too noisy.
