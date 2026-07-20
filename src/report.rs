@@ -4213,17 +4213,26 @@ fn severity_tier(row: &RepoReportRow) -> u8 {
 
 /// One-line "WHAT" descriptor for the summary view. Combines
 /// the activity state (with icon), dirty counts, push status
-/// (when PENDING/STUCK), the operator hint, and the author
-/// into a single human-readable string. Width-bounded by `budget`.
+/// (when STUCK/FAIL), and the operator hint into a single
+/// human-readable string. Width-bounded by `budget`.
 ///
 /// 2026-07-19 (goal `4555eaf6` v0.112.27) revision: dropped the
 /// redundant `{state} + {activity}` prefix when they're the same
 /// (e.g., `🟣 pushing` activity covers state `pushing`); also
 /// dropped the standalone `push: pending (N ahead)` note because
-/// the activity already says `🟣 pushing Xm`. This gives cleaner
-/// output:
+/// the activity already says `🟣 pushing Xm`.
 ///
-///   Before: `🟣 pushing · push: pending (1 ahead) · 1 mod · ...`
+/// 2026-07-20 (v0.112.27 R2): dropped the `by {author}` suffix.
+/// The author is `git log -1 --format=%an` — the git commit
+/// author of the most recent commit. For a solo operator who
+/// freestyles git identities across repos (`DraconDev` /
+/// `dracon` / `darklord-dev`), this reads as "different people"
+/// when it's all the same operator, which is misleading noise in
+/// a glance view. The detailed 16-column table keeps the author
+/// (it has a dedicated column and is part of the full record);
+/// the summary view trades it for width + clarity. Output:
+///
+///   Before: `🟣 pushing 1m · 1 mod · daemon will push after ... · by DraconDev`
 ///   After:  `🟣 pushing 1m · 1 mod · daemon will push after ...`
 fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     // Activity already encodes the state icon + word + age.
@@ -4263,10 +4272,9 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     if !row.hint.is_empty() && row.hint != "-" {
         parts.push(row.hint.clone());
     }
-    // Author.
-    if !row.last_author.is_empty() && row.last_author != "-" {
-        parts.push(format!("by {}", row.last_author));
-    }
+    // NOTE: author intentionally omitted (v0.112.27 R2). See doc
+    // comment above — for a solo operator the git commit author
+    // is freestyled noise that misleads in a glance view.
     let joined = parts.join(" · ");
     truncate_unicode_width(&joined, budget)
 }
@@ -7498,7 +7506,9 @@ mod tests {
     #[test]
     fn test_summary_what_dirty_repo_includes_dirty_counts_and_hint() {
         // A dirty repo with a hint must show dirty counts + hint
-        // + author, all in a single WHAT string.
+        // in a single WHAT string. Author is intentionally omitted
+        // (v0.112.27 R2) — for a solo operator the git commit
+        // author is freestyled noise that misleads in a glance view.
         let mut row = RepoReportRow::for_tests("/tmp/foo");
         row.concern = false;
         row.warn = false;
@@ -7519,7 +7529,10 @@ mod tests {
             what.contains("daemon handles"),
             "hint visible: {what}"
         );
-        assert!(what.contains("by DraconDev"), "author: {what}");
+        assert!(
+            !what.contains("by DraconDev"),
+            "author must be omitted from summary (v0.112.27 R2): {what}"
+        );
     }
 
     #[test]
