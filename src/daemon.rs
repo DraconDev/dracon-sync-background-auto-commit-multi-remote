@@ -386,6 +386,54 @@ pub(crate) struct StuckRepoEntry {
     /// Epoch seconds of the last push failure.
     #[serde(default)]
     pub(crate) last_error_at: u64,
+    /// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): epoch seconds of
+    /// the last retry ATTEMPT. The pre-fix retry path deleted the
+    /// ledger entry before dispatching, so a failed retry re-created
+    /// it with `consecutive_failures = 1` — the budget reset every
+    /// 5-minute cycle and `push_max_retries` could never engage.
+    /// Now the entry persists and this field throttles attempts.
+    #[serde(default)]
+    pub(crate) last_retry_at: u64,
+}
+
+/// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): what the daemon loop
+/// should do with a repo that has a stuck-push ledger entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StuckDecision {
+    /// Inside the backoff window since the last failure/attempt — skip.
+    Backoff,
+    /// Allow this cycle through (a retry attempt). The caller MUST
+    /// stamp `last_retry_at` so a non-push failure doesn't spin
+    /// every cycle.
+    Retry,
+    /// `consecutive_failures >= push_max_retries` — stop auto-pushing
+    /// until the operator intervenes (`unstuck` / `repair-concerns`).
+    /// This is the enforcement the pre-fix code never had
+    /// (`push_max_retries` was report-display-only).
+    Exhausted,
+}
+
+/// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): pure decision —
+/// extracted so the stuck-push state machine is unit-testable without
+/// spinning up the daemon loop.
+pub(crate) fn stuck_decision(
+    info: &StuckRepoEntry,
+    now_secs: u64,
+    max_retries: u32,
+    backoff_secs: u64,
+) -> StuckDecision {
+    if info.consecutive_failures >= max_retries {
+        return StuckDecision::Exhausted;
+    }
+    let last_activity = info
+        .last_retry_at
+        .max(info.last_error_at)
+        .max(info.stuck_since);
+    if now_secs.saturating_sub(last_activity) < backoff_secs {
+        StuckDecision::Backoff
+    } else {
+        StuckDecision::Retry
+    }
 }
 
 /// Default policy value: number of consecutive push failures
@@ -2426,6 +2474,17 @@ pub(crate) async fn run_daemon(
         filter_cooldowns.retain(|repo, _| repo_set.contains(repo));
         empty_bootstrap_cooldowns.retain(|repo, _| repo_set.contains(repo));
         auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
+        // stuck-push ledger from disk EVERY cycle instead of using
+        // the map loaded once at startup. `record_push_failure` /
+        // `record_push_success` (called from spawned sync tasks)
+        // load → mutate → save the DISK file; without the reload the
+        // loop's skip/retry check never saw runtime failures (the
+        // documented 5-min backoff never fired for any repo that got
+        // stuck after daemon start). The file is tiny and written
+        // atomically, so a per-cycle read is cheap and races are
+        // benign (worst case: one-cycle-stale view).
+        stuck_push_repos = load_stuck_push_repos();
         stuck_push_repos.retain(|repo, _| repo_set.contains(repo));
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
@@ -2743,37 +2802,93 @@ pub(crate) async fn run_daemon(
                 }
             }
 
-            // Skip repos that are stuck on push, but retry them every 5 minutes
-            // to see if the issue resolved (e.g., remote was recreated, permissions fixed, etc.)
-            if let Some(info) = stuck_push_repos.get(&repo) {
-                let stuck_age_secs = timestamp_secs().saturating_sub(info.stuck_since);
-                if stuck_age_secs < 300 {
-                    // Less than 5 minutes since stuck was recorded - skip
-                    continue;
+            // Skip repos that are stuck on push, with a 5-minute
+            // backoff between retry attempts and a HARD STOP when
+            // `consecutive_failures` reaches `push_max_retries`.
+            //
+            // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): three
+            // interlocking defects fixed here. (1) The loop's map was
+            // loaded once at startup while runtime failures went to
+            // the disk ledger — fixed by the per-cycle reload above.
+            // (2) The retry path DELETED the entry before
+            // dispatching, so a failed retry re-created it with
+            // `consecutive_failures = 1` — the budget reset every
+            // 5 minutes forever. Now the entry persists and
+            // `last_retry_at` throttles attempts. (3)
+            // `push_max_retries` was never enforced (report-display
+            // only) — the `Exhausted` arm below stops auto-push
+            // until the operator intervenes.
+            if let Some(info) = stuck_push_repos.get(&repo).cloned() {
+                match stuck_decision(&info, timestamp_secs(), policy.push_max_retries, 300) {
+                    StuckDecision::Backoff => {
+                        continue;
+                    }
+                    StuckDecision::Exhausted => {
+                        let notify_key = format!("stuck-exhausted-{}", repo.display());
+                        if notify_throttled(
+                            &mut remote_notify_cooldowns,
+                            &notify_key,
+                            Duration::from_secs(1800),
+                        ) {
+                            eprintln!(
+                                "🛑 {} push stuck ({} consecutive failures ≥ budget {}) — auto-push paused; fix the cause, then run `dracon-sync unstuck {}` or `repair-concerns --apply`",
+                                repo.display(),
+                                info.consecutive_failures,
+                                policy.push_max_retries,
+                                repo.file_name().unwrap_or_default().to_string_lossy(),
+                            );
+                            crate::report::send_sync_conflict_notification(
+                                &repo,
+                                "Push Stuck (budget exhausted)",
+                                &format!(
+                                    "{} consecutive push failures — auto-push paused; run `dracon-sync unstuck` after fixing",
+                                    info.consecutive_failures
+                                ),
+                            );
+                        }
+                        continue;
+                    }
+                    StuckDecision::Retry => {
+                        let stuck_age_secs =
+                            timestamp_secs().saturating_sub(info.stuck_since);
+                        eprintln!(
+                            "🔄 {} was stuck ({} consecutive failures), retrying push after {}s",
+                            repo.display(),
+                            info.consecutive_failures,
+                            stuck_age_secs
+                        );
+                        let notify_key = format!("stuck-retry-{}", repo.display());
+                        if notify_throttled(
+                            &mut remote_notify_cooldowns,
+                            &notify_key,
+                            Duration::from_secs(1800),
+                        ) {
+                            crate::report::record_sync_alert(
+                                &repo,
+                                "Stuck Push Retry",
+                                &format!(
+                                    "retrying after {}s; stuck since unix {}; {} consecutive failures",
+                                    stuck_age_secs,
+                                    info.stuck_since,
+                                    info.consecutive_failures
+                                ),
+                            );
+                        }
+                        // Stamp the retry attempt (persisted) so a
+                        // retry that fails for a NON-push reason
+                        // (staging error, lock contention) doesn't
+                        // spin every cycle — the backoff window
+                        // restarts from NOW. On push failure,
+                        // `record_push_failure` additionally bumps
+                        // `consecutive_failures` + `last_error_at`;
+                        // on success, `record_push_success` removes
+                        // the entry entirely.
+                        let mut updated = info.clone();
+                        updated.last_retry_at = timestamp_secs();
+                        stuck_push_repos.insert(repo.clone(), updated);
+                        save_stuck_push_repos(&stuck_push_repos);
+                    }
                 }
-                // 5+ minutes since stuck was recorded - retry once
-                eprintln!(
-                    "🔄 {} was stuck, retrying push after {}s",
-                    repo.display(),
-                    stuck_age_secs
-                );
-                let notify_key = format!("stuck-retry-{}", repo.display());
-                if notify_throttled(
-                    &mut remote_notify_cooldowns,
-                    &notify_key,
-                    Duration::from_secs(1800),
-                ) {
-                    crate::report::record_sync_alert(
-                        &repo,
-                        "Stuck Push Retry",
-                        &format!(
-                            "retrying after {}s; stuck since unix {}",
-                            stuck_age_secs, info.stuck_since
-                        ),
-                    );
-                }
-                stuck_push_repos.remove(&repo);
-                save_stuck_push_repos(&stuck_push_repos);
             }
             if has_both_main_and_master(&repo) {
                 eprintln!(
