@@ -63,6 +63,48 @@ pub(crate) fn filter_remotes_by_exclude(
         .collect()
 }
 
+/// ADDED 2026-07-21 (v0.112.30): whether the repo has ever been pushed
+/// to codeberg — i.e. a local `refs/remotes/codeberg/main` tracking
+/// ref exists. Local-only check (no network). Used to distinguish
+/// "pre-v0.112.28 repo with a live codeberg mirror" (keep pushing)
+/// from "new repo under the codeberg-quota posture" (skip codeberg
+/// entirely).
+pub(crate) fn has_codeberg_tracking_ref(repo: &Path) -> bool {
+    std_git_command()
+        .args(["rev-parse", "--verify", "-q", "refs/remotes/codeberg/main"])
+        .current_dir(repo)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// ADDED 2026-07-21 (v0.112.30): pure decision — should codeberg be
+/// excluded from configure/push for this repo? True when a codeberg
+/// remote exists in policy AND its effective auto_create is off
+/// (global `auto_create = false` and no per-repo opt-in override)
+/// AND the repo has no codeberg tracking ref (never pushed there).
+///
+/// Rationale: under the v0.112.28 quota posture new repos must not
+/// attempt codeberg at all — the forge repo is never created, so
+/// every `git push codeberg` fails with "Forgejo: Push to create is
+/// not enabled" (guaranteed-failure spam). Pre-existing codeberg
+/// mirrors (tracking ref present) and explicit opt-ins keep working.
+pub(crate) fn codeberg_push_excluded(
+    remotes: &[RemoteConfig],
+    codeberg_override: Option<bool>,
+    has_tracking_ref: bool,
+) -> bool {
+    if has_tracking_ref {
+        return false;
+    }
+    remotes.iter().any(|r| {
+        matches!(r.auth_type, AuthType::Codeberg)
+            && !(r.auto_create || codeberg_override.unwrap_or(false))
+    })
+}
+
 /// Configure all remotes from policy for a given repo, skipping any
 /// remote in `exclude`. `exclude` is a list of remote names (e.g.
 /// `["gitlab"]`); an empty list is a no-op filter.
@@ -181,7 +223,26 @@ pub(crate) async fn push_mirror_remotes(
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let filtered = filter_remotes_by_exclude(remotes, exclude);
+    // ADDED 2026-07-21 (v0.112.30): skip codeberg entirely for repos
+    // that were never pushed there while the effective auto_create is
+    // off (v0.112.28 quota posture: global `auto_create = false`,
+    // opt-in via `RepoPolicyOverride.auto_create_on_codeberg`).
+    // Without this, a new repo gets the codeberg remote configured
+    // and every push fails with "Forgejo: Push to create is not
+    // enabled" — guaranteed-failure spam on every sync cycle. Repos
+    // that DO have a codeberg tracking ref (all pre-v0.112.28 repos)
+    // keep pushing. Because `filtered` drives both
+    // `configure_all_remotes` and `remove_stale_remotes`, the dead
+    // codeberg remote is also removed from `.git/config` on the
+    // first push under this rule.
+    let mut combined_exclude: Vec<String> = exclude.to_vec();
+    if codeberg_push_excluded(remotes, codeberg_override, has_codeberg_tracking_ref(repo))
+        && !combined_exclude.iter().any(|e| e == "codeberg")
+    {
+        combined_exclude.push("codeberg".to_string());
+    }
+
+    let filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
 
     configure_all_remotes(repo, &filtered, &repo_name, &[]);
 

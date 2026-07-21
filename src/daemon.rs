@@ -166,6 +166,22 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
                 combined_exclude.push("codeberg".to_string());
             }
         }
+        // ADDED 2026-07-21 (v0.112.30): also skip codeberg at
+        // discovery when its effective auto_create is off (v0.112.28
+        // quota posture) and the repo has no codeberg tracking ref.
+        // Mirrors the push-level exclusion in `push_mirror_remotes`
+        // so the dead remote is never added for new repos in the
+        // first place (previously it was added here, then every push
+        // failed with "Forgejo: Push to create is not enabled" until
+        // `remove_stale_remotes` cleaned it up).
+        if crate::git::multi_remote::codeberg_push_excluded(
+            &policy.remotes,
+            repo_override.auto_create_on_codeberg,
+            crate::git::multi_remote::has_codeberg_tracking_ref(repo),
+        ) && !combined_exclude.iter().any(|e| e == "codeberg")
+        {
+            combined_exclude.push("codeberg".to_string());
+        }
         crate::git::multi_remote::configure_all_remotes(
             repo,
             &policy.remotes,
