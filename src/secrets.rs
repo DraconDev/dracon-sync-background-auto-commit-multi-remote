@@ -91,6 +91,25 @@ fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
                         if key.trim() == env_name {
                             let value = value.trim();
                             if !value.is_empty() {
+                                // ADDED 2026-07-21 (v0.112.33, audit
+                                // M27/F3.10): apply the same F52
+                                // control-character refusal as the
+                                // env-var path. A mid-line `\r`
+                                // survives `str::lines()` (only a
+                                // TRAILING `\r` is stripped), so
+                                // `GH_TOKEN=abc\rX-Injected: yes`
+                                // produces a token containing `\r`,
+                                // which is then interpolated into an
+                                // HTTP header block passed to
+                                // `curl -H @-` (header injection).
+                                if value.chars().any(|c| c.is_control()) {
+                                    eprintln!(
+                                        "⚠️ {} in {} contains control characters; refusing",
+                                        env_name,
+                                        path.display()
+                                    );
+                                    continue;
+                                }
                                 return Some(value.to_string());
                             }
                         }
@@ -184,4 +203,52 @@ pub(crate) fn legacy_pat_secrets_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".dracon/secrets/pat")
+}
+
+#[cfg(test)]
+mod tests {
+    /// ADDED 2026-07-21 (v0.112.33, audit M27/F3.10): a `.env`-file
+    /// secret containing a mid-line control character (e.g. `\r`)
+    /// must be REFUSED — it would otherwise be interpolated into a
+    /// curl HTTP header block (header injection). The F52 guard
+    /// previously covered only the env-var path.
+    #[test]
+    fn test_load_secret_from_dir_refuses_control_chars() {
+        let tmp = tempfile::tempdir().unwrap();
+        let secrets_dir = tmp.path();
+        std::fs::write(
+            secrets_dir.join("github.env"),
+            "CONTROL_TEST_TOKEN=abc\rX-Injected: yes\n",
+        )
+        .unwrap();
+        std::fs::write(
+            secrets_dir.join("other.env"),
+            "CONTROL_TEST_TOKEN=clean-token-123\n",
+        )
+        .unwrap();
+        // The poisoned file sorts FIRST lexicographically for this
+        // key (github.env < other.env), so without the refusal the
+        // poisoned value would be returned.
+        let result = super::load_secret_from_dir("CONTROL_TEST_TOKEN", secrets_dir);
+        assert_eq!(
+            result.as_deref(),
+            Some("clean-token-123"),
+            "control-char value must be refused; the clean file's value should win"
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M27/F3.10): clean values
+    /// still load.
+    #[test]
+    fn test_load_secret_from_dir_loads_clean_value() {
+        let tmp = tempfile::tempdir().unwrap();
+        let secrets_dir = tmp.path();
+        std::fs::write(
+            secrets_dir.join("github.env"),
+            "# comment\nCONTROL_TEST_TOKEN2=clean-token-456\n",
+        )
+        .unwrap();
+        let result = super::load_secret_from_dir("CONTROL_TEST_TOKEN2", secrets_dir);
+        assert_eq!(result.as_deref(), Some("clean-token-456"));
+    }
 }
