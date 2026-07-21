@@ -942,8 +942,7 @@ pub(crate) fn is_excluded_file(file_path: &Path, excluded_patterns: &[String]) -
 ///    `**/scratch/**` matches `foo/scratch/bar.txt`).
 ///    This keeps user notes, scratch research, and audit evidence
 ///    out of auto-stage.
-/// Match a `**`-free needle path against `rel` as consecutive FULL segments
-/// (glob-aware per segment).
+/// Match a `**`-free needle path against `rel` as consecutive FULL segments (glob-aware per segment).
 ///
 /// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12). `research/scratch`
 /// matches `docs/research/scratch/x` but NOT `docs/unresearched/scratch/x`
@@ -962,8 +961,7 @@ fn rel_contains_segment_seq(rel: &str, needle: &str) -> bool {
     })
 }
 
-/// Segment-wise glob match for full relative-path patterns WITHOUT `**`
-/// (e.g. `reports/kdp-live-*.md`, `web/test-results/*.png`).
+/// Segment-wise glob match for full relative-path patterns WITHOUT `**` (e.g. `reports/kdp-live-*.md`).
 ///
 /// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12). These patterns
 /// were silently DEAD in the pre-fix matcher (the basename branch

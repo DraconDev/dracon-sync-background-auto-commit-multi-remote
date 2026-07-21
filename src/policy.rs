@@ -1676,21 +1676,21 @@ fn check_toml_field_ordering(content: &str, result: &mut ValidateResult) {
             if let Some(first_sec) = first_section_pos {
                 // Only warn for top-level fields after a section header.
                 // Fields inside [[remotes]] table entries are correctly placed.
-                if line_start > first_sec && !in_table {
-                    if !key.starts_with('"')
-                        && !key.starts_with('\'')
-                        && !key.is_empty()
-                        && !key.contains('{')
-                        && !key.contains('.')
-                    {
-                        result.warn(format!(
-                            "field '{}' appears after a section header -- top-level fields \
-                             must be defined before any [section] or [[remotes]] block or \
-                             they will be silently ignored by the TOML parser (they become \
-                             table fields instead)",
-                            key
-                        ));
-                    }
+                if line_start > first_sec
+                    && !in_table
+                    && !key.starts_with('"')
+                    && !key.starts_with('\'')
+                    && !key.is_empty()
+                    && !key.contains('{')
+                    && !key.contains('.')
+                {
+                    result.warn(format!(
+                        "field '{}' appears after a section header -- top-level fields \
+                         must be defined before any [section] or [[remotes]] block or \
+                         they will be silently ignored by the TOML parser (they become \
+                         table fields instead)",
+                        key
+                    ));
                 }
             }
         }
