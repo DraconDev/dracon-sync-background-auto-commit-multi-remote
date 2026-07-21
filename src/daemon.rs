@@ -2721,9 +2721,11 @@ pub(crate) async fn run_daemon(
                     stuck_age_secs
                 );
                 let notify_key = format!("stuck-retry-{}", repo.display());
-                if let std::collections::hash_map::Entry::Vacant(e) =
-                    remote_notify_cooldowns.entry(notify_key)
-                {
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
                     crate::report::record_sync_alert(
                         &repo,
                         "Stuck Push Retry",
@@ -2732,7 +2734,6 @@ pub(crate) async fn run_daemon(
                             stuck_age_secs, info.stuck_since
                         ),
                     );
-                    e.insert(Instant::now() + Duration::from_secs(1800));
                 }
                 stuck_push_repos.remove(&repo);
                 save_stuck_push_repos(&stuck_push_repos);
@@ -3171,15 +3172,16 @@ pub(crate) async fn run_daemon(
                             repo.display()
                         );
                         let notify_key = format!("pushfail-{}", repo.display());
-                        if let std::collections::hash_map::Entry::Vacant(e) =
-                            remote_notify_cooldowns.entry(notify_key)
-                        {
+                        if notify_throttled(
+                            &mut remote_notify_cooldowns,
+                            &notify_key,
+                            Duration::from_secs(1800),
+                        ) {
                             crate::report::send_sync_conflict_notification(
                                 &repo,
                                 "Push Failed",
                                 "commit landed locally but the push failed; see daemon log",
                             );
-                            e.insert(Instant::now() + Duration::from_secs(1800));
                         }
                         false
                     }
@@ -3188,15 +3190,16 @@ pub(crate) async fn run_daemon(
                         let err_str = e.to_string();
                         if err_str.contains("push") || err_str.contains("remote") {
                             let notify_key = format!("pushfail-{}", repo.display());
-                            if let std::collections::hash_map::Entry::Vacant(e) =
-                                remote_notify_cooldowns.entry(notify_key)
-                            {
+                            if notify_throttled(
+                                &mut remote_notify_cooldowns,
+                                &notify_key,
+                                Duration::from_secs(1800),
+                            ) {
                                 crate::report::send_sync_conflict_notification(
                                     &repo,
                                     "Push Failed",
                                     &err_str,
                                 );
-                                e.insert(Instant::now() + Duration::from_secs(1800));
                             }
                         }
                         false
@@ -3369,15 +3372,16 @@ pub(crate) async fn run_daemon(
             if let Some(since) = entry.ahead_since {
                 if notification_now.duration_since(since) >= STUCK_AHEAD_THRESHOLD {
                     let notify_key = format!("stuck-ahead-{}", repo.display());
-                    if let std::collections::hash_map::Entry::Vacant(e) =
-                        remote_notify_cooldowns.entry(notify_key.clone())
-                    {
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
                         crate::report::send_sync_conflict_notification(
                             repo,
                             "Stuck Ahead (Unpushed)",
                             "commits not reaching origin for >10 min — push may be failing",
                         );
-                        e.insert(Instant::now() + Duration::from_secs(1800));
                     }
                 }
             }
@@ -3386,15 +3390,16 @@ pub(crate) async fn run_daemon(
             if let Some(since) = entry.behind_since {
                 if notification_now.duration_since(since) >= STUCK_BEHIND_THRESHOLD {
                     let notify_key = format!("stuck-behind-{}", repo.display());
-                    if let std::collections::hash_map::Entry::Vacant(e) =
-                        remote_notify_cooldowns.entry(notify_key.clone())
-                    {
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
                         crate::report::send_sync_conflict_notification(
                             repo,
                             "Stuck Behind (Unpulled)",
                             "upstream has unmerged changes for >30 min — pull may be failing",
                         );
-                        e.insert(Instant::now() + Duration::from_secs(1800));
                     }
                 }
             }
@@ -3403,9 +3408,11 @@ pub(crate) async fn run_daemon(
             for (mirror_name, fail_count) in &entry.mirror_consecutive_fails {
                 if *fail_count >= MIRROR_DEGRADED_THRESHOLD {
                     let notify_key = format!("mirror-{}-{}", repo.display(), mirror_name);
-                    if let std::collections::hash_map::Entry::Vacant(e) =
-                        remote_notify_cooldowns.entry(notify_key.clone())
-                    {
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
                         crate::report::send_sync_conflict_notification(
                             repo,
                             &format!("Mirror Degraded: {}", mirror_name),
