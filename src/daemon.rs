@@ -2710,7 +2710,11 @@ pub(crate) async fn run_daemon(
                     pending_repos.clear();
                     forge_confirmed.clear();
                     max_fail_cooldowns.clear();
-                    stuck_push_repos = load_stuck_push_repos();
+                    // NOTE (v0.112.33, audit M7/F1.13): the stuck-push
+                    // ledger needs no explicit reload here — the H5
+                    // per-cycle reload at the top of the loop picks
+                    // up any `unstuck` disk edit on the next cycle
+                    // automatically.
                 }
                 Err(e) => eprintln!("sync: SIGHUP policy reload failed: {}", e),
             }

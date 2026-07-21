@@ -6844,8 +6844,13 @@ auto_bump_versions = false
     }
 
     #[tokio::test]
-    async fn test_count_ahead_commits_returns_zero_when_synced() {
-        // Repo with one commit, no origin → 0 ahead (origin/main doesn't exist).
+    async fn test_count_ahead_commits_counts_all_when_never_pushed() {
+        // CHANGED 2026-07-21 (v0.112.33, audit M6/F1.12): a repo
+        // with one commit and NO tracking ref anywhere is NOT
+        // "synced" — every commit is unpushed, so the timeout scaler
+        // must see the full count (the old hardcoded
+        // `origin/main..HEAD` failed and returned 0, so the scaler
+        // never engaged for never-pushed repos).
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("test-repo");
         crate::git::git_cmd()
@@ -6874,7 +6879,104 @@ auto_bump_versions = false
             .status()
             .unwrap();
         let count = count_ahead_commits(&repo).await.unwrap();
-        assert_eq!(count, 0);
+        assert_eq!(
+            count, 1,
+            "never-pushed repo: every commit counts as unpushed (M6)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_count_ahead_commits_returns_zero_when_synced() {
+        // Genuinely synced repo: one commit AND an origin/main
+        // tracking ref at the same commit → 0 ahead.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.email", "t@t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // Simulate a pushed state: create the origin/main tracking ref.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "update-ref",
+                "refs/remotes/origin/main",
+                "HEAD",
+            ])
+            .status()
+            .unwrap();
+        let count = count_ahead_commits(&repo).await.unwrap();
+        assert_eq!(count, 0, "synced repo (origin/main == HEAD) → 0 ahead");
+    }
+
+    #[tokio::test]
+    async fn test_count_ahead_commits_uses_mirror_ref_when_no_origin() {
+        // ADDED 2026-07-21 (v0.112.33, audit M6/F1.12): mirror-only
+        // repo (no origin) with a gitlab tracking ref 1 behind HEAD
+        // → the mirror ref is used (the old hardcoded `origin/main`
+        // always failed for mirror-only repos).
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "t@t"), ("user.name", "t")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        for msg in ["c1", "c2"] {
+            crate::git::git_cmd()
+                .args([
+                    "-C",
+                    &repo.to_string_lossy(),
+                    "commit",
+                    "--no-verify",
+                    "--allow-empty",
+                    "-m",
+                    msg,
+                ])
+                .status()
+                .unwrap();
+        }
+        // gitlab/main points at the FIRST commit → HEAD is 1 ahead.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "update-ref",
+                "refs/remotes/gitlab/main",
+                "HEAD~1",
+            ])
+            .status()
+            .unwrap();
+        let count = count_ahead_commits(&repo).await.unwrap();
+        assert_eq!(count, 1, "mirror ref (gitlab/main) used when origin absent");
     }
 
     // ============================================================
