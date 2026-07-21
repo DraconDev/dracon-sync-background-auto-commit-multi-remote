@@ -2561,6 +2561,16 @@ pub(crate) async fn run_daemon(
     // the "mirror ref exists, synced vs mirror, no upstream" edge;
     // throttle it to one attempt per 5 minutes per repo.
     let mut ls_remote_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-07-21 (v0.112.33, audit M2/F1.9): repos whose
+    // forge-side repos are confirmed to exist (every auto-create-
+    // enabled remote answered `remote_repo_exists == true`, or there
+    // was nothing to create). Terminal state for the auto-create-on-
+    // discovery block: confirmed repos skip the per-cycle `git remote`
+    // subprocess AND the per-300s `ls-remote` hum for the rest of the
+    // daemon session. In-memory only (session-long) — SIGHUP/restart
+    // re-verifies, which is the desired remediation path if a forge
+    // repo is deleted out-of-band.
+    let mut forge_confirmed: HashSet<PathBuf> = HashSet::new();
     // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): the loop
     // reloads the ledger from disk at the top of every cycle; the
     // startup load below is used for the operator-visible summary of
@@ -2671,6 +2681,7 @@ pub(crate) async fn run_daemon(
                     auto_create_cooldowns.clear();
                     ls_remote_cooldowns.clear();
                     pending_repos.clear();
+                    forge_confirmed.clear();
                     stuck_push_repos = load_stuck_push_repos();
                 }
                 Err(e) => eprintln!("sync: SIGHUP policy reload failed: {}", e),
@@ -2726,6 +2737,7 @@ pub(crate) async fn run_daemon(
         empty_bootstrap_cooldowns.retain(|repo, _| repo_set.contains(repo));
         auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
         ls_remote_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        forge_confirmed.retain(|repo| repo_set.contains(repo));
         // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
         // stuck-push ledger from disk EVERY cycle instead of using
         // the map loaded once at startup. `record_push_failure` /
@@ -2826,7 +2838,7 @@ pub(crate) async fn run_daemon(
             // not match any". The first push waits until the operator
             // makes their first commit, at which point the regular
             // `is_repo_ready` path runs.
-            if !policy.remotes.is_empty() {
+            if !policy.remotes.is_empty() && !forge_confirmed.contains(&repo) {
                 let any_remote_configured =
                     !crate::git::multi_remote::list_remotes(&repo).is_empty();
                 // CHANGED 2026-07-21 (v0.112.30): throttle the
@@ -2856,8 +2868,23 @@ pub(crate) async fn run_daemon(
                         repo_override_for_create.auto_create_on_codeberg,
                     )
                     .await;
-                    for (name, result) in create_results {
+                    // ADDED 2026-07-21 (v0.112.33, audit M2/F1.9):
+                    // terminal state — once every auto-create-enabled
+                    // remote answers `remote_repo_exists == true`
+                    // (or there is nothing to create), stop the
+                    // per-300s `ls-remote` hum AND the per-cycle
+                    // `git remote` subprocess for this repo for the
+                    // rest of the daemon session. The pre-fix block
+                    // charged every fully-synced repo forever, existing
+                    // solely to cover the first-boot window of
+                    // brand-new repos. A forge repo deleted LATER is
+                    // out of scope (the push fails loudly and the
+                    // operator intervenes; SIGHUP/restart resets the
+                    // set).
+                    let mut all_ok = true;
+                    for (name, result) in &create_results {
                         if let Err(e) = result {
+                            all_ok = false;
                             if debug_enabled() {
                                 eprintln!(
                                     "⏳ {} auto-create on {} skipped: {}",
@@ -2873,6 +2900,9 @@ pub(crate) async fn run_daemon(
                                 name
                             );
                         }
+                    }
+                    if all_ok {
+                        forge_confirmed.insert(repo.clone());
                     }
                 }
             }

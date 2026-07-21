@@ -3353,6 +3353,53 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         return Ok(false);
     }
 
+    // ADDED 2026-07-21 (v0.112.33, audit M3/F1.10): staged-hygiene
+    // sweep before the root commit. The bootstrap stages its
+    // policy-filtered list, but the INDEX may also contain content
+    // the OPERATOR staged before the daemon discovered the repo
+    // (e.g. a 300 MiB file, an excluded pattern) — previously that
+    // content was swept into the "auto: initial commit" unchecked.
+    // The shared hygiene helpers (`unstage_oversized_paths` /
+    // `unstage_excluded_paths`) use `git reset HEAD --`, which fails
+    // on an unborn branch (no HEAD), so the unborn-branch primitive
+    // is `git rm --cached`.
+    let mut to_unstage: Vec<std::path::PathBuf> = Vec::new();
+    for (path, _status) in &staged {
+        let entry =
+            dracon_git::types::DiffFile::new(path.clone(), dracon_git::types::FileStatus::Added);
+        let passes = should_stage_entry(
+            repo,
+            &entry,
+            excluded_dir_names,
+            &policy.exclude_file_patterns,
+            policy.max_stage_file_bytes,
+            auto_commit_exclude,
+        ) && !crate::exclude::matches_untracked_exclude(
+            repo,
+            path,
+            &policy.untracked_exclude_patterns,
+        );
+        if !passes {
+            to_unstage.push(path.clone());
+        }
+    }
+    for chunk in to_unstage.chunks(50) {
+        let mut cmd = crate::policy::tokio_git_command();
+        cmd.args(["rm", "--cached", "-q", "--"])
+            .current_dir(repo)
+            .kill_on_drop(true);
+        for p in chunk {
+            cmd.arg(p);
+        }
+        cmd.status().await?;
+    }
+
+    // Re-verify after the hygiene sweep.
+    let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
+    if staged.is_empty() {
+        return Ok(false);
+    }
+
     let msg = format!("auto: initial commit ({} files)", staged.len());
     run_git_with_timeout(
         repo,
