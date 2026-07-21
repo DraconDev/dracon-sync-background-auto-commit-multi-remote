@@ -2616,6 +2616,23 @@ pub(crate) async fn run_daemon(
     // 2-3 minute "traffic jam" that delays smaller pushes (1-commit
     // rust-ai-web-auto, folder-auto-banner, one-mil-girls.deprecated).
     let mut in_flight: HashSet<PathBuf> = HashSet::new();
+    // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14): persistent
+    // registry of sync tasks that outlived their cycle's
+    // trailing-drain deadline. The pre-fix code force-cleared
+    // `in_flight` for those repos while their tasks kept running
+    // (detached), so the next cycle RE-DISPATCHED the same repo —
+    // two concurrent `sync_repo` executions on one repo (index.lock
+    // contention → one fails; concurrent pushes → phantom stuck-
+    // ledger failures). Now unfinished tasks move here, the repo
+    // STAYS in `in_flight` (no duplicate dispatch), and the late
+    // result is applied when the task actually finishes.
+    // `detached_since` tracks when each repo entered the registry
+    // for the 15-minute wedged-task safety valve; `detached_discard`
+    // marks repos whose stale result must be dropped (they were
+    // force-cleared and possibly re-dispatched).
+    let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
+    let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
+    let mut detached_discard: HashSet<PathBuf> = HashSet::new();
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -3882,16 +3899,40 @@ pub(crate) async fn run_daemon(
             let trailing_deadline_at = tokio::time::Instant::now() + trailing_deadline;
             let mut dispatched_this_cycle: HashSet<PathBuf> = in_flight.clone();
             loop {
-                let next =
-                    tokio::time::timeout_at(trailing_deadline_at, in_flight_tasks.next()).await;
+                if in_flight_tasks.is_empty() && detached_syncs.is_empty() {
+                    break;
+                }
+                // CHANGED 2026-07-21 (v0.112.33, audit M8/F1.14):
+                // drain BOTH this cycle's tasks AND previously-
+                // detached tasks through the same apply path
+                // (detached tasks are previous cycles' stragglers —
+                // see the registry handoff below).
+                let next = tokio::time::timeout_at(trailing_deadline_at, async {
+                    tokio::select! {
+                        a = in_flight_tasks.next(), if !in_flight_tasks.is_empty() => a,
+                        b = detached_syncs.next(), if !detached_syncs.is_empty() => b,
+                    }
+                })
+                .await;
                 let joined = match next {
                     Ok(Some(joined)) => joined,
                     Ok(None) => break, // all drained
                     Err(_) => break,   // trailing deadline hit
                 };
                 if let Ok((repo, remote_failures, sync_res)) = joined {
+                    // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
+                    // discard stale results from wedged tasks that
+                    // were force-cleared and possibly re-dispatched.
+                    if detached_discard.remove(&repo) {
+                        if debug_enabled() {
+                            eprintln!("🐛 {} discarding stale wedged-task result", repo.display());
+                        }
+                        detached_since.remove(&repo);
+                        continue;
+                    }
                     in_flight.remove(&repo);
                     dispatched_this_cycle.remove(&repo);
+                    detached_since.remove(&repo);
                     if let Some(entry) = activity.get_mut(&repo) {
                         entry.remote_failures = remote_failures;
                         // CHANGED 2026-07-21 (v0.112.31, audit
@@ -3958,24 +3999,52 @@ pub(crate) async fn run_daemon(
                     }
                 }
             }
-            // BUGFIX (2026-06-15): clear `in_flight` entries for
-            // tasks that were dispatched in this cycle but did
-            // NOT complete within the trailing deadline. These
-            // tasks are still running in the background (we
-            // don't know which ones), but we must remove them
-            // from `in_flight` so the next cycle can re-dispatch.
-            // Without this, a slow task causes permanent skip
-            // (see comment above).
+            // CHANGED 2026-07-21 (v0.112.33, audit M8/F1.14):
+            // hand unfinished tasks to the persistent detached
+            // registry instead of force-clearing `in_flight` while
+            // they run. The pre-fix code (BUGFIX 2026-06-15)
+            // removed the repos from `in_flight` here, so the next
+            // cycle re-dispatched the SAME repo while the first
+            // task was still running — duplicate concurrent
+            // `sync_repo` (index.lock contention, concurrent
+            // pushes, phantom stuck-ledger failures). Now the repo
+            // STAYS in `in_flight` (no-redispatch invariant holds)
+            // until the task actually finishes and is applied by
+            // the select-drained loop above.
             if !dispatched_this_cycle.is_empty() {
                 eprintln!(
-                    "🔄 trailing-drain: clearing {} stuck in_flight entries: {:?}",
-                    dispatched_this_cycle.len(),
-                    dispatched_this_cycle
+                    "🔄 trailing-drain: {} task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)",
+                    dispatched_this_cycle.len()
                 );
                 let _ = std::io::stderr().flush();
-                for repo in &dispatched_this_cycle {
-                    in_flight.remove(repo);
+                for handle in in_flight_tasks {
+                    detached_syncs.push(handle);
                 }
+                for repo in &dispatched_this_cycle {
+                    detached_since.entry(repo.clone()).or_insert_with(Instant::now);
+                }
+            }
+
+            // Wedged-task safety valve: a detached task older than
+            // 15 minutes is presumed wedged (e.g. a hung ssh
+            // negotiate). Force-clear its in_flight entry so the
+            // repo re-dispatches, and mark its eventual result for
+            // discard so the stale outcome doesn't double-count
+            // failures. This preserves the 2026-06-15 no-permanent-
+            // skip invariant without the duplicate-dispatch window.
+            let wedged: Vec<PathBuf> = detached_since
+                .iter()
+                .filter(|(_, t)| Instant::now().duration_since(**t) > Duration::from_secs(900))
+                .map(|(r, _)| r.clone())
+                .collect();
+            for repo in wedged {
+                eprintln!(
+                    "⚠️ {} sync task wedged for >15 min — force-clearing in-flight (stale result will be discarded)",
+                    repo.display()
+                );
+                in_flight.remove(&repo);
+                detached_since.remove(&repo);
+                detached_discard.insert(repo);
             }
         }
 
