@@ -100,7 +100,12 @@ pub(crate) fn codeberg_push_excluded(
         return false;
     }
     remotes.iter().any(|r| {
-        matches!(r.auth_type, AuthType::Codeberg)
+        // NOTE: use `effective_auth_type()` (auto-detects from
+        // `push_url` when the TOML field is unset), not the raw
+        // `auth_type` field — the operator's config sets no
+        // `auth_type`, so the raw field is the `GitHub` default
+        // and a raw-field match never fires.
+        matches!(r.effective_auth_type(), AuthType::Codeberg)
             && !(r.auto_create || codeberg_override.unwrap_or(false))
     })
 }
@@ -746,7 +751,13 @@ pub(crate) async fn auto_create_all_remotes(
     for remote in remotes {
         // Resolve effective auto_create for THIS remote: global OR
         // per-repo opt-in (codeberg only, since quota is the concern).
-        let effective_auto_create = match remote.auth_type {
+        // CHANGED 2026-07-21 (v0.112.30): use `effective_auth_type()`
+        // (push_url auto-detect) instead of the raw `auth_type` field.
+        // The operator's config sets no `auth_type`, so the raw field
+        // is the `GitHub` default and the Codeberg arm never fired —
+        // the per-repo `auto_create_on_codeberg` opt-in was silently
+        // ignored (v0.112.28 latent bug).
+        let effective_auto_create = match remote.effective_auth_type() {
             AuthType::Codeberg => remote.auto_create || codeberg_override.unwrap_or(false),
             _ => remote.auto_create,
         };
@@ -886,6 +897,22 @@ mod tests {
     }
 
     #[test]
+    fn test_codeberg_excluded_via_push_url_autodetect() {
+        // Regression for the live-config bug: the operator's
+        // `dracon-sync.toml` sets NO `auth_type` on the codeberg
+        // remote, so the raw field is the `GitHub` default and a
+        // raw-field match never fires. The exclusion must use
+        // `effective_auth_type()` (push_url auto-detect).
+        let mut codeberg = make_codeberg_remote(false);
+        codeberg.auth_type = crate::policy::AuthType::GitHub; // unset → default
+        let remotes = vec![codeberg];
+        assert!(
+            codeberg_push_excluded(&remotes, None, false),
+            "codeberg remote with default (unset) auth_type must still be excluded"
+        );
+    }
+
+    #[test]
     fn test_has_codeberg_tracking_ref_absent_for_fresh_repo() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("repo");
@@ -904,12 +931,29 @@ mod tests {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).unwrap();
-        for args in [
-            vec!["init", "-q", "-b", "main"],
-            vec!["config", "user.email", "test@test"],
-            vec!["config", "user.name", "test"],
-        ] {
-            let status = std_git_command().args(&args).arg(&repo).status().unwrap();
+        let status = std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        // FIXED 2026-07-21 (v0.112.30): these `git config` calls
+        // previously passed `&repo` as a positional arg
+        // (`.args(&args).arg(&repo)`), which git interprets as
+        // `git config <name> <value> <value-pattern>` — setting the
+        // config in the repo at the process CWD. Under `cargo test`
+        // the CWD is the real `dracon-sync/` package root, so the
+        // test wrote `user.email = test@test` into the LIVE repo's
+        // `.git/config`. The daemon then committed with the poisoned
+        // identity and the ownership guard (correctly) flipped the
+        // repo to unowned, blocking all further sync. Always run git
+        // config with `-C <path>` or `current_dir` in tests.
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            let status = std_git_command()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
             assert!(status.success());
         }
         std::fs::write(repo.join("a.txt"), "x\n").unwrap();

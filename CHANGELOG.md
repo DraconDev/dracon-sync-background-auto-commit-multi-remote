@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.30 — 2026-07-21 — empty-repo bootstrap + never-pushed detection + codeberg exclusion
+
+**Operator-visible changes:**
+
+1. **Brand-new `git init` repos are now fully bootstrapped by the daemon.** Previously the daemon loop bailed on `!is_repo_ready` before dispatching `sync_repo`, so an empty repo sat at "❌ CONCERN · no commits yet" until the operator committed manually. The new `sync::bootstrap_empty_repo_commit` creates the root commit from the operator's untracked files with the full staging policy (gitignore/warden secrets respected, size limits, exclude patterns, ownership gate). Gated on `git::is_stable_empty_repo` so mid-clone repos are never touched (lock-file + `tmp_pack_*` checks).
+2. **Never-pushed repos no longer show a false "synced".** After `configure_publish_upstream_if_missing` wrote branch config, libgit2 computed ahead=0 (no remote-tracking ref) and the repo was skipped forever. New `upstream_tracking_ref_missing` + `count_all_head_commits` fallback: no tracking ref anywhere ⇒ every commit is unpushed. `handle_ahead_push` treats a missing tracking ref as push-needed.
+3. **Codeberg is skipped for new repos under the quota posture.** Previously every push failed with `Forgejo: Push to create is not enabled` (guaranteed-failure spam). New `codeberg_push_excluded` skips codeberg at configure+push time when effective auto_create is off AND no codeberg tracking ref exists. Pre-v0.112.28 repos keep pushing; the dead remote is auto-removed from `.git/config` on first push.
+4. **v0.112.29 auto-create throttled** to one attempt per 300s per repo (was 2 SSH `ls-remote`/sec per empty repo forever).
+
+**Latent bug fixed:** the codeberg arms in `auto_create_all_remotes` (v0.112.28) and the new exclusion matched the raw `auth_type` field, which defaults to `GitHub` when unset in TOML — the per-repo `auto_create_on_codeberg` opt-in was silently ignored. Both now use `effective_auth_type()` (push_url auto-detect).
+
+**Internal:**
+
+- `git/status.rs`: `is_stable_empty_repo`, `upstream_tracking_ref_missing`, `count_all_head_commits`.
+- `sync.rs`: `bootstrap_empty_repo_commit`; old bare `git add -A` bootstrap replaced; `handle_ahead_push` missing-ref fix.
+- `git/multi_remote.rs`: `codeberg_push_excluded`, `has_codeberg_tracking_ref`, `push_mirror_remotes` exclusion, `auto_create_all_remotes` effective-auth fix.
+- `daemon.rs`: bootstrap call at `is_repo_ready` site, ahead-override extension, `auto_create_cooldowns` + `empty_bootstrap_cooldowns`, configure-time codeberg skip.
+
+**Tests:** 783 daemon tests pass (+25 new). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean. Design doc: `docs/design/empty-repo-auto-create-fix-2026-07-21.md`.
+
 ### v0.112.29 — 2026-07-21 — empty-repo auto-create + gitlab URL bug fix
 
 **Operator-visible changes:**
