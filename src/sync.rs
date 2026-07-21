@@ -673,12 +673,51 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
     })
 }
 
+/// CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): the old signature
+/// is preserved as a #[cfg(test)] wrapper (all remaining callers are
+/// tests). Production call sites MUST use
+/// `stage_existing_files_filtered` so directory-expanded files get the
+/// per-file staging policy re-applied (size limit, exclude patterns).
+#[cfg(test)]
 async fn stage_existing_files(
     repo: &Path,
     existing: &[String],
     dry_run: bool,
     stage_timeout_secs: u64,
     excluded_dir_names: &std::collections::BTreeSet<String>,
+) -> Result<()> {
+    stage_existing_files_filtered(
+        repo,
+        existing,
+        dry_run,
+        stage_timeout_secs,
+        excluded_dir_names,
+        None,
+    )
+    .await
+}
+
+/// Stage existing files, recursing into untracked directories.
+///
+/// `filter`: when `Some((policy, auto_commit_exclude_patterns))`,
+/// each file discovered by the directory-expansion recursion is
+/// re-checked against the per-file staging policy
+/// (`max_stage_file_bytes`, `exclude_file_patterns`,
+/// `untracked_exclude_patterns`, `auto_commit_exclude_patterns`).
+/// ADDED 2026-07-21 (v0.112.31, audit H6/F1.5): previously the
+/// recursion staged every file inside an untracked directory
+/// wholesale — a 500 MiB `assets/video.mp4` inside a new `assets/`
+/// dir sailed through even though the same file at repo root was
+/// rejected by `should_stage_entry`, violating the documented
+/// 100 MiB hard exclusion (AGENTS.md) and every per-file pattern
+/// exclusion.
+async fn stage_existing_files_filtered(
+    repo: &Path,
+    existing: &[String],
+    dry_run: bool,
+    stage_timeout_secs: u64,
+    excluded_dir_names: &std::collections::BTreeSet<String>,
+    filter: Option<(&SyncPolicy, &[String])>,
 ) -> Result<()> {
     if existing.is_empty() {
         return Ok(());
@@ -811,6 +850,47 @@ async fn stage_existing_files(
                     }
                     if meta.is_file() {
                         if let Ok(rel) = cp.strip_prefix(repo) {
+                            // ADDED 2026-07-21 (v0.112.31, audit
+                            // H6/F1.5): re-apply the per-file staging
+                            // policy to directory-expanded files.
+                            // Without this, size-limit and pattern
+                            // exclusions only applied to top-level
+                            // entries; anything nested inside an
+                            // untracked dir bypassed them.
+                            if let Some((policy, auto_commit_excl)) = filter {
+                                let rel_path = rel.to_path_buf();
+                                if meta.len() > policy.max_stage_file_bytes {
+                                    eprintln!(
+                                        "ℹ️ skip large file {} ({} bytes > {} bytes)",
+                                        cp.display(),
+                                        meta.len(),
+                                        policy.max_stage_file_bytes
+                                    );
+                                    continue;
+                                }
+                                if crate::exclude::is_excluded_file(
+                                    &rel_path,
+                                    &policy.exclude_file_patterns,
+                                ) {
+                                    continue;
+                                }
+                                if crate::exclude::matches_untracked_exclude(
+                                    repo,
+                                    &rel_path,
+                                    &policy.untracked_exclude_patterns,
+                                ) {
+                                    continue;
+                                }
+                                if !auto_commit_excl.is_empty()
+                                    && crate::exclude::matches_untracked_exclude(
+                                        repo,
+                                        &rel_path,
+                                        auto_commit_excl,
+                                    )
+                                {
+                                    continue;
+                                }
+                            }
                             expanded.push(rel.to_string_lossy().to_string());
                         }
                         continue;
