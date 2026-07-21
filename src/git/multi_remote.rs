@@ -795,17 +795,42 @@ pub(crate) async fn auto_create_all_remotes(
             // `gh repo create` for repos that already exist, which causes
             // GitHub rate limiting ("You have created too many repositories,
             // too quickly").
+            //
+            // CHANGED 2026-07-21 (v0.112.33, audit M14/F2.5):
+            // tri-state — Exists (skip + session-cached), Missing
+            // (create), Unknown (transport/auth failure → SKIP the
+            // create attempt this cycle; a network outage must not
+            // fire spurious creates).
             if let Some(repo) = repo {
-                if remote_repo_exists(repo, &remote.name).await {
-                    if debug_enabled() {
-                        eprintln!(
-                            "ℹ️  {} already exists on {} — skipping auto-create",
-                            resolved_name,
-                            remote.name
-                        );
+                match remote_repo_exists(repo, &remote.name).await {
+                    RemoteExistence::Exists => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "ℹ️  {} already exists on {} — skipping auto-create",
+                                resolved_name,
+                                remote.name
+                            );
+                        }
+                        results.push((remote.name.clone(), Ok(resolved_name.clone())));
+                        continue;
                     }
-                    results.push((remote.name.clone(), Ok(resolved_name.clone())));
-                    continue;
+                    RemoteExistence::Missing => {
+                        // fall through to create
+                    }
+                    RemoteExistence::Unknown => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "⏳ {} existence check on {} inconclusive (transport/auth) — skipping create this cycle",
+                                resolved_name,
+                                remote.name
+                            );
+                        }
+                        results.push((
+                            remote.name.clone(),
+                            Err(anyhow::anyhow!("existence check inconclusive")),
+                        ));
+                        continue;
+                    }
                 }
             }
             let result = auto_create_repo(remote, &resolved_name, private).await;
@@ -816,7 +841,62 @@ pub(crate) async fn auto_create_all_remotes(
 }
 
 /// Check if a remote repo exists by running `git ls-remote` on the configured remote.
-async fn remote_repo_exists(repo: &Path, remote_name: &str) -> bool {
+/// ADDED 2026-07-21 (v0.112.33, audit M14/F2.5): tri-state answer
+/// for "does the forge-side repo exist?". The previous bool
+/// conflated EVERY failure (network down, DNS, ssh key change,
+/// remote 5xx) with "repo does not exist" — which then triggered
+/// spurious `gh repo create` / `glab repo create` / REST create
+/// attempts during an outage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RemoteExistence {
+    /// `git ls-remote` succeeded — the repo exists.
+    Exists,
+    /// The forge answered with a definitive not-found.
+    Missing,
+    /// Transport/auth/other failure — cannot tell. Callers must NOT
+    /// treat this as Missing (no create attempt this cycle).
+    Unknown,
+}
+
+/// ADDED 2026-07-21 (v0.112.33, audit M14/F2.5): session-lifetime
+/// cache of (repo, remote) pairs confirmed to exist. A repo, once
+/// created/existing, is almost never deleted; the cache eliminates
+/// the per-push SSH `ls-remote` round-trip for every healthy repo.
+/// In-memory only: a forge repo deleted out-of-band is re-probed on
+/// daemon restart (and the push fails loudly in the meantime, which
+/// is the correct operator signal).
+static EXISTS_CACHE: std::sync::OnceLock<
+    parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>>,
+> = std::sync::OnceLock::new();
+
+fn exists_cache() -> &'static parking_lot::Mutex<
+    std::collections::HashSet<(std::path::PathBuf, String)>,
+> {
+    EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
+}
+
+/// Classify an `ls-remote` failure from stderr. Definitive
+/// not-found phrasings per forge:
+/// - GitHub: "ERROR: Repository not found."
+/// - GitLab: "The project you were looking for could not be found"
+/// - Codeberg/Forgejo: "repository does not exist" / 404
+fn ls_remote_indicates_missing(stderr: &str) -> bool {
+    let lower = stderr.to_ascii_lowercase();
+    lower.contains("repository not found")
+        || lower.contains("could not be found")
+        || lower.contains("does not exist")
+        || lower.contains("not found")
+        || lower.contains("404")
+}
+
+async fn remote_repo_exists(repo: &Path, remote_name: &str) -> RemoteExistence {
+    // Session cache: previously-confirmed pairs skip the SSH call.
+    if exists_cache()
+        .lock()
+        .contains(&(repo.to_path_buf(), remote_name.to_string()))
+    {
+        return RemoteExistence::Exists;
+    }
     let ssh_hardening = git_ssh_hardening();
     let output = tokio_git_command()
         .current_dir(repo)
@@ -826,8 +906,24 @@ async fn remote_repo_exists(repo: &Path, remote_name: &str) -> bool {
         .output()
         .await;
     match output {
-        Ok(o) => o.status.success(),
-        Err(_) => false,
+        Ok(o) if o.status.success() => {
+            exists_cache()
+                .lock()
+                .insert((repo.to_path_buf(), remote_name.to_string()));
+            RemoteExistence::Exists
+        }
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr);
+            if ls_remote_indicates_missing(&stderr) {
+                RemoteExistence::Missing
+            } else {
+                // CHANGED 2026-07-21 (v0.112.33, audit M14/F2.5):
+                // transport/auth/other failures are UNKNOWN, not
+                // Missing — no spurious create during an outage.
+                RemoteExistence::Unknown
+            }
+        }
+        Err(_) => RemoteExistence::Unknown,
     }
 }
 

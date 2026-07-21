@@ -270,6 +270,19 @@ pub(crate) fn is_permanent_push_rejection(err_msg: &str) -> bool {
         || err_msg.contains("not allowed to push")
         || err_msg.contains("deny updating")
         || err_msg.contains("hook declined")
+        // ADDED 2026-07-21 (v0.112.33, audit M15/F2.6): deleted or
+        // never-created forge repo, and lost key access —
+        // definitionally unfixable by retrying. The pre-fix code
+        // burned the full retry budget (with backoff sleeps) on
+        // every cycle forever for exactly the repos the v0.112.28
+        // codeberg posture creates (auto_create off + repo deleted).
+        // Failing fast hands the repo to the H5 stuck-push budget
+        // (v0.112.31), which provides the actual stop condition.
+        || err_msg.contains("Repository not found")
+        || err_msg.contains("repository does not exist")
+        || err_msg.contains("Push to create is not enabled")
+        || err_msg.contains("The project you were looking for could not be found")
+        || err_msg.contains("Permission denied (publickey)")
 }
 
 /// Check if an error message indicates the push was rejected because the
