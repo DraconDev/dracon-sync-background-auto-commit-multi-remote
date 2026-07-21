@@ -842,6 +842,13 @@ async fn main() -> Result<()> {
                             repo.display()
                         );
                     }
+                    // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3).
+                    Ok(crate::sync::SyncOutcome::PushFailed) => {
+                        eprintln!(
+                            "⚠️ {} committed but push failed (see daemon log)",
+                            repo.display()
+                        );
+                    }
                     Err(e) => {
                         eprintln!("❌ error syncing {}: {}", repo.display(), e);
                     }

@@ -2142,6 +2142,12 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
                 changed += 1;
                 println!("🔁 synced {}", repo.display());
             }
+            // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3): count as
+            // changed (the commit landed) but warn about the push.
+            Ok(SyncOutcome::PushFailed) => {
+                changed += 1;
+                eprintln!("⚠️ {} committed but push failed", repo.display());
+            }
             Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Blocked) => {}
             Err(e) => {
                 eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
@@ -3254,6 +3260,16 @@ pub(crate) async fn run_daemon(
                                         repo.display()
                                     );
                                 }
+                                entry.failure_count += 1;
+                            }
+                            // ADDED 2026-07-21 (v0.112.31, audit
+                            // H3/F1.3): commit succeeded but the push
+                            // failed — count as failure, no synced log.
+                            Ok(SyncOutcome::PushFailed) => {
+                                eprintln!(
+                                    "⚠️ {} committed but push failed (late, will retry)",
+                                    repo.display()
+                                );
                                 entry.failure_count += 1;
                             }
                             Err(e) => {
