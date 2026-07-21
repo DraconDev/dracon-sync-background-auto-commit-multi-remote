@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.33 — 2026-07-21 — audit MEDIUM sweep (M2-M28 daemon/git/policy + M10)
+
+**Operator-visible changes (from `AUDIT_FULL_2026-07-21.md`):**
+
+1. **Daemon state machines (M2-M9)**: auto-create stops re-checking confirmed repos (forge_confirmed terminal state); empty-repo bootstrap cools down 60s on nothing-to-stage and sweeps operator-staged oversized/excluded files before the root commit; MAX_FAILURES no longer abandons repos forever (15-min backoff + re-probe + notification) and merge-in-progress (`Blocked`) no longer counts toward the budget; an origin push failure no longer starves github/gitlab/codeberg mirror pushes for the cycle; push-timeout scaling works for mirror-only and non-main repos (dynamic `count_ahead_commits`); SIGHUP clears all cooldown maps; the trailing-drain timeout no longer causes duplicate concurrent sync_repo (detached-task registry + 15-min wedged valve); filter-noisy repos get a real 300s stage cooldown (`SyncOutcome::FilterOnly`).
+2. **Git layer (M11-M19)**: startup repair now fixes the CHECKED-OUT branch's gone upstream; the filter-branch fallback actually works (argv rebuilt); 7 git call sites now check exit codes (`std_git_checked`) — critically `consolidate_to_main` no longer deletes master on a failed checkout; `remote_repo_exists` distinguishes missing from network-down (tri-state + session cache); deleted forge repos fail fast (permanent push rejection class) instead of retrying forever; IndexLock works on submodules (real gitdir); non-ASCII filenames no longer dropped from diffs (`-z` parsing + exit propagation); `remove_stale_remotes` preserves operator-added remotes (`dracon.managed-*` marker scoping); `is_safe_git_path` rejects `..` at any depth.
+3. **Policy/visibility (M20-M28)**: `config validate` now prints warnings and detects top-level fields silently absorbed into the last `[[table]]` entry (live-verified on the operator's own `standard_files_auto`); `expand_tilde("~/x")` resolves to `$HOME/x` (was filesystem root); the visibility cache is only written when the github leg succeeds (a failed `make-public` can't open the codeberg gate for a still-private repo); `make-public`/`make-private` detects basename ambiguity and prints the resolved path; `refresh-visibility` counts gh failures as errors instead of poisoning the cache to private; `parse_github_owner_repo` is host-verified (gitlab/codeberg origins no longer queried as github); `.env`-file secrets get the F52 control-char refusal (curl header injection); exclude patterns like `reports/kdp-live-*.md` work (were silently dead) and `**/tmp/**` no longer excludes `tmpl/` paths (segment-exact matching).
+4. **M10 (F0.3)**: the daemon verifies the committer identity (user.email + user.name) is in the trusted lists BEFORE auto-committing — the F0.1 post-hoc lockout is now a pre-commit guard.
+
+**Tests:** 818 daemon tests pass (+21). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.31 — 2026-07-21 — audit HIGH batch: failure-visibility + policy-enforcement
 
 **Operator-visible changes (8 fixes from `AUDIT_FULL_2026-07-21.md`):**
