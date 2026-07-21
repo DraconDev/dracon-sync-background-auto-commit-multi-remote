@@ -1590,7 +1590,15 @@ async fn push_background(
     };
 
     // Push to origin (if the repo has one — mirror-only repos like .dracon
-    // skip this and go straight to mirror remotes)
+    // skip this and go straight to mirror remotes).
+    // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): an origin push
+    // failure no longer SHORT-CIRCUITS the mirror pushes below — the
+    // pre-fix early `return Ok(false)` meant one broken forge
+    // (deleted github repo, auth hiccup) silently orphaned the repo
+    // on every OTHER forge for the cycle. The failure is now
+    // recorded in `remote_failures` and the aggregate is returned at
+    // the end.
+    let mut origin_failed = false;
     if has_origin {
         // Skip origin if it points at github and the pack is too big for
         // github's 2 GiB limit (defensive; most repos' origin is codeberg).
@@ -1611,14 +1619,21 @@ async fn push_background(
             )
             .await
             {
-                Ok(()) => {}
+                Ok(()) => {
+                    if let Some(rf) = remote_failures.as_deref_mut() {
+                        rf.remove("origin");
+                    }
+                }
                 Err(e) => {
                     eprintln!(
                         "⚠️ background push to origin failed for {}: {}",
                         repo.display(),
                         e
                     );
-                    return Ok(false);
+                    if let Some(rf) = remote_failures.as_deref_mut() {
+                        *rf.entry("origin".to_string()).or_insert(0) += 1;
+                    }
+                    origin_failed = true;
                 }
             }
         }
@@ -1761,7 +1776,9 @@ async fn push_background(
             }
         }
     }
-    Ok(true)
+    // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
+    // false when origin failed (mirrors may still have succeeded).
+    Ok(!origin_failed)
 }
 
 /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): format the
