@@ -140,10 +140,10 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
         // (e.g. dirty working tree blocking the checkout) and
         // proceeded to `branch -D master` +
         // `push origin --delete master` on the FAILED precondition.
+        let mut checkout_cmd = std_git_command();
+        checkout_cmd.args(["checkout", "main"]).current_dir(repo);
         super::ops::std_git_checked(
-            &mut std_git_command()
-                .args(["checkout", "main"])
-                .current_dir(repo),
+            &mut checkout_cmd,
             &format!("failed to checkout main in {}", repo.display()),
         )?;
     }
@@ -180,10 +180,12 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
         // exit 0 — a failed rename (e.g. `main` already exists,
         // unborn branch) previously sailed through as "success" and
         // the function proceeded to push + remote-delete master.
+        let mut rename_cmd = std_git_command();
+        rename_cmd
+            .args(["branch", "-m", "master", "main"])
+            .current_dir(repo);
         super::ops::std_git_checked(
-            &mut std_git_command()
-                .args(["branch", "-m", "master", "main"])
-                .current_dir(repo),
+            &mut rename_cmd,
             &format!("failed to rename master to main in {}", repo.display()),
         )?;
     }
