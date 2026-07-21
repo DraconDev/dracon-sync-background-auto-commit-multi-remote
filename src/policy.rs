@@ -89,6 +89,14 @@ impl StandardFileConfig {
 
 fn expand_tilde(path: &str) -> PathBuf {
     if let Some(rest) = path.strip_prefix('~') {
+        // FIXED 2026-07-21 (v0.112.33, audit M22/F3.4):
+        // `strip_prefix('~')` on `"~/templates/LICENSE"` yields
+        // `"/templates/LICENSE"` (leading slash retained), and
+        // `Path::join` with an ABSOLUTE argument REPLACES the base —
+        // so `expand_tilde("~/x")` resolved to `/x` (filesystem
+        // root), not `$HOME/x` (verified by compiling the function
+        // during the audit). Strip the optional `/` after `~`.
+        let rest = rest.strip_prefix('/').unwrap_or(rest);
         dirs::home_dir()
             .map(|h| h.join(rest))
             .unwrap_or_else(|| PathBuf::from(path))
