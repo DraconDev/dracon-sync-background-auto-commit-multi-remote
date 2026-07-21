@@ -4350,6 +4350,233 @@ auto_stage_untracked = false
         // This test only verifies the auto_stage_untracked=false behavior.
     }
 
+    // ---- bootstrap_empty_repo_commit (v0.112.30) ----
+
+    /// Helper: TOML policy with ownership signals trusted for the
+    /// conventional test identity (`test@test` / `test`).
+    fn bootstrap_test_policy(extra: &str) -> SyncPolicy {
+        let toml_str = format!(
+            r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+{}
+"#,
+            extra
+        );
+        toml::from_str(&toml_str).unwrap()
+    }
+
+    fn init_empty_repo(path: &std::path::Path) {
+        std::fs::create_dir_all(path).unwrap();
+        let status = crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            let status = crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(path)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+    }
+
+    fn head_commit_count(path: &std::path::Path) -> u64 {
+        let output = crate::git::git_cmd()
+            .args(["rev-list", "--count", "HEAD"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+        if !output.status.success() {
+            return 0;
+        }
+        String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .parse()
+            .unwrap_or(0)
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_creates_root_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        std::fs::create_dir_all(repo.join("src")).unwrap();
+        std::fs::write(repo.join("src/b.txt"), "beta\n").unwrap();
+
+        let policy = bootstrap_test_policy("");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(result.unwrap(), true, "bootstrap must commit");
+        assert_eq!(head_commit_count(&repo), 1, "root commit must exist");
+        let output = crate::git::git_cmd()
+            .args(["ls-files"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tracked = String::from_utf8_lossy(&output.stdout);
+        assert!(tracked.contains("a.txt"));
+        assert!(tracked.contains("src/b.txt"));
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_respects_gitignore() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join(".gitignore"), "secret.txt\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "ok\n").unwrap();
+        std::fs::write(repo.join("secret.txt"), "hunter2\n").unwrap();
+
+        let policy = bootstrap_test_policy("");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(result.unwrap(), true);
+        let output = crate::git::git_cmd()
+            .args(["ls-files"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tracked = String::from_utf8_lossy(&output.stdout);
+        assert!(tracked.contains("normal.txt"));
+        assert!(tracked.contains(".gitignore"));
+        assert!(
+            !tracked.contains("secret.txt"),
+            "gitignored files must not be staged by the bootstrap"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_skips_oversized_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("small.txt"), "ok\n").unwrap();
+        // 2 KiB file with a 1 KiB stage cap.
+        std::fs::write(repo.join("big.bin"), vec![0u8; 2048]).unwrap();
+
+        let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(result.unwrap(), true);
+        let output = crate::git::git_cmd()
+            .args(["ls-files"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tracked = String::from_utf8_lossy(&output.stdout);
+        assert!(tracked.contains("small.txt"));
+        assert!(
+            !tracked.contains("big.bin"),
+            "oversized file must be skipped (max_stage_file_bytes)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_all_oversized_returns_false() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("big.bin"), vec![0u8; 2048]).unwrap();
+
+        let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(
+            result.unwrap(),
+            false,
+            "nothing policy-compliant to stage → no commit"
+        );
+        assert_eq!(head_commit_count(&repo), 0);
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_auto_commit_disabled() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+
+        // NOTE: cannot use bootstrap_test_policy here (it hardcodes
+        // `auto_commit = true`; TOML rejects duplicate keys), so build
+        // the policy directly.
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(result.unwrap(), false);
+        assert_eq!(head_commit_count(&repo), 0);
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_unowned_skipped() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        // Untrusted identity: user.email is not in trusted_emails and
+        // there is no origin to vouch for the repo.
+        let status = crate::git::git_cmd()
+            .args(["config", "user.email", "mallory@evil"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+
+        let policy = bootstrap_test_policy("");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(
+            result.unwrap(),
+            false,
+            "unowned repo (untrusted user.email) must be skipped"
+        );
+        assert_eq!(head_commit_count(&repo), 0);
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_empty_repo_nothing_to_stage() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        // No files at all — `git commit` would fail with "nothing to
+        // commit"; the bootstrap must report Ok(false) instead.
+        let policy = bootstrap_test_policy("");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert_eq!(result.unwrap(), false);
+        assert_eq!(head_commit_count(&repo), 0);
+    }
+
+    #[tokio::test]
+    async fn test_sync_repo_empty_repo_end_to_end() {
+        // The full sync_repo path on a stable empty repo: bootstrap
+        // creates the root commit, then the pipeline proceeds.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+
+        let policy = bootstrap_test_policy("");
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo failed: {:?}", result);
+        assert_eq!(
+            head_commit_count(&repo),
+            1,
+            "sync_repo must bootstrap the root commit"
+        );
+    }
+
     #[tokio::test]
     async fn test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked() {
         let tmp = tempfile::tempdir().unwrap();
