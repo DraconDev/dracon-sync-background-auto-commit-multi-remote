@@ -2428,6 +2428,46 @@ pub(crate) async fn run_daemon(
         /// `Unowned` or `Unknown` (when `auto_skip_unowned = true`).
         /// `None` means not yet classified this cycle.
         ownership: Option<crate::ownership::OwnershipReport>,
+        /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): when the
+        /// cached verdict was computed. While the verdict is
+        /// `Unowned`/`Unknown`, the daemon re-detects after
+        /// `OWNERSHIP_REDETECT_TTL` so operator remediation (fixed
+        /// user.email, corrected origin) is picked up WITHOUT a
+        /// daemon restart — previously the verdict was cached
+        /// forever (verified live 2026-07-21: the daemon skipped
+        /// its own source repo for 25 minutes after the config was
+        /// fixed, until SIGHUP). Owned verdicts stay sticky (a
+        /// transient git error must not flip a good repo into skip
+        /// mode).
+        ownership_at: Option<Instant>,
+    }
+
+    /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): how long an
+    /// `Unowned`/`Unknown` verdict is cached before re-detection.
+    /// 10 minutes balances remediation responsiveness against the
+    /// cost of re-detection (4 git subprocess calls per unowned repo).
+    const OWNERSHIP_REDETECT_TTL: Duration = Duration::from_secs(600);
+
+    /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): pure predicate —
+    /// should the cached ownership verdict be (re)computed? True when
+    /// never classified, or when the cached verdict is a NEGATIVE
+    /// classification (Unowned/Unknown) older than the TTL. Extracted
+    /// for unit testing.
+    fn ownership_needs_redetect(
+        ownership: &Option<crate::ownership::OwnershipReport>,
+        detected_at: Option<Instant>,
+        now: Instant,
+        ttl: Duration,
+    ) -> bool {
+        match ownership {
+            None => true,
+            Some(crate::ownership::OwnershipReport::Owned { .. }) => false,
+            Some(crate::ownership::OwnershipReport::Unowned { .. })
+            | Some(crate::ownership::OwnershipReport::Unknown { .. }) => match detected_at {
+                None => true,
+                Some(t) => now.duration_since(t) >= ttl,
+            },
+        }
     }
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
@@ -2857,20 +2897,54 @@ pub(crate) async fn run_daemon(
                 failure_count: 0,
                 remote_failures: HashMap::new(),
                 ownership: None,
+                ownership_at: None,
             });
-            if entry_for_ownership.ownership.is_none() {
+            // CHANGED 2026-07-21 (v0.112.31, audit H1/F0.2):
+            // re-detect on TTL while the verdict is negative
+            // (Unowned/Unknown) so operator remediation is picked
+            // up without a daemon restart. Previously
+            // `if ownership.is_none()` meant the verdict was cached
+            // FOREVER (the unowned `continue` below precedes every
+            // `activity.remove` site). Owned verdicts stay sticky —
+            // a transient git error must not flip a good repo into
+            // skip mode.
+            let needs_redetect = ownership_needs_redetect(
+                &entry_for_ownership.ownership,
+                entry_for_ownership.ownership_at,
+                now,
+                OWNERSHIP_REDETECT_TTL,
+            );
+            if needs_redetect {
+                let was_negative = entry_for_ownership.ownership.is_some();
                 let trusted = crate::ownership::TrustedSet {
                     emails: policy.trusted_emails.clone(),
                     authors: policy.trusted_authors.clone(),
                     remote_hosts: policy.trusted_remote_hosts.clone(),
                 };
-                entry_for_ownership.ownership = Some(
-                    crate::ownership::detect_ownership(
-                        &repo,
-                        &trusted,
-                        repo_override.owned,
-                    ),
+                let report = crate::ownership::detect_ownership(
+                    &repo,
+                    &trusted,
+                    repo_override.owned,
                 );
+                // Surface remediation: a repo that WAS classified
+                // Unowned/Unknown and now classifies as Owned gets a
+                // recovery line (and ledger alert) so the operator
+                // sees the fix took effect without a restart.
+                if was_negative
+                    && matches!(report, crate::ownership::OwnershipReport::Owned { .. })
+                {
+                    eprintln!(
+                        "✅ {} ownership restored (remediation detected) — resuming sync",
+                        repo.display()
+                    );
+                    crate::report::record_sync_alert(
+                        &repo,
+                        "Ownership Restored",
+                        "previously-unowned repo now classifies as owned; resuming sync",
+                    );
+                }
+                entry_for_ownership.ownership = Some(report);
+                entry_for_ownership.ownership_at = Some(now);
             }
             let ownership = entry_for_ownership.ownership.as_ref().unwrap();
             let is_owned = matches!(ownership, crate::ownership::OwnershipReport::Owned { .. });
@@ -3285,6 +3359,7 @@ pub(crate) async fn run_daemon(
                         failure_count: 0,
                         remote_failures: HashMap::new(),
                         ownership: None,
+                        ownership_at: None,
                     },
                 );
                 continue;
