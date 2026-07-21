@@ -236,9 +236,7 @@ pub(crate) fn parse_github_owner_repo(remote_url: &str) -> Option<(String, Strin
                 .rsplit('@')
                 .next()
                 .unwrap_or(after_scheme);
-            let Some((host, path)) = host_path.split_once('/') else {
-                return None;
-            };
+            let (host, path) = host_path.split_once('/')?;
             let host_no_port = host.split(':').next().unwrap_or(host);
             if !host_no_port.eq_ignore_ascii_case("github.com") {
                 return None;
