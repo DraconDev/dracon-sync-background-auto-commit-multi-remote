@@ -942,6 +942,42 @@ pub(crate) fn is_excluded_file(file_path: &Path, excluded_patterns: &[String]) -
 ///    `**/scratch/**` matches `foo/scratch/bar.txt`).
 ///    This keeps user notes, scratch research, and audit evidence
 ///    out of auto-stage.
+/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12): match a
+/// `**`-free needle path against `rel` as CONSECUTIVE FULL SEGMENTS
+/// (glob-aware per segment). `research/scratch` matches
+/// `docs/research/scratch/x` but NOT `docs/unresearched/scratch/x`
+/// and `scratch` matches `a/scratch/b` but NOT `a/unscratched/b` —
+/// the old raw-substring `contains` arm overmatched both.
+fn rel_contains_segment_seq(rel: &str, needle: &str) -> bool {
+    let rel_segs: Vec<&str> = rel.split('/').collect();
+    let needle_segs: Vec<&str> = needle.split('/').collect();
+    if needle_segs.is_empty() || rel_segs.len() < needle_segs.len() {
+        return false;
+    }
+    rel_segs.windows(needle_segs.len()).any(|w| {
+        w.iter()
+            .zip(needle_segs.iter())
+            .all(|(r, n)| matches_file_pattern(r, n))
+    })
+}
+
+/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12): segment-wise glob
+/// match for full relative-path patterns WITHOUT `**` (e.g.
+/// `reports/kdp-live-*.md`, `web/test-results/*.png`). These
+/// patterns were silently DEAD in the pre-fix matcher (the basename
+/// branch requires no `/`, the glob branch required `**`).
+fn rel_matches_glob_path(rel: &str, pattern: &str) -> bool {
+    let rel_segs: Vec<&str> = rel.split('/').collect();
+    let pat_segs: Vec<&str> = pattern.split('/').collect();
+    if rel_segs.len() != pat_segs.len() {
+        return false;
+    }
+    rel_segs
+        .iter()
+        .zip(pat_segs.iter())
+        .all(|(r, p)| matches_file_pattern(r, p))
+}
+
 pub(crate) fn matches_untracked_exclude(
     repo: &Path,
     file_path: &Path,
@@ -961,28 +997,60 @@ pub(crate) fn matches_untracked_exclude(
             if matches_file_pattern(file_name, pattern) {
                 return true;
             }
-            // Single-segment patterns like `*.png` — match against
-            // the basename only.
-            if matches_file_pattern(file_name, pattern) {
-                return true;
-            }
+            continue;
         }
-        // Path-glob patterns (e.g. `**/scratch/**`, `.demon/**`).
-        // Use the existing starts-with/contains substring logic.
-        if pattern.starts_with("**/") || pattern.contains("/**") {
-            if rel == pattern.trim_start_matches("**/").trim_end_matches("/**")
-                || rel.starts_with(pattern.trim_end_matches("/**"))
-                || rel.contains(pattern.trim_start_matches("**/").trim_end_matches("/**"))
-            {
+
+        // CHANGED 2026-07-21 (v0.112.33, audit M28/F3.12): full
+        // relative-path patterns WITHOUT `**` (e.g.
+        // `reports/kdp-live-*.md`, `web/test-results/*.png`,
+        // `.demon/**`). The pre-fix code fell through BOTH branches
+        // (basename requires no `/`; glob required `**`), so these
+        // patterns were silently DEAD — files the operator wanted
+        // excluded got auto-committed with no warning.
+        if !pattern.contains("**") {
+            // `dir/**` prefix form (e.g. `.demon/**`): root-anchored.
+            if let Some(prefix) = pattern.strip_suffix("/**") {
+                if rel == prefix || rel.starts_with(&format!("{}/", prefix)) {
+                    return true;
+                }
+                continue;
+            }
+            // Exact / segment-wise relative glob.
+            if rel_matches_glob_path(&rel, pattern) {
                 return true;
             }
-            // Fall back to substring match for `**/<name>` style patterns
-            if let Some(tail) = pattern.strip_prefix("**/") {
-                let tail = tail.trim_end_matches("/**");
+            continue;
+        }
+
+        // `**`-forms. CHANGED 2026-07-21 (v0.112.33, audit
+        // M28/F3.12): the raw `rel.contains(needle)` arm is REMOVED
+        // — it turned `**/scratch/**` into a substring match that
+        // excluded `docs/unscratched/notes.md` and `src/scratchpad.rs`,
+        // `**/~/**` into "any path containing a tilde", and
+        // `**/tmp/**` into `foo/tmpl/x`. Matching is now
+        // segment-exact (glob-aware per segment).
+
+        // `**/name` trailing form (e.g. `**/scratch-*`, `**/tmp-*`):
+        // any FULL segment matches the glob.
+        if let Some(tail) = pattern.strip_prefix("**/") {
+            if !tail.contains('/') && !tail.ends_with("/**") {
                 if rel.split('/').any(|seg| matches_file_pattern(seg, tail)) {
                     return true;
                 }
+                continue;
             }
+        }
+        // `**/A/**` or `**/A/B/**` (e.g. `**/scratch/**`,
+        // `**/research/scratch/**`, `**/test-results/**`): the
+        // needle as consecutive FULL segments, anchored anywhere.
+        if let Some(mid) = pattern
+            .strip_prefix("**/")
+            .and_then(|p| p.strip_suffix("/**"))
+        {
+            if rel_contains_segment_seq(&rel, mid) {
+                return true;
+            }
+            continue;
         }
     }
     false
