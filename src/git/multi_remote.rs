@@ -1214,7 +1214,7 @@ mod tests {
 if [ "$1" = "ls-remote" ] && [ "$3" = "HEAD" ]; then
     case "$2" in
         *existing*) echo "abcdef1234567890 HEAD"; exit 0 ;;
-        *) exit 1 ;;
+        *) echo "ERROR: Repository not found." >&2; exit 1 ;;
     esac
 fi
 exit 1
@@ -1234,12 +1234,18 @@ exit 1
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).expect("create repo dir");
         assert!(
-            remote_repo_exists(&repo, "existing-repo").await,
+            matches!(
+                remote_repo_exists(&repo, "existing-repo").await,
+                RemoteExistence::Exists
+            ),
             "existing remote HEAD should be detected"
         );
         assert!(
-            !remote_repo_exists(&repo, "missing-repo").await,
-            "missing remote should not be treated as existing"
+            matches!(
+                remote_repo_exists(&repo, "missing-repo").await,
+                RemoteExistence::Missing
+            ),
+            "definitive not-found must classify as Missing (v0.112.33, audit M14/F2.5)"
         );
     }
 
