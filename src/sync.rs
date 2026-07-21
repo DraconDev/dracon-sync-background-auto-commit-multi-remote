@@ -1798,6 +1798,38 @@ fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> Str
     }
 }
 
+/// ADDED 2026-07-21 (v0.112.33, audit M10/F0.3): whether the repo's
+/// effective committer identity (`git config user.email` +
+/// `user.name`, which reads the local→global chain) is in the
+/// policy's trusted lists. The daemon auto-commits with this
+/// identity, so an untrusted identity must block the commit — see
+/// the guard in `stage_commit_and_push`.
+fn committer_identity_trusted(repo: &Path, policy: &SyncPolicy) -> bool {
+    fn git_config_get(repo: &Path, key: &str) -> Option<String> {
+        let out = crate::policy::std_git_command()
+            .args(["config", "--get", key])
+            .current_dir(repo)
+            .output()
+            .ok()?;
+        if !out.status.success() {
+            return None;
+        }
+        let v = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if v.is_empty() {
+            None
+        } else {
+            Some(v)
+        }
+    }
+    let email_ok = git_config_get(repo, "user.email")
+        .map(|e| policy.trusted_emails.iter().any(|t| *t == e))
+        .unwrap_or(false);
+    let name_ok = git_config_get(repo, "user.name")
+        .map(|n| policy.trusted_authors.iter().any(|t| *t == n))
+        .unwrap_or(false);
+    email_ok && name_ok
+}
+
 /// Task state transitions extracted from a markdown diff.
 #[derive(Debug, Default)]
 struct TaskTransitions {
@@ -3137,6 +3169,23 @@ async fn stage_commit_and_push(
 
     // Use blast radius as commit message
     let msg = blast_radius;
+
+    // ADDED 2026-07-21 (v0.112.33, audit M10/F0.3): pre-commit
+    // identity guard — verify the effective committer identity
+    // (user.email + user.name, local→global chain) is in the
+    // policy's trusted lists BEFORE committing. The F0.1 incident
+    // (2026-07-21) showed the daemon committing with a poisoned
+    // identity (`test <test@test>` written into the LIVE repo's
+    // config by a test) and the ownership guard locking the repo
+    // out only AFTER the damage was already on the mirrors. This
+    // turns the post-hoc lockout into a pre-commit guard.
+    if !committer_identity_trusted(repo, policy) {
+        eprintln!(
+            "⚠️ {} committer identity untrusted (git config user.email/user.name not in trusted_emails/trusted_authors) — skipping auto-commit; the staged index is left intact",
+            repo.display()
+        );
+        return Ok(Some(SyncOutcome::Blocked));
+    }
 
     if dry_run {
         println!(
