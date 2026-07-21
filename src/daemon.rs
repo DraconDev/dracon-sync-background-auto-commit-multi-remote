@@ -1746,6 +1746,7 @@ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
         consecutive_failures: 0,
         last_error: String::new(),
         last_error_at: 0,
+        last_retry_at: 0,
     });
     entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
     entry.last_error = error.to_string();
@@ -2345,7 +2346,11 @@ pub(crate) async fn run_daemon(
     // repo forever. Throttle to one attempt per 5 minutes per repo;
     // the first attempt is immediate (map starts empty).
     let mut auto_create_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
-    let mut stuck_push_repos = load_stuck_push_repos();
+    // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): start empty —
+    // the loop reloads the ledger from disk at the top of every
+    // cycle, so the startup load was a redundant read whose value
+    // was never used before being overwritten.
+    let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
     let mut cycle_count: u64 = 0;
     // Repos with an active `sync_repo` task. The COLLECT phase
