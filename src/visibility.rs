@@ -220,6 +220,17 @@ pub(crate) fn parse_github_owner_repo(remote_url: &str) -> Option<(String, Strin
 /// Returns `true` if the repo is private, `false` if public.
 /// On any error (gh not installed, no auth, network failure), returns `true` as the safe default.
 pub(crate) fn get_github_visibility(owner: &str, repo: &str) -> bool {
+    get_github_visibility_opt(owner, repo).unwrap_or(true)
+}
+
+/// ADDED 2026-07-21 (v0.112.33, audit M25/F3.7): error-aware
+/// variant of `get_github_visibility` — returns `None` when the
+/// github state is UNKNOWN (gh missing, network, auth, API error)
+/// instead of the private safe-default. Callers that write the
+/// visibility cache MUST use this variant: the safe-default path
+/// poisons the cache to "private" on any transient `gh` hiccup,
+/// which then stops codeberg pushes for up to 24h.
+pub(crate) fn get_github_visibility_opt(owner: &str, repo: &str) -> Option<bool> {
     let output = match gh_cmd()
         .args([
             "api",
@@ -232,17 +243,21 @@ pub(crate) fn get_github_visibility(owner: &str, repo: &str) -> bool {
         Ok(o) => o,
         Err(e) => {
             eprintln!("⚠️ gh api failed (is gh installed?): {}", e);
-            return true;
+            return None;
         }
     };
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         eprintln!("⚠️ gh api failed: {}", stderr.trim());
-        return true;
+        return None;
     }
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    // "true" → private, "false" → public, anything else → safe default (private)
-    stdout == "true"
+    // "true" → private, "false" → public, anything else → unknown
+    match stdout.as_str() {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None,
+    }
 }
 
 // FIXED 2026-07-21 (v0.112.29): the previous template

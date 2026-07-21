@@ -395,22 +395,50 @@ fn handle_visibility_flip(
     );
 
     // Find the repo by basename.
-    let repo_path = repos.into_iter().find(|p| {
-        p.file_name()
-            .map(|n| n.to_string_lossy() == repo_name)
-            .unwrap_or(false)
-    });
-    let Some(repo_path) = repo_path else {
-        anyhow::bail!(
-            "repo '{}' not found in watch roots ({}); pass the basename, e.g. `dracon-sync`",
-            repo_name,
-            roots
-                .iter()
-                .map(|r| r.to_string_lossy().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+    // CHANGED 2026-07-21 (v0.112.33, audit M24/F3.6): collect ALL
+    // basename matches — the pre-fix first-match-wins silently
+    // targeted whichever repo `discover_git_repos` returned first,
+    // so `make-private foo` intended for repo A could flip repo B
+    // (a privacy incident shape) when two watched repos share a
+    // basename. Ambiguity now bails with the full paths listed.
+    let matches: Vec<_> = repos
+        .into_iter()
+        .filter(|p| {
+            p.file_name()
+                .map(|n| n.to_string_lossy() == repo_name)
+                .unwrap_or(false)
+        })
+        .collect();
+    let repo_path = match matches.len() {
+        0 => {
+            anyhow::bail!(
+                "repo '{}' not found in watch roots ({}); pass the basename, e.g. `dracon-sync`",
+                repo_name,
+                roots
+                    .iter()
+                    .map(|r| r.to_string_lossy().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+        1 => matches.into_iter().next().unwrap(),
+        _ => {
+            anyhow::bail!(
+                "repo name '{}' is ambiguous — {} watched repos share the basename:\n  {}\nRename one or disambiguate (the command takes a basename only today)",
+                repo_name,
+                matches.len(),
+                matches
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n  ")
+            );
+        }
     };
+    // ADDED 2026-07-21 (v0.112.33, audit M24/F3.6): print the
+    // resolved full path before flipping so the operator can see
+    // exactly which repo is being modified.
+    println!("📂 resolved '{}' → {}", repo_name, repo_path.display());
 
     // Get origin URL.
     let origin_url = std::process::Command::new("git")
@@ -1250,7 +1278,9 @@ async fn main() -> Result<()> {
             let mut results: Vec<serde_json::Value> = Vec::new();
             let mut refreshed = 0usize;
             let mut skipped = 0usize;
-            let errors = 0usize;
+            // CHANGED 2026-07-21 (v0.112.33, audit M25/F3.7): the
+            // errors counter is now REAL (was hardcoded 0).
+            let mut errors = 0usize;
 
             for repo_path in &repos {
                 // Try `origin` first (most common), then fall back to `github`
@@ -1290,16 +1320,35 @@ async fn main() -> Result<()> {
                     continue;
                 };
 
-                let private = crate::visibility::get_github_visibility(&owner, &gh_repo);
-                let visibility = if private { "private" } else { "public" };
-                crate::visibility::update_visibility_cache(repo_path, private);
-                refreshed += 1;
-                results.push(serde_json::json!({
-                    "repo": gh_repo,
-                    "owner": owner,
-                    "visibility": visibility,
-                    "status": "refreshed",
-                }));
+                // CHANGED 2026-07-21 (v0.112.33, audit M25/F3.7):
+                // use the error-aware variant — the pre-fix code
+                // cached the private safe-default on ANY `gh` hiccup
+                // and reported the repo as "refreshed", so a
+                // transient outage marked every repo private (and
+                // stopped codeberg pushes for up to 24h) with no
+                // error signal. Errors now skip the cache write and
+                // count as errors.
+                match crate::visibility::get_github_visibility_opt(&owner, &gh_repo) {
+                    Some(private) => {
+                        let visibility = if private { "private" } else { "public" };
+                        crate::visibility::update_visibility_cache(repo_path, private);
+                        refreshed += 1;
+                        results.push(serde_json::json!({
+                            "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
+                            "status": "refreshed",
+                            "visibility": visibility,
+                        }));
+                    }
+                    None => {
+                        errors += 1;
+                        results.push(serde_json::json!({
+                            "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
+                            "status": "error",
+                            "reason": "gh api failed (visibility unknown; cache NOT updated)",
+                        }));
+                        continue;
+                    }
+                }
             }
 
             if json {
