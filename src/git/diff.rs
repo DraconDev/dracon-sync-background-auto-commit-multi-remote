@@ -51,6 +51,11 @@ pub(crate) async fn git_diff_head_files(repo: &Path) -> Result<HashSet<PathBuf>>
 /// (e.g. `git status --porcelain=v1` R-prefix can be ambiguous). We
 /// now require the score to be present after the `R` (1-3 digits) and
 /// reject anything that doesn't conform to `R<score>\t<old>\t<new>`.
+///
+/// CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): test-only now —
+/// production parsing moved to `parse_name_status_z` (NUL-delimited,
+/// raw paths). Kept for the existing line-parser unit tests.
+#[cfg(test)]
 pub(crate) fn parse_name_status_line(line: &str) -> Option<(PathBuf, FileStatus)> {
     let mut parts = line.split('\t');
     let status_raw = parts.next()?.trim();
@@ -312,7 +317,46 @@ pub(crate) async fn tracked_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
 
 #[cfg(test)]
 mod f33_tests {
-    use super::parse_name_status_line;
+    use super::{parse_name_status_line, parse_name_status_z, FileStatus};
+    use std::path::PathBuf;
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M17/F2.8): the `-z` parser
+    /// handles raw NUL-delimited records — non-ASCII paths pass
+    /// through UNQUOTED (the line parser dropped them via C-quoting),
+    /// and no trimming corrupts space-padded names.
+    #[test]
+    fn test_parse_name_status_z_non_ascii_and_basic() {
+        let mut out: Vec<u8> = Vec::new();
+        out.extend_from_slice(b"M\0");
+        out.extend_from_slice("café.rs".as_bytes());
+        out.push(0);
+        out.extend_from_slice(b"A\0");
+        out.extend_from_slice(b"src/new file.rs");
+        out.push(0);
+        let entries = parse_name_status_z(&out);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(
+            entries[0],
+            (PathBuf::from("café.rs"), FileStatus::Modified)
+        );
+        assert_eq!(
+            entries[1],
+            (PathBuf::from("src/new file.rs"), FileStatus::Added)
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M17/F2.8): rename records
+    /// consume status + old + new and yield the NEW path.
+    #[test]
+    fn test_parse_name_status_z_rename() {
+        let mut out: Vec<u8> = Vec::new();
+        out.extend_from_slice(b"R100\0old name.txt\0new name.txt\0");
+        let entries = parse_name_status_z(&out);
+        assert_eq!(
+            entries,
+            vec![(PathBuf::from("new name.txt"), FileStatus::Renamed)]
+        );
+    }
 
     #[test]
     fn parse_name_status_basic_statuses() {
