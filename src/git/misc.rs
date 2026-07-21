@@ -1,6 +1,6 @@
 //! Miscellaneous git utilities — secret loading, orphan origin detection, path locking.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::Path;
 use std::process::Command;
 #[cfg(test)]
@@ -66,8 +66,8 @@ pub(crate) fn detect_orphan_origin(repo: &Path) -> Option<(String, String)> {
 
 /// Fix an orphan origin URL by updating the remote and tracking.
 pub(crate) fn fix_orphan_origin(repo: &Path, canonical_url: &str) -> Result<()> {
-    crate::policy::std_git_command()
-        .args(["remote", "set-url", "origin", canonical_url])
+    let mut cmd = crate::policy::std_git_command();
+    cmd.args(["remote", "set-url", "origin", canonical_url])
         .current_dir(repo);
     // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require exit 0
     // (was `.status()?`).
