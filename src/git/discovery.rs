@@ -380,7 +380,10 @@ fn is_inside_a_discovered_parent(path: &Path, discovered: &[PathBuf]) -> bool {
 
 /// Resolve the gitdir a path points at. Returns the canonical
 /// (canonicalized) path of the gitdir on disk.
-fn path_gitdir(path: &Path) -> Option<PathBuf> {
+/// CHANGED 2026-07-21 (v0.112.33, audit M16/F2.7): promoted to
+/// `pub(crate)` so `IndexLock::acquire` (status.rs) can resolve the
+/// real gitdir for linked worktrees and nested submodules.
+pub(crate) fn path_gitdir(path: &Path) -> Option<PathBuf> {
     let dot_git = path.join(".git");
     if !dot_git.exists() {
         return None;

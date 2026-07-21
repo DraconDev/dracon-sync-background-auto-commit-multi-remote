@@ -28,7 +28,19 @@ impl IndexLock {
     /// Returns Ok(lock) if acquired, Err if another process holds it.
     /// Uses `O_EXCL` (create_new) for atomic creation — no TOCTOU race.
     pub(crate) fn acquire(repo: &Path) -> Result<Self, String> {
-        let path = repo.join(".git").join("index.lock");
+        // CHANGED 2026-07-21 (v0.112.33, audit M16/F2.7): resolve
+        // the REAL gitdir first — for linked worktrees and nested
+        // submodules (the canonical architecture since 2026-07-02),
+        // `<repo>/.git` is a FILE, so creating
+        // `<repo>/.git/index.lock` failed with ENOTDIR and
+        // `ensure_standard_files` was silently skipped EVERY cycle
+        // for every submodule (with a misleading "lock contention"
+        // debug message). For a submodule the lock belongs at
+        // `<parent>/.git/modules/<name>/index.lock` — where git
+        // itself takes it.
+        let path = crate::git::path_gitdir(repo)
+            .map(|gitdir| gitdir.join("index.lock"))
+            .unwrap_or_else(|| repo.join(".git").join("index.lock"));
         match std::fs::OpenOptions::new()
             .write(true)
             .create_new(true) // O_EXCL — fails if file exists
