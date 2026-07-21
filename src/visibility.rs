@@ -193,26 +193,60 @@ pub(crate) fn visibility_cache_dir_test() -> PathBuf {
 }
 
 /// Parse `owner/repo` from a GitHub remote URL.
-/// Supports both SSH (`git@github.com:owner/repo.git`) and HTTPS (`https://github.com/owner/repo.git`).
+/// Supports SCP-style SSH (`git@github.com:owner/repo.git`),
+/// `ssh://[user@]github.com/owner/repo.git`, and
+/// `https://[user@]github.com/owner/repo.git`.
+///
+/// CHANGED 2026-07-21 (v0.112.33, audit M26/F3.8): the parse is
+/// now HOST-VERIFIED — the pre-fix SSH branch triggered on ANY URL
+/// containing `@` and used `rfind(':')`, so `ssh://git@github.com/...`
+/// hit the SCHEME colon (garbage pair), `https://user:token@github.com/...`
+/// hit the same trap, and `git@gitlab.com:owner/repo.git` (a
+/// non-GitHub origin — e.g. the nested game submodules whose
+/// `.gitmodules` lists codeberg/gitlab first) was accepted as a
+/// GitHub pair with no host check, feeding wrong-forge `gh api`
+/// calls whose 404s then poisoned the visibility cache to
+/// "private" (the safe default). Non-GitHub hosts now return None
+/// so callers take the explicit "no github origin" branch.
 pub(crate) fn parse_github_owner_repo(remote_url: &str) -> Option<(String, String)> {
-    // SSH: git@github.com:owner/repo.git
-    if remote_url.contains('@') {
-        if let Some(colon) = remote_url.rfind(':') {
-            let after_colon = &remote_url[colon + 1..];
-            let clean = after_colon.strip_suffix(".git").unwrap_or(after_colon);
-            if let Some(slash) = clean.find('/') {
-                return Some((clean[..slash].to_string(), clean[slash + 1..].to_string()));
+    fn split_owner_repo(rest: &str) -> Option<(String, String)> {
+        let clean = rest.strip_suffix(".git").unwrap_or(rest);
+        let (owner, repo) = clean.split_once('/')?;
+        if owner.is_empty() || repo.is_empty() {
+            return None;
+        }
+        Some((owner.to_string(), repo.to_string()))
+    }
+
+    let lower = remote_url.to_ascii_lowercase();
+
+    // SCP-style SSH: git@github.com:owner/repo.git
+    const SCP_PREFIX: &str = "git@github.com:";
+    if lower.starts_with(SCP_PREFIX) {
+        return split_owner_repo(&remote_url[SCP_PREFIX.len()..]);
+    }
+
+    // Scheme forms: <scheme>://[userinfo@]github.com[:port]/owner/repo.git
+    for scheme in ["ssh://", "https://", "http://", "git://"] {
+        if lower.starts_with(scheme) {
+            let after_scheme = &remote_url[scheme.len()..];
+            // Strip optional userinfo (everything up to the LAST `@`
+            // before the host) — `user:token@github.com/...`.
+            let host_path = after_scheme
+                .rsplit('@')
+                .next()
+                .unwrap_or(after_scheme);
+            let Some((host, path)) = host_path.split_once('/') else {
+                return None;
+            };
+            let host_no_port = host.split(':').next().unwrap_or(host);
+            if !host_no_port.eq_ignore_ascii_case("github.com") {
+                return None;
             }
+            return split_owner_repo(path);
         }
     }
-    // HTTPS: https://github.com/owner/repo.git
-    if let Some(host_start) = remote_url.find("github.com/") {
-        let after_host = &remote_url[host_start + 11..];
-        let clean = after_host.strip_suffix(".git").unwrap_or(after_host);
-        if let Some(slash) = clean.find('/') {
-            return Some((clean[..slash].to_string(), clean[slash + 1..].to_string()));
-        }
-    }
+
     None
 }
 
@@ -1025,9 +1059,35 @@ mod tests {
 
     #[test]
     fn test_parse_github_owner_repo_gitlab_url() {
-        let result = parse_github_owner_repo("git@gitlab.com:someone/repo.git");
-        // Should parse as (someone, repo) since the parser is generic enough
-        assert_eq!(result, Some(("someone".to_string(), "repo".to_string())));
+        // CHANGED 2026-07-21 (v0.112.33, audit M26/F3.8): non-GitHub
+        // hosts must return None (the pre-fix parser accepted
+        // gitlab/codeberg origins as GitHub pairs, feeding
+        // wrong-forge visibility lookups).
+        assert_eq!(parse_github_owner_repo("git@gitlab.com:someone/repo.git"), None);
+        assert_eq!(parse_github_owner_repo("git@codeberg.org:someone/repo.git"), None);
+        assert_eq!(
+            parse_github_owner_repo("https://gitlab.com/someone/repo.git"),
+            None
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M26/F3.8): `ssh://` and
+    /// userinfo URLs must parse correctly (the pre-fix `rfind(':')`
+    /// hit the scheme/userinfo colon and produced garbage).
+    #[test]
+    fn test_parse_github_owner_repo_ssh_scheme_and_userinfo() {
+        assert_eq!(
+            parse_github_owner_repo("ssh://git@github.com/DraconDev/my-repo.git"),
+            Some(("DraconDev".to_string(), "my-repo".to_string()))
+        );
+        assert_eq!(
+            parse_github_owner_repo("https://user:token@github.com/DraconDev/my-repo.git"),
+            Some(("DraconDev".to_string(), "my-repo".to_string()))
+        );
+        assert_eq!(
+            parse_github_owner_repo("ssh://git@github.com:22/DraconDev/my-repo.git"),
+            Some(("DraconDev".to_string(), "my-repo".to_string()))
+        );
     }
 
     #[test]
