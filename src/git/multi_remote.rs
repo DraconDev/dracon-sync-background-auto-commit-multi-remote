@@ -831,6 +831,106 @@ mod tests {
         }
     }
 
+    // ---- codeberg_push_excluded / has_codeberg_tracking_ref (v0.112.30) ----
+
+    fn make_codeberg_remote(auto_create: bool) -> RemoteConfig {
+        RemoteConfig {
+            name: "codeberg".to_string(),
+            push_url: "git@codeberg.org:dracondev/{repo}.git".to_string(),
+            auto_create,
+            auto_create_account: "dracondev".to_string(),
+            auth_type: crate::policy::AuthType::Codeberg,
+            priority: 30,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: std::collections::HashMap::new(),
+            force_push_when_behind: false,
+        }
+    }
+
+    #[test]
+    fn test_codeberg_excluded_when_auto_create_off_and_no_tracking_ref() {
+        // v0.112.28 quota posture: global auto_create=false, no opt-in,
+        // never pushed → skip codeberg entirely.
+        let remotes = vec![make_codeberg_remote(false)];
+        assert!(codeberg_push_excluded(&remotes, None, false));
+    }
+
+    #[test]
+    fn test_codeberg_kept_when_tracking_ref_exists() {
+        // Pre-v0.112.28 repo with a live codeberg mirror: keep pushing
+        // even though auto_create is now off.
+        let remotes = vec![make_codeberg_remote(false)];
+        assert!(!codeberg_push_excluded(&remotes, None, true));
+    }
+
+    #[test]
+    fn test_codeberg_kept_when_opted_in() {
+        // Per-repo opt-in overrides the global auto_create=false.
+        let remotes = vec![make_codeberg_remote(false)];
+        assert!(!codeberg_push_excluded(&remotes, Some(true), false));
+    }
+
+    #[test]
+    fn test_codeberg_kept_when_global_auto_create_on() {
+        let remotes = vec![make_codeberg_remote(true)];
+        assert!(!codeberg_push_excluded(&remotes, None, false));
+    }
+
+    #[test]
+    fn test_codeberg_excluded_no_codeberg_remote_in_policy() {
+        // No codeberg remote configured → nothing to exclude (the
+        // caller's `combined_exclude` push is skipped either way).
+        let remotes = vec![make_remote("github", 10)];
+        assert!(!codeberg_push_excluded(&remotes, None, false));
+    }
+
+    #[test]
+    fn test_has_codeberg_tracking_ref_absent_for_fresh_repo() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let status = std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(!has_codeberg_tracking_ref(&repo));
+    }
+
+    #[test]
+    fn test_has_codeberg_tracking_ref_present_after_update_ref() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "test@test"],
+            vec!["config", "user.name", "test"],
+        ] {
+            let status = std_git_command().args(&args).arg(&repo).status().unwrap();
+            assert!(status.success());
+        }
+        std::fs::write(repo.join("a.txt"), "x\n").unwrap();
+        for args in [vec!["add", "a.txt"], vec!["commit", "--no-verify", "-q", "-m", "i"]] {
+            let status = std_git_command()
+                .args(&args)
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+        // Simulate a pushed codeberg mirror.
+        let status = std_git_command()
+            .args(["update-ref", "refs/remotes/codeberg/main", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(has_codeberg_tracking_ref(&repo));
+    }
+
     /// Test: empty remotes list returns empty Vec.
     ///
     /// Regression test for goal `87c1bf4d`: the sequential
