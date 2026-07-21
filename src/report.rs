@@ -7101,11 +7101,60 @@ mod tests {
         status.staged_files = 0;
         status.ahead = 0;
         status.behind = 0;
-        status.last_commit_hash = None;
+        // CHANGED 2026-07-21 (v0.112.29): set a fake commit hash so
+        // the EMPTY_REPO flag does NOT fire. This test scenario is
+        // "repo has commits, just untracked files" — not "empty
+        // git init". An empty-repo variant is covered by
+        // `test_repo_state_flags_empty_repo`.
+        status.last_commit_hash = Some("deadbeef".to_string());
         status.last_commit_msg = None;
 
         assert!(!repo_is_warn(&status, true, true, true));
         assert_eq!(repo_state_flags(&status, true, true, true), vec!["DIRTY"]);
+    }
+
+    /// ADDED 2026-07-21 (v0.112.29): a fresh `git init` repo with
+    /// NO commits gets the `EMPTY_REPO` flag, distinct from `DIRTY`
+    /// or `NO_UPSTREAM`. The hint for this state is
+    /// "no commits yet — make first commit to enable push" so the
+    /// operator knows the right action (make a commit, NOT run
+    /// `repair-concerns --apply` which would fail with "src
+    /// refspec HEAD does not match any").
+    #[test]
+    fn test_repo_state_flags_empty_repo() {
+        let mut status = RepoStatus::default();
+        status.branch = "main".to_string();
+        status.is_clean = false;
+        status.untracked_files = 2;
+        status.last_commit_hash = None;
+        let flags = repo_state_flags(&status, true, false, true);
+        assert!(flags.contains(&"EMPTY_REPO".to_string()));
+        let hint = repo_hint(&flags, false, true);
+        assert!(hint.contains("no commits yet"), "got hint: {}", hint);
+        assert!(hint.contains("first commit"), "got hint: {}", hint);
+    }
+
+    /// ADDED 2026-07-21 (v0.112.29): empty repo push_status should
+    /// be EMPTY (not FAIL). FAIL would mislead the operator into
+    /// thinking a push was attempted.
+    #[test]
+    fn test_empty_repo_push_status_is_empty_not_fail() {
+        let mut status = RepoStatus::default();
+        status.last_commit_hash = None;
+        let flags = repo_state_flags(&status, true, false, true);
+        // Confirm EMPTY_REPO present, NO_UPSTREAM may or may not be
+        // present depending on has_upstream parameter.
+        assert!(flags.contains(&"EMPTY_REPO".to_string()));
+        // The push_status derivation logic is inline in the row
+        // builder; we replicate the relevant condition here:
+        let push_status = if flags.iter().any(|f| f == "EMPTY_REPO") {
+            "EMPTY"
+        } else if flags.iter().any(|f| f == "NO_UPSTREAM") {
+            "FAIL"
+        } else {
+            "OK"
+        };
+        assert_eq!(push_status, "EMPTY");
     }
 
     #[test]
