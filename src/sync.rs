@@ -2984,12 +2984,26 @@ async fn stage_commit_and_push(
     let (gitlink_existing, gitlink_missing): (Vec<_>, Vec<_>) =
         gitlink_paths.into_iter().partition(|p| repo.join(p).exists());
 
-    stage_existing_files(
+    // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
+    // variant so files discovered by the directory-expansion
+    // recursion get the per-file staging policy re-applied (size
+    // limit + exclude patterns) — previously a 500 MiB file nested
+    // in a new untracked dir bypassed the 100 MiB hard exclusion.
+    // The `auto_commit_exclude_patterns` value uses the SAME
+    // effective (per-repo-override-aware) resolution as the
+    // partition in `sync_repo_with_ahead_since`.
+    let staging_repo_override = load_repo_override(repo);
+    let auto_commit_exclude_for_staging = staging_repo_override
+        .auto_commit_exclude_patterns
+        .as_deref()
+        .unwrap_or(&ctx.policy.auto_commit_exclude_patterns);
+    stage_existing_files_filtered(
         repo,
         &existing,
         dry_run,
         ctx.policy.stage_op_timeout_secs,
         ctx.excluded_dir_names,
+        Some((ctx.policy, auto_commit_exclude_for_staging)),
     )
     .await?;
 
@@ -3299,12 +3313,15 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     }
 
     // Stage explicit paths (never bare `git add .`).
-    stage_existing_files(
+    // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered variant
+    // so directory-expanded files get the per-file policy re-applied.
+    stage_existing_files_filtered(
         repo,
         &to_stage,
         dry_run,
         policy.stage_op_timeout_secs,
         excluded_dir_names,
+        Some((policy, auto_commit_exclude)),
     )
     .await?;
 
@@ -3539,12 +3556,20 @@ pub(crate) async fn sync_repo_with_ahead_since(
             .iter()
             .map(|p| p.to_string_lossy().to_string())
             .collect();
-        stage_existing_files(
+        // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
+        // variant for consistency with the main staging path.
+        let std_repo_override = load_repo_override(repo);
+        let std_auto_commit_exclude = std_repo_override
+            .auto_commit_exclude_patterns
+            .as_deref()
+            .unwrap_or(&ctx.policy.auto_commit_exclude_patterns);
+        stage_existing_files_filtered(
             repo,
             &paths,
             dry_run,
             ctx.policy.stage_op_timeout_secs,
             ctx.excluded_dir_names,
+            Some((ctx.policy, std_auto_commit_exclude)),
         )
         .await?;
     }
