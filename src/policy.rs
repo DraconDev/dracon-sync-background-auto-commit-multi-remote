@@ -1590,6 +1590,32 @@ fn check_toml_field_ordering(content: &str, result: &mut ValidateResult) {
     let bytes = content.as_bytes();
 
     let mut in_table = false; // inside a [[remotes]] or [[...]] table entry
+    // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): which [[table]]
+    // we're inside (for the absorbed-key check below).
+    let mut current_table: Option<String> = None;
+
+    // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): known field
+    // names per table. TOML absorbs trailing bare keys into the LAST
+    // [[table]] entry — a misplaced top-level field after any
+    // [[remotes]]/[[standard_files]] block is (a) silently ignored
+    // by serde (no deny_unknown_fields on the table structs) and (b)
+    // NOT warned about by the pre-fix checker (which skipped ALL
+    // keys inside [[tables]]). Verified live during the audit: the
+    // operator's own config has `standard_files_auto = true`
+    // absorbed into the last [[standard_files]] entry TODAY.
+    const REMOTE_KEYS: &[&str] = &[
+        "name",
+        "push_url",
+        "auto_create",
+        "auto_create_account",
+        "auth_type",
+        "priority",
+        "api_endpoint",
+        "auto_create_token_var",
+        "repo_name_map",
+        "force_push_when_behind",
+    ];
+    const STANDARD_FILE_KEYS: &[&str] = &["source", "target", "overwrite"];
 
     while pos < bytes.len() {
         let line_start = pos;
@@ -1602,22 +1628,55 @@ fn check_toml_field_ordering(content: &str, result: &mut ValidateResult) {
         if stripped.starts_with("[[") {
             // Enters a new table entry — fields inside are table-scoped, not top-level
             in_table = true;
+            current_table = stripped
+                .trim_start_matches('[')
+                .trim_end_matches(']')
+                .split('.')
+                .next()
+                .map(|s| s.trim().to_string());
             if first_section_pos.is_none() {
                 first_section_pos = Some(line_start);
             }
         } else if stripped.starts_with('[') && !stripped.starts_with("[[") {
             // Single-bracket section like [repo_name_map], [extra_remotes]
             in_table = false;
+            current_table = None;
             if first_section_pos.is_none() {
                 first_section_pos = Some(line_start);
             }
         } else if !stripped.is_empty() && !stripped.starts_with('#') && stripped.contains('=') {
+            let (key, _) = stripped.split_once('=').unwrap_or((stripped, ""));
+            let key = key.trim();
+
+            // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): inside a
+            // [[table]], warn when a bare key is NOT a known field of
+            // that table — the signature of a misplaced top-level
+            // field being silently absorbed (or a typo'd table key).
+            if in_table && !key.is_empty() && !key.starts_with('"') && !key.starts_with('\'') {
+                let known = match current_table.as_deref() {
+                    Some("remotes") => Some(REMOTE_KEYS),
+                    Some("standard_files") => Some(STANDARD_FILE_KEYS),
+                    _ => None,
+                };
+                if let Some(known_keys) = known {
+                    if !key.contains('.') && !known_keys.contains(&key) {
+                        result.warn(format!(
+                            "field '{}' inside [[{}]] is not a known {} field -- if you meant it \
+                             as a TOP-LEVEL field (e.g. standard_files_auto), it is being silently \
+                             absorbed into the last table entry by the TOML parser; move it above \
+                             the first [section] block",
+                            key,
+                            current_table.as_deref().unwrap_or("?"),
+                            current_table.as_deref().unwrap_or("?")
+                        ));
+                    }
+                }
+            }
+
             if let Some(first_sec) = first_section_pos {
                 // Only warn for top-level fields after a section header.
                 // Fields inside [[remotes]] table entries are correctly placed.
                 if line_start > first_sec && !in_table {
-                    let (key, _) = stripped.split_once('=').unwrap_or((stripped, ""));
-                    let key = key.trim();
                     if !key.starts_with('"')
                         && !key.starts_with('\'')
                         && !key.is_empty()
