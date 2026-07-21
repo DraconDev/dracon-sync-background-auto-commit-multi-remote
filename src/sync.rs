@@ -4997,9 +4997,15 @@ push_url = "git@nonexistent.example.com:repo.git"
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(result.is_ok(), "sync_repo should not error");
+        // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): push failure
+        // now surfaces as `SyncOutcome::PushFailed` (was
+        // `NothingToDo`, which the daemon's apply phase treated as
+        // success — logging `🔁 synced` and resetting `failure_count`
+        // on a failed push).
         assert!(
-            matches!(result, Ok(SyncOutcome::NothingToDo)),
-            "mirror push failure should return false (hard fail)"
+            matches!(result, Ok(SyncOutcome::PushFailed)),
+            "mirror push failure must return PushFailed, got {:?}",
+            result
         );
     }
 
@@ -5102,9 +5108,16 @@ push_url = "git@nonexistent.example.com:repo.git"
         )
         .await;
         assert!(result.is_ok());
+        // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): a mirror-leg
+        // failure (origin push succeeded) now returns `PushFailed`
+        // instead of `Synced` — the commit landed and origin is
+        // current, but the sync is not fully healthy and the daemon
+        // must count + retry the mirror leg. The apply-phase
+        // `PushFailed` arm increments `failure_count` and skips the
+        // `🔁 synced` log.
         assert!(
-            matches!(result.unwrap(), SyncOutcome::Synced),
-            "mirror push failure should still return Synced (origin push succeeded)"
+            matches!(result.unwrap(), SyncOutcome::PushFailed),
+            "mirror push failure must return PushFailed (origin succeeded but mirror failed)"
         );
         assert_eq!(
             remote_failures.get("bad-mirror"),
