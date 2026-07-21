@@ -221,15 +221,35 @@ pub(crate) fn rewrite_ahead_paths(
         .unwrap_or(false);
 
     if filter_branch_available {
-        let mut args: Vec<String> = vec![
+        // FIXED 2026-07-21 (v0.112.33, audit M12/F2.2): the previous
+        // argv appended `paths_to_remove` as bare positional entries
+        // AFTER the `--index-filter` string and before `--`. Two
+        // independent breakages: (1) the index-filter command
+        // (`git rm -r --cached --ignore-unmatch` with NO pathspec)
+        // dies with "fatal: No pathspec was given" on every commit;
+        // (2) filter-branch forwards trailing positionals to
+        // `git rev-list`, where `assets/big.mp4` is parsed as a
+        // REVISION and dies with "bad revision". The fallback could
+        // never succeed. The filter is now a single shell-quoted
+        // string (paths inside the command), followed by `--` and an
+        // explicit `--all` rev range (parity with the filter-repo
+        // arm, which also rewrites all refs).
+        let quoted: Vec<String> = paths_to_remove
+            .iter()
+            .map(|p| format!("'{}'", p.replace('\'', "'\\''")))
+            .collect();
+        let filter_expr = format!(
+            "git rm -r --cached --ignore-unmatch -- {}",
+            quoted.join(" ")
+        );
+        let args: Vec<String> = vec![
             "filter-branch".to_string(),
             "--force".to_string(),
             "--index-filter".to_string(),
+            filter_expr,
+            "--".to_string(),
+            "--all".to_string(),
         ];
-        let filter_expr = "git rm -r --cached --ignore-unmatch".to_string();
-        args.push(filter_expr);
-        args.extend(paths_to_remove.iter().cloned());
-        args.push("--".to_string());
         let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
         let rewrite = crate::policy::std_git_command()
             .args(&args_ref)
