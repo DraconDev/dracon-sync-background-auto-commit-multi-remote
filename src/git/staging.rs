@@ -221,35 +221,7 @@ pub(crate) fn rewrite_ahead_paths(
         .unwrap_or(false);
 
     if filter_branch_available {
-        // FIXED 2026-07-21 (v0.112.33, audit M12/F2.2): the previous
-        // argv appended `paths_to_remove` as bare positional entries
-        // AFTER the `--index-filter` string and before `--`. Two
-        // independent breakages: (1) the index-filter command
-        // (`git rm -r --cached --ignore-unmatch` with NO pathspec)
-        // dies with "fatal: No pathspec was given" on every commit;
-        // (2) filter-branch forwards trailing positionals to
-        // `git rev-list`, where `assets/big.mp4` is parsed as a
-        // REVISION and dies with "bad revision". The fallback could
-        // never succeed. The filter is now a single shell-quoted
-        // string (paths inside the command), followed by `--` and an
-        // explicit `--all` rev range (parity with the filter-repo
-        // arm, which also rewrites all refs).
-        let quoted: Vec<String> = paths_to_remove
-            .iter()
-            .map(|p| format!("'{}'", p.replace('\'', "'\\''")))
-            .collect();
-        let filter_expr = format!(
-            "git rm -r --cached --ignore-unmatch -- {}",
-            quoted.join(" ")
-        );
-        let args: Vec<String> = vec![
-            "filter-branch".to_string(),
-            "--force".to_string(),
-            "--index-filter".to_string(),
-            filter_expr,
-            "--".to_string(),
-            "--all".to_string(),
-        ];
+        let args = build_filter_branch_args(paths_to_remove);
         let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
         let rewrite = crate::policy::std_git_command()
             .args(&args_ref)
@@ -271,6 +243,40 @@ pub(crate) fn rewrite_ahead_paths(
         repo.display(),
         backup_branch
     ))
+}
+
+/// Build the `git filter-branch` argv for the fallback rewrite path.
+///
+/// FIXED 2026-07-21 (v0.112.33, audit M12/F2.2): the previous argv
+/// appended `paths_to_remove` as bare positional entries AFTER the
+/// `--index-filter` string and before `--`. Two independent
+/// breakages: (1) the index-filter command (`git rm -r --cached
+/// --ignore-unmatch` with NO pathspec) dies with "fatal: No pathspec
+/// was given" on every commit; (2) filter-branch forwards trailing
+/// positionals to `git rev-list`, where `assets/big.mp4` is parsed
+/// as a REVISION and dies with "bad revision". The fallback could
+/// never succeed. The filter is now a single shell-quoted string
+/// (paths inside the command), followed by `--` and an explicit
+/// `--all` rev range (parity with the filter-repo arm, which also
+/// rewrites all refs). Extracted as a pure function so the argv
+/// shape is unit-testable without env shims.
+fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
+    let quoted: Vec<String> = paths_to_remove
+        .iter()
+        .map(|p| format!("'{}'", p.replace('\'', "'\\''")))
+        .collect();
+    let filter_expr = format!(
+        "git rm -r --cached --ignore-unmatch -- {}",
+        quoted.join(" ")
+    );
+    vec![
+        "filter-branch".to_string(),
+        "--force".to_string(),
+        "--index-filter".to_string(),
+        filter_expr,
+        "--".to_string(),
+        "--all".to_string(),
+    ]
 }
 
 /// Compare backup_branch HEAD-tree to current HEAD. If equal, the
@@ -428,5 +434,45 @@ mod tests {
             .expect("rev-parse");
         let post_hash = String::from_utf8_lossy(&post.stdout).trim().to_string();
         assert_eq!(pre_hash, post_hash);
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M12/F2.2): pins the
+    /// filter-branch fallback argv shape — paths must be INSIDE the
+    /// single quoted `--index-filter` string (never bare positionals,
+    /// which filter-branch forwards to `git rev-list` where a path
+    /// like `assets/big.mp4` dies as a "bad revision"), followed by
+    /// `--` and an explicit `--all` rev range.
+    #[test]
+    fn test_build_filter_branch_args_shape() {
+        let args = build_filter_branch_args(&[
+            "assets/big.mp4".to_string(),
+            "docs/my file.pdf".to_string(),
+        ]);
+        assert_eq!(args[0], "filter-branch");
+        assert_eq!(args[1], "--force");
+        assert_eq!(args[2], "--index-filter");
+        let filter = &args[3];
+        assert!(
+            filter.starts_with("git rm -r --cached --ignore-unmatch -- "),
+            "index-filter must contain the pathspec inside the command: {}",
+            filter
+        );
+        assert!(filter.contains("'assets/big.mp4'"));
+        // Space-containing path is single-quoted so the shell keeps
+        // it as ONE argument.
+        assert!(filter.contains("'docs/my file.pdf'"));
+        // No bare positional paths between the filter string and `--`.
+        assert_eq!(args[4], "--");
+        assert_eq!(args[5], "--all");
+        assert_eq!(args.len(), 6);
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M12/F2.2): a path with an
+    /// embedded single quote is escaped (`'\''`) so the shell can't
+    /// break out of the quoted string.
+    #[test]
+    fn test_build_filter_branch_args_escapes_single_quotes() {
+        let args = build_filter_branch_args(&["we'ird.bin".to_string()]);
+        assert!(args[3].contains("'we'\\''ird.bin'"), "got: {}", args[3]);
     }
 }
