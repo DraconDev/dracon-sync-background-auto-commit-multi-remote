@@ -2449,6 +2449,16 @@ pub(crate) async fn run_daemon(
     // repo forever. Throttle to one attempt per 5 minutes per repo;
     // the first attempt is immediate (map starts empty).
     let mut auto_create_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-07-21 (v0.112.31, audit H7/F1.4): per-repo cooldown
+    // for the `count_unpushed_vs_configured_remotes` fallback, which
+    // issues one SSH `git ls-remote` per configured remote. The
+    // pre-fix ahead-override ran it EVERY 1s cycle for every repo
+    // with a missing upstream tracking ref (i.e. every repo whose
+    // push is broken) — 2-3 SSH connections/sec/repo forever. After
+    // the local-first reorder, the ls-remote path only remains for
+    // the "mirror ref exists, synced vs mirror, no upstream" edge;
+    // throttle it to one attempt per 5 minutes per repo.
+    let mut ls_remote_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): the loop
     // reloads the ledger from disk at the top of every cycle; the
     // startup load below is used for the operator-visible summary of
@@ -2598,6 +2608,7 @@ pub(crate) async fn run_daemon(
         filter_cooldowns.retain(|repo, _| repo_set.contains(repo));
         empty_bootstrap_cooldowns.retain(|repo, _| repo_set.contains(repo));
         auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        ls_remote_cooldowns.retain(|repo, _| repo_set.contains(repo));
         // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
         // stuck-push ledger from disk EVERY cycle instead of using
         // the map loaded once at startup. `record_push_failure` /
@@ -3095,16 +3106,49 @@ pub(crate) async fn run_daemon(
                 has_upstream && crate::git::upstream_tracking_ref_missing(&repo);
             if status.ahead == 0 && (!has_upstream || upstream_ref_missing) {
                 let unpushed = count_unpushed_vs_mirrors(&repo);
+                // CHANGED 2026-07-21 (v0.112.31, audit H7/F1.4):
+                // LOCAL-FIRST fallback chain. The pre-fix order ran
+                // `count_unpushed_vs_configured_remotes` (one SSH
+                // `git ls-remote` per remote) on every 1s cycle for
+                // every repo whose upstream tracking ref was missing
+                // — i.e. permanently, for every repo with a broken
+                // push. But a missing tracking ref ALREADY implies
+                // every HEAD commit is unpushed (nothing to compare
+                // against), so the purely-local
+                // `count_all_head_commits` answers the question with
+                // zero network. The ls-remote fallback now only runs
+                // for the residual edge (mirror tracking ref exists
+                // AND synced vs that mirror AND no upstream
+                // configured), behind a 300s per-repo cooldown.
                 let unpushed = if unpushed == 0 {
-                    count_unpushed_vs_configured_remotes(
-                        &repo,
-                        &policy.remotes.iter().map(|r| r.name.clone()).collect::<Vec<_>>(),
-                    )
-                } else {
-                    unpushed
-                };
-                let unpushed = if unpushed == 0 && upstream_ref_missing {
-                    crate::git::count_all_head_commits(&repo)
+                    if upstream_ref_missing {
+                        crate::git::count_all_head_commits(&repo)
+                    } else if !crate::git::any_mirror_tracking_ref_exists(&repo) {
+                        // No upstream configured AND no mirror
+                        // tracking refs — nothing was ever pushed
+                        // from this clone, so every commit is
+                        // unpushed.
+                        crate::git::count_all_head_commits(&repo)
+                    } else {
+                        // Mirror ref exists and count is 0 →
+                        // genuinely synced vs that mirror. The
+                        // ls-remote fallback (detects a forge-side
+                        // branch the clone never fetched) runs at
+                        // most once per 300s per repo.
+                        let ls_remote_cooled = ls_remote_cooldowns
+                            .get(&repo)
+                            .is_some_and(|until| now < *until);
+                        if ls_remote_cooled {
+                            0
+                        } else {
+                            ls_remote_cooldowns
+                                .insert(repo.clone(), now + Duration::from_secs(300));
+                            count_unpushed_vs_configured_remotes(
+                                &repo,
+                                &policy.remotes.iter().map(|r| r.name.clone()).collect::<Vec<_>>(),
+                            )
+                        }
+                    }
                 } else {
                     unpushed
                 };

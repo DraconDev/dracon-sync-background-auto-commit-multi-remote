@@ -265,9 +265,10 @@ pub(crate) fn upstream_tracking_ref_missing(repo: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// ADDED 2026-07-21 (v0.112.30): total commits reachable from HEAD.
-/// Used as the ahead-count fallback when no remote-tracking ref exists
-/// anywhere (never pushed): every commit is definitionally unpushed.
+/// ADDED 2026-07-21 (v0.112.31, audit H7/F1.4): total commits
+/// reachable from HEAD. Used as the ahead-count fallback when no
+/// remote-tracking ref exists anywhere (never pushed): every commit
+/// is definitionally unpushed.
 pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
     let output = crate::policy::std_git_command()
         .args(["rev-list", "--count", "HEAD"])
@@ -280,6 +281,30 @@ pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
             .unwrap_or(0),
         _ => 0,
     }
+}
+
+/// ADDED 2026-07-21 (v0.112.31, audit H7/F1.4): whether ANY known
+/// mirror remote-tracking ref exists locally
+/// (`refs/remotes/{github,gitlab,codeberg}/main`). Local-only check.
+/// Distinguishes "count is 0 because synced with a mirror" from
+/// "count is 0 because nothing was ever pushed from this clone" —
+/// `count_unpushed_vs_mirrors` returns 0 for both.
+pub(crate) fn any_mirror_tracking_ref_exists(repo: &Path) -> bool {
+    const KNOWN_MIRROR_REFS: [&str; 3] = [
+        "refs/remotes/github/main",
+        "refs/remotes/gitlab/main",
+        "refs/remotes/codeberg/main",
+    ];
+    KNOWN_MIRROR_REFS.iter().any(|r| {
+        crate::policy::std_git_command()
+            .args(["rev-parse", "--verify", "-q", r])
+            .current_dir(repo)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    })
 }
 
 /// Count unpushed commits against the first available mirror tracking ref.
@@ -498,5 +523,34 @@ mod tests {
         commit_file(&repo, "a.txt", "first");
         commit_file(&repo, "b.txt", "second");
         assert_eq!(count_all_head_commits(&repo), 2, "two commits → 2");
+    }
+
+    // ---- any_mirror_tracking_ref_exists (v0.112.31, audit H7/F1.4) ----
+
+    #[test]
+    fn test_any_mirror_tracking_ref_exists_false_for_fresh_clone() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        assert!(
+            !any_mirror_tracking_ref_exists(&repo),
+            "no mirror refs → nothing was ever pushed from this clone"
+        );
+    }
+
+    #[test]
+    fn test_any_mirror_tracking_ref_exists_true_with_mirror_ref() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        let status = crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/gitlab/main", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(any_mirror_tracking_ref_exists(&repo));
     }
 }
