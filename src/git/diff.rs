@@ -81,13 +81,69 @@ pub(crate) fn parse_name_status_line(line: &str) -> Option<(PathBuf, FileStatus)
     Some((PathBuf::from(path.trim()), status))
 }
 
+/// Parse NUL-delimited `--name-status -z` output.
+///
+/// ADDED 2026-07-21 (v0.112.33, audit M17/F2.8): the line-based
+/// parsers previously split `git diff --name-status` output on
+/// newlines with `path.trim()` — with default `core.quotePath=true`,
+/// a file `café.rs` arrived C-quoted (`"caf\303\251.rs"`, quotes
+/// included) and became a PathBuf matching nothing on disk, and
+/// newline-in-filename broke parsing outright. With `-z`, paths are
+/// raw bytes (no quoting, no trimming) and records are NUL-separated:
+/// `<status>\0<path>\0` for most statuses,
+/// `<status>\0<old>\0<new>\0` for renames.
+fn parse_name_status_z(stdout: &[u8]) -> Vec<(PathBuf, FileStatus)> {
+    let mut entries = Vec::new();
+    let mut iter = stdout.split(|b| *b == 0).filter(|s| !s.is_empty());
+    while let Some(status_raw) = iter.next() {
+        let status_str = String::from_utf8_lossy(status_raw);
+        let to_path = |p: &[u8]| PathBuf::from(String::from_utf8_lossy(p).into_owned());
+        match status_str.chars().next().unwrap_or(' ') {
+            'M' => {
+                if let Some(p) = iter.next() {
+                    entries.push((to_path(p), FileStatus::Modified));
+                }
+            }
+            'A' => {
+                if let Some(p) = iter.next() {
+                    entries.push((to_path(p), FileStatus::Added));
+                }
+            }
+            'D' => {
+                if let Some(p) = iter.next() {
+                    entries.push((to_path(p), FileStatus::Deleted));
+                }
+            }
+            'T' => {
+                if let Some(p) = iter.next() {
+                    entries.push((to_path(p), FileStatus::TypeChange));
+                }
+            }
+            'R' => {
+                let old = iter.next();
+                let new = iter.next();
+                if let (Some(_old), Some(new)) = (old, new) {
+                    entries.push((to_path(new), FileStatus::Renamed));
+                }
+            }
+            _ => {}
+        }
+    }
+    entries
+}
+
 /// Get name-status entries via `git diff --name-status` with custom args.
 pub(crate) async fn git_name_status_entries(
     repo: &Path,
     args: &[&str],
 ) -> Result<Vec<(PathBuf, FileStatus)>> {
+    // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): `-z` (raw,
+    // NUL-delimited paths — non-ASCII filenames no longer dropped)
+    // and non-zero exits now propagate as Err instead of reading as
+    // "zero changed files".
     let output = crate::git::tokio_git_cmd()
         .args(args)
+        .arg("-z")
         .current_dir(repo)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
@@ -95,13 +151,14 @@ pub(crate) async fn git_name_status_entries(
         .await
         .with_context(|| format!("failed to run git {:?} in {}", args, repo.display()))?;
     if !output.status.success() {
-        return Ok(Vec::new());
+        return Err(anyhow::anyhow!(
+            "git {:?} failed in {}: exit {}",
+            args,
+            repo.display(),
+            output.status
+        ));
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout
-        .lines()
-        .filter_map(parse_name_status_line)
-        .collect::<Vec<_>>())
+    Ok(parse_name_status_z(&output.stdout))
 }
 
 /// Git status rank for sorting: higher = more relevant to sync.
@@ -120,19 +177,26 @@ pub(crate) fn fallback_status_rank(status: &FileStatus) -> u8 {
 
 /// Get diff entries via `git diff` CLI (fallback when libgit2 fails).
 pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
+    // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): `-z` + exit
+    // status checked (was: status unchecked — a failed diff read as
+    // "no changes").
     let output = crate::git::tokio_git_cmd()
-        .args(["diff", "--name-status", "HEAD"])
+        .args(["diff", "--name-status", "-z", "HEAD"])
         .current_dir(repo)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
         .output()
         .await?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "git diff --name-status -z HEAD failed in {}: exit {}",
+            repo.display(),
+            output.status
+        ));
+    }
     let mut entries = Vec::new();
-    for line in stdout.lines() {
-        if let Some((path, status)) = parse_name_status_line(line) {
-            entries.push(DiffFile::new(path, status));
-        }
+    for (path, status) in parse_name_status_z(&output.stdout) {
+        entries.push(DiffFile::new(path, status));
     }
     Ok(entries)
 }
@@ -165,7 +229,28 @@ pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     }
     // Get diff entries between HEAD and working tree (includes both staged
     // and unstaged modifications, but NOT untracked files).
-    let diff = cli_diff_entries(repo).await?;
+    //
+    // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8):
+    // `cli_diff_entries` now propagates non-zero exits as Err —
+    // including `git diff HEAD` on an UNBORN repo (no HEAD yet),
+    // which is a legitimate state (the v0.112.30 empty-repo
+    // bootstrap depends on the untracked fallback below). Treat the
+    // failure as "diff unavailable" and fall through to the
+    // untracked-only path with a debug note, rather than aborting
+    // the whole dirty-detection pipeline.
+    let diff = match cli_diff_entries(repo).await {
+        Ok(d) => d,
+        Err(e) => {
+            if crate::policy::debug_enabled() {
+                eprintln!(
+                    "🐛 {} cli_diff_entries unavailable ({}); falling back to untracked-only",
+                    repo.display(),
+                    e
+                );
+            }
+            Vec::new()
+        }
+    };
     if !diff.is_empty() {
         // Only return diff entries if there are actual changes.
         // Also include any untracked files that may exist alongside mods.
