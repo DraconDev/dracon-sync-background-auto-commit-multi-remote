@@ -5029,6 +5029,107 @@ auto_bump_versions = false
         assert!(result.is_ok(), "sync_repo should succeed without upstream");
     }
 
+    /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): the ledger error
+    /// string must name the failing remotes (sorted, comma-joined)
+    /// so the repos HINT column says WHICH forge is failing.
+    #[test]
+    fn test_failing_remote_names_formats_sorted() {
+        let mut map: HashMap<String, usize> = HashMap::new();
+        assert_eq!(failing_remote_names(None), "unknown");
+        assert_eq!(failing_remote_names(Some(&map)), "unknown");
+        map.insert("gitlab".to_string(), 2);
+        map.insert("codeberg".to_string(), 1);
+        assert_eq!(failing_remote_names(Some(&map)), "codeberg, gitlab");
+    }
+
+    /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): after a mirror
+    /// push failure, the stuck-push ledger's `last_error` names the
+    /// failing remote — the pre-fix generic message ("git push
+    /// returned non-zero (see daemon log)") forced the operator to
+    /// grep the journal to learn WHICH forge was failing.
+    #[tokio::test]
+    async fn test_mirror_failure_ledger_names_remote() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "master"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "origin",
+                &origin_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+
+[[remotes]]
+name = "bad-mirror"
+push_url = "git@nonexistent.example.com:repo.git"
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let mut remote_failures = HashMap::new();
+        let result = sync_repo(
+            &repo,
+            &policy,
+            &BTreeSet::new(),
+            0,
+            Some(&mut remote_failures),
+            false,
+            None,
+        )
+        .await;
+        assert!(result.is_ok());
+        let stuck = crate::daemon::get_stuck_push_info(&repo)
+            .expect("push failure must record a stuck-ledger entry");
+        assert!(
+            stuck.last_error.contains("bad-mirror"),
+            "ledger last_error must name the failing remote, got: {:?}",
+            stuck.last_error
+        );
+    }
+
     #[tokio::test]
     async fn test_sync_repo_mirror_push_failure_returns_false() {
         // Use a temp state dir so this test does NOT pollute the
