@@ -3076,6 +3076,158 @@ async fn stage_commit_and_push(
     Ok(None)
 }
 
+/// ADDED 2026-07-21 (v0.112.30): policy-aware root-commit bootstrap for
+/// *stable empty* repos (operator ran `git init`, added files, no
+/// commits yet).
+///
+/// Replaces the previous bare `git add -A && git commit -m initial`
+/// bootstrap, which (a) ignored `max_stage_file_bytes`,
+/// `untracked_exclude_patterns`, `auto_commit_exclude_patterns`,
+/// `auto_stage_untracked`, and the ownership guard, and (b) discarded
+/// the commit result (printing "created initial commit" even when the
+/// commit failed, e.g. missing `user.email`).
+///
+/// Callers MUST gate on `crate::git::is_stable_empty_repo` first —
+/// this function does not re-check the mid-clone guards.
+///
+/// Flow:
+/// 1. Gate on `policy.auto_commit` (operator opted out of auto-commit).
+/// 2. Ownership gate identical to the daemon loop's: skip unowned
+///    repos when `auto_skip_unowned` is in effect. For an empty repo
+///    the ownership signals are `user.email` + origin URL (no HEAD
+///    author exists yet).
+/// 3. Enumerate untracked files via `untracked_entries`
+///    (`git ls-files --others --exclude-standard -z`), which respects
+///    `.gitignore` — including the warden-managed secrets block.
+/// 4. Apply the same per-entry policy filters the normal pipeline
+///    uses (`should_stage_entry` + `matches_untracked_exclude` +
+///    `auto_stage_untracked`).
+/// 5. `git add -A -- <explicit paths>` via `stage_existing_files`
+///    (never bare `git add .`).
+/// 6. `git commit --no-verify -m "auto: initial commit (N files)"`.
+///
+/// Returns Ok(true) when a root commit was created, Ok(false) when
+/// there was nothing policy-compliant to commit (caller should treat
+/// the repo as still-empty), Err on git failures.
+pub(crate) async fn bootstrap_empty_repo_commit(
+    repo: &Path,
+    policy: &SyncPolicy,
+    excluded_dir_names: &BTreeSet<String>,
+    dry_run: bool,
+) -> Result<bool> {
+    if !policy.auto_commit {
+        return Ok(false);
+    }
+
+    // Ownership gate — mirrors the daemon loop's guard so a bootstrap
+    // can never auto-commit into someone else's repo.
+    let repo_override = load_repo_override(repo);
+    let trusted = crate::ownership::TrustedSet {
+        emails: policy.trusted_emails.clone(),
+        authors: policy.trusted_authors.clone(),
+        remote_hosts: policy.trusted_remote_hosts.clone(),
+    };
+    let ownership = crate::ownership::detect_ownership(repo, &trusted, repo_override.owned);
+    let auto_skip_unowned = repo_override
+        .auto_skip_unowned
+        .unwrap_or(policy.auto_skip_unowned);
+    if auto_skip_unowned
+        && !matches!(ownership, crate::ownership::OwnershipReport::Owned { .. })
+    {
+        if debug_enabled() {
+            eprintln!(
+                "🚫 {} empty repo not owned, skipping root-commit bootstrap",
+                repo.display()
+            );
+        }
+        return Ok(false);
+    }
+
+    // Untracked enumeration respects .gitignore (including the
+    // warden-managed secrets block) via --exclude-standard.
+    let untracked = untracked_entries(repo).await.unwrap_or_default();
+    let auto_commit_exclude = repo_override
+        .auto_commit_exclude_patterns
+        .as_deref()
+        .unwrap_or(&policy.auto_commit_exclude_patterns);
+    let mut to_stage: Vec<String> = Vec::new();
+    for entry in &untracked {
+        // `auto_stage_untracked = false` skips newly-added files,
+        // exactly like the normal pipeline's partition.
+        if !policy.auto_stage_untracked {
+            continue;
+        }
+        if crate::exclude::matches_untracked_exclude(
+            repo,
+            &entry.path,
+            &policy.untracked_exclude_patterns,
+        ) {
+            continue;
+        }
+        if !should_stage_entry(
+            repo,
+            entry,
+            excluded_dir_names,
+            &policy.exclude_file_patterns,
+            policy.max_stage_file_bytes,
+            auto_commit_exclude,
+        ) {
+            continue;
+        }
+        to_stage.push(entry.path.to_string_lossy().to_string());
+    }
+    if to_stage.is_empty() {
+        return Ok(false);
+    }
+
+    if dry_run {
+        println!(
+            "🌱 Would create root commit in {} with {} file(s):",
+            repo.display(),
+            to_stage.len()
+        );
+        for p in to_stage.iter().take(10) {
+            println!("  {}", p);
+        }
+        if to_stage.len() > 10 {
+            println!("  ... and {} more", to_stage.len() - 10);
+        }
+        return Ok(false);
+    }
+
+    // Stage explicit paths (never bare `git add .`).
+    stage_existing_files(
+        repo,
+        &to_stage,
+        dry_run,
+        policy.stage_op_timeout_secs,
+        excluded_dir_names,
+    )
+    .await?;
+
+    // Verify something actually landed in the index (files may have
+    // been deleted between ls-files and add).
+    let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
+    if staged.is_empty() {
+        return Ok(false);
+    }
+
+    let msg = format!("auto: initial commit ({} files)", staged.len());
+    run_git_with_timeout(
+        repo,
+        &["commit", "--no-verify", "-m", &msg],
+        policy.stage_op_timeout_secs,
+        "bootstrap-root-commit",
+    )
+    .await?;
+    eprintln!(
+        "🌱 {} created root commit ({} files, empty repo bootstrap)",
+        repo.display(),
+        staged.len()
+    );
+    Ok(true)
+}
+
 pub(crate) async fn sync_repo(
     repo: &Path,
     policy: &SyncPolicy,

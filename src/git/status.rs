@@ -161,6 +161,127 @@ pub(crate) fn is_repo_ready(repo: &Path) -> bool {
     }
 }
 
+/// ADDED 2026-07-21 (v0.112.30): whether the repo is a *stable* empty
+/// repository — `git init` completed (HEAD is a symbolic ref to an
+/// unborn branch, `.git` is a real directory) and no git operation is
+/// in flight. This is the discriminator between "operator just ran
+/// `git init` and hasn't committed yet" (safe to auto-commit a root
+/// commit) and "mid-clone" (MUST NOT touch — the daemon would
+/// otherwise `git add` a half-checked-out working tree).
+///
+/// Signals checked:
+/// 1. `.git` is a real directory (skip worktree-file pointers — a
+///    worktree of an unborn branch is an edge case we leave to the
+///    operator).
+/// 2. `.git/HEAD` contains `ref: refs/...` (symbolic ref — the state
+///    `git init` leaves behind). A detached HEAD with no commits is
+///    not a normal init state; skip.
+/// 3. No `*.lock` files directly in `.git/` — catches `index.lock`
+///    (checkout in progress), `HEAD.lock`, `packed-refs.lock`,
+///    `shallow.lock`, `FETCH_HEAD.lock` (fetch writing refs).
+/// 4. No `objects/pack/tmp_pack_*` — catches an in-progress clone/fetch
+///    download (the pack is written to a tmp file, then renamed).
+///
+/// The window this does NOT cover (between fetch completing and
+/// `refs/heads/<branch>` being written during clone) is closed by the
+/// fact that git writes the branch ref atomically with the other refs
+/// BEFORE checkout begins — so `git rev-parse HEAD` (checked by the
+/// caller via `is_repo_ready`) already succeeds in that window, and
+/// the `index.lock` check covers the checkout phase.
+pub(crate) fn is_stable_empty_repo(repo: &Path) -> bool {
+    let dot_git = repo.join(".git");
+    if !dot_git.is_dir() {
+        return false;
+    }
+    let head = match std::fs::read_to_string(dot_git.join("HEAD")) {
+        Ok(h) => h,
+        Err(_) => return false,
+    };
+    if !head.trim_start().starts_with("ref: refs/") {
+        return false;
+    }
+    if let Ok(entries) = std::fs::read_dir(&dot_git) {
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().ends_with(".lock") {
+                return false;
+            }
+        }
+    }
+    let pack_dir = dot_git.join("objects").join("pack");
+    if let Ok(entries) = std::fs::read_dir(&pack_dir) {
+        for entry in entries.flatten() {
+            if entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with("tmp_pack_")
+            {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// ADDED 2026-07-21 (v0.112.30): whether the current branch has an
+/// upstream configured (`branch.<name>.remote` + `branch.<name>.merge`)
+/// but the corresponding remote-tracking ref
+/// (`refs/remotes/<remote>/<branch>`) does NOT exist. This is the
+/// "never pushed" (or "remote branch deleted") state: libgit2's
+/// ahead/behind computation returns 0 because there is nothing to
+/// compare against, which previously hid the fact that EVERY commit on
+/// HEAD was unpushed — the daemon's `has_local_or_pending_work` check
+/// then treated the repo as fully synced and skipped it forever.
+pub(crate) fn upstream_tracking_ref_missing(repo: &Path) -> bool {
+    let Some(branch) = current_branch(repo) else {
+        return false;
+    };
+    let output = crate::policy::std_git_command()
+        .args(["config", "--get", &format!("branch.{}.remote", branch)])
+        .current_dir(repo)
+        .output();
+    let remote = match output {
+        Ok(o) if o.status.success() => {
+            let r = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if r.is_empty() {
+                return false;
+            }
+            r
+        }
+        _ => return false,
+    };
+    // Sanitize: remote names come from git config; refuse anything that
+    // could escape the refs/remotes/ namespace.
+    if remote.contains("..") || remote.contains('/') || remote.starts_with('.') {
+        return false;
+    }
+    let tracking_ref = format!("refs/remotes/{}/{}", remote, branch);
+    crate::policy::std_git_command()
+        .args(["rev-parse", "--verify", "-q", &tracking_ref])
+        .current_dir(repo)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| !s.success())
+        .unwrap_or(false)
+}
+
+/// ADDED 2026-07-21 (v0.112.30): total commits reachable from HEAD.
+/// Used as the ahead-count fallback when no remote-tracking ref exists
+/// anywhere (never pushed): every commit is definitionally unpushed.
+pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
+    let output = crate::policy::std_git_command()
+        .args(["rev-list", "--count", "HEAD"])
+        .current_dir(repo)
+        .output();
+    match output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .trim()
+            .parse()
+            .unwrap_or(0),
+        _ => 0,
+    }
+}
+
 /// Count unpushed commits against the first available mirror tracking ref.
 /// For repos without an upstream tracking branch (mirror-only repos like
 /// `.dracon`), `git status` reports `ahead = 0` even when there ARE local
