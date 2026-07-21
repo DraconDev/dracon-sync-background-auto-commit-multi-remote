@@ -2575,6 +2575,12 @@ pub(crate) async fn run_daemon(
     // re-verifies, which is the desired remediation path if a forge
     // repo is deleted out-of-band.
     let mut forge_confirmed: HashSet<PathBuf> = HashSet::new();
+    // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6): per-repo backoff
+    // for the MAX_FAILURES gate. The pre-fix gate abandoned repos
+    // FOREVER after 5 failures (no re-probe, no notification). Now
+    // the gate re-probes every 15 minutes; an entry here means
+    // "backed off until this Instant".
+    let mut max_fail_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): the loop
     // reloads the ledger from disk at the top of every cycle; the
     // startup load below is used for the operator-visible summary of
@@ -2686,6 +2692,7 @@ pub(crate) async fn run_daemon(
                     ls_remote_cooldowns.clear();
                     pending_repos.clear();
                     forge_confirmed.clear();
+                    max_fail_cooldowns.clear();
                     stuck_push_repos = load_stuck_push_repos();
                 }
                 Err(e) => eprintln!("sync: SIGHUP policy reload failed: {}", e),
@@ -2742,6 +2749,7 @@ pub(crate) async fn run_daemon(
         auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
         ls_remote_cooldowns.retain(|repo, _| repo_set.contains(repo));
         forge_confirmed.retain(|repo| repo_set.contains(repo));
+        max_fail_cooldowns.retain(|repo, _| repo_set.contains(repo));
         // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
         // stuck-push ledger from disk EVERY cycle instead of using
         // the map loaded once at startup. `record_push_failure` /
@@ -3533,17 +3541,55 @@ pub(crate) async fn run_daemon(
             // clean + ahead > 0 — that's a permanent condition. MAX_FAILURES is
             // a higher bar for repos that might still be recoverable (dirty,
             // network issues, etc.).
+            //
+            // CHANGED 2026-07-21 (v0.112.33, audit M4/F1.6): the
+            // pre-fix gate abandoned the repo FOREVER (logged
+            // "skipping until resolved" exactly once, then `continue`
+            // every cycle with no re-probe, no cooldown expiry, no
+            // notification). A repo left mid-merge overnight fell off
+            // the sync radar precisely when the operator needed it
+            // watched. Now the gate is a 15-minute backoff: after the
+            // window, the repo gets ONE probe (a failure re-arms the
+            // backoff). `Blocked` outcomes (merge/rebase/cherry-pick
+            // in progress — needs-human by definition) no longer
+            // count toward the budget (see the apply phase).
             const MAX_FAILURES: usize = 5;
             if entry.failure_count >= MAX_FAILURES {
-                if entry.failure_count == MAX_FAILURES {
+                let cooled = max_fail_cooldowns
+                    .get(&repo)
+                    .is_some_and(|until| now < *until);
+                if cooled {
+                    continue;
+                }
+                let first_abandon = max_fail_cooldowns
+                    .insert(repo.clone(), now + Duration::from_secs(900))
+                    .is_none();
+                if first_abandon {
                     eprintln!(
-                        "⚠️ {} exceeded max failures ({}), skipping until resolved",
+                        "⚠️ {} exceeded max failures ({}), backing off 15 min (will re-probe)",
                         repo.display(),
                         MAX_FAILURES
                     );
-                    entry.failure_count += 1;
+                    let notify_key = format!("maxfail-{}", repo.display());
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
+                        crate::report::send_sync_conflict_notification(
+                            &repo,
+                            "Sync Failures (backing off)",
+                            "5 consecutive sync failures; probing every 15 min",
+                        );
+                    }
+                } else if debug_enabled() {
+                    eprintln!("🔄 {} re-probing after max-failures backoff", repo.display());
                 }
-                continue;
+                // One probe: drop the count just below the gate. A
+                // failure in the apply phase bumps it back to
+                // MAX_FAILURES and re-arms the 15-min backoff; a
+                // success resets it to 0 and clears the cooldown.
+                entry.failure_count = MAX_FAILURES - 1;
             }
 
             // === BOUNDED PARALLEL SYNC: COLLECT JOB ===
@@ -3670,6 +3716,10 @@ pub(crate) async fn run_daemon(
                 // and removes on success).
                 entry.mirror_consecutive_fails = entry.remote_failures.clone();
 
+                // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
+                // `Blocked` is tracked separately so it does NOT
+                // count toward the MAX_FAILURES budget below.
+                let mut blocked = false;
                 let sync_success = match sync_res {
                     Ok(SyncOutcome::Synced) => {
                         eprintln!("🔁 synced {}", repo.display());
@@ -3706,6 +3756,11 @@ pub(crate) async fn run_daemon(
                                 repo.display()
                             );
                         }
+                        // CHANGED 2026-07-21 (v0.112.33, audit
+                        // M4/F1.6): needs-human state — not a
+                        // transient failure; excluded from the
+                        // failure_count increment below.
+                        blocked = true;
                         false
                     }
                     // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
@@ -3758,9 +3813,19 @@ pub(crate) async fn run_daemon(
                         save_stuck_push_repos(&stuck_push_repos);
                     }
                     entry.failure_count = 0;
+                    // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
+                    // a success clears the max-failures backoff too.
+                    max_fail_cooldowns.remove(&repo);
                     activity.remove(&repo);
                     initial_repos.remove(&repo);
-                } else {
+                } else if !blocked {
+                    // CHANGED 2026-07-21 (v0.112.33, audit M4/F1.6):
+                    // `Blocked` (merge/rebase/cherry-pick in progress
+                    // — needs-human by definition) does NOT count
+                    // toward the MAX_FAILURES budget; the daemon must
+                    // keep watching so it can resume when the
+                    // operator finishes. Transient failures still
+                    // count.
                     entry.failure_count += 1;
                 }
             }
@@ -3870,7 +3935,10 @@ pub(crate) async fn run_daemon(
                                         repo.display()
                                     );
                                 }
-                                entry.failure_count += 1;
+                                // CHANGED 2026-07-21 (v0.112.33,
+                                // audit M4/F1.6): needs-human state —
+                                // no failure_count increment (matches
+                                // the main apply phase).
                             }
                             // ADDED 2026-07-21 (v0.112.31, audit
                             // H3/F1.3): commit succeeded but the push
