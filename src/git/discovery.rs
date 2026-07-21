@@ -650,16 +650,18 @@ pub(crate) fn is_safe_git_path(path: &Path) -> bool {
     if path.is_absolute() {
         return false;
     }
-    let mut components = path.components();
-    if let Some(first) = components.next() {
-        if first.as_os_str() == ".." {
-            return false;
-        }
-    }
-    if let Some(first) = components.next() {
-        if first.as_os_str() == ".." {
-            return false;
-        }
+    // CHANGED 2026-07-21 (v0.112.33, audit M19/F2.3): the previous
+    // check inspected only the FIRST TWO components for `..`, so
+    // `a/b/../../etc` (ParentDir at depth 3) passed — the guard did
+    // not deliver what its name and the F32 comment promise. Now
+    // rejects a `..` at ANY depth. Inputs today come from `git`
+    // itself (which never emits `..`), so this remains
+    // defense-in-depth, but the guard now actually guards.
+    if path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return false;
     }
     if path.to_string_lossy().starts_with('-') {
         return false;
@@ -1176,5 +1178,26 @@ mod submodule_tests {
                 fs::copy(&from, &to).unwrap();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod safe_path_tests {
+    /// ADDED 2026-07-21 (v0.112.33, audit M19/F2.3): the `..` check
+    /// must reject ParentDir at ANY depth (the pre-fix check only
+    /// inspected the first two components, so `a/b/../../etc`
+    /// passed).
+    #[test]
+    fn test_is_safe_git_path_rejects_parent_dir_at_any_depth() {
+        use super::is_safe_git_path;
+        use std::path::Path;
+        assert!(!is_safe_git_path(Path::new("../etc")));
+        assert!(!is_safe_git_path(Path::new("a/../etc")));
+        assert!(!is_safe_git_path(Path::new("a/b/../../etc")));
+        assert!(!is_safe_git_path(Path::new("a/b/c/../../../d")));
+        assert!(!is_safe_git_path(Path::new("/abs/path")));
+        assert!(!is_safe_git_path(Path::new("-rf")));
+        assert!(is_safe_git_path(Path::new("src/main.rs")));
+        assert!(is_safe_git_path(Path::new("a/b/c/file.txt")));
     }
 }

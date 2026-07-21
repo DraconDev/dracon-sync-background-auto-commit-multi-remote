@@ -812,7 +812,7 @@ exit 0
             .current_dir(&repo)
             .status()
             .expect("git remote add stale");
-        crate::git::multi_remote::remove_stale_remotes(&repo, &["github"])
+        crate::git::multi_remote::remove_stale_remotes(&repo, &["github"], &["stale"])
             .expect("remove_stale_remotes");
         let remotes = multi_remote::list_remotes(&repo);
         assert!(
@@ -858,7 +858,7 @@ exit 0
             .current_dir(&repo)
             .status()
             .expect("git remote add mirror2");
-        crate::git::multi_remote::remove_stale_remotes(&repo, &["mirror1"])
+        crate::git::multi_remote::remove_stale_remotes(&repo, &["mirror1"], &["mirror1", "mirror2"])
             .expect("remove_stale_remotes");
         let remotes = multi_remote::list_remotes(&repo);
         assert!(
@@ -874,6 +874,95 @@ exit 0
             "non-kept remote mirror2 removed"
         );
     }
+    /// ADDED 2026-07-21 (v0.112.33, audit M18/F2.9): operator-added
+    /// remotes (no `dracon.managed-*` marker, not in the policy
+    /// managed-names list) must SURVIVE — the pre-fix implementation
+    /// deleted ANY non-origin remote not in the keep list, silently
+    /// destroying operator remotes like `backup` / forks.
+    #[test]
+    fn test_remove_stale_remotes_preserves_operator_remotes() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        test_git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .expect("git init");
+        test_git_cmd()
+            .args(["remote", "add", "origin", "git@github.com:Test/repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add origin");
+        // Operator-added remote: no marker, not in managed_names.
+        test_git_cmd()
+            .args(["remote", "add", "backup", "git@nas.example.com:repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add backup");
+        // Daemon-managed remote (policy name in managed_names).
+        test_git_cmd()
+            .args(["remote", "add", "codeberg", "git@codeberg.org:test/repo.git"])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add codeberg");
+
+        crate::git::multi_remote::remove_stale_remotes(
+            &repo,
+            &["github"],              // keep
+            &["github", "codeberg"], // daemon-managed names (policy)
+        )
+        .expect("remove_stale_remotes");
+        let remotes = multi_remote::list_remotes(&repo);
+        assert!(
+            remotes.contains(&"backup".to_string()),
+            "operator-added remote must be PRESERVED (regression M18/F2.9)"
+        );
+        assert!(
+            !remotes.contains(&"codeberg".to_string()),
+            "daemon-managed remote not in keep must be removed"
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M18/F2.9): the
+    /// `dracon.managed-<name>` config marker also qualifies a remote
+    /// for removal (covers remotes configured by the daemon outside
+    /// the current policy list).
+    #[test]
+    fn test_remove_stale_remotes_removes_marker_stamped_remote() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        test_git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .expect("git init");
+        // ensure_remote stamps the marker.
+        crate::git::multi_remote::ensure_remote(
+            &repo,
+            "oldmirror",
+            "git@old.example.com:repo.git",
+        )
+        .expect("ensure_remote");
+        let marker = test_git_cmd()
+            .args(["config", "--get", "dracon.managed-oldmirror"])
+            .current_dir(&repo)
+            .output()
+            .expect("git config --get");
+        assert_eq!(
+            String::from_utf8_lossy(&marker.stdout).trim(),
+            "true",
+            "ensure_remote must stamp dracon.managed-<name>"
+        );
+
+        crate::git::multi_remote::remove_stale_remotes(&repo, &[], &[])
+            .expect("remove_stale_remotes");
+        let remotes = multi_remote::list_remotes(&repo);
+        assert!(
+            !remotes.contains(&"oldmirror".to_string()),
+            "marker-stamped remote not in keep must be removed"
+        );
+    }
+
     #[test]
     fn test_remove_stale_remotes_idempotent_when_empty() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
@@ -888,7 +977,7 @@ exit 0
             .current_dir(&repo)
             .status()
             .expect("git remote add origin");
-        crate::git::multi_remote::remove_stale_remotes(&repo, &[])
+        crate::git::multi_remote::remove_stale_remotes(&repo, &[], &[])
             .expect("remove_stale_remotes with empty keep list");
         let remotes = multi_remote::list_remotes(&repo);
         assert_eq!(remotes, vec!["origin"]);
