@@ -5274,6 +5274,8 @@ auto_commit = false
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 
 [[remotes]]
 name = "bad-mirror"
@@ -5490,6 +5492,8 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 
 [[remotes]]
 name = "bad-mirror"
@@ -5621,6 +5625,8 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 
 [[remotes]]
 name = "mirror"
