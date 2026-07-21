@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.29 — 2026-07-21 — empty-repo auto-create + gitlab URL bug fix
+
+**Operator-visible changes:**
+
+1. **Empty local repos are now auto-created on github + gitlab as soon as the daemon discovers them.** Previously, a fresh `git init` repo with no commits would silently skip auto-create forever, leaving the operator staring at "❌ CONCERN · run repair-concerns --apply (set upstream)" until they made their first commit — at which point the daemon would finally try to push and fail because the forge-side repo didn't exist. Now `push_mirror_remotes_create_only` runs BEFORE the readiness check. Idempotent via `git ls-remote` pre-check.
+2. **Empty repos show an accurate hint** ("no commits yet — make first commit to enable push") instead of the misleading "push: fail" label. New `EMPTY_REPO` flag drives the new `repo_hint` branch; `push_status` is now `EMPTY` not `FAIL`.
+3. **`make-public` / `make-private` for GitLab is fixed.** Pre-existing URL bug in `set_gitlab_visibility`: the `GITLAB_API_PROJECTS` template had two `{}` placeholders, but `str::replace` replaced both, producing `projects/owner%2Frepo%2Fowner%2Frepo`. GitLab returned 404 for every visibility flip. Fixed to single-placeholder template.
+
+**Internal:**
+
+- `daemon.rs`: pre-`is_repo_ready` `push_mirror_remotes_create_only` call.
+- `multi_remote.rs`: new `push_mirror_remotes_create_only` helper.
+- `report.rs`: new `EMPTY_REPO` flag, updated `repo_hint`, updated `push_status` derivation.
+- `visibility.rs`: fixed `GITLAB_API_PROJECTS` template (one `{}` placeholder).
+
+**Tests:** 758 daemon tests pass (+3 new). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.28 — 2026-07-20 — visibility-flip CLI + codeberg quota opt-in
 
 **Operator-visible changes:**

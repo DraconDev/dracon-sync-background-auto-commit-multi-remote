@@ -245,7 +245,18 @@ pub(crate) fn get_github_visibility(owner: &str, repo: &str) -> bool {
     stdout == "true"
 }
 
-const GITLAB_API_PROJECTS: &str = "https://gitlab.com/api/v4/projects/{}%2F{}";
+// FIXED 2026-07-21 (v0.112.29): the previous template
+// `projects/{}%2F{}` (TWO `{}` placeholders) was being passed to
+// `str::replace("{}", &encoded)` where `encoded = "{owner}%2F{repo}"`.
+// `str::replace` replaces ALL occurrences — both `{}` slots got the
+// encoded string substituted in, producing
+// `projects/DraconDev%2Fconvos%2FDraconDev%2Fconvos` (URL-encoded path
+// duplicated). GitLab returned 404 for every visibility flip with
+// `GitLab visibility update failed: repo not found` even though the
+// repo existed and the token was valid. The fix is a single
+// placeholder + `{owner}%2F{repo}` in the substituted string. Same
+// pattern as the codeberg template below.
+const GITLAB_API_PROJECTS: &str = "https://gitlab.com/api/v4/projects/{}";
 const CODEBERG_API_REPOS: &str = "https://codeberg.org/api/v1/repos/{}/{}";
 
 /// Set GitLab repo visibility using `curl` with PRIVATE-TOKEN.
@@ -1150,6 +1161,34 @@ mod tests {
         let result = set_gitlab_visibility("testowner", "testrepo", "faketoken", true);
         // curl may or may not be available, but it should not panic
         let _ = result;
+    }
+
+    /// ADDED 2026-07-21 (v0.112.29): guards the URL construction in
+    /// `set_gitlab_visibility` against the
+    /// `str::replace("{}", &encoded)` regression where two `{}`
+    /// placeholders were both replaced with the same `owner%2Frepo`
+    /// string, producing a 404-causing `projects/foo%2Fbar%2Ffoo%2Fbar`
+    /// URL. The fix is `const GITLAB_API_PROJECTS = ".../projects/{}"`
+    /// (single placeholder) + encoded `owner%2Frepo` substituted in.
+    /// This test pins the URL format so future edits don't reintroduce
+    /// the bug.
+    #[test]
+    fn test_gitlab_api_url_construction() {
+        // Replicate the exact construction logic from
+        // `set_gitlab_visibility` and `set_gitlab_metadata`.
+        let owner = "DraconDev";
+        let repo = "dracon-sync";
+        let encoded = format!("{}%2F{}", owner, repo);
+        let url = GITLAB_API_PROJECTS.replace("{}", &encoded);
+        assert_eq!(
+            url,
+            "https://gitlab.com/api/v4/projects/DraconDev%2Fdracon-sync",
+            "GitLab API URL must be exactly `.../projects/{{owner}}%2F{{repo}}`, no duplication"
+        );
+        assert!(
+            !url.contains("%2FDraconDev%2Fdracon-sync%2F"),
+            "URL must not duplicate the encoded path (regression: bug inserted twice)"
+        );
     }
 
     #[test]
