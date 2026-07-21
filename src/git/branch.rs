@@ -318,13 +318,23 @@ pub(crate) fn repair_broken_tracking(repos: &[PathBuf]) -> usize {
             if !trimmed.contains(": gone]") {
                 continue;
             }
-            // Extract branch name (first field after * or space)
-            let branch = trimmed
-                .split_whitespace()
-                .next()
-                .map(|s| s.trim_start_matches('*'))
-                .unwrap_or("")
-                .to_string();
+            // Extract branch name. For the CHECKED-OUT branch the
+            // `git branch -vv` line starts with `*` (`* main abc1234
+            // [origin/main: gone]`), so the first whitespace token is
+            // `*`, not the branch name — take the SECOND token in
+            // that case. FIXED 2026-07-21 (v0.112.33, audit
+            // M11/F2.1): the previous code took the first token and
+            // `trim_start_matches('*')`, yielding `""` for the
+            // current branch, which the `is_empty()` guard then
+            // skipped — the one branch that matters (the one the
+            // daemon pushes) was NEVER repaired.
+            let mut tokens = trimmed.split_whitespace();
+            let first = tokens.next().unwrap_or("");
+            let branch = if first == "*" {
+                tokens.next().unwrap_or("").to_string()
+            } else {
+                first.to_string()
+            };
             if branch.is_empty() || !is_safe_branch_name(&branch) {
                 continue;
             }
@@ -373,6 +383,83 @@ mod tests {
         assert_eq!(
             old_tracking_from_status_line("* main abc123 [: gone] behind 1"),
             None
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.33, audit M11/F2.1): the checked-out
+    /// branch must be repaired too — the pre-fix parser took the
+    //  first whitespace token of the `git branch -vv` line, which is
+    //  `*` for the current branch, so `trim_start_matches('*')`
+    //  yielded "" and the is_empty guard skipped it. Only
+    //  non-checked-out branches were ever repaired.
+    #[test]
+    fn test_repair_broken_tracking_repairs_checked_out_branch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "t@t"), ("user.name", "t")] {
+            crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+        }
+        std::fs::write(repo.join("a.txt"), "x\n").unwrap();
+        crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        // Break the upstream: point branch.main.merge at a ref that
+        // doesn't exist (origin/master) → `git branch -vv` reports
+        // `[origin/master: gone]`.
+        for (k, v) in [
+            ("branch.main.remote", "origin"),
+            ("branch.main.merge", "refs/heads/master"),
+        ] {
+            crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+        }
+        // Sanity: the repo really is in the `: gone` state.
+        let vv = crate::git::git_cmd()
+            .args(["branch", "-vv"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let vv_text = String::from_utf8_lossy(&vv.stdout);
+        assert!(
+            vv_text.contains(": gone]"),
+            "test setup must produce a gone upstream, got: {}",
+            vv_text
+        );
+
+        let repaired = repair_broken_tracking(&[repo.clone()]);
+        assert_eq!(
+            repaired, 1,
+            "the checked-out branch must be repaired (regression M11/F2.1)"
+        );
+        // After repair, the upstream points at origin/main.
+        let merge = crate::git::git_cmd()
+            .args(["config", "--get", "branch.main.merge"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&merge.stdout).trim(),
+            "refs/heads/main"
         );
     }
 
