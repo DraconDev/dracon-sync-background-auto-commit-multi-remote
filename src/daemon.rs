@@ -1685,6 +1685,39 @@ pub(crate) fn get_stuck_push_info(repo: &Path) -> Option<StuckRepoEntry> {
     load_stuck_push_repos().get(repo).cloned()
 }
 
+/// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): notification throttle
+/// that ACTUALLY expires. The previous pattern at every call site was:
+///
+/// ```rust,ignore
+/// if let Entry::Vacant(e) = map.entry(key) {
+///     notify();
+///     e.insert(Instant::now() + Duration::from_secs(1800));
+/// }
+/// ```
+///
+/// The stored deadline was NEVER read — once inserted, the key was
+/// `Occupied` forever, so every throttled notification (ownership-skip
+/// reminder, stuck-retry alert, push-failure, Stuck-Ahead/Behind,
+/// Mirror-Degraded) fired exactly ONCE per daemon lifetime.
+///
+/// This helper returns `true` (and re-arms the cooldown) when a
+/// notification with `key` should be sent: either it was never sent,
+/// or the stored deadline has passed.
+pub(crate) fn notify_throttled(
+    map: &mut HashMap<String, Instant>,
+    key: &str,
+    cooldown: Duration,
+) -> bool {
+    let now = Instant::now();
+    let expired = map.get(key).map_or(true, |until| now >= *until);
+    if expired {
+        map.insert(key.to_string(), now + cooldown);
+        true
+    } else {
+        false
+    }
+}
+
 /// Path to the in-flight state file. The daemon writes the current
 /// `in_flight: HashSet<PathBuf>` to this file on every cycle, atomically
 /// (write-temp + rename). The `repos` command reads this file to
@@ -2614,12 +2647,22 @@ pub(crate) async fn run_daemon(
                 // Log once per cycle per repo (guard with a
                 // cycle-relative counter to avoid spamming every
                 // cycle).
+                // CHANGED 2026-07-21 (v0.112.31, audit H4/F1.1):
+                // use the expiring throttle — the previous
+                // `Entry::Vacant` pattern fired exactly once per
+                // daemon lifetime (the stored deadline was never
+                // read). Also extend the message with the recovery
+                // hint (audit H1/F0.2): the ownership verdict is
+                // cached; after fixing the underlying issue the
+                // operator must poke the daemon.
                 let notify_key = format!("ownership-skip-{}", repo.display());
-                if let std::collections::hash_map::Entry::Vacant(e) =
-                    remote_notify_cooldowns.entry(notify_key)
-                {
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
                     eprintln!(
-                        "🚫 {} skipping ({}): {}",
+                        "🚫 {} skipping ({}): {} · verdict cached — after fixing, run `kill -HUP $(systemctl --user show dracon-sync.service -p MainPID --value)` or restart the daemon",
                         repo.display(),
                         match ownership {
                             crate::ownership::OwnershipReport::Unowned { reason, .. } => reason,
@@ -2632,7 +2675,6 @@ pub(crate) async fn run_daemon(
                             _ => "",
                         }
                     );
-                    e.insert(Instant::now() + Duration::from_secs(1800));
                 }
                 continue;
             }
