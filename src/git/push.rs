@@ -338,6 +338,30 @@ mod tests {
         assert!(!is_permanent_push_rejection(msg));
     }
 
+    /// ADDED 2026-07-21 (v0.112.33, audit M15/F2.6): deleted /
+    /// never-created forge repos and lost key access are permanent
+    /// (definitionally unfixable by retrying) — the pre-fix code
+    /// burned the full retry budget every cycle forever.
+    #[test]
+    fn test_is_permanent_push_rejection_recognises_repo_gone() {
+        assert!(is_permanent_push_rejection(
+            "ERROR: Repository not found.\nfatal: Could not read from remote repository."
+        ));
+        assert!(is_permanent_push_rejection(
+            "Forgejo: Push to create is not enabled for users."
+        ));
+        assert!(is_permanent_push_rejection(
+            "remote: The project you were looking for could not be found"
+        ));
+        assert!(is_permanent_push_rejection(
+            "git@github.com: Permission denied (publickey)."
+        ));
+        assert!(is_permanent_push_rejection("repository does not exist"));
+        // Transient errors still NOT permanent.
+        assert!(!is_permanent_push_rejection("ssh: Connection refused"));
+        assert!(!is_permanent_push_rejection("HTTP 502"));
+    }
+
     #[test]
     fn test_is_push_rejected_still_works() {
         assert!(is_push_rejected(

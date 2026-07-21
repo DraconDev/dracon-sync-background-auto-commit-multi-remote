@@ -965,6 +965,30 @@ mod tests {
         }
     }
 
+    /// ADDED 2026-07-21 (v0.112.33, audit M14/F2.5): the
+    /// ls-remote stderr classifier must distinguish definitive
+    /// not-found (Missing → create) from transport/auth failures
+    /// (Unknown → skip create this cycle).
+    #[test]
+    fn test_ls_remote_indicates_missing_classification() {
+        // Definitive not-found per forge.
+        assert!(ls_remote_indicates_missing("ERROR: Repository not found."));
+        assert!(ls_remote_indicates_missing(
+            "remote: The project you were looking for could not be found"
+        ));
+        assert!(ls_remote_indicates_missing("repository does not exist"));
+        assert!(ls_remote_indicates_missing("HTTP 404 Not Found"));
+        // Transport/auth failures must NOT read as missing.
+        assert!(!ls_remote_indicates_missing(
+            "ssh: connect to host github.com port 22: Connection timed out"
+        ));
+        assert!(!ls_remote_indicates_missing(
+            "git@github.com: Permission denied (publickey)."
+        ));
+        assert!(!ls_remote_indicates_missing("Connection reset by peer"));
+        assert!(!ls_remote_indicates_missing("Temporary failure in name resolution"));
+    }
+
     // ---- codeberg_push_excluded / has_codeberg_tracking_ref (v0.112.30) ----
 
     fn make_codeberg_remote(auto_create: bool) -> RemoteConfig {
