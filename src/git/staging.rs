@@ -37,7 +37,19 @@ pub(crate) async fn unstage_excluded_paths(
         for path in chunk {
             cmd.arg(path);
         }
-        cmd.status().await?;
+        // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
+        // exit 0 — the previous `.status().await?` ignored non-zero
+        // exits (index.lock contention, pathspec errors) and the
+        // caller's count claimed the paths were unstaged anyway.
+        let status = cmd.status().await?;
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "git reset HEAD -- ({} paths) failed in {}: exit {}",
+                chunk.len(),
+                repo.display(),
+                status
+            ));
+        }
     }
     Ok(to_unstage.len())
 }
@@ -74,7 +86,17 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
         for path in chunk {
             cmd.arg(path);
         }
-        cmd.status().await?;
+        // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
+        // exit 0 (same rationale as `unstage_excluded_paths`).
+        let status = cmd.status().await?;
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "git reset HEAD -- ({} oversized paths) failed in {}: exit {}",
+                chunk.len(),
+                repo.display(),
+                status
+            ));
+        }
     }
     Ok(to_unstage.len())
 }

@@ -68,9 +68,13 @@ pub(crate) fn detect_orphan_origin(repo: &Path) -> Option<(String, String)> {
 pub(crate) fn fix_orphan_origin(repo: &Path, canonical_url: &str) -> Result<()> {
     crate::policy::std_git_command()
         .args(["remote", "set-url", "origin", canonical_url])
-        .current_dir(repo)
-        .status()
-        .with_context(|| format!("failed to set origin URL in {}", repo.display()))?;
+        .current_dir(repo);
+    // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require exit 0
+    // (was `.status()?`).
+    super::ops::std_git_checked(
+        &mut cmd,
+        &format!("failed to set origin URL in {}", repo.display()),
+    )?;
     Ok(())
 }
 
