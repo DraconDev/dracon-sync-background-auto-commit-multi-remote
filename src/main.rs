@@ -737,18 +737,26 @@ async fn main() -> Result<()> {
             }
             ConfigCommands::Validate => {
                 let result = policy::validate_config(&policy_path);
+                // CHANGED 2026-07-21 (v0.112.33, audit M21/F3.3):
+                // warnings are printed UNCONDITIONALLY — the pre-fix
+                // success path reported "✅ Policy is valid" while
+                // withholding every collected warning (TOML-ordering
+                // footguns, low timeouts, missing token files). The
+                // only command whose entire job is config linting
+                // now actually shows the lint output.
+                if !result.warnings.is_empty() {
+                    println!("⚠️  Warnings:");
+                    for w in &result.warnings {
+                        println!("  WARNING: {}", w);
+                    }
+                    println!();
+                }
                 if result.is_valid() {
                     println!("✅ Policy is valid");
                 } else {
                     println!("❌ Policy has errors:");
                     for e in &result.errors {
                         println!("  ERROR: {}", e);
-                    }
-                    if !result.warnings.is_empty() {
-                        println!("\n⚠️  Warnings:");
-                        for w in &result.warnings {
-                            println!("  WARNING: {}", w);
-                        }
                     }
                     std::process::exit(1);
                 }

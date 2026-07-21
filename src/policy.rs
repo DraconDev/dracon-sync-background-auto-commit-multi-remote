@@ -1835,6 +1835,34 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
 mod tests {
     use super::*;
 
+    /// ADDED 2026-07-21 (v0.112.33, audit M22/F3.4):
+    /// `expand_tilde("~/x")` must resolve to `$HOME/x` — the pre-fix
+    /// code kept the leading `/` after `~`, and `Path::join` with an
+    /// absolute argument replaces the base, producing `/x`
+    /// (filesystem root).
+    #[test]
+    fn test_expand_tilde_resolves_under_home() {
+        let home = dirs::home_dir().expect("home dir");
+        assert_eq!(
+            expand_tilde("~/templates/LICENSE"),
+            home.join("templates/LICENSE")
+        );
+        assert_eq!(expand_tilde("~"), home);
+        // `~x` (no slash) — not a real tilde form we support, but it
+        // must NOT resolve to a filesystem-root-relative path.
+        let tx = expand_tilde("~templates/x");
+        assert!(tx.starts_with(&home) || tx == std::path::PathBuf::from("~templates/x"));
+        // Non-tilde paths pass through unchanged.
+        assert_eq!(
+            expand_tilde("templates/LICENSE"),
+            std::path::PathBuf::from("templates/LICENSE")
+        );
+        assert_eq!(
+            expand_tilde("/abs/path"),
+            std::path::PathBuf::from("/abs/path")
+        );
+    }
+
     #[test]
     fn test_default_exclude_dir_names() {
         let dirs = default_exclude_dir_names();
