@@ -942,10 +942,11 @@ pub(crate) fn is_excluded_file(file_path: &Path, excluded_patterns: &[String]) -
 ///    `**/scratch/**` matches `foo/scratch/bar.txt`).
 ///    This keeps user notes, scratch research, and audit evidence
 ///    out of auto-stage.
-/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12): match a
-/// `**`-free needle path against `rel` as CONSECUTIVE FULL SEGMENTS
-/// (glob-aware per segment). `research/scratch` matches
-/// `docs/research/scratch/x` but NOT `docs/unresearched/scratch/x`
+/// Match a `**`-free needle path against `rel` as consecutive FULL segments
+/// (glob-aware per segment).
+///
+/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12). `research/scratch`
+/// matches `docs/research/scratch/x` but NOT `docs/unresearched/scratch/x`
 /// and `scratch` matches `a/scratch/b` but NOT `a/unscratched/b` —
 /// the old raw-substring `contains` arm overmatched both.
 fn rel_contains_segment_seq(rel: &str, needle: &str) -> bool {
@@ -961,11 +962,12 @@ fn rel_contains_segment_seq(rel: &str, needle: &str) -> bool {
     })
 }
 
-/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12): segment-wise glob
-/// match for full relative-path patterns WITHOUT `**` (e.g.
-/// `reports/kdp-live-*.md`, `web/test-results/*.png`). These
-/// patterns were silently DEAD in the pre-fix matcher (the basename
-/// branch requires no `/`, the glob branch required `**`).
+/// Segment-wise glob match for full relative-path patterns WITHOUT `**`
+/// (e.g. `reports/kdp-live-*.md`, `web/test-results/*.png`).
+///
+/// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12). These patterns
+/// were silently DEAD in the pre-fix matcher (the basename branch
+/// requires no `/`, the glob branch required `**`).
 fn rel_matches_glob_path(rel: &str, pattern: &str) -> bool {
     let rel_segs: Vec<&str> = rel.split('/').collect();
     let pat_segs: Vec<&str> = pattern.split('/').collect();
