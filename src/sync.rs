@@ -45,6 +45,19 @@ pub(crate) enum SyncOutcome {
     /// this variant to `sync_success = false` (commit kept, failure
     /// counted, no synced log).
     PushFailed,
+    /// ADDED 2026-07-21 (v0.112.33, audit M9/F1.8): changes were
+    /// present but ALL filtered out by clean/smudge filters
+    /// (filter-only dirty — nothing real to commit). Previously this
+    /// returned `NothingToDo`, which the daemon treated as success
+    /// (activity entry removed) and immediately re-dispatched on the
+    /// next dirty detection — a filter-noisy repo (warden-managed
+    /// repos with `filter=dracon` attributes) was re-dispatched every
+    /// `inactivity_push_delay_secs` forever, paying full
+    /// status + diff + `git diff HEAD` each time, while the
+    /// `stage_cooldowns` map meant to throttle this sat permanently
+    /// empty (no insert site existed). The apply phase now inserts a
+    /// 300s stage cooldown for this outcome.
+    FilterOnly,
 }
 
 /// Count the number of unpushed commits on `origin/main..HEAD` for the
@@ -3715,15 +3728,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
     }
 
     // filter_only_cleared: changes present but all filtered out by clean/smudge.
-    // Don't stage/commit — return NothingToDo so the daemon applies a cooldown.
+    // CHANGED 2026-07-21 (v0.112.33, audit M9/F1.8): return the
+    // dedicated `FilterOnly` outcome so the daemon's apply phase
+    // actually inserts the stage cooldown this comment always
+    // promised (`stage_cooldowns` was dead — no insert site existed).
     if filter_only_cleared {
         if debug_enabled() {
             eprintln!(
-                "🐛 {} filter-only dirty, returning NothingToDo for cooldown",
+                "🐛 {} filter-only dirty, returning FilterOnly for cooldown",
                 repo.display(),
             );
         }
-        return Ok(SyncOutcome::NothingToDo);
+        return Ok(SyncOutcome::FilterOnly);
     }
 
     if !status.is_clean && policy.auto_commit {

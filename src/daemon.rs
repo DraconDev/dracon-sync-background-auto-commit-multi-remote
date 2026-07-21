@@ -2456,6 +2456,10 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
                 eprintln!("⚠️ {} committed but push failed", repo.display());
             }
             Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Blocked) => {}
+            // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
+            Ok(SyncOutcome::FilterOnly) => {
+                println!("🧹 {} filter-only dirty (nothing real to commit)", repo.display());
+            }
             Err(e) => {
                 eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
             }
@@ -3678,6 +3682,23 @@ pub(crate) async fn run_daemon(
                         }
                         true
                     }
+                    // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8):
+                    // filter-only dirty — insert the stage cooldown
+                    // this outcome exists to trigger (the map was
+                    // previously dead: no insert site). Counts as
+                    // success (nothing real to commit); the cooldown
+                    // stops the re-dispatch-every-few-seconds churn
+                    // for filter-noisy repos.
+                    Ok(SyncOutcome::FilterOnly) => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} filter-only dirty, cooldown 300s",
+                                repo.display()
+                            );
+                        }
+                        stage_cooldowns.insert(repo.clone(), now + Duration::from_secs(300));
+                        true
+                    }
                     Ok(SyncOutcome::Blocked) => {
                         if debug_enabled() {
                             eprintln!(
@@ -3828,6 +3849,19 @@ pub(crate) async fn run_daemon(
                                 if debug_enabled() {
                                     eprintln!("🐛 {} nothing to commit (late)", repo.display());
                                 }
+                            }
+                            // ADDED 2026-07-21 (v0.112.33, audit
+                            // M9/F1.8): filter-only dirty — insert
+                            // the stage cooldown (late-drain path).
+                            Ok(SyncOutcome::FilterOnly) => {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} filter-only dirty (late), cooldown 300s",
+                                        repo.display()
+                                    );
+                                }
+                                stage_cooldowns
+                                    .insert(repo.clone(), now + Duration::from_secs(300));
                             }
                             Ok(SyncOutcome::Blocked) => {
                                 if debug_enabled() {
