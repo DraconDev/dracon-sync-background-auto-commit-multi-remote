@@ -312,3 +312,191 @@ pub(crate) fn count_unpushed_vs_mirrors(repo: &Path) -> u64 {
     }
     0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper: `git init -q -b main <path>` + local user config.
+    fn init_repo(path: &Path) {
+        std::fs::create_dir_all(path).unwrap();
+        let status = crate::policy::std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            let status = crate::policy::std_git_command()
+                .args(["config", k, v])
+                .current_dir(path)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+    }
+
+    fn commit_file(path: &Path, name: &str, msg: &str) {
+        std::fs::write(path.join(name), "content\n").unwrap();
+        for args in [
+            vec!["add", name],
+            vec!["commit", "--no-verify", "-q", "-m", msg],
+        ] {
+            let status = crate::policy::std_git_command()
+                .args(&args)
+                .current_dir(path)
+                .status()
+                .unwrap();
+            assert!(status.success(), "git {:?} failed", args);
+        }
+    }
+
+    // ---- is_stable_empty_repo ----
+
+    #[test]
+    fn test_is_stable_empty_repo_fresh_init() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        assert!(
+            is_stable_empty_repo(&repo),
+            "fresh `git init` repo with symref HEAD must be stable-empty"
+        );
+    }
+
+    #[test]
+    fn test_is_stable_empty_repo_index_lock_blocks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        std::fs::write(repo.join(".git/index.lock"), "").unwrap();
+        assert!(
+            !is_stable_empty_repo(&repo),
+            "index.lock (mid-checkout) must block the empty-repo bootstrap"
+        );
+    }
+
+    #[test]
+    fn test_is_stable_empty_repo_tmp_pack_blocks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        std::fs::write(repo.join(".git/objects/pack/tmp_pack_abc123"), "").unwrap();
+        assert!(
+            !is_stable_empty_repo(&repo),
+            "tmp_pack_* (mid-clone fetch) must block the empty-repo bootstrap"
+        );
+    }
+
+    #[test]
+    fn test_is_stable_empty_repo_head_lock_blocks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        std::fs::write(repo.join(".git/HEAD.lock"), "").unwrap();
+        assert!(
+            !is_stable_empty_repo(&repo),
+            "any *.lock in .git root must block the bootstrap"
+        );
+    }
+
+    #[test]
+    fn test_is_stable_empty_repo_detached_head_rejected() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        let status = crate::policy::std_git_command()
+            .args(["checkout", "-q", "--detach", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(
+            !is_stable_empty_repo(&repo),
+            "detached HEAD (raw sha, not `ref:`) is not the git-init state"
+        );
+    }
+
+    // ---- upstream_tracking_ref_missing ----
+
+    #[test]
+    fn test_upstream_tracking_ref_missing_no_config() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        assert!(
+            !upstream_tracking_ref_missing(&repo),
+            "no upstream configured → not 'missing' (nothing to miss)"
+        );
+    }
+
+    #[test]
+    fn test_upstream_tracking_ref_missing_config_without_ref() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        // Configure upstream like configure_publish_upstream_if_missing
+        // does, but never push/fetch so refs/remotes/origin/main is absent.
+        for (k, v) in [
+            ("branch.main.remote", "origin"),
+            ("branch.main.merge", "refs/heads/main"),
+        ] {
+            let status = crate::policy::std_git_command()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+        assert!(
+            upstream_tracking_ref_missing(&repo),
+            "configured upstream with no remote-tracking ref = never pushed"
+        );
+    }
+
+    #[test]
+    fn test_upstream_tracking_ref_missing_ref_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        for (k, v) in [
+            ("branch.main.remote", "origin"),
+            ("branch.main.merge", "refs/heads/main"),
+        ] {
+            let status = crate::policy::std_git_command()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+        // Simulate a pushed state: create the remote-tracking ref.
+        let status = crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(
+            !upstream_tracking_ref_missing(&repo),
+            "remote-tracking ref present → not missing"
+        );
+    }
+
+    // ---- count_all_head_commits ----
+
+    #[test]
+    fn test_count_all_head_commits_counts_everything() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        assert_eq!(count_all_head_commits(&repo), 0, "no commits → 0");
+        commit_file(&repo, "a.txt", "first");
+        commit_file(&repo, "b.txt", "second");
+        assert_eq!(count_all_head_commits(&repo), 2, "two commits → 2");
+    }
+}

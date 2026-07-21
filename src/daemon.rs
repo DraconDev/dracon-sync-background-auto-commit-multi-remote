@@ -2197,6 +2197,19 @@ pub(crate) async fn run_daemon(
     let mut repair_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     let mut filter_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     let mut stage_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-07-21 (v0.112.30): per-repo cooldown for the
+    // empty-repo root-commit bootstrap. On bootstrap failure (e.g.
+    // git user.email not configured anywhere), back off for 5 minutes
+    // instead of retrying — and logging — every 1s cycle.
+    let mut empty_bootstrap_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-07-21 (v0.112.30): per-repo cooldown for the
+    // auto-create-on-discovery call (`push_mirror_remotes_create_only`
+    // runs `git ls-remote` against every configured remote — an SSH
+    // round-trip). The v0.112.29 version ran it every 1s cycle for
+    // every not-ready repo, producing 2 SSH connections/sec per empty
+    // repo forever. Throttle to one attempt per 5 minutes per repo;
+    // the first attempt is immediate (map starts empty).
+    let mut auto_create_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     let mut stuck_push_repos = load_stuck_push_repos();
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
     let mut cycle_count: u64 = 0;
@@ -2319,6 +2332,8 @@ pub(crate) async fn run_daemon(
         pending_repos.retain(|repo, _| repo_set.contains(repo));
         repair_cooldowns.retain(|repo, _| repo_set.contains(repo));
         filter_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        empty_bootstrap_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
         stuck_push_repos.retain(|repo, _| repo_set.contains(repo));
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
@@ -2411,7 +2426,18 @@ pub(crate) async fn run_daemon(
             if !policy.remotes.is_empty() {
                 let any_remote_configured =
                     !crate::git::multi_remote::list_remotes(&repo).is_empty();
-                if any_remote_configured {
+                // CHANGED 2026-07-21 (v0.112.30): throttle the
+                // create-only auto-create to one attempt per 5 minutes
+                // per repo. The v0.112.29 version ran on every 1s
+                // cycle for every not-ready repo; each attempt issues
+                // `git ls-remote` (SSH round-trip) per configured
+                // remote, so a permanently-empty repo produced 2 SSH
+                // connections/sec indefinitely.
+                let auto_create_cooled = auto_create_cooldowns
+                    .get(&repo)
+                    .is_some_and(|until| now < *until);
+                if any_remote_configured && !auto_create_cooled {
+                    auto_create_cooldowns.insert(repo.clone(), now + Duration::from_secs(300));
                     let repo_override_for_create =
                         crate::policy::load_repo_override(&repo);
                     let create_results = crate::git::multi_remote::push_mirror_remotes_create_only(
@@ -2449,7 +2475,49 @@ pub(crate) async fn run_daemon(
             }
 
             if !is_repo_ready(&repo) {
-                if debug_enabled() {
+                // CHANGED 2026-07-21 (v0.112.30): for *stable* empty
+                // repos (operator ran `git init`, added files, no
+                // commits yet — NOT mid-clone), create the root commit
+                // here so the next cycle's normal flow can push it.
+                // Previously the daemon `continue`d forever on empty
+                // repos: the `sync_repo` bootstrap was unreachable
+                // (dispatch happens after this check) and the repo
+                // sat at "❌ CONCERN · no commits yet" until the
+                // operator committed manually. `is_stable_empty_repo`
+                // distinguishes operator-init from mid-clone (lock
+                // files + in-flight pack downloads); the bootstrap
+                // applies the full staging policy (size limits,
+                // exclude patterns, `auto_stage_untracked`, ownership
+                // guard) inside `bootstrap_empty_repo_commit`.
+                if crate::git::is_stable_empty_repo(&repo) {
+                    let bootstrap_cooled = empty_bootstrap_cooldowns
+                        .get(&repo)
+                        .is_some_and(|until| now < *until);
+                    if policy.auto_commit && !bootstrap_cooled {
+                        match crate::sync::bootstrap_empty_repo_commit(
+                            &repo,
+                            &policy,
+                            &excluded_dir_names,
+                            false,
+                        )
+                        .await
+                        {
+                            Ok(true) => {
+                                empty_bootstrap_cooldowns.remove(&repo);
+                            }
+                            Ok(false) => {}
+                            Err(e) => {
+                                eprintln!(
+                                    "⚠️ {} empty-repo bootstrap failed (cooldown 300s): {}",
+                                    repo.display(),
+                                    e
+                                );
+                                empty_bootstrap_cooldowns
+                                    .insert(repo.clone(), now + Duration::from_secs(300));
+                            }
+                        }
+                    }
+                } else if debug_enabled() {
                     eprintln!(
                         "⏳ {} not ready (mid-clone or empty repo), skipping",
                         repo.display()
@@ -2670,13 +2738,32 @@ pub(crate) async fn run_daemon(
             // even when there ARE unpushed local commits. Override `status.ahead`
             // from mirror tracking refs so the fast-path dispatch and the
             // `has_local_or_pending_work` check detect the real ahead count.
-            if !has_upstream && status.ahead == 0 {
+            // CHANGED 2026-07-21 (v0.112.30): also run the override
+            // when the upstream IS configured but its remote-tracking
+            // ref does not exist (never pushed / remote branch
+            // deleted). Previously a freshly-bootstrapped repo hit
+            // `configure_publish_upstream_if_missing` (which writes
+            // the branch config), then libgit2 computed ahead=0
+            // (nothing to compare against), and
+            // `has_local_or_pending_work` evaluated false — the repo
+            // was skipped forever and the report showed a false
+            // "synced". When the tracking ref is missing, every
+            // commit on HEAD is unpushed; `count_all_head_commits`
+            // is the fallback after the mirror-based counts.
+            let upstream_ref_missing =
+                has_upstream && crate::git::upstream_tracking_ref_missing(&repo);
+            if status.ahead == 0 && (!has_upstream || upstream_ref_missing) {
                 let unpushed = count_unpushed_vs_mirrors(&repo);
                 let unpushed = if unpushed == 0 {
                     count_unpushed_vs_configured_remotes(
                         &repo,
                         &policy.remotes.iter().map(|r| r.name.clone()).collect::<Vec<_>>(),
                     )
+                } else {
+                    unpushed
+                };
+                let unpushed = if unpushed == 0 && upstream_ref_missing {
+                    crate::git::count_all_head_commits(&repo)
                 } else {
                     unpushed
                 };

@@ -3295,31 +3295,39 @@ pub(crate) async fn sync_repo_with_ahead_since(
     }
 
     if !is_repo_ready(repo) {
-        // Empty repo (no commits) — create initial commit so auto-create can push
-        if !dry_run {
-            let git_bin = crate::policy::git_binary();
-            let has_files = std::fs::read_dir(repo)
-                .map(|mut dirs| dirs.any(|e| e.ok().is_some_and(|e| e.file_name() != ".git")))
-                .unwrap_or(false);
-            if has_files {
-                let _ = std::process::Command::new(&git_bin)
-                    .args(["add", "-A"])
-                    .current_dir(repo)
-                    .output();
-                let _ = std::process::Command::new(&git_bin)
-                    .args(["commit", "--no-verify", "-m", "initial"])
-                    .current_dir(repo)
-                    .output();
-                eprintln!("📝 {} created initial commit (empty repo)", repo.display());
-            } else {
+        // CHANGED 2026-07-21 (v0.112.30): the previous bootstrap used
+        // bare `git add -A` + `git commit -m initial` (no size limits,
+        // no exclude patterns, no ownership gate, errors discarded),
+        // and — critically — was unreachable from the daemon loop
+        // because `daemon.rs` bailed on `!is_repo_ready` BEFORE
+        // dispatching `sync_repo`. The daemon loop now bootstraps
+        // stable empty repos itself; this block covers the CLI
+        // (`sync-now`) path and any direct callers. On success we
+        // fall through so the rest of the pipeline pushes the fresh
+        // root commit in the same invocation.
+        if !crate::git::is_stable_empty_repo(repo) {
+            eprintln!(
+                "⏳ {} not ready (mid-clone or empty repo), skipping",
+                repo.display()
+            );
+            return Ok(SyncOutcome::NothingToDo);
+        }
+        match bootstrap_empty_repo_commit(repo, policy, excluded_dir_names, dry_run).await {
+            Ok(true) => {
+                // Fall through: HEAD is now valid, the pipeline below
+                // computes status and pushes the root commit.
+            }
+            Ok(false) => {
+                return Ok(SyncOutcome::NothingToDo);
+            }
+            Err(e) => {
                 eprintln!(
-                    "⏳ {} not ready (mid-clone or empty repo), skipping",
-                    repo.display()
+                    "⚠️ {} empty-repo bootstrap failed: {}",
+                    repo.display(),
+                    e
                 );
                 return Ok(SyncOutcome::NothingToDo);
             }
-        } else {
-            return Ok(SyncOutcome::NothingToDo);
         }
     }
 
@@ -3636,7 +3644,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
 async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<()> {
     let current_status = svc.get_status().await?;
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
-    let should_push = current_status.ahead > 0 || !branch_has_upstream;
+    // CHANGED 2026-07-21 (v0.112.30): when the upstream is configured
+    // (e.g. by `configure_publish_upstream_if_missing`) but the
+    // remote-tracking ref does not exist yet — the never-pushed state
+    // every freshly-bootstrapped empty repo is in — libgit2's
+    // ahead/behind returns 0 (nothing to compare against) and the old
+    // `should_push` expression evaluated to false, so the root commit
+    // was NEVER pushed and the report showed a false "synced". Treat
+    // a missing remote-tracking ref as push-needed: every commit on
+    // HEAD is definitionally unpushed to that upstream.
+    let upstream_ref_missing =
+        branch_has_upstream && super::git::upstream_tracking_ref_missing(ctx.repo);
+    let should_push =
+        current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
