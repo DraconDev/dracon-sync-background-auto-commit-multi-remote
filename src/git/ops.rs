@@ -291,6 +291,33 @@ pub(crate) async fn run_git_with_timeout(
     run_child(child, repo, timeout_secs, &label).await
 }
 
+/// ADDED 2026-07-21 (v0.112.33, audit M13/F2.4): run a std git
+/// command to completion and require exit status 0, including stderr
+/// in the error. The recurring `.status().with_context(...)?`
+/// pattern only surfaces SPAWN failure — a non-zero exit from the
+/// git process is silently treated as success (~6 call sites,
+/// including `consolidate_to_main` proceeding to `branch -D master`
+/// on a failed `git checkout main`).
+pub(crate) fn std_git_checked(
+    cmd: &mut std::process::Command,
+    context: &str,
+) -> anyhow::Result<()> {
+    let output = cmd
+        .output()
+        .with_context(|| format!("{} (spawn failed)", context))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!(
+            "{} (exit {}): {}",
+            context,
+            output.status,
+            stderr.trim()
+        ))
+    }
+}
+
 /// Run a git command with extra environment variables and a timeout.
 pub(crate) async fn run_git_with_timeout_env(
     repo: &Path,

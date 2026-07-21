@@ -135,11 +135,17 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
     use crate::policy::std_git_command;
     let branch = current_branch(repo).unwrap_or_else(|| "main".to_string());
     if branch != "main" {
-        std_git_command()
-            .args(["checkout", "main"])
-            .current_dir(repo)
-            .status()
-            .with_context(|| format!("failed to checkout main in {}", repo.display()))?;
+        // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
+        // exit 0 — the previous `.status()?` ignored a non-zero exit
+        // (e.g. dirty working tree blocking the checkout) and
+        // proceeded to `branch -D master` +
+        // `push origin --delete master` on the FAILED precondition.
+        super::ops::std_git_checked(
+            &mut std_git_command()
+                .args(["checkout", "main"])
+                .current_dir(repo),
+            &format!("failed to checkout main in {}", repo.display()),
+        )?;
     }
     if let Err(e) = std_git_command()
         .args(["branch", "-D", "master"])
@@ -170,11 +176,16 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
     use crate::policy::std_git_command;
     let branch = current_branch(repo).unwrap_or_else(|| "main".to_string());
     if branch == "master" {
-        std_git_command()
-            .args(["branch", "-m", "master", "main"])
-            .current_dir(repo)
-            .status()
-            .with_context(|| format!("failed to rename master to main in {}", repo.display()))?;
+        // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
+        // exit 0 — a failed rename (e.g. `main` already exists,
+        // unborn branch) previously sailed through as "success" and
+        // the function proceeded to push + remote-delete master.
+        super::ops::std_git_checked(
+            &mut std_git_command()
+                .args(["branch", "-m", "master", "main"])
+                .current_dir(repo),
+            &format!("failed to rename master to main in {}", repo.display()),
+        )?;
     }
     if has_origin_remote(repo) {
         if let Err(e) = super::push_with_retries(repo, 60, 3, "rename-master-to-main").await {

@@ -25,16 +25,43 @@ pub(crate) fn ensure_remote(repo: &Path, name: &str, url: &str) -> Result<()> {
             std_git_command()
                 .args(["remote", "set-url", name, url])
                 .current_dir(repo)
-                .status()
-                .with_context(|| format!("git remote set-url {} in {}", name, repo.display()))?;
+                .output()
+                .with_context(|| format!("git remote set-url {} in {}", name, repo.display()))
+                .and_then(|o| {
+                    // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4):
+                    // require exit 0 (was `.status()?` — non-zero
+                    // exits, e.g. malformed URL, read as success).
+                    if o.status.success() {
+                        Ok(())
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "git remote set-url {} in {} failed: {}",
+                            name,
+                            repo.display(),
+                            String::from_utf8_lossy(&o.stderr).trim()
+                        ))
+                    }
+                })?;
             Ok(())
         }
         None => {
             std_git_command()
                 .args(["remote", "add", name, url])
                 .current_dir(repo)
-                .status()
-                .with_context(|| format!("git remote add {} in {}", name, repo.display()))?;
+                .output()
+                .with_context(|| format!("git remote add {} in {}", name, repo.display()))
+                .and_then(|o| {
+                    if o.status.success() {
+                        Ok(())
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "git remote add {} in {} failed: {}",
+                            name,
+                            repo.display(),
+                            String::from_utf8_lossy(&o.stderr).trim()
+                        ))
+                    }
+                })?;
             Ok(())
         }
     }
