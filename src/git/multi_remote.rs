@@ -211,6 +211,47 @@ pub(crate) async fn push_mirror_remotes(
     push_to_all_remotes(repo, &filtered, timeout_secs, retries).await
 }
 
+/// Auto-create the forge-side repos for an existing local repo that
+/// already has remotes configured (added by `configure_standard_remotes_if_missing`)
+/// but the corresponding github/gitlab/codeberg repo may not yet
+/// exist. Does NOT push — that's the job of `push_mirror_remotes`.
+///
+/// ADDED 2026-07-21 (v0.112.29) for the empty-local-repo case where
+/// `is_repo_ready` returns false (no commits) and `push_mirror_remotes`
+/// would silently skip. Calling `auto_create_all_remotes` standalone
+/// ensures the forge-side repos exist when the operator's first commit
+/// lands. Idempotent: each remote is checked via `git ls-remote`
+/// (`remote_repo_exists`) before any `gh repo create` / `glab repo create`
+/// / REST call. Honored per-remote `auto_create` flag (codeberg
+/// defaults to false since v0.112.28's quota posture).
+///
+/// Returns one entry per remote in `remotes` (filtered by `exclude`),
+/// in the same order as `filtered`. The Result is `Ok(remote_name)`
+/// on success, `Err(...)` on failure (e.g. rate-limit, network, auth).
+pub(crate) async fn push_mirror_remotes_create_only(
+    repo: &Path,
+    remotes: &[RemoteConfig],
+    private: bool,
+    exclude: &[String],
+    codeberg_override: Option<bool>,
+) -> Vec<(String, Result<String>)> {
+    let repo_name = repo
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    let filtered = filter_remotes_by_exclude(remotes, exclude);
+    let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
+    if let Err(e) = remove_stale_remotes(repo, &all_remote_names) {
+        eprintln!(
+            "⚠️ failed to clean stale remotes for {}: {}",
+            repo.display(),
+            e
+        );
+    }
+    auto_create_all_remotes(&filtered, &repo_name, private, Some(repo), codeberg_override).await
+}
+
 /// Get the URL for a given remote name.
 pub(crate) fn get_remote_url(repo: &Path, name: &str) -> Option<String> {
     let output = std_git_command()

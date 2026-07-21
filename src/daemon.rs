@@ -2374,6 +2374,80 @@ pub(crate) async fn run_daemon(
             // without overwriting operator-configured remotes.
             configure_standard_remotes_if_missing(&repo, &policy);
 
+            // CHANGED 2026-07-21 (v0.112.29): for repos that have remotes
+            // configured but the corresponding forge-side repo may not
+            // exist yet (typical for a brand-new `git init` repo, or a
+            // freshly-cloned standalone that has yet to be auto-created
+            // on github/gitlab), attempt to auto-create the forge repos
+            // BEFORE the `is_repo_ready` check. This way, an empty local
+            // repo with no commits still gets created on github/gitlab —
+            // when the operator's first commit lands, the daemon can
+            // push without the "src refspec HEAD does not match any"
+            // failure mode. `auto_create_all_remotes` is idempotent:
+            // each remote is checked via `git ls-remote` first
+            // (`remote_repo_exists`), so already-created repos are
+            // skipped. The check is bounded by the per-remote
+            // `auto_create` flag (codeberg defaults to false since
+            // v0.112.28's quota posture).
+            //
+            // Without this fix, the daemon logs "configuring standard
+            // mirror remotes" on first detection, then `is_repo_ready`
+            // returns false for an empty repo, and the daemon `continue`s
+            // forever — never creating the github/gitlab repos. The user
+            // sees a persistent "❌ CONCERN · run repair-concerns --apply
+            // (set upstream)" until they make their first commit, at
+            // which point the daemon finally tries to push (and the
+            // missing github repo means it fails with "Repository not
+            // found"). Symptom: newly-`git init`'d repos appear broken
+            // for the entire pre-commit window. See
+            // `docs/design/empty-repo-auto-create-fix-2026-07-21.md` for
+            // the full reproduction log.
+            //
+            // Note: we do NOT also call `push_to_all_remotes` here —
+            // pushing an empty repo fails with "src refspec HEAD does
+            // not match any". The first push waits until the operator
+            // makes their first commit, at which point the regular
+            // `is_repo_ready` path runs.
+            if !policy.remotes.is_empty() {
+                let any_remote_configured =
+                    !crate::git::multi_remote::list_remotes(&repo).is_empty();
+                if any_remote_configured {
+                    let repo_override_for_create =
+                        crate::policy::load_repo_override(&repo);
+                    let create_results = crate::git::multi_remote::push_mirror_remotes_create_only(
+                        &repo,
+                        &policy.remotes,
+                        true, // mirror the same `private = true` default
+                              // as `sync.rs:1489` (push_mirror_remotes caller).
+                              // Per-repo visibility overrides via
+                              // `make-public` / `make-private` already exist;
+                              // for the auto-create-on-discovery flow we
+                              // default to private.
+                        &repo_override_for_create.exclude_remotes,
+                        repo_override_for_create.auto_create_on_codeberg,
+                    )
+                    .await;
+                    for (name, result) in create_results {
+                        if let Err(e) = result {
+                            if debug_enabled() {
+                                eprintln!(
+                                    "⏳ {} auto-create on {} skipped: {}",
+                                    repo.display(),
+                                    name,
+                                    e
+                                );
+                            }
+                        } else if debug_enabled() {
+                            eprintln!(
+                                "🆕 {} auto-created on {}",
+                                repo.display(),
+                                name
+                            );
+                        }
+                    }
+                }
+            }
+
             if !is_repo_ready(&repo) {
                 if debug_enabled() {
                     eprintln!(
