@@ -1536,6 +1536,38 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert!(default_true());
     }
 
+    /// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): the notification
+    /// throttle must (a) allow the FIRST notification, (b) suppress
+    /// repeats inside the cooldown, and (c) RE-FIRE after the
+    /// deadline. The previous `Entry::Vacant` pattern never expired —
+    /// (c) is the regression this guards.
+    #[test]
+    fn test_notify_throttled_fires_then_suppresses_then_refires() {
+        let mut map: HashMap<String, Instant> = HashMap::new();
+        let cooldown = Duration::from_secs(1800);
+
+        // (a) first call fires.
+        assert!(notify_throttled(&mut map, "k1", cooldown));
+        // (b) immediate repeat is suppressed.
+        assert!(!notify_throttled(&mut map, "k1", cooldown));
+        assert!(!notify_throttled(&mut map, "k1", cooldown));
+        // Different key still fires.
+        assert!(notify_throttled(&mut map, "k2", cooldown));
+
+        // (c) after the deadline, the notification re-fires.
+        // Simulate an expired entry by backdating it.
+        map.insert(
+            "k1".to_string(),
+            Instant::now() - Duration::from_secs(1),
+        );
+        assert!(
+            notify_throttled(&mut map, "k1", cooldown),
+            "expired cooldown must re-fire (regression: old Entry::Vacant pattern fired once ever)"
+        );
+        // And the re-fire re-arms the cooldown.
+        assert!(!notify_throttled(&mut map, "k1", cooldown));
+    }
+
     /// Verify the ownership detection works end-to-end on a real
     /// test repo with an untrusted email.
     #[test]
@@ -1709,7 +1741,7 @@ pub(crate) fn notify_throttled(
     cooldown: Duration,
 ) -> bool {
     let now = Instant::now();
-    let expired = map.get(key).map_or(true, |until| now >= *until);
+    let expired = map.get(key).is_none_or(|until| now >= *until);
     if expired {
         map.insert(key.to_string(), now + cooldown);
         true
@@ -2336,6 +2368,11 @@ pub(crate) async fn run_daemon(
                     repair_cooldowns.clear();
                     filter_cooldowns.clear();
                     stage_cooldowns.clear();
+                    // ADDED 2026-07-21 (v0.112.31, audit H4/F1.1):
+                    // also reset the notification throttle map so a
+                    // SIGHUP (= operator soft-reset after remediation)
+                    // re-arms all throttled notifications.
+                    remote_notify_cooldowns.clear();
                 }
                 Err(e) => eprintln!("sync: SIGHUP policy reload failed: {}", e),
             }
@@ -3421,7 +3458,6 @@ pub(crate) async fn run_daemon(
                                 fail_count
                             ),
                         );
-                        e.insert(Instant::now() + Duration::from_secs(1800));
                     }
                 }
             }
