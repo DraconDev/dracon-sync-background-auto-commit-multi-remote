@@ -19,7 +19,7 @@ use super::{
 /// Configure a remote URL. Adds if missing, updates if URL differs.
 pub(crate) fn ensure_remote(repo: &Path, name: &str, url: &str) -> Result<()> {
     let existing = get_remote_url(repo, name);
-    match existing {
+    let result = match existing {
         Some(cur) if cur == url => Ok(()),
         Some(_) => {
             std_git_command()
@@ -64,7 +64,21 @@ pub(crate) fn ensure_remote(repo: &Path, name: &str, url: &str) -> Result<()> {
                 })?;
             Ok(())
         }
+    };
+    if result.is_ok() {
+        // ADDED 2026-07-21 (v0.112.33, audit M18/F2.9): stamp the
+        // remote as daemon-managed so `remove_stale_remotes` can
+        // distinguish daemon-configured remotes from OPERATOR-added
+        // ones (the pre-fix implementation deleted ANY non-origin
+        // remote not in the keep list, silently destroying operator
+        // remotes like `backup` / `mirror-to-nas` / forks).
+        // Best-effort: a stamp failure must not fail the ensure.
+        let _ = std_git_command()
+            .args(["config", &format!("dracon.managed-{}", name), "true"])
+            .current_dir(repo)
+            .status();
     }
+    result
 }
 
 /// Filter a remote config list by an exclusion list of remote names.
@@ -293,7 +307,8 @@ pub(crate) async fn push_mirror_remotes(
     }
 
     let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
-    if let Err(e) = remove_stale_remotes(repo, &all_remote_names) {
+    let policy_names: Vec<&str> = remotes.iter().map(|r| r.name.as_str()).collect();
+    if let Err(e) = remove_stale_remotes(repo, &all_remote_names, &policy_names) {
         eprintln!(
             "⚠️ failed to clean stale remotes for {}: {}",
             repo.display(),
@@ -335,7 +350,8 @@ pub(crate) async fn push_mirror_remotes_create_only(
 
     let filtered = filter_remotes_by_exclude(remotes, exclude);
     let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
-    if let Err(e) = remove_stale_remotes(repo, &all_remote_names) {
+    let policy_names: Vec<&str> = remotes.iter().map(|r| r.name.as_str()).collect();
+    if let Err(e) = remove_stale_remotes(repo, &all_remote_names, &policy_names) {
         eprintln!(
             "⚠️ failed to clean stale remotes for {}: {}",
             repo.display(),
@@ -377,20 +393,56 @@ pub(crate) fn list_remotes(repo: &Path) -> Vec<String> {
 }
 
 /// Remove stale remotes (anything not in the keep list, except origin).
-pub(crate) fn remove_stale_remotes(repo: &Path, keep: &[&str]) -> Result<()> {
+/// Remove remotes the daemon manages that are not in `keep`.
+///
+/// CHANGED 2026-07-21 (v0.112.33, audit M18/F2.9): the pre-fix
+/// implementation removed ANY non-`origin` remote not in `keep` —
+/// silently destroying OPERATOR-added remotes (`backup`,
+/// `mirror-to-nas`, forks) on every push cycle. A remote is now
+/// removed only when the daemon manages it: either it carries the
+/// `dracon.managed-<name> = true` config marker (stamped by
+/// `ensure_remote`), or its name is in `managed_names` (the current
+/// policy remote list — covers pre-marker-era remotes like the
+/// codeberg remote the v0.112.30 exclusion removes).
+pub(crate) fn remove_stale_remotes(
+    repo: &Path,
+    keep: &[&str],
+    managed_names: &[&str],
+) -> Result<()> {
     let current = list_remotes(repo);
     let keep_set: HashSet<_> = keep.iter().collect();
     for remote in current {
         if remote == "origin" {
             continue;
         }
-        if !keep_set.contains(&remote.as_str()) {
-            std_git_command()
-                .args(["remote", "remove", &remote])
-                .current_dir(repo)
-                .status()
-                .with_context(|| format!("git remote remove {} in {}", remote, repo.display()))?;
+        if keep_set.contains(&remote.as_str()) {
+            continue;
         }
+        let managed = managed_names.iter().any(|n| *n == remote)
+            || std_git_command()
+                .args(["config", "--get", &format!("dracon.managed-{}", remote)])
+                .current_dir(repo)
+                .output()
+                .map(|o| {
+                    o.status.success()
+                        && String::from_utf8_lossy(&o.stdout).trim() == "true"
+                })
+                .unwrap_or(false);
+        if !managed {
+            if debug_enabled() {
+                eprintln!(
+                    "🐛 {} keeping operator-added remote {} (not daemon-managed)",
+                    repo.display(),
+                    remote
+                );
+            }
+            continue;
+        }
+        std_git_command()
+            .args(["remote", "remove", &remote])
+            .current_dir(repo)
+            .status()
+            .with_context(|| format!("git remote remove {} in {}", remote, repo.display()))?;
     }
     Ok(())
 }
