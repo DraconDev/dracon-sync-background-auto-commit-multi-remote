@@ -257,7 +257,21 @@ pub(crate) fn get_github_visibility(owner: &str, repo: &str) -> bool {
 // placeholder + `{owner}%2F{repo}` in the substituted string. Same
 // pattern as the codeberg template below.
 const GITLAB_API_PROJECTS: &str = "https://gitlab.com/api/v4/projects/{}";
-const CODEBERG_API_REPOS: &str = "https://codeberg.org/api/v1/repos/{}/{}";
+
+// FIXED 2026-07-21 (v0.112.31, audit H10/F3.1): the previous
+// template `repos/{}/{}` (TWO `{}` placeholders) had the same bug
+// class as the GitLab template fixed in v0.112.29 — both call sites
+// did `.replace("{}", &format!("{}/{}", owner, repo))`, and
+// `str::replace` substitutes ALL occurrences, producing
+// `repos/dracondev/x/dracondev/x` (a 4-segment path the Gitea route
+// `/api/v1/repos/{owner}/{repo}` does not match → 404 on every
+// call). The v0.112.29 fix comment incorrectly claimed this template
+// was harmless. Every Codeberg visibility flip
+// (`make-public --include-codeberg`) and every daemon-side codeberg
+// metadata/visibility sync silently 404'd. Single placeholder +
+// `{owner}/{repo}` in the substituted string, same shape as the
+// GitLab fix.
+const CODEBERG_API_REPOS: &str = "https://codeberg.org/api/v1/repos/{}";
 
 /// Set GitLab repo visibility using `curl` with PRIVATE-TOKEN.
 /// The token is passed via stdin (`-H @-`) so it never appears in the
@@ -1188,6 +1202,31 @@ mod tests {
         assert!(
             !url.contains("%2FDraconDev%2Fdracon-sync%2F"),
             "URL must not duplicate the encoded path (regression: bug inserted twice)"
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.31, audit H10/F3.1): pins the
+    /// Codeberg API URL construction. The pre-fix template
+    /// `repos/{}/{}` + `.replace("{}", "{owner}/{repo}")` produced
+    /// `repos/dracondev/x/dracondev/x` (both slots substituted) →
+    /// 404 on every call. This is the twin of
+    /// `test_gitlab_api_url_construction` — both templates are now
+    /// single-placeholder.
+    #[test]
+    fn test_codeberg_api_url_construction() {
+        // Replicate the exact construction logic from
+        // `set_codeberg_visibility` and `set_codeberg_metadata`.
+        let owner = "dracondev";
+        let repo = "dracon-sync";
+        let url = CODEBERG_API_REPOS.replace("{}", &format!("{}/{}", owner, repo));
+        assert_eq!(
+            url,
+            "https://codeberg.org/api/v1/repos/dracondev/dracon-sync",
+            "Codeberg API URL must be exactly `.../repos/{{owner}}/{{repo}}`, no duplication"
+        );
+        assert!(
+            !url.contains("dracondev/dracon-sync/dracondev"),
+            "URL must not duplicate the owner/repo path (regression: two-placeholder replace bug)"
         );
     }
 
