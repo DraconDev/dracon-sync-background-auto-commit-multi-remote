@@ -4227,6 +4227,8 @@ auto_commit = true
 auto_pull = false
 auto_push = false
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -4471,6 +4473,8 @@ auto_commit = true
 auto_pull = false
 auto_push = false
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -4591,6 +4595,8 @@ auto_commit = true
 auto_pull = false
 auto_push = false
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -5719,6 +5725,8 @@ push_url = "{}"
         auto_pull = false
         auto_push = false
         auto_bump_versions = false
+        trusted_emails = ["test@test"]
+        trusted_authors = ["test"]
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -5762,6 +5770,8 @@ push_url = "{}"
         auto_pull = false
         auto_push = false
         auto_bump_versions = false
+        trusted_emails = ["test@test"]
+        trusted_authors = ["test"]
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -5805,6 +5815,8 @@ push_url = "{}"
         auto_pull = false
         auto_push = false
         auto_bump_versions = false
+        trusted_emails = ["test@test"]
+        trusted_authors = ["test"]
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -5946,6 +5958,8 @@ push_url = "{}"
         auto_pull = false
         auto_push = false
         auto_bump_versions = false
+        trusted_emails = ["test@test"]
+        trusted_authors = ["test"]
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -6220,6 +6234,8 @@ auto_bump_versions = false
         auto_pull = false
         auto_push = false
         auto_bump_versions = false
+        trusted_emails = ["test@test"]
+        trusted_authors = ["test"]
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
@@ -6420,6 +6436,8 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
