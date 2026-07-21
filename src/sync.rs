@@ -34,6 +34,17 @@ pub(crate) enum SyncOutcome {
     Synced,
     NothingToDo,
     Blocked,
+    /// ADDED 2026-07-21 (v0.112.31, audit H3/F1.3): the commit half
+    /// succeeded but the push failed. Previously both push paths
+    /// (`stage_commit_and_push`, `handle_ahead_push`) swallowed the
+    /// failure after recording it to the disk ledger and returned a
+    /// success outcome, so the daemon's apply phase logged
+    /// `🔁 synced`, reset `failure_count`, and dropped the activity
+    /// entry — a false-healthy state in which push failure accounting
+    /// (MAX_FAILURES, backstops) never engaged. The apply phase maps
+    /// this variant to `sync_success = false` (commit kept, failure
+    /// counted, no synced log).
+    PushFailed,
 }
 
 /// Count the number of unpushed commits on `origin/main..HEAD` for the
@@ -3030,6 +3041,12 @@ async fn stage_commit_and_push(
 
     restore_excluded_paths(ctx, to_restore).await?;
 
+    // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): track push
+    // failure and surface it as `SyncOutcome::PushFailed` instead of
+    // falling through to `Ok(None)` (→ `Synced`). Previously the
+    // apply phase logged `🔁 synced`, reset `failure_count`, and
+    // dropped the activity entry on a failed push — false-healthy.
+    let mut push_failed = false;
     if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
         // Push synchronously so mirror failures can be tracked in
         // `ctx.remote_failures` (the caller passes a `&mut HashMap`).
@@ -3063,15 +3080,21 @@ async fn stage_commit_and_push(
                     repo,
                     "git push returned non-zero (see daemon log)",
                 );
+                push_failed = true;
             }
             Err(e) => {
                 eprintln!("⚠️ push error for {}: {}", repo.display(), e);
                 crate::daemon::record_push_failure(repo, &e.to_string());
+                push_failed = true;
             }
         }
     }
 
     run_release_pipeline_if_bumped(repo, policy, version_bumped).await;
+
+    if push_failed {
+        return Ok(Some(SyncOutcome::PushFailed));
+    }
 
     Ok(None)
 }
@@ -3635,13 +3658,28 @@ pub(crate) async fn sync_repo_with_ahead_since(
 
     maybe_sync_visibility_and_metadata(&ctx);
 
-    handle_ahead_push(&mut ctx, &svc).await?;
+    // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): a failed push
+    // surfaces as `PushFailed` so the daemon's apply phase counts it
+    // as a failure (no `🔁 synced`, `failure_count` increments)
+    // instead of the previous false-healthy `NothingToDo`.
+    let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
 
     maybe_sync_visibility_and_metadata(&ctx);
+    if !push_ok {
+        return Ok(SyncOutcome::PushFailed);
+    }
     Ok(SyncOutcome::NothingToDo)
 }
 
-async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<()> {
+/// Pushes unpushed commits when needed.
+///
+/// Returns `Ok(true)` when no push was needed or the push succeeded,
+/// `Ok(false)` when a push was attempted and FAILED (already recorded
+/// to the push ledger by this function). CHANGED 2026-07-21
+/// (v0.112.31, audit H3/F1.3): previously returned `Result<()>` and
+/// swallowed push failures, so the caller's `NothingToDo` outcome
+/// read as success in the daemon's apply phase.
+async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<bool> {
     let current_status = svc.get_status().await?;
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
     // CHANGED 2026-07-21 (v0.112.30): when the upstream is configured
@@ -3672,16 +3710,22 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     ctx.repo,
                     "git push returned non-zero (see daemon log)",
                 );
+                // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):
+                // propagate the failure so the caller returns
+                // `SyncOutcome::PushFailed` instead of `NothingToDo`
+                // (which the apply phase treated as success).
+                return Ok(false);
             }
             Err(e) => {
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), e);
                 crate::daemon::record_push_failure(ctx.repo, &e.to_string());
+                return Ok(false);
             }
         }
     } else if ctx.policy.auto_push && should_push && !ctx.has_origin && ctx.policy.remotes.is_empty() {
         eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", ctx.repo.display());
     }
-    Ok(())
+    Ok(true)
 }
 
 #[cfg(test)]

@@ -3112,6 +3112,29 @@ pub(crate) async fn run_daemon(
                         }
                         false
                     }
+                    // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
+                    // commit succeeded but the push failed. Counts as
+                    // failure — NO `🔁 synced` log, `failure_count`
+                    // increments, activity entry retained so the
+                    // backstop/stuck logic keeps working.
+                    Ok(SyncOutcome::PushFailed) => {
+                        eprintln!(
+                            "⚠️ {} committed but push failed (will retry)",
+                            repo.display()
+                        );
+                        let notify_key = format!("pushfail-{}", repo.display());
+                        if let std::collections::hash_map::Entry::Vacant(e) =
+                            remote_notify_cooldowns.entry(notify_key)
+                        {
+                            crate::report::send_sync_conflict_notification(
+                                &repo,
+                                "Push Failed",
+                                "commit landed locally but the push failed; see daemon log",
+                            );
+                            e.insert(Instant::now() + Duration::from_secs(1800));
+                        }
+                        false
+                    }
                     Err(e) => {
                         eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
                         let err_str = e.to_string();
