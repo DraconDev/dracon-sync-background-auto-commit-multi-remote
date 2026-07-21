@@ -1715,6 +1715,23 @@ async fn push_background(
     Ok(true)
 }
 
+/// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): format the
+/// currently-failing remote names for the stuck-push ledger's
+/// `last_error`, so the operator sees WHICH forge is failing in the
+/// `repos` HINT column without grepping the daemon log. The
+/// pre-fix message was the generic "git push returned non-zero
+/// (see daemon log)" for every failure mode.
+fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> String {
+    match remote_failures {
+        Some(map) if !map.is_empty() => {
+            let mut names: Vec<&str> = map.keys().map(String::as_str).collect();
+            names.sort_unstable();
+            names.join(", ")
+        }
+        _ => "unknown".to_string(),
+    }
+}
+
 /// Task state transitions extracted from a markdown diff.
 #[derive(Debug, Default)]
 struct TaskTransitions {
@@ -3169,10 +3186,14 @@ async fn stage_commit_and_push(
                 crate::daemon::record_push_success(repo);
             }
             Ok(false) => {
-                eprintln!("⚠️ push failed for {}", repo.display());
+                // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
+                // name the failing remotes in the ledger error so
+                // the repos HINT says WHICH forge is failing.
+                let names = failing_remote_names(ctx.remote_failures.as_deref());
+                eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
                 crate::daemon::record_push_failure(
                     repo,
-                    "git push returned non-zero (see daemon log)",
+                    &format!("git push returned non-zero (remotes: {})", names),
                 );
                 push_failed = true;
             }
@@ -3810,10 +3831,13 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 crate::daemon::record_push_success(ctx.repo);
             }
             Ok(false) => {
-                eprintln!("⚠️ push failed for {}", ctx.repo.display());
+                // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
+                // name the failing remotes in the ledger error.
+                let names = failing_remote_names(ctx.remote_failures.as_deref());
+                eprintln!("⚠️ push failed for {} (remotes: {})", ctx.repo.display(), names);
                 crate::daemon::record_push_failure(
                     ctx.repo,
-                    "git push returned non-zero (see daemon log)",
+                    &format!("git push returned non-zero (remotes: {})", names),
                 );
                 // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):
                 // propagate the failure so the caller returns

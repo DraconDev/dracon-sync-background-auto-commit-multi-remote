@@ -3596,6 +3596,17 @@ pub(crate) async fn run_daemon(
                     continue;
                 };
                 entry.remote_failures = remote_failures;
+                // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
+                // populate `mirror_consecutive_fails` from the
+                // per-remote failure counts — the field was
+                // initialized to an empty map at every entry
+                // creation and NEVER written, making the
+                // "Mirror Degraded" sustained-state notification
+                // dead code. `remote_failures` is exactly the
+                // per-mirror consecutive-failure map the check
+                // expects (push_background increments on failure
+                // and removes on success).
+                entry.mirror_consecutive_fails = entry.remote_failures.clone();
 
                 let sync_success = match sync_res {
                     Ok(SyncOutcome::Synced) => {
@@ -3739,6 +3750,11 @@ pub(crate) async fn run_daemon(
                     dispatched_this_cycle.remove(&repo);
                     if let Some(entry) = activity.get_mut(&repo) {
                         entry.remote_failures = remote_failures;
+                        // CHANGED 2026-07-21 (v0.112.31, audit
+                        // M1/F1.7+F3.9): keep the mirror-degraded
+                        // detector fed in the trailing-drain path too
+                        // (see the main apply phase).
+                        entry.mirror_consecutive_fails = entry.remote_failures.clone();
                         match sync_res {
                             Ok(SyncOutcome::Synced) => {
                                 eprintln!("🔁 synced (late) {}", repo.display());
