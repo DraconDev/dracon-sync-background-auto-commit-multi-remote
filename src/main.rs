@@ -466,11 +466,37 @@ fn handle_visibility_flip(
 
     // Update visibility cache so `repos` reflects the new state.
     if !no_cache_update {
-        let any_success = results.iter().any(|(_, r)| r.is_ok());
-        if any_success {
+        // CHANGED 2026-07-21 (v0.112.33, audit M23/F3.5): the cache
+        // is the codeberg-gate's source of truth for GITHUB
+        // visibility, so it must only be written when the GITHUB leg
+        // specifically succeeded. The pre-fix code wrote it on ANY
+        // remote success — a `make-public` with a failed github leg
+        // but successful gitlab leg cached "public", and the
+        // codeberg_public_only gate started pushing the repo to a
+        // world-visible forge while github was still private (and
+        // the reverse for make-private). When the github leg fails,
+        // re-query github for the OBSERVED state and cache that.
+        let github_ok = results
+            .iter()
+            .any(|(name, r)| name == "github" && r.is_ok());
+        if github_ok {
             visibility::update_visibility_cache(&repo_path, target_private);
             if policy::debug_enabled() {
                 eprintln!("🐛 updated visibility cache for {}", repo_path.display());
+            }
+        } else if let Some((owner, gh_repo)) =
+            visibility::parse_github_owner_repo(&origin_url)
+        {
+            // Github flip failed — cache the OBSERVED state (not the
+            // target), so the gate tracks reality.
+            let observed_private = visibility::get_github_visibility(&owner, &gh_repo);
+            visibility::update_visibility_cache(&repo_path, observed_private);
+            if policy::debug_enabled() {
+                eprintln!(
+                    "🐛 github flip failed; cached observed visibility (private={}) for {}",
+                    observed_private,
+                    repo_path.display()
+                );
             }
         }
     }
