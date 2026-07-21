@@ -347,7 +347,24 @@ fn maybe_sync_visibility_and_metadata(ctx: &SyncContext<'_>) {
     if ctx.dry_run || (!ctx.policy.sync_visibility && !ctx.policy.sync_metadata) {
         return;
     }
-    if let Some(origin_url) = crate::git::multi_remote::get_remote_url(ctx.repo, "origin") {
+    // CHANGED 2026-07-21 (v0.112.33, audit M26 follow-up): prefer
+    // the `github` remote's URL when `origin` is not a github URL.
+    // The game submodules' origins point at gitlab/codeberg
+    // (whichever `.gitmodules` listed first), and the host-verified
+    // parser (M26) correctly refuses them — but those repos DO have
+    // a `github` mirror to sync visibility/metadata FROM. Without
+    // the fallback, their visibility cache never freshens (the
+    // codeberg gate reads unknown→skip) and the journal gets a
+    // per-cycle "could not parse" warning. The metadata path also
+    // parses github owner/repo, so it uses the same resolution.
+    let origin_raw = crate::git::multi_remote::get_remote_url(ctx.repo, "origin");
+    let vis_url = origin_raw
+        .as_ref()
+        .filter(|u| crate::visibility::parse_github_owner_repo(u).is_some())
+        .cloned()
+        .or_else(|| crate::git::multi_remote::get_remote_url(ctx.repo, "github"))
+        .or(origin_raw);
+    if let Some(origin_url) = vis_url {
         if ctx.policy.sync_metadata {
             sync_mirror_metadata(
                 &origin_url,
