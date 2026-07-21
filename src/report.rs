@@ -1418,6 +1418,18 @@ pub(crate) fn repo_state_flags_with_push_failure(
     if !has_origin && !has_any_remote {
         flags.push("NO_ORIGIN".to_string());
     }
+    // ADDED 2026-07-21 (v0.112.29): `EMPTY_REPO` flag for repos with
+    // no commits at all (typically fresh `git init`). Distinct from
+    // `NO_UPSTREAM`: an empty repo's NO_UPSTREAM is EXPECTED (there is
+    // no commit to push yet, so `branch.<name>.remote` was never set),
+    // not a sign of a broken upstream config. The hint for an
+    // EMPTY_REPO is "no commits yet — make first commit to enable
+    // push", which guides the operator to the right action. The flag
+    // also lets the push_status derivation show "EMPTY" instead of the
+    // misleading "FAIL" — no push was attempted.
+    if status.last_commit_hash.is_none() {
+        flags.push("EMPTY_REPO".to_string());
+    }
     // CHANGED 2026-06-20: `NO_UPSTREAM` now fires whenever the local
     // branch has no tracking upstream, regardless of whether the repo
     // has an `origin` remote. Previously the `has_origin &&` guard
@@ -1923,6 +1935,14 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     }
     if flags.iter().any(|f| f == "NO_ORIGIN") {
         return "no remote configured (cannot push)".to_string();
+    }
+    // ADDED 2026-07-21 (v0.112.29): EMPTY_REPO overrides the
+    // NO_UPSTREAM hint. An empty repo's "no upstream" is expected
+    // (the operator hasn't committed yet), so the "set upstream" hint
+    // would be misleading — `git push -u origin HEAD` fails with
+    // "src refspec HEAD does not match any" on an empty repo.
+    if flags.iter().any(|f| f == "EMPTY_REPO") {
+        return "no commits yet — make first commit to enable push".to_string();
     }
     if flags.iter().any(|f| f == "NO_UPSTREAM") {
         // CHANGED 2026-06-20: the original hint "run repair-concerns
@@ -2859,6 +2879,18 @@ pub(crate) async fn run_repos_report(
             (
                 "INTENTIONAL".to_string(),
                 "intentional legacy isolation, no upstream configured".to_string(),
+            )
+        } else if flags.iter().any(|f| f == "EMPTY_REPO") {
+            // ADDED 2026-07-21 (v0.112.29): empty repos (no commits)
+            // get push_status = EMPTY, not FAIL. No push was ever
+            // attempted (the daemon's `is_repo_ready` skips empty
+            // repos), so "FAIL" would be a false positive. The status
+            // string is "no commits yet" so the operator's eye is
+            // drawn to the actionable cause instead of an opaque
+            // "push: fail" label.
+            (
+                "EMPTY".to_string(),
+                "no commits yet — awaiting first commit".to_string(),
             )
         } else if flags.iter().any(|f| f == "NO_UPSTREAM") {
             // CHANGED 2026-06-20: the `NO_UPSTREAM` flag now also fires
