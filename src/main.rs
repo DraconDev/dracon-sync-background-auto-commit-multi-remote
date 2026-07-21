@@ -516,15 +516,20 @@ fn handle_visibility_flip(
             visibility::parse_github_owner_repo(&origin_url)
         {
             // Github flip failed — cache the OBSERVED state (not the
-            // target), so the gate tracks reality.
-            let observed_private = visibility::get_github_visibility(&owner, &gh_repo);
-            visibility::update_visibility_cache(&repo_path, observed_private);
-            if policy::debug_enabled() {
-                eprintln!(
-                    "🐛 github flip failed; cached observed visibility (private={}) for {}",
-                    observed_private,
-                    repo_path.display()
-                );
+            // target), so the gate tracks reality. When the observed
+            // state is UNKNOWN (gh hiccup), skip the cache write
+            // entirely (v0.112.33, audit M25/F3.7).
+            if let Some(observed_private) =
+                visibility::get_github_visibility_opt(&owner, &gh_repo)
+            {
+                visibility::update_visibility_cache(&repo_path, observed_private);
+                if policy::debug_enabled() {
+                    eprintln!(
+                        "🐛 github flip failed; cached observed visibility (private={}) for {}",
+                        observed_private,
+                        repo_path.display()
+                    );
+                }
             }
         }
     }
@@ -1364,10 +1369,11 @@ async fn main() -> Result<()> {
                 );
             } else {
                 println!(
-                    "🔄 refresh-visibility · {} repos · refreshed {} · skipped {}",
+                    "🔄 refresh-visibility · {} repos · refreshed {} · skipped {} · errors {}",
                     repos.len(),
                     refreshed,
                     skipped,
+                    errors,
                 );
                 for r in &results {
                     let status = r.get("status").and_then(|v| v.as_str()).unwrap_or("?");
