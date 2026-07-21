@@ -60,22 +60,58 @@ pub(crate) enum SyncOutcome {
     FilterOnly,
 }
 
-/// Count the number of unpushed commits on `origin/main..HEAD` for the
-/// given repo. Used by `push_background` to scale the push timeout so a
-/// large 28-commit push with binary blobs doesn't get killed at the
-/// 60s default. Returns 0 if `git rev-list` fails (e.g. no origin/main).
+/// Count the number of unpushed commits for the given repo. Used by
+/// `push_background` to scale the push timeout so a large 28-commit
+/// push with binary blobs doesn't get killed at the 60s default.
+///
+/// CHANGED 2026-07-21 (v0.112.33, audit M6/F1.12): the previous
+/// implementation hardcoded `origin/main..HEAD` — for mirror-only
+/// repos (no `origin`, e.g. `.dracon`) and repos on a non-`main`
+/// branch, the rev-list failed → 0 → the timeout scaler NEVER
+/// engaged (exactly the repos the scaling was built for, per the
+/// v0.112.10 >60s push in AGENTS.md). Now resolves the best
+/// available tracking ref dynamically: `origin/<branch>` first,
+/// then mirror refs (`{github,gitlab,codeberg}/<branch>`,
+/// falling back to `/main` for pre-rename repos). When NO tracking
+/// ref exists anywhere, every commit is unpushed — return the local
+/// total (`count_all_head_commits`).
 pub(crate) async fn count_ahead_commits(repo: &Path) -> Result<u64> {
-    let output = crate::policy::tokio_git_command()
-        .args(["rev-list", "--count", "origin/main..HEAD"])
-        .current_dir(repo)
-        .output()
-        .await?;
-    if !output.status.success() {
-        // origin/main may not exist (e.g. never pushed yet) — treat as 0.
-        return Ok(0);
+    let branch = crate::git::current_branch(repo)
+        .filter(|b| b != "HEAD")
+        .unwrap_or_else(|| "main".to_string());
+    let mut candidates: Vec<String> = vec![format!("refs/remotes/origin/{}", branch)];
+    for mirror in ["github", "gitlab", "codeberg"] {
+        candidates.push(format!("refs/remotes/{}/{}", mirror, branch));
+        if branch != "main" {
+            candidates.push(format!("refs/remotes/{}/main", mirror));
+        }
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout.trim().parse::<u64>().unwrap_or(0))
+    for candidate in &candidates {
+        let exists = crate::policy::std_git_command()
+            .args(["rev-parse", "--verify", "-q", candidate])
+            .current_dir(repo)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if !exists {
+            continue;
+        }
+        let range = format!("{}..HEAD", candidate);
+        let output = crate::policy::tokio_git_command()
+            .args(["rev-list", "--count", &range])
+            .current_dir(repo)
+            .output()
+            .await?;
+        if !output.status.success() {
+            continue;
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        return Ok(stdout.trim().parse::<u64>().unwrap_or(0));
+    }
+    // No tracking ref anywhere → never pushed from this clone.
+    Ok(crate::git::count_all_head_commits(repo))
 }
 
 /// Check if the daemon's auto-commit backstop is active for a given
