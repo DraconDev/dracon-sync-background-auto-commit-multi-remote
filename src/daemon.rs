@@ -857,6 +857,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let json = serde_json::to_string(&entry).unwrap();
@@ -920,6 +921,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let debug = format!("{:?}", entry);
@@ -935,6 +937,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let cloned = entry.clone();
@@ -950,6 +953,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let entry2 = StuckRepoEntry {
@@ -958,6 +962,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let entry3 = StuckRepoEntry {
@@ -966,6 +971,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         assert_eq!(entry1.path, entry2.path);
@@ -981,6 +987,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         assert_eq!(entry.path, path);
@@ -995,6 +1002,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
             
         };
         let new = StuckRepoEntry {
@@ -1003,6 +1011,7 @@ mod tests {
             consecutive_failures: 0,
             last_error: String::new(),
             last_error_at: 0,
+            last_retry_at: 0,
 
         };
         assert!(old.stuck_since < new.stuck_since);
@@ -1586,6 +1595,7 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
 
     // ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
 
+    #[cfg(test)]
     fn stuck_entry(failures: u32, stuck_since: u64, last_error_at: u64, last_retry_at: u64) -> StuckRepoEntry {
         StuckRepoEntry {
             path: std::path::PathBuf::from("/tmp/test-repo"),
