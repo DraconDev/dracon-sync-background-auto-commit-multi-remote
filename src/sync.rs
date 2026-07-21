@@ -1822,10 +1822,10 @@ fn committer_identity_trusted(repo: &Path, policy: &SyncPolicy) -> bool {
         }
     }
     let email_ok = git_config_get(repo, "user.email")
-        .map(|e| policy.trusted_emails.iter().any(|t| *t == e))
+        .map(|e| policy.trusted_emails.contains(&e))
         .unwrap_or(false);
     let name_ok = git_config_get(repo, "user.name")
-        .map(|n| policy.trusted_authors.iter().any(|t| *t == n))
+        .map(|n| policy.trusted_authors.contains(&n))
         .unwrap_or(false);
     email_ok && name_ok
 }
