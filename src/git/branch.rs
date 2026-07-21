@@ -422,7 +422,13 @@ mod tests {
             .unwrap();
         // Break the upstream: point branch.main.merge at a ref that
         // doesn't exist (origin/master) → `git branch -vv` reports
-        // `[origin/master: gone]`.
+        // `[origin/master: gone]`. NOTE: the `origin` remote must
+        // EXIST for git to render the annotation at all.
+        crate::git::git_cmd()
+            .args(["remote", "add", "origin", "/tmp/nonexistent-origin-m11.git"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
         for (k, v) in [
             ("branch.main.remote", "origin"),
             ("branch.main.merge", "refs/heads/master"),
@@ -445,6 +451,13 @@ mod tests {
             "test setup must produce a gone upstream, got: {}",
             vv_text
         );
+        // The repair points the upstream at origin/main, which must
+        // exist for `--set-upstream-to` to accept it.
+        crate::git::git_cmd()
+            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
 
         let repaired = repair_broken_tracking(&[repo.clone()]);
         assert_eq!(
