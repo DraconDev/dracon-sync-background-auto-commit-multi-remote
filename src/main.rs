@@ -849,6 +849,13 @@ async fn main() -> Result<()> {
                             repo.display()
                         );
                     }
+                    // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
+                    Ok(crate::sync::SyncOutcome::FilterOnly) => {
+                        println!(
+                            "🧹 {} filter-only dirty (nothing real to commit)",
+                            repo.display()
+                        );
+                    }
                     Err(e) => {
                         eprintln!("❌ error syncing {}: {}", repo.display(), e);
                     }

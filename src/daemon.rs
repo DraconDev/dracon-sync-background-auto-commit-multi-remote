@@ -3696,7 +3696,7 @@ pub(crate) async fn run_daemon(
                                 repo.display()
                             );
                         }
-                        stage_cooldowns.insert(repo.clone(), now + Duration::from_secs(300));
+                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
                         true
                     }
                     Ok(SyncOutcome::Blocked) => {
@@ -3861,7 +3861,7 @@ pub(crate) async fn run_daemon(
                                     );
                                 }
                                 stage_cooldowns
-                                    .insert(repo.clone(), now + Duration::from_secs(300));
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
                             }
                             Ok(SyncOutcome::Blocked) => {
                                 if debug_enabled() {
