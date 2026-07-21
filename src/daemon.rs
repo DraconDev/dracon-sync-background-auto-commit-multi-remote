@@ -396,6 +396,35 @@ pub(crate) struct StuckRepoEntry {
     pub(crate) last_retry_at: u64,
 }
 
+/// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): how long an
+/// `Unowned`/`Unknown` verdict is cached before re-detection.
+/// 10 minutes balances remediation responsiveness against the
+/// cost of re-detection (4 git subprocess calls per unowned repo).
+const OWNERSHIP_REDETECT_TTL: Duration = Duration::from_secs(600);
+
+/// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): pure predicate —
+/// should the cached ownership verdict be (re)computed? True when
+/// never classified, or when the cached verdict is a NEGATIVE
+/// classification (Unowned/Unknown) older than the TTL. Owned
+/// verdicts stay sticky: a transient git error must not flip a good
+/// repo into skip mode. Extracted for unit testing.
+pub(crate) fn ownership_needs_redetect(
+    ownership: &Option<crate::ownership::OwnershipReport>,
+    detected_at: Option<Instant>,
+    now: Instant,
+    ttl: Duration,
+) -> bool {
+    match ownership {
+        None => true,
+        Some(crate::ownership::OwnershipReport::Owned { .. }) => false,
+        Some(crate::ownership::OwnershipReport::Unowned { .. })
+        | Some(crate::ownership::OwnershipReport::Unknown { .. }) => match detected_at {
+            None => true,
+            Some(t) => now.duration_since(t) >= ttl,
+        },
+    }
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): what the daemon loop
 /// should do with a repo that has a stuck-push ledger entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1593,6 +1622,67 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert!(default_true());
     }
 
+    // ---- ownership_needs_redetect TTL (v0.112.31, audit H1/F0.2) ----
+
+    /// The ownership verdict must (a) compute when never classified,
+    /// (b) stay STICKY when Owned (a transient git error must not
+    /// flip a good repo into skip mode), (c) re-detect an
+    /// Unowned/Unknown verdict after the TTL (the regression: pre-fix
+    /// the verdict was cached forever and operator remediation was
+    /// invisible until restart/SIGHUP).
+    #[test]
+    fn test_ownership_needs_redetect_ttl() {
+        use crate::ownership::OwnershipReport;
+        let ttl = Duration::from_secs(600);
+        let now = Instant::now();
+
+        // (a) never classified → detect.
+        assert!(ownership_needs_redetect(&None, None, now, ttl));
+
+        // (b) Owned verdict → sticky forever, even past TTL.
+        let owned = Some(OwnershipReport::Owned {
+            reason: "trusted_email".to_string(),
+        });
+        assert!(!ownership_needs_redetect(&owned, None, now, ttl));
+        assert!(!ownership_needs_redetect(
+            &owned,
+            Some(now - Duration::from_secs(86_400)),
+            now,
+            ttl
+        ));
+
+        // (c) Unowned verdict: fresh → keep cached; past TTL → re-detect.
+        let unowned = Some(OwnershipReport::Unowned {
+            reason: "untrusted_email".to_string(),
+            detail: "x".to_string(),
+        });
+        assert!(!ownership_needs_redetect(
+            &unowned,
+            Some(now - Duration::from_secs(60)),
+            now,
+            ttl
+        ));
+        assert!(ownership_needs_redetect(
+            &unowned,
+            Some(now - Duration::from_secs(601)),
+            now,
+            ttl
+        ));
+        // Unowned with missing timestamp → detect (defensive).
+        assert!(ownership_needs_redetect(&unowned, None, now, ttl));
+
+        // Unknown verdict follows the same TTL path.
+        let unknown = Some(OwnershipReport::Unknown {
+            detail: "no signals".to_string(),
+        });
+        assert!(ownership_needs_redetect(
+            &unknown,
+            Some(now - Duration::from_secs(601)),
+            now,
+            ttl
+        ));
+    }
+
     // ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
 
     #[cfg(test)]
@@ -2440,34 +2530,6 @@ pub(crate) async fn run_daemon(
         /// transient git error must not flip a good repo into skip
         /// mode).
         ownership_at: Option<Instant>,
-    }
-
-    /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): how long an
-    /// `Unowned`/`Unknown` verdict is cached before re-detection.
-    /// 10 minutes balances remediation responsiveness against the
-    /// cost of re-detection (4 git subprocess calls per unowned repo).
-    const OWNERSHIP_REDETECT_TTL: Duration = Duration::from_secs(600);
-
-    /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): pure predicate —
-    /// should the cached ownership verdict be (re)computed? True when
-    /// never classified, or when the cached verdict is a NEGATIVE
-    /// classification (Unowned/Unknown) older than the TTL. Extracted
-    /// for unit testing.
-    fn ownership_needs_redetect(
-        ownership: &Option<crate::ownership::OwnershipReport>,
-        detected_at: Option<Instant>,
-        now: Instant,
-        ttl: Duration,
-    ) -> bool {
-        match ownership {
-            None => true,
-            Some(crate::ownership::OwnershipReport::Owned { .. }) => false,
-            Some(crate::ownership::OwnershipReport::Unowned { .. })
-            | Some(crate::ownership::OwnershipReport::Unknown { .. }) => match detected_at {
-                None => true,
-                Some(t) => now.duration_since(t) >= ttl,
-            },
-        }
     }
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
