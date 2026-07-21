@@ -2657,6 +2657,21 @@ pub(crate) async fn run_daemon(
                     // SIGHUP (= operator soft-reset after remediation)
                     // re-arms all throttled notifications.
                     remote_notify_cooldowns.clear();
+                    // ADDED 2026-07-21 (v0.112.33, audit M7/F1.13):
+                    // clear the remaining cooldown maps and reload the
+                    // stuck-push ledger — the pre-fix SIGHUP cleared an
+                    // inconsistent subset, so an operator who fixed a
+                    // repo and poked the daemon still waited out the
+                    // bootstrap/auto-create/ls-remote backoffs, and an
+                    // `unstuck` on disk was invisible to the in-memory
+                    // map until the 5-min retry fired. SIGHUP = full
+                    // soft reset (in_flight is deliberately left
+                    // alone: its tasks are still running).
+                    empty_bootstrap_cooldowns.clear();
+                    auto_create_cooldowns.clear();
+                    ls_remote_cooldowns.clear();
+                    pending_repos.clear();
+                    stuck_push_repos = load_stuck_push_repos();
                 }
                 Err(e) => eprintln!("sync: SIGHUP policy reload failed: {}", e),
             }
@@ -2893,7 +2908,20 @@ pub(crate) async fn run_daemon(
                             Ok(true) => {
                                 empty_bootstrap_cooldowns.remove(&repo);
                             }
-                            Ok(false) => {}
+                            // CHANGED 2026-07-21 (v0.112.33, audit
+                            // M3/F1.10): cooldown on the
+                            // nothing-to-stage path too — previously
+                            // only the Err arm cooled down, so an
+                            // empty repo (no files, or all files
+                            // excluded) re-ran the full bootstrap
+                            // (TOML parse, ownership detection,
+                            // ls-files) every 1s cycle. 60s keeps
+                            // first-file latency low while stopping
+                            // the per-cycle churn.
+                            Ok(false) => {
+                                empty_bootstrap_cooldowns
+                                    .insert(repo.clone(), now + Duration::from_secs(60));
+                            }
                             Err(e) => {
                                 eprintln!(
                                     "⚠️ {} empty-repo bootstrap failed (cooldown 300s): {}",
