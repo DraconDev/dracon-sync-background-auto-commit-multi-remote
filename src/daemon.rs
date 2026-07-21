@@ -1584,6 +1584,99 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert!(default_true());
     }
 
+    // ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
+
+    fn stuck_entry(failures: u32, stuck_since: u64, last_error_at: u64, last_retry_at: u64) -> StuckRepoEntry {
+        StuckRepoEntry {
+            path: std::path::PathBuf::from("/tmp/test-repo"),
+            stuck_since,
+            consecutive_failures: failures,
+            last_error: "boom".to_string(),
+            last_error_at,
+            last_retry_at,
+        }
+    }
+
+    #[test]
+    fn test_stuck_decision_backoff_inside_window() {
+        let info = stuck_entry(2, 1000, 1900, 0);
+        // now = 2000, last activity 1900 → 100s < 300s backoff
+        assert_eq!(
+            stuck_decision(&info, 2000, 5, 300),
+            StuckDecision::Backoff
+        );
+    }
+
+    #[test]
+    fn test_stuck_decision_retry_after_window() {
+        let info = stuck_entry(2, 1000, 1500, 0);
+        // 500s since last failure → retry
+        assert_eq!(
+            stuck_decision(&info, 2000, 5, 300),
+            StuckDecision::Retry
+        );
+    }
+
+    #[test]
+    fn test_stuck_decision_retry_respects_last_retry_stamp() {
+        // A retry was attempted recently (last_retry_at = 1950) —
+        // even though the last FAILURE is old, the backoff runs from
+        // the attempt so a non-push failure doesn't spin every cycle.
+        let info = stuck_entry(2, 1000, 1500, 1950);
+        assert_eq!(
+            stuck_decision(&info, 2000, 5, 300),
+            StuckDecision::Backoff
+        );
+        assert_eq!(
+            stuck_decision(&info, 2300, 5, 300),
+            StuckDecision::Retry
+        );
+    }
+
+    #[test]
+    fn test_stuck_decision_exhausted_at_budget() {
+        // Regression: pre-fix, the retry path deleted the entry and
+        // the budget reset to 1 every 5 minutes, so Exhausted could
+        // never fire. Now consecutive_failures accumulates.
+        let info = stuck_entry(5, 1000, 1999, 0);
+        assert_eq!(
+            stuck_decision(&info, 2000, 5, 300),
+            StuckDecision::Exhausted,
+            "consecutive_failures >= push_max_retries must stop auto-push"
+        );
+        // Exhausted wins even inside the backoff window.
+        let info2 = stuck_entry(6, 1000, 1999, 1999);
+        assert_eq!(stuck_decision(&info2, 2000, 5, 300), StuckDecision::Exhausted);
+        // Just below budget → normal retry flow.
+        let info3 = stuck_entry(4, 1000, 1500, 0);
+        assert_eq!(stuck_decision(&info3, 2000, 5, 300), StuckDecision::Retry);
+    }
+
+    #[test]
+    fn test_record_push_failure_accumulates_across_calls() {
+        // Regression for the budget-reset defect: consecutive
+        // failures must ACCUMULATE (the old loop deleted the entry
+        // before each retry, so record_push_failure re-created it
+        // with consecutive_failures = 1 every 5 minutes).
+        let state_dir = tempfile::tempdir().unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let repo = std::path::Path::new("/tmp/h5-accum-test-repo");
+        record_push_failure(repo, "fail 1");
+        record_push_failure(repo, "fail 2");
+        record_push_failure(repo, "fail 3");
+        let repos = load_stuck_push_repos();
+        let entry = repos.get(repo).expect("entry must exist");
+        assert_eq!(entry.consecutive_failures, 3);
+        assert_eq!(entry.last_error, "fail 3");
+        assert!(entry.last_error_at > 0);
+        // Success clears the entry.
+        record_push_success(repo);
+        assert!(load_stuck_push_repos().get(repo).is_none());
+    }
+
     /// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): the notification
     /// throttle must (a) allow the FIRST notification, (b) suppress
     /// repeats inside the cooldown, and (c) RE-FIRE after the
@@ -2346,11 +2439,27 @@ pub(crate) async fn run_daemon(
     // repo forever. Throttle to one attempt per 5 minutes per repo;
     // the first attempt is immediate (map starts empty).
     let mut auto_create_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
-    // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): start empty —
-    // the loop reloads the ledger from disk at the top of every
-    // cycle, so the startup load was a redundant read whose value
-    // was never used before being overwritten.
-    let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
+    // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): the loop
+    // reloads the ledger from disk at the top of every cycle; the
+    // startup load below is used for the operator-visible summary of
+    // repos entering the daemon already stuck (and keeps the
+    // initial assignment read, not dead).
+    let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = load_stuck_push_repos();
+    if !stuck_push_repos.is_empty() {
+        eprintln!(
+            "📋 startup: {} repo(s) in the stuck-push ledger: {}",
+            stuck_push_repos.len(),
+            stuck_push_repos
+                .iter()
+                .map(|(p, e)| format!(
+                    "{} ({} failures)",
+                    p.file_name().unwrap_or_default().to_string_lossy(),
+                    e.consecutive_failures
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
     let mut cycle_count: u64 = 0;
     // Repos with an active `sync_repo` task. The COLLECT phase
