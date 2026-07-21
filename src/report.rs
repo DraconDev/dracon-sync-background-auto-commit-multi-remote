@@ -5957,7 +5957,13 @@ mod tests {
         status.modified_files = if is_clean { 0 } else { 1 };
         status.untracked_files = 0;
         status.staged_files = 0;
-        status.last_commit_hash = None;
+        // ADDED 2026-07-21 (v0.112.29): most tests build a status
+        // for a hypothetical repo WITH commits. Setting
+        // `last_commit_hash = Some(...)` here prevents the new
+        // `EMPTY_REPO` flag from firing on every test. Tests that
+        // exercise the empty-repo path explicitly set
+        // `last_commit_hash = None` after calling `make_status`.
+        status.last_commit_hash = Some("deadbeef".to_string());
         status.last_commit_msg = None;
         status
     }
