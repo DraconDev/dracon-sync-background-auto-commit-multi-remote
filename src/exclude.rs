@@ -1000,21 +1000,26 @@ pub(crate) fn matches_untracked_exclude(
             continue;
         }
 
-        // CHANGED 2026-07-21 (v0.112.33, audit M28/F3.12): full
-        // relative-path patterns WITHOUT `**` (e.g.
-        // `reports/kdp-live-*.md`, `web/test-results/*.png`,
-        // `.demon/**`). The pre-fix code fell through BOTH branches
-        // (basename requires no `/`; glob required `**`), so these
-        // patterns were silently DEAD — files the operator wanted
-        // excluded got auto-committed with no warning.
-        if !pattern.contains("**") {
-            // `dir/**` prefix form (e.g. `.demon/**`): root-anchored.
-            if let Some(prefix) = pattern.strip_suffix("/**") {
+        // `dir/**` prefix form (e.g. `.demon/**`): root-anchored.
+        // Checked BEFORE the `**` branch — the suffix contains `**`
+        // but the semantics are plain dir-prefix.
+        if let Some(prefix) = pattern.strip_suffix("/**") {
+            if !prefix.is_empty() && !prefix.contains('*') {
                 if rel == prefix || rel.starts_with(&format!("{}/", prefix)) {
                     return true;
                 }
                 continue;
             }
+        }
+
+        // CHANGED 2026-07-21 (v0.112.33, audit M28/F3.12): full
+        // relative-path patterns WITHOUT `**` (e.g.
+        // `reports/kdp-live-*.md`, `web/test-results/*.png`). The
+        // pre-fix code fell through BOTH branches (basename requires
+        // no `/`; glob required `**`), so these patterns were
+        // silently DEAD — files the operator wanted excluded got
+        // auto-committed with no warning.
+        if !pattern.contains("**") {
             // Exact / segment-wise relative glob.
             if rel_matches_glob_path(&rel, pattern) {
                 return true;
@@ -1663,4 +1668,72 @@ pub(crate) fn has_sync_relevant_dirty_entries(
         ) || can_restore_entry(repo, entry)
             || is_large_untracked(entry, repo, max_stage_file_bytes)
     })
+}
+
+#[cfg(test)]
+mod m28_tests {
+    /// ADDED 2026-07-21 (v0.112.33, audit M28/F3.12): pins the
+    /// exclude-pattern matcher semantics after the rewrite.
+    use super::matches_untracked_exclude;
+    use std::path::Path;
+
+    fn m(repo: &Path, rel: &str, patterns: &[&str]) -> bool {
+        let pats: Vec<String> = patterns.iter().map(|s| s.to_string()).collect();
+        matches_untracked_exclude(repo, &repo.join(rel), &pats)
+    }
+
+    #[test]
+    fn test_single_slash_relative_patterns_no_longer_dead() {
+        let repo = Path::new("/repo");
+        // `reports/kdp-live-*.md` — silently DEAD in the pre-fix
+        // matcher (fell through both branches).
+        assert!(m(repo, "reports/kdp-live-2026.md", &["reports/kdp-live-*.md"]));
+        assert!(!m(repo, "reports/other.md", &["reports/kdp-live-*.md"]));
+        assert!(!m(repo, "other/kdp-live-2026.md", &["reports/kdp-live-*.md"]));
+        // `web/test-results/*.png` (the auto_commit_exclude example).
+        assert!(m(repo, "web/test-results/shot.png", &["web/test-results/*.png"]));
+        assert!(!m(repo, "web/test-results/deep/shot.png", &["web/test-results/*.png"]));
+    }
+
+    #[test]
+    fn test_glob_dir_prefix_forms() {
+        let repo = Path::new("/repo");
+        // `**/scratch/**` — segment-exact.
+        assert!(m(repo, "docs/scratch/notes.md", &["**/scratch/**"]));
+        assert!(m(repo, "scratch/x", &["**/scratch/**"]));
+        assert!(m(repo, "a/b/scratch/c/d", &["**/scratch/**"]));
+        // Overmatch cases from the audit — must NOT match.
+        assert!(!m(repo, "docs/unscratched/notes.md", &["**/scratch/**"]));
+        assert!(!m(repo, "src/scratchpad.rs", &["**/scratch/**"]));
+        assert!(!m(repo, "foo/tmpl/x", &["**/tmp/**"]));
+        // `**/~/**` — only a literal `~` segment.
+        assert!(m(repo, "x/~/y", &["**/~/**"]));
+        assert!(!m(repo, "notes/~draft.md", &["**/~/**"]));
+        // Multi-segment middle: `**/research/scratch/**`.
+        assert!(m(repo, "docs/research/scratch/x.md", &["**/research/scratch/**"]));
+        assert!(m(repo, "research/scratch/x", &["**/research/scratch/**"]));
+        assert!(!m(repo, "docs/unresearched/scratch/x.md", &["**/research/scratch/**"]));
+        assert!(!m(repo, "docs/research/other/x.md", &["**/research/scratch/**"]));
+    }
+
+    #[test]
+    fn test_trailing_starstar_name_forms() {
+        let repo = Path::new("/repo");
+        // `**/scratch-*` — any full segment matching the glob.
+        assert!(m(repo, "a/scratch-pad/x", &["**/scratch-*"]));
+        assert!(m(repo, "scratch-2026/x", &["**/scratch-*"]));
+        assert!(!m(repo, "a/scratch/x", &["**/scratch-*"]));
+        // `.demon/**` — root-anchored prefix.
+        assert!(m(repo, ".demon/state.json", &[".demon/**"]));
+        assert!(m(repo, ".demon/deep/x", &[".demon/**"]));
+        assert!(!m(repo, "other/.demon/x", &[".demon/**"]));
+    }
+
+    #[test]
+    fn test_basename_patterns_still_work() {
+        let repo = Path::new("/repo");
+        assert!(m(repo, "docs/note.md", &["note.md"]));
+        assert!(m(repo, "a/b/c.png", &["*.png"]));
+        assert!(!m(repo, "a/b/c.jpg", &["*.png"]));
+    }
 }
