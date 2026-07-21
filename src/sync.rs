@@ -8184,6 +8184,135 @@ auto_bump_versions = false
         );
     }
 
+    /// ADDED 2026-07-21 (v0.112.31, audit H6/F1.5): a file NESTED
+    /// inside an untracked directory must get the per-file staging
+    /// policy applied — previously the directory-expansion recursion
+    /// staged everything inside wholesale, so a 500 MiB file inside
+    /// a new dir bypassed the 100 MiB hard exclusion (and every
+    /// pattern exclusion) even though the same file at repo root
+    /// was rejected by `should_stage_entry`.
+    #[tokio::test]
+    async fn test_stage_existing_files_filtered_skips_oversized_nested() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+        }
+        // Untracked dir with a small file + a 2 KiB "big" file.
+        std::fs::create_dir_all(repo.join("assets")).unwrap();
+        std::fs::write(repo.join("assets/small.txt"), b"ok\n").unwrap();
+        std::fs::write(repo.join("assets/big.bin"), vec![0u8; 2048]).unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+max_stage_file_bytes = 1024
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        stage_existing_files_filtered(
+            &repo,
+            &["assets".to_string()],
+            false,
+            60,
+            &BTreeSet::new(),
+            Some((&policy, &[])),
+        )
+        .await
+        .unwrap();
+
+        let staged = std::process::Command::new("git")
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let staged_text = String::from_utf8_lossy(&staged.stdout);
+        assert!(
+            staged_text.contains("assets/small.txt"),
+            "small nested file must be staged: {:?}",
+            staged_text
+        );
+        assert!(
+            !staged_text.contains("assets/big.bin"),
+            "oversized nested file must NOT be staged (regression: expansion bypassed max_stage_file_bytes): {:?}",
+            staged_text
+        );
+    }
+
+    /// ADDED 2026-07-21 (v0.112.31, audit H6/F1.5): pattern
+    /// exclusions (untracked_exclude_patterns) must also apply to
+    /// directory-expanded files.
+    #[tokio::test]
+    async fn test_stage_existing_files_filtered_skips_excluded_pattern_nested() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+        }
+        std::fs::create_dir_all(repo.join("research")).unwrap();
+        std::fs::write(repo.join("research/keep.md"), b"keep\n").unwrap();
+        std::fs::write(repo.join("research/scratch-notes.md"), b"skip\n").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+untracked_exclude_patterns = ["scratch-*"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        stage_existing_files_filtered(
+            &repo,
+            &["research".to_string()],
+            false,
+            60,
+            &BTreeSet::new(),
+            Some((&policy, &[])),
+        )
+        .await
+        .unwrap();
+
+        let staged = std::process::Command::new("git")
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let staged_text = String::from_utf8_lossy(&staged.stdout);
+        assert!(
+            staged_text.contains("research/keep.md"),
+            "non-excluded nested file must be staged: {:?}",
+            staged_text
+        );
+        assert!(
+            !staged_text.contains("research/scratch-notes.md"),
+            "pattern-excluded nested file must NOT be staged: {:?}",
+            staged_text
+        );
+    }
+
 
     /// Regression test for goal `mr10pdzr-i495vy`:
     /// `parent_with_materialized_subrepo_and_dirty_subrepo`. After
