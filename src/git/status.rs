@@ -537,6 +537,39 @@ mod tests {
         assert_eq!(count_all_head_commits(&repo), 2, "two commits → 2");
     }
 
+    /// ADDED 2026-07-21 (v0.112.33, audit M16/F2.7): IndexLock on a
+    /// nested-submodule-style repo (`.git` is a FILE pointing at a
+    /// shared gitdir) must create the lock in the REAL gitdir — the
+    /// pre-fix code hardcoded `<repo>/.git/index.lock`, which failed
+    /// with ENOTDIR on every submodule, so `ensure_standard_files`
+    /// was silently skipped every cycle.
+    #[test]
+    fn test_index_lock_resolves_real_gitdir_for_submodule() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().join("parent");
+        let nested = parent.join("sub");
+        let real_gitdir = parent.join(".git").join("modules").join("sub");
+        std::fs::create_dir_all(&real_gitdir).unwrap();
+        std::fs::create_dir_all(&nested).unwrap();
+        // `.git` FILE with a relative gitdir pointer (submodule layout).
+        std::fs::write(nested.join(".git"), "gitdir: ../.git/modules/sub\n").unwrap();
+
+        let lock = IndexLock::acquire(&nested).expect("acquire must succeed");
+        assert!(
+            real_gitdir.join("index.lock").exists(),
+            "lock must be created in the real gitdir"
+        );
+        assert!(
+            !nested.join(".git").join("index.lock").exists(),
+            "lock must NOT be created under the .git file"
+        );
+        drop(lock);
+        assert!(
+            !real_gitdir.join("index.lock").exists(),
+            "lock must be released on drop"
+        );
+    }
+
     // ---- any_mirror_tracking_ref_exists (v0.112.31, audit H7/F1.4) ----
 
     #[test]
