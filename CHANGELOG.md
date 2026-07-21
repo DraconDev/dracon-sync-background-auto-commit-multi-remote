@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.31 — 2026-07-21 — audit HIGH batch: failure-visibility + policy-enforcement
+
+**Operator-visible changes (8 fixes from `AUDIT_FULL_2026-07-21.md`):**
+
+1. **Push failure is no longer reported as `🔁 synced`** (H3/F1.3). New `SyncOutcome::PushFailed`; the apply phase counts the failure (no synced log, `failure_count` increments). A mirror-leg failure (origin succeeded) also returns PushFailed — sync isn't healthy until ALL forges are current.
+2. **Throttled notifications actually expire** (H4/F1.1). Every notification previously fired exactly ONCE per daemon lifetime (the `Entry::Vacant` deadlines were never read). New `notify_throttled` helper at 7 sites + SIGHUP clear.
+3. **Stuck-push ledger unified; `push_max_retries` enforced** (H5/F1.2). Per-cycle disk reload fixes the split-brain; retries stamp `last_retry_at` instead of deleting the entry (the budget reset every 5 minutes); `StuckDecision::Exhausted` stops auto-push when the budget is spent and tells the operator how to resume (`dracon-sync unstuck` / `repair-concerns --apply`). Startup logs repos entering already-stuck.
+4. **Directory-expansion can no longer bypass the 100 MiB hard limit** (H6/F1.5). New `stage_existing_files_filtered` re-applies size + pattern policy to every file discovered by the untracked-dir recursion.
+5. **Local-first ahead counting** (H7/F1.4). No more `git ls-remote` (SSH) every 1s cycle for broken-push repos — a missing tracking ref already implies all-commits-unpushed (local `count_all_head_commits` + new `any_mirror_tracking_ref_exists`); ls-remote fallback behind 300s cooldown.
+6. **Codeberg API URL fixed** (H10/F3.1). The v0.112.29 GitLab two-placeholder `str::replace` bug had a codeberg twin — every codeberg visibility/metadata call 404'd. `make-public --include-codeberg` now works (live-verified: corrected URL → 200, old → 404).
+7. **Ownership verdict re-detects on a 10-minute TTL** (H1/F0.2). Operator remediation (fixed user.email/origin) is picked up without a daemon restart; recovery gets a `✅ ownership restored` log + alert. The skip log carries the SIGHUP recovery hint.
+8. **Mirror failures tracked and named** (M1/F1.7+F3.9). `mirror_consecutive_fails` is finally populated (Mirror-Degraded notification was dead code); the stuck-ledger `last_error` names the failing remotes (`remotes: bad-mirror`) — the `repos` HINT says WHICH forge is failing.
+
+**Internal:**
+
+- `sync.rs`: PushFailed outcome + propagation, `stage_existing_files_filtered` (+ per-file re-filter), `failing_remote_names`.
+- `daemon.rs`: `notify_throttled` (+7 sites, SIGHUP clear), stuck-push reload/`last_retry_at`/`StuckDecision`, ahead-override local-first reorder + `ls_remote_cooldowns`, ownership TTL re-detect (`ownership_needs_redetect`, `OWNERSHIP_REDETECT_TTL = 600s`) + recovery alert, `mirror_consecutive_fails` wiring at both apply-phase sites.
+- `git/status.rs`: `any_mirror_tracking_ref_exists`.
+- `visibility.rs`: codeberg single-placeholder template.
+- `main.rs`: sync-now PushFailed arm.
+
+**Tests:** 797 daemon tests pass (+14). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean. Audit: `AUDIT_FULL_2026-07-21.md` (H1, H3, H4, H5, H6, H7, H10, M1 remediated).
+
 ### v0.112.30 — 2026-07-21 — empty-repo bootstrap + never-pushed detection + codeberg exclusion
 
 **Operator-visible changes:**
