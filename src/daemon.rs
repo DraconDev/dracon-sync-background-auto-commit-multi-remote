@@ -1638,6 +1638,38 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert!(default_true());
     }
 
+    // ---- sustained_threshold_met (v0.112.37) ----
+
+    /// The sustained-state notification thresholds (ahead/behind/
+    /// blocked/unowned) must fire only after the threshold elapses,
+    /// and never when the timestamp is unset.
+    #[test]
+    fn test_sustained_threshold_met() {
+        let now = Instant::now();
+        let threshold = Duration::from_secs(1800);
+        // Unset → never fires.
+        assert!(!sustained_threshold_met(None, now, threshold));
+        // Just set → not yet.
+        assert!(!sustained_threshold_met(Some(now), now, threshold));
+        // Before threshold → no.
+        assert!(!sustained_threshold_met(
+            Some(now - Duration::from_secs(60)),
+            now,
+            threshold
+        ));
+        // At/over threshold → fires.
+        assert!(sustained_threshold_met(
+            Some(now - Duration::from_secs(1800)),
+            now,
+            threshold
+        ));
+        assert!(sustained_threshold_met(
+            Some(now - Duration::from_secs(7200)),
+            now,
+            threshold
+        ));
+    }
+
     // ---- ownership_needs_redetect TTL (v0.112.31, audit H1/F0.2) ----
 
     /// The ownership verdict must (a) compute when never classified,
