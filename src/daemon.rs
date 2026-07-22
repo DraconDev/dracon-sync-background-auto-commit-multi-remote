@@ -3782,6 +3782,14 @@ pub(crate) async fn run_daemon(
                         // transient failure; excluded from the
                         // failure_count increment below.
                         blocked = true;
+                        // ADDED 2026-07-22 (v0.112.36): cool the repo
+                        // down for 300s — a needs-human block
+                        // (merge/rebase in progress, ownership guard)
+                        // otherwise re-dispatches every debounce
+                        // window (~50s), churning identical
+                        // stage→block cycles and log lines (seen live
+                        // on darklord with the M10 guard).
+                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
                         false
                     }
                     // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
@@ -3984,6 +3992,11 @@ pub(crate) async fn run_daemon(
                                 // audit M4/F1.6): needs-human state —
                                 // no failure_count increment (matches
                                 // the main apply phase).
+                                // ADDED 2026-07-22 (v0.112.36): 300s
+                                // cooldown (matches the main apply
+                                // phase).
+                                stage_cooldowns
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
                             }
                             // ADDED 2026-07-21 (v0.112.31, audit
                             // H3/F1.3): commit succeeded but the push

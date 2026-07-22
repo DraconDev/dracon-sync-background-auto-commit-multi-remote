@@ -1876,35 +1876,30 @@ fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> Str
 }
 
 /// ADDED 2026-07-21 (v0.112.33, audit M10/F0.3): whether the repo's
-/// effective committer identity (`git config user.email` +
-/// `user.name`, which reads the local→global chain) is in the
-/// policy's trusted lists. The daemon auto-commits with this
-/// identity, so an untrusted identity must block the commit — see
+/// effective committer identity is acceptable for an auto-commit.
+/// The daemon commits with whatever `user.email`/`user.name` the repo
+/// config says, so an untrusted identity must block the commit — see
 /// the guard in `stage_commit_and_push`.
-fn committer_identity_trusted(repo: &Path, policy: &SyncPolicy) -> bool {
-    fn git_config_get(repo: &Path, key: &str) -> Option<String> {
-        let out = crate::policy::std_git_command()
-            .args(["config", "--get", key])
-            .current_dir(repo)
-            .output()
-            .ok()?;
-        if !out.status.success() {
-            return None;
-        }
-        let v = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if v.is_empty() {
-            None
-        } else {
-            Some(v)
-        }
-    }
-    let email_ok = git_config_get(repo, "user.email")
-        .map(|e| policy.trusted_emails.contains(&e))
-        .unwrap_or(false);
-    let name_ok = git_config_get(repo, "user.name")
-        .map(|n| policy.trusted_authors.contains(&n))
-        .unwrap_or(false);
-    email_ok && name_ok
+///
+/// CHANGED 2026-07-22 (v0.112.36): implemented as a FRESH ownership
+/// re-check (`detect_ownership` with the repo's override) rather
+/// than a raw "identity ∈ trusted lists" check. The raw check
+/// double-guessed the ownership classification: darklord has
+/// `owned = true` in its `.dracon/dracon-sync.toml` (operator-
+/// blessed) and a deliberate per-repo identity
+/// (`darklord-dev <darklord@dracon.local>`), so the raw check
+/// blocked every commit (101 staged files piled up, WARN + a
+/// journal warning every ~50s). The F0.1 case still blocks: no
+/// override + untrusted `test@test` → `Unowned`.
+fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
+    let repo_override = load_repo_override(repo);
+    let trusted = crate::ownership::TrustedSet {
+        emails: policy.trusted_emails.clone(),
+        authors: policy.trusted_authors.clone(),
+        remote_hosts: policy.trusted_remote_hosts.clone(),
+    };
+    let report = crate::ownership::detect_ownership(repo, &trusted, repo_override.owned);
+    matches!(report, crate::ownership::OwnershipReport::Owned { .. })
 }
 
 /// Task state transitions extracted from a markdown diff.
@@ -3248,17 +3243,19 @@ async fn stage_commit_and_push(
     let msg = blast_radius;
 
     // ADDED 2026-07-21 (v0.112.33, audit M10/F0.3): pre-commit
-    // identity guard — verify the effective committer identity
-    // (user.email + user.name, local→global chain) is in the
-    // policy's trusted lists BEFORE committing. The F0.1 incident
-    // (2026-07-21) showed the daemon committing with a poisoned
-    // identity (`test <test@test>` written into the LIVE repo's
-    // config by a test) and the ownership guard locking the repo
-    // out only AFTER the damage was already on the mirrors. This
-    // turns the post-hoc lockout into a pre-commit guard.
-    if !committer_identity_trusted(repo, policy) {
+    // identity guard — re-verify ownership FRESH (no cache) before
+    // committing. The F0.1 incident showed the daemon committing
+    // with a poisoned identity (`test <test@test>` written into the
+    // LIVE repo's config by a test) and the ownership guard locking
+    // the repo out only AFTER the damage was already on the mirrors.
+    // CHANGED 2026-07-22 (v0.112.36): the guard now honors
+    // ownership overrides (`owned = true` in
+    // `.dracon/dracon-sync.toml`) — the previous raw trusted-list
+    // check blocked operator-blessed per-repo identities
+    // (darklord's `darklord-dev <darklord@dracon.local>`).
+    if !commit_allowed_by_ownership(repo, policy) {
         eprintln!(
-            "⚠️ {} committer identity untrusted (git config user.email/user.name not in trusted_emails/trusted_authors) — skipping auto-commit; the staged index is left intact",
+            "⚠️ {} ownership check failed at commit time (untrusted identity — see `dracon-sync ownership --explain`) — skipping auto-commit; the staged index is left intact",
             repo.display()
         );
         return Ok(Some(SyncOutcome::Blocked));
