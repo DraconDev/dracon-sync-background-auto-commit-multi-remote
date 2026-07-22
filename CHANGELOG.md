@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.36 — 2026-07-22 — M10 guard honors ownership overrides + WARN width fix
+
+1. **darklord WARN (operator-reported)**: the v0.112.33 M10 pre-commit identity guard used a raw trusted-list check and blocked darklord's deliberate per-repo identity (`darklord-dev <darklord@dracon.local`) despite its `owned = true` override — 101 staged files sat for a day, journal warning every ~50s. `commit_allowed_by_ownership` now accepts `owned = true` in `.dracon/dracon-sync.toml` (operator-blessed) OR an identity in the trusted lists (the F0.1 `test@test` case still blocks). It does NOT re-adjudicate origin trust (the loop's ownership gate already did). `Blocked` outcomes now cool the repo down 300s (was ~50s retry churn). 3 new tests; darklord's 101 files committed on deploy.
+2. **darklord row visual drift (operator-reported)**: the WARN status cell used ⚠️ (U+26A0) — `unicode-width` counts it 1 but terminals render it 2 cells, so every WARN row's separators drifted one column right of the table frame. Replaced with 🟡 (yellow circle, width 2 = rendered 2, matching the 🟢⚪⚫🟣 activity-dot family) in the STATUS cell and the tally line.
+
+**Tests:** 824 daemon tests pass (+3). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.35 — 2026-07-22 — activity-label date parser fix
 
 - **Repos with commits older than ~2 weeks lost their activity indicator** in the `repos` WHAT cell (spotted live on `DraconDev`: last commit "4 weeks ago" rendered as a bare "healthy" with no `⚫ cold` prefix). `activity_label` used a unit-limited duplicate (`parse_relative_minutes_to_u64`) of the report's full `parse_relative_minutes` — it handled only seconds/minutes/hours/days. It now delegates to the complete, already-tested parser. Verified live: `DraconDev` shows `⚫ cold 28d · healthy`. Regression test: `test_parse_relative_minutes_to_u64_handles_weeks_months_years`.
