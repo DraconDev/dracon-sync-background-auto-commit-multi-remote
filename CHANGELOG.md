@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.37 — 2026-07-22 — desktop notifications for sustained problem states
+
+**Operator-requested.** Two new sustained-state desktop notifications (`notify-rust`, Critical urgency, throttled to 30 min via the v0.112.31 expiring throttle) closing the gaps from the darklord and F0.2 incidents:
+
+1. **Blocked >30 min**: a repo continuously blocked by a needs-human guard (merge/rebase in progress, commit-time ownership check) now fires a desktop notification after 30 continuous minutes. The darklord M10 block sat for ~a day with zero desktop notifications. New `blocked_since` field on `RepoActivity` (set on `SyncOutcome::Blocked`, cleared on any non-Blocked outcome).
+2. **Unowned >15 min**: a repo continuously skipped by the ownership guard now notifies after 15 minutes with a pointer to `dracon-sync ownership --explain`. The F0.2 incident (daemon's own repo unowned for 25 minutes) had no operator signal beyond the journal. New `unowned_since` field (set in the ownership-skip branch, cleared when owned).
+
+Also extracted `sustained_threshold_met` (unit-tested) shared by all four sustained checks (ahead/behind/blocked/unowned).
+
+**Tests:** 825 daemon tests pass (+1). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.36 — 2026-07-22 — M10 guard honors ownership overrides + WARN width fix
 
 1. **darklord WARN (operator-reported)**: the v0.112.33 M10 pre-commit identity guard used a raw trusted-list check and blocked darklord's deliberate per-repo identity (`darklord-dev <darklord@dracon.local`) despite its `owned = true` override — 101 staged files sat for a day, journal warning every ~50s. `commit_allowed_by_ownership` now accepts `owned = true` in `.dracon/dracon-sync.toml` (operator-blessed) OR an identity in the trusted lists (the F0.1 `test@test` case still blocks). It does NOT re-adjudicate origin trust (the loop's ownership gate already did). `Blocked` outcomes now cool the repo down 300s (was ~50s retry churn). 3 new tests; darklord's 101 files committed on deploy.
