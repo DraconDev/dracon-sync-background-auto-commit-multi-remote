@@ -3119,6 +3119,13 @@ pub(crate) async fn run_daemon(
             let ownership = entry_for_ownership.ownership.as_ref().unwrap();
             let is_owned = matches!(ownership, crate::ownership::OwnershipReport::Owned { .. });
             if effective_auto_skip_unowned && !is_owned {
+                // ADDED 2026-07-22 (v0.112.37): track when the
+                // unowned-skip state began — the sustained-state
+                // loop fires a desktop notification after
+                // `UNOWNED_NOTIFY_THRESHOLD` of continuous unowned
+                // time (the F0.2 incident had no operator signal
+                // beyond the journal for 25 minutes).
+                entry_for_ownership.unowned_since.get_or_insert(now);
                 // Log once per cycle per repo (guard with a
                 // cycle-relative counter to avoid spamming every
                 // cycle).
@@ -3152,6 +3159,12 @@ pub(crate) async fn run_daemon(
                     );
                 }
                 continue;
+            }
+            // ADDED 2026-07-22 (v0.112.37): the repo is owned (or
+            // auto_skip_unowned is off) — clear the unowned-skip
+            // timestamp.
+            if entry_for_ownership.unowned_since.is_some() {
+                entry_for_ownership.unowned_since = None;
             }
             // Grace period for newly discovered repos: skip git operations
             // for the first 15s to avoid interfering with in-progress clones.
@@ -3809,6 +3822,11 @@ pub(crate) async fn run_daemon(
                         // stage→block cycles and log lines (seen live
                         // on darklord with the M10 guard).
                         stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                        // ADDED 2026-07-22 (v0.112.37): track when
+                        // the continuous blocked state began — the
+                        // sustained-state loop fires a desktop
+                        // notification after BLOCKED_NOTIFY_THRESHOLD.
+                        entry.blocked_since.get_or_insert(Instant::now());
                         false
                     }
                     // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
@@ -3875,6 +3893,12 @@ pub(crate) async fn run_daemon(
                     // operator finishes. Transient failures still
                     // count.
                     entry.failure_count += 1;
+                    // ADDED 2026-07-22 (v0.112.37): the repo is no
+                    // longer blocked (a real failure or a
+                    // still-success outcome that kept the entry) —
+                    // clear the sustained-block timer so the
+                    // notification only fires for CONTINUOUS blocks.
+                    entry.blocked_since = None;
                 }
             }
 
@@ -4016,6 +4040,10 @@ pub(crate) async fn run_daemon(
                                 // phase).
                                 stage_cooldowns
                                     .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                                // ADDED 2026-07-22 (v0.112.37):
+                                // sustained-block tracking (matches
+                                // the main apply phase).
+                                entry.blocked_since.get_or_insert(Instant::now());
                             }
                             // ADDED 2026-07-21 (v0.112.31, audit
                             // H3/F1.3): commit succeeded but the push
@@ -4026,10 +4054,16 @@ pub(crate) async fn run_daemon(
                                     repo.display()
                                 );
                                 entry.failure_count += 1;
+                                // ADDED 2026-07-22 (v0.112.37):
+                                // no longer blocked.
+                                entry.blocked_since = None;
                             }
                             Err(e) => {
                                 eprintln!("⚠️ sync failed (late) for {}: {}", repo.display(), e);
                                 entry.failure_count += 1;
+                                // ADDED 2026-07-22 (v0.112.37):
+                                // no longer blocked.
+                                entry.blocked_since = None;
                             }
                         }
                     }
