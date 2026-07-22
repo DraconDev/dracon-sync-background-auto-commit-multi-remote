@@ -2551,6 +2551,7 @@ pub(crate) async fn run_repos_report(
     layout_override: Option<&str>,
     summary: bool,
     summary_by_severity: bool,
+    repo_detail: Option<&str>,
 ) -> Result<()> {
     // `--legend` prints the column legend and exits. The default report stays
     // uncluttered; the legend is available on demand when a column is unclear.
@@ -3145,6 +3146,50 @@ pub(crate) async fn run_repos_report(
                 .unwrap_or_default();
             name.contains(&pat)
         });
+    }
+
+    // ADDED 2026-07-22 (v0.112.38): `repos <name>` — detailed
+    // per-repo block view for ONE repo (the "run details on a
+    // certain repo" path). Filters to the exact basename match and
+    // prints the Vertical detail for it, then returns.
+    if let Some(name) = repo_detail {
+        let matches: Vec<&RepoReportRow> = rows
+            .iter()
+            .filter(|r| {
+                std::path::Path::new(&r.repo)
+                    .file_name()
+                    .map(|n| n.to_string_lossy() == name)
+                    .unwrap_or(false)
+            })
+            .collect();
+        match matches.len() {
+            0 => {
+                eprintln!(
+                    "❌ repo '{}' not found in watch roots. Run `dracon-sync repos -s` for the list.",
+                    name
+                );
+                std::process::exit(2);
+            }
+            1 => {
+                // `RepoReportRow` isn't Clone; borrow the single
+                // row as a one-element slice instead.
+                print_repos_vertical(std::slice::from_ref(matches[0]), &filter, 0, 0, 0, true);
+                return Ok(());
+            }
+            _ => {
+                eprintln!(
+                    "❌ repo name '{}' is ambiguous — {} repos share the basename:\n  {}",
+                    name,
+                    matches.len(),
+                    matches
+                        .iter()
+                        .map(|r| r.repo.clone())
+                        .collect::<Vec<_>>()
+                        .join("\n  ")
+                );
+                std::process::exit(2);
+            }
+        }
     }
 
     let concern_count = rows.iter().filter(|r| r.concern).count();
