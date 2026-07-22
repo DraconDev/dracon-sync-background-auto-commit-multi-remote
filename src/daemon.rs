@@ -2534,6 +2534,21 @@ pub(crate) async fn run_daemon(
         /// transient git error must not flip a good repo into skip
         /// mode).
         ownership_at: Option<Instant>,
+        /// ADDED 2026-07-22 (v0.112.37): when the repo first became
+        /// continuously Blocked (merge/rebase in progress, commit-
+        /// time ownership guard, or another needs-human guard).
+        /// Cleared on any non-Blocked outcome. After
+        /// `BLOCKED_NOTIFY_THRESHOLD` of continuous blocked time the
+        /// daemon fires a desktop notification (throttled).
+        blocked_since: Option<Instant>,
+        /// ADDED 2026-07-22 (v0.112.37): when the repo first became
+        /// continuously Unowned-skipped (ownership guard).
+        /// Cleared when the repo classifies as owned again (or the
+        /// entry is dropped). After `UNOWNED_NOTIFY_THRESHOLD` the
+        /// daemon fires a desktop notification — the F0.2 incident
+        /// (daemon's own repo unowned for 25 minutes) had NO
+        /// operator signal beyond the journal.
+        unowned_since: Option<Instant>,
     }
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
@@ -3051,6 +3066,8 @@ pub(crate) async fn run_daemon(
                 remote_failures: HashMap::new(),
                 ownership: None,
                 ownership_at: None,
+                blocked_since: None,
+                unowned_since: None,
             });
             // CHANGED 2026-07-21 (v0.112.31, audit H1/F0.2):
             // re-detect on TTL while the verdict is negative
@@ -3513,6 +3530,8 @@ pub(crate) async fn run_daemon(
                         remote_failures: HashMap::new(),
                         ownership: None,
                         ownership_at: None,
+                        blocked_since: None,
+                        unowned_since: None,
                     },
                 );
                 continue;
