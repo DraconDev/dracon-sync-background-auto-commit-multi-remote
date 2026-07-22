@@ -4161,32 +4161,28 @@ pub(crate) async fn run_daemon(
         for (repo, entry) in &activity {
             // Repo stuck ahead (unpushed commits piling up)
             if sustained_threshold_met(entry.ahead_since, notification_now, STUCK_AHEAD_THRESHOLD) {
-                let since = entry.ahead_since.unwrap();
-                if notification_now.duration_since(since) >= STUCK_AHEAD_THRESHOLD {
-                    let notify_key = format!("stuck-ahead-{}", repo.display());
-                    if notify_throttled(
-                        &mut remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Stuck Ahead (Unpushed)",
-                            "commits not reaching origin for >10 min — push may be failing",
-                        );
-                    }
+                let notify_key = format!("stuck-ahead-{}", repo.display());
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
+                    crate::report::send_sync_conflict_notification(
+                        repo,
+                        "Stuck Ahead (Unpushed)",
+                        "commits not reaching origin for >10 min — push may be failing",
+                    );
                 }
             }
 
             // Repo stuck behind (unpulled upstream changes)
-            if let Some(since) = entry.behind_since {
-                if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD) {
-                    let notify_key = format!("stuck-behind-{}", repo.display());
-                    if notify_throttled(
-                        &mut remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
+            if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD) {
+                let notify_key = format!("stuck-behind-{}", repo.display());
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
                         crate::report::send_sync_conflict_notification(
                             repo,
                             "Stuck Behind (Unpulled)",
@@ -4224,17 +4220,16 @@ pub(crate) async fn run_daemon(
             // zero desktop notifications.
             if sustained_threshold_met(entry.blocked_since, notification_now, BLOCKED_NOTIFY_THRESHOLD) {
                 let notify_key = format!("blocked-{}", repo.display());
-                    if notify_throttled(
-                        &mut remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Sync Blocked (>30 min)",
-                            "blocked by a guard or needs manual intervention (merge/rebase in progress, or ownership/identity check) — run: dracon-sync repos -s",
-                        );
-                    }
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
+                    crate::report::send_sync_conflict_notification(
+                        repo,
+                        "Sync Blocked (>30 min)",
+                        "blocked by a guard or needs manual intervention (merge/rebase in progress, or ownership/identity check) — run: dracon-sync repos -s",
+                    );
                 }
             }
 
@@ -4244,17 +4239,16 @@ pub(crate) async fn run_daemon(
             // no operator signal beyond the journal.
             if sustained_threshold_met(entry.unowned_since, notification_now, UNOWNED_NOTIFY_THRESHOLD) {
                 let notify_key = format!("unowned-{}", repo.display());
-                    if notify_throttled(
-                        &mut remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Repo Unowned (>15 min)",
-                            "daemon is skipping this repo (untrusted identity) — run: dracon-sync ownership --explain",
-                        );
-                    }
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &notify_key,
+                    Duration::from_secs(1800),
+                ) {
+                    crate::report::send_sync_conflict_notification(
+                        repo,
+                        "Repo Unowned (>15 min)",
+                        "daemon is skipping this repo (untrusted identity) — run: dracon-sync ownership --explain",
+                    );
                 }
             }
         }
