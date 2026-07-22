@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.35 — 2026-07-22 — activity-label date parser fix
+
+- **Repos with commits older than ~2 weeks lost their activity indicator** in the `repos` WHAT cell (spotted live on `DraconDev`: last commit "4 weeks ago" rendered as a bare "healthy" with no `⚫ cold` prefix). `activity_label` used a unit-limited duplicate (`parse_relative_minutes_to_u64`) of the report's full `parse_relative_minutes` — it handled only seconds/minutes/hours/days. It now delegates to the complete, already-tested parser. Verified live: `DraconDev` shows `⚫ cold 28d · healthy`. Regression test: `test_parse_relative_minutes_to_u64_handles_weeks_months_years`.
+
+**Tests:** 821 daemon tests pass (+1). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.34 — 2026-07-22 — excluded-path semantics preserve edits (F1.16)
 
 **Operator-visible change (operator-approved, from `AUDIT_FULL_2026-07-21.md`):**
