@@ -4446,6 +4446,168 @@ fn print_repos_summary(
     println!("{table}");
 }
 
+/// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
+/// 6-column table (STATUS · REPO · ACTIVITY · PUSH · HINT, plus a
+/// PUBLISH column when the terminal is ≥140 cols). Replaces the
+/// per-repo Vertical block view as the default for < 242 cols: the
+/// operator wanted "a very rich table" as the default, with detail
+/// available on demand (`repos <name>` or `--layout vertical`).
+///
+/// Column widths are chosen to fit a ~90-col minimum terminal:
+/// - `#` 4, STATUS 12, REPO 24 (truncates), ACTIVITY 26 (includes
+///   dirty counts inline, e.g. `⏳ dirty 1d · 101 stg + 2 ut`),
+///   PUSH 10 (`🟣 PENDING`), HINT gets the rest.
+/// - At ≥140 cols, PUBLISH 14 is inserted between PUSH and HINT.
+///
+/// Sorted by severity (concern → warn → active → clean) like the
+/// summary, since this is the main health-check view.
+fn print_repos_rich_table(
+    rows: &[RepoReportRow],
+    _filter: &RepoFilter,
+    _concern_count: usize,
+    _warn_count: usize,
+    _ok_count: usize,
+    full_path: bool,
+) {
+    use comfy_table::{
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
+    };
+    let _ = _filter;
+
+    // Sort by severity (concern → warn → active → clean), stable.
+    let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
+    indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
+
+    let width = terminal_width().unwrap_or(120) as usize;
+    const NUM_COL: usize = 4;
+    const STATUS_COL: usize = 12;
+    const REPO_COL: usize = 24;
+    const ACTIVITY_COL: usize = 26;
+    const PUSH_COL: usize = 10;
+    const PUBLISH_COL: usize = 14;
+    // Borders: 7 separators in UTF8_FULL_CONDENSED for 6 columns
+    // (8 for 7 columns). Cell padding: 2 chars per cell.
+    let with_publish = width >= 140;
+    let num_cols = if with_publish { 7 } else { 6 };
+    let border_overhead = num_cols + 1; // box-drawing separators
+    let cell_padding = num_cols * 2;
+    let fixed = NUM_COL
+        + STATUS_COL
+        + REPO_COL
+        + ACTIVITY_COL
+        + PUSH_COL
+        + if with_publish { PUBLISH_COL } else { 0 };
+    let hint_col = width
+        .saturating_sub(fixed + border_overhead + cell_padding)
+        .max(12);
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL_CONDENSED);
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    if let Some(w) = terminal_width() {
+        if (40..=2000).contains(&w) {
+            table.set_width(w);
+        }
+    }
+
+    let bold = |s: &str| Cell::new(s).fg(Color::White).add_attribute(comfy_table::Attribute::Bold);
+    let mut header = vec![
+        bold("#"),
+        bold("STATUS"),
+        bold("REPO"),
+        bold("ACTIVITY"),
+        bold("PUSH"),
+    ];
+    if with_publish {
+        header.push(bold("PUBLISH"));
+    }
+    header.push(bold("HINT"));
+    table.set_header(header);
+
+    table
+        .column_mut(0)
+        .expect("# column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(NUM_COL as u16)));
+    table
+        .column_mut(1)
+        .expect("STATUS column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(STATUS_COL as u16)));
+    table
+        .column_mut(2)
+        .expect("REPO column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REPO_COL as u16)));
+    table
+        .column_mut(3)
+        .expect("ACTIVITY column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(ACTIVITY_COL as u16)));
+    table
+        .column_mut(4)
+        .expect("PUSH column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
+    if with_publish {
+        table
+            .column_mut(5)
+            .expect("PUBLISH column")
+            .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUBLISH_COL as u16)));
+    }
+
+    let repo_budget = REPO_COL.saturating_sub(2);
+    let activity_budget = ACTIVITY_COL.saturating_sub(2);
+    let hint_budget = hint_col.saturating_sub(2);
+    for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
+        let (status_text, status_color) = status_pair(row);
+        let repo_name = if full_path {
+            row.repo.clone()
+        } else {
+            std::path::Path::new(&row.repo)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| row.repo.clone())
+        };
+        let repo_short = truncate_unicode_width(&repo_name, repo_budget);
+
+        // ACTIVITY: the activity label + dirty counts inline.
+        let mut activity = activity_label(row);
+        let mut dirty_parts: Vec<String> = Vec::new();
+        if row.modified > 0 {
+            dirty_parts.push(format!("{} mod", row.modified));
+        }
+        if row.staged > 0 {
+            dirty_parts.push(format!("{} stg", row.staged));
+        }
+        if row.untracked > 0 {
+            dirty_parts.push(format!("{} ut", row.untracked));
+        }
+        if !dirty_parts.is_empty() {
+            activity = format!("{} · {}", activity, dirty_parts.join(" + "));
+        }
+        let activity = truncate_unicode_width(&activity, activity_budget);
+
+        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+        let hint = truncate_unicode_width(&row.hint, hint_budget);
+
+        let mut cells = vec![
+            Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
+            Cell::new(status_text).fg(status_color),
+            Cell::new(repo_short).fg(Color::White),
+            Cell::new(activity).fg(Color::White),
+            Cell::new(push_text).fg(push_color),
+        ];
+        if with_publish {
+            let publish = truncate_unicode_width(
+                &publish_cell_label(&row.upstream, row.publish_state),
+                PUBLISH_COL.saturating_sub(2),
+            );
+            cells.push(Cell::new(publish).fg(Color::White));
+        }
+        cells.push(Cell::new(hint).fg(Color::White));
+        table.add_row(cells);
+    }
+
+    println!("{table}");
+}
+
 // ---------------------------------------------------------------------------
 // Extension trait: gives RepoReportRow access to the most recent failure count
 // from the recent-push-failure ledger. Returns None if not PUSH_STUCK.

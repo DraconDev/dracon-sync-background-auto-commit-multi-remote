@@ -71,6 +71,13 @@ enum Command {
     },
     /// One-off report across discovered repositories.
     Repos {
+        /// ADDED 2026-07-22 (v0.112.38): show the detailed per-repo
+        /// block view for ONE repo (by basename). This is the
+        /// "run details on a certain repo" path — the vertical
+        /// detail (branch, publish, changes, ahead/behind, push-to,
+        /// push, last commit, pushed, activity, state, hint) for a
+        /// single repository.
+        repo: Option<String>,
         /// Show only concern repos.
         #[arg(long)]
         only_concern: bool,
@@ -930,6 +937,7 @@ async fn main() -> Result<()> {
             }
         }
         Command::Repos {
+            repo: repo_name,
             only_concern,
             only_warn,
             json,
@@ -959,6 +967,7 @@ async fn main() -> Result<()> {
                 layout.as_deref(),
                 summary,
                 summary_by_severity,
+                repo_name.as_deref(),
             )
             .await?;
         }
