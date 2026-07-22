@@ -4183,12 +4183,11 @@ pub(crate) async fn run_daemon(
                     &notify_key,
                     Duration::from_secs(1800),
                 ) {
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Stuck Behind (Unpulled)",
-                            "upstream has unmerged changes for >30 min — pull may be failing",
-                        );
-                    }
+                    crate::report::send_sync_conflict_notification(
+                        repo,
+                        "Stuck Behind (Unpulled)",
+                        "upstream has unmerged changes for >30 min — pull may be failing",
+                    );
                 }
             }
 
