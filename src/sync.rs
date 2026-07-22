@@ -1881,25 +1881,45 @@ fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> Str
 /// config says, so an untrusted identity must block the commit — see
 /// the guard in `stage_commit_and_push`.
 ///
-/// CHANGED 2026-07-22 (v0.112.36): implemented as a FRESH ownership
-/// re-check (`detect_ownership` with the repo's override) rather
-/// than a raw "identity ∈ trusted lists" check. The raw check
-/// double-guessed the ownership classification: darklord has
-/// `owned = true` in its `.dracon/dracon-sync.toml` (operator-
-/// blessed) and a deliberate per-repo identity
-/// (`darklord-dev <darklord@dracon.local>`), so the raw check
-/// blocked every commit (101 staged files piled up, WARN + a
-/// journal warning every ~50s). The F0.1 case still blocks: no
-/// override + untrusted `test@test` → `Unowned`.
+/// CHANGED 2026-07-22 (v0.112.36): two acceptance paths. (1) The
+/// operator explicitly blessed the repo (`owned = true` in
+/// `.dracon/dracon-sync.toml`) — their per-repo identity is their
+/// choice (darklord's `darklord-dev <darklord@dracon.local>`; the
+/// v0.112.33 raw check blocked 101 staged files there). (2) The
+/// effective `user.email` ∈ `trusted_emails` AND `user.name` ∈
+/// `trusted_authors` — the F0.1 case (no override, poisoned
+/// `test@test`) blocks here. The guard deliberately does NOT
+/// re-adjudicate origin trust — the daemon loop's ownership gate
+/// already did that before dispatch; this check exists only to
+/// catch identity DRIFT after the cached classification.
 fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
+    fn git_config_get(repo: &Path, key: &str) -> Option<String> {
+        let out = crate::policy::std_git_command()
+            .args(["config", "--get", key])
+            .current_dir(repo)
+            .output()
+            .ok()?;
+        if !out.status.success() {
+            return None;
+        }
+        let v = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if v.is_empty() {
+            None
+        } else {
+            Some(v)
+        }
+    }
     let repo_override = load_repo_override(repo);
-    let trusted = crate::ownership::TrustedSet {
-        emails: policy.trusted_emails.clone(),
-        authors: policy.trusted_authors.clone(),
-        remote_hosts: policy.trusted_remote_hosts.clone(),
-    };
-    let report = crate::ownership::detect_ownership(repo, &trusted, repo_override.owned);
-    matches!(report, crate::ownership::OwnershipReport::Owned { .. })
+    if repo_override.owned == Some(true) {
+        return true;
+    }
+    let email_ok = git_config_get(repo, "user.email")
+        .map(|e| policy.trusted_emails.contains(&e))
+        .unwrap_or(false);
+    let name_ok = git_config_get(repo, "user.name")
+        .map(|n| policy.trusted_authors.contains(&n))
+        .unwrap_or(false);
+    email_ok && name_ok
 }
 
 /// Task state transitions extracted from a markdown diff.
