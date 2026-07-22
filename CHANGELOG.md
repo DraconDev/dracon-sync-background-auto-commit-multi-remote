@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Operator-requested UX reshape of `repos`:**
 
-1. **New default view**: plain `dracon-sync repos` (at <242 cols) now shows a rich 6-column table (`# · STATUS · REPO · ACTIVITY · PUSH · HINT`) instead of the verbose per-repo block view. ACTIVITY includes dirty counts inline (`⏳ dirty 1d · 101 stg + 2 ut`); PUSH is the dedicated push-state cell (✅ OK / 🟣 PENDING / 🛑 STUCK / ❌ FAIL); sorted by severity. At ≥140 cols a PUBLISH column is added.
+1. **New default view**: plain `dracon-sync repos` (at <242 cols) now shows a rich 7-column table (`# · STATUS · REPO · ACTIVITY · A/B · PUSH · HINT`) instead of the verbose per-repo block view. ACTIVITY includes dirty counts inline (`⏳ dirty 1d · 101 stg + 2 ut`); **A/B is the ahead/behind column** (`↑N` unpushed = data at risk, `↓N` upstream drift, `↑N ↓M` both, `—` in sync — the most important missing field); PUSH is the dedicated push-state cell (✅ OK / 🟣 PENDING / 🛑 STUCK / ❌ FAIL); branch is folded into REPO only when ≠ main (`darklord⚡master`). Sorted by severity. At ≥140 cols a PUBLISH column is added.
 2. **Per-repo detail**: `dracon-sync repos <name>` (e.g. `repos darklord`) shows the full detailed block for ONE repo (branch, publish, changes, ahead/behind, push-to, push, last commit, pushed, activity, state, hint) — the "run details on a certain repo" path. Exit 2 on unknown basename or ambiguity.
 3. The old block view remains available via `--layout vertical`; `-s/--summary` (3-col glance) and `--layout compact/full` (detailed tables at 242+/315+ cols) are unchanged.
 
