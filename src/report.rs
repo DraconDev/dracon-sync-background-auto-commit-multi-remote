@@ -3184,7 +3184,14 @@ pub(crate) async fn run_repos_report(
     // ---- Summary one-liner (color-aware, no raw ANSI when piped) ----
     let ok_str = ansi("32", &format!("✅ CLEAN {ok_count}"));
     let active_str = ansi("36", &format!("🔄 ACTIVE {active_count}"));
-    let warn_str = ansi("33", &format!("⚠️  WARN {warn_count}"));
+    // CHANGED 2026-07-22 (v0.112.36): WARN uses 🟡 (yellow circle,
+    // unicode-width = 2) instead of ⚠️ (U+26A0, unicode-width = 1
+    // but rendered 2 cells in emoji presentation). The width
+    // mismatch made every WARN row's separators drift one column
+    // right of the table frame (spotted live on darklord). 🟡 keeps
+    // the yellow semantics AND matches the activity-dot family
+    // (🟢⚪⚫🟣 — all width-2).
+    let warn_str = ansi("33", &format!("🟡 WARN {warn_count}"));
     let concern_str = ansi("31", &format!("❌ CONCERN {concern_count}"));
     let filter_note = match filter {
         RepoFilter::All => String::new(),
@@ -3273,7 +3280,9 @@ fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
     } else if row.active {
         ("🔄 ACTIVE", Color::Cyan)
     } else if row.warn {
-        ("⚠️  WARN", Color::Yellow)
+        // CHANGED 2026-07-22 (v0.112.36): 🟡 (width 2) replaces
+        // ⚠️ (width 1, renders 2) — see the tally line above.
+        ("🟡 WARN", Color::Yellow)
     } else {
         ("✅ CLEAN", Color::Green)
     }
