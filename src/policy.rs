@@ -817,6 +817,17 @@ pub(crate) struct RepoPolicyOverride {
     /// (e.g. `"**/test-results/**"` or `"*.log"`).
     #[serde(default)]
     pub(crate) auto_commit_exclude_patterns: Option<Vec<String>>,
+    /// ADDED 2026-07-22 (v0.112.34, audit F1.16): opt-in for the
+    /// DESTRUCTIVE excluded-path semantics. When `Some(true)`,
+    /// files matching `auto_commit_exclude_patterns` are reverted to
+    /// HEAD after each commit (`git restore --staged --worktree` —
+    /// the pre-v0.112.34 behavior), i.e. "these files must always
+    /// equal HEAD". When `Some(false)` or absent (the default),
+    /// excluded files are only UNSTAGED (operator edits preserved):
+    /// the exclusion means "don't auto-commit these", never
+    /// "delete the operator's work".
+    #[serde(default)]
+    pub(crate) revert_excluded_to_head: Option<bool>,
     /// Per-repo override for `auto_skip_unowned`. Some(true)
     /// forces the repo to be classified as Owned (the daemon
     /// will commit and push even if its origin or author isn't

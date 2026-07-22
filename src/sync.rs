@@ -1475,14 +1475,74 @@ async fn restore_excluded_paths(
             .iter()
             .map(|e| e.path.to_string_lossy().to_string())
             .collect();
-        eprintln!(
-            "🧹 restoring {} excluded path(s) in {} after commit",
-            excluded_paths.len(),
-            repo.display()
-        );
-        restore_paths(repo, &excluded_paths).await?;
+        // CHANGED 2026-07-22 (v0.112.34, audit F1.16): the default
+        // semantics for `auto_commit_exclude_patterns` is now
+        // "don't auto-commit these" — files are UNSTAGED only
+        // (operator edits preserved). The previous default
+        // (`git restore --staged --worktree`) DELETED the
+        // operator's uncommitted edits after every commit — data
+        // loss as the silent default of a knob named "exclude from
+        // auto-commit". Operators who WANT hygiene enforcement
+        // ("these files must always equal HEAD") opt in per-repo
+        // via `revert_excluded_to_head = true` in
+        // `.dracon/dracon-sync.toml`.
+        let revert = crate::policy::load_repo_override(repo)
+            .revert_excluded_to_head
+            .unwrap_or(false);
+        if revert {
+            eprintln!(
+                "🧹 reverting {} excluded path(s) to HEAD in {} after commit (revert_excluded_to_head)",
+                excluded_paths.len(),
+                repo.display()
+            );
+            restore_paths(repo, &excluded_paths).await?;
+        } else {
+            eprintln!(
+                "🧹 unstaging {} excluded path(s) in {} after commit (edits preserved)",
+                excluded_paths.len(),
+                repo.display()
+            );
+            unstage_paths_git(repo, &excluded_paths).await?;
+        }
     }
 
+    Ok(())
+}
+
+/// ADDED 2026-07-22 (v0.112.34, audit F1.16): unstage paths
+/// (`git reset -q HEAD -- <paths>`) WITHOUT touching the worktree.
+/// Used by the excluded-path flow when `revert_excluded_to_head` is
+/// not opted in: the daemon's `git add -A` swept the excluded files
+/// into the index, and leaving them staged would pollute the
+/// operator's next manual commit — but their CONTENT must be
+/// preserved.
+async fn unstage_paths_git(repo: &Path, paths: &[String]) -> Result<()> {
+    if paths.is_empty() {
+        return Ok(());
+    }
+    for p in paths {
+        if !crate::git::is_safe_git_path(std::path::Path::new(p)) {
+            anyhow::bail!("unstage_paths_git: refusing unsafe path '{}'", p);
+        }
+    }
+    for chunk in paths.chunks(50) {
+        let mut cmd = crate::policy::tokio_git_command();
+        cmd.args(["reset", "-q", "HEAD", "--"])
+            .current_dir(repo)
+            .kill_on_drop(true);
+        for p in chunk {
+            cmd.arg(p);
+        }
+        let status = cmd.status().await?;
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "git reset HEAD -- ({} paths) failed in {}: exit {}",
+                chunk.len(),
+                repo.display(),
+                status
+            ));
+        }
+    }
     Ok(())
 }
 
