@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.38 — 2026-07-22 — rich table default + per-repo detail
+
+**Operator-requested UX reshape of `repos`:**
+
+1. **New default view**: plain `dracon-sync repos` (at <242 cols) now shows a rich 6-column table (`# · STATUS · REPO · ACTIVITY · PUSH · HINT`) instead of the verbose per-repo block view. ACTIVITY includes dirty counts inline (`⏳ dirty 1d · 101 stg + 2 ut`); PUSH is the dedicated push-state cell (✅ OK / 🟣 PENDING / 🛑 STUCK / ❌ FAIL); sorted by severity. At ≥140 cols a PUBLISH column is added.
+2. **Per-repo detail**: `dracon-sync repos <name>` (e.g. `repos darklord`) shows the full detailed block for ONE repo (branch, publish, changes, ahead/behind, push-to, push, last commit, pushed, activity, state, hint) — the "run details on a certain repo" path. Exit 2 on unknown basename or ambiguity.
+3. The old block view remains available via `--layout vertical`; `-s/--summary` (3-col glance) and `--layout compact/full` (detailed tables at 242+/315+ cols) are unchanged.
+
+New `LayoutTier::Rich` variant + `print_repos_rich_table`; `choose_layout_tier` returns Rich for <242.
+
+**Tests:** 825 daemon tests pass (2 tier tests updated to the new default). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.37 — 2026-07-22 — desktop notifications for sustained problem states
 
 **Operator-requested.** Two new sustained-state desktop notifications (`notify-rust`, Critical urgency, throttled to 30 min via the v0.112.31 expiring throttle) closing the gaps from the darklord and F0.2 incidents:
