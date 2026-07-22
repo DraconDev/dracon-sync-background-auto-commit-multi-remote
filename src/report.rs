@@ -4623,10 +4623,26 @@ fn print_repos_rich_table(
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| row.repo.clone())
         };
-        let repo_short = truncate_unicode_width(&repo_name, repo_budget);
+        // ADDED 2026-07-22 (v0.112.38 R2): fold the branch into the
+        // REPO cell ONLY when it is not `main` — a dedicated BRANCH
+        // column is noise when ~every repo is on main, but a
+        // non-main branch is exactly the kind of state worth seeing.
+        let repo_display = if row.branch != "main" && !row.branch.is_empty() && row.branch != "-" {
+            format!("{}⚡{}", repo_name, row.branch)
+        } else {
+            repo_name
+        };
+        let repo_short = truncate_unicode_width(&repo_display, repo_budget);
 
         // ACTIVITY: the activity label + dirty counts inline.
+        // CHANGED 2026-07-22 (v0.112.38 R2): strip the `(N ahead)`
+        // suffix from the PENDING label — the new A/B column carries
+        // the count, so showing it here too is duplication that also
+        // eats the narrow ACTIVITY budget.
         let mut activity = activity_label(row);
+        if let Some(stripped) = activity.strip_suffix(&format!(" ({} ahead)", row.ahead)) {
+            activity = stripped.to_string();
+        }
         let mut dirty_parts: Vec<String> = Vec::new();
         if row.modified > 0 {
             dirty_parts.push(format!("{} mod", row.modified));
@@ -4642,6 +4658,17 @@ fn print_repos_rich_table(
         }
         let activity = truncate_unicode_width(&activity, activity_budget);
 
+        // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind cell.
+        let (ab_text, ab_color) = if row.ahead > 0 && row.behind > 0 {
+            (format!("↑{} ↓{}", row.ahead, row.behind), Color::Yellow)
+        } else if row.ahead > 0 {
+            (format!("↑{}", row.ahead), Color::Yellow)
+        } else if row.behind > 0 {
+            (format!("↓{}", row.behind), Color::Magenta)
+        } else {
+            ("—".to_string(), Color::DarkGrey)
+        };
+
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
         let hint = truncate_unicode_width(&row.hint, hint_budget);
 
@@ -4650,6 +4677,7 @@ fn print_repos_rich_table(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_short).fg(Color::White),
             Cell::new(activity).fg(Color::White),
+            Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
         ];
         if with_publish {
