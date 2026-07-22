@@ -2249,7 +2249,15 @@ pub(crate) fn terminal_width() -> Option<u16> {
 /// Tier classification for the `dracon-sync repos` output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LayoutTier {
-    /// < 120 cols: vertical layout (one repo per multi-line block)
+    /// ADDED 2026-07-22 (v0.112.38): the DEFAULT for < 242 cols — a
+    /// rich 6-column table (STATUS · REPO · ACTIVITY · PUSH · HINT,
+    /// plus PUBLISH at ≥140 cols). Replaces Vertical as the
+    /// auto-picked default: the operator found the per-repo block
+    /// view too verbose for the default and wanted a rich table +
+    /// on-demand detail (`repos <name>` or `--layout vertical`).
+    Rich,
+    /// Opt-in via `--layout vertical` or `repos <name>`: one repo
+    /// per multi-line block (the detailed per-repo view).
     Vertical,
     /// 120-200 cols: compact table (15 columns, no 1h/6h/24h split, narrow HINT)
     Compact,
@@ -2259,11 +2267,15 @@ pub(crate) enum LayoutTier {
 
 /// Pick the layout tier from terminal width.
 ///
-/// - `< 120` cols → **Vertical** (one repo per multi-line block; fits any width)
-/// - `120-241` cols → **Vertical** (Compact's 242-col minimum doesn't fit; Vertical
-///   is the safer fallback than letter-wrapped cells)
+/// - `< 242` cols → **Rich** (the default table: 6 columns, fits any width ≥ ~90)
 /// - `242-314` cols → **Compact** (16-col table; min 242 cols + comfy-table width-fitting)
 /// - `>= 315` cols → **Full** (23-col v1 table; min ~289 cols + headroom)
+///
+/// CHANGED 2026-07-22 (v0.112.38): the `< 242` default was Vertical
+/// (per-repo multi-line blocks), which the operator found too
+/// verbose for the default. Rich is now the default; Vertical
+/// remains available via `--layout vertical` and as the format for
+/// `repos <name>` (per-repo detail).
 ///
 /// 2026-07-19 (goal `4555eaf6` v0.112.25): Compact threshold bumped
 /// 238 to 242 to match the HINT column bump (22 to 26 cols to fit
@@ -2274,7 +2286,7 @@ pub(crate) enum LayoutTier {
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
     if w < 242 {
-        LayoutTier::Vertical
+        LayoutTier::Rich
     } else if w < 315 {
         LayoutTier::Compact
     } else {
@@ -3224,6 +3236,7 @@ pub(crate) async fn run_repos_report(
     // None and the fallback picks Compact) but the operator actually wants Vertical or Full.
     let tier = match layout_override {
         Some(s) => match s.to_ascii_lowercase().as_str() {
+            "rich" | "r" => LayoutTier::Rich,
             "vertical" | "v" => LayoutTier::Vertical,
             "compact" | "c" => LayoutTier::Compact,
             "full" | "f" => LayoutTier::Full,
@@ -3248,6 +3261,9 @@ pub(crate) async fn run_repos_report(
         return Ok(());
     }
     match tier {
+        LayoutTier::Rich => {
+            print_repos_rich_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+        }
         LayoutTier::Vertical => {
             print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
         }
