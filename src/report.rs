@@ -770,6 +770,30 @@ fn parse_relative_minutes_to_u64(s: &str) -> Option<u64> {
     if let Some(rest) = s.strip_suffix(" day ago") {
         return rest.parse::<u64>().ok().map(|d| d * 60 * 24);
     }
+    // FIXED 2026-07-22 (v0.112.35): git's relative dates also emit
+    // "N weeks ago" / "N months ago" / "N years ago" — repos whose
+    // last commit is older than ~2 weeks got `None` here, so the
+    // ACTIVITY cell rendered a bare state (e.g. DraconDev showed
+    // just "healthy" with no indicator). Conversions match git's
+    // own approximations (7/30/365 days).
+    if let Some(rest) = s.strip_suffix(" weeks ago") {
+        return rest.parse::<u64>().ok().map(|w| w * 60 * 24 * 7);
+    }
+    if let Some(rest) = s.strip_suffix(" week ago") {
+        return rest.parse::<u64>().ok().map(|w| w * 60 * 24 * 7);
+    }
+    if let Some(rest) = s.strip_suffix(" months ago") {
+        return rest.parse::<u64>().ok().map(|m| m * 60 * 24 * 30);
+    }
+    if let Some(rest) = s.strip_suffix(" month ago") {
+        return rest.parse::<u64>().ok().map(|m| m * 60 * 24 * 30);
+    }
+    if let Some(rest) = s.strip_suffix(" years ago") {
+        return rest.parse::<u64>().ok().map(|y| y * 60 * 24 * 365);
+    }
+    if let Some(rest) = s.strip_suffix(" year ago") {
+        return rest.parse::<u64>().ok().map(|y| y * 60 * 24 * 365);
+    }
     if let Some(rest) = s.strip_suffix(" seconds ago") {
         return rest.parse::<u64>().ok().map(|s| s / 60);
     }
