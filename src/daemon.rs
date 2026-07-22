@@ -396,6 +396,22 @@ pub(crate) struct StuckRepoEntry {
     pub(crate) last_retry_at: u64,
 }
 
+/// ADDED 2026-07-22 (v0.112.37): whether an `Option<Instant>`
+/// "since" timestamp has been set AND at least `threshold` has
+/// elapsed since it was set. Extracted so the sustained-state
+/// notification thresholds (ahead/behind/blocked/unowned) are
+/// unit-testable without spinning the daemon loop.
+pub(crate) fn sustained_threshold_met(
+    since: Option<Instant>,
+    now: Instant,
+    threshold: Duration,
+) -> bool {
+    match since {
+        Some(t) => now.duration_since(t) >= threshold,
+        None => false,
+    }
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): how long an
 /// `Unowned`/`Unknown` verdict is cached before re-detection.
 /// 10 minutes balances remediation responsiveness against the
@@ -4138,10 +4154,14 @@ pub(crate) async fn run_daemon(
         const STUCK_AHEAD_THRESHOLD: Duration = Duration::from_secs(600); // 10 min
         const STUCK_BEHIND_THRESHOLD: Duration = Duration::from_secs(1800); // 30 min
         const MIRROR_DEGRADED_THRESHOLD: usize = 3; // 3 consecutive fails
+        // ADDED 2026-07-22 (v0.112.37): sustained needs-human states.
+        const BLOCKED_NOTIFY_THRESHOLD: Duration = Duration::from_secs(1800); // 30 min
+        const UNOWNED_NOTIFY_THRESHOLD: Duration = Duration::from_secs(900); // 15 min
 
         for (repo, entry) in &activity {
             // Repo stuck ahead (unpushed commits piling up)
-            if let Some(since) = entry.ahead_since {
+            if sustained_threshold_met(entry.ahead_since, notification_now, STUCK_AHEAD_THRESHOLD) {
+                let since = entry.ahead_since.unwrap();
                 if notification_now.duration_since(since) >= STUCK_AHEAD_THRESHOLD {
                     let notify_key = format!("stuck-ahead-{}", repo.display());
                     if notify_throttled(
@@ -4160,7 +4180,7 @@ pub(crate) async fn run_daemon(
 
             // Repo stuck behind (unpulled upstream changes)
             if let Some(since) = entry.behind_since {
-                if notification_now.duration_since(since) >= STUCK_BEHIND_THRESHOLD {
+                if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD) {
                     let notify_key = format!("stuck-behind-{}", repo.display());
                     if notify_throttled(
                         &mut remote_notify_cooldowns,
@@ -4192,6 +4212,47 @@ pub(crate) async fn run_daemon(
                                 "{} consecutive push failures — mirror may be unreachable",
                                 fail_count
                             ),
+                        );
+                    }
+                }
+            }
+
+            // ADDED 2026-07-22 (v0.112.37): repo continuously
+            // Blocked (merge/rebase in progress, commit-time
+            // ownership guard, or another needs-human guard) for
+            // >30 min. The darklord M10 block sat for ~a day with
+            // zero desktop notifications.
+            if sustained_threshold_met(entry.blocked_since, notification_now, BLOCKED_NOTIFY_THRESHOLD) {
+                let notify_key = format!("blocked-{}", repo.display());
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
+                        crate::report::send_sync_conflict_notification(
+                            repo,
+                            "Sync Blocked (>30 min)",
+                            "blocked by a guard or needs manual intervention (merge/rebase in progress, or ownership/identity check) — run: dracon-sync repos -s",
+                        );
+                    }
+                }
+            }
+
+            // ADDED 2026-07-22 (v0.112.37): repo continuously
+            // Unowned-skipped for >15 min. The F0.2 incident
+            // (daemon's own source repo unowned for 25 minutes) had
+            // no operator signal beyond the journal.
+            if sustained_threshold_met(entry.unowned_since, notification_now, UNOWNED_NOTIFY_THRESHOLD) {
+                let notify_key = format!("unowned-{}", repo.display());
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
+                        crate::report::send_sync_conflict_notification(
+                            repo,
+                            "Repo Unowned (>15 min)",
+                            "daemon is skipping this repo (untrusted identity) — run: dracon-sync ownership --explain",
                         );
                     }
                 }
