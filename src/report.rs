@@ -2540,6 +2540,7 @@ fn gitdir_signature(repo: &Path) -> u64 {
         .unwrap_or(0)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
@@ -9067,15 +9068,16 @@ mod tests {
     fn test_choose_layout_tier_vertical() {
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
-        // 238 → 242. < 242 cols → Vertical (Compact's new 242-col
-        // minimum doesn't fit; Vertical is the safer fallback).
+        // CHANGED 2026-07-22 (v0.112.38): the < 242 default is now
+        // Rich (6-column table), NOT Vertical. Vertical remains
+        // available via `--layout vertical` and as the `repos <name>`
+        // per-repo detail format.
         for w in [40, 80, 100, 119, 120, 150, 180, 199, 219, 237, 241] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
-                LayoutTier::Vertical,
-                "width {} should be Vertical",
+                LayoutTier::Rich,
+                "width {} should be Rich (v0.112.38 default)",
                 w
             );
         }
@@ -9172,8 +9174,9 @@ mod tests {
         std::env::set_var("COLUMNS", "120"); // Force 120 explicitly via COLUMNS
         let w = terminal_width();
         assert_eq!(w, Some(120), "fallback for non-TTY must be Some(120), got {:?}", w);
-        // 120 < 220 boundary → Vertical (correct routing for the narrow width)
-        assert_eq!(choose_layout_tier(), LayoutTier::Vertical, "120 cols must route to Vertical");
+        // CHANGED 2026-07-22 (v0.112.38): < 242 routes to Rich, not
+        // Vertical.
+        assert_eq!(choose_layout_tier(), LayoutTier::Rich, "120 cols must route to Rich");
         // Restore
         match prev_width {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
