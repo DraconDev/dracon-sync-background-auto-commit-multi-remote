@@ -6770,6 +6770,34 @@ mod tests {
         assert_eq!(parse_relative_minutes("unknown"), None);
     }
 
+    /// ADDED 2026-07-22 (v0.112.35): `parse_relative_minutes_to_u64`
+    /// (the ACTIVITY-cell parser) must handle weeks/months/years —
+    /// the regression: DraconDev's last commit was "4 weeks ago",
+    /// the old unit-limited copy returned None, and the cell rendered
+    /// a bare "healthy" with no indicator.
+    #[test]
+    fn test_parse_relative_minutes_to_u64_handles_weeks_months_years() {
+        assert_eq!(
+            parse_relative_minutes_to_u64("4 weeks ago"),
+            Some(4 * 7 * 24 * 60)
+        );
+        assert_eq!(
+            parse_relative_minutes_to_u64("1 week ago"),
+            Some(7 * 24 * 60)
+        );
+        assert_eq!(
+            parse_relative_minutes_to_u64("2 months ago"),
+            Some(2 * 30 * 24 * 60)
+        );
+        assert_eq!(
+            parse_relative_minutes_to_u64("1 year ago"),
+            Some(365 * 24 * 60)
+        );
+        assert_eq!(parse_relative_minutes_to_u64("3 days ago"), Some(3 * 24 * 60));
+        assert_eq!(parse_relative_minutes_to_u64("-"), None);
+        assert_eq!(parse_relative_minutes_to_u64("unknown"), None);
+    }
+
     // -------------------------------------------------------------------
     // classify_state_cause tests
     // -------------------------------------------------------------------
