@@ -4998,6 +4998,155 @@ trusted_authors = ["test"]
         );
     }
 
+    /// ADDED 2026-07-22 (v0.112.34, audit F1.16): excluded tracked
+    /// files are UNSTAGED but their worktree edits are PRESERVED by
+    /// default (the old default reverted them to HEAD, silently
+    /// deleting operator work).
+    #[tokio::test]
+    async fn test_excluded_tracked_file_edits_preserved_by_default() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        // Tracked excluded file + tracked normal file.
+        std::fs::write(repo.join("excluded.log"), "original\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v1\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "add", "."])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "-q",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // Operator edits both.
+        std::fs::write(repo.join("excluded.log"), "edited by operator\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v2\n").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+auto_commit_exclude_patterns = ["*.log"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo failed: {:?}", result);
+
+        // The operator's edit to the EXCLUDED file must be PRESERVED
+        // (not reverted to HEAD).
+        let content = std::fs::read_to_string(repo.join("excluded.log")).unwrap();
+        assert_eq!(
+            content.trim(),
+            "edited by operator",
+            "excluded file edits must be preserved (regression F1.16)"
+        );
+        // ... and it must NOT be staged (unstaged after the cycle).
+        let staged = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "diff", "--cached", "--name-only"])
+            .output()
+            .unwrap();
+        assert!(
+            !String::from_utf8_lossy(&staged.stdout).contains("excluded.log"),
+            "excluded file must not remain staged"
+        );
+        // The normal file WAS committed.
+        let head_content = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "show", "HEAD:normal.txt"])
+            .output()
+            .unwrap();
+        assert_eq!(String::from_utf8_lossy(&head_content.stdout).trim(), "v2");
+    }
+
+    /// ADDED 2026-07-22 (v0.112.34, audit F1.16): the opt-in
+    /// `revert_excluded_to_head = true` restores the old destructive
+    /// semantics (excluded files reverted to HEAD).
+    #[tokio::test]
+    async fn test_excluded_tracked_file_reverted_when_opted_in() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        std::fs::write(repo.join("excluded.log"), "original\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v1\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "add", "."])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "-q",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        std::fs::write(repo.join("excluded.log"), "edited by operator\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v2\n").unwrap();
+        // Per-repo opt-in via .dracon/dracon-sync.toml.
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "revert_excluded_to_head = true\n",
+        )
+        .unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+auto_commit_exclude_patterns = ["*.log"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo failed: {:?}", result);
+
+        let content = std::fs::read_to_string(repo.join("excluded.log")).unwrap();
+        assert_eq!(
+            content.trim(),
+            "original",
+            "opted-in revert must restore the HEAD content"
+        );
+    }
+
     #[tokio::test]
     async fn test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked() {
         let tmp = tempfile::tempdir().unwrap();
