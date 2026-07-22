@@ -4976,6 +4976,133 @@ trusted_authors = ["test"]
         assert_eq!(head_commit_count(&repo), 0);
     }
 
+    /// ADDED 2026-07-22 (v0.112.36): the pre-commit guard must honor
+    /// ownership overrides — an operator-blessed repo (`owned = true`
+    /// in `.dracon/dracon-sync.toml`) with a deliberate per-repo
+    /// identity (darklord's `darklord-dev <darklord@dracon.local>`)
+    /// must NOT be blocked, while an unblessed untrusted identity
+    /// (the F0.1 `test@test` case) still blocks.
+    #[tokio::test]
+    async fn test_commit_guard_honors_owned_override_with_custom_identity() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        // Deliberate per-repo identity (NOT in trusted lists).
+        for (k, v) in [
+            ("user.email", "darklord@dracon.local"),
+            ("user.name", "darklord-dev"),
+        ] {
+            crate::git::git_cmd()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+        }
+        // Operator-blessed override.
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(repo.join(".dracon/dracon-sync.toml"), "owned = true\n").unwrap();
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        assert!(
+            commit_allowed_by_ownership(&repo, &policy),
+            "owned=true override must allow the commit (darklord regression)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_commit_guard_blocks_untrusted_without_override() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        // F0.1 poisoned identity, NO override.
+        crate::git::git_cmd()
+            .args(["config", "user.email", "test@evil.example"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "mallory"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        assert!(
+            !commit_allowed_by_ownership(&repo, &policy),
+            "untrusted identity without override must block"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_commit_guard_allows_trusted_identity() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo); // user.email=test@test, user.name=test (trusted below)
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        assert!(commit_allowed_by_ownership(&repo, &policy));
+    }
+
     #[tokio::test]
     async fn test_sync_repo_empty_repo_end_to_end() {
         // The full sync_repo path on a stable empty repo: bootstrap
