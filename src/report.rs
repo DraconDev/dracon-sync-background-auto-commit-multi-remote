@@ -4528,8 +4528,9 @@ fn print_repos_rich_table(
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     const REPO_COL: usize = 24;
-    const ACTIVITY_COL: usize = 26;
-    const PUSH_COL: usize = 10;
+    const ACTIVITY_COL: usize = 24;
+    // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
+    const PUSH_COL: usize = 12;
     const PUBLISH_COL: usize = 14;
     // Borders: 7 separators in UTF8_FULL_CONDENSED for 6 columns
     // (8 for 7 columns). Cell padding: 2 chars per cell.
