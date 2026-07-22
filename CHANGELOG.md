@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.34 — 2026-07-22 — excluded-path semantics preserve edits (F1.16)
+
+**Operator-visible change (operator-approved, from `AUDIT_FULL_2026-07-21.md`):**
+
+- **`auto_commit_exclude_patterns` no longer deletes your edits.** After each commit, the daemon UNSTAGES excluded files (so its own `git add -A` doesn't sweep them into your next manual commit) but **preserves their worktree content** — your edits to excluded files stay on disk as modified-unstaged. Previously `restore_excluded_paths` ran `git restore --staged --worktree`, silently deleting uncommitted edits to excluded files after every commit (audit F1.16). Operators who WANT hygiene enforcement ("these files must always equal HEAD") opt in per-repo with `revert_excluded_to_head = true` in `.dracon/dracon-sync.toml`. 2 regression tests (default preserves, opt-in reverts). Documented in AGENTS.md.
+
+**Tests:** 820 daemon tests pass (+2). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.33 — 2026-07-21 — audit MEDIUM sweep (M2-M28 daemon/git/policy + M10)
 
 **Operator-visible changes (from `AUDIT_FULL_2026-07-21.md`):**
