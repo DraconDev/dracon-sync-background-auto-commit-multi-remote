@@ -4528,21 +4528,27 @@ fn print_repos_rich_table(
     let width = terminal_width().unwrap_or(120) as usize;
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
-    const REPO_COL: usize = 24;
-    const ACTIVITY_COL: usize = 24;
+    const REPO_COL: usize = 22;
+    const ACTIVITY_COL: usize = 21;
+    // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
+    // most important missing field. `↑N` = unpushed commits (data
+    // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
+    // `—` = in sync. Compact (7 cols fits `↑99 ↓9`).
+    const AB_COL: usize = 7;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
     const PUSH_COL: usize = 12;
     const PUBLISH_COL: usize = 14;
     // Borders: 7 separators in UTF8_FULL_CONDENSED for 6 columns
     // (8 for 7 columns). Cell padding: 2 chars per cell.
     let with_publish = width >= 140;
-    let num_cols = if with_publish { 7 } else { 6 };
+    let num_cols = if with_publish { 8 } else { 7 };
     let border_overhead = num_cols + 1; // box-drawing separators
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
         + STATUS_COL
         + REPO_COL
         + ACTIVITY_COL
+        + AB_COL
         + PUSH_COL
         + if with_publish { PUBLISH_COL } else { 0 };
     let hint_col = width
@@ -4564,6 +4570,7 @@ fn print_repos_rich_table(
         bold("STATUS"),
         bold("REPO"),
         bold("ACTIVITY"),
+        bold("A/B"),
         bold("PUSH"),
     ];
     if with_publish {
@@ -4590,11 +4597,15 @@ fn print_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(ACTIVITY_COL as u16)));
     table
         .column_mut(4)
+        .expect("A/B column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(AB_COL as u16)));
+    table
+        .column_mut(5)
         .expect("PUSH column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
     if with_publish {
         table
-            .column_mut(5)
+            .column_mut(6)
             .expect("PUBLISH column")
             .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUBLISH_COL as u16)));
     }
