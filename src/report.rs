@@ -2742,14 +2742,18 @@ pub(crate) async fn run_repos_report(
         // .git dirs on every `repos` invocation — the recent slowdown).
         let cache_key = repo.to_string_lossy().to_string();
         let gitdir_sig = gitdir_signature(&repo);
-        let (git_size_bytes, pack_too_large) = match cache_lookup.get(&cache_key) {
-            Some(c) if c.gitdir_sig == gitdir_sig => (
+        let (git_size_bytes, pack_too_large, missing_objects) = match cache_lookup.get(&cache_key) {
+            Some(c) if c.gitdir_sig == gitdir_sig && c.missing_objects.is_some() => (
                 Some(c.git_size_bytes),
                 (c.pack_too_large, c.pack_pushable_bytes),
+                c.missing_objects.unwrap_or(0),
             ),
             _ => {
                 let size = measure_git_size_bytes(&repo);
                 let pack = crate::git::github_pack_too_large(&repo, size);
+                // ADDED 2026-07-23 (v0.112.39): probe broken-history
+                // alongside the size measure (same 24h cache TTL).
+                let missing = probe_missing_objects(&repo);
                 cache_record.lock().unwrap().insert(
                     cache_key.clone(),
                     CachedRepoSize {
@@ -2757,9 +2761,10 @@ pub(crate) async fn run_repos_report(
                         pack_too_large: pack.0,
                         pack_pushable_bytes: pack.1,
                         gitdir_sig,
+                        missing_objects: Some(missing),
                     },
                 );
-                (size, pack)
+                (size, pack, missing)
             }
         };
 
@@ -3164,6 +3169,7 @@ pub(crate) async fn run_repos_report(
             daemon_last_action,
             daemon_last_result,
             daemon_last_action_when,
+            missing_objects,
         })
             }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
