@@ -2511,24 +2511,80 @@ struct CachedRepoSize {
 /// (~2400 false positives on a healthy repo). The path strip is
 /// what makes this probe truthful. Cheap enough at the 24h
 /// size-cache TTL (one `rev-list` + `cat-file` per gitdir change).
-pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
-    let list = crate::policy::std_git_command()
-        .args(["rev-list", "--objects", "HEAD"])
+/// ADDED 2026-07-23 (v0.112.39 R2): run a git subprocess with a hard
+/// wall-clock bound — spawn, feed `stdin_data`, poll for exit, and
+/// KILL the child if it exceeds `timeout`. Returns the stdout bytes,
+/// or `None` on spawn failure / non-zero exit / timeout. Without a
+/// bound, one huge repo (dracon-platform's 100k+ objects) stalls the
+/// whole `repos` render.
+fn run_git_bounded(
+    args: &[&str],
+    repo: &Path,
+    stdin_data: &[u8],
+    timeout: std::time::Duration,
+) -> Option<Vec<u8>> {
+    let mut child = crate::policy::std_git_command()
+        .args(args)
         .current_dir(repo)
+        .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
-        .output();
-    let Ok(list) = list else {
+        .spawn()
+        .ok()?;
+    if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
+        if stdin.write_all(stdin_data).is_err() {
+            let _ = child.kill();
+            return None;
+        }
+    }
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    return None;
+                }
+                let mut out = Vec::new();
+                use std::io::Read;
+                if let Some(mut stdout) = child.stdout.take() {
+                    let _ = stdout.read_to_end(&mut out);
+                }
+                return Some(out);
+            }
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    return None;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            Err(_) => {
+                let _ = child.kill();
+                return None;
+            }
+        }
+    }
+}
+
+pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
+    // CHANGED 2026-07-23 (v0.112.39 R2): bound BOTH subprocess steps
+    // (rev-list and cat-file) to a shared deadline so one huge repo
+    // can't stall the whole `repos` render (the v0.112.39 unbounded
+    // probe made `repos` hang whenever many gitdirs changed —
+    // dracon-platform's 100k+ object history). On timeout we return
+    // 0 ("unknown") and do NOT flag BROKEN_HISTORY — a repo that
+    // can't be probed quickly is treated as healthy-looking rather
+    // than mis-reported as damaged.
+    const BOUND: std::time::Duration = std::time::Duration::from_secs(4);
+    let Some(list) = run_git_bounded(&["rev-list", "--objects", "HEAD"], repo, &[], BOUND) else {
         return 0;
     };
-    if !list.status.success() {
-        return 0;
-    }
     // Strip the path annotations (`<sha> <path>` → `<sha>`) so
     // `cat-file` sees bare object names. Without this, every
     // blob/tree line mis-parses as "missing".
     let mut stripped: Vec<u8> = Vec::new();
-    for line in list.stdout.split(|b| *b == b'\n') {
+    for line in list.split(|b| *b == b'\n') {
         let sha = line.split(|b| *b == b' ').next().unwrap_or(line);
         if sha.is_empty() {
             continue;
@@ -2536,24 +2592,15 @@ pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
         stripped.extend_from_slice(sha);
         stripped.push(b'\n');
     }
-    let check = crate::policy::std_git_command()
-        .args(["cat-file", "--batch-check=%(objecttype) %(objectname)"])
-        .current_dir(repo)
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .spawn();
-    let Ok(mut child) = check else {
+    let Some(out) = run_git_bounded(
+        &["cat-file", "--batch-check=%(objecttype) %(objectname)"],
+        repo,
+        &stripped,
+        BOUND,
+    ) else {
         return 0;
     };
-    if let Some(mut stdin) = child.stdin.take() {
-        use std::io::Write;
-        let _ = stdin.write_all(&stripped);
-    }
-    let Ok(out) = child.wait_with_output() else {
-        return 0;
-    };
-    String::from_utf8_lossy(&out.stdout)
+    String::from_utf8_lossy(&out)
         .lines()
         .filter(|l| l.ends_with(" missing"))
         .count() as u64
