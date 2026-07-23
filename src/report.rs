@@ -2523,14 +2523,33 @@ fn run_git_bounded(
     stdin_data: &[u8],
     timeout: std::time::Duration,
 ) -> Option<Vec<u8>> {
+    // Write stdout to a temp file (NOT a pipe) so a large output
+    // (cat-file --batch-check on 100k+ objects, ~MBs) can't
+    // pipe-deadlock the child before the deadline.
+    let tmp = std::env::temp_dir().join(format!(
+        "dracon-probe-{}-{}.txt",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    let out_file = std::fs::File::create(&tmp).ok()?;
     let mut child = crate::policy::std_git_command()
         .args(args)
         .current_dir(repo)
         .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::from(out_file))
         .stderr(std::process::Stdio::null())
         .spawn()
         .ok()?;
+    struct TmpCleanup(std::path::PathBuf);
+    impl Drop for TmpCleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.0);
+        }
+    }
+    let _guard = TmpCleanup(tmp.clone());
     if let Some(mut stdin) = child.stdin.take() {
         use std::io::Write;
         if stdin.write_all(stdin_data).is_err() {
@@ -2545,12 +2564,7 @@ fn run_git_bounded(
                 if !status.success() {
                     return None;
                 }
-                let mut out = Vec::new();
-                use std::io::Read;
-                if let Some(mut stdout) = child.stdout.take() {
-                    let _ = stdout.read_to_end(&mut out);
-                }
-                return Some(out);
+                return std::fs::read(&tmp).ok();
             }
             Ok(None) => {
                 if std::time::Instant::now() >= deadline {
