@@ -187,6 +187,28 @@ pub(crate) fn rewrite_ahead_paths(
     if paths_to_remove.is_empty() {
         return Ok(None);
     }
+
+    // ADDED 2026-07-23 (v0.112.39, prevention #56): object-
+    // completeness pre-flight. A history rewrite (filter-repo /
+    // filter-branch) must not run on a damaged gitdir — if objects
+    // referenced by main's history are MISSING from the object
+    // store, the rewrite would produce (or preserve) history
+    // referencing objects that don't exist anywhere. NOTE: this is
+    // a cheap guard for a hypothetical class — the deathrun
+    // investigation (2026-07-23) initially suspected the auto-repair
+    // had broken history, but the corrected probe showed 0 missing
+    // objects (a probe artifact). The guard is kept as cheap
+    // insurance: if a genuinely damaged gitdir ever appears, we
+    // refuse to rewrite it and alert instead of making it worse.
+    let missing = crate::report::probe_missing_objects(repo);
+    if missing > 0 {
+        return Err(anyhow::anyhow!(
+            "refusing history rewrite in {}: {} objects referenced by main's history are missing from the object store (damaged gitdir) — restore from the forge or orphan-cutover first (backup not created)",
+            repo.display(),
+            missing
+        ));
+    }
+
     let backup_branch = format!("{backup_prefix}-{}", crate::policy::timestamp_secs());
     let create_backup = crate::policy::std_git_command()
         .args(["branch", &backup_branch])

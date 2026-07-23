@@ -2511,7 +2511,7 @@ struct CachedRepoSize {
 /// (~2400 false positives on a healthy repo). The path strip is
 /// what makes this probe truthful. Cheap enough at the 24h
 /// size-cache TTL (one `rev-list` + `cat-file` per gitdir change).
-fn probe_missing_objects(repo: &Path) -> u64 {
+pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
     let list = crate::policy::std_git_command()
         .args(["rev-list", "--objects", "HEAD"])
         .current_dir(repo)
