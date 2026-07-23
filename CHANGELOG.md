@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.39 — 2026-07-23 — deathrun size fix (orphan cutover) + BROKEN_HISTORY detection + frame-dump prevention
+
+**deathrun fix + prevention, with an important diagnosis correction.**
+
+1. **deathrun orphan cutover**: pushable branch was 2.85 GiB (audit-screenshot churn — `docs/audit-browser-v3` alone 1.5 GiB/4311 files, `.pi/chrome-screenshots` 585 MB), tripping github's 2 GiB pack limit. Orphan-cutovered to a clean root (`a77d795b rebirth`, 2388 files, 261 MB), force-pushed to gitlab (unprotect/push/re-protect) and github (`--force-with-lease=main`). **github accepted the push** — pushes resumed after days of the guard skipping it. All 3 forges + local at `036dedd8`, parent gitlink converged, `🟢 synced · healthy`.
+2. **BROKEN_HISTORY detection** (`report.rs`): `probe_missing_objects` (with a path-strip fix) + a `BROKEN_HISTORY:N` state flag → CONCERN with hint "history damaged (N objects missing) — fresh clones fail; needs clone-from-forge or orphan cutover". Cached 24h alongside the size probe (`CachedRepoSize.missing_objects`).
+3. **Frame-dump prevention** (`dracon-warden.toml`): `hygiene_patterns` now ignores `**/.pi/chrome-screenshots/` and `**/audit-*/screenshots/` fleet-wide (audit `.md` REPORTS still committed). AGENTS.md commit-all policy documents the exception (regeneratable frame dumps are valid to regenerate, wrong to keep forever). Same anti-rebloat class as hegemon's `**/.state-recon/**`.
+4. **Auto-repair pre-flight** (`rewrite_ahead_paths`): refuses to rewrite a damaged gitdir (missing objects) with an alert instead of writing broken history.
+
+**DIAGNOSIS CORRECTION**: the initial "2092 missing objects / broken history on both sides" was a **probe bug** — `git rev-list --objects` appends paths to blob/tree lines (`<sha> <path>`) and `cat-file` mis-parses them as "missing". The corrected probe (strips paths first) shows **0 missing objects everywhere**; deathrun was **fat, not broken**, and the auto-repair largeblob rewrites did NOT break history. The orphan cutover was still the right fix for the real size problem. See `docs/design/audit-screenshot-bloat-deathrun-2026-07-23.md`.
+
+**Tests:** 825 daemon tests pass. `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
 ### v0.112.38 — 2026-07-22 — rich table default + per-repo detail
 
 **Operator-requested UX reshape of `repos`:**
