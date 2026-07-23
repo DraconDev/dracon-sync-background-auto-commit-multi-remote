@@ -7854,6 +7854,7 @@ mod tests {
             daemon_last_action: String::new(),
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
+            missing_objects: 0,
         };
         assert_eq!(row.repo, "/test/repo");
         assert_eq!(row.branch, "main");
@@ -8349,6 +8350,7 @@ mod tests {
             daemon_last_action: String::new(),
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
+            missing_objects: 0,
         }
     }
 
@@ -8985,6 +8987,7 @@ mod tests {
             daemon_last_action: String::new(),
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
+            missing_objects: 0,
         };
         assert_eq!(row.push_status, "STUCK");
         assert!(row.push_error.contains("ahead=5"));
@@ -9777,6 +9780,7 @@ mod size_cache_tests {
                 pack_too_large: false,
                 pack_pushable_bytes: 1234,
                 gitdir_sig: 99,
+                missing_objects: Some(0),
             },
         );
         save_repo_size_cache(&path, &cache);
