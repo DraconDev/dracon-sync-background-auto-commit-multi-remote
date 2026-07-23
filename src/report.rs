@@ -2921,6 +2921,16 @@ pub(crate) async fn run_repos_report(
 
         let hint = if let Some(h) = unowned_hint {
             h
+        } else if missing_objects > 0 {
+            // ADDED 2026-07-23 (v0.112.39): broken-history hint —
+            // the most actionable pointer for the operator. A repo
+            // with missing objects is damaged (fresh clones fail);
+            // the fix is a fresh clone from the forge or an orphan
+            // cutover (as done for deathrun).
+            format!(
+                "history damaged ({} objects missing) — fresh clones fail; needs clone-from-forge or orphan cutover",
+                missing_objects
+            )
         } else if push_budget_exhausted {
             let info = stuck_info.as_ref().unwrap();
             let error_summary = if info.last_error.is_empty() {
@@ -4335,6 +4345,7 @@ impl crate::report::RepoReportRow {
             daemon_last_action: String::new(),
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".into(),
+            missing_objects: 0,
         }
     }
 }
