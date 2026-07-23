@@ -896,6 +896,15 @@ pub(crate) struct RepoReportRow {
     /// Human-friendly relative time of the daemon's last action
     /// (e.g. "23s", "2m"). `none` when no record exists.
     daemon_last_action_when: String,
+    /// ADDED 2026-07-23 (v0.112.39): count of objects referenced by
+    /// `main`'s history but MISSING from the object store (broken
+    /// history). `0` = healthy. Drives the `BROKEN_HISTORY` state
+    /// flag — a repo with missing objects is damaged (fresh clones
+    /// fail; pushes may eventually break). See
+    /// `probe_missing_objects` for the probe and the deathrun
+    /// incident (2092 missing objects, both sides broken, days of
+    /// undetected broken pushes).
+    missing_objects: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -2481,6 +2490,58 @@ struct CachedRepoSize {
     /// Mtime (nanos since epoch) of the resolved gitdir; a mismatch forces
     /// recomputation.
     gitdir_sig: u64,
+    /// ADDED 2026-07-23 (v0.112.39): count of objects referenced by
+    /// `main`'s history but MISSING from the object store (broken
+    /// history). Computed alongside the size probe on cache miss;
+    /// `None` for cache files written before this field existed
+    /// (forces one recompute, then cached).
+    #[serde(default)]
+    missing_objects: Option<u64>,
+}
+
+/// ADDED 2026-07-23 (v0.112.39): count objects referenced by `main`'s
+/// history but MISSING from the object store — the broken-history
+/// signature (two auto-repair largeblob rewrites ran on a damaged
+/// gitdir and uploaded history referencing 2092 missing objects on
+/// deathrun; fresh clones failed and the daemon pushed broken history
+/// for days with no detection). Probe: `git rev-list --objects HEAD |
+/// git cat-file --batch-check`, count lines ending in ` missing`.
+/// Cheap enough at the 24h size-cache TTL (one `rev-list` +
+/// `cat-file` per repo per gitdir change).
+fn probe_missing_objects(repo: &Path) -> u64 {
+    let list = crate::policy::std_git_command()
+        .args(["rev-list", "--objects", "HEAD"])
+        .current_dir(repo)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output();
+    let Ok(list) = list else {
+        return 0;
+    };
+    if !list.status.success() {
+        return 0;
+    }
+    let mut check = crate::policy::std_git_command()
+        .args(["cat-file", "--batch-check=%(objecttype) %(objectname)"])
+        .current_dir(repo)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+    let Ok(mut child) = check else {
+        return 0;
+    };
+    if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
+        let _ = stdin.write_all(&list.stdout);
+    }
+    let Ok(out) = child.wait_with_output() else {
+        return 0;
+    };
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| l.ends_with(" missing"))
+        .count() as u64
 }
 
 /// Cache file lives next to the policy toml (a config dir, never a watched
