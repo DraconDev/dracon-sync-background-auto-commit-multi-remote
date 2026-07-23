@@ -2501,13 +2501,16 @@ struct CachedRepoSize {
 
 /// ADDED 2026-07-23 (v0.112.39): count objects referenced by `main`'s
 /// history but MISSING from the object store — the broken-history
-/// signature (two auto-repair largeblob rewrites ran on a damaged
-/// gitdir and uploaded history referencing 2092 missing objects on
-/// deathrun; fresh clones failed and the daemon pushed broken history
-/// for days with no detection). Probe: `git rev-list --objects HEAD |
-/// git cat-file --batch-check`, count lines ending in ` missing`.
-/// Cheap enough at the 24h size-cache TTL (one `rev-list` +
-/// `cat-file` per repo per gitdir change).
+/// signature. Probe: `git rev-list --objects HEAD` (which appends
+/// PATHS to blob/tree lines as `<sha> <path>`), STRIP the paths
+/// (`awk '{print $1}'` keeps only the sha), then `cat-file
+/// --batch-check` and count genuine `<sha> missing` lines.
+///
+/// CRITICAL: without the path strip, `cat-file` mis-parses every
+/// `<sha> <path>` line as "missing" and the count is garbage
+/// (~2400 false positives on a healthy repo). The path strip is
+/// what makes this probe truthful. Cheap enough at the 24h
+/// size-cache TTL (one `rev-list` + `cat-file` per gitdir change).
 fn probe_missing_objects(repo: &Path) -> u64 {
     let list = crate::policy::std_git_command()
         .args(["rev-list", "--objects", "HEAD"])
@@ -2521,6 +2524,18 @@ fn probe_missing_objects(repo: &Path) -> u64 {
     if !list.status.success() {
         return 0;
     }
+    // Strip the path annotations (`<sha> <path>` → `<sha>`) so
+    // `cat-file` sees bare object names. Without this, every
+    // blob/tree line mis-parses as "missing".
+    let mut stripped: Vec<u8> = Vec::new();
+    for line in list.stdout.split(|b| *b == b'\n') {
+        let sha = line.split(|b| *b == b' ').next().unwrap_or(line);
+        if sha.is_empty() {
+            continue;
+        }
+        stripped.extend_from_slice(sha);
+        stripped.push(b'\n');
+    }
     let mut check = crate::policy::std_git_command()
         .args(["cat-file", "--batch-check=%(objecttype) %(objectname)"])
         .current_dir(repo)
@@ -2533,7 +2548,7 @@ fn probe_missing_objects(repo: &Path) -> u64 {
     };
     if let Some(mut stdin) = child.stdin.take() {
         use std::io::Write;
-        let _ = stdin.write_all(&list.stdout);
+        let _ = stdin.write_all(&stripped);
     }
     let Ok(out) = child.wait_with_output() else {
         return 0;
