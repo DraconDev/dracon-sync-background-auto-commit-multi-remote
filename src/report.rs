@@ -2805,6 +2805,15 @@ pub(crate) async fn run_repos_report(
         if repo_override.intentional_no_upstream && concern && !has_upstream {
             concern = false;
         }
+        // ADDED 2026-07-23 (v0.112.39): a repo with objects referenced
+        // by main's history but MISSING from the object store is
+        // damaged — fresh clones fail, and the daemon has already
+        // pushed broken history once (deathrun, 2092 missing objects
+        // on both sides, days undetected). Always surface as CONCERN
+        // so the operator investigates.
+        if missing_objects > 0 {
+            concern = true;
+        }
         let warn = !concern && real_is_dirty;
 
         // Flags still use effective_status for ahead/behind/origin detection.
@@ -2837,6 +2846,15 @@ pub(crate) async fn run_repos_report(
         // pushable branch fits).
         if pack_too_large.0 {
             flags.push("PACK_SIZE_WARNING".to_string());
+        }
+
+        // ADDED 2026-07-23 (v0.112.39): `BROKEN_HISTORY:N` flag when
+        // objects referenced by main's history are MISSING from the
+        // object store. Drives the CONCERN classification (set above)
+        // and the hint. See `probe_missing_objects` + the deathrun
+        // incident (2092 missing, both sides broken).
+        if missing_objects > 0 {
+            flags.push(format!("BROKEN_HISTORY:{}", missing_objects));
         }
 
         // ── Ownership override (compute early) ─────────
