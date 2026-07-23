@@ -2536,7 +2536,7 @@ fn probe_missing_objects(repo: &Path) -> u64 {
         stripped.extend_from_slice(sha);
         stripped.push(b'\n');
     }
-    let mut check = crate::policy::std_git_command()
+    let check = crate::policy::std_git_command()
         .args(["cat-file", "--batch-check=%(objecttype) %(objectname)"])
         .current_dir(repo)
         .stdin(std::process::Stdio::piped())
