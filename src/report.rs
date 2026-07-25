@@ -2934,6 +2934,7 @@ pub(crate) async fn run_repos_report(
         // subrepos would falsely report UT ≥ 1 and trigger
         // `⚪ untracked-only` state classification.
         let nested_untracked = nested_repo_untracked_count(&repo).await;
+        eprintln!("[TIMING] post_nested: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
         let effective_untracked_files = effective_status
             .untracked_files
             .saturating_sub(nested_untracked);
@@ -2948,6 +2949,7 @@ pub(crate) async fn run_repos_report(
         // because the fast path already short-circuits clean+synced
         // repos before this point.
         let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
+        eprintln!("[TIMING] post_has_any_remote: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
 
         // Per-repo `.git` size + pack-guard, served from the mtime-keyed
         // cache when unchanged (avoids re-running `du -sb` on multi-GiB
@@ -2989,10 +2991,13 @@ pub(crate) async fn run_repos_report(
             }
             _ => {
                 let size = measure_git_size_bytes(&repo);
+                eprintln!("[TIMING] post_size: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 let pack = crate::git::github_pack_too_large(&repo, size);
+                eprintln!("[TIMING] post_pack: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 // ADDED 2026-07-23 (v0.112.39): probe broken-history
                 // alongside the size measure (same 24h cache TTL).
                 let missing = probe_missing_objects(&repo);
+                eprintln!("[TIMING] post_missing: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 cache_record.lock().unwrap().insert(
                     cache_key.clone(),
                     CachedRepoSize {
