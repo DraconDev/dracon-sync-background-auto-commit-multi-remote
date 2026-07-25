@@ -3381,3 +3381,76 @@ exit 0
         );
     }
 }
+
+/// Parse `size-garbage` (KiB) from `git count-objects -v` output.
+/// Returns BYTES (count-objects values are KiB — the v0.112.42
+/// unit lesson).
+pub(crate) fn parse_count_objects_garbage_bytes(stdout: &str) -> u64 {
+    for line in stdout.lines() {
+        if let Some(rest) = line.strip_prefix("size-garbage:") {
+            return rest.trim().parse::<u64>().unwrap_or(0) * 1024;
+        }
+    }
+    0
+}
+
+/// Run `git gc --prune=now` when the repo's dangling-garbage size
+/// exceeds `threshold_bytes`. Returns Some(garbage_bytes) when a gc
+/// ran. Best-effort: all failures are logged, never fatal.
+///
+/// ADDED 2026-07-25 (v0.113.0). Motivation: hegemon's `.git`
+/// ballooned to 4.9 GiB and dracon-platform's to 37 GiB from
+/// dangling tmp_pack_* objects (failed/interrupted pushes),
+/// tripping the 2 GiB GitHub pack guard and disk pressure. Manual
+/// `git gc --prune=now` fixed both; this knob makes the daemon
+/// self-heal instead of waiting for the next disk-pressure incident.
+/// `threshold_bytes = 0` disables.
+pub(crate) fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Option<u64> {
+    if threshold_bytes == 0 {
+        return None;
+    }
+    let out = std::process::Command::new("git")
+        .args(["count-objects", "-v"])
+        .current_dir(repo)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let garbage = parse_count_objects_garbage_bytes(&String::from_utf8_lossy(&out.stdout));
+    if garbage < threshold_bytes {
+        return None;
+    }
+    eprintln!(
+        "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc --prune=now",
+        repo.display(),
+        garbage as f64 / 1073741824.0,
+        threshold_bytes as f64 / 1073741824.0,
+    );
+    let started = std::time::Instant::now();
+    match std::process::Command::new("git")
+        .args(["gc", "--prune=now", "--quiet"])
+        .current_dir(repo)
+        .output()
+    {
+        Ok(o) if o.status.success() => {
+            eprintln!(
+                "🗑️ gc done for {} in {:.1}s (reclaimed ~{:.2} GiB garbage)",
+                repo.display(),
+                started.elapsed().as_secs_f64(),
+                garbage as f64 / 1073741824.0,
+            );
+        }
+        Ok(o) => {
+            eprintln!(
+                "⚠️ gc failed for {}: {}",
+                repo.display(),
+                String::from_utf8_lossy(&o.stderr).trim()
+            );
+        }
+        Err(e) => {
+            eprintln!("⚠️ gc spawn failed for {}: {}", repo.display(), e);
+        }
+    }
+    Some(garbage)
+}
