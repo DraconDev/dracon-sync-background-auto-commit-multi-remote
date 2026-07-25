@@ -783,14 +783,14 @@ fn ensure_gitlab_main_protected(account: &str, repo_name: &str) {
     }
     match cmd.output() {
         Ok(out) if out.status.success() => {
-            log::info!("🛡️ gitlab: protected main on {}/{}", account, repo_name);
+            eprintln!("🛡️ gitlab: protected main on {}/{}", account, repo_name);
         }
         Ok(out) => {
             let stderr = String::from_utf8_lossy(&out.stderr);
             if stderr.contains("already exists") {
                 // Already protected — the idempotent steady state.
             } else {
-                log::warn!(
+                eprintln!(
                     "⚠️ gitlab protect main failed for {}/{}: {}",
                     account,
                     repo_name,
@@ -799,7 +799,7 @@ fn ensure_gitlab_main_protected(account: &str, repo_name: &str) {
             }
         }
         Err(e) => {
-            log::warn!("⚠️ gitlab protect main spawn failed for {}/{}: {}", account, repo_name, e);
+            eprintln!("⚠️ gitlab protect main spawn failed for {}/{}: {}", account, repo_name, e);
         }
     }
 }

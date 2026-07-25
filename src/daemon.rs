@@ -2700,6 +2700,14 @@ pub(crate) async fn run_daemon(
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
     initial_repos = repo_set.iter().cloned().collect();
+
+    // ADDED 2026-07-25 (v0.113.0): install the no-history-rewrite
+    // hooks in every watched repo at startup, so the whole fleet gets
+    // the guard immediately rather than only when a repo next has
+    // sync activity. Cheap (two stats per repo in the steady state).
+    for repo in &repo_set {
+        crate::hooks::ensure_no_rewrite_hooks(repo);
+    }
     let shutdown = Arc::new(AtomicBool::new(false));
     let shutdown_sigterm = shutdown.clone();
     let shutdown_sigint = shutdown.clone();

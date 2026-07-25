@@ -213,10 +213,10 @@ pub(crate) fn ensure_no_rewrite_hooks(repo: &Path) {
         match ensure_one(&dir, name, content) {
             Ok(HookAction::Current) => {}
             Ok(action) => {
-                log::info!("🪝 {} {} hook in {}", label(action), name, repo.display());
+                eprintln!("🪝 {} {} hook in {}", label(action), name, repo.display());
             }
             Err(e) => {
-                log::warn!("⚠️ could not install {} hook in {}: {}", name, repo.display(), e);
+                eprintln!("⚠️ could not install {} hook in {}: {}", name, repo.display(), e);
             }
         }
     }
@@ -269,7 +269,7 @@ pub(crate) fn maybe_auto_gc(repo: &Path, threshold_bytes: u64) -> Option<u64> {
     if garbage < threshold_bytes {
         return None;
     }
-    log::info!(
+    eprintln!(
         "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc --prune=now",
         repo.display(),
         garbage as f64 / 1073741824.0,
@@ -282,7 +282,7 @@ pub(crate) fn maybe_auto_gc(repo: &Path, threshold_bytes: u64) -> Option<u64> {
         .output()
     {
         Ok(o) if o.status.success() => {
-            log::info!(
+            eprintln!(
                 "🗑️ gc done for {} in {:.1}s (reclaimed ~{:.2} GiB garbage)",
                 repo.display(),
                 started.elapsed().as_secs_f64(),
@@ -290,14 +290,14 @@ pub(crate) fn maybe_auto_gc(repo: &Path, threshold_bytes: u64) -> Option<u64> {
             );
         }
         Ok(o) => {
-            log::warn!(
+            eprintln!(
                 "⚠️ gc failed for {}: {}",
                 repo.display(),
                 String::from_utf8_lossy(&o.stderr).trim()
             );
         }
         Err(e) => {
-            log::warn!("⚠️ gc spawn failed for {}: {}", repo.display(), e);
+            eprintln!("⚠️ gc spawn failed for {}: {}", repo.display(), e);
         }
     }
     Some(garbage)

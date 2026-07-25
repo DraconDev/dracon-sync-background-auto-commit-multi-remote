@@ -3651,19 +3651,6 @@ pub(crate) async fn sync_repo_with_ahead_since(
     policy_path: Option<&Path>,
     ahead_since: Option<std::time::Instant>,
 ) -> Result<SyncOutcome> {
-    // ADDED 2026-07-25 (v0.113.0): per-repo maintenance pass.
-    // (a) ensure the no-history-rewrite hooks are installed — the
-    // hard, forge-independent enforcement of the fleet's no-amend/-
-    // rebase/-force-push policy (2026-07-25 incident). (b) auto-gc
-    // when dangling garbage exceeds the policy threshold — the
-    // self-healing fix for the recurring tmp_pack_* bloat incidents.
-    // Both are cheap in the steady state (two stats + one
-    // count-objects) and never fatal.
-    if !dry_run && svc.is_git_repo().await.unwrap_or(false) {
-        crate::hooks::ensure_no_rewrite_hooks(repo);
-        crate::hooks::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes);
-    }
-
     let svc = GitService::new(repo)?;
     if !svc.is_git_repo().await? {
         if debug_enabled() {
@@ -3684,6 +3671,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
         };
         maybe_sync_visibility_and_metadata(&ctx);
         return Ok(SyncOutcome::NothingToDo);
+    }
+
+    // ADDED 2026-07-25 (v0.113.0): per-repo maintenance pass.
+    // (a) ensure the no-history-rewrite hooks are installed — the
+    // hard, forge-independent enforcement of the fleet's no-amend/-
+    // rebase/-force-push policy (2026-07-25 incident). (b) auto-gc
+    // when dangling garbage exceeds the policy threshold — the
+    // self-healing fix for the recurring tmp_pack_* bloat incidents.
+    // Both are cheap in the steady state (two stats + one
+    // count-objects) and never fatal.
+    if !dry_run {
+        crate::hooks::ensure_no_rewrite_hooks(repo);
+        crate::hooks::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes);
     }
 
     if let Some(blocked) = check_conflict_state(repo) {
