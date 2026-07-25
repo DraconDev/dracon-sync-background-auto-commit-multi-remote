@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.42 — 2026-07-25 — `repos` cold-run perf (TTL 30s→1h) + KiB unit fix
+
+**Perf**: `REPO_SIZE_CACHE_TTL_SECS` 30 → 3600. The 30s TTL meant every
+`repos` run more than 30s after the last paid the full cold path
+(count-objects + pack-check + missing-objects probe × 35 repos) —
+measured 6.9–17.6s. Sizes and object corruption don't need 30s
+freshness; the gitdir-mtime signature still invalidates post-TTL, and
+the PUSH path measures fresh (`github_pack_too_large(repo, None)` in
+sync.rs), so push-time 2 GiB accuracy is unaffected. Measured: every
+run within the TTL is now ~0.98s (was 1s only within 30s).
+
+**Correctness**: `measure_git_size_via_count_objects` treated
+`git count-objects -v` output as **bytes** — git reports **KiB**. Every
+repo looked 1024× smaller, which silently disabled
+`github_pack_too_large`'s 2 GiB fast-path guard since v0.112.40
+(dracon-platform's 11.4 GiB pack read as 0.011 GB). Fixed (×1024 on
+parse). Verified no push-behavior flip: dracon-platform's pushable
+bytes = 1.49 GiB < 2 GiB, all other repos far below.
+
 ### v0.112.41 — 2026-07-25 — daemon-mode GIT_SSH_COMMAND (systemd 258.7 userns ssh fix)
 
 **Fix: every CLI fetch/pull from the daemon failed with `Bad owner or permissions on /nix/store/.../20-systemd-ssh-proxy.conf`.**
