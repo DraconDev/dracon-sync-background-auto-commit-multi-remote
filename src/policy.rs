@@ -1878,6 +1878,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         untracked_warn_threshold: default_untracked_warn_threshold(),
         pull_op_timeout_secs: 30,
         push_op_timeout_secs: 300,
+        auto_gc_garbage_threshold_bytes: default_auto_gc_garbage_threshold_bytes(),
         repo_sync_timeout_secs: 420,
         stage_op_timeout_secs: 60,
         stage_cooldown_secs: 3600,
