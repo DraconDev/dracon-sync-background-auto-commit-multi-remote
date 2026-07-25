@@ -314,6 +314,21 @@ mod tests {
             .current_dir(tmp.path())
             .output()
             .unwrap();
+        // Hermeticity: the operator's machine sets a GLOBAL
+        // core.hooksPath (~/.config/git/hooks — the warden hooks).
+        // `git rev-parse --git-path hooks` honors it, so without this
+        // override the tests would install into the operator's real
+        // global hooks dir. A repo-local override wins over the global
+        // config and keeps every test inside its tempdir.
+        std::process::Command::new("git")
+            .args([
+                "config",
+                "core.hooksPath",
+                tmp.path().join(".git/hooks").to_str().unwrap(),
+            ])
+            .current_dir(tmp.path())
+            .output()
+            .unwrap();
         tmp
     }
 
