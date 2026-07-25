@@ -680,6 +680,15 @@ fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> 
     // dirs it's also correct.
     let out = run_git_bounded(&["count-objects", "-v"], git_dir, &[], BOUND)?;
     let stdout = String::from_utf8_lossy(&out);
+    // FIXED 2026-07-25 (v0.112.42): `count-objects -v` reports all
+    // sizes in **KiB** (git-commit-tree docs: "size: disk space
+    // consumed by loose objects, in KiB"). The v0.112.40 parser read
+    // them as BYTES, making every repo look 1024× smaller — which
+    // silently disabled `github_pack_too_large`'s 2 GiB fast-path
+    // guard (dracon-platform's 11.4 GiB pack measured as 0.011 GB).
+    // Multiply by 1024 on parse. Verified safe: dracon-platform's
+    // pushable-bytes (the slow-path refinement) is 1.49 GiB < 2 GiB,
+    // so no repo flips push behavior; the guard just works again.
     let mut size_loose: u64 = 0;
     let mut size_pack: u64 = 0;
     let mut size_garbage: u64 = 0;
@@ -702,7 +711,8 @@ fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> 
     if !saw_size_pack {
         return None;
     }
-    Some(size_loose + size_pack + size_garbage)
+    // KiB → bytes (see FIXED note at the top of this fn).
+    Some((size_loose + size_pack + size_garbage) * 1024)
 }
 
 /// Probe the operator's token file presence for each forge. Returns a
@@ -2581,7 +2591,16 @@ fn print_repos_legend() {
 /// stale data can't be served beyond the TTL window. TTL is 30s (not
 /// shorter) because the size data is real-only when the repo is
 /// idle; a daemon commit doesn't change gitdir size meaningfully.
-const REPO_SIZE_CACHE_TTL_SECS: u64 = 30;
+// CHANGED 2026-07-25 (v0.112.42): 30s → 3600s. The 30s TTL meant
+// every `repos` invocation more than 30s after the last one ran the
+// full cold path (count-objects + pack-check + missing-objects probe
+// on all 35 repos) — 6.9-17.6s measured. Git sizes and object
+// corruption do not need 30s freshness: sizes drift slowly, the
+// gitdir-mtime signature still invalidates post-TTL, and the PUSH
+// path measures fresh (sync.rs calls github_pack_too_large with
+// precomputed_size=None), so push-time 2 GiB accuracy is unaffected.
+// 1h makes essentially every operator `repos` run a warm ~1s render.
+const REPO_SIZE_CACHE_TTL_SECS: u64 = 3600;
 
 /// Cached `.git` size + GitHub pack-size guard for a single repo. Keyed by
 /// repo path and invalidated by the resolved gitdir's mtime (any commit or
