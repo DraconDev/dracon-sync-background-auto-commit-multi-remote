@@ -9996,6 +9996,7 @@ mod size_cache_tests {
                 pack_pushable_bytes: 1234,
                 gitdir_sig: 99,
                 missing_objects: Some(0),
+                cached_at_secs: Some(1234567890),
             },
         );
         save_repo_size_cache(&path, &cache);
@@ -10027,6 +10028,142 @@ mod size_cache_tests {
         let sig = gitdir_signature(&tmp);
         assert!(sig > 0, "signature should be non-zero for a dir with .git");
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ADDED 2026-07-24 (v0.112.40): tests for the cache TTL behavior.
+    // The cache lookup honors entries within REPO_SIZE_CACHE_TTL_SECS
+    // (30s) regardless of gitdir mtime, so back-to-back `repos` calls
+    // skip the recompute even when the daemon updated the gitdir.
+
+    fn make_cached_entry(gitdir_sig: u64, cached_at_secs: Option<u64>) -> CachedRepoSize {
+        CachedRepoSize {
+            git_size_bytes: 1234,
+            pack_too_large: false,
+            pack_pushable_bytes: 1234,
+            gitdir_sig,
+            missing_objects: Some(0),
+            cached_at_secs,
+        }
+    }
+
+    #[test]
+    fn cache_roundtrip_preserves_cached_at_secs() {
+        // Backwards-compat: an entry with `cached_at_secs: Some(N)`
+        // must round-trip through JSON serialization. Old cache files
+        // (pre-v0.112.40) have `cached_at_secs: None` — they must
+        // load successfully and be treated as stale (forcing one
+        // recompute, then start honoring the TTL).
+        let entry_with_ts = make_cached_entry(99, Some(1_700_000_000));
+        let json = serde_json::to_string(&entry_with_ts).unwrap();
+        let loaded: CachedRepoSize = serde_json::from_str(&json).unwrap();
+        assert_eq!(loaded.cached_at_secs, Some(1_700_000_000));
+        assert_eq!(loaded.gitdir_sig, 99);
+        assert_eq!(loaded.git_size_bytes, 1234);
+
+        // Old-format cache (missing `cached_at_secs` field entirely)
+        // loads as None — caller treats None as stale.
+        let json_legacy = r#"{
+            "git_size_bytes": 1234,
+            "pack_too_large": false,
+            "pack_pushable_bytes": 1234,
+            "gitdir_sig": 99,
+            "missing_objects": 0
+        }"#;
+        let loaded_legacy: CachedRepoSize = serde_json::from_str(json_legacy).unwrap();
+        assert_eq!(loaded_legacy.cached_at_secs, None);
+        assert_eq!(loaded_legacy.missing_objects, Some(0));
+    }
+
+    #[test]
+    fn measure_git_size_via_count_objects_works_on_real_repo() {
+        // End-to-end test: build a tiny git repo and verify the new
+        // `count-objects` fast-path returns a non-zero size. This
+        // catches regressions where the fast-path silently returns
+        // None and falls back to `du -sb`.
+        let tmp = std::env::temp_dir().join("dracon-sync-count-objects-test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--quiet"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        // Create a file and commit so there's at least one pack object.
+        std::fs::write(tmp.join("hello.txt"), b"hello world\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "hello.txt"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-c", "user.email=test@example.com", "-c", "user.name=test", "commit", "-m", "init"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        // Force a pack so size-pack is non-zero (small fresh repos
+        // have only loose objects, so size-pack = 0).
+        std::process::Command::new("git")
+            .args(["gc", "--quiet"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+
+        let size = measure_git_size_via_count_objects(&tmp.join(".git"));
+        assert!(
+            size.is_some(),
+            "count-objects fast path should return Some for a healthy gitdir"
+        );
+        let size = size.unwrap();
+        // A single text file is tiny (< 1 KiB), so the packed size
+        // should be a small positive number. We don't assert exact
+        // bytes (git's packing varies by version).
+        assert!(size > 0, "size-pack should be > 0 after `git gc`, got {size}");
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn measure_git_size_bytes_works_via_count_objects_or_du_fallback() {
+        // End-to-end: measure_git_size_bytes should return Some
+        // for a healthy repo, via count-objects (fast path) or du
+        // (fallback). Confirms the fallback chain works.
+        let tmp = std::env::temp_dir().join("dracon-sync-measure-test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--quiet"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        std::fs::write(tmp.join("hello.txt"), b"hello\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "hello.txt"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-c", "user.email=test@example.com", "-c", "user.name=test", "commit", "-m", "init"])
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+
+        let size = measure_git_size_bytes(&tmp);
+        assert!(
+            size.is_some(),
+            "measure_git_size_bytes should return Some for a healthy repo"
+        );
+        assert!(size.unwrap() > 0);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn measure_git_size_bytes_returns_none_for_missing_repo() {
+        // If the path doesn't exist, both fast-path and fallback
+        // should return None (not crash).
+        let tmp = std::env::temp_dir().join("dracon-sync-nonexistent-test");
+        let _ = std::fs::remove_dir_all(&tmp);
+        // Don't create the dir — measure against a non-existent path.
+        let size = measure_git_size_bytes(&tmp);
+        assert!(size.is_none());
     }
 }
 
