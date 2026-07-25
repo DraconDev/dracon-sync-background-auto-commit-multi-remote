@@ -8,7 +8,6 @@ mod daemon;
 mod exclude;
 mod git;
 mod helpers;
-mod hooks;
 mod log;
 mod nix;
 mod ownership;

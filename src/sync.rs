@@ -3673,17 +3673,15 @@ pub(crate) async fn sync_repo_with_ahead_since(
         return Ok(SyncOutcome::NothingToDo);
     }
 
-    // ADDED 2026-07-25 (v0.113.0): per-repo maintenance pass.
-    // (a) ensure the no-history-rewrite hooks are installed — the
-    // hard, forge-independent enforcement of the fleet's no-amend/-
-    // rebase/-force-push policy (2026-07-25 incident). (b) auto-gc
-    // when dangling garbage exceeds the policy threshold — the
-    // self-healing fix for the recurring tmp_pack_* bloat incidents.
-    // Both are cheap in the steady state (two stats + one
-    // count-objects) and never fatal.
+    // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
+    // exceeds the policy threshold — the self-healing fix for the
+    // recurring tmp_pack_* bloat incidents (hegemon 4.9 GiB,
+    // dracon-platform 37 GiB, both previously manual gc). Cheap in
+    // the steady state (one count-objects) and never fatal. (The
+    // no-history-rewrite enforcement lives in warden's global hooks
+    // — warden owns the hook layer via core.hooksPath.)
     if !dry_run {
-        crate::hooks::ensure_no_rewrite_hooks(repo);
-        crate::hooks::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes);
+        crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes);
     }
 
     if let Some(blocked) = check_conflict_state(repo) {
