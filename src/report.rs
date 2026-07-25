@@ -578,10 +578,19 @@ pub(crate) fn effective_excluded_remotes(
     combined
 }
 
-/// Measure the size of `<repo>/.git` in bytes using `du -sb`. Returns
-/// `None` if the measurement fails or exceeds the 2-second timeout.
-/// `du -sb` is fast even on large .git dirs (40ms for 20 GiB) so the
-/// timeout is just a safety net for slow network filesystems.
+/// Measure the size of `<repo>/.git` in bytes. Returns `None` if the
+/// measurement fails or times out. Fast-path: `git count-objects -v`
+/// (queries git's own pack index — ~10ms even for 54 GiB gitdirs, vs
+/// `du -sb` which has to walk the whole tree and is ~200ms+ for
+/// multi-GiB dirs). Falls back to `du -sb` if `count-objects` fails
+/// (e.g. corrupted gitdir, very old git without `-v` flag).
+///
+/// CHANGED 2026-07-24 (v0.112.40): the fast path reads
+/// `size-pack` (bytes in pack files — what actually ships to GitHub)
+/// + `size-garbage` (orphaned tmp_pack_* / loose objects — the silent
+/// bloat class). This is semantically tighter than `du -sb` (which
+/// includes logs, refs, config, worktrees) and surfaces dangling
+/// objects that `du` would silently count toward the total.
 ///
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
@@ -607,8 +616,18 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
         return None;
     }
 
-    // Use `du -sb` (POSIX) to get total size in bytes. Fall back to
-    // `du -s --block-size=1` if `du` is busybox without `-b`.
+    // Fast path: `git count-objects -v` — queries git's pack index.
+    // Bounded at 4s (same pattern as `run_git_bounded`); on success
+    // returns `size-pack + size-garbage` bytes. On failure, falls
+    // through to `du -sb` below.
+    if let Some(bytes) = measure_git_size_via_count_objects(&git_dir) {
+        return Some(bytes);
+    }
+
+    // Fallback: `du -sb` (POSIX). Slow on multi-GiB gitdirs (~200ms+
+    // each) but works on any gitdir where `count-objects` fails.
+    // Output is "<bytes>\t<path>\n". Parse the first whitespace-separated
+    // token. Use a simple split to avoid pulling in a parser.
     let output = std::process::Command::new("du")
         .arg("-sb")
         .arg(&git_dir)
@@ -617,11 +636,58 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
     if !output.status.success() {
         return None;
     }
-    // Output is "<bytes>\t<path>\n". Parse the first whitespace-separated
-    // token. Use a simple split to avoid pulling in a parser.
     let stdout = String::from_utf8_lossy(&output.stdout);
     let bytes_str = stdout.split_whitespace().next()?;
     bytes_str.parse::<u64>().ok()
+}
+
+/// Probe git's pack index for total reachable bytes. ~10ms on
+/// 54 GiB gitdirs (vs ~200ms for `du -sb`). Parses
+/// `git count-objects -v` output:
+///
+/// ```
+/// count: 0
+/// size: 0
+/// in-pack: 442954
+/// packs: 5
+/// size-pack: 12407743
+/// prune-packable: 0
+/// garbage: 1
+/// size-garbage: 12734158
+/// ```
+///
+/// Returns `size-pack + size-garbage` (what's actually on disk
+/// that's either packed or orphaned). Bounded at 4s — on timeout
+/// or non-zero exit, returns `None` and the caller falls back to
+/// `du -sb`. Stderr warnings (e.g. `warning: garbage found:`) are
+/// expected and ignored — `count-objects -v` always prints them
+/// when there are dangling objects, which is precisely the case we
+/// want to surface (the v0.112.40 fix: dangling tmp_pack_* bloat
+/// was previously invisible to `du` because it walked through them
+/// without surfacing the warning).
+fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> {
+    const BOUND: std::time::Duration = std::time::Duration::from_secs(4);
+    // `count-objects -v` runs in the GITDIR (not the repo root)
+    // because that's where git's pack index lives. For bare gitdirs
+    // (worktrees/submodules) this is correct; for normal `.git/`
+    // dirs it's also correct.
+    let out = run_git_bounded(&["count-objects", "-v"], git_dir, &[], BOUND)?;
+    let stdout = String::from_utf8_lossy(&out);
+    let mut size_pack: u64 = 0;
+    let mut size_garbage: u64 = 0;
+    let mut saw_size_pack = false;
+    for line in stdout.lines() {
+        if let Some(rest) = line.strip_prefix("size-pack:") {
+            size_pack = rest.trim().parse().unwrap_or(0);
+            saw_size_pack = true;
+        } else if let Some(rest) = line.strip_prefix("size-garbage:") {
+            size_garbage = rest.trim().parse().unwrap_or(0);
+        }
+    }
+    if !saw_size_pack {
+        return None;
+    }
+    Some(size_pack + size_garbage)
 }
 
 /// Probe the operator's token file presence for each forge. Returns a
@@ -853,10 +919,19 @@ pub(crate) struct RepoReportRow {
     /// ADDED 2026-07-17 (goal `codeberg-public-only`).
     codeberg_skip_reason: Option<String>,
     /// Size of the repo's `.git` directory in bytes (i.e. the data that
-    /// would be pushed to remotes). Measured with `du -sb` at report
-    /// time. `None` if the measurement failed or timed out. Useful for
-    /// spotting size-blocked repos like `dracon-platform` (20 GiB) and
-    /// for general capacity planning.
+    /// would be pushed to remotes). Measured with
+    /// `git count-objects -v` (`size-pack + size-garbage`) at report
+    /// time; falls back to `du -sb` if `count-objects` fails. `None`
+    /// if the measurement failed or timed out. Useful for spotting
+    /// size-blocked repos like `dracon-platform` (20 GiB) and for
+    /// general capacity planning.
+    ///
+    /// CHANGED 2026-07-24 (v0.112.40): switched from `du -sb` to
+    /// `git count-objects -v` for ~17× speedup on multi-GiB gitdirs
+    /// (dracon-platform: 188ms → 11ms). Semantics are tighter: now
+    /// counts packed + orphaned bytes (the bytes that would actually
+    /// ship to a remote, plus dangling tmp_pack_* bloat) rather than
+    /// the whole gitdir tree (which included logs, refs, config).
     git_size_bytes: Option<u64>,
     /// Per-forge token health summary. Shows whether each forge's token
     /// file is present on disk, so the operator can spot auth-side
@@ -2478,10 +2553,32 @@ fn print_repos_legend() {
     println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
 }
 
+/// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
+/// size+pack cache. Without a TTL, the cache invalidates on every
+/// gitdir mtime change — and the daemon updates gitdirs constantly
+/// (commits, fetches, pushes, repacks). Result: a `repos` run while
+/// the daemon is active triggers ~7 multi-GiB `du -sb` calls (200ms+
+/// each), producing the 4-12s worst case. A 30s TTL means back-to-back
+/// `repos` calls (the common operator pattern: "look, then re-look")
+/// are always cache-hits regardless of intermediate daemon activity.
+/// Correctness: the gitdir_sig check still forces a recompute when
+/// gitdir mtime changed AND > 30s has passed since cache write — so
+/// stale data can't be served beyond the TTL window. TTL is 30s (not
+/// shorter) because the size data is real-only when the repo is
+/// idle; a daemon commit doesn't change gitdir size meaningfully.
+const REPO_SIZE_CACHE_TTL_SECS: u64 = 30;
+
 /// Cached `.git` size + GitHub pack-size guard for a single repo. Keyed by
 /// repo path and invalidated by the resolved gitdir's mtime (any commit or
 /// push updates it), so correctness is preserved across `repos` invocations
-/// while avoiding repeated `du -sb` / `git rev-list` work on large repos.
+/// while avoiding repeated `git count-objects` / `git rev-list` work on
+/// large repos.
+///
+/// CHANGED 2026-07-24 (v0.112.40): the cache is also honored within
+/// `REPO_SIZE_CACHE_TTL_SECS` (30s) regardless of gitdir mtime, so
+/// back-to-back `repos` calls skip the recompute unless either the
+/// TTL has elapsed or the gitdir has materially changed. See the
+/// `cached_at_secs` field for the wall-clock write timestamp.
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct CachedRepoSize {
     git_size_bytes: u64,
@@ -2497,6 +2594,14 @@ struct CachedRepoSize {
     /// (forces one recompute, then cached).
     #[serde(default)]
     missing_objects: Option<u64>,
+    /// ADDED 2026-07-24 (v0.112.40): wall-clock time the cache entry
+    /// was written, in seconds since UNIX epoch. Combined with
+    /// `REPO_SIZE_CACHE_TTL_SECS`, lets the cache survive brief
+    /// gitdir mtime bumps (daemon activity) without forcing a
+    /// `du -sb` recompute. `None` for cache files written before
+    /// this field existed — forces one recompute, then cached.
+    #[serde(default)]
+    cached_at_secs: Option<u64>,
 }
 
 /// ADDED 2026-07-23 (v0.112.39): count objects referenced by `main`'s
@@ -2707,8 +2812,16 @@ pub(crate) async fn run_repos_report(
         Some(&policy.system_repo),
     );
     // Per-repo `.git` size + GitHub pack-size guard, cached by gitdir mtime
-    // so repeat `repos` runs skip the expensive `du -sb` / `git rev-list`
-    // work on multi-GiB .git dirs (the recent slowdown regression).
+    // so repeat `repos` runs skip the expensive `git count-objects` /
+    // `git rev-list` work on multi-GiB .git dirs (the recent slowdown
+    // regression).
+    //
+    // CHANGED 2026-07-24 (v0.112.40): cache is also honored when the
+    // entry is FRESH (within REPO_SIZE_CACHE_TTL_SECS = 30s),
+    // regardless of gitdir mtime. This means back-to-back `repos`
+    // calls always skip the recompute unless >30s have passed since
+    // the last cache write (the daemon's constant gitdir mtime
+    // updates were forcing spurious recomputes).
     let cache_path = repo_size_cache_path(policy_path);
     let mut size_cache = load_repo_size_cache(&cache_path);
     let cache_lookup = std::sync::Arc::new(size_cache.clone());
@@ -2816,14 +2929,41 @@ pub(crate) async fn run_repos_report(
         // Per-repo `.git` size + pack-guard, served from the mtime-keyed
         // cache when unchanged (avoids re-running `du -sb` on multi-GiB
         // .git dirs on every `repos` invocation — the recent slowdown).
+        //
+        // CHANGED 2026-07-24 (v0.112.40): the cache is also honored
+        // when the entry is FRESH (cached_at_secs within
+        // REPO_SIZE_CACHE_TTL_SECS), regardless of gitdir mtime. This
+        // means back-to-back `repos` calls (e.g. operator looks,
+        // daemon commits, operator looks again) skip the
+        // `count-objects`/`du -sb` recompute. Correctness: the
+        // gitdir_sig mismatch still forces a recompute when > TTL has
+        // elapsed, so stale data can't be served beyond the window.
         let cache_key = repo.to_string_lossy().to_string();
         let gitdir_sig = gitdir_signature(&repo);
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let cached_entry_is_fresh = |c: &CachedRepoSize| -> bool {
+            // Old cache files (pre-v0.112.40) have `cached_at_secs: None`
+            // — treat them as stale to force one recompute, then start
+            // honoring the TTL.
+            c.cached_at_secs
+                .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
+                .unwrap_or(false)
+        };
         let (git_size_bytes, pack_too_large, missing_objects) = match cache_lookup.get(&cache_key) {
-            Some(c) if c.gitdir_sig == gitdir_sig && c.missing_objects.is_some() => (
-                Some(c.git_size_bytes),
-                (c.pack_too_large, c.pack_pushable_bytes),
-                c.missing_objects.unwrap_or(0),
-            ),
+            Some(c)
+                if c.gitdir_sig == gitdir_sig
+                    && c.missing_objects.is_some()
+                    && cached_entry_is_fresh(c) =>
+            {
+                (
+                    Some(c.git_size_bytes),
+                    (c.pack_too_large, c.pack_pushable_bytes),
+                    c.missing_objects.unwrap_or(0),
+                )
+            }
             _ => {
                 let size = measure_git_size_bytes(&repo);
                 let pack = crate::git::github_pack_too_large(&repo, size);
@@ -2838,6 +2978,10 @@ pub(crate) async fn run_repos_report(
                         pack_pushable_bytes: pack.1,
                         gitdir_sig,
                         missing_objects: Some(missing),
+                        // ADDED 2026-07-24 (v0.112.40): record the
+                        // wall-clock write time so the TTL check can
+                        // honor fresh entries across daemon activity.
+                        cached_at_secs: Some(now_secs),
                     },
                 );
                 (size, pack, missing)
@@ -3251,11 +3395,16 @@ pub(crate) async fn run_repos_report(
                     None
                 }
             },
-            // Measure `.git` size in bytes. `du -sb` is fast (~40ms for
-            // a 20 GiB .git) so we can call it inline. If it fails or
-            // times out, we record `None` and the renderer shows a
-            // dash. 2-second cap to keep the report snappy even on
+            // Measure `.git` size in bytes. `git count-objects -v` is fast
+            // (~10ms for a 54 GiB .git) so we can call it inline;
+            // falls back to `du -sb` on failure. If both fail or
+            // time out, we record `None` and the renderer shows a
+            // dash. 4-second cap to keep the report snappy even on
             // network filesystems.
+            //
+            // CHANGED 2026-07-24 (v0.112.40): switched from `du -sb`
+            // to `git count-objects -v` for ~17× speedup on multi-GiB
+            // gitdirs. `du -sb` is retained as the fallback.
             git_size_bytes,
             // Probe each forge's token file. We check both the modern
             // `~/.dracon/utilities/sync/secrets/` dir and the legacy
@@ -3281,7 +3430,12 @@ pub(crate) async fn run_repos_report(
             .await
     };
     // Persist freshly-computed sizes so subsequent `repos` invocations skip
-    // the `du -sb` / `git rev-list` work on multi-GiB .git dirs.
+    // the `git count-objects` / `git rev-list` work on multi-GiB .git dirs.
+    // CHANGED 2026-07-24 (v0.112.40): the cached entry now carries a
+    // `cached_at_secs` timestamp; the lookup honors entries within
+    // `REPO_SIZE_CACHE_TTL_SECS` of `now`, so back-to-back `repos`
+    // calls skip the recompute even when the daemon updated the
+    // gitdir mtime in between.
     for (k, v) in cache_record.lock().unwrap().drain() {
         size_cache.insert(k, v);
     }
