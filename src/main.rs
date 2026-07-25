@@ -854,6 +854,23 @@ async fn main() -> Result<()> {
             run_once(&policy_path).await?;
         }
         Command::Daemon { interval_secs } => {
+            // FIXED 2026-07-25 (v0.112.41): set GIT_SSH_COMMAND process-wide
+            // so EVERY subprocess git invocation (including dracon-git's CLI
+            // fetch/pull inside pull_merge/pull_rebase) uses the hardened ssh
+            // config. Rationale: the systemd 258.7 user-service sandbox
+            // (ProtectSystem=strict / ProtectHome=read-only / PrivateTmp)
+            // now runs the daemon inside a USER NAMESPACE where root-owned
+            // files appear as nobody(65534). OpenSSH's secure_filename()
+            // then rejects /etc/ssh/ssh_config's nix-store Include
+            // ("Bad owner or permissions on .../20-systemd-ssh-proxy.conf"),
+            // breaking every plain-ssh fetch/pull from the daemon while
+            // pushes (which already set GIT_SSH_COMMAND with the -F secrets
+            // config) kept working. Root-caused via systemd-run reproduction:
+            // any mount-namespace property triggers it; -F bypasses it.
+            // See docs/design/incident-amend-race-and-trust-2026-07-25.md.
+            if std::env::var_os("GIT_SSH_COMMAND").is_none() {
+                std::env::set_var("GIT_SSH_COMMAND", crate::git::git_ssh_hardening());
+            }
             run_daemon(policy_path, interval_secs).await?;
         }
         Command::SyncNow {

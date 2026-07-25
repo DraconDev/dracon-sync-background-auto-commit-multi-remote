@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.41 — 2026-07-25 — daemon-mode GIT_SSH_COMMAND (systemd 258.7 userns ssh fix)
+
+**Fix: every CLI fetch/pull from the daemon failed with `Bad owner or permissions on /nix/store/.../20-systemd-ssh-proxy.conf`.**
+
+Root cause: the systemd 258.7 user-service sandbox (`ProtectSystem=strict`, `ProtectHome=read-only`, `PrivateTmp`) now runs the daemon inside a **user namespace** where root-owned files appear as `nobody(65534)`. OpenSSH's `secure_filename()` rejects any config path component not owned by euid or uid 0, so the `/etc/ssh/ssh_config` system Include of systemd's nix-store `ssh_config.d` file failed the check — breaking plain-ssh `git fetch`/`git pull` from the daemon while pushes (which already set `GIT_SSH_COMMAND` with the `-F ~/.dracon/secrets/ssh/config` hardened config) kept working. Reproduced deterministically via `systemd-run --user -p ProtectHome=read-only ssh -G ...`.
+
+Fix: daemon mode now sets `GIT_SSH_COMMAND` process-wide (only if not already set) to the same `git_ssh_hardening()` value pushes use, so dracon-git's CLI-first `fetch()`/`pull_merge()`/`pull_rebase()` subprocesses inherit it. See `docs/design/incident-amend-race-and-trust-2026-07-25.md`.
+
+Ships together with **dracon-git v94.7.2** (`[patch.crates-io]` tag bump): git2 0.21 changed `default = []`, so the bare `git2 = "0.21"` built libgit2 with NO ssh/https transports — the libgit2 fetch/pull fallback always failed with `unsupported URL protocol; class=Net (12)`, masking the real CLI error above. v94.7.2 enables the `ssh`/`https` features and adds `ssh_cred()`: probe `SSH_AUTH_SOCK` eagerly (the agent failure is lazy — a naive `.or_else()` never fires) and fall back to `~/.ssh/id_ed25519|id_rsa|id_ecdsa`, mirroring CLI ssh `IdentityFile` behavior. Required because the daemon runs with no `SSH_AUTH_SOCK`.
+
 ### v0.112.40 — 2026-07-24 — `repos` perf fix (count-objects fast path + 30s cache TTL)
 
 **Two-part fix for the `dracon-sync repos` 4-12s slowness during active daemon work.**
