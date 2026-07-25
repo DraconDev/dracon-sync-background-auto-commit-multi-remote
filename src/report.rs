@@ -587,10 +587,11 @@ pub(crate) fn effective_excluded_remotes(
 ///
 /// CHANGED 2026-07-24 (v0.112.40): the fast path reads
 /// `size-pack` (bytes in pack files — what actually ships to GitHub)
-/// + `size-garbage` (orphaned tmp_pack_* / loose objects — the silent
-/// bloat class). This is semantically tighter than `du -sb` (which
-/// includes logs, refs, config, worktrees) and surfaces dangling
-/// objects that `du` would silently count toward the total.
+/// plus `size-garbage` (orphaned tmp_pack_ files plus loose
+/// objects — the silent bloat class). This is semantically tighter
+/// than `du -sb` (which includes logs, refs, config, worktrees)
+/// and surfaces dangling objects that `du` would silently count
+/// toward the total.
 ///
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
