@@ -2978,10 +2978,17 @@ pub(crate) async fn run_repos_report(
                 .unwrap_or(false)
         };
         let (git_size_bytes, pack_too_large, missing_objects) = match cache_lookup.get(&cache_key) {
+            // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
+            // freshness check. If the entry was written within
+            // REPO_SIZE_CACHE_TTL_SECS, we honor it regardless of
+            // gitdir mtime — the daemon's constant commits/fetches
+            // bump the mtime but the cache is still valid for 30s.
+            // The sig check is retained as a secondary guard for
+            // entries that have no cached_at_secs (pre-v0.112.40
+            // cache files).
             Some(c)
-                if c.gitdir_sig == gitdir_sig
-                    && c.missing_objects.is_some()
-                    && cached_entry_is_fresh(c) =>
+                if cached_entry_is_fresh(c)
+                    && c.missing_objects.is_some() =>
             {
                 (
                     Some(c.git_size_bytes),
