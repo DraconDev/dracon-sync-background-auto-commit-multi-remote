@@ -656,15 +656,21 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
 /// size-garbage: 12734158
 /// ```
 ///
-/// Returns `size-pack + size-garbage` (what's actually on disk
-/// that's either packed or orphaned). Bounded at 4s — on timeout
-/// or non-zero exit, returns `None` and the caller falls back to
-/// `du -sb`. Stderr warnings (e.g. `warning: garbage found:`) are
-/// expected and ignored — `count-objects -v` always prints them
-/// when there are dangling objects, which is precisely the case we
-/// want to surface (the v0.112.40 fix: dangling tmp_pack_* bloat
-/// was previously invisible to `du` because it walked through them
-/// without surfacing the warning).
+/// Returns `size + size-pack + size-garbage` (loose objects +
+/// packed objects + orphaned objects — the full picture of what
+/// `du -sb` would have measured). The `size:` line covers loose
+/// objects (which `size-pack` misses for fresh repos that haven't
+/// been GC'd yet — without `size:`, the fast path would short-
+/// circuit to 0 for fresh repos, hiding the real size).
+///
+/// Bounded at 4s — on timeout or non-zero exit, returns `None` and
+/// the caller falls back to `du -sb`. Stderr warnings (e.g.
+/// `warning: garbage found:`) are expected and ignored —
+/// `count-objects -v` always prints them when there are dangling
+/// objects, which is precisely the case we want to surface (the
+/// v0.112.40 fix: dangling tmp_pack_* bloat was previously
+/// invisible to `du` because it walked through them without
+/// surfacing the warning).
 fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> {
     const BOUND: std::time::Duration = std::time::Duration::from_secs(4);
     // `count-objects -v` runs in the GITDIR (not the repo root)
@@ -673,11 +679,19 @@ fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> 
     // dirs it's also correct.
     let out = run_git_bounded(&["count-objects", "-v"], git_dir, &[], BOUND)?;
     let stdout = String::from_utf8_lossy(&out);
+    let mut size_loose: u64 = 0;
     let mut size_pack: u64 = 0;
     let mut size_garbage: u64 = 0;
     let mut saw_size_pack = false;
     for line in stdout.lines() {
-        if let Some(rest) = line.strip_prefix("size-pack:") {
+        if let Some(rest) = line.strip_prefix("size:") {
+            // `size:` is the loose-objects total; only count it if
+            // the previous token was exactly `size:` (not
+            // `size-pack:` or `size-garbage:`), since `.strip_prefix`
+            // is a literal prefix match and the bare key always
+            // appears first in `count-objects -v` output.
+            size_loose = rest.trim().parse().unwrap_or(0);
+        } else if let Some(rest) = line.strip_prefix("size-pack:") {
             size_pack = rest.trim().parse().unwrap_or(0);
             saw_size_pack = true;
         } else if let Some(rest) = line.strip_prefix("size-garbage:") {
@@ -687,7 +701,7 @@ fn measure_git_size_via_count_objects(git_dir: &std::path::Path) -> Option<u64> 
     if !saw_size_pack {
         return None;
     }
-    Some(size_pack + size_garbage)
+    Some(size_loose + size_pack + size_garbage)
 }
 
 /// Probe the operator's token file presence for each forge. Returns a
