@@ -596,7 +596,6 @@ pub(crate) fn effective_excluded_remotes(
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
 pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
-    let _t = std::time::Instant::now();
     let git_path = repo.join(".git");
     if !git_path.exists() {
         return None;
@@ -640,9 +639,7 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
     let bytes_str = stdout.split_whitespace().next()?;
-    let r = bytes_str.parse::<u64>().ok();
-    eprintln!("[TIMING] measure_git_size_bytes: {:?} for {:?}", _t.elapsed(), repo);
-    r
+    bytes_str.parse::<u64>().ok()
 }
 
 /// Probe git's pack index for total reachable bytes. ~10ms on
@@ -2821,7 +2818,6 @@ pub(crate) async fn run_repos_report(
         return Ok(());
     }
     let policy = SyncPolicy::load(policy_path)?;
-    let _t0 = std::time::Instant::now();
     let roots = policy.watch_root_paths();
     let excluded_dir_names = excluded_dir_names_set(&policy);
     let repos = discover_git_repos(
@@ -2830,7 +2826,6 @@ pub(crate) async fn run_repos_report(
         &policy.exclude_repos,
         Some(&policy.system_repo),
     );
-    eprintln!("[TIMING] discover: {} repos in {:?}", repos.len(), _t0.elapsed());
     // Per-repo `.git` size + GitHub pack-size guard, cached by gitdir mtime
     // so repeat `repos` runs skip the expensive `git count-objects` /
     // `git rev-list` work on multi-GiB .git dirs (the recent slowdown
@@ -2844,8 +2839,6 @@ pub(crate) async fn run_repos_report(
     // updates were forcing spurious recomputes).
     let cache_path = repo_size_cache_path(policy_path);
     let mut size_cache = load_repo_size_cache(&cache_path);
-    let _t_load = std::time::Instant::now();
-    eprintln!("[TIMING] load_cache: {} entries in {:?}", size_cache.len(), _t_load.elapsed());
     let cache_lookup = std::sync::Arc::new(size_cache.clone());
     let cache_record = std::sync::Arc::new(std::sync::Mutex::new(
         std::collections::HashMap::new(),
@@ -2895,8 +2888,7 @@ pub(crate) async fn run_repos_report(
                 let cache_lookup = std::sync::Arc::clone(&cache_lookup);
                 let cache_record = std::sync::Arc::clone(&cache_record);
                 async move {
-                let _t_repo = std::time::Instant::now();
-                let svc = match GitService::new(&repo) {
+            let svc = match GitService::new(&repo) {
                     Ok(svc) => svc,
                     Err(e) => {
                         init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -2934,7 +2926,6 @@ pub(crate) async fn run_repos_report(
         // subrepos would falsely report UT ≥ 1 and trigger
         // `⚪ untracked-only` state classification.
         let nested_untracked = nested_repo_untracked_count(&repo).await;
-        eprintln!("[TIMING] post_nested: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
         let effective_untracked_files = effective_status
             .untracked_files
             .saturating_sub(nested_untracked);
@@ -2949,7 +2940,6 @@ pub(crate) async fn run_repos_report(
         // because the fast path already short-circuits clean+synced
         // repos before this point.
         let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
-        eprintln!("[TIMING] post_has_any_remote: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
 
         // Per-repo `.git` size + pack-guard, served from the mtime-keyed
         // cache when unchanged (avoids re-running `du -sb` on multi-GiB
@@ -2998,13 +2988,10 @@ pub(crate) async fn run_repos_report(
             }
             _ => {
                 let size = measure_git_size_bytes(&repo);
-                eprintln!("[TIMING] post_size: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 let pack = crate::git::github_pack_too_large(&repo, size);
-                eprintln!("[TIMING] post_pack: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 // ADDED 2026-07-23 (v0.112.39): probe broken-history
                 // alongside the size measure (same 24h cache TTL).
                 let missing = probe_missing_objects(&repo);
-                eprintln!("[TIMING] post_missing: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
                 cache_record.lock().unwrap().insert(
                     cache_key.clone(),
                     CachedRepoSize {
@@ -3371,7 +3358,6 @@ pub(crate) async fn run_repos_report(
         let (upstream_label, publish_state) =
             branch_upstream(&repo, &effective_status.branch);
         let active = repo_is_active(&push_status, &state_cause);
-        eprintln!("[TIMING] repo_pre_row: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
         Some(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
@@ -3465,7 +3451,6 @@ pub(crate) async fn run_repos_report(
             .collect()
             .await
     };
-    eprintln!("[TIMING] per_repo_stream: {} rows in {:?}", row_results.len(), _t0.elapsed());
     // Persist freshly-computed sizes so subsequent `repos` invocations skip
     // the `git count-objects` / `git rev-list` work on multi-GiB .git dirs.
     // CHANGED 2026-07-24 (v0.112.40): the cached entry now carries a
