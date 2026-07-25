@@ -640,7 +640,9 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
     let bytes_str = stdout.split_whitespace().next()?;
-    bytes_str.parse::<u64>().ok()
+    let r = bytes_str.parse::<u64>().ok();
+    eprintln!("[TIMING] measure_git_size_bytes: {:?} for {:?}", _t.elapsed(), repo);
+    r
 }
 
 /// Probe git's pack index for total reachable bytes. ~10ms on
@@ -2893,6 +2895,7 @@ pub(crate) async fn run_repos_report(
                 let cache_lookup = std::sync::Arc::clone(&cache_lookup);
                 let cache_record = std::sync::Arc::clone(&cache_record);
                 async move {
+                let _t_repo = std::time::Instant::now();
                 let svc = match GitService::new(&repo) {
                     Ok(svc) => svc,
                     Err(e) => {
