@@ -12,6 +12,15 @@ fn git_cmd(repo: &PathBuf, args: &[&str]) -> std::process::Output {
         .arg("-C")
         .arg(repo)
         .args(args)
+        // CHANGED 2026-07-25 (v0.113.0): hermetic git config. The
+        // operator's global config sets core.hooksPath to warden's
+        // enforcement hooks (secrets scan, test-identity guard,
+        // history-rewrite guard) — exactly the layer these tests must
+        // not trip over (this file commits as test@test.com and
+        // force-pushes scratch repos). Tests set repo-local identity
+        // explicitly, so /dev/null globals lose nothing.
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_SYSTEM", "/dev/null")
         .output()
         .unwrap()
 }
