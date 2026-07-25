@@ -508,6 +508,15 @@ pub(crate) struct SyncPolicy {
     pub(crate) pull_op_timeout_secs: u64,
     #[serde(default = "default_push_op_timeout_secs")]
     pub(crate) push_op_timeout_secs: u64,
+    /// ADDED 2026-07-25 (v0.113.0): when a repo's dangling-object
+    /// garbage (`count-objects` `size-garbage`, the tmp_pack_* debris
+    /// of interrupted pushes) exceeds this many bytes, the daemon
+    /// runs `git gc --prune=now` automatically. Root-cause fix for
+    /// the recurring `.git` bloat incidents (hegemon 4.9 GiB,
+    /// dracon-platform 37 GiB) that previously needed manual gc.
+    /// Default: 2 GiB. Set to 0 to disable.
+    #[serde(default = "default_auto_gc_garbage_threshold_bytes")]
+    pub(crate) auto_gc_garbage_threshold_bytes: u64,
     #[serde(default = "default_repo_sync_timeout_secs")]
     pub(crate) repo_sync_timeout_secs: u64,
     /// Timeout for `git add` staging operations during a sync cycle.
@@ -1070,6 +1079,12 @@ pub(crate) fn default_pull_op_timeout_secs() -> u64 {
 
 pub(crate) fn default_push_op_timeout_secs() -> u64 {
     300
+}
+
+pub(crate) fn default_auto_gc_garbage_threshold_bytes() -> u64 {
+    // 2 GiB — below GitHub's per-push pack limit, large enough that
+    // normal loose-object churn never triggers it.
+    2 * 1024 * 1024 * 1024
 }
 
 pub(crate) fn default_repo_sync_timeout_secs() -> u64 {
