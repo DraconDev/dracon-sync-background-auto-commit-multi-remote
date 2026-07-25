@@ -76,6 +76,11 @@ auto_rewrite_large_blobs = false
 # timeouts now enforce push/pull safety.
 pull_op_timeout_secs = 30
 push_op_timeout_secs = 60
+# When a repo's dangling-object garbage (interrupted-push tmp_pack_* debris,
+# visible via `git count-objects -v` as size-garbage) exceeds this many bytes,
+# the daemon runs `git gc --prune=now` automatically (v0.113.0). Default:
+# 2147483648 (2 GiB). Set to 0 to disable.
+#auto_gc_garbage_threshold_bytes = 2147483648
 # Idle timeout (seconds) for `git add -A` and other staging operations on a
 # single repo. Large repos (thousands of dirty files) can take 60-90s to
 # stage; the default of 60s gives headroom for typical work without making

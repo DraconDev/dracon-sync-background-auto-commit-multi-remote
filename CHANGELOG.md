@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.0 — 2026-07-25 — auto-gc garbage knob + gitlab auto-protect on create
+
+**`auto_gc_garbage_threshold_bytes`** (default 2 GiB, 0 disables): when a
+repo's dangling-object garbage (`count-objects` `size-garbage` — the
+tmp_pack_* debris of interrupted pushes) exceeds the threshold, the daemon
+runs `git gc --prune=now` itself. Root-cause fix for the recurring `.git`
+bloat incidents (hegemon 4.9 GiB, dracon-platform 37 GiB) that previously
+needed manual gc and tripped the GitHub 2 GiB pack guard.
+
+**gitlab branch protection on auto-create**: `create_repo_on_gitlab` now
+immediately protects `main` (maintainers push, `allow_force_push=false`),
+and re-ensures it on the already-exists path. Without this, the
+2026-07-25 fleet protection sweep (19 branches) would silently regress
+with every new auto-created repo.
+
+**Note**: the no-history-rewrite hook enforcement designed for this
+release moved to **dracon-warden 0.113.0** — warden owns the hook layer
+fleet-wide via global `core.hooksPath` + `init.templateDir`; a second
+installer in dracon-sync would have ping-ponged ownership every cycle.
+
 ### v0.112.42 — 2026-07-25 — `repos` cold-run perf (TTL 30s→1h) + KiB unit fix
 
 **Perf**: `REPO_SIZE_CACHE_TTL_SECS` 30 → 3600. The 30s TTL meant every
