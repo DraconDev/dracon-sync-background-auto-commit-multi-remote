@@ -596,6 +596,7 @@ pub(crate) fn effective_excluded_remotes(
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
 pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
+    let _t = std::time::Instant::now();
     let git_path = repo.join(".git");
     if !git_path.exists() {
         return None;
@@ -2818,6 +2819,7 @@ pub(crate) async fn run_repos_report(
         return Ok(());
     }
     let policy = SyncPolicy::load(policy_path)?;
+    let _t0 = std::time::Instant::now();
     let roots = policy.watch_root_paths();
     let excluded_dir_names = excluded_dir_names_set(&policy);
     let repos = discover_git_repos(
@@ -2826,6 +2828,7 @@ pub(crate) async fn run_repos_report(
         &policy.exclude_repos,
         Some(&policy.system_repo),
     );
+    eprintln!("[TIMING] discover: {} repos in {:?}", repos.len(), _t0.elapsed());
     // Per-repo `.git` size + GitHub pack-size guard, cached by gitdir mtime
     // so repeat `repos` runs skip the expensive `git count-objects` /
     // `git rev-list` work on multi-GiB .git dirs (the recent slowdown
@@ -2839,6 +2842,8 @@ pub(crate) async fn run_repos_report(
     // updates were forcing spurious recomputes).
     let cache_path = repo_size_cache_path(policy_path);
     let mut size_cache = load_repo_size_cache(&cache_path);
+    let _t_load = std::time::Instant::now();
+    eprintln!("[TIMING] load_cache: {} entries in {:?}", size_cache.len(), _t_load.elapsed());
     let cache_lookup = std::sync::Arc::new(size_cache.clone());
     let cache_record = std::sync::Arc::new(std::sync::Mutex::new(
         std::collections::HashMap::new(),
@@ -3444,6 +3449,7 @@ pub(crate) async fn run_repos_report(
             .collect()
             .await
     };
+    eprintln!("[TIMING] per_repo_stream: {} rows in {:?}", row_results.len(), _t0.elapsed());
     // Persist freshly-computed sizes so subsequent `repos` invocations skip
     // the `git count-objects` / `git rev-list` work on multi-GiB .git dirs.
     // CHANGED 2026-07-24 (v0.112.40): the cached entry now carries a
