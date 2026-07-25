@@ -740,13 +740,68 @@ pub(crate) fn create_repo_on_gitlab(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        if is_repo_already_exists(&stderr) {
-            return Ok(format!("git@gitlab.com:{}/{}.git", account, repo_name));
+        if !is_repo_already_exists(&stderr) {
+            anyhow::bail!("glab repo create failed: {}", stderr.trim());
         }
-        anyhow::bail!("glab repo create failed: {}", stderr.trim());
     }
 
+    // ADDED 2026-07-25 (v0.113.0): protect `main` against force-push
+    // immediately on create (and self-heal on the already-exists path),
+    // so every gitlab repo the daemon manages gets the history-rewrite
+    // guard the 2026-07-25 fleet sweep applied to existing repos.
+    // Without this, protection would silently regress with every new
+    // auto-created repo. Failures are logged, not fatal — repo creation
+    // itself already succeeded.
+    ensure_gitlab_main_protected(account, repo_name);
+
     Ok(format!("git@gitlab.com:{}/{}.git", account, repo_name))
+}
+
+/// Protect the `main` branch of a gitlab project against force-push
+/// (maintainers keep push/merge). Idempotent: an already-protected
+/// `main` returns 409, which we treat as success. Best-effort: logs
+/// and returns on any failure.
+fn ensure_gitlab_main_protected(account: &str, repo_name: &str) {
+    let project = format!("{}%2F{}", account, repo_name);
+    let mut cmd = std::process::Command::new("glab");
+    cmd.args([
+        "api",
+        "-X",
+        "POST",
+        &format!("projects/{}/protected_branches", project),
+        "-f",
+        "name=main",
+        "-f",
+        "push_access_level=40",
+        "-f",
+        "merge_access_level=40",
+        "-f",
+        "allow_force_push=false",
+    ]);
+    if let Some(token) = load_secret("GITLAB_TOKEN") {
+        cmd.env("GITLAB_TOKEN", token);
+    }
+    match cmd.output() {
+        Ok(out) if out.status.success() => {
+            log::info!("🛡️ gitlab: protected main on {}/{}", account, repo_name);
+        }
+        Ok(out) => {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            if stderr.contains("already exists") {
+                // Already protected — the idempotent steady state.
+            } else {
+                log::warn!(
+                    "⚠️ gitlab protect main failed for {}/{}: {}",
+                    account,
+                    repo_name,
+                    stderr.trim()
+                );
+            }
+        }
+        Err(e) => {
+            log::warn!("⚠️ gitlab protect main spawn failed for {}/{}: {}", account, repo_name, e);
+        }
+    }
 }
 
 /// Create a repo on Codeberg via REST API.
