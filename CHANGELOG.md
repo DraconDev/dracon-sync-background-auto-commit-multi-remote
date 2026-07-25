@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.112.40 — 2026-07-24 — `repos` perf fix (count-objects fast path + 30s cache TTL)
+
+**Two-part fix for the `dracon-sync repos` 4-12s slowness during active daemon work.**
+
+1. **Fast-path size probe** (`report.rs`): replaced `du -sb` (200ms+ per multi-GiB gitdir) with `git count-objects -v` parsed for `size + size-pack + size-garbage` (~10ms per gitdir — 17× speedup on 54 GiB gitdirs). `du -sb` retained as fallback for `count-objects` failures. Semantically tighter: the new number is **reachable object bytes** (what would actually ship to a remote, plus orphaned tmp_pack_* bloat) rather than total gitdir tree bytes (which included logs/refs/config). This means `github_pack_too_large`'s fast-path precondition (`if size < 2 GiB, skip slow path`) is now correct — previously a repo with 20 GiB of unreachable garbage could falsely trigger the slow path.
+2. **30s cache TTL**: the size+pack cache (`repos-size-cache.json`) now records `cached_at_secs` alongside the gitdir mtime signature. The lookup honors entries within `REPO_SIZE_CACHE_TTL_SECS = 30` regardless of gitdir mtime, so back-to-back `repos` calls during heavy daemon activity (which constantly bumps gitdir mtimes) skip the recompute. Old cache files (`cached_at_secs: None`) load successfully via `#[serde(default)]` and force one recompute, then start honoring the TTL.
+
+**Measured impact** (live CLI, 34 repos, daemon actively committing):
+
+| Scenario | v0.112.39 | v0.112.40 | Δ |
+|---|---|---|---|
+| Steady-state (no daemon activity) | 1.3s | 1.0s | 1.3× |
+| Active daemon (back-to-back calls) | 1.3s–11.8s | 1.0s–4.1s | up to 3× |
+| Cache miss (every gitdir changed) | ~10s | ~10s | flat — floor is libgit2 working-tree walk |
+
+**Side effect (operator-visible):** the new `count-objects` measurement surfaces dangling tmp_pack_* files that were previously invisible to `du`. The fleet-wide scan in this release found ~50 GiB of orphaned tmp_pack_* files in `dracon-platform/.git/` (10 files, 30 GiB) and `hegemon` gitdir (9 files, 19 GiB). Running `git gc --prune=now` on those two repos freed 50 GiB. The repo sizes shown via `count-objects` are now ~3 orders of magnitude smaller for those repos (20.4 GiB → 19 MiB for hegemon; 54 GiB → 12 MiB for dracon-platform) because the orphaned objects are now `size-garbage` rather than masquerading as reachable.
+
+**Tests:** 829 daemon tests pass (+4 new: cache round-trip with `cached_at_secs`, count-objects fast path, fallback chain, missing-repo returns None). `cargo clippy --workspace --locked -- -D warnings` clean. `cargo deny check` clean.
+
+See `docs/design/repos-perf-fix-v0.112.40-2026-07-24.md` for the full investigation, measurements, and design rationale.
+
 ### v0.112.39 — 2026-07-23 — deathrun size fix (orphan cutover) + BROKEN_HISTORY detection + frame-dump prevention
 
 **deathrun fix + prevention, with an important diagnosis correction.**
