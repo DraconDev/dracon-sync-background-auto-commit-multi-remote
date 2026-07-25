@@ -3359,6 +3359,7 @@ pub(crate) async fn run_repos_report(
         let (upstream_label, publish_state) =
             branch_upstream(&repo, &effective_status.branch);
         let active = repo_is_active(&push_status, &state_cause);
+        eprintln!("[TIMING] repo_pre_row: {:?} {:?}", repo.file_name().unwrap_or_default(), _t_repo.elapsed());
         Some(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
