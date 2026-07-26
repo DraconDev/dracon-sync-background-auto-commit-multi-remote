@@ -3940,6 +3940,25 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // actually inserts the stage cooldown this comment always
     // promised (`stage_cooldowns` was dead — no insert site existed).
     if filter_only_cleared {
+        // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
+        // returning FilterOnly. Pre-fix, a repo whose only dirty
+        // entries are filter noise (e.g. junk-runner's tracked +
+        // gitignored `.pi-glla/active.jsonl` heartbeat, rewritten
+        // every ~15s by its loop agent) hit this early-return every
+        // cycle; the 300s stage cooldown then silenced it and the
+        // push phase below was never reached — already-committed
+        // work piled up unpushed INDEFINITELY (junk-runner: 19
+        // commits, 10h of silent starvation, found 2026-07-26).
+        // `handle_ahead_push` is a cheap local no-op when there is
+        // genuinely nothing to push (libgit2 status + upstream
+        // checks, no network), so the pure-noise case pays nothing.
+        // The FilterOnly outcome (and its 300s stage cooldown) still
+        // applies, bounding a repo whose tracking ref never
+        // converges to one push attempt per 5 min.
+        let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
+        if !push_ok {
+            return Ok(SyncOutcome::PushFailed);
+        }
         if debug_enabled() {
             eprintln!(
                 "🐛 {} filter-only dirty, returning FilterOnly for cooldown",
@@ -4067,6 +4086,61 @@ pub(crate) async fn sync_repo_with_ahead_since(
     Ok(SyncOutcome::NothingToDo)
 }
 
+/// ADDED 2026-07-26 (v0.113.1): after a successful push, refresh
+/// the branch's upstream tracking ref (e.g. `refs/remotes/origin/
+/// main`) when it disagrees with HEAD. The daemon pushes to NAMED
+/// mirror remotes (github/gitlab/codeberg); when `origin` shares a
+/// URL with one of them (junk-runner: origin = the gitlab URL), the
+/// push updates `refs/remotes/gitlab/main` but NOT `refs/remotes/
+/// origin/main`. libgit2 then reports ahead>0 forever: the report
+/// lies ("pushing 240m" when the push finished long ago) and every
+/// subsequent cycle re-pushes needlessly. A bounded `git fetch
+/// <upstream-remote>` restores reality. Skipped when the tracking
+/// ref already matches HEAD (the common case costs zero network).
+/// Best-effort: a failed fetch is transient and retried on the
+/// next successful push.
+async fn refresh_stale_upstream_ref(repo: &Path) {
+    let output = |args: &[&str]| -> Option<String> {
+        let out = super::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy()])
+            .args(args)
+            .output()
+            .ok()?;
+        if !out.status.success() {
+            return None;
+        }
+        Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    };
+    let Some(branch) = super::git::current_branch(repo) else {
+        return;
+    };
+    let Some(remote) = output(&["config", &format!("branch.{}.remote", branch)])
+        .filter(|s| !s.is_empty())
+    else {
+        return;
+    };
+    let Some(merge) = output(&["config", &format!("branch.{}.merge", branch)])
+        .filter(|s| !s.is_empty())
+    else {
+        return;
+    };
+    let short = merge.strip_prefix("refs/heads/").unwrap_or(&merge);
+    let upstream_ref = format!("refs/remotes/{}/{}", remote, short);
+    let upstream_sha = output(&["rev-parse", &upstream_ref]);
+    let head_sha = output(&["rev-parse", "HEAD"]);
+    if upstream_sha.is_some() && upstream_sha == head_sha {
+        return; // converged — the common case, zero network cost
+    }
+    let _ = super::git::run_git_with_timeout_env_progress(
+        repo,
+        &["fetch", &remote],
+        30,
+        "upstream-refresh",
+        &[("GIT_TERMINAL_PROMPT", "0")],
+    )
+    .await;
+}
+
 /// Pushes unpushed commits when needed.
 ///
 /// Returns `Ok(true)` when no push was needed or the push succeeded,
@@ -4099,6 +4173,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
         match push_background(ctx.repo, ctx.policy, ctx.has_origin, ctx.remote_failures.as_deref_mut()).await {
             Ok(true) => {
                 crate::daemon::record_push_success(ctx.repo);
+                // ADDED 2026-07-26 (v0.113.1): refresh the upstream
+                // tracking ref so a stale `origin/main` doesn't
+                // report ahead>0 forever after the push is done.
+                refresh_stale_upstream_ref(ctx.repo).await;
             }
             Ok(false) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
