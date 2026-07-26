@@ -6728,6 +6728,78 @@ auto_bump_versions = false
     /// CR-2 regression test: filter-only changes must NOT be re-detected by
     /// cli_diff_entries fallback, which would cause encrypted files to be
     /// committed as decrypted plaintext.
+    /// Regression (v0.113.1, 2026-07-26 junk-runner starvation):
+    /// `refresh_stale_upstream_ref` must fast-forward a stale
+    /// upstream tracking ref to reality after a push. Simulates the
+    /// production state where the daemon pushes to named mirror
+    /// remotes and `refs/remotes/origin/<branch>` never updates.
+    #[tokio::test]
+    async fn test_refresh_stale_upstream_ref_converges() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bare = tmp.path().join("remote.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-b", "main"])
+            .arg(&bare)
+            .status()
+            .unwrap();
+        let repo = init_test_repo(&tmp, "stale-upstream-repo");
+        git_cmd(&repo, &["checkout", "-q", "-b", "main"]);
+        std::fs::write(repo.join("a.txt"), "one").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c1"]);
+        git_cmd(
+            &repo,
+            &["remote", "add", "origin", &bare.to_string_lossy()],
+        );
+        git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
+
+        // Second commit, pushed DIRECTLY to the bare repo ref (as the
+        // daemon's named-mirror push would) — the local tracking ref
+        // stays stale.
+        std::fs::write(repo.join("a.txt"), "two").unwrap();
+        git_cmd(&repo, &["add", "."]);
+        git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "c2"]);
+        let head = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "HEAD"]).stdout,
+        )
+        .trim()
+        .to_string();
+        git_cmd(&repo, &["push", "-q", "origin", "HEAD:refs/heads/main"]);
+        // Rewind the local tracking ref to simulate staleness.
+        git_cmd(
+            &repo,
+            &["update-ref", "refs/remotes/origin/main", "HEAD~1"],
+        );
+        let stale = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
+        )
+        .trim()
+        .to_string();
+        assert_ne!(stale, head, "precondition: tracking ref must be stale");
+
+        refresh_stale_upstream_ref(&repo).await;
+
+        let refreshed = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
+        )
+        .trim()
+        .to_string();
+        assert_eq!(
+            refreshed, head,
+            "tracking ref must converge to HEAD after refresh"
+        );
+
+        // Idempotent / zero-network fast path: a converged ref is a
+        // no-op (second call must not change anything or fail).
+        refresh_stale_upstream_ref(&repo).await;
+        let again = String::from_utf8_lossy(
+            &git_cmd(&repo, &["rev-parse", "refs/remotes/origin/main"]).stdout,
+        )
+        .trim()
+        .to_string();
+        assert_eq!(again, head);
+    }
+
     #[tokio::test]
     async fn test_filter_only_skips_cli_diff_fallback() {
         let tmp = tempfile::tempdir().unwrap();
