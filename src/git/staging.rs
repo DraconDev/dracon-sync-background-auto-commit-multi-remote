@@ -119,37 +119,52 @@ pub(crate) async fn detect_large_blobs_ahead(
             if !rev_list.status.success() {
                 return Ok(Vec::new());
             }
-            let mut cat_file = crate::policy::std_git_command()
+            let mut cat_file_cmd = crate::policy::std_git_command();
+            cat_file_cmd
                 .args([
                     "cat-file",
                     "--batch-check=%(objectname) %(objecttype) %(objectsize) %(rest)",
                 ])
                 .current_dir(&r)
                 .stdout(std::process::Stdio::piped());
-            // FIXED 2026-07-26 (audit H-2): the pre-fix code piped
-            // cat-file's stdin and wrote the ENTIRE rev-list output
-            // into it BEFORE `wait_with_output()` started draining
-            // stdout. With thousands of objects ahead, cat-file's
-            // 64 KiB stdout pipe fills (nobody reading), it stops
-            // reading stdin, and the parent's `write_all` blocks
-            // forever — a deadlock the 60s tokio timeout cannot
-            // cancel (spawn_blocking thread + child leaked every
-            // repair cycle), after which the caller's
+            // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H7): the
+            // pre-fix code piped cat-file's stdin and wrote the
+            // ENTIRE rev-list output into it BEFORE
+            // `wait_with_output()` started draining stdout. With
+            // thousands of objects ahead, cat-file's 64 KiB stdout
+            // pipe fills (nobody reading), it stops reading stdin,
+            // and the parent's `write_all` blocks forever — a
+            // deadlock the 60s tokio timeout cannot cancel
+            // (spawn_blocking thread + child leaked every repair
+            // cycle), after which the caller's
             // `.unwrap_or_default()` silently disabled the 100 MiB
             // blob guard for exactly the repos that need it. Feed
-            // stdin from a temp FILE instead — no pipe, no deadlock.
-            // (Same incident class as the mod.rs "CRITICAL deadlock
-            // avoidance" fix; that pattern was never applied here.)
-            let mut stdin_file = tempfile::NamedTempFile::new()
-                .with_context(|| format!("failed to create stdin tmpfile in {}", r.display()))?;
-            use std::io::Write;
-            stdin_file
-                .write_all(&rev_list.stdout)
+            // stdin from a temp FILE instead — no pipe, no
+            // deadlock. (Same incident class as the mod.rs
+            // "CRITICAL deadlock avoidance" fix; that pattern was
+            // never applied here.) NOTE: `tempfile` is a dev-only
+            // dependency in this crate — use a std-only temp file
+            // with a Drop-guard cleanup.
+            let tmp_path = std::env::temp_dir().join(format!(
+                "dracon-sync-blob-stdin-{}-{}.txt",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_nanos())
+                    .unwrap_or(0)
+            ));
+            std::fs::write(&tmp_path, &rev_list.stdout)
                 .with_context(|| format!("failed to write stdin tmpfile in {}", r.display()))?;
-            let stdin_fd = stdin_file
-                .reopen()
+            struct StdinTmpCleanup(std::path::PathBuf);
+            impl Drop for StdinTmpCleanup {
+                fn drop(&mut self) {
+                    let _ = std::fs::remove_file(&self.0);
+                }
+            }
+            let _tmp_cleanup = StdinTmpCleanup(tmp_path.clone());
+            let stdin_fd = std::fs::File::open(&tmp_path)
                 .with_context(|| format!("failed to reopen stdin tmpfile in {}", r.display()))?;
-            let mut cat_file = cat_file
+            let mut cat_file = cat_file_cmd
                 .stdin(std::process::Stdio::from(stdin_fd))
                 .spawn()
                 .with_context(|| format!("failed cat-file in {}", r.display()))?;
