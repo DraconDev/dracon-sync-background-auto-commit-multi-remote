@@ -111,20 +111,34 @@ pub(crate) fn has_tracking_upstream(repo: &Path) -> bool {
         .unwrap_or(false)
 }
 
+// CHANGED 2026-07-26 (v0.113.2, audit SYNC-H8): resolve the REAL
+// gitdir via `path_gitdir` — for nested-on-`main` submodules and
+// linked worktrees, `<repo>/.git` is a FILE (gitdir pointer), so
+// `<repo>/.git/MERGE_HEAD` was ENOTDIR and these helpers ALWAYS
+// returned false: the daemon staged/committed/pushed straight
+// through an operator's in-progress conflicted merge in all 10
+// nested game repos, publishing conflict markers. Same bug class
+// as the v0.112.33 IndexLock fix below.
+fn state_path_exists(repo: &Path, name: &str) -> bool {
+    crate::git::path_gitdir(repo)
+        .map(|gitdir| gitdir.join(name))
+        .unwrap_or_else(|| repo.join(".git").join(name))
+        .exists()
+}
+
 /// Whether a rebase operation is in progress.
 pub(crate) fn is_rebase_in_progress(repo: &Path) -> bool {
-    repo.join(".git").join("rebase-merge").exists()
-        || repo.join(".git").join("rebase-apply").exists()
+    state_path_exists(repo, "rebase-merge") || state_path_exists(repo, "rebase-apply")
 }
 
 /// Whether a merge operation is in progress.
 pub(crate) fn is_merge_in_progress(repo: &Path) -> bool {
-    repo.join(".git").join("MERGE_HEAD").exists()
+    state_path_exists(repo, "MERGE_HEAD")
 }
 
 /// Whether a cherry-pick operation is in progress.
 pub(crate) fn is_cherry_pick_in_progress(repo: &Path) -> bool {
-    repo.join(".git").join("CHERRY_PICK_HEAD").exists()
+    state_path_exists(repo, "CHERRY_PICK_HEAD")
 }
 
 /// Check if a repository is ready for operations (has valid HEAD with commits).
@@ -386,6 +400,56 @@ mod tests {
                 .unwrap();
             assert!(status.success(), "git {:?} failed", args);
         }
+    }
+
+    // ---- conflict-state helpers (SYNC-H8, v0.113.2) ----
+
+    /// Regression test for SYNC-H8: for a nested submodule / linked
+    /// worktree layout, `<repo>/.git` is a FILE (`gitdir: <path>`),
+    /// so conflict-state files must be looked up in the REAL gitdir.
+    /// Pre-fix these helpers probed `<repo>/.git/MERGE_HEAD` (ENOTDIR)
+    /// and always returned false.
+    #[test]
+    fn test_conflict_state_detected_through_gitfile() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_gitdir = tmp.path().join("modules").join("sub");
+        std::fs::create_dir_all(&real_gitdir).unwrap();
+        let nested = tmp.path().join("nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(
+            nested.join(".git"),
+            format!("gitdir: {}", real_gitdir.display()),
+        )
+        .unwrap();
+
+        assert!(!is_merge_in_progress(&nested));
+        assert!(!is_rebase_in_progress(&nested));
+        assert!(!is_cherry_pick_in_progress(&nested));
+
+        std::fs::write(real_gitdir.join("MERGE_HEAD"), "abc\n").unwrap();
+        assert!(
+            is_merge_in_progress(&nested),
+            "MERGE_HEAD in the real gitdir must be detected through the gitfile"
+        );
+        std::fs::remove_file(real_gitdir.join("MERGE_HEAD")).unwrap();
+
+        std::fs::create_dir_all(real_gitdir.join("rebase-merge")).unwrap();
+        assert!(is_rebase_in_progress(&nested));
+        std::fs::remove_dir_all(real_gitdir.join("rebase-merge")).unwrap();
+
+        std::fs::write(real_gitdir.join("CHERRY_PICK_HEAD"), "abc\n").unwrap();
+        assert!(is_cherry_pick_in_progress(&nested));
+    }
+
+    /// Plain-repo layout (real `.git/` directory) still works.
+    #[test]
+    fn test_conflict_state_plain_repo_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        assert!(!is_merge_in_progress(&repo));
+        std::fs::write(repo.join(".git/MERGE_HEAD"), "abc\n").unwrap();
+        assert!(is_merge_in_progress(&repo));
     }
 
     // ---- is_stable_empty_repo ----
