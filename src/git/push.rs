@@ -199,13 +199,31 @@ pub(crate) async fn push_with_retries(
                 // pushed while this repo was idle).
                 if !tried_pull && is_push_rejected(&err_msg) {
                     tried_pull = true;
+                    // CHANGED 2026-07-26 (v0.113.3, audit M7): three
+                    // hazards in the pre-fix auto-pull — (1) `HEAD` as
+                    // a fetch refspec resolves to the remote's DEFAULT
+                    // branch, which may differ from the branch being
+                    // pushed (merging the WRONG branch into the pushed
+                    // one); pull the explicit branch instead. (2) No
+                    // `--no-edit`: git opens $EDITOR for the merge
+                    // commit when stdin is a tty (`dracon-sync once` /
+                    // `repair-concerns --apply` from a terminal could
+                    // hang inside vim). (3) On conflict the pull left
+                    // the repo in MERGING state (which the pre-v0.113.2
+                    // conflict check couldn't even detect for nested
+                    // submodules); abort instead.
+                    let pull_refspec = match crate::git::branch::current_branch(repo) {
+                        Some(b) => format!("refs/heads/{}", b),
+                        None => "HEAD".to_string(),
+                    };
                     eprintln!(
-                        "🔄 push rejected (non-fast-forward) for {} — pulling origin HEAD and retrying",
-                        repo.display()
+                        "🔄 push rejected (non-fast-forward) for {} — pulling origin {} and retrying",
+                        repo.display(),
+                        pull_refspec
                     );
                     let pull_result = super::run_git_with_timeout_env_progress(
                         repo,
-                        &["pull", "--no-rebase", "origin", "HEAD"],
+                        &["pull", "--no-rebase", "--no-edit", "origin", &pull_refspec],
                         timeout_secs,
                         &format!("{}-auto-pull", op_label),
                         &[
@@ -223,10 +241,20 @@ pub(crate) async fn push_with_retries(
                         }
                         Err(pull_err) => {
                             eprintln!(
-                                "⚠️ auto-pull failed for {}: {} — continuing with retry",
+                                "⚠️ auto-pull failed for {}: {} — aborting any partial merge, continuing with retry",
                                 repo.display(),
                                 pull_err
                             );
+                            // Best-effort: don't leave the repo in
+                            // MERGING state for the next sync cycle to
+                            // trip over. No-op when no merge is open.
+                            let _ = super::run_git_with_timeout(
+                                repo,
+                                &["merge", "--abort"],
+                                15,
+                                "auto-pull-abort",
+                            )
+                            .await;
                         }
                     }
                 }
@@ -310,6 +338,57 @@ pub(crate) fn is_pack_too_large(err_msg: &str) -> bool {
         || lower.contains("remote error: pack")
         || lower.contains("pack is too large")
         || lower.contains("deny updating a hidden ref")
+}
+
+/// ADDED 2026-07-26 (v0.113.3, audit SYNC-H6): force-push one remote
+/// after a history rewrite, leased to the PRE-REWRITE upstream sha.
+///
+/// Why not `push_with_retries`: (a) the rewrite intentionally
+/// diverges local from remote, so a non-force push is rejected by
+/// design; (b) the auto-pull-on-reject recovery would merge the
+/// PRE-REWRITE history back in — the exact catastrophe SYNC-H6
+/// documents (the >100 MiB blob returns to local history and is
+/// pushed to all mirrors). The lease anchors the force to the sha the
+/// remote held before the rewrite: if the remote moved since (a
+/// racing push), the lease fails and we log instead of clobbering.
+///
+/// `lease` = (full ref name, expected pre-rewrite sha) captured from
+/// the pre-rewrite upstream tracking ref. When `lease` is `None`
+/// (repo had no upstream — practically unreachable here since the
+/// large-blob detector itself needs `@{u}`), falls back to plain
+/// `--force` with a loud log: the auto-repair is documented to
+/// force-push, and the lease is belt-and-braces.
+pub(crate) async fn force_push_after_rewrite(
+    repo: &Path,
+    remote: &str,
+    branch: &str,
+    lease: &Option<(String, String)>,
+    timeout_secs: u64,
+) -> Result<()> {
+    let lease_flag = match lease {
+        Some((reference, expect)) => format!("--force-with-lease={}:{}", reference, expect),
+        None => {
+            eprintln!(
+                "⚠️ no pre-rewrite upstream sha for {} — force-pushing {} WITHOUT lease",
+                repo.display(),
+                remote
+            );
+            "--force".to_string()
+        }
+    };
+    let refspec = format!("HEAD:refs/heads/{}", branch);
+    let ssh_hardening = crate::git::git_ssh_hardening();
+    super::run_git_with_timeout_env_progress(
+        repo,
+        &["push", "--no-verify", &lease_flag, remote, &refspec],
+        timeout_secs,
+        &format!("push-after-rewrite ({})", remote),
+        &[
+            ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
+            ("GIT_TERMINAL_PROMPT", "0"),
+        ],
+    )
+    .await
 }
 
 #[cfg(test)]
