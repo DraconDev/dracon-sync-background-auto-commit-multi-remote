@@ -14,6 +14,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.4 — 2026-07-26 — full-audit remediation batch 4 (visibility + standard_files)
+
+- **SYNC-H4 — visibility cache-poison on transient gh failure**:
+  `sync_mirror_visibility` used the bool `get_github_visibility`
+  (safe-default `true` on ANY failure) and unconditionally wrote the
+  visibility cache "even on partial failures" — violating the
+  `get_github_visibility_opt` cache-poison invariant. A network
+  hiccup / auth expiry / rate limit flipped PUBLIC mirrors to
+  private (an uncommanded remote state change) and poisoned the
+  cache for 24h, gating the codeberg-public-only push path off.
+  Now uses `_opt` and skips BOTH the mirror flips AND the cache
+  write when visibility is unknown. The test that encoded the buggy
+  contract was rewritten to assert the new one.
+- **SYNC-H5 — `standard_files` source path traversal**: the target
+  got full component validation but the source only an `is_absolute`
+  check on the RAW string — and tilde expansion happened AFTER
+  validation, so `source = "~/.ssh/id_rsa"` or `../../etc/passwd`
+  passed. Worse, the daemon's execution path never calls
+  `validate_config` at all. A config typo or write to the policy
+  file was a read-anywhere → publish-everywhere primitive under the
+  daemon's UID (copied into every watched repo, auto-committed,
+  auto-pushed to public forges). New shared
+  `is_safe_standard_file_path` (no absolute, no `..`; `~/...` still
+  allowed) enforced BOTH by `validate_config` AND at the point of
+  use in `ensure_standard_files` (skip + warn). Regression tests
+  added.
+
 ### v0.113.3 — 2026-07-26 — full-audit remediation batch 3 (auto-repair path)
 
 Remediation batch 3 of `AUDIT_FULL_2026-07-26.md`. Investigation first:
