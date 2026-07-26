@@ -2503,7 +2503,9 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
                 changed += 1;
                 eprintln!("⚠️ {} committed but push failed", repo.display());
             }
-            Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Blocked) => {}
+            Ok(SyncOutcome::NothingToDo)
+            | Ok(SyncOutcome::Blocked)
+            | Ok(SyncOutcome::BackstopSkipped) => {}
             // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
             Ok(SyncOutcome::FilterOnly) => {
                 println!("🧹 {} filter-only dirty (nothing real to commit)", repo.display());
@@ -3821,6 +3823,11 @@ pub(crate) async fn run_daemon(
                 // `Blocked` is tracked separately so it does NOT
                 // count toward the MAX_FAILURES budget below.
                 let mut blocked = false;
+                // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): like
+                // `blocked`, excludes the outcome from the
+                // failure_count arm below without touching
+                // blocked_since (backstop skips are not needs-human).
+                let mut backstop_skipped = false;
                 let sync_success = match sync_res {
                     Ok(SyncOutcome::Synced) => {
                         eprintln!("🔁 synced {}", repo.display());
@@ -3875,6 +3882,29 @@ pub(crate) async fn run_daemon(
                         // sustained-state loop fires a desktop
                         // notification after BLOCKED_NOTIFY_THRESHOLD.
                         entry.blocked_since.get_or_insert(Instant::now());
+                        false
+                    }
+                    // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2):
+                    // auto-commit backstop skip — the operator is
+                    // committing faster than the daemon can push.
+                    // NOT success: the activity entry (and its
+                    // `ahead_since`) MUST be retained or the
+                    // backstop disarms after one skipped dispatch
+                    // (the pre-v0.113.2 self-defeating bug). NOT a
+                    // failure either (no failure_count, no
+                    // blocked_since notification machinery) — the
+                    // `backstop_skipped` flag below excludes it
+                    // from the `else if !blocked` failure arm.
+                    Ok(SyncOutcome::BackstopSkipped) => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} backstop skip (operator committing), cooldown 60s",
+                                repo.display()
+                            );
+                        }
+                        backstop_skipped = true;
+                        stage_cooldowns
+                            .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
                         false
                     }
                     // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
@@ -3932,14 +3962,15 @@ pub(crate) async fn run_daemon(
                     max_fail_cooldowns.remove(&repo);
                     activity.remove(&repo);
                     initial_repos.remove(&repo);
-                } else if !blocked {
+                } else if !blocked && !backstop_skipped {
                     // CHANGED 2026-07-21 (v0.112.33, audit M4/F1.6):
                     // `Blocked` (merge/rebase/cherry-pick in progress
                     // — needs-human by definition) does NOT count
                     // toward the MAX_FAILURES budget; the daemon must
                     // keep watching so it can resume when the
                     // operator finishes. Transient failures still
-                    // count.
+                    // count. `BackstopSkipped` (v0.113.2) is
+                    // likewise excluded.
                     entry.failure_count += 1;
                     // ADDED 2026-07-22 (v0.112.37): the repo is no
                     // longer blocked (a real failure or a
@@ -4092,6 +4123,21 @@ pub(crate) async fn run_daemon(
                                 // sustained-block tracking (matches
                                 // the main apply phase).
                                 entry.blocked_since.get_or_insert(Instant::now());
+                            }
+                            // ADDED 2026-07-26 (v0.113.2, audit
+                            // SYNC-H2): backstop skip (late-drain
+                            // path) — retain the activity entry, no
+                            // failure count, short cooldown (matches
+                            // the main apply phase).
+                            Ok(SyncOutcome::BackstopSkipped) => {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} backstop skip (late), cooldown 60s",
+                                        repo.display()
+                                    );
+                                }
+                                stage_cooldowns
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
                             }
                             // ADDED 2026-07-21 (v0.112.31, audit
                             // H3/F1.3): commit succeeded but the push

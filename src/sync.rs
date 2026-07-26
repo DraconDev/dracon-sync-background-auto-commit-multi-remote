@@ -34,6 +34,18 @@ pub(crate) enum SyncOutcome {
     Synced,
     NothingToDo,
     Blocked,
+    /// ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): the auto-commit
+    /// backstop skipped the commit step (operator is committing
+    /// faster than the daemon can push). The daemon apply phase
+    /// treats this like `Blocked` for failure accounting (not a
+    /// transient failure) but, crucially, does NOT remove the
+    /// activity entry — `ahead_since` must survive or the backstop
+    /// disarms after one skipped dispatch (the pre-fix bug: the
+    /// backstop returned `NothingToDo`, which was treated as
+    /// success, wiping `ahead_since`, so the daemon re-committed
+    /// on the very next cycle). Unlike `Blocked` it does not feed
+    /// the sustained-blocked notification machinery.
+    BackstopSkipped,
     /// ADDED 2026-07-21 (v0.112.31, audit H3/F1.3): the commit half
     /// succeeded but the push failed. Previously both push paths
     /// (`stage_commit_and_push`, `handle_ahead_push`) swallowed the
@@ -3978,7 +3990,20 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // circuiting the auto-commit step. Manual `git add`/`git
         // commit` from the operator still works.
         if ctx.backstop_active {
-            return Ok(SyncOutcome::NothingToDo);
+            // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H2): push the
+            // backlog BEFORE skipping the commit — draining ahead<N
+            // is the fastest way out of the backstop state, and the
+            // pre-fix early return suppressed exactly that. Then
+            // return `BackstopSkipped` (retains `ahead_since` in the
+            // daemon's activity map) instead of `NothingToDo`
+            // (treated as success → `ahead_since` wiped → backstop
+            // disarmed after one skipped dispatch).
+            let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
+            return Ok(if push_ok {
+                SyncOutcome::BackstopSkipped
+            } else {
+                SyncOutcome::PushFailed
+            });
         }
         // When `auto_stage_untracked = false`, we need to know which
         // Added-status entries are untracked vs freshly-staged-tracked.

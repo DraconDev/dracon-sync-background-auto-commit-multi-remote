@@ -933,6 +933,13 @@ async fn main() -> Result<()> {
                             repo.display()
                         );
                     }
+                    // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2).
+                    Ok(crate::sync::SyncOutcome::BackstopSkipped) => {
+                        println!(
+                            "⏸️  auto-commit backstop active for {} (backlog push attempted; commit skipped)",
+                            repo.display()
+                        );
+                    }
                     // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3).
                     Ok(crate::sync::SyncOutcome::PushFailed) => {
                         eprintln!(
