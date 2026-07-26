@@ -378,12 +378,6 @@ pub(crate) fn rewrite_ahead_paths(
             args.push("--path".to_string());
             args.push(path.clone());
         }
-        let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-        let rewrite = crate::policy::std_git_command()
-            .args(&args_ref)
-            .current_dir(repo)
-            .status()
-            .with_context(|| format!("failed filter-repo in {}", repo.display()))?;
         // SYNC-H6: limit the rewrite to the current branch — the
         // pre-fix invocation rewrote ALL refs (including its own
         // backup branch).
@@ -431,9 +425,9 @@ pub(crate) fn rewrite_ahead_paths(
     }
 
     Err(anyhow::anyhow!(
-        "Neither git-filter-repo nor git-filter-branch available in {}. Install git-filter-repo (pip install git-filter-repo) or git-filter-branch to rewrite history (backup branch: {})",
+        "Neither git-filter-repo nor git-filter-branch available in {}. Install git-filter-repo (pip install git-filter-repo) or git-filter-branch to rewrite history (backup bundle: {})",
         repo.display(),
-        backup_branch
+        bundle_str
     ))
 }
 

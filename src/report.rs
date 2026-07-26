@@ -5556,7 +5556,7 @@ async fn handle_ahead(
                                     Some("rewrote history on a detached HEAD — push manually".to_string()),
                                 );
                             } else {
-                                match crate::git::push::force_push_after_rewrite(
+                                match crate::git::force_push_after_rewrite(
                                     repo,
                                     "origin",
                                     &branch,
@@ -5600,7 +5600,7 @@ async fn handle_ahead(
                                                         continue;
                                                     }
                                                     if let Err(e) =
-                                                        crate::git::push::force_push_after_rewrite(
+                                                        crate::git::force_push_after_rewrite(
                                                             repo,
                                                             &remote.name,
                                                             &branch,
