@@ -2946,7 +2946,36 @@ standard_files = [{ source = "/etc/passwd", target = "README.md", overwrite = fa
         let result = validate_config(tmp.path().join("policy.toml").as_path());
         assert!(!result.is_valid(), "absolute source must be rejected");
         assert!(
-            result.errors.iter().any(|e| e.contains("absolute path")),
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("not a safe relative path")),
+            "source error message missing, got {:?}",
+            result.errors
+        );
+    }
+
+    #[test]
+    fn test_validate_config_rejects_parent_dir_source_in_standard_files() {
+        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): `..` escapes in
+        // the source were not validated before (absolute-only check),
+        // and tilde expansion happened AFTER validation so
+        // `~/../../etc/passwd`-style raw sources passed.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let content = r#"
+auto_github_private = false
+watch_roots = ["/tmp"]
+remotes = []
+standard_files = [{ source = "../../etc/passwd", target = "README.md", overwrite = false }]
+"#;
+        std::fs::write(tmp.path().join("policy.toml"), content).unwrap();
+        let result = validate_config(tmp.path().join("policy.toml").as_path());
+        assert!(!result.is_valid(), "parent-dir source must be rejected");
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("not a safe relative path")),
             "source error message missing, got {:?}",
             result.errors
         );

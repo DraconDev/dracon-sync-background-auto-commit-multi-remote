@@ -346,11 +346,44 @@ mod tests {
         let result = ensure_standard_files(repo_dir, &policy, &repo_override, None, false);
         assert!(result.is_ok());
         let copied = result.unwrap();
-        assert_eq!(copied.len(), 1);
-        assert_eq!(
-            std::fs::read_to_string(repo_dir.join("LICENSE")).unwrap(),
-            "CUSTOM"
-        );
+        // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H5): raw-absolute
+        // sources are now rejected at the point of use (the daemon
+        // path never ran validate_config, so absolute/`..` sources
+        // were a read-anywhere → publish-everywhere primitive).
+        // Nothing is copied and the target must not appear.
+        assert_eq!(copied.len(), 0);
+        assert!(!repo_dir.join("LICENSE").exists());
+    }
+
+    #[test]
+    fn test_parent_dir_source_rejected_at_point_of_use() {
+        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5).
+        let dir = TempDir::new().unwrap();
+        let repo_dir = dir.path().join("repo");
+        std::fs::create_dir_all(&repo_dir).unwrap();
+        let policy = make_policy(vec![StandardFileConfig {
+            source: "../../etc/passwd".to_string(),
+            target: "LICENSE".to_string(),
+            overwrite: false,
+        }]);
+        let repo_override = make_override(vec![]);
+        let result = ensure_standard_files(&repo_dir, &policy, &repo_override, None, false);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+        assert!(!repo_dir.join("LICENSE").exists());
+    }
+
+    #[test]
+    fn test_tilde_source_still_allowed() {
+        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): `~/...` is a
+        // documented legit source form (expand_tilde anchors it under
+        // $HOME) and must NOT be rejected by the safety check.
+        assert!(crate::policy::is_safe_standard_file_path("~/templates/LICENSE"));
+        assert!(crate::policy::is_safe_standard_file_path("templates/LICENSE"));
+        assert!(crate::policy::is_safe_standard_file_path(".github/FUNDING.yml"));
+        assert!(!crate::policy::is_safe_standard_file_path("/etc/passwd"));
+        assert!(!crate::policy::is_safe_standard_file_path("../secret"));
+        assert!(!crate::policy::is_safe_standard_file_path("a/../../b"));
     }
 
     #[test]
