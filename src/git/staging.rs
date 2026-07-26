@@ -164,7 +164,7 @@ pub(crate) async fn detect_large_blobs_ahead(
             let _tmp_cleanup = StdinTmpCleanup(tmp_path.clone());
             let stdin_fd = std::fs::File::open(&tmp_path)
                 .with_context(|| format!("failed to reopen stdin tmpfile in {}", r.display()))?;
-            let mut cat_file = cat_file_cmd
+            let cat_file = cat_file_cmd
                 .stdin(std::process::Stdio::from(stdin_fd))
                 .spawn()
                 .with_context(|| format!("failed cat-file in {}", r.display()))?;
