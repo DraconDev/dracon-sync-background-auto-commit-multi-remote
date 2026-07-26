@@ -690,6 +690,15 @@ mod tests {
                 .unwrap();
             assert!(s.success(), "git {:?} failed", args);
         }
+        // Simulate the already-pushed state: set the remote-tracking
+        // ref directly (a real push would trip the global warden
+        // test-identity pre-push guard on this test-identity repo).
+        let s = crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
+            .current_dir(&repo_path)
+            .status()
+            .unwrap();
+        assert!(s.success());
         // A side branch that must SURVIVE the rewrite untouched.
         let s = crate::policy::std_git_command()
             .args(["branch", "side"])
