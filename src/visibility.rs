@@ -1382,19 +1382,26 @@ mod tests {
     }
 
     #[test]
-    fn test_cache_written_on_parseable_origin_even_when_tokens_missing() {
-        // When origin URL is parseable but tokens are missing, the cache
-        // should still be written to prevent hammering on every sync cycle.
+    // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H4): this test
+    // previously asserted the BUGGY contract — "cache written even
+    // when tokens missing" — which passed because a transient gh
+    // failure produced the safe-default `true` and the cache write
+    // was unconditional. That is exactly the cache-poison the
+    // `_opt` variant exists to prevent. New contract: when the
+    // GitHub visibility is UNKNOWN (gh unavailable/failing in this
+    // hermetic test env), the daemon must NOT write the cache and
+    // must NOT flip mirrors — it retries next cycle instead of
+    // caching a guess for 24h.
+    fn test_cache_not_written_when_gh_visibility_unknown() {
         let repo_path = Path::new("/tmp/test_cache_on_failure");
         let remotes: Vec<RemoteConfig> = vec![];
-        sync_mirror_visibility("git@github.com:DraconDev/test.git", &remotes, repo_path, 0);
-        // Cache should exist even with no remotes to update
         let path = visibility_cache_path(repo_path);
-        assert!(
-            path.exists(),
-            "cache should be written even when no remotes configured"
-        );
         let _ = std::fs::remove_file(&path);
+        sync_mirror_visibility("git@github.com:DraconDev/test.git", &remotes, repo_path, 0);
+        assert!(
+            !path.exists(),
+            "cache must NOT be written when GitHub visibility is unknown (transient gh failure) — writing it poisons the codeberg-public-only gate for 24h"
+        );
     }
 
     #[test]
