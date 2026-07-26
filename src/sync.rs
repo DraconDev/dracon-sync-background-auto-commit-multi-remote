@@ -6735,6 +6735,12 @@ auto_bump_versions = false
     /// remotes and `refs/remotes/origin/<branch>` never updates.
     #[tokio::test]
     async fn test_refresh_stale_upstream_ref_converges() {
+        // Hermetic git config: the operator's global core.hooksPath
+        // (warden enforcement hooks) must not gate this test's pushes.
+        let _global_guard =
+            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_GLOBAL", Some("/dev/null"));
+        let _system_guard =
+            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_SYSTEM", Some("/dev/null"));
         let tmp = tempfile::tempdir().unwrap();
         let bare = tmp.path().join("remote.git");
         crate::git::git_cmd()
