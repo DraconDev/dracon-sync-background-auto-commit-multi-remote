@@ -3483,3 +3483,31 @@ pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) 
     }
     Some(garbage)
 }
+
+#[cfg(test)]
+mod auto_gc_tests {
+    /// v0.113.2 (SYNC-H3): threshold 0 disables; a repo below the
+    /// threshold is a no-op (and records no attempt cooldown).
+    #[tokio::test]
+    async fn test_maybe_auto_gc_disabled_and_below_threshold() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let status = crate::policy::std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        // Disabled.
+        assert!(super::maybe_auto_gc(&repo, 0).await.is_none());
+        // Fresh repo has ~0 garbage — far below a 2 GiB threshold.
+        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024).await.is_none());
+        // No attempt was recorded (nothing to gc).
+        let attempts = super::AUTO_GC_ATTEMPTS
+            .get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
+        assert!(!map.contains_key(&repo));
+    }
+}
