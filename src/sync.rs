@@ -6738,9 +6738,9 @@ auto_bump_versions = false
         // Hermetic git config: the operator's global core.hooksPath
         // (warden enforcement hooks) must not gate this test's pushes.
         let _global_guard =
-            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_GLOBAL", Some("/dev/null"));
+            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_GLOBAL", "/dev/null");
         let _system_guard =
-            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_SYSTEM", Some("/dev/null"));
+            crate::test_helpers::EnvRestorer::new("GIT_CONFIG_SYSTEM", "/dev/null");
         let tmp = tempfile::tempdir().unwrap();
         let bare = tmp.path().join("remote.git");
         crate::git::git_cmd()
