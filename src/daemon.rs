@@ -3744,7 +3744,26 @@ pub(crate) async fn run_daemon(
         // of `JoinHandle<...>`. Tokio's multi-threaded runtime
         // schedules the spawned sync_repo tasks across worker
         // threads, so 4+ repos can be in-flight simultaneously.
-        if !to_sync.is_empty() {
+        // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H1): the gate
+        // now ALSO opens when the detached registry is non-empty.
+        // Previously, a repo whose task outlived the trailing
+        // deadline stayed in `in_flight` and was skipped by the
+        // no-redispatch check every cycle — and in a quiet daemon
+        // (no other repo dispatching, e.g. overnight with a single
+        // active repo) `to_sync` stayed empty, so the ENTIRE block
+        // below was skipped: the finished/wedged task was never
+        // polled or applied and the 15-minute wedge valve never
+        // fired — a permanent in-flight wedge that `repos` reported
+        // as actively-processing (false-healthy), re-opening the
+        // 2026-06-15 permanent-skip class the registry was built
+        // to fix. In maintenance mode (`dispatched_any == false`)
+        // the apply loop exits instantly (empty in_flight_tasks)
+        // and the trailing drain gets a ZERO deadline (tokio's
+        // timeout polls the inner future once: finished detached
+        // tasks are applied, still-running ones are not awaited),
+        // so cycle responsiveness is unchanged.
+        let dispatched_any = !to_sync.is_empty();
+        if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
 
@@ -4028,8 +4047,15 @@ pub(crate) async fn run_daemon(
             // enough time to complete while still bounding the
             // daemon's cycle time. Override higher for repos with
             // very large histories.
-            let trailing_deadline =
-                Duration::from_secs(policy.trailing_drain_deadline_secs.max(1));
+            // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H1): poll-
+            // only drain (zero deadline) in quiet-maintenance mode —
+            // we must not block the scan loop waiting on a long
+            // detached push when nothing was dispatched this cycle.
+            let trailing_deadline = if dispatched_any {
+                Duration::from_secs(policy.trailing_drain_deadline_secs.max(1))
+            } else {
+                Duration::ZERO
+            };
             let trailing_deadline_at = tokio::time::Instant::now() + trailing_deadline;
             let mut dispatched_this_cycle: HashSet<PathBuf> = in_flight.clone();
             loop {
@@ -4175,7 +4201,11 @@ pub(crate) async fn run_daemon(
             // STAYS in `in_flight` (no-redispatch invariant holds)
             // until the task actually finishes and is applied by
             // the select-drained loop above.
-            if !dispatched_this_cycle.is_empty() {
+            // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H1): only
+            // when we actually dispatched — in quiet-maintenance
+            // mode in_flight_tasks is already empty (nothing to
+            // hand off) and the message would be per-cycle spam.
+            if dispatched_any && !dispatched_this_cycle.is_empty() {
                 eprintln!(
                     "🔄 trailing-drain: {} task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)",
                     dispatched_this_cycle.len()

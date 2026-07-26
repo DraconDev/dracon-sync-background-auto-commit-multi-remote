@@ -125,14 +125,34 @@ pub(crate) async fn detect_large_blobs_ahead(
                     "--batch-check=%(objectname) %(objecttype) %(objectsize) %(rest)",
                 ])
                 .current_dir(&r)
-                .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped());
+            // FIXED 2026-07-26 (audit H-2): the pre-fix code piped
+            // cat-file's stdin and wrote the ENTIRE rev-list output
+            // into it BEFORE `wait_with_output()` started draining
+            // stdout. With thousands of objects ahead, cat-file's
+            // 64 KiB stdout pipe fills (nobody reading), it stops
+            // reading stdin, and the parent's `write_all` blocks
+            // forever — a deadlock the 60s tokio timeout cannot
+            // cancel (spawn_blocking thread + child leaked every
+            // repair cycle), after which the caller's
+            // `.unwrap_or_default()` silently disabled the 100 MiB
+            // blob guard for exactly the repos that need it. Feed
+            // stdin from a temp FILE instead — no pipe, no deadlock.
+            // (Same incident class as the mod.rs "CRITICAL deadlock
+            // avoidance" fix; that pattern was never applied here.)
+            let mut stdin_file = tempfile::NamedTempFile::new()
+                .with_context(|| format!("failed to create stdin tmpfile in {}", r.display()))?;
+            use std::io::Write;
+            stdin_file
+                .write_all(&rev_list.stdout)
+                .with_context(|| format!("failed to write stdin tmpfile in {}", r.display()))?;
+            let stdin_fd = stdin_file
+                .reopen()
+                .with_context(|| format!("failed to reopen stdin tmpfile in {}", r.display()))?;
+            let mut cat_file = cat_file
+                .stdin(std::process::Stdio::from(stdin_fd))
                 .spawn()
                 .with_context(|| format!("failed cat-file in {}", r.display()))?;
-            if let Some(mut stdin) = cat_file.stdin.take() {
-                use std::io::Write;
-                stdin.write_all(&rev_list.stdout)?;
-            }
             let output = cat_file.wait_with_output()?;
             if !output.status.success() {
                 return Ok(Vec::new());
