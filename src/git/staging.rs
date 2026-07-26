@@ -207,6 +207,7 @@ pub(crate) fn top_level_dir(path: &str) -> Option<String> {
 /// ADDED 2026-07-26 (v0.113.3, audit SYNC-H6): outcome of a real
 /// history rewrite. Replaces the pre-fix `Option<String>` (a backup
 /// BRANCH name — see the SYNC-H6 comment on `rewrite_ahead_paths`).
+#[derive(Debug, Clone)]
 pub(crate) struct RewriteOutcome {
     /// Path of the `git bundle` backup of the pre-rewrite HEAD.
     /// A bundle is not a ref, so filter-repo cannot rewrite or
@@ -586,7 +587,7 @@ mod tests {
         // Empty paths_to_remove means rewrite_ahead_paths short-circuits to Ok(None).
         let r = rewrite_ahead_paths(repo.as_path(), &[], "test/backup");
         assert!(r.is_ok());
-        assert_eq!(r.unwrap(), None);
+        assert!(r.unwrap().is_none());
 
         // Now test with a path that doesn't match anything in HEAD.
         // The commit tree won't change; backup should be deleted.
@@ -596,8 +597,10 @@ mod tests {
             "test/backup",
         );
         assert!(r2.is_ok());
+        assert!(r2.unwrap().is_none());
 
-        // Verify the backup branch was deleted (no-op rewrite cleanup).
+        // Verify no backup refs AND no leftover bundle files (the
+        // no-op path removes the bundle).
         let branches = crate::policy::std_git_command()
             .args(["branch", "--list"])
             .current_dir(repo.as_path())
@@ -609,6 +612,12 @@ mod tests {
             "expected no backup branches after no-op rewrite; got: {}",
             stdout
         );
+        let bundles = std::fs::read_dir(repo.as_path().join(".git"))
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".bundle"))
+            .count();
+        assert_eq!(bundles, 0, "no-op rewrite must not leave bundle files");
 
         // HEAD tree unchanged.
         let post = crate::policy::std_git_command()
@@ -618,6 +627,110 @@ mod tests {
             .expect("rev-parse");
         let post_hash = String::from_utf8_lossy(&post.stdout).trim().to_string();
         assert_eq!(pre_hash, post_hash);
+    }
+
+    /// ADDED 2026-07-26 (v0.113.3, audit SYNC-H6): a REAL rewrite
+    /// must (a) return Some(outcome) — the pre-fix code misreported
+    /// every real rewrite as a no-op because filter-repo rewrote the
+    /// backup branch along with HEAD, (b) leave a bundle containing
+    /// the PRE-rewrite HEAD, (c) preserve/re-add the origin remote
+    /// (filter-repo deletes it), (d) capture the force-push lease
+    /// anchor from the pre-rewrite upstream, and (e) rewrite ONLY
+    /// HEAD (--refs HEAD), leaving other branches alone.
+    #[test]
+    fn test_real_rewrite_returns_outcome_with_bundle_and_lease() {
+        if !crate::git::ops::filter_repo_available_for_tests() {
+            eprintln!("filter-repo not installed; skipping");
+            return;
+        }
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo_path).unwrap();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "test@test"],
+            vec!["config", "user.name", "test"],
+        ] {
+            let s = crate::policy::std_git_command()
+                .args(&args)
+                .current_dir(&repo_path)
+                .status()
+                .unwrap();
+            assert!(s.success(), "git {:?} failed", args);
+        }
+        // Commit a large-blob stand-in and a normal file.
+        std::fs::create_dir_all(repo_path.join("assets")).unwrap();
+        std::fs::write(repo_path.join("assets/big.bin"), vec![7u8; 2048]).unwrap();
+        std::fs::write(repo_path.join("keep.txt"), "keep\n").unwrap();
+        for args in [vec!["add", "-A"], vec!["commit", "-q", "-m", "c1"]] {
+            let s = crate::policy::std_git_command()
+                .args(&args)
+                .current_dir(&repo_path)
+                .status()
+                .unwrap();
+            assert!(s.success(), "git {:?} failed", args);
+        }
+        // Origin (a bare sibling) + upstream tracking.
+        let bare = tmp.path().join("origin.git");
+        let s = crate::policy::std_git_command()
+            .args(["init", "-q", "--bare"])
+            .arg(&bare)
+            .status()
+            .unwrap();
+        assert!(s.success());
+        for args in [
+            vec!["remote", "add", "origin", bare.to_str().unwrap()],
+            vec!["config", "branch.main.remote", "origin"],
+            vec!["config", "branch.main.merge", "refs/heads/main"],
+        ] {
+            let s = crate::policy::std_git_command()
+                .args(&args)
+                .current_dir(&repo_path)
+                .status()
+                .unwrap();
+            assert!(s.success(), "git {:?} failed", args);
+        }
+        // A side branch that must SURVIVE the rewrite untouched.
+        let s = crate::policy::std_git_command()
+            .args(["branch", "side"])
+            .current_dir(&repo_path)
+            .status()
+            .unwrap();
+        assert!(s.success());
+        let side_pre = git_rev_parse(&repo_path, "side").unwrap();
+        let pre_head = git_rev_parse(&repo_path, "HEAD").unwrap();
+
+        let r = rewrite_ahead_paths(&repo_path, &["assets".to_string()], "backup/test");
+        let outcome = r
+            .expect("rewrite must succeed")
+            .expect("a REAL rewrite must return Some(outcome) — SYNC-H6 regression");
+
+        // HEAD changed; the path is gone from history.
+        let post_head = git_rev_parse(&repo_path, "HEAD").unwrap();
+        assert_ne!(pre_head, post_head);
+        // Bundle exists and contains the PRE-rewrite HEAD.
+        assert!(std::path::Path::new(&outcome.bundle_path).exists());
+        let verify = crate::policy::std_git_command()
+            .args(["bundle", "verify", &outcome.bundle_path])
+            .current_dir(&repo_path)
+            .output()
+            .unwrap();
+        let verify_out = String::from_utf8_lossy(&verify.stderr).to_string()
+            + &String::from_utf8_lossy(&verify.stdout);
+        assert!(
+            verify_out.contains(&pre_head),
+            "bundle must contain pre-rewrite HEAD {}; got: {}",
+            pre_head,
+            verify_out
+        );
+        // Origin remote preserved/re-added (filter-repo deletes it).
+        assert!(git_config_get(&repo_path, "remote.origin.url").is_some());
+        // Lease anchor = pre-rewrite upstream sha.
+        let (lease_ref, lease_sha) = outcome.lease.expect("lease must be captured");
+        assert_eq!(lease_ref, "refs/heads/main");
+        assert_eq!(lease_sha, pre_head);
+        // Side branch untouched by the rewrite (--refs HEAD).
+        assert_eq!(git_rev_parse(&repo_path, "side").unwrap(), side_pre);
     }
 
     /// ADDED 2026-07-21 (v0.112.33, audit M12/F2.2): pins the
