@@ -5524,73 +5524,117 @@ async fn handle_ahead(
                     }
                     match rewrite_ahead_paths(repo, &rewrite_paths, "backup/pre-sync-largeblob-fix")
                     {
-                        Ok(Some(backup_branch)) => {
-                            let backup_branch_for_log = backup_branch.clone();
+                        Ok(Some(outcome)) => {
+                            // CHANGED 2026-07-26 (v0.113.3, audit
+                            // SYNC-H6): the pre-fix arm pushed via the
+                            // NON-FORCE `push_with_retries` to an
+                            // `origin` that filter-repo had deleted —
+                            // and its auto-pull-on-reject recovery
+                            // would have merged the PRE-REWRITE
+                            // history back in (the blob returns to
+                            // local history and is pushed to all
+                            // mirrors). Now: force-push leased to the
+                            // pre-rewrite upstream sha, to origin AND
+                            // each configured mirror.
+                            let bundle_for_log = outcome.bundle_path.clone();
                             if human {
                                 println!(
-                                    "   ok: rewrite complete (backup branch: {})",
-                                    backup_branch
+                                    "   ok: rewrite complete (backup bundle: {})",
+                                    outcome.bundle_path
                                 );
                             }
-                            match push_with_retries(
-                                repo,
-                                push_timeout_secs,
-                                push_retries,
-                                "push-after-rewrite",
-                            )
-                            .await
-                            {
-                                Ok(()) => {
-                                    state.succeeded_ops += 1;
-                                    state.push_ok = true;
-                                    if human {
-                                        println!("   ok: pushed after rewrite");
-                                    }
-                                    log_incident(
-                                        policy_path,
-                                        "concern",
-                                        repo.display().to_string(),
-                                        reason,
-                                        "rewrite_then_push",
-                                        Some(backup_branch_for_log),
-                                        "ok",
-                                        Some(format!("paths={:?}", rewrite_paths)),
-                                    );
-                                    // Also push to mirror remotes
-                                    if let Ok(policy) = SyncPolicy::load(policy_path) {
-                                        if !policy.remotes.is_empty() {
-                                            // CHANGED 2026-06-23: honor
-                                            // per-repo exclude_remotes
-                                            // (see goal mqqsyzyd-qkvna5).
-                                            let repo_override =
-                                                crate::policy::load_repo_override(repo);
-                                            push_mirror_remotes(
-                                                repo,
-                                                &policy.remotes,
-                                                push_timeout_secs,
-                                                push_retries,
-                                                true,
-                                                &repo_override.exclude_remotes,
-                                                repo_override.auto_create_on_codeberg,
-                                            )
-                                            .await;
+                            let branch = current_branch(repo).unwrap_or_default();
+                            if branch.is_empty() {
+                                log_incident(
+                                    policy_path,
+                                    "concern",
+                                    repo.display().to_string(),
+                                    reason,
+                                    "rewrite_then_push",
+                                    Some(bundle_for_log),
+                                    "fail",
+                                    Some("rewrote history on a detached HEAD — push manually".to_string()),
+                                );
+                            } else {
+                                match crate::git::push::force_push_after_rewrite(
+                                    repo,
+                                    "origin",
+                                    &branch,
+                                    &outcome.lease,
+                                    push_timeout_secs,
+                                )
+                                .await
+                                {
+                                    Ok(()) => {
+                                        state.succeeded_ops += 1;
+                                        state.push_ok = true;
+                                        if human {
+                                            println!("   ok: force-pushed origin after rewrite");
+                                        }
+                                        log_incident(
+                                            policy_path,
+                                            "concern",
+                                            repo.display().to_string(),
+                                            reason,
+                                            "rewrite_then_push",
+                                            Some(bundle_for_log),
+                                            "ok",
+                                            Some(format!("paths={:?}", rewrite_paths)),
+                                        );
+                                        // Also force-push mirror remotes
+                                        // (same lease anchor: mirrors
+                                        // held the same pre-rewrite
+                                        // history; a diverged mirror
+                                        // fails the lease and is
+                                        // logged, never clobbered).
+                                        if let Ok(policy) = SyncPolicy::load(policy_path) {
+                                            if !policy.remotes.is_empty() {
+                                                let repo_override =
+                                                    crate::policy::load_repo_override(repo);
+                                                for remote in &policy.remotes {
+                                                    if remote.name == "origin"
+                                                        || repo_override
+                                                            .exclude_remotes
+                                                            .contains(&remote.name)
+                                                    {
+                                                        continue;
+                                                    }
+                                                    if let Err(e) =
+                                                        crate::git::push::force_push_after_rewrite(
+                                                            repo,
+                                                            &remote.name,
+                                                            &branch,
+                                                            &outcome.lease,
+                                                            push_timeout_secs,
+                                                        )
+                                                        .await
+                                                    {
+                                                        eprintln!(
+                                                            "⚠️ mirror {} push-after-rewrite failed for {}: {}",
+                                                            remote.name,
+                                                            repo.display(),
+                                                            e
+                                                        );
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
-                                }
-                                Err(e2) => {
-                                    if human {
-                                        println!("   fail: push after rewrite failed: {}", e2);
+                                    Err(e2) => {
+                                        if human {
+                                            println!("   fail: push after rewrite failed: {}", e2);
+                                        }
+                                        log_incident(
+                                            policy_path,
+                                            "concern",
+                                            repo.display().to_string(),
+                                            reason,
+                                            "rewrite_then_push",
+                                            Some(outcome.bundle_path.clone()),
+                                            "fail",
+                                            Some(e2.to_string()),
+                                        );
                                     }
-                                    log_incident(
-                                        policy_path,
-                                        "concern",
-                                        repo.display().to_string(),
-                                        reason,
-                                        "rewrite_then_push",
-                                        Some(backup_branch),
-                                        "fail",
-                                        Some(e2.to_string()),
-                                    );
                                 }
                             }
                         }
