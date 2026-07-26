@@ -472,7 +472,7 @@ fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
 /// identically to HEAD, so the trees were ALWAYS equal and every
 /// real rewrite was misreported as a no-op. Replaced by the
 /// pre/post HEAD-sha compare inside `rewrite_ahead_paths`.
-
+///
 /// ADDED 2026-07-26 (v0.113.3): `git rev-parse <rev>` → trimmed sha.
 fn git_rev_parse(repo: &Path, rev: &str) -> Option<String> {
     let out = crate::policy::std_git_command()
