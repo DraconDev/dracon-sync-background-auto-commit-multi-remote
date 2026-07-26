@@ -636,7 +636,26 @@ pub(crate) fn sync_mirror_visibility(
         return;
     };
 
-    let github_private = get_github_visibility(&owner, &gh_repo);
+    // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H4): the pre-fix code
+    // used the bool `get_github_visibility` (safe-default `true` on
+    // ANY transient gh failure) and then unconditionally wrote the
+    // cache "even on partial failures" — violating the
+    // `get_github_visibility_opt` cache-poison invariant (the _opt
+    // variant exists precisely for callers that write the cache or
+    // drive remote state changes). A network hiccup / auth expiry /
+    // rate limit flipped PUBLIC mirrors to private (uncommanded,
+    // unaudited remote state change) and poisoned the cache for 24h,
+    // gating the codeberg-public-only push path off. On `None`
+    // (unknown) we now skip BOTH the mirror flips AND the cache write.
+    let Some(github_private) = get_github_visibility_opt(&owner, &gh_repo) else {
+        if crate::policy::debug_enabled() {
+            eprintln!(
+                "🐛 GitHub visibility for {}/{} unknown (transient gh failure) — skipping mirror flips + cache write",
+                owner, gh_repo
+            );
+        }
+        return;
+    };
     let visibility_str = if github_private { "private" } else { "public" };
 
     if crate::policy::debug_enabled() {

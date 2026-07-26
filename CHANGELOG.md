@@ -14,6 +14,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.3 — 2026-07-26 — full-audit remediation batch 3 (auto-repair path)
+
+Remediation batch 3 of `AUDIT_FULL_2026-07-26.md`. Investigation first:
+the SYNC-H6 repair path DID fire in the fleet (dracon-platform,
+2026-07-15 02:02 — a `backup/pre-sync-largeblob-fix-*` branch exists
+that post-dates the 2026-06-30 audit's "zero backup branches" claim),
+but the feared self-undo did NOT materialize: no merges in the window,
+no blobs >6 MiB in main's history today. The backup branch tip points
+at a commit in main's first-parent history (unrewritten), so the
+filter-repo either no-op'd or never ran; the code path is live though,
+and its failure mode (verified by reproduction in the audit) is
+unacceptable. Fixes:
+
+- **SYNC-H6 — `rewrite_ahead_paths` destroyed its own backup, deleted
+  `origin`, and reported real rewrites as no-ops** (empirically
+  reproduced in the audit): `git filter-repo --invert-paths --force`
+  rewrites ALL refs — the `backup/pre-sync-*` branch created before
+  the rewrite preserved nothing; backup-tree vs HEAD-tree were
+  therefore ALWAYS equal, so the F31 no-op check deleted the backup
+  and returned `Ok(None)` for REAL rewrites → the caller never
+  pushed; and filter-repo deletes the `origin` remote, so the next
+  cycle's auto-pull-on-reject would merge the PRE-REWRITE history
+  back in (the >100 MiB blob returns to local history and is pushed
+  to all mirrors — the repair silently un-doing itself). Now:
+  (1) the backup is a `git bundle` FILE in the gitdir — not a ref,
+  so the rewrite cannot touch it; (2) filter-repo runs with
+  `--refs HEAD` (only the current branch is rewritten); (3) the
+  no-op check compares pre/post-rewrite HEAD SHAS; (4) the origin
+  URL and upstream sha are captured BEFORE the rewrite, origin is
+  re-added afterwards, and the caller force-pushes origin + mirrors
+  with `--force-with-lease=<ref>:<pre-rewrite-upstream-sha>` via the
+  new `force_push_after_rewrite` (a diverged remote fails the lease
+  and is logged, never clobbered). New regression test:
+  real-rewrite → Some(outcome), bundle contains pre-HEAD, origin
+  preserved, lease captured, side branches untouched.
+- **M7 — auto-pull-retry hazards** (folded in, same function
+  cluster): `git pull --no-rebase origin HEAD` pulled the remote's
+  DEFAULT branch (not necessarily the branch being pushed), could
+  open `$EDITOR` on a tty (`dracon-sync once` hanging in vim), and
+  left the repo in MERGING state on conflict. Now pulls the explicit
+  `refs/heads/<branch>`, passes `--no-edit`, and runs
+  `git merge --abort` on failure.
+
 ### v0.113.2 — 2026-07-26 — full-audit remediation batch 1 (4 HIGH fixes)
 
 Remediation batch 1 of `AUDIT_FULL_2026-07-26.md` (13 HIGH findings
