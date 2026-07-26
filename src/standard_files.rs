@@ -28,6 +28,23 @@ pub(crate) fn ensure_standard_files(
             continue;
         }
 
+        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): point-of-use
+        // enforcement — the daemon's execution path never calls
+        // `validate_config`, so an unsafe source/target here would
+        // copy ANY readable file (`~/.ssh/id_rsa`, `../../etc/passwd`)
+        // into every watched repo, auto-committed + auto-pushed to
+        // public forges. Skip + warn instead.
+        if !crate::policy::is_safe_standard_file_path(&cfg.source)
+            || !crate::policy::is_safe_standard_file_path(&cfg.target)
+        {
+            eprintln!(
+                "⚠️ standard file '{}' (source '{}') rejected: paths must not be absolute or contain '..' — skipping",
+                cfg.target,
+                cfg.source
+            );
+            continue;
+        }
+
         let target_path = repo.join(&cfg.target);
 
         if target_path.exists() && !cfg.overwrite {

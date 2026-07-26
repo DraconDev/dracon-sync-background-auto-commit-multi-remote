@@ -87,6 +87,27 @@ impl StandardFileConfig {
     }
 }
 
+/// ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): shared safety check
+/// for `standard_files` source/target path STRINGS, enforced both by
+/// `validate_config` AND at the point of use in
+/// `ensure_standard_files` (the daemon's execution path never calls
+/// `validate_config` — a config typo or a write to the policy file
+/// was a read-anywhere → publish-everywhere primitive: `source =
+/// "~/.ssh/id_rsa"` passed validation because raw `~/...` is not
+/// `Path::is_absolute`, then `expand_tilde` resolved it outside the
+/// sync base, and the copied file was auto-committed + auto-pushed
+/// to public forges). Rule: no raw-absolute paths (tilde `~/` is
+/// fine — `expand_tilde` anchors it under $HOME) and no `..`
+/// components anywhere.
+pub(crate) fn is_safe_standard_file_path(raw: &str) -> bool {
+    let p = std::path::Path::new(raw);
+    if p.is_absolute() {
+        return false;
+    }
+    !p.components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+}
+
 fn expand_tilde(path: &str) -> PathBuf {
     if let Some(rest) = path.strip_prefix('~') {
         // FIXED 2026-07-21 (v0.112.33, audit M22/F3.4):
@@ -1513,13 +1534,18 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
                 idx, target_str
             ));
         }
-        // Source must also be a path-component (not absolute, not `..`).
+        // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H5): source
+        // validation was absolute-only — `..` escapes (and the
+        // tilde-expansion bypass of the absolute check) were missed,
+        // and the daemon path never ran validation at all. The same
+        // rule is now ALSO enforced at the point of use in
+        // `ensure_standard_files`.
         let source_str = sf.source.as_str();
-        let source_path = std::path::Path::new(source_str);
-        if source_path.is_absolute() {
+        if !is_safe_standard_file_path(source_str) {
             result.error(format!(
-                "standard_files[{}].source '{}' is an absolute path \
-                 (sources are resolved relative to the policy sync base dir)",
+                "standard_files[{}].source '{}' is not a safe relative path \
+                 (must not be absolute or contain '..'; '~/...' is allowed and \
+                 resolves under the operator's home)",
                 idx, source_str
             ));
         }
