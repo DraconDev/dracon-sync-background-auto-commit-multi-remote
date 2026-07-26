@@ -3405,11 +3405,42 @@ pub(crate) fn parse_count_objects_garbage_bytes(stdout: &str) -> u64 {
 /// `git gc --prune=now` fixed both; this knob makes the daemon
 /// self-heal instead of waiting for the next disk-pressure incident.
 /// `threshold_bytes = 0` disables.
-pub(crate) fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Option<u64> {
+// CHANGED 2026-07-26 (v0.113.2, audit SYNC-H3): three defects in
+// the v0.113.0 implementation — (1) synchronous
+// `std::process::Command::output()` with NO timeout inside the
+// async sync task: a multi-GiB gc pinned a tokio worker for
+// minutes, and the daemon's wedge valve could force-clear +
+// re-dispatch the repo while the old gc was still running;
+// (2) `--prune=now` removes git's 2-week mtime grace, so a gc
+// racing any concurrent writer (operator commit, agent loop, a
+// re-dispatched sync task) could prune just-written objects
+// before their refs updated — the classic prune race — and also
+// expires the reflog amend/rebase safety net; (3) bare
+// `Command::new("git")` ignored the `DRACON_SYNC_GIT_BIN`
+// override. Now: async bounded run via `run_git_with_timeout`
+// (600s, kill-on-timeout) using the shared git builder, plain
+// `git gc` (2-week grace retained — stale tmp_pack_* files, the
+// actual incident driver, are removed by gc regardless of prune
+// expiry), and a per-repo 1h attempt cooldown so a repo whose gc
+// keeps failing doesn't re-run a multi-minute gc every cycle.
+static AUTO_GC_ATTEMPTS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
+> = std::sync::OnceLock::new();
+
+pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Option<u64> {
     if threshold_bytes == 0 {
         return None;
     }
-    let out = std::process::Command::new("git")
+    {
+        let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(last) = map.get(repo) {
+            if last.elapsed() < std::time::Duration::from_secs(3600) {
+                return None;
+            }
+        }
+    }
+    let out = crate::policy::std_git_command()
         .args(["count-objects", "-v"])
         .current_dir(repo)
         .output()
@@ -3422,18 +3453,19 @@ pub(crate) fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Opt
         return None;
     }
     eprintln!(
-        "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc --prune=now",
+        "🗑️ {} has {:.2} GiB dangling garbage (> threshold {:.2} GiB) — running git gc",
         repo.display(),
         garbage as f64 / 1073741824.0,
         threshold_bytes as f64 / 1073741824.0,
     );
-    let started = std::time::Instant::now();
-    match std::process::Command::new("git")
-        .args(["gc", "--prune=now", "--quiet"])
-        .current_dir(repo)
-        .output()
     {
-        Ok(o) if o.status.success() => {
+        let attempts = AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let mut map = attempts.lock().unwrap_or_else(|p| p.into_inner());
+        map.insert(repo.to_path_buf(), std::time::Instant::now());
+    }
+    let started = std::time::Instant::now();
+    match run_git_with_timeout(repo, &["gc", "--quiet"], 600, "gc (auto)").await {
+        Ok(()) => {
             eprintln!(
                 "🗑️ gc done for {} in {:.1}s (reclaimed ~{:.2} GiB garbage)",
                 repo.display(),
@@ -3441,15 +3473,12 @@ pub(crate) fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) -> Opt
                 garbage as f64 / 1073741824.0,
             );
         }
-        Ok(o) => {
-            eprintln!(
-                "⚠️ gc failed for {}: {}",
-                repo.display(),
-                String::from_utf8_lossy(&o.stderr).trim()
-            );
-        }
         Err(e) => {
-            eprintln!("⚠️ gc spawn failed for {}: {}", repo.display(), e);
+            eprintln!(
+                "⚠️ gc failed for {} (cooldown 1h): {:#}",
+                repo.display(),
+                e
+            );
         }
     }
     Some(garbage)

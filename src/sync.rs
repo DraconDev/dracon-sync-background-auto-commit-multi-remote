@@ -3685,17 +3685,6 @@ pub(crate) async fn sync_repo_with_ahead_since(
         return Ok(SyncOutcome::NothingToDo);
     }
 
-    // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
-    // exceeds the policy threshold — the self-healing fix for the
-    // recurring tmp_pack_* bloat incidents (hegemon 4.9 GiB,
-    // dracon-platform 37 GiB, both previously manual gc). Cheap in
-    // the steady state (one count-objects) and never fatal. (The
-    // no-history-rewrite enforcement lives in warden's global hooks
-    // — warden owns the hook layer via core.hooksPath.)
-    if !dry_run {
-        crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes);
-    }
-
     if let Some(blocked) = check_conflict_state(repo) {
         let ctx = SyncContext {
             repo,
@@ -3712,6 +3701,21 @@ pub(crate) async fn sync_repo_with_ahead_since(
         };
         maybe_sync_visibility_and_metadata(&ctx);
         return Ok(blocked);
+    }
+
+    // ADDED 2026-07-25 (v0.113.0): auto-gc when dangling garbage
+    // exceeds the policy threshold — the self-healing fix for the
+    // recurring tmp_pack_* bloat incidents (hegemon 4.9 GiB,
+    // dracon-platform 37 GiB, both previously manual gc). Cheap in
+    // the steady state (one count-objects) and never fatal. (The
+    // no-history-rewrite enforcement lives in warden's global hooks
+    // — warden owns the hook layer via core.hooksPath.)
+    // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H3): moved BELOW
+    // `check_conflict_state` — v0.113.0 gc'd repos mid-merge/
+    // rebase/cherry-pick even though the sync itself correctly
+    // blocked two statements later.
+    if !dry_run {
+        crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
     }
 
     if !is_repo_ready(repo) {
