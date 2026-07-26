@@ -14,6 +14,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.2 — 2026-07-26 — full-audit remediation batch 1 (4 HIGH fixes)
+
+Remediation batch 1 of `AUDIT_FULL_2026-07-26.md` (13 HIGH findings
+fleet-audit; every HIGH independently verified against code, two
+empirically reproduced). Fixes:
+
+- **SYNC-H8 — conflict-state detection was a no-op for nested
+  submodules** (all 10 nested game repos):
+  `is_merge_in_progress` / `is_rebase_in_progress` /
+  `is_cherry_pick_in_progress` probed `<repo>/.git/MERGE_HEAD` etc.,
+  but for the canonical nested-on-`main` submodule layout `<repo>/.git`
+  is a FILE (gitdir pointer) — ENOTDIR, always false. The daemon could
+  `git add -A` through an operator's in-progress conflicted merge,
+  silently "resolving" conflicts with markers and auto-pushing them to
+  all forges. All three helpers now resolve the real gitdir via
+  `path_gitdir()` (same fix class as the v0.112.33 IndexLock fix).
+  Regression tests: gitfile + plain layouts.
+- **SYNC-H2 — auto-commit backstop was self-defeating**: it returned
+  `NothingToDo`, which the daemon apply phase treats as success —
+  removing the activity entry and wiping `ahead_since`, the very signal
+  `is_backstop_active` needs. The backstop disarmed after ONE skipped
+  dispatch and the daemon re-committed the next cycle; additionally the
+  early return suppressed the push that would have drained the backlog.
+  The backstop now calls `handle_ahead_push` first (draining ahead<N is
+  the fastest way out of the state) and returns the new
+  `SyncOutcome::BackstopSkipped`, which retains the activity entry, is
+  excluded from failure accounting, applies a 60s cooldown, and does
+  not feed the sustained-blocked notification machinery.
+- **SYNC-H3 — `maybe_auto_gc` blocked a tokio worker with no timeout
+  and ran before the conflict check**: v0.113.0 used synchronous
+  `std::process::Command::output()` for `git gc --prune=now` — a
+  multi-GiB gc pinned a worker for minutes, the wedge valve could
+  re-dispatch the repo while the old gc was still running, and
+  `--prune=now` (no mtime grace) racing any concurrent writer is the
+  classic prune race against in-flight object writes. Now: runs AFTER
+  `check_conflict_state`, async bounded via `run_git_with_timeout`
+  (600s, kill-on-timeout) using the shared git builder (honors
+  `DRACON_SYNC_GIT_BIN`), plain `git gc` (2-week prune grace retained —
+  stale tmp_pack_* files, the actual incident driver, are removed by gc
+  regardless), plus a per-repo 1h attempt cooldown so a failing gc
+  doesn't re-run every cycle.
+- **SYNC-H1 — quiet-daemon permanent wedge**: the detached-task
+  registry drain and the 15-minute wedged-task valve lived inside
+  `if !to_sync.is_empty()`. A repo whose task outlived the trailing
+  deadline stayed in `in_flight`; with no other repo dispatching
+  (overnight, single active repo) the whole block was skipped every
+  cycle — the finished/wedged task was never applied, the valve never
+  fired, and `repos` reported the repo as actively-processing forever
+  (false-healthy), re-opening the 2026-06-15 permanent-skip class. The
+  gate now also opens when the detached registry is non-empty; in that
+  quiet-maintenance mode the trailing drain runs with a ZERO deadline
+  (poll-only: finished tasks applied, running ones not awaited) so
+  cycle responsiveness is unchanged.
+- **SYNC-H7 — `detect_large_blobs_ahead` pipe deadlock** (fixed ahead
+  of its scheduled batch): cat-file's stdin pipe was filled BEFORE
+  `wait_with_output()` started draining stdout — with ~4000 objects
+  ahead the 64 KiB stdout pipe fills, cat-file stops reading stdin, and
+  the parent's `write_all` blocks forever (uncancellable spawn_blocking
+  thread + leaked child every repair cycle), leaving the 100 MiB blob
+  guard silently disabled via `.unwrap_or_default()`. cat-file stdin is
+  now fed from a temp FILE (std-only, Drop-guard cleanup) — no pipe, no
+  deadlock. (Initial patch contributed by an audit subagent; repaired
+  here to drop the dev-only `tempfile` dependency and a borrow error.)
+
 ### v0.113.1 — 2026-07-26 — FilterOnly push starvation fix + stale upstream refresh
 
 **Filter-only dirty no longer starves pending pushes.** The
