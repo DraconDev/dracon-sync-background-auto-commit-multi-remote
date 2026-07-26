@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.1 — 2026-07-26 — FilterOnly push starvation fix + stale upstream refresh
+
+**Filter-only dirty no longer starves pending pushes.** The
+`filter_only_cleared` early-return ran BEFORE the push phase: a repo
+whose only dirty entries are filter noise (junk-runner's tracked +
+gitignored `.pi-glla/active.jsonl` heartbeat, rewritten every ~15s by
+its loop agent) returned `FilterOnly` every cycle, the 300s stage
+cooldown silenced it, and the push phase was never reached —
+already-committed work piled up unpushed indefinitely (junk-runner:
+**19 commits, 10h of silent starvation** while the report showed
+"pushing 240m"). Now the FilterOnly path runs `handle_ahead_push`
+first (a cheap local no-op when there is genuinely nothing to push).
+
+**Stale upstream tracking refs converge after a successful push.**
+The daemon pushes to named mirror remotes; when `origin` shares a
+URL with one of them (junk-runner: origin = gitlab), the push never
+updates `refs/remotes/origin/main`, so libgit2 reported ahead>0
+forever and the report lied ("pushing 240m" with the push long
+done). `refresh_stale_upstream_ref` runs a bounded `git fetch
+<upstream-remote>` after a successful push, but only when the
+tracking ref actually disagrees with HEAD (zero network cost in the
+common converged case).
+
 ### v0.113.0 — 2026-07-25 — auto-gc garbage knob + gitlab auto-protect on create
 
 **`auto_gc_garbage_threshold_bytes`** (default 2 GiB, 0 disables): when a
