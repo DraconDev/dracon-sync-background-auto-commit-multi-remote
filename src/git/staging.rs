@@ -204,8 +204,24 @@ pub(crate) fn top_level_dir(path: &str) -> Option<String> {
     path.split('/').next().map(|s| s.to_string())
 }
 
+/// ADDED 2026-07-26 (v0.113.3, audit SYNC-H6): outcome of a real
+/// history rewrite. Replaces the pre-fix `Option<String>` (a backup
+/// BRANCH name — see the SYNC-H6 comment on `rewrite_ahead_paths`).
+pub(crate) struct RewriteOutcome {
+    /// Path of the `git bundle` backup of the pre-rewrite HEAD.
+    /// A bundle is not a ref, so filter-repo cannot rewrite or
+    /// delete it (the pre-fix backup branch was rewritten along with
+    /// everything else, preserving nothing).
+    pub bundle_path: String,
+    /// (full ref name, expected pre-rewrite sha) for the
+    /// post-rewrite force push lease, captured from the pre-rewrite
+    /// upstream tracking ref BEFORE filter-repo deleted `origin`.
+    pub lease: Option<(String, String)>,
+}
+
 /// Rewrite ahead paths using git filter-repo or filter-branch.
-/// Returns Some(backup_branch_name) on success, None if no paths to rewrite.
+/// Returns Some(RewriteOutcome) when history actually changed,
+/// None if no paths to rewrite or the rewrite was a no-op.
 ///
 /// F31 (2026-07-19): after a successful rewrite, check whether the
 /// resulting HEAD actually differs from the backup branch. If the
@@ -214,11 +230,34 @@ pub(crate) fn top_level_dir(path: &str) -> Option<String> {
 /// avoid littering `git branch` output with empty `backup/pre-sync-*`
 /// branches. The function signature is preserved: callers see
 /// `Some(backup)` only when the rewrite actually changed history.
+///
+/// CHANGED 2026-07-26 (v0.113.3, audit SYNC-H6 — the F31 no-op
+/// check made real rewrites indistinguishable from no-ops):
+/// `git filter-repo --invert-paths --force` rewrites ALL refs,
+/// including the `backup/pre-sync-*` branch created two statements
+/// earlier — so the "backup" preserved nothing, the backup tree
+/// ALWAYS equalled the rewritten HEAD tree, `rewrite_was_noop_
+/// then_cleanup` reported every REAL rewrite as a no-op (deleting
+/// the backup and returning None → caller never pushed), and
+/// filter-repo also deleted the `origin` remote, so the next
+/// cycle's auto-pull-on-reject merged the PRE-REWRITE history
+/// back in — the >100 MiB blob returned to local history and was
+/// pushed to all mirrors. The repair silently un-did itself.
+/// Reproduced live during the audit. Now:
+///  1. the backup is a `git bundle` FILE (not a ref) — filter-repo
+///     cannot touch it;
+///  2. filter-repo is limited to `--refs HEAD` (only the current
+///     branch is rewritten);
+///  3. the no-op check compares pre/post-rewrite HEAD SHAS, not
+///     backup-tree vs HEAD-tree;
+///  4. the pre-rewrite origin URL and upstream sha are captured
+///     BEFORE the rewrite; origin is re-added afterwards (the
+///     caller force-pushes with a lease anchored to that sha).
 pub(crate) fn rewrite_ahead_paths(
     repo: &Path,
     paths_to_remove: &[String],
     backup_prefix: &str,
-) -> Result<Option<String>> {
+) -> Result<Option<RewriteOutcome>> {
     if paths_to_remove.is_empty() {
         return Ok(None);
     }
@@ -244,19 +283,82 @@ pub(crate) fn rewrite_ahead_paths(
         ));
     }
 
-    let backup_branch = format!("{backup_prefix}-{}", crate::policy::timestamp_secs());
+    // Capture pre-rewrite state BEFORE filter-repo can destroy it:
+    // HEAD sha (no-op check), origin URL (filter-repo DELETES the
+    // origin remote), and the upstream lease anchor for the
+    // post-rewrite force push.
+    let pre_head = git_rev_parse(repo, "HEAD").ok_or_else(|| {
+        anyhow::anyhow!("cannot resolve HEAD in {} — refusing rewrite", repo.display())
+    })?;
+    let origin_url = git_config_get(repo, "remote.origin.url");
+    let lease: Option<(String, String)> =
+        match (super::branch::current_branch(repo), git_rev_parse(repo, "@{u}")) {
+            (Some(branch), Some(upstream_sha)) => {
+                Some((format!("refs/heads/{}", branch), upstream_sha))
+            }
+            _ => None,
+        };
+
+    // Bundle backup (a FILE, not a ref) — immune to the rewrite.
+    let bundle_name = format!(
+        "{}-{}.bundle",
+        backup_prefix.replace('/', "-"),
+        crate::policy::timestamp_secs()
+    );
+    let bundle_dir = super::path_gitdir(repo).unwrap_or_else(|| repo.join(".git"));
+    let bundle_path = bundle_dir.join(&bundle_name);
+    let bundle_str = bundle_path.to_string_lossy().to_string();
     let create_backup = crate::policy::std_git_command()
-        .args(["branch", &backup_branch])
+        .args(["bundle", "create", &bundle_str, "HEAD"])
         .current_dir(repo)
         .status()
-        .with_context(|| format!("failed backup branch in {}", repo.display()))?;
+        .with_context(|| format!("failed backup bundle in {}", repo.display()))?;
     if !create_backup.success() {
         return Err(anyhow::anyhow!(
-            "failed to create backup branch {} in {}",
-            backup_branch,
+            "failed to create backup bundle {} in {}",
+            bundle_str,
             repo.display()
         ));
     }
+
+    let finish = |repo: &Path| -> Result<Option<RewriteOutcome>> {
+        // Restore the origin remote if the rewrite deleted it
+        // (filter-repo does this by design; filter-branch does not).
+        if let Some(url) = &origin_url {
+            if git_config_get(repo, "remote.origin.url").is_none() {
+                let readd = crate::policy::std_git_command()
+                    .args(["remote", "add", "origin", url])
+                    .current_dir(repo)
+                    .status();
+                match readd {
+                    Ok(s) if s.success() => {
+                        eprintln!(
+                            "🔧 re-added origin remote in {} (filter-repo removes it)",
+                            repo.display()
+                        );
+                    }
+                    _ => {
+                        eprintln!(
+                            "⚠️ failed to re-add origin remote in {} — restore manually: git remote add origin {}",
+                            repo.display(),
+                            url
+                        );
+                    }
+                }
+            }
+        }
+        // No-op check: pre vs post HEAD SHA (the pre-fix tree
+        // compare against the rewritten backup was ALWAYS equal).
+        let post_head = git_rev_parse(repo, "HEAD");
+        if post_head.as_deref() == Some(pre_head.as_str()) {
+            let _ = std::fs::remove_file(&bundle_path);
+            return Ok(None);
+        }
+        Ok(Some(RewriteOutcome {
+            bundle_path: bundle_str.clone(),
+            lease: lease.clone(),
+        }))
+    };
 
     // Try git-filter-repo first (preferred, faster, actively maintained)
     let filter_repo_available = crate::policy::std_git_command()
@@ -282,14 +384,25 @@ pub(crate) fn rewrite_ahead_paths(
             .current_dir(repo)
             .status()
             .with_context(|| format!("failed filter-repo in {}", repo.display()))?;
+        // SYNC-H6: limit the rewrite to the current branch — the
+        // pre-fix invocation rewrote ALL refs (including its own
+        // backup branch).
+        args.push("--refs".to_string());
+        args.push("HEAD".to_string());
+        let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+        let rewrite = crate::policy::std_git_command()
+            .args(&args_ref)
+            .current_dir(repo)
+            .status()
+            .with_context(|| format!("failed filter-repo in {}", repo.display()))?;
         if !rewrite.success() {
             return Err(anyhow::anyhow!(
-                "filter-repo failed in {} (backup: {})",
+                "filter-repo failed in {} (backup bundle: {})",
                 repo.display(),
-                backup_branch
+                bundle_str
             ));
         }
-        return rewrite_was_noop_then_cleanup(repo, &backup_branch);
+        return finish(repo);
     }
 
     let filter_branch_available = crate::policy::std_git_command()
@@ -309,12 +422,12 @@ pub(crate) fn rewrite_ahead_paths(
             .with_context(|| format!("failed filter-branch in {}", repo.display()))?;
         if !rewrite.success() {
             return Err(anyhow::anyhow!(
-                "filter-branch failed in {} (backup: {})",
+                "filter-branch failed in {} (backup bundle: {})",
                 repo.display(),
-                backup_branch
+                bundle_str
             ));
         }
-        return rewrite_was_noop_then_cleanup(repo, &backup_branch);
+        return finish(repo);
     }
 
     Err(anyhow::anyhow!(
@@ -358,41 +471,39 @@ fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
     ]
 }
 
-/// Compare backup_branch HEAD-tree to current HEAD. If equal, the
-/// rewrite was a no-op — delete the backup branch so it doesn't
-/// clutter `git branch` output. Otherwise return Some(backup_branch).
-fn rewrite_was_noop_then_cleanup(repo: &Path, backup_branch: &str) -> Result<Option<String>> {
-    // Use `git rev-parse <branch>^{tree}` so we compare trees, not
-    // commit hashes — a no-op rewrite that touched the commit graph
-    // but not the tree still produces the same content.
-    let backup_tree = crate::policy::std_git_command()
-        .args(["rev-parse", &format!("{}^{{tree}}", backup_branch)])
+/// REMOVED 2026-07-26 (v0.113.3, audit SYNC-H6):
+/// `rewrite_was_noop_then_cleanup` compared the backup branch's tree
+/// against HEAD's tree — but filter-repo rewrote the backup branch
+/// identically to HEAD, so the trees were ALWAYS equal and every
+/// real rewrite was misreported as a no-op. Replaced by the
+/// pre/post HEAD-sha compare inside `rewrite_ahead_paths`.
+
+/// ADDED 2026-07-26 (v0.113.3): `git rev-parse <rev>` → trimmed sha.
+fn git_rev_parse(repo: &Path, rev: &str) -> Option<String> {
+    let out = crate::policy::std_git_command()
+        .args(["rev-parse", rev])
         .current_dir(repo)
-        .output();
-    let head_tree = crate::policy::std_git_command()
-        .args(["rev-parse", "HEAD^{tree}"])
-        .current_dir(repo)
-        .output();
-    match (backup_tree, head_tree) {
-        (Ok(b), Ok(h)) if b.status.success() && h.status.success() => {
-            let b_hash = String::from_utf8_lossy(&b.stdout).trim().to_string();
-            let h_hash = String::from_utf8_lossy(&h.stdout).trim().to_string();
-            if b_hash == h_hash {
-                // No-op rewrite — delete the empty backup branch.
-                let _ = crate::policy::std_git_command()
-                    .args(["branch", "-D", backup_branch])
-                    .current_dir(repo)
-                    .status();
-                return Ok(None);
-            }
-            Ok(Some(backup_branch.to_string()))
-        }
-        _ => {
-            // Couldn't determine — assume rewrite happened (safer to
-            // keep the backup than to silently drop it).
-            Ok(Some(backup_branch.to_string()))
-        }
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
     }
+    let sha = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if sha.is_empty() { None } else { Some(sha) }
+}
+
+/// ADDED 2026-07-26 (v0.113.3): `git config --get <key>` → value.
+fn git_config_get(repo: &Path, key: &str) -> Option<String> {
+    let out = crate::policy::std_git_command()
+        .args(["config", "--get", key])
+        .current_dir(repo)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if value.is_empty() { None } else { Some(value) }
 }
 
 /// Restore paths from the index to the working tree.
