@@ -6968,6 +6968,87 @@ mod tests {
         status
     }
 
+    /// ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+    /// matrix test for the pure decision helper
+    /// [`decide_create_mirror`]. Reproduces the original
+    /// "transient ssh hiccup, will NOT create mirror" behavior.
+    /// First, when any 3x-retry probe succeeded (the boolean
+    /// models the call-site result of the retry loop
+    /// succeeding at least once), no mirror is forked. Second,
+    /// when the repo was previously pushed, a current outage is
+    /// also treated as transient (origin has existed in the
+    /// past). Pre-fix, `handle_no_origin` would fork a mirror
+    /// on the first invocation regardless. Post-fix, only the
+    /// `really_gone` companion test triggers creation.
+    #[test]
+    fn concerns_retry_softening() {
+        // ANY remote reachable (the 3x retry succeeded at
+        // least once) — the originating soft-spot case.
+        assert_eq!(
+            decide_create_mirror(true, false, None),
+            CreateMirrorDecision::TransientHiccup
+        );
+        assert_eq!(
+            decide_create_mirror(true, false, Some(3600)),
+            CreateMirrorDecision::TransientHiccup
+        );
+        assert_eq!(
+            decide_create_mirror(true, true, Some(3600)),
+            CreateMirrorDecision::TransientHiccup
+        );
+        // Repo was previously pushed — even if no remote is
+        // reachable now, do not fork a mirror.
+        assert_eq!(
+            decide_create_mirror(false, true, Some(3600)),
+            CreateMirrorDecision::TransientHiccup
+        );
+        // No failure recorded this session (gone_secs = None).
+        // First probe failure is therefore transient by policy.
+        assert_eq!(
+            decide_create_mirror(false, false, None),
+            CreateMirrorDecision::TransientHiccup
+        );
+        // Gone window shorter than the 15-min threshold.
+        assert_eq!(
+            decide_create_mirror(false, false, Some(899)),
+            CreateMirrorDecision::TransientHiccup
+        );
+    }
+
+    /// ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+    /// the genuine "origin really gone, create mirror" cases.
+    /// All three preconditions must hold simultaneously: no
+    /// remote answered (any_remote_reachable = false), never
+    /// pushed (ever_pushed = false), AND the gone-window has
+    /// elapsed (>= CREATE_MIRROR_GONE_THRESHOLD_SECS, 900).
+    /// Pre-fix this path always fired; post-fix only these
+    /// inputs reach the create block.
+    #[test]
+    fn concerns_retry_softening_really_gone() {
+        assert_eq!(
+            decide_create_mirror(false, false, Some(CREATE_MIRROR_GONE_THRESHOLD_SECS)),
+            CreateMirrorDecision::ReallyGone
+        );
+        assert_eq!(
+            decide_create_mirror(false, false, Some(CREATE_MIRROR_GONE_THRESHOLD_SECS + 1)),
+            CreateMirrorDecision::ReallyGone
+        );
+        assert_eq!(
+            decide_create_mirror(false, false, Some(3600)),
+            CreateMirrorDecision::ReallyGone
+        );
+        // Boundary: exactly 1 second under threshold is still
+        // transient.
+        assert_eq!(
+            decide_create_mirror(
+                false,
+                false,
+                Some(CREATE_MIRROR_GONE_THRESHOLD_SECS - 1)
+            ),
+            CreateMirrorDecision::TransientHiccup
+        );
+    }
+
     #[test]
     fn test_repo_failure_message_includes_context() {
         let msg = repo_failure_message("init_failed", Path::new("/tmp/repo"), "boom");
