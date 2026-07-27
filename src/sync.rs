@@ -3637,6 +3637,25 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     Ok(true)
 }
 
+/// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
+/// `filter_only_cleared` early-return in `sync_repo` should fire.
+/// Pre-fix, the early-return checked `filter_only_cleared` alone and
+/// silently dropped any stale gitlink entries the injection step had
+/// just queued, starving the parent's gitlink convergence for
+/// filter-noisy parents (junk-runner et al.). The post-fix decision
+/// is: short-circuit only when filter-only AND no stale gitlinks
+/// were injected. An injection prevents the short-circuit so the
+/// rest of the apply phase runs and the parent commits the gitlink
+/// advance. Extracted to a `pub(crate)` free function for
+/// testability — the 4-case boolean matrix is pinned by
+/// `test_m2_filter_only_bypass_decision` below.
+pub(crate) fn should_short_circuit_filter_only(
+    filter_only_cleared: bool,
+    stale_gitlink_injected: bool,
+) -> bool {
+    filter_only_cleared && !stale_gitlink_injected
+}
+
 pub(crate) async fn sync_repo(
     repo: &Path,
     policy: &SyncPolicy,
@@ -3920,6 +3939,14 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // disturbing any existing entries (which would already represent
     // dirty gitlinks from this commit's perspective).
     let stale_paths = crate::exclude::stale_gitlink_paths(repo);
+    // ADDED 2026-07-27 (v0.113.5, audit M2): track whether this
+    // sync_repo call injected ANY stale gitlink entries. The
+    // `filter_only_cleared` early-return below would otherwise
+    // drop those injected entries, leaving the parent's gitlink
+    // convergence starved. The flag is set only when the injection
+    // actually appended an entry (not when the dedup-skip path is
+    // taken) so a no-op injection does not prevent the early-return.
+    let mut stale_gitlink_injected = false;
     if !stale_paths.is_empty() {
         if debug_enabled() {
             eprintln!(
@@ -3943,6 +3970,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             if entries.iter().any(|e| e.path == p) {
                 continue;
             }
+            stale_gitlink_injected = true;
             entries.push(dracon_git::types::DiffFile::new(
                 p,
                 dracon_git::types::FileStatus::Modified,
@@ -3955,7 +3983,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // dedicated `FilterOnly` outcome so the daemon's apply phase
     // actually inserts the stage cooldown this comment always
     // promised (`stage_cooldowns` was dead — no insert site existed).
-    if filter_only_cleared {
+    // CHANGED 2026-07-27 (v0.113.5, audit M2): gate the early-return
+    // on `should_short_circuit_filter_only(filter_only_cleared,
+    // stale_gitlink_injected)` rather than `filter_only_cleared`
+    // alone. Pre-fix, the early-return dropped any stale gitlink
+    // entries the injection step above had just queued, starving the
+    // parent's gitlink convergence for filter-noisy parents (the
+    // filter cleaned the real dirty entries, but the injected stale
+    // gitlinks are real changes too — the parent still needs its
+    // gitlink pointer updated). Post-fix, an injection of stale
+    // gitlinks prevents the early-return so the rest of the apply
+    // phase runs and the parent commits the gitlink advance.
+    if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected) {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -6465,6 +6504,33 @@ push_url = "{}"
             .status()
             .unwrap();
         repo
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M2): the `filter_only_cleared`
+    /// short-circuit decision is now gated on `stale_gitlink_injected`
+    /// via the `should_short_circuit_filter_only` helper. Pre-fix the
+    /// short-circuit dropped any stale gitlink entries the injection
+    /// step had just queued, starving the parent's gitlink
+    /// convergence for filter-noisy parents. Post-fix the 4-case
+    /// boolean matrix pins the contract:
+    ///   filter_only_cleared=false, injected=false → continue (not filter-only)
+    ///   filter_only_cleared=false, injected=true  → continue (not filter-only)
+    ///   filter_only_cleared=true,  injected=false → short-circuit (FilterOnly)
+    ///   filter_only_cleared=true,  injected=true  → continue (injection wins)
+    #[test]
+    fn test_m2_filter_only_bypass_decision() {
+        // Case 1: filter not cleared, no injection → no short-circuit.
+        assert!(!should_short_circuit_filter_only(false, false));
+        // Case 2: filter not cleared, injection happened → no short-circuit.
+        assert!(!should_short_circuit_filter_only(false, true));
+        // Case 3: filter cleared, no injection → short-circuit (the
+        // original v0.112.33 behavior; the audit fix is purely
+        // additive to case 4 below).
+        assert!(should_short_circuit_filter_only(true, false));
+        // Case 4: filter cleared, injection happened → no
+        // short-circuit (the audit's exact bug case — injected
+        // gitlinks must not be silently dropped).
+        assert!(!should_short_circuit_filter_only(true, true));
     }
 
     fn git_cmd(repo: &Path, args: &[&str]) -> std::process::Output {
