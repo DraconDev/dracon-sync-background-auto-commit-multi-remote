@@ -16,6 +16,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.113.5] - 2026-07-27
 
+### v0.113.6 — 2026-07-28 — completes v0.113.5: M4 trailing-drain unification
+
+The published `v0.113.5` tag was created on a doc-only commit
+before the M4 helper (`apply_outcome`) was actually added to source.
+This release re-tags the M4-complete state under a new tag (no tag
+rewriting, AGENTS.md "no force-push anywhere" honored).
+
+- **SYNC-M4 — main apply phase vs trailing-drain symmetry** (helper
+  `apply_outcome` at `daemon.rs:124`, `ApplyOutcome` enum at
+  `daemon.rs:95`, call sites at `daemon.rs:4261` and `daemon.rs:4424`).
+  Pre-fix the main apply phase and the trailing-drain path each had
+  their own `match sync_res { ... }` block — nearly identical, but
+  with two divergence bugs the audit caught. First, trailing-drain
+  `NothingToDo` did nothing (no activity.remove / failure_count
+  reset, leaking entries across cycles). Second, trailing-drain
+  `Synced` did not call `stuck_push_repos.remove + save` (ledger
+  would stay stale until a main-phase success). Post-fix, both
+  phases route through the single `apply_outcome` function; the
+  `is_late: bool` parameter toggles the log suffix only — outcome
+  classification and side effects are structurally identical.
+  `RepoActivity` was promoted to `pub(crate)` so the helper can
+  take `&mut RepoActivity` (still crate-private, not exposed to
+  downstream crates). Regression test
+  `test_m4_helper_structurally_unified` drives each `SyncOutcome`
+  variant through the helper and pins the
+  `ApplyOutcome::Success / Blocked / BackstopSkipped / Failure`
+  classification matrix plus the side-effect contracts.
+
+- **Release-notes correction**: `release-notes-v0.113.5.md` line
+  refs and the test-count claim (`851 passed`) were written before
+  the M4 fix landed in source. The corrected posture (matching
+  this release) is `852 passed` (the M4 regression test was added
+  during this session), with M1/M2/M3 line refs as published.
+
 ### v0.113.5 — 2026-07-27 — MEDIUM-finding remediation batch (M1-M4)
 
 Closes the 4 still-open SYNC MEDIUMs from `AUDIT_FULL_2026-07-26.md`:
