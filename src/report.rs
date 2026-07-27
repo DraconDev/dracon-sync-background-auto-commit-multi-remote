@@ -5107,6 +5107,84 @@ pub(crate) fn log_incident(
     append_incident_record(policy_path, &record);
 }
 
+/// ADDED 2026-07-28 (v0.113.7, concern-retry-softening): decision
+/// returned by [`decide_create_mirror`] — whether the daemon's
+/// auto-repair concern path should actually create an offline
+/// mirror (the pre-fix behavior was eager: any `has_origin=false`
+/// triggered `create_private_remote` immediately, which on a
+/// transient SSH hiccup would fork the operator's repo onto a
+/// mirror they did not ask for). Mirrors the `RemoteExistence`
+/// tri-state in `git/multi_remote.rs` so callers can map both
+/// signals to a consistent action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CreateMirrorDecision {
+    /// Origin is reachable, was previously pushed, or has not
+    /// been gone long enough — DO NOT create a mirror this
+    /// invocation; either retry later or wait out the
+    /// gone-window. Caller should log "transient ssh hiccup —
+    /// will retry" and update the gone-since ledger.
+    TransientHiccup,
+    /// Origin has been gone for the full policy window AND the
+    /// repo was never pushed — safe to create an offline
+    /// mirror. Caller should log "origin really gone, creating
+    /// offline mirror" and clear the gone-since ledger.
+    ReallyGone,
+}
+
+/// ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+/// pure-decision helper extracted so the create-mirror policy
+/// can be regression-tested without network probes or a fake
+/// git binary. Callers feed in:
+///   * `any_remote_reachable` — did ANY of the 3x retry probes
+///     (per configured remote, 5s apart) answer cleanly? True
+///     means the network and forge are fine; origin absence is
+///     a local config anomaly, not a transport failure.
+///   * `ever_pushed` — does this checkout have ANY
+///     `refs/remotes/<name>/*` entry (i.e. has it ever
+///     successfully pushed to any remote)? True means origin
+///     existed in the past and a transient outage must not
+///     fork a mirror.
+///   * `gone_secs` — how long has origin been unreachable, in
+///     seconds since the first observed failure (the
+///     gone-since ledger); `None` means no failure has been
+///     recorded this session (first probe failure ⇒ treat as
+///     transient, not as "really gone").
+///
+/// Returns `ReallyGone` only when ALL three conditions hold:
+/// network unreachable AND never pushed AND gone > 15 min.
+/// Otherwise `TransientHiccup`. The 15-minute window is the
+/// policy knob specified in the concern-retry-softening
+/// objective; surfaced as a named constant
+/// ([`CREATE_MIRROR_GONE_THRESHOLD_SECS`]) so tests + future
+/// operators can reference it directly.
+pub(crate) const CREATE_MIRROR_GONE_THRESHOLD_SECS: u64 = 900;
+
+pub(crate) fn decide_create_mirror(
+    any_remote_reachable: bool,
+    ever_pushed: bool,
+    gone_secs: Option<u64>,
+) -> CreateMirrorDecision {
+    if any_remote_reachable {
+        return CreateMirrorDecision::TransientHiccup;
+    }
+    if ever_pushed {
+        // Origin has answered at least once for this checkout.
+        // A transient outage cannot be the cause of a current
+        // missing origin — the previous push would have failed
+        // visibly. Refuse to fork a mirror.
+        return CreateMirrorDecision::TransientHiccup;
+    }
+    match gone_secs {
+        Some(s) if s >= CREATE_MIRROR_GONE_THRESHOLD_SECS => {
+            CreateMirrorDecision::ReallyGone
+        }
+        // Either no failure observed yet (None — first
+        // probe), or the elapsed window is shorter than the
+        // threshold. Either way, do not create.
+        _ => CreateMirrorDecision::TransientHiccup,
+    }
+}
+
 struct RepairState {
     attempted_ops: usize,
     succeeded_ops: usize,
@@ -5114,6 +5192,209 @@ struct RepairState {
     has_origin: bool,
     has_upstream: bool,
     push_ok: bool,
+}
+
+/// ADDED 2026-07-28 (v0.113.7, concern-retry-softening): probe
+/// ALL configured remotes for reachability with a bounded 3x
+/// retry (5s delay between attempts). Returns true if ANY
+/// remote answered cleanly — the concern-repair path treats
+/// this as "network is fine; origin absence is a local config
+/// anomaly" and refuses to fork a mirror (mirrors the
+/// `RemoteExistence::Exists` semantics from
+/// `git/multi_remote.rs::remote_repo_exists`).
+///
+/// `ls-remote <name> HEAD` is the same probe
+/// `remote_repo_exists` uses, so the retry inherits all the
+/// forge-aware classification already present there
+/// (definitive not-found is still "reachable but missing" —
+/// network fine, forge answered, do not create). The 3x retry
+/// with 5s delay tolerates transient SSH/DNS blips without
+/// forking a mirror onto a host the operator did not ask for.
+async fn probe_any_remote_reachable(repo: &Path) -> bool {
+    use crate::git::multi_remote::list_remotes;
+    let remotes = list_remotes(repo);
+    if remotes.is_empty() {
+        return false;
+    }
+    for remote_name in &remotes {
+        for attempt in 1..=3u32 {
+            let output = tokio::process::Command::new("git")
+                .current_dir(repo)
+                .env("GIT_TERMINAL_PROMPT", "0")
+                .args(["ls-remote", "--heads", remote_name, "HEAD"])
+                .output()
+                .await;
+            if let Ok(o) = output {
+                if o.status.success() {
+                    return true;
+                }
+                // Definitive "not found" is still a clean
+                // answer — forge answered, transport is fine.
+                let stderr = String::from_utf8_lossy(&o.stderr);
+                let lower = stderr.to_ascii_lowercase();
+                if lower.contains("repository not found")
+                    || lower.contains("could not be found")
+                    || lower.contains("does not exist")
+                    || lower.contains("not found")
+                    || lower.contains("404")
+                {
+                    return true;
+                }
+            }
+            if attempt < 3 {
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        }
+    }
+    false
+}
+
+/// ADDED 2026-07-28 (v0.113.7, concern-retry-softening): has
+/// this checkout ever successfully pushed to ANY remote?
+/// Implemented by checking for the presence of any
+/// `refs/remotes/<name>/*` entries (packed or loose). If yes,
+/// the operator has used a forge with this repo before; a
+/// current "no origin" must be transient, not a fork trigger.
+fn ever_pushed(repo: &Path) -> bool {
+    // Packed refs: cheap to read; covers the common case.
+    let packed = repo.join(".git").join("packed-refs");
+    if let Ok(content) = std::fs::read_to_string(&packed) {
+        for line in content.lines() {
+            if line.starts_with('#') || line.is_empty() {
+                continue;
+            }
+            if line.contains(" refs/remotes/") {
+                return true;
+            }
+        }
+    }
+    // Loose refs: walk the directory. Bounded by refs/remotes/.
+    let remotes_dir = repo.join(".git").join("refs").join("remotes");
+    if remotes_dir.is_dir() {
+        if let Ok(rd) = std::fs::read_dir(&remotes_dir) {
+            for entry in rd.flatten() {
+                if entry.path().is_dir() {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+/// gone-since ledger — a per-policy TSV file
+/// (`<policy_dir>/origin-gone-ledger.tsv`) that records
+/// `repo_path\tunix_secs` on first observed origin failure
+/// and is cleared (entry removed) on first observed origin
+/// success. `origin_gone_secs` returns `None` if the repo is
+/// not in the ledger (no failure observed this session —
+/// first probe failure is therefore transient by policy).
+fn origin_gone_ledger_path(policy_path: &Path) -> PathBuf {
+    policy_path
+        .parent()
+        .map(|p| p.join("origin-gone-ledger.tsv"))
+        .unwrap_or_else(|| PathBuf::from("origin-gone-ledger.tsv"))
+}
+
+fn origin_gone_secs(policy_path: &Path, repo: &Path) -> Option<u64> {
+    let path = origin_gone_ledger_path(policy_path);
+    let content = std::fs::read_to_string(&path).ok()?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_secs();
+    let repo_str = repo.display().to_string();
+    for line in content.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let mut parts = line.splitn(2, '\t');
+        let p = parts.next().unwrap_or("");
+        let secs_str = parts.next().unwrap_or("");
+        if p == repo_str {
+            if let Ok(secs) = secs_str.parse::<u64>() {
+                return now.checked_sub(secs);
+            }
+        }
+    }
+    None
+}
+
+fn record_origin_gone(policy_path: &Path, repo: &Path) {
+    let path = origin_gone_ledger_path(policy_path);
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok();
+    let secs = match now {
+        Some(d) => d.as_secs(),
+        None => return,
+    };
+    let repo_str = repo.display().to_string();
+    let mut existing: Vec<String> = Vec::new();
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        for line in content.lines() {
+            if line.is_empty() {
+                continue;
+            }
+            let mut parts = line.splitn(2, '\t');
+            let p = parts.next().unwrap_or("");
+            if p != repo_str {
+                existing.push(line.to_string());
+            }
+        }
+    }
+    existing.push(format!("{}\t{}", repo_str, secs));
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&path)
+    {
+        let _ = f.write_all(existing.join("\n").as_bytes());
+        let _ = f.write_all(b"\n");
+    }
+}
+
+fn clear_origin_gone(policy_path: &Path, repo: &Path) {
+    let path = origin_gone_ledger_path(policy_path);
+    let repo_str = repo.display().to_string();
+    let mut kept: Vec<String> = Vec::new();
+    let mut removed = false;
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        for line in content.lines() {
+            if line.is_empty() {
+                continue;
+            }
+            let mut parts = line.splitn(2, '\t');
+            let p = parts.next().unwrap_or("");
+            if p == repo_str {
+                removed = true;
+                continue;
+            }
+            kept.push(line.to_string());
+        }
+    }
+    if !removed {
+        return;
+    }
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&path)
+    {
+        let _ = f.write_all(kept.join("\n").as_bytes());
+        if !kept.is_empty() {
+            let _ = f.write_all(b"\n");
+        }
+    }
 }
 
 async fn handle_no_origin(
@@ -5130,6 +5411,56 @@ async fn handle_no_origin(
     }
     state.attempted_ops += 1;
     if apply {
+        // CHANGED 2026-07-28 (v0.113.7, concern-retry-softening):
+        // before creating an offline mirror, probe reachability
+        // with a 3x retry (5s between attempts) and consult the
+        // gone-since ledger. Pre-fix this block forked a mirror
+        // on the first invocation, which on a transient SSH
+        // hiccup would create a repo the operator did not ask
+        // for (and never asked for, ever). Post-fix: refuse to
+        // create until the gone-window has elapsed AND the
+        // checkout has never pushed. Two log lines tell the
+        // operator which side of the decision fired.
+        let any_reachable = probe_any_remote_reachable(repo).await;
+        let pushed = ever_pushed(repo);
+        let gone = origin_gone_secs(policy_path, repo);
+        match decide_create_mirror(any_reachable, pushed, gone) {
+            CreateMirrorDecision::TransientHiccup => {
+                if human {
+                    println!(
+                        "   ℹ️  transient: origin probe inconclusive (reachable={}, ever_pushed={}, gone_secs={:?}) — will retry, NOT creating mirror",
+                        any_reachable,
+                        pushed,
+                        gone
+                    );
+                }
+                record_origin_gone(policy_path, repo);
+                state.manual_only += 1;
+                log_incident(
+                    policy_path,
+                    "concern",
+                    repo.display().to_string(),
+                    reason,
+                    "create_private_remote",
+                    None,
+                    "skipped_transient",
+                    Some(format!(
+                        "transient ssh hiccup; reachable={} ever_pushed={} gone_secs={:?}",
+                        any_reachable, pushed, gone
+                    )),
+                );
+                return true;
+            }
+            CreateMirrorDecision::ReallyGone => {
+                if human {
+                    println!(
+                        "   ℹ️  origin gone > 15min AND never pushed — creating offline mirror"
+                    );
+                }
+                clear_origin_gone(policy_path, repo);
+                // Fall through to the existing create block.
+            }
+        }
         let private_remote = if policy.auto_github_private {
             if human {
                 println!("   plan: create GitHub private repo as origin");
