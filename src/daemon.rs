@@ -82,16 +82,15 @@ pub(crate) fn should_discard_stale_detached_result(
 /// route through this single function so divergence is
 /// structurally impossible. Pre-fix, the two paths each had
 /// their own `match sync_res { ... }` block with two divergence
-/// bugs the audit caught:
-///   - trailing-drain `NothingToDo` did nothing (no
-///     activity.remove / failure_count reset, leaking entries
-///     across cycles)
-///   - trailing-drain `Synced` did not call
-///     `stuck_push_repos.remove + save` (ledger would stay stale
-///     until a main-phase success)
+/// bugs the audit caught. First, the trailing-drain `NothingToDo`
+/// did nothing (no activity.remove / failure_count reset, leaking
+/// entries across cycles). Second, the trailing-drain `Synced`
+/// did not call `stuck_push_repos.remove + save` (ledger would
+/// stay stale until a main-phase success).
 /// Extracted to a `pub(crate)` free function + enum so the
 /// classification matrix is independently testable from the
-/// `daemon::tests` module via `test_m4_apply_outcome_*` cases.
+/// `daemon::tests` module via
+/// `test_m4_helper_structurally_unified`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ApplyOutcome {
     /// The work succeeded in some sense (Synced / NothingToDo /
