@@ -5931,6 +5931,39 @@ push_url = "git@nonexistent.example.com:repo.git"
             ])
             .status()
             .unwrap();
+        // CHANGED 2026-07-27 (v0.113.5, audit M3): pre-fix, a
+        // missing branch-tracking configuration made
+        // `should_push` permanently true; the audit removed that
+        // clause. To keep this test exercising the
+        // bootstrap-push scenario (mirror-only / new-repo / no
+        // upstream tracking yet), manually configure the
+        // branch-tracking for `master` so the audit-fixed
+        // `should_push` evaluates correctly via
+        // `upstream_ref_missing`. The push-to-origin will
+        // succeed for THIS test setup (origin is a real bare
+        // repo) and create the tracking ref, leaving the mirror
+        // push to fail; v0.113.5 still records `PushFailed` for
+        // the mirror leg.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.remote",
+                "origin",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.merge",
+                "refs/heads/master",
+            ])
+            .status()
+            .unwrap();
 
         // Point mirror to non-existent path so push fails
         let bad_mirror = tmp.path().join("nonexistent-mirror.git");
@@ -6536,6 +6569,38 @@ push_url = "{}"
             .status()
             .unwrap();
         repo
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M3): mimic `git push -u origin <branch>`
+    /// by setting the repo-local `branch.<name>.remote` + `branch.<name>.merge`
+    /// config so `handle_ahead_push`'s `should_push = ahead > 0 ||
+    /// upstream_ref_missing` clause treats the just-pushed bootstrap
+    /// scenario as push-needed. Pre-fix, the `|| !branch_has_upstream`
+    /// clause made `should_push=true` for any repo with no upstream
+    /// branch config; v0.113.5 removed that clause and replaced it with
+    /// `|| upstream_ref_missing`, which gates on the tracking ref
+    /// being missing. Several existing tests constructed the
+    /// "freshly bootstrapped with origin added but never pushed" state
+    /// without setting branch.<name>.remote / merge; without the
+    /// helper, those tests would silently regress because the
+    /// bootstrap push never fires. Use this helper wherever a test
+    /// adds `origin` via `git remote add` and expects a push attempt
+    /// under the v0.113.5 `should_push` rule.
+    fn configure_branch_upstream(repo: &Path, branch: &str, remote: &str) {
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "branch.master.remote", remote])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.merge",
+                &format!("refs/heads/{}", branch),
+            ])
+            .status()
+            .unwrap();
     }
 
     fn git_cmd(repo: &Path, args: &[&str]) -> std::process::Output {
