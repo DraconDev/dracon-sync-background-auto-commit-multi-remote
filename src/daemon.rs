@@ -2841,7 +2841,7 @@ pub(crate) async fn run_daemon(
         materialize_pending_submodules(&repos, &roots, &policy).await;
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
-        let mut to_sync: Vec<(PathBuf, SyncTaskJoin)> = Vec::new();
+        let mut to_sync: Vec<(PathBuf, u64, SyncTaskJoin)> = Vec::new();
         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
 
         activity.retain(|repo, _| {
@@ -3737,8 +3737,23 @@ pub(crate) async fn run_daemon(
             // until the apply phase removes it. This is the
             // no-redispatch invariant in action.
             in_flight.insert(repo.clone());
+            // ADDED 2026-07-27 (v0.113.5, audit M1): bump the
+            // per-repo dispatch generation. The value is captured
+            // into the join handle so the apply phase can verify
+            // any discard marker matches THIS task's generation
+            // (the audit's bug was that the marker was keyed by
+            // repo alone, so re-dispatched tasks whose generation
+            // was newer than the wedged marker were either
+            // discarded as stale OR applied as fresh depending on
+            // completion order).
+            let gen = {
+                let g = dispatch_gen.entry(repo.clone()).or_insert(0);
+                *g = g.saturating_add(1);
+                *g
+            };
             to_sync.push((
                 repo.clone(),
+                gen,
                 tokio::spawn(async move {
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
@@ -3788,16 +3803,17 @@ pub(crate) async fn run_daemon(
         let dispatched_any = !to_sync.is_empty();
         if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
-            for (repo_path, handle) in to_sync.drain(..) {
+            for (repo_path, gen, handle) in to_sync.drain(..) {
 
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
-                        Ok((rf, r)) => (repo_path, rf, r),
+                        Ok((rf, r)) => (repo_path, gen, rf, r),
                         Err(e) => {
                             eprintln!("⚠️ join error for sync task: {}", e);
                             (
                                 repo_path,
+                                gen,
                                 HashMap::new(),
                                 Err(anyhow::anyhow!("join error: {}", e)),
                             )
@@ -3839,7 +3855,7 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // in_flight_tasks empty
                     Err(_) => break,   // timeout
                 };
-                let Ok((repo, remote_failures, sync_res)) = joined else {
+                let Ok((repo, _gen, remote_failures, sync_res)) = joined else {
                     continue;
                 };
                 // Remove from in_flight set so the next cycle can
@@ -4102,13 +4118,29 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // all drained
                     Err(_) => break,   // trailing deadline hit
                 };
-                if let Ok((repo, remote_failures, sync_res)) = joined {
-                    // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
-                    // discard stale results from wedged tasks that
-                    // were force-cleared and possibly re-dispatched.
-                    if detached_discard.remove(&repo) {
+                if let Ok((repo, gen, remote_failures, sync_res)) = joined {
+                    // CHANGED 2026-07-27 (v0.113.5, audit M1):
+                    // the marker is now keyed on (repo, gen) so a
+                    // re-dispatched (post-wedge) task with a fresher
+                    // generation is NOT discarded when its result arrives,
+                    // and a stale-generation result arriving after its
+                    // fresher sibling IS correctly discarded. The
+                    // HashMap only stores the wedged generation, which is
+                    // removed on match; results whose generation does NOT
+                    // match the map entry fall through to the normal
+                    // apply phase without affecting the marker.
+                    let should_discard = detached_discard
+                        .get(&repo)
+                        .map(|g| *g == gen)
+                        .unwrap_or(false);
+                    if should_discard {
+                        detached_discard.remove(&repo);
                         if debug_enabled() {
-                            eprintln!("🐛 {} discarding stale wedged-task result", repo.display());
+                            eprintln!(
+                                "🐛 {} discarding stale wedged-task result (gen={})",
+                                repo.display(),
+                                gen
+                            );
                         }
                         detached_since.remove(&repo);
                         continue;
@@ -4261,7 +4293,19 @@ pub(crate) async fn run_daemon(
                 );
                 in_flight.remove(&repo);
                 detached_since.remove(&repo);
-                detached_discard.insert(repo);
+                // CHANGED 2026-07-27 (v0.113.5, audit M1): record
+                // the generation we are discarding, so a freshly
+                // dispatched task with a higher generation is
+                // safe when its result arrives (the audit's bug
+                // was that all generations for a repo were
+                // discarded under a single per-repo key, so
+                // re-dispatch races produced inverted-order
+                // outcomes). The wedged generation is the one
+                // currently associated with the repo via the
+                // dispatch_gen counter incremented at every
+                // dispatch.
+                let wedged_gen = dispatch_gen.get(&repo).copied().unwrap_or(0);
+                detached_discard.insert(repo, wedged_gen);
             }
         }
 
