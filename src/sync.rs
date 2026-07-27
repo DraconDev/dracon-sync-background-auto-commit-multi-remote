@@ -5828,6 +5828,13 @@ auto_bump_versions = false
             ])
             .status()
             .unwrap();
+        // CHANGED 2026-07-27 (v0.113.5, audit M3): bootstrap-push
+        // scenario needs the upstream tracking ref configured
+        // (the pre-fix `!branch_has_upstream` clause handled
+        // this implicitly; v0.113.5 requires the explicit
+        // upstream config so `upstream_ref_missing` triggers a
+        // push attempt).
+        configure_branch_upstream(&repo, "master", "origin");
 
         let toml_str = r#"
 auto_github_private = false
