@@ -2811,6 +2811,57 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct RepoActivity {
+    fingerprint: String,
+    changed_at: Instant,
+    /// When the repo first became dirty in this cycle.
+    /// Unlike changed_at, this doesn't reset on fingerprint changes.
+    dirty_since: Option<Instant>,
+    /// When the repo first became ahead of origin (unpushed commits).
+    ahead_since: Option<Instant>,
+    /// When the repo first became behind origin (unpulled commits).
+    behind_since: Option<Instant>,
+    /// Which mirrors have failed consecutively (name → consecutive fail count).
+    mirror_consecutive_fails: HashMap<String, usize>,
+    failure_count: usize,
+    remote_failures: HashMap<String, usize>,
+    /// Cached ownership report for this repo. Re-computed
+    /// once per cycle when missing; never re-computed during
+    /// the same cycle. The daemon uses this to skip
+    /// auto-commit / auto-push for repos classified as
+    /// `Unowned` or `Unknown` (when `auto_skip_unowned = true`).
+    /// `None` means not yet classified this cycle.
+    ownership: Option<crate::ownership::OwnershipReport>,
+    /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): when the
+    /// cached verdict was computed. While the verdict is
+    /// `Unowned`/`Unknown`, the daemon re-detects after
+    /// `OWNERSHIP_REDETECT_TTL` so operator remediation (fixed
+    /// user.email, corrected origin) is picked up WITHOUT a
+    /// daemon restart — previously the verdict was cached
+    /// forever (verified live 2026-07-21: the daemon skipped
+    /// its own source repo for 25 minutes after the config was
+    /// fixed, until SIGHUP). Owned verdicts stay sticky (a
+    /// transient git error must not flip a good repo into skip
+    /// mode).
+    ownership_at: Option<Instant>,
+    /// ADDED 2026-07-22 (v0.112.37): when the repo first became
+    /// continuously Blocked (merge/rebase in progress, commit-
+    /// time ownership guard, or another needs-human guard).
+    /// Cleared on any non-Blocked outcome. After
+    /// `BLOCKED_NOTIFY_THRESHOLD` of continuous blocked time the
+    /// daemon fires a desktop notification (throttled).
+    blocked_since: Option<Instant>,
+    /// ADDED 2026-07-22 (v0.112.37): when the repo first became
+    /// continuously Unowned-skipped (ownership guard).
+    /// Cleared when the repo classifies as owned again (or the
+    /// entry is dropped). After `UNOWNED_NOTIFY_THRESHOLD` the
+    /// daemon fires a desktop notification — the F0.2 incident
+    /// (daemon's own repo unowned for 25 minutes) had NO
+    /// operator signal beyond the journal.
+    unowned_since: Option<Instant>,
+}
+
 pub(crate) async fn run_daemon(
     policy_path: PathBuf,
     override_interval_secs: Option<u64>,
@@ -2820,56 +2871,6 @@ pub(crate) async fn run_daemon(
     // to block buffering. We can't use setvbuf on Rust's handles, so instead
     // we flush stderr at strategic points in the daemon loop (see flush calls below).
     eprintln!("🔄 dracon-sync daemon started");
-    #[derive(Debug, Clone)]
-    struct RepoActivity {
-        fingerprint: String,
-        changed_at: Instant,
-        /// When the repo first became dirty in this cycle.
-        /// Unlike changed_at, this doesn't reset on fingerprint changes.
-        dirty_since: Option<Instant>,
-        /// When the repo first became ahead of origin (unpushed commits).
-        ahead_since: Option<Instant>,
-        /// When the repo first became behind origin (unpulled commits).
-        behind_since: Option<Instant>,
-        /// Which mirrors have failed consecutively (name → consecutive fail count).
-        mirror_consecutive_fails: HashMap<String, usize>,
-        failure_count: usize,
-        remote_failures: HashMap<String, usize>,
-        /// Cached ownership report for this repo. Re-computed
-        /// once per cycle when missing; never re-computed during
-        /// the same cycle. The daemon uses this to skip
-        /// auto-commit / auto-push for repos classified as
-        /// `Unowned` or `Unknown` (when `auto_skip_unowned = true`).
-        /// `None` means not yet classified this cycle.
-        ownership: Option<crate::ownership::OwnershipReport>,
-        /// ADDED 2026-07-21 (v0.112.31, audit H1/F0.2): when the
-        /// cached verdict was computed. While the verdict is
-        /// `Unowned`/`Unknown`, the daemon re-detects after
-        /// `OWNERSHIP_REDETECT_TTL` so operator remediation (fixed
-        /// user.email, corrected origin) is picked up WITHOUT a
-        /// daemon restart — previously the verdict was cached
-        /// forever (verified live 2026-07-21: the daemon skipped
-        /// its own source repo for 25 minutes after the config was
-        /// fixed, until SIGHUP). Owned verdicts stay sticky (a
-        /// transient git error must not flip a good repo into skip
-        /// mode).
-        ownership_at: Option<Instant>,
-        /// ADDED 2026-07-22 (v0.112.37): when the repo first became
-        /// continuously Blocked (merge/rebase in progress, commit-
-        /// time ownership guard, or another needs-human guard).
-        /// Cleared on any non-Blocked outcome. After
-        /// `BLOCKED_NOTIFY_THRESHOLD` of continuous blocked time the
-        /// daemon fires a desktop notification (throttled).
-        blocked_since: Option<Instant>,
-        /// ADDED 2026-07-22 (v0.112.37): when the repo first became
-        /// continuously Unowned-skipped (ownership guard).
-        /// Cleared when the repo classifies as owned again (or the
-        /// entry is dropped). After `UNOWNED_NOTIFY_THRESHOLD` the
-        /// daemon fires a desktop notification — the F0.2 incident
-        /// (daemon's own repo unowned for 25 minutes) had NO
-        /// operator signal beyond the journal.
-        unowned_since: Option<Instant>,
-    }
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
     let mut pending_repos: HashMap<PathBuf, Instant> = HashMap::new();
@@ -4108,18 +4109,13 @@ pub(crate) async fn run_daemon(
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
-                entry.remote_failures = remote_failures;
-                // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
-                // populate `mirror_consecutive_fails` from the
-                // per-remote failure counts — the field was
-                // initialized to an empty map at every entry
-                // creation and NEVER written, making the
-                // "Mirror Degraded" sustained-state notification
-                // dead code. `remote_failures` is exactly the
-                // per-mirror consecutive-failure map the check
-                // expects (push_background increments on failure
-                // and removes on success).
-                entry.mirror_consecutive_fails = entry.remote_failures.clone();
+                // CHANGED 2026-07-27 (v0.113.5, audit M4): the
+                // helper now owns the `remote_failures` write (it
+                // sets `entry.remote_failures` and
+                // `entry.mirror_consecutive_fails` together with
+                // a single canonical source). Pre-fix this block
+                // did both assignments manually, with the helper
+                // doing them again — the duplication is removed.
 
                 // CHANGED 2026-07-27 (v0.113.5, audit M4): route
                 // the entire outcome match through the shared
