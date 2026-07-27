@@ -3920,6 +3920,17 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // disturbing any existing entries (which would already represent
     // dirty gitlinks from this commit's perspective).
     let stale_paths = crate::exclude::stale_gitlink_paths(repo);
+    // ADDED 2026-07-27 (v0.113.5, audit M2): track whether the
+    // injection actually appended at least one entry (post-dedup).
+    // The pre-fix `if !stale_paths.is_empty()` guard conflated
+    // discovery with appending: every path that was already
+    // covered by an existing entry was counted, but no entry was
+    // appended, so `stale_gitlink_injected` would be a lie. The
+    // filter_only_cleared branch uses this flag to choose
+    // between returning FilterOnly (early-out) and falling
+    // through to the normal pipeline (let the synthetic gitlink
+    // entries flow through partition/stage/commit). See below.
+    let mut stale_gitlink_injected = false;
     if !stale_paths.is_empty() {
         if debug_enabled() {
             eprintln!(
@@ -3947,6 +3958,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
                 p,
                 dracon_git::types::FileStatus::Modified,
             ));
+            stale_gitlink_injected = true;
         }
     }
 
@@ -3955,7 +3967,25 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // dedicated `FilterOnly` outcome so the daemon's apply phase
     // actually inserts the stage cooldown this comment always
     // promised (`stage_cooldowns` was dead — no insert site existed).
-    if filter_only_cleared {
+    // CHANGED 2026-07-27 (v0.113.5, audit M2): when stale-gitlink
+    // entries were actually injected above, do NOT short-circuit;
+    // fall through to the normal partition/stage/commit pipeline so
+    // the synthetic gitlink entries reach `stage_gitlink_updates`
+    // and the parent's tracked gitlink advances to the shared
+    // gitdir's `main`. Pre-fix, a parent whose only natural dirty
+    // entries were filter noise (the warden-smudge-rewritten noise
+    // pattern) hit the early return every cycle; the FilterOnly 300s
+    // stage cooldown silenced it and `stage_gitlink_updates` never
+    // ran. The parent gitlink drifted from the shared gitdir's
+    // `main` indefinitely, breaking the convergence invariant in
+    // `dracon-utilities/AGENTS.md` (see "Submodule standalone
+    // worktree design"). The gitlink-only commit is legitimate —
+    // it is the only real work for this cycle — so falling through
+    // to `!status.is_clean && policy.auto_commit` is correct.
+    // The downstream `handle_ahead_push` at `sync.rs:4100+` will
+    // push the resulting commit normally. Filter-only content with
+    // NO gitlink injection keeps the original fast-return path.
+    if filter_only_cleared && !stale_gitlink_injected {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -4211,7 +4241,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // ref is missing.
     let upstream_ref_missing =
         branch_has_upstream && super::git::upstream_tracking_ref_missing(ctx.repo);
-    let should_push = current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
+    let should_push = current_status.ahead > 0 || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
