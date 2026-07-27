@@ -2604,6 +2604,170 @@ pub(crate) async fn run_daemon(
     policy_path: PathBuf,
     override_interval_secs: Option<u64>,
 ) -> Result<()> {
+    // ADDED 2026-07-27 (v0.113.5, audit M4): single source of
+    // truth for applying a `sync_repo` result to the activity
+    // entry. Pre-fix, the main apply phase and the trailing-drain
+    // path each had their own `match sync_res { ... }` block —
+    // nearly identical, but with two divergence bugs that the
+    // audit caught:
+    //   - trailing-drain `NothingToDo` did nothing (no
+    //     activity.remove / failure_count reset, so the entry
+    //     leaked across cycles)
+    //   - trailing-drain `Synced` did not call
+    //     `stuck_push_repos.remove + save` (the ledger would
+    //     stay stale until a main-phase success)
+    // The helper below performs every entry-mutation side effect
+    // and returns a small enum that the caller uses for the
+    // cross-cutting bookkeeping that lives outside the per-entry
+    // mutation (activity.remove / failure_count adjustment /
+    // max_fail_cooldowns removal). Both call sites use the same
+    // helper now — divergence is structurally impossible.
+    enum ApplyOutcome {
+        /// The work succeeded in some sense (Synced / NothingToDo
+        /// / FilterOnly). The caller should remove the entry,
+        /// reset failure_count, and clear any stuck-ledger /
+        /// max-fail-cooldown state.
+        Success,
+        /// Needs-human block (merge in progress, ownership guard,
+        /// etc.). Retain the activity entry but DO NOT increment
+        /// failure_count.
+        Blocked,
+        /// Auto-commit backstop skip (operator committing faster
+        /// than the daemon can push). Retain the activity entry
+        /// and DO NOT increment failure_count.
+        BackstopSkipped,
+        /// Push failed or sync returned an error. Retain the
+        /// activity entry and increment failure_count.
+        Failure,
+    }
+
+    let mut apply_outcome =
+        |repo: &Path,
+         sync_res: &Result<SyncOutcome, anyhow::Error>,
+         remote_failures: HashMap<String, usize>,
+         entry: &mut RepoActivity,
+         stage_cooldowns: &mut HashMap<PathBuf, Instant>,
+         remote_notify_cooldowns: &mut HashMap<String, Instant>,
+         stuck_push_repos: &mut HashMap<PathBuf, StuckRepoEntry>,
+         is_late: bool|
+         -> ApplyOutcome {
+            entry.remote_failures = remote_failures;
+            // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
+            // populate `mirror_consecutive_fails` from the
+            // per-remote failure counts (see the main apply phase
+            // for the full rationale).
+            entry.mirror_consecutive_fails = entry.remote_failures.clone();
+            let late_tag = if is_late { " (late)" } else { "" };
+            match sync_res {
+                Ok(SyncOutcome::Synced) => {
+                    eprintln!("🔁 synced{} {}", late_tag, repo.display());
+                    let _ = std::io::stderr().flush();
+                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
+                    // both phases now clear the stuck-ledger on
+                    // success (was trailing-drain-missing pre-fix).
+                    if stuck_push_repos.remove(repo).is_some() {
+                        save_stuck_push_repos(stuck_push_repos);
+                    }
+                    ApplyOutcome::Success
+                }
+                Ok(SyncOutcome::NothingToDo) => {
+                    if debug_enabled() {
+                        eprintln!("🐛 {} nothing to commit{}", repo.display(), late_tag);
+                    }
+                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
+                    // trailing-drain NothingToDo now clears
+                    // stuck-ledger + failure_count + max-fail-
+                    // cooldown, matching the main phase. Pre-fix
+                    // the trailing-drain path silently dropped
+                    // the result, leaking activity entries across
+                    // cycles for repos that briefly appeared
+                    // NothingToDo after a successful cycle.
+                    if stuck_push_repos.remove(repo).is_some() {
+                        save_stuck_push_repos(stuck_push_repos);
+                    }
+                    ApplyOutcome::Success
+                }
+                Ok(SyncOutcome::FilterOnly) => {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} filter-only dirty{}, cooldown 300s",
+                            repo.display(),
+                            late_tag
+                        );
+                    }
+                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
+                    ApplyOutcome::Success
+                }
+                Ok(SyncOutcome::Blocked) => {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} blocked{} (guard or manual intervention)",
+                            repo.display(),
+                            late_tag
+                        );
+                    }
+                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
+                    // ADDED 2026-07-22 (v0.112.37): sustained-block
+                    // tracking — matches both phases now.
+                    entry.blocked_since.get_or_insert(Instant::now());
+                    ApplyOutcome::Blocked
+                }
+                Ok(SyncOutcome::BackstopSkipped) => {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} backstop skip{}, cooldown 60s",
+                            repo.display(),
+                            late_tag
+                        );
+                    }
+                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
+                    ApplyOutcome::BackstopSkipped
+                }
+                Ok(SyncOutcome::PushFailed) => {
+                    eprintln!(
+                        "⚠️ {} committed but push failed{} (will retry)",
+                        repo.display(),
+                        late_tag
+                    );
+                    let notify_key = format!("pushfail-{}", repo.display());
+                    if notify_throttled(
+                        remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
+                        crate::report::send_sync_conflict_notification(
+                            repo,
+                            "Push Failed",
+                            "commit landed locally but the push failed; see daemon log",
+                        );
+                    }
+                    // ADDED 2026-07-22 (v0.112.37): no longer blocked.
+                    entry.blocked_since = None;
+                    ApplyOutcome::Failure
+                }
+                Err(e) => {
+                    eprintln!("⚠️ sync failed{} for {}: {}", late_tag, repo.display(), e);
+                    let err_str = e.to_string();
+                    if err_str.contains("push") || err_str.contains("remote") {
+                        let notify_key = format!("pushfail-{}", repo.display());
+                        if notify_throttled(
+                            remote_notify_cooldowns,
+                            &notify_key,
+                            Duration::from_secs(1800),
+                        ) {
+                            crate::report::send_sync_conflict_notification(
+                                repo,
+                                "Push Failed",
+                                &err_str,
+                            );
+                        }
+                    }
+                    // ADDED 2026-07-22 (v0.112.37): no longer blocked.
+                    entry.blocked_since = None;
+                    ApplyOutcome::Failure
+                }
+            }
+        };
     // Note: Rust's stdio buffers are separate from C's FILE* buffers.
     // When running under systemd (socket-based journal capture), Rust defaults
     // to block buffering. We can't use setvbuf on Rust's handles, so instead
@@ -3933,159 +4097,47 @@ pub(crate) async fn run_daemon(
                 // expects (push_background increments on failure
                 // and removes on success).
                 entry.mirror_consecutive_fails = entry.remote_failures.clone();
-
-                // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
-                // `Blocked` is tracked separately so it does NOT
-                // count toward the MAX_FAILURES budget below.
-                let mut blocked = false;
-                // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): like
-                // `blocked`, excludes the outcome from the
-                // failure_count arm below without touching
-                // blocked_since (backstop skips are not needs-human).
-                let mut backstop_skipped = false;
-                let sync_success = match sync_res {
-                    Ok(SyncOutcome::Synced) => {
-                        eprintln!("🔁 synced {}", repo.display());
-                        let _ = std::io::stderr().flush();
-                        true
-                    }
-                    Ok(SyncOutcome::NothingToDo) => {
-                        if debug_enabled() {
-                            eprintln!("🐛 {} nothing to commit", repo.display());
-                        }
-                        true
-                    }
-                    // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8):
-                    // filter-only dirty — insert the stage cooldown
-                    // this outcome exists to trigger (the map was
-                    // previously dead: no insert site). Counts as
-                    // success (nothing real to commit); the cooldown
-                    // stops the re-dispatch-every-few-seconds churn
-                    // for filter-noisy repos.
-                    Ok(SyncOutcome::FilterOnly) => {
-                        if debug_enabled() {
-                            eprintln!(
-                                "🐛 {} filter-only dirty, cooldown 300s",
-                                repo.display()
-                            );
-                        }
-                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
-                        true
-                    }
-                    Ok(SyncOutcome::Blocked) => {
-                        if debug_enabled() {
-                            eprintln!(
-                                "🐛 {} blocked (guard or manual intervention)",
-                                repo.display()
-                            );
-                        }
-                        // CHANGED 2026-07-21 (v0.112.33, audit
-                        // M4/F1.6): needs-human state — not a
-                        // transient failure; excluded from the
-                        // failure_count increment below.
-                        blocked = true;
-                        // ADDED 2026-07-22 (v0.112.36): cool the repo
-                        // down for 300s — a needs-human block
-                        // (merge/rebase in progress, ownership guard)
-                        // otherwise re-dispatches every debounce
-                        // window (~50s), churning identical
-                        // stage→block cycles and log lines (seen live
-                        // on darklord with the M10 guard).
-                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
-                        // ADDED 2026-07-22 (v0.112.37): track when
-                        // the continuous blocked state began — the
-                        // sustained-state loop fires a desktop
-                        // notification after BLOCKED_NOTIFY_THRESHOLD.
-                        entry.blocked_since.get_or_insert(Instant::now());
-                        false
-                    }
-                    // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2):
-                    // auto-commit backstop skip — the operator is
-                    // committing faster than the daemon can push.
-                    // NOT success: the activity entry (and its
-                    // `ahead_since`) MUST be retained or the
-                    // backstop disarms after one skipped dispatch
-                    // (the pre-v0.113.2 self-defeating bug). NOT a
-                    // failure either (no failure_count, no
-                    // blocked_since notification machinery) — the
-                    // `backstop_skipped` flag below excludes it
-                    // from the `else if !blocked` failure arm.
-                    Ok(SyncOutcome::BackstopSkipped) => {
-                        if debug_enabled() {
-                            eprintln!(
-                                "🐛 {} backstop skip (operator committing), cooldown 60s",
-                                repo.display()
-                            );
-                        }
-                        backstop_skipped = true;
-                        stage_cooldowns
-                            .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
-                        false
-                    }
-                    // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
-                    // commit succeeded but the push failed. Counts as
-                    // failure — NO `🔁 synced` log, `failure_count`
-                    // increments, activity entry retained so the
-                    // backstop/stuck logic keeps working.
-                    Ok(SyncOutcome::PushFailed) => {
-                        eprintln!(
-                            "⚠️ {} committed but push failed (will retry)",
-                            repo.display()
-                        );
-                        let notify_key = format!("pushfail-{}", repo.display());
-                        if notify_throttled(
-                            &mut remote_notify_cooldowns,
-                            &notify_key,
-                            Duration::from_secs(1800),
-                        ) {
-                            crate::report::send_sync_conflict_notification(
-                                &repo,
-                                "Push Failed",
-                                "commit landed locally but the push failed; see daemon log",
-                            );
-                        }
-                        false
-                    }
-                    Err(e) => {
-                        eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
-                        let err_str = e.to_string();
-                        if err_str.contains("push") || err_str.contains("remote") {
-                            let notify_key = format!("pushfail-{}", repo.display());
-                            if notify_throttled(
-                                &mut remote_notify_cooldowns,
-                                &notify_key,
-                                Duration::from_secs(1800),
-                            ) {
-                                crate::report::send_sync_conflict_notification(
-                                    &repo,
-                                    "Push Failed",
-                                    &err_str,
-                                );
-                            }
-                        }
-                        false
-                    }
-                };
+                // CHANGED 2026-07-27 (v0.113.5, audit M4): route
+                // the entire outcome match through the shared
+                // helper so the main apply phase and the
+                // trailing-drain path are structurally identical.
+                // The helper now owns the `remote_failures` write
+                // (it sets `entry.remote_failures` and
+                // `entry.mirror_consecutive_fails` together, with
+                // a single canonical source).
+                let outcome = apply_outcome(
+                let outcome = apply_outcome(
+                    &repo,
+                    &sync_res,
+                    remote_failures,
+                    entry,
+                    &mut stage_cooldowns,
+                    &mut remote_notify_cooldowns,
+                    &mut stuck_push_repos,
+                    false,
+                );
+                let sync_success = matches!(outcome, ApplyOutcome::Success);
 
                 if sync_success {
-                    if stuck_push_repos.remove(&repo).is_some() {
-                        save_stuck_push_repos(&stuck_push_repos);
-                    }
+                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
+                    // stuck_push_repos is now cleared inside the
+                    // helper (it has the right args to call
+                    // save_stuck_push_repos with the right type).
                     entry.failure_count = 0;
                     // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
                     // a success clears the max-failures backoff too.
                     max_fail_cooldowns.remove(&repo);
                     activity.remove(&repo);
                     initial_repos.remove(&repo);
-                } else if !blocked && !backstop_skipped {
-                    // CHANGED 2026-07-21 (v0.112.33, audit M4/F1.6):
-                    // `Blocked` (merge/rebase/cherry-pick in progress
-                    // — needs-human by definition) does NOT count
-                    // toward the MAX_FAILURES budget; the daemon must
-                    // keep watching so it can resume when the
-                    // operator finishes. Transient failures still
-                    // count. `BackstopSkipped` (v0.113.2) is
-                    // likewise excluded.
+                } else if matches!(outcome, ApplyOutcome::Failure) {
+                    // CHANGED 2026-07-27 (v0.113.5, audit M4): the
+                    // helper already encodes which outcomes are
+                    // failures; the previous `!blocked &&
+                    // !backstop_skipped` check is replaced by the
+                    // enum match (Blocked / BackstopSkipped /
+                    // Success / Failure). `Success` already taken
+                    // above; only `Failure` increments
+                    // failure_count here.
                     entry.failure_count += 1;
                     // ADDED 2026-07-22 (v0.112.37): the repo is no
                     // longer blocked (a real failure or a
@@ -4206,92 +4258,46 @@ pub(crate) async fn run_daemon(
                     dispatched_this_cycle.remove(&repo);
                     detached_since.remove(&repo);
                     if let Some(entry) = activity.get_mut(&repo) {
-                        entry.remote_failures = remote_failures;
-                        // CHANGED 2026-07-21 (v0.112.31, audit
-                        // M1/F1.7+F3.9): keep the mirror-degraded
-                        // detector fed in the trailing-drain path too
-                        // (see the main apply phase).
-                        entry.mirror_consecutive_fails = entry.remote_failures.clone();
-                        match sync_res {
-                            Ok(SyncOutcome::Synced) => {
-                                eprintln!("🔁 synced (late) {}", repo.display());
-                                let _ = std::io::stderr().flush();
-                                if stuck_push_repos.remove(&repo).is_some() {
-                                    save_stuck_push_repos(&stuck_push_repos);
-                                }
-                                entry.failure_count = 0;
+                        // CHANGED 2026-07-27 (v0.113.5, audit M4):
+                        // route the trailing-drain match through
+                        // the same helper as the main apply phase.
+                        // Pre-fix this match had two divergence
+                        // bugs the audit caught:
+                        //   - `NothingToDo` did nothing (no
+                        //     activity.remove / failure_count
+                        //     reset, leaking entries across cycles)
+                        //   - `Synced` did not call
+                        //     `stuck_push_repos.remove + save`
+                        //     (ledger would stay stale until a
+                        //     main-phase success).
+                        let outcome = apply_outcome(
+                            &repo,
+                            &sync_res,
+                            remote_failures,
+                            entry,
+                            &mut stage_cooldowns,
+                            &mut remote_notify_cooldowns,
+                            &mut stuck_push_repos,
+                            true,
+                        );
+                        // CHANGED 2026-07-27 (v0.113.5, audit M4):
+                        // trailing-drain path now performs the same
+                        // success / failure bookkeeping as the
+                        // main apply phase, using the helper's
+                        // `ApplyOutcome` enum.
+                        match outcome {
+                            ApplyOutcome::Success => {
+                                max_fail_cooldowns.remove(&repo);
                                 activity.remove(&repo);
                                 initial_repos.remove(&repo);
                             }
-                            Ok(SyncOutcome::NothingToDo) => {
-                                if debug_enabled() {
-                                    eprintln!("🐛 {} nothing to commit (late)", repo.display());
-                                }
+                            ApplyOutcome::Blocked
+                            | ApplyOutcome::BackstopSkipped => {
+                                // Keep the activity entry; no
+                                // failure_count increment (matches
+                                // the pre-helper behavior).
                             }
-                            // ADDED 2026-07-21 (v0.112.33, audit
-                            // M9/F1.8): filter-only dirty — insert
-                            // the stage cooldown (late-drain path).
-                            Ok(SyncOutcome::FilterOnly) => {
-                                if debug_enabled() {
-                                    eprintln!(
-                                        "🐛 {} filter-only dirty (late), cooldown 300s",
-                                        repo.display()
-                                    );
-                                }
-                                stage_cooldowns
-                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
-                            }
-                            Ok(SyncOutcome::Blocked) => {
-                                if debug_enabled() {
-                                    eprintln!(
-                                        "🐛 {} blocked (late, guard or manual intervention)",
-                                        repo.display()
-                                    );
-                                }
-                                // CHANGED 2026-07-21 (v0.112.33,
-                                // audit M4/F1.6): needs-human state —
-                                // no failure_count increment (matches
-                                // the main apply phase).
-                                // ADDED 2026-07-22 (v0.112.36): 300s
-                                // cooldown (matches the main apply
-                                // phase).
-                                stage_cooldowns
-                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
-                                // ADDED 2026-07-22 (v0.112.37):
-                                // sustained-block tracking (matches
-                                // the main apply phase).
-                                entry.blocked_since.get_or_insert(Instant::now());
-                            }
-                            // ADDED 2026-07-26 (v0.113.2, audit
-                            // SYNC-H2): backstop skip (late-drain
-                            // path) — retain the activity entry, no
-                            // failure count, short cooldown (matches
-                            // the main apply phase).
-                            Ok(SyncOutcome::BackstopSkipped) => {
-                                if debug_enabled() {
-                                    eprintln!(
-                                        "🐛 {} backstop skip (late), cooldown 60s",
-                                        repo.display()
-                                    );
-                                }
-                                stage_cooldowns
-                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
-                            }
-                            // ADDED 2026-07-21 (v0.112.31, audit
-                            // H3/F1.3): commit succeeded but the push
-                            // failed — count as failure, no synced log.
-                            Ok(SyncOutcome::PushFailed) => {
-                                eprintln!(
-                                    "⚠️ {} committed but push failed (late, will retry)",
-                                    repo.display()
-                                );
-                                entry.failure_count += 1;
-                                // ADDED 2026-07-22 (v0.112.37):
-                                // no longer blocked.
-                                entry.blocked_since = None;
-                            }
-                            Err(e) => {
-                                eprintln!("⚠️ sync failed (late) for {}: {}", repo.display(), e);
+                            ApplyOutcome::Failure => {
                                 entry.failure_count += 1;
                                 // ADDED 2026-07-22 (v0.112.37):
                                 // no longer blocked.
