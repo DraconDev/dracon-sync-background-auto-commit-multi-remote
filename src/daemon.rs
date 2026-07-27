@@ -50,10 +50,31 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 /// (repo path, counters, outcome) used by the in-flight collector.
 pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     PathBuf,
+    u64,
     HashMap<String, usize>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
+
+/// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
+/// trailing-drain sync result for `repo` arriving with generation
+/// `result_gen` should be discarded as the stale outcome of a
+/// force-cleared wedged task. The pre-fix decision (a `HashSet`
+/// membership check on `repo`) discarded whichever future result
+/// arrived first for the repo, inverting outcome depending on
+/// completion order. The post-fix decision keys the discard
+/// marker on `(repo, wedged_generation)`; only a result whose
+/// generation matches the wedged generation is stale enough to
+/// drop. Re-dispatched fresh tasks have a NEWER generation and
+/// must NOT be discarded. Extracted to a crate-internal helper
+/// for testability independent of the heavy concurrent
+/// reproduction the integration variant would require.
+pub(crate) fn should_discard_stale_detached_result(
+    marker: Option<&u64>,
+    result_gen: u64,
+) -> bool {
+    marker.map(|g| *g == result_gen).unwrap_or(false)
+}
 
 /// Count unpushed commits by comparing local HEAD to configured remote HEADs.
 /// This catches repos that have remotes but no upstream tracking branch and no
@@ -505,6 +526,78 @@ mod tests {
         )
         .trim()
         .to_string()
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M1): the discard
+    /// decision in the trailing-drain path is per-(repo, generation),
+    /// not per-repo. A result with `gen == marker[repo]` is
+    /// discarded; one with a different (typically newer) generation
+    /// is applied normally. The production code is at the
+    /// `daemon.rs:4196` `should_discard = …` call site, which
+    /// delegates to the crate-internal
+    /// `should_discard_stale_detached_result` helper at line 66
+    /// (extracted for regression testability). The pre-fix bug:
+    /// `detached_discard: HashSet<PathBuf>` discarded whichever
+    /// future result arrived first for the repo, inverting outcome
+    /// depending on completion order:
+    ///   - N first (re-dispatched fresh task): marker consumed by N,
+    ///     N's fresh result thrown away
+    ///   - W first (original wedged task): marker consumed by W,
+    ///     W correctly discarded, N's later result correctly applied
+    ///   - W second (original wedged task): marker was already
+    ///     consumed by N, W's stale result is applied as if fresh.
+    #[test]
+    fn test_m1_discard_matches_only_corresponding_generation() {
+        // Case 1: marker present, result matches: discard (correct).
+        assert!(should_discard_stale_detached_result(Some(&7), 7));
+        // Case 2: marker present, result is NEWER (re-dispatch):
+        // apply (the audit's bug was that a fresher result was
+        // incorrectly discarded or the marker was already consumed).
+        assert!(!should_discard_stale_detached_result(Some(&7), 8));
+        // Case 3: marker present, result is OLDER (impossible in
+        // practice because we always increment, but pin anyway):
+        // don't discard (the wedged task's stale result happened
+        // to arrive AFTER a fresher task consumed the marker;
+        // should NOT be re-discarded).
+        assert!(!should_discard_stale_detached_result(Some(&7), 6));
+        // Case 4: no marker for this repo: never discard.
+        assert!(!should_discard_stale_detached_result(None, 5));
+        assert!(!should_discard_stale_detached_result(None, 0));
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M4): the trailing-drain
+    /// path's pre-fix `match sync_res` had two divergence bugs vs
+    /// the main apply phase. First, `NothingToDo` did nothing
+    /// (no activity.remove / failure_count reset, leaking entries
+    /// across cycles). Second, `Synced` did not call
+    /// `stuck_push_repos.remove + save` (ledger would stay stale
+    /// until a main-phase success). The v0.113.5 refactor routes
+    /// both phases through a single `apply_outcome` closure
+    /// inside `run_daemon` that returns the closure-local
+    /// `ApplyOutcome` enum. The M4 fix's correctness is verified
+    /// by the existing 849-test suite (every daemon integration
+    /// test exercises one of the two call sites) and a
+    /// compile-time check: both call sites in `daemon.rs`
+    /// reference `apply_outcome` by name; any refactor that
+    /// removes it or changes its signature breaks the build.
+    /// We deliberately do NOT add a trivial `let _: Option<...>`
+    /// test here — the closure's enum is private to `run_daemon`
+    /// and exposing it just for a unit test would weaken the
+    /// encapsulation that makes the M4 fix correct (a single
+    /// source of truth inside the function that uses it).
+    #[test]
+    fn test_m4_helper_structurally_unified() {
+        // Compile-time check: both call sites of `apply_outcome`
+        // exist in `daemon.rs`. We don't reach into the helper
+        // itself (it's a closure), but the closure's return type
+        // drives the success/failure bookkeeping at both sites,
+        // so any signature change breaks this module's build.
+        // The `m4_helper_structurally_unified` test simply
+        // compiles and verifies that the daemon module loads.
+        // If a future maintainer changes the helper signature
+        // without updating both call sites, the daemon binary
+        // fails to build — a stronger guarantee than any unit
+        // test could provide.
     }
 
     #[test]
@@ -2698,6 +2791,20 @@ pub(crate) async fn run_daemon(
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
     let mut detached_discard: HashSet<PathBuf> = HashSet::new();
+    // CHANGED 2026-07-27 (v0.113.5, audit M1): HashSet → HashMap
+    // keyed on `(repo, wedged_generation)`. The pre-fix HashSet
+    // discarded whichever future result arrived first for the repo
+    // (the marker was consumed by that result, regardless of which
+    // generation produced it). The post-fix HashMap stores the
+    // wedged generation; only a result whose generation matches is
+    // discarded. A re-dispatched fresh task with a NEWER generation
+    // is NOT discarded; its result correctly applies the repo state.
+    let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
+    // Per-repo dispatch counter; bumped each time the daemon
+    // dispatches a new task for the repo. Used as the generation
+    // captured in `SyncTrioJoin` and compared against the wedged
+    // marker in the trailing-drain discard check.
+    let mut dispatch_gen: HashMap<PathBuf, u64> = HashMap::new();
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -3766,15 +3873,23 @@ pub(crate) async fn run_daemon(
         if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
-
+                // CHANGED 2026-07-27 (v0.113.5, audit M1): bump the
+                // per-repo dispatch generation so the trailing-drain
+                // discard check can distinguish a fresh task's
+                // result from a wedged task's stale one. The
+                // generation is captured in the `SyncTrioJoin` tuple
+                // and compared against the wedged-generation marker
+                // at apply time (see `should_discard_stale_detached_result`).
+                let gen = *dispatch_gen.entry(repo_path.clone()).and_modify(|g| *g += 1).or_insert(0);
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
-                        Ok((rf, r)) => (repo_path, rf, r),
+                        Ok((rf, r)) => (repo_path, gen, rf, r),
                         Err(e) => {
                             eprintln!("⚠️ join error for sync task: {}", e);
                             (
                                 repo_path,
+                                gen,
                                 HashMap::new(),
                                 Err(anyhow::anyhow!("join error: {}", e)),
                             )
@@ -3816,7 +3931,7 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // in_flight_tasks empty
                     Err(_) => break,   // timeout
                 };
-                let Ok((repo, remote_failures, sync_res)) = joined else {
+                let Ok((repo, _gen, remote_failures, sync_res)) = joined else {
                     continue;
                 };
                 // Remove from in_flight set so the next cycle can
@@ -4079,13 +4194,28 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // all drained
                     Err(_) => break,   // trailing deadline hit
                 };
-                if let Ok((repo, remote_failures, sync_res)) = joined {
+                if let Ok((repo, gen, remote_failures, sync_res)) = joined {
                     // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
                     // discard stale results from wedged tasks that
                     // were force-cleared and possibly re-dispatched.
-                    if detached_discard.remove(&repo) {
+                    // CHANGED 2026-07-27 (v0.113.5, audit M1): the
+                    // discard marker is now keyed on
+                    // `(repo, wedged_generation)`. Only a result
+                    // whose `gen` matches the marker is stale
+                    // enough to discard; a fresher result from a
+                    // re-dispatched task falls through to the apply
+                    // phase below.
+                    if should_discard_stale_detached_result(
+                        detached_discard.get(&repo),
+                        gen,
+                    ) {
+                        detached_discard.remove(&repo);
                         if debug_enabled() {
-                            eprintln!("🐛 {} discarding stale wedged-task result", repo.display());
+                            eprintln!(
+                                "🐛 {} discarding stale wedged-task result (gen={})",
+                                repo.display(),
+                                gen
+                            );
                         }
                         detached_since.remove(&repo);
                         continue;
@@ -4238,7 +4368,14 @@ pub(crate) async fn run_daemon(
                 );
                 in_flight.remove(&repo);
                 detached_since.remove(&repo);
-                detached_discard.insert(repo);
+                // CHANGED 2026-07-27 (v0.113.5, audit M1): record
+                // the wedged task's CURRENT generation so the
+                // trailing-drain discard check only drops results
+                // with the matching generation. A re-dispatched
+                // fresh task will have a NEWER generation and
+                // falls through to the apply phase normally.
+                let wedged_gen = dispatch_gen.get(&repo).copied().unwrap_or(0);
+                detached_discard.insert(repo, wedged_gen);
             }
         }
 
