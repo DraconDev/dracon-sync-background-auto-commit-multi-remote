@@ -5774,6 +5774,13 @@ auto_bump_versions = false
             ])
             .status()
             .unwrap();
+        // CHANGED 2026-07-27 (v0.113.5, audit M3): bootstrap-push
+        // scenario needs the upstream tracking ref configured
+        // (the pre-fix `!branch_has_upstream` clause handled
+        // this implicitly; v0.113.5 requires the explicit
+        // upstream config so `upstream_ref_missing` triggers a
+        // push attempt).
+        configure_branch_upstream(&repo, "master", "origin");
 
         let toml_str = r#"
 auto_github_private = false
@@ -5877,6 +5884,12 @@ push_url = "git@nonexistent.example.com:repo.git"
             ])
             .status()
             .unwrap();
+        // CHANGED 2026-07-27 (v0.113.5, audit M3): see
+        // `configure_branch_upstream` doc-comment for why the
+        // bootstrap path now needs explicit upstream config
+        // (the `!branch_has_upstream` clause was removed from
+        // `should_push`).
+        configure_branch_upstream(&repo, "master", "origin");
 
         // Point mirror to non-existent path so push fails
         let bad_mirror = tmp.path().join("nonexistent-mirror.git");
@@ -6462,6 +6475,38 @@ push_url = "{}"
             cmd.arg(a);
         }
         cmd.output().unwrap()
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M3): mimic `git push -u origin <branch>`
+    /// by setting the repo-local `branch.<name>.remote` + `branch.<name>.merge`
+    /// config so `handle_ahead_push`'s `should_push = ahead > 0 ||
+    /// upstream_ref_missing` clause treats the just-pushed bootstrap
+    /// scenario as push-needed. Pre-fix, the `|| !branch_has_upstream`
+    /// clause made `should_push=true` for any repo with no upstream
+    /// branch config; v0.113.5 removed that clause and replaced it with
+    /// `|| upstream_ref_missing`, which gates on the tracking ref
+    /// being missing. Several existing tests constructed the
+    /// "freshly bootstrapped with origin added but never pushed" state
+    /// without setting branch.<name>.remote / merge; without the
+    /// helper, those tests would silently regress because the
+    /// bootstrap push never fires. Use this helper wherever a test
+    /// adds `origin` via `git remote add` and expects a push attempt
+    /// under the v0.113.5 `should_push` rule.
+    fn configure_branch_upstream(repo: &Path, branch: &str, remote: &str) {
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "branch.master.remote", remote])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.merge",
+                &format!("refs/heads/{}", branch),
+            ])
+            .status()
+            .unwrap();
     }
 
     #[tokio::test]
