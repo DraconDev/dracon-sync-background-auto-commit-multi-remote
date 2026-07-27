@@ -52,29 +52,38 @@ MEDIUM-finding remediation batch from `AUDIT_FULL_2026-07-26.md`. All
   -u` would leave behind) so the bootstrap-push behavior is
   preserved exactly.
 - **M4 — main apply phase vs trailing-drain symmetry**
-  (`daemon.rs:2641-2799`, helper closure `apply_outcome` inside
-  `run_daemon` returning the closure-local `ApplyOutcome` enum).
-  Pre-fix, the main apply phase and the trailing-drain path each
-  had their own `match sync_res { ... }` block — nearly identical,
-  but with two divergence bugs the audit caught: trailing-drain
+  (`daemon.rs:95` for the `ApplyOutcome` enum, `daemon.rs:124`
+  for the `pub(crate) fn apply_outcome` free function, call sites
+  at `daemon.rs:4261` and `daemon.rs:4424`). Pre-fix, the main
+  apply phase and the trailing-drain path each had their own
+  `match sync_res { ... }` block — nearly identical, but with two
+  divergence bugs the audit caught. First, trailing-drain
   `NothingToDo` did nothing (no activity.remove / failure_count
-  reset, leaking entries across cycles); trailing-drain `Synced` did
-  not call `stuck_push_repos.remove + save` (ledger would stay stale
-  until a main-phase success). Post-fix, both phases route through
-  the single `apply_outcome` closure; divergence is structurally
-  impossible. New regression test
-  `test_m4_helper_structurally_unified` documents the contract; the
-  closure's enum is private to `run_daemon` (exposing it for a unit
-  test would weaken the encapsulation that makes the M4 fix correct
-  — a single source of truth inside the function that uses it).
-  Both call sites reference the closure by name; any signature
-  change breaks the build, which is a stronger guarantee than a unit
-  test would provide.
+  reset, leaking entries across cycles). Second, trailing-drain
+  `Synced` did not call `stuck_push_repos.remove + save` (ledger
+  would stay stale until a main-phase success). Post-fix, both
+  phases route through the single `apply_outcome` function; the
+  `is_late: bool` parameter toggles the log suffix only — outcome
+  classification and side effects are structurally identical.
+  `RepoActivity` was promoted to `pub(crate)` so the helper can
+  take `&mut RepoActivity` (still crate-private, not exposed to
+  downstream crates). New regression test
+  `test_m4_helper_structurally_unified` drives each `SyncOutcome`
+  variant through the helper and pins the
+  `ApplyOutcome::Success / Blocked / BackstopSkipped / Failure`
+  classification matrix plus the side-effect contracts
+  (`blocked_since` set on `Blocked`, cleared on `Failure` or
+  `PushFailed`; `stage_cooldowns` entry inserted on `FilterOnly`,
+  `Blocked`, and `BackstopSkipped`).
 
 ## Test / gate posture
 
-- `cargo test --workspace --locked` — **851 passed**, 3 ignored (was 837
-  before this batch — added 4 new regression tests).
+- `cargo test --workspace --locked` — **852 passed**, 3 ignored (was 837
+  before this batch — added 5 new regression tests: M1
+  discard-matches-only-corresponding-generation, M2 filter-only-
+  bypass-decision, M3 mirror-only-no-unwanted-push, M3 configured-
+  upstream-missing-tracking-ref-still-pushes, M4 helper-structurally-
+  unified).
 - `cargo clippy --workspace --locked --all-targets -- -D warnings` —
   green. The pre-existing baseline clippy debt accumulated across
   the v0.112.20→v0.113.4 line was also closed: 14 unrelated
