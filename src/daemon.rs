@@ -50,6 +50,8 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 /// (repo path, counters, outcome) used by the in-flight collector.
 pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     PathBuf,
+    u64, // dispatch generation — see `detached_discard` for the
+          // audit-M1 reason this exists
     HashMap<String, usize>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
@@ -2697,7 +2699,28 @@ pub(crate) async fn run_daemon(
     // force-cleared and possibly re-dispatched).
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
-    let mut detached_discard: HashSet<PathBuf> = HashSet::new();
+    // CHANGED 2026-07-27 (v0.113.5, audit M1): was `HashSet<PathBuf>`.
+    // The M1 audit identified a per-repo (not per-task-generation) keying
+    // bug: when a wedged task W for repo R is force-cleared and R is
+    // re-dispatched as N, completing in the order N then W causes two
+    // wrong outcomes depending on which completes first:
+    //   - N first: `detached_discard.remove(&R)` consumes the marker and
+    //     drops N's REAL result (debug-printed as `discarding stale
+    //     wedged-task result`); W's stale result later arrives and is
+    //     APPLIED because the marker is gone (failure_count, Synced log,
+    //     activity removal).
+    //   - W first: the marker is consumed and W is correctly discarded;
+    //     N's later result is correctly applied.
+    // The (repo, gen) rekey keeps the marker valid across re-dispatches:
+    // only the generation that was wedged is discarded, not all
+    // generations.
+    let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
+    // Per-repo dispatch generation counter. Incremented at every
+    // dispatch (main apply + trailing-drain handoff + force-clear + any
+    // future re-dispatch). The value is captured into the join result so
+    // apply-phase can check `detached_discard[repo] == result.gen`
+    // atomically.
+    let mut dispatch_gen: HashMap<PathBuf, u64> = HashMap::new();
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
