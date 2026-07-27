@@ -57,6 +57,26 @@ pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
 )>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
+/// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
+/// trailing-drain sync result for `repo` arriving with generation
+/// `result_gen` should be discarded as the stale outcome of a
+/// force-cleared wedged task. The pre-fix decision (a `HashSet`
+/// membership check on `repo`) discarded whichever future result
+/// arrived first for the repo, inverting outcome depending on
+/// completion order. The post-fix decision keys the discard
+/// marker on `(repo, wedged_generation)`; only a result whose
+/// generation matches the wedged generation is stale enough to
+/// drop. Re-dispatched fresh tasks have a NEWER generation and
+/// must NOT be discarded. Extracted to a crate-internal helper
+/// for testability independent of the heavy concurrent
+/// reproduction the integration variant would require.
+pub(crate) fn should_discard_stale_detached_result(
+    marker: Option<&u64>,
+    result_gen: u64,
+) -> bool {
+    marker.map(|g| *g == result_gen).unwrap_or(false)
+}
+
 /// Count unpushed commits by comparing local HEAD to configured remote HEADs.
 /// This catches repos that have remotes but no upstream tracking branch and no
 /// remote-tracking refs yet (e.g. a repo that just received mirror remotes).
@@ -507,6 +527,43 @@ mod tests {
         )
         .trim()
         .to_string()
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M1): the discard
+    /// decision in the trailing-drain path is per-(repo, generation),
+    /// not per-repo. A result with `gen == marker[repo]` is
+    /// discarded; one with a different (typically newer) generation
+    /// is applied normally. The production code is at the
+    /// `daemon.rs:4196` `should_discard = …` call site, which
+    /// delegates to the crate-internal
+    /// `should_discard_stale_detached_result` helper at line 66
+    /// (extracted for regression testability). The pre-fix bug:
+    /// `detached_discard: HashSet<PathBuf>` discarded whichever
+    /// future result arrived first for the repo, inverting outcome
+    /// depending on completion order:
+    ///   - N first (re-dispatched fresh task): marker consumed by N,
+    ///     N's fresh result thrown away
+    ///   - W first (original wedged task): marker consumed by W,
+    ///     W correctly discarded, N's later result correctly applied
+    ///   - W second (original wedged task): marker was already
+    ///     consumed by N, W's stale result is applied as if fresh.
+    #[test]
+    fn test_m1_discard_matches_only_corresponding_generation() {
+        // Case 1: marker present, result matches: discard (correct).
+        assert!(should_discard_stale_detached_result(Some(&7), 7));
+        // Case 2: marker present, result is NEWER (re-dispatch):
+        // apply (the audit's bug was that a fresher result was
+        // incorrectly discarded or the marker was already consumed).
+        assert!(!should_discard_stale_detached_result(Some(&7), 8));
+        // Case 3: marker present, result is OLDER (impossible in
+        // practice because we always increment, but pin anyway):
+        // don't discard (the wedged task's stale result happened
+        // to arrive AFTER a fresher task consumed the marker;
+        // should NOT be re-discarded).
+        assert!(!should_discard_stale_detached_result(Some(&7), 6));
+        // Case 4: no marker for this repo: never discard.
+        assert!(!should_discard_stale_detached_result(None, 5));
+        assert!(!should_discard_stale_detached_result(None, 0));
     }
 
     #[test]
@@ -4129,10 +4186,10 @@ pub(crate) async fn run_daemon(
                     // removed on match; results whose generation does NOT
                     // match the map entry fall through to the normal
                     // apply phase without affecting the marker.
-                    let should_discard = detached_discard
-                        .get(&repo)
-                        .map(|g| *g == gen)
-                        .unwrap_or(false);
+                    let should_discard = should_discard_stale_detached_result(
+                        detached_discard.get(&repo),
+                        gen,
+                    );
                     if should_discard {
                         detached_discard.remove(&repo);
                         if debug_enabled() {
