@@ -4211,7 +4211,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // ref is missing.
     let upstream_ref_missing =
         branch_has_upstream && super::git::upstream_tracking_ref_missing(ctx.repo);
-    let should_push = current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
+    // CHANGED 2026-07-27 (v0.113.5, audit M3): removed the
+    // `|| !branch_has_upstream` clause; the gate is now
+    // `ahead > 0 || upstream_ref_missing`.
+    let should_push = current_status.ahead > 0 || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
@@ -4989,7 +4992,7 @@ trusted_authors = ["test"]
 
         let policy = bootstrap_test_policy("");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(result.unwrap(), true, "bootstrap must commit");
+        assert!(result.unwrap(), "bootstrap must commit");
         assert_eq!(head_commit_count(&repo), 1, "root commit must exist");
         let output = crate::git::git_cmd()
             .args(["ls-files"])
