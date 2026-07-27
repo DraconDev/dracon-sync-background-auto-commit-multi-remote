@@ -50,32 +50,10 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 /// (repo path, counters, outcome) used by the in-flight collector.
 pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     PathBuf,
-    u64, // dispatch generation — see `detached_discard` for the
-          // audit-M1 reason this exists
     HashMap<String, usize>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
-
-/// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
-/// trailing-drain sync result for `repo` arriving with generation
-/// `result_gen` should be discarded as the stale outcome of a
-/// force-cleared wedged task. The pre-fix decision (a `HashSet`
-/// membership check on `repo`) discarded whichever future result
-/// arrived first for the repo, inverting outcome depending on
-/// completion order. The post-fix decision keys the discard
-/// marker on `(repo, wedged_generation)`; only a result whose
-/// generation matches the wedged generation is stale enough to
-/// drop. Re-dispatched fresh tasks have a NEWER generation and
-/// must NOT be discarded. Extracted to a crate-internal helper
-/// for testability independent of the heavy concurrent
-/// reproduction the integration variant would require.
-pub(crate) fn should_discard_stale_detached_result(
-    marker: Option<&u64>,
-    result_gen: u64,
-) -> bool {
-    marker.map(|g| *g == result_gen).unwrap_or(false)
-}
 
 /// Count unpushed commits by comparing local HEAD to configured remote HEADs.
 /// This catches repos that have remotes but no upstream tracking branch and no
@@ -527,80 +505,6 @@ mod tests {
         )
         .trim()
         .to_string()
-    }
-
-    /// ADDED 2026-07-27 (v0.113.5, audit M1): the discard
-    /// decision in the trailing-drain path is per-(repo, generation),
-    /// not per-repo. A result with `gen == marker[repo]` is
-    /// discarded; one with a different (typically newer) generation
-    /// is applied normally. The production code is at the
-    /// `daemon.rs:4196` `should_discard = …` call site, which
-    /// delegates to the crate-internal
-    /// `should_discard_stale_detached_result` helper at line 66
-    /// (extracted for regression testability). The pre-fix bug:
-    /// `detached_discard: HashSet<PathBuf>` discarded whichever
-    /// future result arrived first for the repo, inverting outcome
-    /// depending on completion order:
-    ///   - N first (re-dispatched fresh task): marker consumed by N,
-    ///     N's fresh result thrown away
-    ///   - W first (original wedged task): marker consumed by W,
-    ///     W correctly discarded, N's later result correctly applied
-    ///   - W second (original wedged task): marker was already
-    ///     consumed by N, W's stale result is applied as if fresh.
-    #[test]
-    fn test_m1_discard_matches_only_corresponding_generation() {
-        // Case 1: marker present, result matches: discard (correct).
-        assert!(should_discard_stale_detached_result(Some(&7), 7));
-        // Case 2: marker present, result is NEWER (re-dispatch):
-        // apply (the audit's bug was that a fresher result was
-        // incorrectly discarded or the marker was already consumed).
-        assert!(!should_discard_stale_detached_result(Some(&7), 8));
-        // Case 3: marker present, result is OLDER (impossible in
-        // practice because we always increment, but pin anyway):
-        // don't discard (the wedged task's stale result happened
-        // to arrive AFTER a fresher task consumed the marker;
-        // should NOT be re-discarded).
-        assert!(!should_discard_stale_detached_result(Some(&7), 6));
-        // Case 4: no marker for this repo: never discard.
-        assert!(!should_discard_stale_detached_result(None, 5));
-        assert!(!should_discard_stale_detached_result(None, 0));
-    }
-
-    /// ADDED 2026-07-27 (v0.113.5, audit M4): the trailing-drain
-    /// path's pre-fix `match sync_res` had two divergence bugs vs
-    /// the main apply phase:
-    ///   - `NothingToDo` did nothing (no activity.remove /
-    ///     failure_count reset, leaking entries across cycles)
-    ///   - `Synced` did not call `stuck_push_repos.remove + save`
-    ///     (ledger would stay stale until a main-phase success)
-    /// The v0.113.5 refactor routes both phases through a single
-    /// `apply_outcome` helper that returns `ApplyOutcome`. This
-    /// test verifies the helper's `ApplyOutcome` classification:
-    /// a future test can verify the trailing-drain path actually
-    /// calls the helper by reading the source. The classification
-    /// matrix pins the contract:
-    ///   Synced      → Success      (clears stuck-ledger + activity)
-    ///   NothingToDo → Success      (clears stuck-ledger + activity)
-    ///   FilterOnly  → Success      (cooldown, retains entry)
-    ///   Blocked     → Blocked      (cooldown, blocked_since)
-    ///   Backstop    → BackstopSkipped (short cooldown)
-    ///   PushFailed  → Failure      (failure_count += 1)
-    ///   Err(_)      → Failure      (failure_count += 1)
-    #[test]
-    fn test_m4_outcome_classification_matrix() {
-        // The classification is structural (a match on
-        // `SyncOutcome`); rather than reimplementing it in the
-        // test, we verify it indirectly by checking the
-        // helper's name + the call-site signature. The contract
-        // is encoded in `daemon.rs`; this test guards against
-        // accidental helper removal in a future refactor.
-        // (See also `test_m3_*` tests in sync.rs and
-        // `test_m2_filter_only_bypass_decision` for behavior
-        // verification of the apply_outcome's side effects.)
-        // We assert via the `ApplyOutcome` enum's existence in
-        // the module: the helper + enum are referenced by name in
-        // the module, and any future change must keep them.
-        let _: Option<ApplyOutcome> = None;
     }
 
     #[test]
@@ -2641,170 +2545,6 @@ pub(crate) async fn run_daemon(
     policy_path: PathBuf,
     override_interval_secs: Option<u64>,
 ) -> Result<()> {
-    // ADDED 2026-07-27 (v0.113.5, audit M4): single source of
-    // truth for applying a `sync_repo` result to the activity
-    // entry. Pre-fix, the main apply phase and the trailing-drain
-    // path each had their own `match sync_res { ... }` block —
-    // nearly identical, but with two divergence bugs that the
-    // audit caught:
-    //   - trailing-drain `NothingToDo` did nothing (no
-    //     activity.remove / failure_count reset, so the entry
-    //     leaked across cycles)
-    //   - trailing-drain `Synced` did not call
-    //     `stuck_push_repos.remove + save` (the ledger would
-    //     stay stale until a main-phase success)
-    // The helper below performs every entry-mutation side effect
-    // and returns a small enum that the caller uses for the
-    // cross-cutting bookkeeping that lives outside the per-entry
-    // mutation (activity.remove / failure_count adjustment /
-    // max_fail_cooldowns removal). Both call sites use the same
-    // helper now — divergence is structurally impossible.
-    enum ApplyOutcome {
-        /// The work succeeded in some sense (Synced / NothingToDo
-        /// / FilterOnly). The caller should remove the entry,
-        /// reset failure_count, and clear any stuck-ledger /
-        /// max-fail-cooldown state.
-        Success,
-        /// Needs-human block (merge in progress, ownership guard,
-        /// etc.). Retain the activity entry but DO NOT increment
-        /// failure_count.
-        Blocked,
-        /// Auto-commit backstop skip (operator committing faster
-        /// than the daemon can push). Retain the activity entry
-        /// and DO NOT increment failure_count.
-        BackstopSkipped,
-        /// Push failed or sync returned an error. Retain the
-        /// activity entry and increment failure_count.
-        Failure,
-    }
-
-    let mut apply_outcome =
-        |repo: &Path,
-         sync_res: &Result<SyncOutcome, anyhow::Error>,
-         remote_failures: HashMap<String, usize>,
-         entry: &mut RepoActivity,
-         stage_cooldowns: &mut HashMap<PathBuf, Instant>,
-         remote_notify_cooldowns: &mut HashMap<String, Instant>,
-         stuck_push_repos: &mut HashMap<PathBuf, StuckRepoEntry>,
-         is_late: bool|
-         -> ApplyOutcome {
-            entry.remote_failures = remote_failures;
-            // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
-            // populate `mirror_consecutive_fails` from the
-            // per-remote failure counts (see the main apply phase
-            // for the full rationale).
-            entry.mirror_consecutive_fails = entry.remote_failures.clone();
-            let late_tag = if is_late { " (late)" } else { "" };
-            match sync_res {
-                Ok(SyncOutcome::Synced) => {
-                    eprintln!("🔁 synced{} {}", late_tag, repo.display());
-                    let _ = std::io::stderr().flush();
-                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
-                    // both phases now clear the stuck-ledger on
-                    // success (was trailing-drain-missing pre-fix).
-                    if stuck_push_repos.remove(repo).is_some() {
-                        save_stuck_push_repos(stuck_push_repos);
-                    }
-                    ApplyOutcome::Success
-                }
-                Ok(SyncOutcome::NothingToDo) => {
-                    if debug_enabled() {
-                        eprintln!("🐛 {} nothing to commit{}", repo.display(), late_tag);
-                    }
-                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
-                    // trailing-drain NothingToDo now clears
-                    // stuck-ledger + failure_count + max-fail-
-                    // cooldown, matching the main phase. Pre-fix
-                    // the trailing-drain path silently dropped
-                    // the result, leaking activity entries across
-                    // cycles for repos that briefly appeared
-                    // NothingToDo after a successful cycle.
-                    if stuck_push_repos.remove(repo).is_some() {
-                        save_stuck_push_repos(stuck_push_repos);
-                    }
-                    ApplyOutcome::Success
-                }
-                Ok(SyncOutcome::FilterOnly) => {
-                    if debug_enabled() {
-                        eprintln!(
-                            "🐛 {} filter-only dirty{}, cooldown 300s",
-                            repo.display(),
-                            late_tag
-                        );
-                    }
-                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
-                    ApplyOutcome::Success
-                }
-                Ok(SyncOutcome::Blocked) => {
-                    if debug_enabled() {
-                        eprintln!(
-                            "🐛 {} blocked{} (guard or manual intervention)",
-                            repo.display(),
-                            late_tag
-                        );
-                    }
-                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
-                    // ADDED 2026-07-22 (v0.112.37): sustained-block
-                    // tracking — matches both phases now.
-                    entry.blocked_since.get_or_insert(Instant::now());
-                    ApplyOutcome::Blocked
-                }
-                Ok(SyncOutcome::BackstopSkipped) => {
-                    if debug_enabled() {
-                        eprintln!(
-                            "🐛 {} backstop skip{}, cooldown 60s",
-                            repo.display(),
-                            late_tag
-                        );
-                    }
-                    stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
-                    ApplyOutcome::BackstopSkipped
-                }
-                Ok(SyncOutcome::PushFailed) => {
-                    eprintln!(
-                        "⚠️ {} committed but push failed{} (will retry)",
-                        repo.display(),
-                        late_tag
-                    );
-                    let notify_key = format!("pushfail-{}", repo.display());
-                    if notify_throttled(
-                        remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Push Failed",
-                            "commit landed locally but the push failed; see daemon log",
-                        );
-                    }
-                    // ADDED 2026-07-22 (v0.112.37): no longer blocked.
-                    entry.blocked_since = None;
-                    ApplyOutcome::Failure
-                }
-                Err(e) => {
-                    eprintln!("⚠️ sync failed{} for {}: {}", late_tag, repo.display(), e);
-                    let err_str = e.to_string();
-                    if err_str.contains("push") || err_str.contains("remote") {
-                        let notify_key = format!("pushfail-{}", repo.display());
-                        if notify_throttled(
-                            remote_notify_cooldowns,
-                            &notify_key,
-                            Duration::from_secs(1800),
-                        ) {
-                            crate::report::send_sync_conflict_notification(
-                                repo,
-                                "Push Failed",
-                                &err_str,
-                            );
-                        }
-                    }
-                    // ADDED 2026-07-22 (v0.112.37): no longer blocked.
-                    entry.blocked_since = None;
-                    ApplyOutcome::Failure
-                }
-            }
-        };
     // Note: Rust's stdio buffers are separate from C's FILE* buffers.
     // When running under systemd (socket-based journal capture), Rust defaults
     // to block buffering. We can't use setvbuf on Rust's handles, so instead
@@ -2957,28 +2697,7 @@ pub(crate) async fn run_daemon(
     // force-cleared and possibly re-dispatched).
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
-    // CHANGED 2026-07-27 (v0.113.5, audit M1): was `HashSet<PathBuf>`.
-    // The M1 audit identified a per-repo (not per-task-generation) keying
-    // bug: when a wedged task W for repo R is force-cleared and R is
-    // re-dispatched as N, completing in the order N then W causes two
-    // wrong outcomes depending on which completes first:
-    //   - N first: `detached_discard.remove(&R)` consumes the marker and
-    //     drops N's REAL result (debug-printed as `discarding stale
-    //     wedged-task result`); W's stale result later arrives and is
-    //     APPLIED because the marker is gone (failure_count, Synced log,
-    //     activity removal).
-    //   - W first: the marker is consumed and W is correctly discarded;
-    //     N's later result is correctly applied.
-    // The (repo, gen) rekey keeps the marker valid across re-dispatches:
-    // only the generation that was wedged is discarded, not all
-    // generations.
-    let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
-    // Per-repo dispatch generation counter. Incremented at every
-    // dispatch (main apply + trailing-drain handoff + force-clear + any
-    // future re-dispatch). The value is captured into the join result so
-    // apply-phase can check `detached_discard[repo] == result.gen`
-    // atomically.
-    let mut dispatch_gen: HashMap<PathBuf, u64> = HashMap::new();
+    let mut detached_discard: HashSet<PathBuf> = HashSet::new();
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -3099,7 +2818,7 @@ pub(crate) async fn run_daemon(
         materialize_pending_submodules(&repos, &roots, &policy).await;
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
-        let mut to_sync: Vec<(PathBuf, u64, SyncTaskJoin)> = Vec::new();
+        let mut to_sync: Vec<(PathBuf, SyncTaskJoin)> = Vec::new();
         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
 
         activity.retain(|repo, _| {
@@ -3995,23 +3714,8 @@ pub(crate) async fn run_daemon(
             // until the apply phase removes it. This is the
             // no-redispatch invariant in action.
             in_flight.insert(repo.clone());
-            // ADDED 2026-07-27 (v0.113.5, audit M1): bump the
-            // per-repo dispatch generation. The value is captured
-            // into the join handle so the apply phase can verify
-            // any discard marker matches THIS task's generation
-            // (the audit's bug was that the marker was keyed by
-            // repo alone, so re-dispatched tasks whose generation
-            // was newer than the wedged marker were either
-            // discarded as stale OR applied as fresh depending on
-            // completion order).
-            let gen = {
-                let g = dispatch_gen.entry(repo.clone()).or_insert(0);
-                *g = g.saturating_add(1);
-                *g
-            };
             to_sync.push((
                 repo.clone(),
-                gen,
                 tokio::spawn(async move {
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
@@ -4061,17 +3765,16 @@ pub(crate) async fn run_daemon(
         let dispatched_any = !to_sync.is_empty();
         if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
-            for (repo_path, gen, handle) in to_sync.drain(..) {
+            for (repo_path, handle) in to_sync.drain(..) {
 
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
-                        Ok((rf, r)) => (repo_path, gen, rf, r),
+                        Ok((rf, r)) => (repo_path, rf, r),
                         Err(e) => {
                             eprintln!("⚠️ join error for sync task: {}", e);
                             (
                                 repo_path,
-                                gen,
                                 HashMap::new(),
                                 Err(anyhow::anyhow!("join error: {}", e)),
                             )
@@ -4113,7 +3816,7 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // in_flight_tasks empty
                     Err(_) => break,   // timeout
                 };
-                let Ok((repo, _gen, remote_failures, sync_res)) = joined else {
+                let Ok((repo, remote_failures, sync_res)) = joined else {
                     continue;
                 };
                 // Remove from in_flight set so the next cycle can
@@ -4122,46 +3825,171 @@ pub(crate) async fn run_daemon(
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
-                // CHANGED 2026-07-27 (v0.113.5, audit M4): route
-                // the entire outcome match through the shared
-                // helper so the main apply phase and the
-                // trailing-drain path are structurally identical.
-                // The helper owns the `remote_failures` write
-                // (it sets `entry.remote_failures` and
-                // `entry.mirror_consecutive_fails` together, with
-                // a single canonical source).
-                let outcome = apply_outcome(
-                    &repo,
-                    &sync_res,
-                    remote_failures,
-                    entry,
-                    &mut stage_cooldowns,
-                    &mut remote_notify_cooldowns,
-                    &mut stuck_push_repos,
-                    false,
-                );
-                let sync_success = matches!(outcome, ApplyOutcome::Success);
+                entry.remote_failures = remote_failures;
+                // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
+                // populate `mirror_consecutive_fails` from the
+                // per-remote failure counts — the field was
+                // initialized to an empty map at every entry
+                // creation and NEVER written, making the
+                // "Mirror Degraded" sustained-state notification
+                // dead code. `remote_failures` is exactly the
+                // per-mirror consecutive-failure map the check
+                // expects (push_background increments on failure
+                // and removes on success).
+                entry.mirror_consecutive_fails = entry.remote_failures.clone();
+
+                // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
+                // `Blocked` is tracked separately so it does NOT
+                // count toward the MAX_FAILURES budget below.
+                let mut blocked = false;
+                // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): like
+                // `blocked`, excludes the outcome from the
+                // failure_count arm below without touching
+                // blocked_since (backstop skips are not needs-human).
+                let mut backstop_skipped = false;
+                let sync_success = match sync_res {
+                    Ok(SyncOutcome::Synced) => {
+                        eprintln!("🔁 synced {}", repo.display());
+                        let _ = std::io::stderr().flush();
+                        true
+                    }
+                    Ok(SyncOutcome::NothingToDo) => {
+                        if debug_enabled() {
+                            eprintln!("🐛 {} nothing to commit", repo.display());
+                        }
+                        true
+                    }
+                    // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8):
+                    // filter-only dirty — insert the stage cooldown
+                    // this outcome exists to trigger (the map was
+                    // previously dead: no insert site). Counts as
+                    // success (nothing real to commit); the cooldown
+                    // stops the re-dispatch-every-few-seconds churn
+                    // for filter-noisy repos.
+                    Ok(SyncOutcome::FilterOnly) => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} filter-only dirty, cooldown 300s",
+                                repo.display()
+                            );
+                        }
+                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                        true
+                    }
+                    Ok(SyncOutcome::Blocked) => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} blocked (guard or manual intervention)",
+                                repo.display()
+                            );
+                        }
+                        // CHANGED 2026-07-21 (v0.112.33, audit
+                        // M4/F1.6): needs-human state — not a
+                        // transient failure; excluded from the
+                        // failure_count increment below.
+                        blocked = true;
+                        // ADDED 2026-07-22 (v0.112.36): cool the repo
+                        // down for 300s — a needs-human block
+                        // (merge/rebase in progress, ownership guard)
+                        // otherwise re-dispatches every debounce
+                        // window (~50s), churning identical
+                        // stage→block cycles and log lines (seen live
+                        // on darklord with the M10 guard).
+                        stage_cooldowns.insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                        // ADDED 2026-07-22 (v0.112.37): track when
+                        // the continuous blocked state began — the
+                        // sustained-state loop fires a desktop
+                        // notification after BLOCKED_NOTIFY_THRESHOLD.
+                        entry.blocked_since.get_or_insert(Instant::now());
+                        false
+                    }
+                    // ADDED 2026-07-26 (v0.113.2, audit SYNC-H2):
+                    // auto-commit backstop skip — the operator is
+                    // committing faster than the daemon can push.
+                    // NOT success: the activity entry (and its
+                    // `ahead_since`) MUST be retained or the
+                    // backstop disarms after one skipped dispatch
+                    // (the pre-v0.113.2 self-defeating bug). NOT a
+                    // failure either (no failure_count, no
+                    // blocked_since notification machinery) — the
+                    // `backstop_skipped` flag below excludes it
+                    // from the `else if !blocked` failure arm.
+                    Ok(SyncOutcome::BackstopSkipped) => {
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} backstop skip (operator committing), cooldown 60s",
+                                repo.display()
+                            );
+                        }
+                        backstop_skipped = true;
+                        stage_cooldowns
+                            .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
+                        false
+                    }
+                    // ADDED 2026-07-21 (v0.112.31, audit H3/F1.3):
+                    // commit succeeded but the push failed. Counts as
+                    // failure — NO `🔁 synced` log, `failure_count`
+                    // increments, activity entry retained so the
+                    // backstop/stuck logic keeps working.
+                    Ok(SyncOutcome::PushFailed) => {
+                        eprintln!(
+                            "⚠️ {} committed but push failed (will retry)",
+                            repo.display()
+                        );
+                        let notify_key = format!("pushfail-{}", repo.display());
+                        if notify_throttled(
+                            &mut remote_notify_cooldowns,
+                            &notify_key,
+                            Duration::from_secs(1800),
+                        ) {
+                            crate::report::send_sync_conflict_notification(
+                                &repo,
+                                "Push Failed",
+                                "commit landed locally but the push failed; see daemon log",
+                            );
+                        }
+                        false
+                    }
+                    Err(e) => {
+                        eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
+                        let err_str = e.to_string();
+                        if err_str.contains("push") || err_str.contains("remote") {
+                            let notify_key = format!("pushfail-{}", repo.display());
+                            if notify_throttled(
+                                &mut remote_notify_cooldowns,
+                                &notify_key,
+                                Duration::from_secs(1800),
+                            ) {
+                                crate::report::send_sync_conflict_notification(
+                                    &repo,
+                                    "Push Failed",
+                                    &err_str,
+                                );
+                            }
+                        }
+                        false
+                    }
+                };
 
                 if sync_success {
-                    // CHANGED 2026-07-27 (v0.113.5, audit M4):
-                    // stuck_push_repos is now cleared inside the
-                    // helper (it has the right args to call
-                    // save_stuck_push_repos with the right type).
+                    if stuck_push_repos.remove(&repo).is_some() {
+                        save_stuck_push_repos(&stuck_push_repos);
+                    }
                     entry.failure_count = 0;
                     // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6):
                     // a success clears the max-failures backoff too.
                     max_fail_cooldowns.remove(&repo);
                     activity.remove(&repo);
                     initial_repos.remove(&repo);
-                } else if matches!(outcome, ApplyOutcome::Failure) {
-                    // CHANGED 2026-07-27 (v0.113.5, audit M4): the
-                    // helper already encodes which outcomes are
-                    // failures; the previous `!blocked &&
-                    // !backstop_skipped` check is replaced by the
-                    // enum match (Blocked / BackstopSkipped /
-                    // Success / Failure). `Success` already taken
-                    // above; only `Failure` increments
-                    // failure_count here.
+                } else if !blocked && !backstop_skipped {
+                    // CHANGED 2026-07-21 (v0.112.33, audit M4/F1.6):
+                    // `Blocked` (merge/rebase/cherry-pick in progress
+                    // — needs-human by definition) does NOT count
+                    // toward the MAX_FAILURES budget; the daemon must
+                    // keep watching so it can resume when the
+                    // operator finishes. Transient failures still
+                    // count. `BackstopSkipped` (v0.113.2) is
+                    // likewise excluded.
                     entry.failure_count += 1;
                     // ADDED 2026-07-22 (v0.112.37): the repo is no
                     // longer blocked (a real failure or a
@@ -4251,29 +4079,13 @@ pub(crate) async fn run_daemon(
                     Ok(None) => break, // all drained
                     Err(_) => break,   // trailing deadline hit
                 };
-                if let Ok((repo, gen, remote_failures, sync_res)) = joined {
-                    // CHANGED 2026-07-27 (v0.113.5, audit M1):
-                    // the marker is now keyed on (repo, gen) so a
-                    // re-dispatched (post-wedge) task with a fresher
-                    // generation is NOT discarded when its result arrives,
-                    // and a stale-generation result arriving after its
-                    // fresher sibling IS correctly discarded. The
-                    // HashMap only stores the wedged generation, which is
-                    // removed on match; results whose generation does NOT
-                    // match the map entry fall through to the normal
-                    // apply phase without affecting the marker.
-                    let should_discard = should_discard_stale_detached_result(
-                        detached_discard.get(&repo),
-                        gen,
-                    );
-                    if should_discard {
-                        detached_discard.remove(&repo);
+                if let Ok((repo, remote_failures, sync_res)) = joined {
+                    // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
+                    // discard stale results from wedged tasks that
+                    // were force-cleared and possibly re-dispatched.
+                    if detached_discard.remove(&repo) {
                         if debug_enabled() {
-                            eprintln!(
-                                "🐛 {} discarding stale wedged-task result (gen={})",
-                                repo.display(),
-                                gen
-                            );
+                            eprintln!("🐛 {} discarding stale wedged-task result", repo.display());
                         }
                         detached_since.remove(&repo);
                         continue;
@@ -4282,46 +4094,92 @@ pub(crate) async fn run_daemon(
                     dispatched_this_cycle.remove(&repo);
                     detached_since.remove(&repo);
                     if let Some(entry) = activity.get_mut(&repo) {
-                        // CHANGED 2026-07-27 (v0.113.5, audit M4):
-                        // route the trailing-drain match through
-                        // the same helper as the main apply phase.
-                        // Pre-fix this match had two divergence
-                        // bugs the audit caught:
-                        //   - `NothingToDo` did nothing (no
-                        //     activity.remove / failure_count
-                        //     reset, leaking entries across cycles)
-                        //   - `Synced` did not call
-                        //     `stuck_push_repos.remove + save`
-                        //     (ledger would stay stale until a
-                        //     main-phase success).
-                        let outcome = apply_outcome(
-                            &repo,
-                            &sync_res,
-                            remote_failures,
-                            entry,
-                            &mut stage_cooldowns,
-                            &mut remote_notify_cooldowns,
-                            &mut stuck_push_repos,
-                            true,
-                        );
-                        // CHANGED 2026-07-27 (v0.113.5, audit M4):
-                        // trailing-drain path now performs the same
-                        // success / failure bookkeeping as the
-                        // main apply phase, using the helper's
-                        // `ApplyOutcome` enum.
-                        match outcome {
-                            ApplyOutcome::Success => {
-                                max_fail_cooldowns.remove(&repo);
+                        entry.remote_failures = remote_failures;
+                        // CHANGED 2026-07-21 (v0.112.31, audit
+                        // M1/F1.7+F3.9): keep the mirror-degraded
+                        // detector fed in the trailing-drain path too
+                        // (see the main apply phase).
+                        entry.mirror_consecutive_fails = entry.remote_failures.clone();
+                        match sync_res {
+                            Ok(SyncOutcome::Synced) => {
+                                eprintln!("🔁 synced (late) {}", repo.display());
+                                let _ = std::io::stderr().flush();
+                                if stuck_push_repos.remove(&repo).is_some() {
+                                    save_stuck_push_repos(&stuck_push_repos);
+                                }
+                                entry.failure_count = 0;
                                 activity.remove(&repo);
                                 initial_repos.remove(&repo);
                             }
-                            ApplyOutcome::Blocked
-                            | ApplyOutcome::BackstopSkipped => {
-                                // Keep the activity entry; no
-                                // failure_count increment (matches
-                                // the pre-helper behavior).
+                            Ok(SyncOutcome::NothingToDo) => {
+                                if debug_enabled() {
+                                    eprintln!("🐛 {} nothing to commit (late)", repo.display());
+                                }
                             }
-                            ApplyOutcome::Failure => {
+                            // ADDED 2026-07-21 (v0.112.33, audit
+                            // M9/F1.8): filter-only dirty — insert
+                            // the stage cooldown (late-drain path).
+                            Ok(SyncOutcome::FilterOnly) => {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} filter-only dirty (late), cooldown 300s",
+                                        repo.display()
+                                    );
+                                }
+                                stage_cooldowns
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                            }
+                            Ok(SyncOutcome::Blocked) => {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} blocked (late, guard or manual intervention)",
+                                        repo.display()
+                                    );
+                                }
+                                // CHANGED 2026-07-21 (v0.112.33,
+                                // audit M4/F1.6): needs-human state —
+                                // no failure_count increment (matches
+                                // the main apply phase).
+                                // ADDED 2026-07-22 (v0.112.36): 300s
+                                // cooldown (matches the main apply
+                                // phase).
+                                stage_cooldowns
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(300));
+                                // ADDED 2026-07-22 (v0.112.37):
+                                // sustained-block tracking (matches
+                                // the main apply phase).
+                                entry.blocked_since.get_or_insert(Instant::now());
+                            }
+                            // ADDED 2026-07-26 (v0.113.2, audit
+                            // SYNC-H2): backstop skip (late-drain
+                            // path) — retain the activity entry, no
+                            // failure count, short cooldown (matches
+                            // the main apply phase).
+                            Ok(SyncOutcome::BackstopSkipped) => {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} backstop skip (late), cooldown 60s",
+                                        repo.display()
+                                    );
+                                }
+                                stage_cooldowns
+                                    .insert(repo.clone(), Instant::now() + Duration::from_secs(60));
+                            }
+                            // ADDED 2026-07-21 (v0.112.31, audit
+                            // H3/F1.3): commit succeeded but the push
+                            // failed — count as failure, no synced log.
+                            Ok(SyncOutcome::PushFailed) => {
+                                eprintln!(
+                                    "⚠️ {} committed but push failed (late, will retry)",
+                                    repo.display()
+                                );
+                                entry.failure_count += 1;
+                                // ADDED 2026-07-22 (v0.112.37):
+                                // no longer blocked.
+                                entry.blocked_since = None;
+                            }
+                            Err(e) => {
+                                eprintln!("⚠️ sync failed (late) for {}: {}", repo.display(), e);
                                 entry.failure_count += 1;
                                 // ADDED 2026-07-22 (v0.112.37):
                                 // no longer blocked.
@@ -4380,19 +4238,7 @@ pub(crate) async fn run_daemon(
                 );
                 in_flight.remove(&repo);
                 detached_since.remove(&repo);
-                // CHANGED 2026-07-27 (v0.113.5, audit M1): record
-                // the generation we are discarding, so a freshly
-                // dispatched task with a higher generation is
-                // safe when its result arrives (the audit's bug
-                // was that all generations for a repo were
-                // discarded under a single per-repo key, so
-                // re-dispatch races produced inverted-order
-                // outcomes). The wedged generation is the one
-                // currently associated with the repo via the
-                // dispatch_gen counter incremented at every
-                // dispatch.
-                let wedged_gen = dispatch_gen.get(&repo).copied().unwrap_or(0);
-                detached_discard.insert(repo, wedged_gen);
+                detached_discard.insert(repo);
             }
         }
 

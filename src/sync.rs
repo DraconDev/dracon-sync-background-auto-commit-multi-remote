@@ -692,13 +692,12 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
 
     if debug_enabled() {
         eprintln!(
-            "🐛 {} status: clean={} modified={} staged={} entries(libgit2)={} filter_only_cleared={}",
+            "🐛 {} status: clean={} modified={} staged={} entries(libgit2)={}",
             repo.display(),
             status.is_clean,
             status.modified_files,
             status.staged_files,
-            entries.len(),
-            filter_only_cleared
+            entries.len()
         );
     }
     if entries.is_empty() && !filter_only_cleared {
@@ -3921,17 +3920,6 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // disturbing any existing entries (which would already represent
     // dirty gitlinks from this commit's perspective).
     let stale_paths = crate::exclude::stale_gitlink_paths(repo);
-    // ADDED 2026-07-27 (v0.113.5, audit M2): track whether the
-    // injection actually appended at least one entry (post-dedup).
-    // The pre-fix `if !stale_paths.is_empty()` guard conflated
-    // discovery with appending: every path that was already
-    // covered by an existing entry was counted, but no entry was
-    // appended, so `stale_gitlink_injected` would be a lie. The
-    // filter_only_cleared branch uses this flag to choose
-    // between returning FilterOnly (early-out) and falling
-    // through to the normal pipeline (let the synthetic gitlink
-    // entries flow through partition/stage/commit). See below.
-    let mut stale_gitlink_injected = false;
     if !stale_paths.is_empty() {
         if debug_enabled() {
             eprintln!(
@@ -3959,7 +3947,6 @@ pub(crate) async fn sync_repo_with_ahead_since(
                 p,
                 dracon_git::types::FileStatus::Modified,
             ));
-            stale_gitlink_injected = true;
         }
     }
 
@@ -3968,25 +3955,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // dedicated `FilterOnly` outcome so the daemon's apply phase
     // actually inserts the stage cooldown this comment always
     // promised (`stage_cooldowns` was dead — no insert site existed).
-    // CHANGED 2026-07-27 (v0.113.5, audit M2): when stale-gitlink
-    // entries were actually injected above, do NOT short-circuit;
-    // fall through to the normal partition/stage/commit pipeline so
-    // the synthetic gitlink entries reach `stage_gitlink_updates`
-    // and the parent's tracked gitlink advances to the shared
-    // gitdir's `main`. Pre-fix, a parent whose only natural dirty
-    // entries were filter noise (the warden-smudge-rewritten noise
-    // pattern) hit the early return every cycle; the FilterOnly 300s
-    // stage cooldown silenced it and `stage_gitlink_updates` never
-    // ran. The parent gitlink drifted from the shared gitdir's
-    // `main` indefinitely, breaking the convergence invariant in
-    // `dracon-utilities/AGENTS.md` (see "Submodule standalone
-    // worktree design"). The gitlink-only commit is legitimate —
-    // it is the only real work for this cycle — so falling through
-    // to `!status.is_clean && policy.auto_commit` is correct.
-    // The downstream `handle_ahead_push` at `sync.rs:4100+` will
-    // push the resulting commit normally. Filter-only content with
-    // NO gitlink injection keeps the original fast-return path.
-    if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected) {
+    if filter_only_cleared {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -4203,30 +4172,6 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
 
 /// Pushes unpushed commits when needed.
 ///
-/// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
-/// `filter_only_cleared` early-return at `sync.rs:3988` is allowed
-/// to short-circuit the rest of the pipeline. The fast-return is
-/// appropriate when the only "dirty" content is filter noise that
-/// was cleared by the clean/smudge filter — but when synthetic
-/// stale-gitlink entries were injected (audit M2), they are real
-/// parent-repository work that MUST flow through
-/// `stage_gitlink_updates` and the parent commit. Returning `false`
-/// here lets the caller fall through to the natural pipeline.
-///
-/// Extracted to a crate-internal function (rather than a bare
-/// `&&` expression in the call site) so the decision can be unit
-/// tested for regression in isolation of the heavy integration
-/// fixture required to actually fire `filter_only_cleared` in a
-/// hermetic test (a real warden-style smudge filter plus a stale
-/// gitlink plus a working tree with content that survives a
-/// smudge round-trip looking like a real change to libgit2).
-pub(crate) fn should_short_circuit_filter_only(
-    filter_only_cleared: bool,
-    stale_gitlink_injected: bool,
-) -> bool {
-    filter_only_cleared && !stale_gitlink_injected
-}
-
 /// Returns `Ok(true)` when no push was needed or the push succeeded,
 /// `Ok(false)` when a push was attempted and FAILED (already recorded
 /// to the push ledger by this function). CHANGED 2026-07-21
@@ -4266,7 +4211,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // ref is missing.
     let upstream_ref_missing =
         branch_has_upstream && super::git::upstream_tracking_ref_missing(ctx.repo);
-    let should_push = current_status.ahead > 0 || upstream_ref_missing;
+    let should_push = current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
@@ -5828,13 +5773,6 @@ auto_bump_versions = false
             ])
             .status()
             .unwrap();
-        // CHANGED 2026-07-27 (v0.113.5, audit M3): bootstrap-push
-        // scenario needs the upstream tracking ref configured
-        // (the pre-fix `!branch_has_upstream` clause handled
-        // this implicitly; v0.113.5 requires the explicit
-        // upstream config so `upstream_ref_missing` triggers a
-        // push attempt).
-        configure_branch_upstream(&repo, "master", "origin");
 
         let toml_str = r#"
 auto_github_private = false
@@ -5935,39 +5873,6 @@ push_url = "git@nonexistent.example.com:repo.git"
                 "add",
                 "origin",
                 &origin_bare.to_string_lossy(),
-            ])
-            .status()
-            .unwrap();
-        // CHANGED 2026-07-27 (v0.113.5, audit M3): pre-fix, a
-        // missing branch-tracking configuration made
-        // `should_push` permanently true; the audit removed that
-        // clause. To keep this test exercising the
-        // bootstrap-push scenario (mirror-only / new-repo / no
-        // upstream tracking yet), manually configure the
-        // branch-tracking for `master` so the audit-fixed
-        // `should_push` evaluates correctly via
-        // `upstream_ref_missing`. The push-to-origin will
-        // succeed for THIS test setup (origin is a real bare
-        // repo) and create the tracking ref, leaving the mirror
-        // push to fail; v0.113.5 still records `PushFailed` for
-        // the mirror leg.
-        crate::git::git_cmd()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "config",
-                "branch.master.remote",
-                "origin",
-            ])
-            .status()
-            .unwrap();
-        crate::git::git_cmd()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "config",
-                "branch.master.merge",
-                "refs/heads/master",
             ])
             .status()
             .unwrap();
@@ -6514,34 +6419,6 @@ push_url = "{}"
         );
     }
 
-    /// ADDED 2026-07-27 (v0.113.5, audit M2 unit-level): the
-    /// filter_only_cleared early-return is bypassed exactly when
-    /// `stale_gitlink_injected == true`. Pin the decision as a
-    /// small unit test so the boolean logic is locked independent
-    /// of the heavier integration fixture required to fire
-    /// `filter_only_cleared` on a hermetic test fixture
-    /// (a real warden-style smudge filter + stale gitlink +
-    /// content that survives a smudge round-trip looking like a
-    /// real change to libgit2 — out of scope for an in-tree
-    /// smoke test). The audit's exact failure mode is therefore
-    /// regression-tested via this locked decision helper rather
-    /// than end-to-end through `sync_repo`. The crate-internal
-    /// helper `should_short_circuit_filter_only` at `sync.rs:4212`
-    /// is the production path; a regression in its boolean
-    /// would fail this test without launching the daemon.
-    #[test]
-    fn test_m2_filter_only_bypass_decision() {
-        // Pure filter-only, no gitlink work: short-circuit (the
-        // normal fast-return path).
-        assert!(should_short_circuit_filter_only(true, false));
-        // Filter-only AND stale gitlink injected: do NOT short-circuit,
-        // fall through so the gitlink update reaches commit.
-        assert!(!should_short_circuit_filter_only(true, true));
-        // No filter-only: never short-circuit (normal pipeline).
-        assert!(!should_short_circuit_filter_only(false, false));
-        assert!(!should_short_circuit_filter_only(false, true));
-    }
-
     fn init_test_repo(tmp: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
         let repo = tmp.path().join(name);
         crate::git::git_cmd()
@@ -6576,38 +6453,6 @@ push_url = "{}"
             .status()
             .unwrap();
         repo
-    }
-
-    /// ADDED 2026-07-27 (v0.113.5, audit M3): mimic `git push -u origin <branch>`
-    /// by setting the repo-local `branch.<name>.remote` + `branch.<name>.merge`
-    /// config so `handle_ahead_push`'s `should_push = ahead > 0 ||
-    /// upstream_ref_missing` clause treats the just-pushed bootstrap
-    /// scenario as push-needed. Pre-fix, the `|| !branch_has_upstream`
-    /// clause made `should_push=true` for any repo with no upstream
-    /// branch config; v0.113.5 removed that clause and replaced it with
-    /// `|| upstream_ref_missing`, which gates on the tracking ref
-    /// being missing. Several existing tests constructed the
-    /// "freshly bootstrapped with origin added but never pushed" state
-    /// without setting branch.<name>.remote / merge; without the
-    /// helper, those tests would silently regress because the
-    /// bootstrap push never fires. Use this helper wherever a test
-    /// adds `origin` via `git remote add` and expects a push attempt
-    /// under the v0.113.5 `should_push` rule.
-    fn configure_branch_upstream(repo: &Path, branch: &str, remote: &str) {
-        crate::git::git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "config", "branch.master.remote", remote])
-            .status()
-            .unwrap();
-        crate::git::git_cmd()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "config",
-                "branch.master.merge",
-                &format!("refs/heads/{}", branch),
-            ])
-            .status()
-            .unwrap();
     }
 
     fn git_cmd(repo: &Path, args: &[&str]) -> std::process::Output {
