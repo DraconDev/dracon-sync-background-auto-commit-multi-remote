@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.4] - 2026-07-26
+
 ### v0.113.4 — 2026-07-26 — full-audit remediation batch 4 (visibility + standard_files)
 
 - **SYNC-H4 — visibility cache-poison on transient gh failure**:
@@ -40,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   allowed) enforced BOTH by `validate_config` AND at the point of
   use in `ensure_standard_files` (skip + warn). Regression tests
   added.
+
+## [0.113.3] - 2026-07-26
 
 ### v0.113.3 — 2026-07-26 — full-audit remediation batch 3 (auto-repair path)
 
@@ -83,6 +87,8 @@ unacceptable. Fixes:
   left the repo in MERGING state on conflict. Now pulls the explicit
   `refs/heads/<branch>`, passes `--no-edit`, and runs
   `git merge --abort` on failure.
+
+## [0.113.2] - 2026-07-26
 
 ### v0.113.2 — 2026-07-26 — full-audit remediation batch 1 (4 HIGH fixes)
 
@@ -147,6 +153,8 @@ empirically reproduced). Fixes:
   now fed from a temp FILE (std-only, Drop-guard cleanup) — no pipe, no
   deadlock. (Initial patch contributed by an audit subagent; repaired
   here to drop the dev-only `tempfile` dependency and a borrow error.)
+
+## [0.113.1] - 2026-07-26
 
 ### v0.113.1 — 2026-07-26 — FilterOnly push starvation fix + stale upstream refresh
 
