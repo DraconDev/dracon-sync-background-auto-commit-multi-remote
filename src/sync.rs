@@ -692,12 +692,13 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
 
     if debug_enabled() {
         eprintln!(
-            "🐛 {} status: clean={} modified={} staged={} entries(libgit2)={}",
+            "🐛 {} status: clean={} modified={} staged={} entries(libgit2)={} filter_only_cleared={}",
             repo.display(),
             status.is_clean,
             status.modified_files,
             status.staged_files,
-            entries.len()
+            entries.len(),
+            filter_only_cleared
         );
     }
     if entries.is_empty() && !filter_only_cleared {
@@ -3985,7 +3986,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // The downstream `handle_ahead_push` at `sync.rs:4100+` will
     // push the resulting commit normally. Filter-only content with
     // NO gitlink injection keeps the original fast-return path.
-    if filter_only_cleared {
+    if should_short_circuit_filter_only(filter_only_cleared, stale_gitlink_injected) {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -4202,6 +4203,30 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
 
 /// Pushes unpushed commits when needed.
 ///
+/// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
+/// `filter_only_cleared` early-return at `sync.rs:3988` is allowed
+/// to short-circuit the rest of the pipeline. The fast-return is
+/// appropriate when the only "dirty" content is filter noise that
+/// was cleared by the clean/smudge filter — but when synthetic
+/// stale-gitlink entries were injected (audit M2), they are real
+/// parent-repository work that MUST flow through
+/// `stage_gitlink_updates` and the parent commit. Returning `false`
+/// here lets the caller fall through to the natural pipeline.
+///
+/// Extracted to a crate-internal function (rather than a bare
+/// `&&` expression in the call site) so the decision can be unit
+/// tested for regression in isolation of the heavy integration
+/// fixture required to actually fire `filter_only_cleared` in a
+/// hermetic test (a real warden-style smudge filter plus a stale
+/// gitlink plus a working tree with content that survives a
+/// smudge round-trip looking like a real change to libgit2).
+pub(crate) fn should_short_circuit_filter_only(
+    filter_only_cleared: bool,
+    stale_gitlink_injected: bool,
+) -> bool {
+    filter_only_cleared && !stale_gitlink_injected
+}
+
 /// Returns `Ok(true)` when no push was needed or the push succeeded,
 /// `Ok(false)` when a push was attempted and FAILED (already recorded
 /// to the push ledger by this function). CHANGED 2026-07-21
@@ -6640,6 +6665,15 @@ push_url = "{}"
         "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
+        eprintln!("\n🐛 TEST DEBUG: about to call sync_repo, parent={:?}", parent.to_string_lossy());
+        eprintln!("🐛 TEST DEBUG: noise.txt exists: {}, content (first 40 bytes): {:?}",
+            parent.join("noise.txt").exists(),
+            std::fs::read(parent.join("noise.txt")).map(|v| v.iter().take(40).copied().collect::<Vec<u8>>()).unwrap_or_default(),
+        );
+        eprintln!("🐛 TEST DEBUG: git diff HEAD before sync_repo:");
+        let _ = git_stdout(&parent, &["diff", "HEAD", "--name-only"]).await;
+        eprintln!("🐛 TEST DEBUG: git status before sync_repo:");
+        let _ = git_stdout(&parent, &["status", "--porcelain"]).await;
         let result = sync_repo(&parent, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(
             result.is_ok(),
