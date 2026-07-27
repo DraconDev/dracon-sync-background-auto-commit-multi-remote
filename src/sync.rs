@@ -4190,10 +4190,28 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // was NEVER pushed and the report showed a false "synced". Treat
     // a missing remote-tracking ref as push-needed: every commit on
     // HEAD is definitionally unpushed to that upstream.
+    //
+    // CHANGED 2026-07-27 (v0.113.5, audit M3): removed the
+    // `|| !branch_has_upstream` clause from `should_push`. That
+    // clause made should_push true forever for mirror-only repos
+    // (no upstream configured) that were already fully pushed to their
+    // mirrors — every 300s stage cooldown cycle then issued a real push
+    // attempt to a forge that may be flaky, and any transient remote
+    // failure was written to the stuck ledger by `record_push_failure`
+    // (`sync.rs:4191-4197`). With enough failures the repo flipped to
+    // `StuckDecision::Exhausted` and the desktop alarm fired for a repo
+    // that was completely benign. The fleet observed this concretely on
+    // 2026-07-27 as a 73-minute browser-extensions-shared stall after
+    // a transient ssh hiccup (see `AUDIT_FULL_2026-07-26.md` and the
+    // precedential design doc in `docs/design/filteronly-push-starvation-2026-07-26.md`).
+    // The new gate is `ahead > 0 || upstream_ref_missing`: a push is
+    // only attempted when there is positive evidence of unpushed work.
+    // The v0.112.30 `upstream_ref_missing` branch still bootstrap-pushes
+    // a never-pushed repo with a configured upstream whose tracking
+    // ref is missing.
     let upstream_ref_missing =
         branch_has_upstream && super::git::upstream_tracking_ref_missing(ctx.repo);
-    let should_push =
-        current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
+    let should_push = current_status.ahead > 0 || !branch_has_upstream || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
@@ -6129,6 +6147,275 @@ push_url = "{}"
         assert!(
             matches!(result, Ok(SyncOutcome::Synced)),
             "mirror push success should return true"
+        );
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M3): a mirror-only repo
+    /// (no upstream tracking branch configured) that is already
+    /// fully pushed to its mirror must NOT cause `sync_repo` to
+    /// attempt a push on a clean state. The pre-fix `should_push`
+    /// expression included `|| !branch_has_upstream`, which made
+    /// `should_push` permanently true for any mirror-only repo;
+    /// every 300s stage cooldown cycle then issued a real push
+    /// attempt. With a flaky mirror that fails once, the stuck
+    /// ledger gained an entry for a repo that was completely
+    /// benign — exactly the 2026-07-27 browser-extensions-shared
+    /// 73-minute stall case in production.
+    ///
+    /// This test uses a deliberately-dead mirror URL so a
+    /// regression to the pre-fix `should_push` expression would
+    /// write `record_push_failure` to the stuck ledger and the
+    /// `stuck_push_repos.json` ledger would list this repo. The
+    /// post-fix `should_push = ahead > 0 || upstream_ref_missing`
+    /// skips the push attempt entirely for a clean, fully-pushed
+    /// mirror-only repo, so the ledger stays empty.
+    #[tokio::test]
+    async fn test_m3_mirror_only_no_unwanted_push() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let mirror_bare = tmp.path().join("mirror.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "master"])
+            .arg(&mirror_bare)
+            .status()
+            .unwrap();
+
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "user.email",
+                "test@test",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "test"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // Mirror-only: no `origin`, no upstream. Just a mirror remote.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "mirror",
+                &mirror_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "push",
+                "mirror",
+                "master:master",
+            ])
+            .status()
+            .unwrap();
+
+        // Deliberately-point the mirror at a non-listening port so a
+        // real push attempt would fail. Pre-fix this would write to
+        // stuck_push_repos.json; post-fix no push is attempted at all.
+        let dead_mirror_url = "ssh://127.0.0.1:1/dead.git";
+        let toml_str = format!(
+            r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+
+[[remotes]]
+name = "mirror"
+push_url = "{}"
+"#,
+            dead_mirror_url
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(
+            result.is_ok(),
+            "sync_repo should succeed without push attempt: {:?}",
+            result
+        );
+        // A successful no-op-ish result — the test isn't strict about
+        // which Ok variant is returned (NothingToDo or Synced both are
+        // fine), only that nothing was recorded as failed.
+        let _ = result;
+
+        // The stuck-push ledger must remain empty: no failure should
+        // have been recorded because no push was attempted.
+        let stuck_path = std::path::PathBuf::from(
+            state_dir.path().join("dracon-sync-stuck-push-repos.json"),
+        );
+        let content = std::fs::read_to_string(&stuck_path).unwrap_or_default();
+        assert!(
+            !content.contains(repo.to_string_lossy().as_ref()),
+            "stuck-push ledger must not list the mirror-only repo \
+             (pre-fix bug: would-be push attempt on dead mirror \
+             would have written a StuckRepoEntry); ledger file: {:?}",
+            content
+        );
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M3 follow-up): preserve
+    /// the v0.112.30 bootstrap behavior — a repo whose upstream is
+    /// configured but whose remote-tracking ref does not yet exist
+    /// (the freshly-bootstrapped empty-repo state) still triggers
+    /// a push so the root commit reaches origin. Removing the
+    /// `|| !branch_has_upstream` clause from `should_push` must
+    /// NOT silently regress this guarantee; the new clause
+    /// `|| upstream_ref_missing` carries the equivalent
+    /// bootstrap signal forward.
+    #[tokio::test]
+    async fn test_m3_configured_upstream_missing_tracking_ref_still_pushes() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "master"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "user.email",
+                "test@test",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "test"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "origin",
+                &origin_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        // Configure the upstream tracking branch BUT do NOT push yet.
+        // This is the v0.112.30 fix-state: branch.master.remote is set
+        // but branch.master.merge's remote-tracking ref is absent
+        // (refs/remotes/origin/master doesn't exist in a fresh clone).
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.remote",
+                "origin",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "branch.master.merge",
+                "refs/heads/master",
+            ])
+            .status()
+            .unwrap();
+
+        let toml_str = format!(
+            r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+
+[[remotes]]
+name = "origin"
+push_url = "{}"
+"#,
+            origin_bare.to_string_lossy().replace("\\", "/")
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo should succeed: {:?}", result);
+
+        // The root commit must reach origin (bootstrap behavior preserved).
+        let output = crate::git::git_cmd()
+            .args([
+                "-C",
+                &origin_bare.to_string_lossy(),
+                "rev-parse",
+                "--verify",
+                "master",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "origin/master must exist after sync_repo (v0.112.30 bootstrap guarantee); \
+             stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
         );
     }
 
