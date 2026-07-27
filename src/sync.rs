@@ -5012,7 +5012,7 @@ trusted_authors = ["test"]
 
         let policy = bootstrap_test_policy("");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(result.unwrap(), true);
+        assert!(result.unwrap());
         let output = crate::git::git_cmd()
             .args(["ls-files"])
             .current_dir(&repo)
@@ -5038,7 +5038,7 @@ trusted_authors = ["test"]
 
         let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(result.unwrap(), true);
+        assert!(result.unwrap());
         let output = crate::git::git_cmd()
             .args(["ls-files"])
             .current_dir(&repo)
@@ -5061,9 +5061,8 @@ trusted_authors = ["test"]
 
         let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(
-            result.unwrap(),
-            false,
+        assert!(
+            !result.unwrap(),
             "nothing policy-compliant to stage → no commit"
         );
         assert_eq!(head_commit_count(&repo), 0);
@@ -5090,7 +5089,7 @@ trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
         assert_eq!(head_commit_count(&repo), 0);
     }
 
@@ -5111,9 +5110,8 @@ trusted_authors = ["test"]
 
         let policy = bootstrap_test_policy("");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(
-            result.unwrap(),
-            false,
+        assert!(
+            !result.unwrap(),
             "unowned repo (untrusted user.email) must be skipped"
         );
         assert_eq!(head_commit_count(&repo), 0);
@@ -5128,7 +5126,7 @@ trusted_authors = ["test"]
         // commit"; the bootstrap must report Ok(false) instead.
         let policy = bootstrap_test_policy("");
         let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
         assert_eq!(head_commit_count(&repo), 0);
     }
 
@@ -6274,9 +6272,7 @@ push_url = "{}"
 
         // The stuck-push ledger must remain empty: no failure should
         // have been recorded because no push was attempted.
-        let stuck_path = std::path::PathBuf::from(
-            state_dir.path().join("dracon-sync-stuck-push-repos.json"),
-        );
+        let stuck_path = state_dir.path().join("dracon-sync-stuck-push-repos.json");
         let content = std::fs::read_to_string(&stuck_path).unwrap_or_default();
         assert!(
             !content.contains(repo.to_string_lossy().as_ref()),

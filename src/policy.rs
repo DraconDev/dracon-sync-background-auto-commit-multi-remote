@@ -1963,7 +1963,7 @@ mod tests {
         // `~x` (no slash) — not a real tilde form we support, but it
         // must NOT resolve to a filesystem-root-relative path.
         let tx = expand_tilde("~templates/x");
-        assert!(tx.starts_with(&home) || tx == std::path::PathBuf::from("~templates/x"));
+        assert!(tx.starts_with(&home) || tx == std::path::Path::new("~templates/x"));
         // Non-tilde paths pass through unchanged.
         assert_eq!(
             expand_tilde("templates/LICENSE"),

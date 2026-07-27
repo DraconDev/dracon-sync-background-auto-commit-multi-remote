@@ -1822,7 +1822,7 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert!(entry.last_error_at > 0);
         // Success clears the entry.
         record_push_success(repo);
-        assert!(load_stuck_push_repos().get(repo).is_none());
+        assert!(!load_stuck_push_repos().contains_key(repo));
     }
 
     /// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): the notification

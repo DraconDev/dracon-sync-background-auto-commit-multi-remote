@@ -472,7 +472,7 @@ mod tests {
             .status()
             .unwrap();
 
-        let repaired = repair_broken_tracking(&[repo.clone()]);
+        let repaired = repair_broken_tracking(std::slice::from_ref(&repo));
         assert_eq!(
             repaired, 1,
             "the checked-out branch must be repaired (regression M11/F2.1)"

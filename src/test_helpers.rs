@@ -255,7 +255,7 @@ mod tests {
             .and_then(|m| m.lock().ok().map(|g| g.len()))
             .expect("TEST_TEMPS must be initialised by create_test_repo");
         assert!(
-            after_count >= initial_count + 1,
+            after_count > initial_count,
             "create_test_repo did not register the temp dir: \
              before={initial_count} after={after_count}; \
              the F45 fix is missing"

@@ -1125,7 +1125,7 @@ exit 0
     /// remotes ignore the override.
     #[tokio::test]
     async fn test_auto_create_all_remotes_codeberg_override_opt_in() {
-        let remotes = vec![
+        let remotes = [
             RemoteConfig {
                 name: "github".to_string(),
                 push_url: "git@github.com:test/repo.git".to_string(),
