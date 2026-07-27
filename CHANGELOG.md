@@ -16,6 +16,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.113.5] - 2026-07-27
 
+### v0.113.7 — 2026-07-28 — concern-retry-softening: auto-mirror eager-create fix
+
+Addresses the concern-repair `create_private_remote` eagerness
+gap: pre-fix, the daemon's auto-repair concern path forked an
+offline mirror on the FIRST invocation of `handle_no_origin`
+whenever `has_origin` was false — even on a transient SSH/DNS
+hiccup or for a repo that was previously pushed. Post-fix:
+
+- **3x retry with 5s delay** before declaring origin gone
+  (`probe_any_remote_reachable` in `src/report.rs`, runs
+  `git ls-remote <name> HEAD` per configured remote; definitive
+  not-found answers count as "reachable but missing" so the
+  probe does not hang on a configured-but-empty forge).
+- **Gone-since ledger** (`<policy_dir>/origin-gone-ledger.tsv`):
+  records the first observed unreachable failure; cleared when
+  the next invocation succeeds. The mirror-create gate is open
+  only when the elapsed window exceeds the
+  `CREATE_MIRROR_GONE_THRESHOLD_SECS = 900` (15 min).
+- **"Never pushed" guard** (`ever_pushed`): the gate stays
+  closed even after 15 min if the checkout has any
+  `refs/remotes/<name>/*` entry — if the operator ever pushed,
+  the current missing-origin is transient by definition.
+- **Pure decision helper** (`decide_create_mirror` +
+  `CreateMirrorDecision` enum, both `pub(crate)`) extracted for
+  regression-testing without network probes.
+- **Two new regression tests** (`concerns_retry_softening`,
+  `concerns_retry_softening_really_gone`) cover the 5+ boolean
+  input combinations and the 900-sec threshold boundary.
+- **Log distinction**: `transient ssh hiccup — will retry`
+  (probe inconclusive, ever-pushed, or gone < 15 min) vs
+  `origin gone > 15min AND never pushed — creating offline
+  mirror`. Both also go through `log_incident` for the
+  ledger audit trail.
+
+**Honest framing**: the 73-minute browser-extensions-shared
+stall from 2026-07-27 was the SYNC-M3 issue, closed in
+v0.113.5 (the `should_push = ahead > 0 || upstream_ref_missing`
+gate; `git log empty..tag-sha` for an unreachable origin no
+longer pushes). This v0.113.7 release closes the distinct
+`create_private_remote` eagerness gap — a real but separate
+soft-spot, located in the `handle_no_origin` concern-repair
+path rather than the daemon's per-cycle sync loop.
+
 ### v0.113.6 — 2026-07-28 — completes v0.113.5: M4 trailing-drain unification
 
 The published `v0.113.5` tag was created on a doc-only commit
