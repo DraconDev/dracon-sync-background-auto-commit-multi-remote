@@ -762,19 +762,150 @@ mod tests {
     /// and exposing it just for a unit test would weaken the
     /// encapsulation that makes the M4 fix correct (a single
     /// source of truth inside the function that uses it).
-    #[test]
-    fn test_m4_helper_structurally_unified() {
-        // Compile-time check: both call sites of `apply_outcome`
-        // exist in `daemon.rs`. We don't reach into the helper
-        // itself (it's a closure), but the closure's return type
-        // drives the success/failure bookkeeping at both sites,
-        // so any signature change breaks this module's build.
-        // The `m4_helper_structurally_unified` test simply
-        // compiles and verifies that the daemon module loads.
-        // If a future maintainer changes the helper signature
-        // without updating both call sites, the daemon binary
-        // fails to build — a stronger guarantee than any unit
-        // test could provide.
+    #[tokio::test]
+    async fn test_m4_helper_structurally_unified() {
+        // Build a minimal fixture for the helper:
+        //   - empty RepoActivity
+        //   - empty stuck_push_repos
+        //   - empty stage_cooldowns / remote_notify_cooldowns
+        // Then drive each SyncOutcome through `apply_outcome`
+        // with `is_late=false` and verify:
+        //   1. The returned `ApplyOutcome` matches the
+        //      classification matrix.
+        //   2. The entry's side effects match the contract
+        //      (e.g. blocked_since set on Blocked; cleared on
+        //      Failure).
+        // Pre-fix, the trailing-drain path was a separate
+        // match block and the divergence (NothingToDo leaking
+        // activity entries; Synced not clearing stuck-ledger)
+        // would have survived this test. Post-fix, the helper
+        // runs the SAME logic for both call sites, so testing
+        // it here proves the trailing-drain path gets the same
+        // treatment.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let mut entry = RepoActivity {
+            fingerprint: String::new(),
+            changed_at: std::time::Instant::now(),
+            dirty_since: None,
+            ahead_since: None,
+            behind_since: None,
+            mirror_consecutive_fails: HashMap::new(),
+            failure_count: 0,
+            remote_failures: HashMap::new(),
+            ownership: None,
+            ownership_at: None,
+            blocked_since: None,
+            unowned_since: None,
+        };
+        let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> =
+            HashMap::new();
+        let mut remote_notify_cooldowns: HashMap<String, std::time::Instant> =
+            HashMap::new();
+        let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> =
+            HashMap::new();
+
+        // --- Synced -> ApplyOutcome::Success ---
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::Synced),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Success);
+
+        // --- NothingToDo -> ApplyOutcome::Success ---
+        // The trailing-drain divergence was that NothingToDo
+        // returned false / no-op there; post-fix the helper
+        // returns Success uniformly so the caller can clear the
+        // activity entry.
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::NothingToDo),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            true, // is_late=true exercises the trailing-drain log suffix
+        );
+        assert_eq!(outcome, ApplyOutcome::Success);
+
+        // --- FilterOnly -> ApplyOutcome::Success (cooldown set) ---
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::FilterOnly),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Success);
+        assert!(stage_cooldowns.contains_key(&repo));
+
+        // --- Blocked -> ApplyOutcome::Blocked, blocked_since set ---
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::Blocked),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Blocked);
+        assert!(entry.blocked_since.is_some());
+
+        // --- BackstopSkipped -> ApplyOutcome::BackstopSkipped ---
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::BackstopSkipped),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::BackstopSkipped);
+
+        // --- PushFailed -> ApplyOutcome::Failure, blocked_since cleared ---
+        entry.blocked_since = Some(std::time::Instant::now());
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::PushFailed),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Failure);
+        assert!(entry.blocked_since.is_none());
+
+        // --- Err(_) -> ApplyOutcome::Failure ---
+        entry.blocked_since = Some(std::time::Instant::now());
+        let outcome = apply_outcome(
+            &repo,
+            &Err(anyhow::anyhow!("test error")),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut remote_notify_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Failure);
+        assert!(entry.blocked_since.is_none());
     }
 
     #[test]
