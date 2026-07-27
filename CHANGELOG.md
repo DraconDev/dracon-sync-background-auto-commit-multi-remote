@@ -14,6 +14,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.5] - 2026-07-27
+
+### v0.113.5 — 2026-07-27 — MEDIUM-finding remediation batch (M1-M4)
+
+Closes the 4 still-open SYNC MEDIUMs from `AUDIT_FULL_2026-07-26.md`:
+
+- **SYNC-M1 — `detached_discard` keyed per-task-generation, not
+  per-repo** (`daemon.rs:4176-4196`, helper
+  `should_discard_stale_detached_result` at line 65). Pre-fix the
+  `HashSet<PathBuf>` discarded whichever future result arrived
+  first, inverting outcome depending on completion order. Post-fix
+  `HashMap<PathBuf, u64>` stores the wedged generation; only a
+  result whose generation matches is dropped. `SyncTrioJoin` tuple
+  extended 3 → 4 elements (added `u64` generation); per-repo
+  `dispatch_gen` counter bumped on every dispatch.
+- **SYNC-M2 — filter-only early return drops injected stale-gitlink
+  entries** (`sync.rs:4216` plus helper
+  `should_short_circuit_filter_only` at `sync.rs:3989`). The
+  short-circuit now also requires `stale_gitlink_injected == false`;
+  if the gitlink-injection step ran, the rest of the apply phase
+  continues and the parent gitlinks converge.
+- **SYNC-M3 — v0.113.1 FilterOnly `handle_ahead_push` flips benign
+  repo to PushFailed / stuck-ledger exhaustion** (`sync.rs:4214`).
+  Removed the `|| !branch_has_upstream` clause from `should_push`.
+  Pre-fix, mirror-only repos with no upstream configured had
+  `should_push=true` forever; every 300s stage cooldown cycle issued
+  a real push attempt that could write to the stuck ledger.
+  Observed live on browser-extensions-shared (73-minute stall on
+  2026-07-27 after a transient ssh hiccup). Post-fix `should_push =
+  ahead > 0 || upstream_ref_missing`: push only when there is
+  positive evidence of unpushed work (the v0.112.30 bootstrap-push
+  behavior is preserved via the `upstream_ref_missing` arm).
+- **SYNC-M4 — main apply phase vs trailing-drain asymmetry**
+  (`daemon.rs:2641-2799`, helper closure `apply_outcome` inside
+  `run_daemon` returning the closure-local `ApplyOutcome` enum).
+  Pre-fix, the two phases each had their own `match sync_res { ... }`
+  block; trailing-drain `NothingToDo` did nothing (leaking activity
+  entries across cycles) and `Synced` did not clear the
+  stuck-ledger. Post-fix both phases route through the single
+  `apply_outcome` closure; divergence is structurally impossible.
+
+Also closed 14 unrelated pre-existing baseline clippy warnings
+(`int_plus_one`, `bool_assert_comparison`, `cmp_owned`,
+`useless_conversion`, `unused_variables`, `useless_vec`,
+`unnecessary_get_then_check`, `cloned_ref_to_slice_refs`) so
+`cargo clippy --workspace --locked --all-targets -- -D warnings`
+is clean again at the workspace root.
+
+See `release-notes-v0.113.5.md` for the audit cross-references and
+operator notes. Regression tests: `test_m1_*`, `test_m2_*`,
+`test_m3_*`, `test_m4_*` in `daemon.rs` and `sync.rs`.
+
 ## [0.113.4] - 2026-07-26
 
 ### v0.113.4 — 2026-07-26 — full-audit remediation batch 4 (visibility + standard_files)
