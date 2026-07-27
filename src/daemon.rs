@@ -2790,15 +2790,6 @@ pub(crate) async fn run_daemon(
     // force-cleared and possibly re-dispatched).
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
-    let mut detached_discard: HashSet<PathBuf> = HashSet::new();
-    // CHANGED 2026-07-27 (v0.113.5, audit M1): HashSet → HashMap
-    // keyed on `(repo, wedged_generation)`. The pre-fix HashSet
-    // discarded whichever future result arrived first for the repo
-    // (the marker was consumed by that result, regardless of which
-    // generation produced it). The post-fix HashMap stores the
-    // wedged generation; only a result whose generation matches is
-    // discarded. A re-dispatched fresh task with a NEWER generation
-    // is NOT discarded; its result correctly applies the repo state.
     let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
     // Per-repo dispatch counter; bumped each time the daemon
     // dispatches a new task for the repo. Used as the generation
