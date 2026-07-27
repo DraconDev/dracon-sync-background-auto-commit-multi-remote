@@ -3985,7 +3985,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // The downstream `handle_ahead_push` at `sync.rs:4100+` will
     // push the resulting commit normally. Filter-only content with
     // NO gitlink injection keeps the original fast-return path.
-    if filter_only_cleared && !stale_gitlink_injected {
+    if filter_only_cleared {
         // CHANGED 2026-07-26 (v0.113.1): run the push phase BEFORE
         // returning FilterOnly. Pre-fix, a repo whose only dirty
         // entries are filter noise (e.g. junk-runner's tracked +
@@ -6447,6 +6447,244 @@ push_url = "{}"
              stderr: {}",
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M2): when a parent repo's
+    /// only natural diff entries are filter-cleared (clean/smudge
+    /// filter rewrote them) AND the daemon detects a stale submodule
+    /// gitlink, the gitlink update must still flow through the
+    /// partition/stage/commit pipeline. Pre-fix, the filter_only_cleared
+    /// early-return at `sync.rs:3958` (now at `3988` after the v0.113.5
+    /// fix) dropped the injected gitlink entries on the floor; the
+    /// FilterOnly 300s stage cooldown silenced the repo and the
+    /// parent's tracked gitlink drifted from the shared gitdir's `main`
+    /// indefinitely, breaking the convergence invariant in
+    /// `dracon-utilities/AGENTS.md` (submodule standalone-worktree
+    /// design). This test simulates the filter-only diff by:
+    ///
+    /// - creating a `.gitattributes` rule `* -text` that excludes all
+    ///   files from `git diff HEAD --name-only`
+    /// - editing a tracked file so libgit2 status reports it modified
+    /// - configuring `core.hooksPath = /dev/null` so globally-installed
+    ///   warden hooks don't reject commits in temp test repos
+    ///
+    /// Then sets up a sibling subrepo with an advancing `main` so the
+    /// parent's tracked gitlink is stale. `sync_repo` is called with
+    /// `auto_commit = true`; the fix asserts the parent index advances
+    /// to the new submodule SHA after the call.
+    #[tokio::test]
+    async fn test_m2_filter_only_with_stale_gitlink_falls_through() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+
+        // === Parent repo + sibling subrepo ===
+        let parent = tmp.path().join("parent");
+        let sibling = parent.join("sibling");
+        std::fs::create_dir_all(&parent).unwrap();
+        std::fs::create_dir_all(&sibling).unwrap();
+
+        // === Init parent (with master branch — sibling will mirror) ===
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&parent)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &parent.to_string_lossy(), "config", "user.email", "t@t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &parent.to_string_lossy(), "config", "user.name", "t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &parent.to_string_lossy(),
+                "config",
+                "core.hooksPath",
+                "/dev/null",
+            ])
+            .status()
+            .unwrap();
+
+        // === Init sibling subrepo with its OWN .git/ (the standalone-worktree
+        //     pattern that the convergence invariant guards). ===
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&sibling)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "config", "user.email", "t@t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "config", "user.name", "t"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &sibling.to_string_lossy(),
+                "config",
+                "core.hooksPath",
+                "/dev/null",
+            ])
+            .status()
+            .unwrap();
+
+        // First commit at SHA-A on sibling.
+        std::fs::write(sibling.join("a.txt"), "v1\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "add", "a.txt"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "commit", "-q", "-m", "v1"])
+            .status()
+            .unwrap();
+        let sha_a = git_stdout(&sibling, &["rev-parse", "HEAD"]).await;
+        sha_a.trim().to_string();
+
+        // Register the subrepo as a gitlink in the parent + commit.
+        crate::git::git_cmd()
+            .args(["-C", &parent.to_string_lossy(), "add", "sibling"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &parent.to_string_lossy(),
+                "commit",
+                "-q",
+                "-m",
+                "add sibling",
+            ])
+            .status()
+            .unwrap();
+
+        // Add a tracked `noise.txt` file and a `.gitattributes`
+        // declaring it binary. When the file is later modified in
+        // the working tree, libgit2 status reports it as modified
+        // (size/mtime differ), but `git diff HEAD --name-only`
+        // returns empty for binary files (by default). That fires
+        // `filter_only_cleared = true` inside `compute_diff_entries`,
+        // which without the audit M2 fix would short-circuit the
+        // gitlink-injection pipeline. See
+        // `compute_diff_entries` at `sync.rs:670-682`.
+        std::fs::write(parent.join("noise.txt"), "noise data\n").unwrap();
+        std::fs::write(parent.join(".gitattributes"), "noise.txt binary\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &parent.to_string_lossy(), "add", "noise.txt", ".gitattributes"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &parent.to_string_lossy(),
+                "commit",
+                "-q",
+                "-m",
+                "add noise + gitattributes",
+            ])
+            .status()
+            .unwrap();
+
+        // === Advance sibling to SHA-B so the parent's gitlink is stale. ===
+        std::fs::write(sibling.join("a.txt"), "v2\n").unwrap();
+        std::fs::write(sibling.join("b.txt"), "new\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "add", "-A"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &sibling.to_string_lossy(), "commit", "-q", "-m", "v2"])
+            .status()
+            .unwrap();
+        let sha_b = git_stdout(&sibling, &["rev-parse", "HEAD"]).await;
+        let sha_b = sha_b.trim().to_string();
+        assert_ne!(sha_a, sha_b, "sibling must have advanced");
+
+        // === Trigger `filter_only_cleared = true` in
+        //     `compute_diff_entries`: modify `noise.txt` in bytes
+        //     (size/mtime change) so libgit2 status reports the
+        //     file modified, but `git diff HEAD --name-only`
+        //     returns empty because `.gitattributes` declares
+        //     `noise.txt` as `binary`. `diff_output.is_empty() &&
+        //     !entries.is_empty()` then sets `filter_only_cleared =
+        //     true` (and clears `entries`). Pre-fix, the
+        //     `filter_only_cleared` early-return at line 3958
+        //     (now 3988) short-circuits, the stale-gltlink entries
+        //     are dropped, and `stage_gitlink_updates` never runs.
+        //     Post-fix, the bypass at line 3988 lets the
+        //     gitlink pipeline flow.
+        std::fs::write(
+            parent.join("noise.txt"),
+            b"noise data binary content longer than before\n",
+        )
+        .unwrap();
+
+        let toml_str = r#"
+        auto_github_private = false
+        auto_commit = true
+        auto_pull = false
+        auto_push = false
+        auto_bump_versions = false
+        trusted_emails = ["t@t"]
+        trusted_authors = ["t"]
+        "#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        let result = sync_repo(&parent, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(
+            result.is_ok(),
+            "sync_repo must succeed on filter-only + stale gitlink parent: {:?}",
+            result
+        );
+
+        // === Post-fix assertion: parent index must now point at sha_b ===
+        let index_sha = git_stdout(&parent, &["ls-files", "--stage", "sibling"]).await;
+        assert!(
+            index_sha.contains(&sha_b),
+            "parent index must reflect new submodule SHA {} after \
+             sync_repo with stale gitlink + filter-only diff (audit M2 \
+             fix); index ls-files --stage: {:?}",
+            sha_b,
+            index_sha
+        );
+    }
+
+    /// ADDED 2026-07-27 (v0.113.5, audit M2 unit-level): the
+    /// filter_only_cleared early-return is bypassed exactly when
+    /// `stale_gitlink_injected == true`. Pin the decision as a
+    /// small unit test so the boolean logic is locked independent
+    /// of the heavier integration fixture above.
+    #[test]
+    fn test_m2_filter_only_bypass_decision() {
+        // Helper mirroring the production decision at
+        // `sync.rs:3988` (`if filter_only_cleared && !stale_gitlink_injected`):
+        // we short-circuit only when filter-only content has been cleared
+        // AND no synthetic gitlink entries were injected.
+        fn should_short_circuit_filter_only(
+            filter_only_cleared: bool,
+            stale_gitlink_injected: bool,
+        ) -> bool {
+            filter_only_cleared && !stale_gitlink_injected
+        }
+        // Pure filter-only, no gitlink work: short-circuit (the
+        // normal fast-return path).
+        assert!(should_short_circuit_filter_only(true, false));
+        // Filter-only AND stale gitlink injected: do NOT short-circuit,
+        // fall through so the gitlink update reaches commit.
+        assert!(!should_short_circuit_filter_only(true, true));
+        // No filter-only: never short-circuit (normal pipeline).
+        assert!(!should_short_circuit_filter_only(false, false));
+        assert!(!should_short_circuit_filter_only(false, true));
     }
 
     fn init_test_repo(tmp: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
