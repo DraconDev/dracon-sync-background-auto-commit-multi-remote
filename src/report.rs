@@ -3155,7 +3155,11 @@ pub(crate) async fn run_repos_report(
         // cannot fix what it cannot reach.
         if pack_too_large.0 {
             flags.push("PACK_SIZE_WARNING".to_string());
-            concern = true;
+            // Routes the concern decision through a testable helper
+            // (see `pack_too_large_forces_concern`).
+            if pack_too_large_forces_concern(pack_too_large) {
+                concern = true;
+            }
         }
 
         // ADDED 2026-07-23 (v0.112.39): `BROKEN_HISTORY:N` flag when
