@@ -987,7 +987,7 @@ fn exists_cache() -> &'static parking_lot::Mutex<
 /// - GitHub: "ERROR: Repository not found."
 /// - GitLab: "The project you were looking for could not be found"
 /// - Codeberg/Forgejo: "repository does not exist" / 404
-fn ls_remote_indicates_missing(stderr: &str) -> bool {
+pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
     let lower = stderr.to_ascii_lowercase();
     lower.contains("repository not found")
         || lower.contains("could not be found")

@@ -5203,23 +5203,29 @@ struct RepairState {
 /// `RemoteExistence::Exists` semantics from
 /// `git/multi_remote.rs::remote_repo_exists`).
 ///
-/// `ls-remote <name> HEAD` is the same probe
-/// `remote_repo_exists` uses, so the retry inherits all the
-/// forge-aware classification already present there
-/// (definitive not-found is still "reachable but missing" —
-/// network fine, forge answered, do not create). The 3x retry
-/// with 5s delay tolerates transient SSH/DNS blips without
-/// forking a mirror onto a host the operator did not ask for.
+/// Uses the same `tokio_git_command()` + `git_ssh_hardening()`
+/// construction as `remote_repo_exists` so the probe inherits
+/// BatchMode / ConnectTimeout (no interactive SSH hangs in the
+/// daemon path — `auto_repair_concerns` is invoked from the
+/// daemon at `daemon.rs:2921` and the probe runs unattended).
+/// Definitive "not found" answers count as "reachable but
+/// missing" via the shared `ls_remote_indicates_missing`
+/// classifier. The 3x retry with 5s delay tolerates transient
+/// SSH/DNS blips without forking a mirror onto a host the
+/// operator did not ask for.
 async fn probe_any_remote_reachable(repo: &Path) -> bool {
-    use crate::git::multi_remote::list_remotes;
+    use crate::git::multi_remote::{list_remotes, ls_remote_indicates_missing};
+    use crate::policy::tokio_git_command;
     let remotes = list_remotes(repo);
     if remotes.is_empty() {
         return false;
     }
+    let ssh_hardening = crate::git::git_ssh_hardening();
     for remote_name in &remotes {
         for attempt in 1..=3u32 {
-            let output = tokio::process::Command::new("git")
+            let output = tokio_git_command()
                 .current_dir(repo)
+                .env("GIT_SSH_COMMAND", ssh_hardening.clone())
                 .env("GIT_TERMINAL_PROMPT", "0")
                 .args(["ls-remote", "--heads", remote_name, "HEAD"])
                 .output()
@@ -5231,13 +5237,7 @@ async fn probe_any_remote_reachable(repo: &Path) -> bool {
                 // Definitive "not found" is still a clean
                 // answer — forge answered, transport is fine.
                 let stderr = String::from_utf8_lossy(&o.stderr);
-                let lower = stderr.to_ascii_lowercase();
-                if lower.contains("repository not found")
-                    || lower.contains("could not be found")
-                    || lower.contains("does not exist")
-                    || lower.contains("not found")
-                    || lower.contains("404")
-                {
+                if ls_remote_indicates_missing(&stderr) {
                     return true;
                 }
             }
@@ -5331,7 +5331,18 @@ fn record_origin_gone(policy_path: &Path, repo: &Path) {
         None => return,
     };
     let repo_str = repo.display().to_string();
+    // ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+    // insert-if-absent semantics. Pre-fix the function
+    // dropped the existing entry and appended a fresh
+    // timestamp, which meant every TransientHiccup
+    // invocation reset the gone-window — the
+    // `gone_secs >= 900` gate would never fire in
+    // production because the cycle keeps restarting the
+    // window. Insert-if-absent preserves the FIRST-observed
+    // failure time so the elapsed window grows monotonically
+    // until `clear_origin_gone` removes the entry.
     let mut existing: Vec<String> = Vec::new();
+    let mut already_present = false;
     if let Ok(content) = std::fs::read_to_string(&path) {
         for line in content.lines() {
             if line.is_empty() {
@@ -5339,10 +5350,18 @@ fn record_origin_gone(policy_path: &Path, repo: &Path) {
             }
             let mut parts = line.splitn(2, '\t');
             let p = parts.next().unwrap_or("");
-            if p != repo_str {
+            if p == repo_str {
+                already_present = true;
+                // Preserve the original timestamp verbatim.
+                existing.push(line.to_string());
+            } else {
                 existing.push(line.to_string());
             }
         }
+    }
+    if already_present {
+        // No rewrite needed; the existing line is preserved.
+        return;
     }
     existing.push(format!("{}\t{}", repo_str, secs));
     if let Some(parent) = path.parent() {
@@ -7046,6 +7065,71 @@ mod tests {
                 Some(CREATE_MIRROR_GONE_THRESHOLD_SECS - 1)
             ),
             CreateMirrorDecision::TransientHiccup
+        );
+    }
+
+    /// ADDED 2026-07-28 (v0.113.7, concern-retry-softening):
+    /// insert-if-absent ledger semantics. The first
+    /// `record_origin_gone` call inserts the current timestamp;
+    /// a second call for the same repo MUST preserve the
+    /// original timestamp so the gone-window grows
+    /// monotonically. Pre-fix, the function dropped and
+    /// re-appended, which meant every repair invocation
+    /// reset the 15-min gate — `ReallyGone` would never fire
+    /// in production (the unit tests for the decision helper
+    /// still passed because they feed synthetic inputs).
+    #[test]
+    fn concerns_ledger_insert_if_absent() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let policy_path = tmp.path().join("policy.toml");
+        std::fs::write(&policy_path, "").expect("write policy");
+        let repo = tmp.path().join("test-repo");
+        std::fs::create_dir_all(&repo).expect("mkdir");
+        // First call: no entry, inserts.
+        record_origin_gone(&policy_path, &repo);
+        let ledger_after_first =
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
+                .expect("read ledger");
+        let first_line = ledger_after_first
+            .lines()
+            .find(|l| l.starts_with(&repo.display().to_string()))
+            .expect("entry present")
+            .to_string();
+        let first_ts: u64 = first_line
+            .split('\t')
+            .nth(1)
+            .expect("ts field")
+            .parse()
+            .expect("parse ts");
+        // Wait at least 2 seconds so the wall clock differs.
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        // Second call: must NOT overwrite the original.
+        record_origin_gone(&policy_path, &repo);
+        let ledger_after_second =
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
+                .expect("read ledger");
+        let second_line = ledger_after_second
+            .lines()
+            .find(|l| l.starts_with(&repo.display().to_string()))
+            .expect("entry still present")
+            .to_string();
+        let second_ts: u64 = second_line
+            .split('\t')
+            .nth(1)
+            .expect("ts field")
+            .parse()
+            .expect("parse ts");
+        assert_eq!(first_ts, second_ts, "ledger must preserve first-observed timestamp");
+        // clear_origin_gone should drop the entry entirely.
+        clear_origin_gone(&policy_path, &repo);
+        let ledger_after_clear =
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
+                .expect("read ledger");
+        assert!(
+            !ledger_after_clear
+                .lines()
+                .any(|l| l.starts_with(&repo.display().to_string())),
+            "clear_origin_gone must remove the repo entry"
         );
     }
 
