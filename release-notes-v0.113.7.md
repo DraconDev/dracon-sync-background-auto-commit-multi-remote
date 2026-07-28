@@ -28,8 +28,10 @@ skipped. Post-fix:
 | `dracon-sync/src/report.rs:1728` (helper) + `:6495` (call site) | Auto-repair guard extracted to testable helper `pack_too_large_skips_repair(pack_too_large: bool) -> bool`. The helper makes the "fires regardless of other concerns" property testable in isolation — no repo + concern list setup required. The reviewer's leftover observation #4 was: "for a hypothetical repo that ALSO has a CONCERN and ALSO has pack_too_large, the auto-repair would attempt handlers". The new helper's contract: pure bool predicate, fires unconditionally on `pack_too_large=true`. |
 | `dracon-sync/src/report.rs:7971` (test module) | NEW test `test_pack_too_large_skips_repair` — 2-case boolean matrix verifying the helper's unconditional short-circuit property |
 | `dracon-sync/src/report.rs:6222` | `verify_resolution` post-handler check now also considers `pack_too_large` — without this, a size-only concern would be reported as "resolved" after the auto-repair pass (the concern is actually unchanged). `concerns_resolved_now` now correctly reports `0` for CAG (was `1`). |
+| `dracon-sync/src/report.rs:1706` (helper) + `:6277` (call site) | `verify_resolution_still_concern(ahead, behind, has_origin, has_upstream, pack_too_large) -> bool` helper extracted to make the post-check predicate testable in isolation. The helper includes `pack_too_large` in the predicate so a size-only concern stays "still concerned" until the operator actually shrinks the repo. |
 | `dracon-sync/src/report.rs:6378` | `run_repair_concerns` now also recognizes pack-too-large as a concern (via `pack_too_large_forces_concern`) — without this, the `repos` table flagged a CONCERN that the `repair concerns` flow would have skipped entirely |
 | `dracon-sync/src/report.rs:7882` (test module) | NEW test `test_pack_too_large_forces_concern` — 4-case boolean matrix |
+| `dracon-sync/src/report.rs:7988` (test module) | NEW test `test_verify_resolution_still_concern` — 6-case matrix including the size-only case `assert!(verify_resolution_still_concern(0, 0, true, true, true))` |
 
 ### Live evidence
 
