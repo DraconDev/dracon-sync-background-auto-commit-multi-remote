@@ -24,7 +24,8 @@ skipped. Post-fix:
 | `dracon-sync/src/report.rs:1693` | NEW helper `pub(crate) fn pack_too_large_forces_concern(pack_too_large: (bool, u64)) -> bool` (pure function) |
 | `dracon-sync/src/report.rs:3157` | Production call site: when `pack_too_large.0`, set `concern = true` (routes decision through the helper) |
 | `dracon-sync/src/report.rs:2100` | HINT text updated from "may fail to push to github" → "github push is skipped; shrink history or migrate assets to OVH" |
-| `dracon-sync/src/report.rs:6417` | Auto-repair no-op: `if flags.contains("PACK_SIZE_WARNING")` short-circuits with `⏭️ skipping auto-repair: github push is permanently skipped` log line |
+| `dracon-sync/src/report.rs:6417` | Auto-repair no-op: `if pack_too_large` (re-uses the size value computed at line 6391) short-circuits with `⏭️ skipping auto-repair: github push is permanently skipped` log line. **CHANGED 2026-07-28 (v0.113.7, follow-up)**: the initial version checked `flags.contains("PACK_SIZE_WARNING")` — but the `flags` vector at that point was built by `repo_state_flags_with_push_failure`, which doesn't add `PACK_SIZE_WARNING`. That flag is only added in `run_repos_report` at line 3157. The follow-up reuses the inline `pack_too_large` bool. |
+| `dracon-sync/src/report.rs:6222` | `verify_resolution` post-handler check now also considers `pack_too_large` — without this, a size-only concern would be reported as "resolved" after the auto-repair pass (the concern is actually unchanged). `concerns_resolved_now` now correctly reports `0` for CAG (was `1`). |
 | `dracon-sync/src/report.rs:6378` | `run_repair_concerns` now also recognizes pack-too-large as a concern (via `pack_too_large_forces_concern`) — without this, the `repos` table flagged a CONCERN that the `repair concerns` flow would have skipped entirely |
 | `dracon-sync/src/report.rs:7882` (test module) | NEW test `test_pack_too_large_forces_concern` — 4-case boolean matrix |
 

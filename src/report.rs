@@ -1694,6 +1694,29 @@ pub(crate) fn pack_too_large_forces_concern(pack_too_large: (bool, u64)) -> bool
     pack_too_large.0
 }
 
+/// CHANGED 2026-07-28 (v0.113.7): the post-handler
+/// `verify_resolution` check now also considers `pack_too_large`.
+/// Extracted to a helper so the regression test does not have to
+/// spin up a full `GitService` + repo. The caller passes the values
+/// `verify_resolution` would have computed (status fields from
+/// `svc.get_status()` + remote/upstream presence + the
+/// `pack_too_large` boolean from the early-skip). A return of
+/// `true` means the repo is STILL a concern after the repair pass
+/// (i.e. do NOT count it as resolved).
+pub(crate) fn verify_resolution_still_concern(
+    ahead: usize,
+    behind: usize,
+    has_origin: bool,
+    has_upstream: bool,
+    pack_too_large: bool,
+) -> bool {
+    ahead > 0
+        || behind > 0
+        || !has_origin
+        || !has_upstream
+        || pack_too_large
+}
+
 pub(crate) fn repo_is_stuck_push(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
@@ -6224,16 +6247,20 @@ async fn verify_resolution(
         // auto-repair pass — even though the underlying size issue
         // is unchanged (the daemon has no code path that shrinks
         // history). The fix: include `pack_too_large_forces_concern`
-        // in the predicate, so a size-only concern stays "still
-        // concerned" until the operator actually shrinks the repo.
+        // in the predicate (routed through the testable helper
+        // `verify_resolution_still_concern`), so a size-only concern
+        // stays "still concerned" until the operator actually
+        // shrinks the repo.
         let pack_still = pack_too_large_forces_concern(
             crate::git::github_pack_too_large(repo, None),
         );
-        let still_concern = next.ahead > 0
-            || next.behind > 0
-            || !has_origin
-            || !has_upstream
-            || pack_still;
+        let still_concern = verify_resolution_still_concern(
+            next.ahead,
+            next.behind,
+            has_origin,
+            has_upstream,
+            pack_still,
+        );
         if !still_concern {
             *resolved += 1;
             if human {
@@ -7912,6 +7939,32 @@ mod tests {
             true,
             false
         ));
+    }
+
+    #[test]
+    fn test_verify_resolution_still_concern() {
+        // CHANGED 2026-07-28 (v0.113.7): a repo that was in the
+        // concern list ONLY because of `pack_too_large` (and not
+        // because of ahead/behind/origin/upstream) is STILL a
+        // concern after the auto-repair pass — the daemon has no
+        // code that shrinks history, so the size issue is unchanged.
+        // Pre-fix the post-handler `verify_resolution` would have
+        // reported this as "resolved" because the ahead/behind/etc.
+        // checks all passed. Post-fix the helper includes
+        // `pack_too_large` in the predicate.
+        // size-only: a clean, synced, origin-ok, upstream-ok repo
+        // with pack_too_large=true stays a concern.
+        assert!(verify_resolution_still_concern(0, 0, true, true, true));
+        // nothing applied: same shape, no pack_too_large => resolved.
+        assert!(!verify_resolution_still_concern(0, 0, true, true, false));
+        // ahead-only concern still applies regardless of size.
+        assert!(verify_resolution_still_concern(3, 0, true, true, false));
+        // missing origin still applies.
+        assert!(verify_resolution_still_concern(0, 0, false, true, false));
+        // missing upstream still applies.
+        assert!(verify_resolution_still_concern(0, 0, true, false, false));
+        // behind still applies.
+        assert!(verify_resolution_still_concern(0, 2, true, true, false));
     }
 
     #[test]
