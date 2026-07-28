@@ -1717,6 +1717,26 @@ pub(crate) fn verify_resolution_still_concern(
         || pack_too_large
 }
 
+/// CHANGED 2026-07-28 (v0.113.7, follow-up): the auto-repair no-op
+/// guard in `run_repair_concerns` (the `if pack_too_large { ...;
+/// continue; }` check at the top of the handler loop) decides
+/// whether to short-circuit BEFORE any handler runs. The original
+/// guard (committed in `7f3e456`) checked `flags.contains("PACK_SIZE_WARNING")`
+/// — but `repo_state_flags_with_push_failure` (the function that
+/// built `flags`) does NOT add `PACK_SIZE_WARNING`. The fix (commit
+/// `d385655`) re-uses the inline `pack_too_large` bool from the
+/// early-skip so the guard actually fires. The reviewer's concern
+/// (item #4 of the leftover cascade): "for a hypothetical repo that
+/// ALSO has a CONCERN and ALSO has pack_too_large, the auto-repair
+/// would attempt handlers". The predicate is purely `pack_too_large`:
+/// it fires regardless of `is_concern`, `stuck_push`, `stuck_pull`,
+/// etc. Extracted to a tiny helper so the regression test can verify
+/// that the guard fires unconditionally on `pack_too_large=true` —
+/// not by coincidence on CAG's clean/synced state.
+pub(crate) fn pack_too_large_skips_repair(pack_too_large: bool) -> bool {
+    pack_too_large
+}
+
 pub(crate) fn repo_is_stuck_push(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
@@ -6492,7 +6512,12 @@ pub(crate) async fn run_repair_concerns(
         // line 6391 (the early-skip) — the same `github_pack_too_large`
         // call that drives the concern classification above. No
         // additional git subprocess; the value is already in scope.
-        if pack_too_large {
+        // The predicate is extracted to `pack_too_large_skips_repair`
+        // so the regression test can verify the guard fires
+        // unconditionally on `pack_too_large=true` — not by
+        // coincidence on CAG's clean/synced state. See
+        // `pack_too_large_skips_repair` for the rationale.
+        if pack_too_large_skips_repair(pack_too_large) {
             out!(
                 "⏭️  {}  skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.",
                 repo.display()
@@ -7939,6 +7964,24 @@ mod tests {
             true,
             false
         ));
+    }
+
+    #[test]
+    fn test_pack_too_large_skips_repair() {
+        // CHANGED 2026-07-28 (v0.113.7, follow-up): the reviewer's
+        // leftover observation #4: "for a hypothetical repo that ALSO
+        // has a CONCERN and ALSO has pack_too_large, the auto-repair
+        // would attempt handlers". The predicate
+        // `pack_too_large_skips_repair` is purely the bool — it
+        // fires regardless of `is_concern`, `stuck_push`,
+        // `stuck_pull`, etc. The original guard
+        // (`flags.contains("PACK_SIZE_WARNING")`) was dependent on
+        // the flags vector, which never adds `PACK_SIZE_WARNING`,
+        // and would have been defeated if a hypothetical repo had
+        // both `pack_too_large` and a separate CONCERN.
+        // The new guard: short-circuits purely on pack_too_large.
+        assert!(pack_too_large_skips_repair(true));
+        assert!(!pack_too_large_skips_repair(false));
     }
 
     #[test]
