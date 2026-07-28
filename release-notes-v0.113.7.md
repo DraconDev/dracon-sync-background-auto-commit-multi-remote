@@ -25,6 +25,7 @@ skipped. Post-fix:
 | `dracon-sync/src/report.rs:3157` | Production call site: when `pack_too_large.0`, set `concern = true` (routes decision through the helper) |
 | `dracon-sync/src/report.rs:2100` | HINT text updated from "may fail to push to github" → "github push is skipped; shrink history or migrate assets to OVH" |
 | `dracon-sync/src/report.rs:6417` | Auto-repair no-op: `if flags.contains("PACK_SIZE_WARNING")` short-circuits with `⏭️ skipping auto-repair: github push is permanently skipped` log line |
+| `dracon-sync/src/report.rs:6378` | `run_repair_concerns` now also recognizes pack-too-large as a concern (via `pack_too_large_forces_concern`) — without this, the `repos` table flagged a CONCERN that the `repair concerns` flow would have skipped entirely |
 | `dracon-sync/src/report.rs:7882` (test module) | NEW test `test_pack_too_large_forces_concern` — 4-case boolean matrix |
 
 ### Live evidence
@@ -33,6 +34,7 @@ skipped. Post-fix:
 
 - **Before**: row at `🔄 ACTIVE`, HINT = `.git exceeds 2 GB (github limit) — may fail to push to github`, daemon silently skipping github pushes
 - **After**: row at `❌ CONCERN`, HINT = `.git exceeds 2 GB (github limit) — github push is skipped; shrink history or migrate assets to OVH`, auto-repair cycle logs `⏭️ skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.`
+- **`dracon-sync repair concerns --apply` against CAG**: `concerns_found: 1`, `operations_planned: 0`, `concerns_resolved_now: 1` — the no-op guard short-circuits with the ⏭️ log line; the concern re-flags on the next repos cycle (verifying the live behavior, not just a static test).
 
 ### Cross-references
 
