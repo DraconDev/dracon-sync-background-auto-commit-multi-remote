@@ -59,6 +59,58 @@ longer pushes). This v0.113.7 release closes the distinct
 soft-spot, located in the `handle_no_origin` concern-repair
 path rather than the daemon's per-cycle sync loop.
 
+### v0.113.7 — 2026-07-28 — pack-size-concern: silent-skip → ❌ CONCERN
+
+Surfaces the github-push-permanently-skipped class as a
+visible CONCERN in the `repos` table (was a buried HINT with
+a `🔄 ACTIVE` row). Pre-fix, a repo whose pushable branch
+exceeded GitHub's 2 GiB pack limit emitted only a HINT like
+`.git exceeds 2 GB (github limit) — may fail to push to
+github` while the daemon's push path was silently skipping
+GitHub — and the row's STATUS cell stayed at `🔄 ACTIVE`. The
+operator had to read journalctl to learn the push was being
+skipped. Post-fix:
+
+- **CONCERN reclassification** (production call site at
+  `src/report.rs:3157`, helper `pack_too_large_forces_concern`
+  at `src/report.rs:1693`, both `pub(crate)`). When
+  `github_pack_too_large.0` is true, the row is now classified
+  as `❌ CONCERN` (not `🔄 ACTIVE`). The helper is a pure
+  function so the regression test does not have to spin up a
+  whole `RepoReportRow` (same pattern as M1/M2/M4 helper
+  extraction: `daemon.rs:72`, `sync.rs:3652`, `daemon.rs:124`).
+- **HINT text updated** (`src/report.rs:2100`): the misleading
+  "may fail to push to github" phrasing became "github push is
+  skipped; shrink history or migrate assets to OVH". The hint
+  tells the operator (a) the push is permanently skipped, and
+  (b) the two available remediations.
+- **Auto-repair no-op** (`src/report.rs:6417`, the
+  `run_repair_concerns` loop): when the `PACK_SIZE_WARNING`
+  flag is present, the auto-repair short-circuits with
+  `⏭️ skipping auto-repair: github push is permanently
+  skipped (pushable branch > 2 GiB). Operator action
+  required.` Without this guard, the new CONCERN would invoke
+  every handler in the loop (`handle_no_origin`,
+  `handle_no_upstream`, `handle_behind`, etc.) and silently
+  fail every sync cycle, producing journalctl noise.
+- **One new regression test** (`test_pack_too_large_forces_concern`):
+  pins the helper's 4-case boolean matrix (true with size,
+  true without size, false with size, false without size).
+
+**Live evidence**: `capture-anime-girls` (CAG) — pushable
+branch 2.37 GiB, was at `🔄 ACTIVE` with the HINT buried in
+journalctl. Post-deploy, the row shows `❌ CONCERN` with the
+updated HINT and the daemon's `auto_repair_concerns` cycle
+no longer iterates past it.
+
+**Investigation**: `docs/design/cag-github-push-block-2026-07-28.md`
+(the github-side remediation is still operator's call: orphan
+cutover vs OVH migration vs filter-repo).
+
+**Design doc**: `docs/design/pack-size-concern-2026-07-28.md`.
+
+**Test count**: 1158 → 1159 (1 new). Clippy + deny clean.
+
 ### v0.113.6 — 2026-07-28 — completes v0.113.5: M4 trailing-drain unification
 
 The published `v0.113.5` tag was created on a doc-only commit

@@ -1,0 +1,95 @@
+# v0.113.7 — 2026-07-28 — pack-size-concern + auto-mirror retry softening
+
+> **Two distinct fixes shipping together** (both v0.113.7 because
+> the auto-mirror goal's code work completed in a previous session
+> and the `### v0.113.7` entry in the per-utility CHANGELOG was
+> already reserved for it). The packaging preserves both line
+> refs and honest framing per the established convention.
+
+## (1) pack-size-concern: silent-skip → ❌ CONCERN
+
+Surfaces the github-push-permanently-skipped class as a visible
+CONCERN in the `repos` table. Pre-fix, a repo whose pushable
+branch exceeded GitHub's 2 GiB pack limit emitted only a HINT
+like `.git exceeds 2 GB (github limit) — may fail to push to
+github` while the daemon's push path was silently skipping
+GitHub — and the row's STATUS cell stayed at `🔄 ACTIVE`. The
+operator had to read journalctl to learn the push was being
+skipped. Post-fix:
+
+### Source changes
+
+| Path | Change |
+|---|---|
+| `dracon-sync/src/report.rs:1693` | NEW helper `pub(crate) fn pack_too_large_forces_concern(pack_too_large: (bool, u64)) -> bool` (pure function) |
+| `dracon-sync/src/report.rs:3157` | Production call site: when `pack_too_large.0`, set `concern = true` (routes decision through the helper) |
+| `dracon-sync/src/report.rs:2100` | HINT text updated from "may fail to push to github" → "github push is skipped; shrink history or migrate assets to OVH" |
+| `dracon-sync/src/report.rs:6417` | Auto-repair no-op: `if flags.contains("PACK_SIZE_WARNING")` short-circuits with `⏭️ skipping auto-repair: github push is permanently skipped` log line |
+| `dracon-sync/src/report.rs:7882` (test module) | NEW test `test_pack_too_large_forces_concern` — 4-case boolean matrix |
+
+### Live evidence
+
+`capture-anime-girls` (CAG) — pushable branch 2.37 GiB:
+
+- **Before**: row at `🔄 ACTIVE`, HINT = `.git exceeds 2 GB (github limit) — may fail to push to github`, daemon silently skipping github pushes
+- **After**: row at `❌ CONCERN`, HINT = `.git exceeds 2 GB (github limit) — github push is skipped; shrink history or migrate assets to OVH`, auto-repair cycle logs `⏭️ skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.`
+
+### Cross-references
+
+- Investigation: `docs/design/cag-github-push-block-2026-07-28.md` (the github-side remediation is still operator's call)
+- Design: `docs/design/pack-size-concern-2026-07-28.md`
+- Audit context: `AUDIT_FULL_2026-07-26.md` (the HINT-vs-CONCERN classification gap was implicit in the audit's "silent failures" theme)
+
+### Honest framing
+
+This change surfaces a problem; it does NOT fix the github-side
+situation. CAG's github mirror is still empty. The fix gives the
+operator a CONCERN to react to; the choice of remediation
+(orphan github-main cutover / OVH asset migration / filter-repo
+shrink) is the operator's call and was explicitly deferred per
+the consultation. The auto-repair no-op is conservative — the
+daemon cannot fix what it cannot reach, and silently attempting
+the repair every cycle is worse than not trying.
+
+## (2) auto-mirror retry softening (from previous session, code work done)
+
+The previous goal's `### v0.113.7` entry in
+`dracon-sync/CHANGELOG.md:19` documents this work; the line
+refs and test count are reproduced here for completeness.
+
+### Source changes
+
+| Path | Change |
+|---|---|
+| `dracon-sync/src/report.rs:5119` (was 1e45deb) | `handle_no_origin` now gates `create_private_remote` through `decide_create_mirror` |
+| `dracon-sync/src/report.rs:5207` (was e809562) | NEW `pub(crate) fn probe_any_remote_reachable` — 3× retry with 5s delay before declaring origin gone |
+| `dracon-sync/src/report.rs:5258` (was 08be865) | NEW gone-since ledger at `<policy_dir>/origin-gone-ledger.tsv` |
+| `dracon-sync/src/git/multi_remote.rs:ls_remote_indicates_missing` | Promoted from `fn` → `pub(crate) fn` |
+| `dracon-sync/src/report.rs:5217` | NEW `pub(crate) const CREATE_MIRROR_GONE_THRESHOLD_SECS: u64 = 900` (15 min) |
+
+### Tests
+
+- `concerns_retry_softening` — 5+ boolean input combinations
+- `concerns_retry_softening_really_gone` — 900-sec threshold boundary
+- `concerns_ledger_insert_if_absent` — TSV ledger semantics
+
+All 3 passing (the previous goal's code work is unchanged; this
+release just packages the code with the new pack-size-concern
+work under a single v0.113.7 tag).
+
+## Test count
+
+1158 → 1159 (1 new from this release: `test_pack_too_large_forces_concern`).
+
+## Gate posture
+
+- `cargo build --release --locked -p dracon-sync`: ✅ clean
+- `cargo test --workspace --locked --lib --tests`: ✅ 1159 passed, 9 ignored
+- `cargo clippy --workspace --locked -- -D warnings`: ✅ no issues
+- `cargo deny check`: ✅ clean (no new dependencies)
+
+## Cross-references
+
+- AGENTS.md: "Commit-all principle (2026-06-16, goal `6205ad1f`)" — unchanged
+- AGENTS.md: "History-rewrite ENFORCEMENT stack (v0.113.0, 2026-07-25)" — unchanged (no history rewrite in this release)
+- Previous release: `release-notes-v0.113.6.md` (M4 trailing-drain unification)
