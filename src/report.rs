@@ -6216,7 +6216,24 @@ async fn verify_resolution(
     if let Ok(next) = svc.get_status().await {
         let has_origin = has_origin_remote(repo);
         let has_upstream = has_tracking_upstream(repo);
-        let still_concern = next.ahead > 0 || next.behind > 0 || !has_origin || !has_upstream;
+        // CHANGED 2026-07-28 (v0.113.7): the post-handler
+        // `still_concern` check now also considers `pack_too_large`.
+        // Without this, a repo that was in the concern list ONLY
+        // because of `pack_too_large` (and not because of ahead/behind/
+        // origin/upstream) would be reported as "resolved" after the
+        // auto-repair pass — even though the underlying size issue
+        // is unchanged (the daemon has no code path that shrinks
+        // history). The fix: include `pack_too_large_forces_concern`
+        // in the predicate, so a size-only concern stays "still
+        // concerned" until the operator actually shrinks the repo.
+        let pack_still = pack_too_large_forces_concern(
+            crate::git::github_pack_too_large(repo, None),
+        );
+        let still_concern = next.ahead > 0
+            || next.behind > 0
+            || !has_origin
+            || !has_upstream
+            || pack_still;
         if !still_concern {
             *resolved += 1;
             if human {
@@ -6430,7 +6447,25 @@ pub(crate) async fn run_repair_concerns(
         // journalctl noise every sync cycle. The operator's response is
         // documented in the row's HINT: shrink history (filter-repo) or
         // migrate assets to OVH.
-        if flags.iter().any(|f| f == "PACK_SIZE_WARNING") {
+        //
+        // CHANGED 2026-07-28 (v0.113.7, follow-up): the previous version
+        // of this guard checked `flags.iter().any(|f| f == "PACK_SIZE_WARNING")`
+        // — but `repo_state_flags_with_push_failure` (the function that
+        // built `flags` above) does NOT add `PACK_SIZE_WARNING`. That
+        // flag is only added in `run_repos_report` at line 3157 (the
+        // row-construction code). The guard was therefore dead code:
+        // for the specific CAG case (clean, synced, origin-ok,
+        // upstream-ok, 0-ahead, 0-behind) no handlers match anyway, so
+        // the empirical outcome (`operations_planned: 0`) is correct
+        // by coincidence. For a hypothetical repo with BOTH
+        // `PACK_SIZE_WARNING` and a real concern (e.g. `STUCK_PUSH`),
+        // the dead guard would have missed its short-circuit and the
+        // daemon would have attempted handlers — failing silently. The
+        // fix: re-use the `pack_too_large` value already computed at
+        // line 6391 (the early-skip) — the same `github_pack_too_large`
+        // call that drives the concern classification above. No
+        // additional git subprocess; the value is already in scope.
+        if pack_too_large {
             out!(
                 "⏭️  {}  skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.",
                 repo.display()
