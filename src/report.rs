@@ -1666,6 +1666,34 @@ pub(crate) fn repo_is_concern_with_push_failure(
     false
 }
 
+/// CHANGED 2026-07-28 (v0.113.7): extract the `pack_too_large → CONCERN`
+/// decision to a helper so the regression test does not have to spin up
+/// a whole `RepoReportRow`.
+///
+/// GitHub rejects packs > 2 GiB. The daemon's push path detects this via
+/// `github_pack_too_large` and silently excludes GitHub from the mirror
+/// list (see `dracon-sync/src/sync.rs:1819`). The `repos` table, however,
+/// was only emitting a HINT note (`.git exceeds 2 GB (github limit) — may
+/// fail to push to github`) without classifying the row as a CONCERN.
+///
+/// The silent skip is a real problem: the daemon's `auto_repair_concerns`
+/// path will never fix this (the daemon has no history-rewrite code), so
+/// the row sat at 🔄 ACTIVE indefinitely. Bumping to CONCERN surfaces
+/// the situation in the row's STATUS cell AND in the fleet-wide tally.
+///
+/// The `pack_too_large` tuple here is the same `(bool, u64)` returned by
+/// `crate::git::github_pack_too_large`; the helper only consults the bool
+/// component. Returning `true` from this function is the row-construction
+/// signal "this is a CONCERN because github cannot accept the pack".
+///
+/// The companion fix is in `run_repair_concerns` (the auto-repair path)
+/// where the PACK_SIZE_WARNING flag short-circuits the concern: the daemon
+/// has no code path that shrinks a repo, so attempting the repair would
+/// just produce noise in journalctl every sync cycle.
+pub(crate) fn pack_too_large_forces_concern(pack_too_large: (bool, u64)) -> bool {
+    pack_too_large.0
+}
+
 pub(crate) fn repo_is_stuck_push(
     status: &dracon_git::types::RepoStatus,
     has_origin: bool,
@@ -2070,7 +2098,14 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         return "run repair-concerns --apply (pull/merge)".to_string();
     }
     if flags.iter().any(|f| f == "PACK_SIZE_WARNING") {
-        return ".git exceeds 2 GB (github limit) — may fail to push to github".to_string();
+        // CHANGED 2026-07-28 (v0.113.7): the daemon's push path now
+        // classifies this as a CONCERN (the github push is permanently
+        // skipped — see `pack_too_large_forces_concern`). The hint text
+        // reflects permanence: "is skipped" rather than "may fail". The
+        // row's STATUS cell shows ❌ CONCERN; this hint tells the
+        // operator WHICH concern (because the same row could in
+        // principle have other concern causes too).
+        return ".git exceeds 2 GB (github limit) — github push is skipped; shrink history or migrate assets to OVH".to_string();
     }
     if warn {
         return "daemon handles after changes settle; run sync-now --warns to force now"
@@ -3105,8 +3140,22 @@ pub(crate) async fn run_repos_report(
         // this HINT stays accurate after the dracon-platform github
         // exclusion is removed (the daemon pushes GitHub whenever the
         // pushable branch fits).
+        //
+        // CHANGED 2026-07-28 (v0.113.7): also classify the row as a
+        // CONCERN. The daemon's push path silently excludes GitHub for
+        // this class of repo (see `dracon-sync/src/sync.rs:1819`); the
+        // skip is permanent because the daemon has no code path that
+        // shrinks history. A silent skip is a real problem: the row sat
+        // at 🔄 ACTIVE indefinitely even though GitHub is being skipped,
+        // so the operator had to read journalctl to discover the
+        // situation. The fix routes the decision through
+        // `pack_too_large_forces_concern` (testable) and updates the
+        // HINT to reflect permanence. The auto-repair path is a no-op
+        // for this flag (see `run_repair_concerns`) because the daemon
+        // cannot fix what it cannot reach.
         if pack_too_large.0 {
             flags.push("PACK_SIZE_WARNING".to_string());
+            concern = true;
         }
 
         // ADDED 2026-07-23 (v0.112.39): `BROKEN_HISTORY:N` flag when
@@ -6355,6 +6404,23 @@ pub(crate) async fn run_repair_concerns(
             has_any_remote,
             recent_push_failure,
         );
+        // CHANGED 2026-07-28 (v0.113.7): short-circuit for
+        // PACK_SIZE_WARNING. The push path classifies a >2 GiB pushable
+        // branch as a CONCERN (see `pack_too_large_forces_concern`), but
+        // the daemon has no code path that shrinks a repo's history.
+        // Without this guard, the auto-repair path would attempt every
+        // handler below (`handle_no_origin`, `handle_no_upstream`,
+        // `handle_behind`, etc.) and fail silently, producing
+        // journalctl noise every sync cycle. The operator's response is
+        // documented in the row's HINT: shrink history (filter-repo) or
+        // migrate assets to OVH.
+        if flags.iter().any(|f| f == "PACK_SIZE_WARNING") {
+            out!(
+                "⏭️  {}  skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.",
+                repo.display()
+            );
+            continue;
+        }
         let reason = flags.join(",");
 
         out!(
@@ -7795,6 +7861,25 @@ mod tests {
             true,
             false
         ));
+    }
+
+    #[test]
+    fn test_pack_too_large_forces_concern() {
+        // CHANGED 2026-07-28 (v0.113.7): a repo whose pushable branch
+        // exceeds GitHub's 2 GiB pack limit is now classified as a
+        // CONCERN (not just a HINT). The daemon's push path silently
+        // skips GitHub for this class of repo; surfacing the row as
+        // CONCERN makes the situation visible in `dracon-sync repos`
+        // instead of buried in journalctl.
+        assert!(pack_too_large_forces_concern((true, 2_500_000_000)));
+        // Even when the measured size is not supplied (the second
+        // tuple element is 0), the bool alone drives the decision.
+        assert!(pack_too_large_forces_concern((true, 0)));
+        // A repo that fits under the 2 GiB limit is NOT a concern from
+        // this code path (other concerns may still apply; the helper
+        // only consults the bool).
+        assert!(!pack_too_large_forces_concern((false, 1_500_000_000)));
+        assert!(!pack_too_large_forces_concern((false, 0)));
     }
 
     #[test]
