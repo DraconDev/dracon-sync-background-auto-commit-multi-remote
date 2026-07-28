@@ -6378,7 +6378,19 @@ pub(crate) async fn run_repair_concerns(
             has_any_remote,
             recent_push_failure,
         );
-        if !is_concern {
+        // CHANGED 2026-07-28 (v0.113.7): the `repos` table classifies a
+        // pack-too-large as a CONCERN (see `pack_too_large_forces_concern`).
+        // The repair path must use the same predicate or the
+        // `repair concerns` flow will skip these repos entirely (the
+        // existing `repo_is_concern_with_push_failure` does not know
+        // about the size-guard signal). Without this, a CONCERN visible
+        // in `repos` would be invisible to the repair path, which is
+        // a contract violation. The same PACK_SIZE_WARNING short-circuit
+        // guard below then ensures the repair is a no-op (the daemon
+        // has no code that shrinks a repo).
+        let size_info = crate::git::github_pack_too_large(&repo, None);
+        let pack_too_large = pack_too_large_forces_concern(size_info);
+        if !is_concern && !pack_too_large {
             continue;
         }
         let stuck_push = repo_is_stuck_push(
