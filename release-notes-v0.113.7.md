@@ -37,7 +37,7 @@ skipped. Post-fix:
 
 - **Before**: row at `🔄 ACTIVE`, HINT = `.git exceeds 2 GB (github limit) — may fail to push to github`, daemon silently skipping github pushes
 - **After**: row at `❌ CONCERN`, HINT = `.git exceeds 2 GB (github limit) — github push is skipped; shrink history or migrate assets to OVH`, auto-repair cycle logs `⏭️ skipping auto-repair: github push is permanently skipped (pushable branch > 2 GiB). Operator action required.`
-- **`dracon-sync repair concerns --apply` against CAG**: `concerns_found: 1`, `operations_planned: 0`, `concerns_resolved_now: 1` — the no-op guard short-circuits with the ⏭️ log line; the concern re-flags on the next repos cycle (verifying the live behavior, not just a static test).
+- **`dracon-sync repair concerns --apply` against CAG**: `concerns_found: 1`, `operations_planned: 0`, `concerns_resolved_now: 0` — the no-op guard short-circuits with the ⏭️ log line BEFORE any handler runs, and `verify_resolution` post-check (routed through `verify_resolution_still_concern`) correctly keeps the size-only concern in the "still concerned" state. Pre-fix the post-check would have reported `concerns_resolved_now: 1` (misleading: the size issue is unchanged and the next repos cycle still shows ❌ CONCERN — the "resolved" tally was per-cycle drift, not real resolution). Post-fix the tally is honest: a size concern cannot be resolved by auto-repair, so it is not counted as resolved.
 
 ### Cross-references
 
@@ -84,12 +84,16 @@ work under a single v0.113.7 tag).
 
 ## Test count
 
-1158 → 1159 (1 new from this release: `test_pack_too_large_forces_concern`).
+1158 → 1161 (3 new from this release):
+
+1. `test_pack_too_large_forces_concern` at `dracon-sync/src/report.rs:7882` — 4-case boolean matrix
+2. `test_verify_resolution_still_concern` at `dracon-sync/src/report.rs:7988` — 6-case matrix including the size-only case (`pack_too_large=true` for an otherwise clean/synced repo)
+3. `test_pack_too_large_skips_repair` at `dracon-sync/src/report.rs:7971` — 2-case boolean matrix verifying the helper's unconditional short-circuit property
 
 ## Gate posture
 
 - `cargo build --release --locked -p dracon-sync`: ✅ clean
-- `cargo test --workspace --locked --lib --tests`: ✅ 1159 passed, 9 ignored
+- `cargo test --workspace --locked --lib --tests`: ✅ 1161 passed, 9 ignored
 - `cargo clippy --workspace --locked -- -D warnings`: ✅ no issues
 - `cargo deny check`: ✅ clean (no new dependencies)
 
