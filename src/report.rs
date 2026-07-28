@@ -6252,8 +6252,8 @@ async fn verify_resolution(
         } else {
             if human {
                 println!(
-                    "   remaining: ahead={} behind={} origin={} upstream={}",
-                    next.ahead, next.behind, has_origin, has_upstream
+                    "   remaining: ahead={} behind={} origin={} upstream={} pack_too_large={}",
+                    next.ahead, next.behind, has_origin, has_upstream, pack_still
                 );
             }
             // Only notify on true divergence (both ahead AND behind) - that's
