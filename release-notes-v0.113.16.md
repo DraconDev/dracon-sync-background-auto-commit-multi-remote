@@ -1,26 +1,32 @@
-# dracon-sync v0.113.16 (2026-07-29)
+## dracon-sync v0.113.16 — REM truth fix + 🔒 privacy marker
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Driven by three spots from the operator reading the live table.
 
-## What's Changed
+### Fixed — REM column lied about codeberg
 
-- Bump version to 0.113.16
-- (See CHANGELOG.md for the full list of changes in this release)
+The report's push-remote computation applied only the
+codeberg-public-only visibility gate and missed the daemon's
+v0.112.28 quota-posture rule (codeberg skipped at push time when the
+repo has no codeberg tracking ref AND auto-create is off). convos,
+dracon-libs, practice-form and DraconDev showed a BRIGHT 🗻 while the
+daemon deliberately skipped codeberg — a silent push-gap lie. The
+report now runs the daemon's FULL filter (`report_effective_remotes`)
+and `codeberg_skip_reason` gains a `"quota"` variant so quota skips
+are distinguishable from visibility skips.
 
-## Install
+### Added — 🔒 private-repo marker
 
-```bash
-cargo install dracon-sync --version 0.113.16
-```
+REPO cell renders `name 🔒` when the github visibility cache says
+private; unknown/unprobed repos get no marker. Legend explains it.
 
-## Docker / systemd
+### Ops (same batch, config-side)
 
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
+- hellhunter's 🚫 unowned was the ownership guard working correctly:
+  the new phase-e agent loop committed with an unwhitelisted
+  identity. Whitelisted `phase-e-agent <phase-e@local>` per the
+  AGENTS.md new-loop procedure.
+- junk-runner's repo-local identity was the placeholder
+  `dracon@example.com` (masked from the guard by its `owned = true`
+  override) — fixed to the canonical `dracsharp@gmail.com`.
 
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.15...v0.113.16
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
