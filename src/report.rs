@@ -2825,7 +2825,8 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · N excl = excluded by policy",
         "           🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
-        " PUSH      ✅ OK all remotes pushed · 🟣 PENDING push in flight · ❌ FAIL last push failed (see journal)",
+        " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
+        " REM       push remotes 🐙 github · 🦊 gitlab · 🏔 codeberg (dim = excluded from auto-push)",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
@@ -5538,6 +5539,10 @@ fn print_repos_rich_table(
         };
 
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+        // v0.113.15: successful PUSH cells carry the last-push age.
+        let push_text = push_cell_with_age(push_text, &row.last_push);
+        // v0.113.15: REM cell — embedded ANSI, so no .fg() on this cell.
+        let rem_text = rem_cell_content(&row.push_to_remotes, &row.excluded_remotes);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
@@ -5569,6 +5574,7 @@ fn print_repos_rich_table(
             Cell::new(activity).fg(Color::White),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
+            Cell::new(rem_text),
             pulse(row.commits_1h),
             pulse(row.commits_6h),
             pulse(row.commits_24h),
@@ -11326,7 +11332,7 @@ mod tests {
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
         for col in [
-            "STATUS", "ACTIVITY", "A/B", "PUSH", "1H/6H/24H", "SIZE", "TOUCHED", "excl",
+            "STATUS", "ACTIVITY", "A/B", "PUSH", "REM", "1H/6H/24H", "SIZE", "TOUCHED", "excl",
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
@@ -11337,6 +11343,9 @@ mod tests {
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
         assert!(!text.contains("USED"), "USED column was dropped");
+        // v0.113.15: REM icon semantics explained (dim = excluded).
+        assert!(text.contains("🐙"), "REM github icon in legend");
+        assert!(text.contains("dim"), "REM dim=excluded note in legend");
     }
 
     /// Every legend line must fit LEGEND_MIN_WIDTH display columns so the
@@ -11361,21 +11370,24 @@ mod tests {
         // column width, also bump this test and re-check on 165-col terminals.
         const NUM_COL: usize = 4;
         const STATUS_COL: usize = 12;
-        const REPO_COL: usize = 22;
-        const ACTIVITY_COL: usize = 28;
+        // v0.113.15: REPO 22→20, ACTIVITY 28→24 fund the REM column (+9
+        // with border+padding) inside the same 165-col budget.
+        const REPO_COL: usize = 20;
+        const ACTIVITY_COL: usize = 24;
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
+        const REM_COL: usize = 6;
         // v0.113.13: USED dropped, COMMITS split into 1H/6H/24H (5 each).
         const C1H_COL: usize = 5;
         const C6H_COL: usize = 5;
         const C24H_COL: usize = 5;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 16;
-        let num_cols = 11;
+        let num_cols = 12;
         let border_overhead = num_cols + 1;
         let cell_padding = num_cols * 2;
         let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + AB_COL + PUSH_COL
-            + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
+            + REM_COL + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
         let total = fixed + border_overhead + cell_padding;
         assert!(
             total <= 165,
