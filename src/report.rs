@@ -1005,6 +1005,17 @@ pub(crate) struct RepoReportRow {
     /// incident (2092 missing objects, both sides broken, days of
     /// undetected broken pushes).
     missing_objects: u64,
+    /// ADDED 2026-07-29 (v0.113.8 follow-up): true iff this row's
+    /// pushable branch exceeds github's 2 GiB pack-size limit
+    /// (matches `pack_too_large_forces_concern`'s underlying bool).
+    /// Distinct from `git_size_bytes` (compressed on-disk) which
+    /// can be ≥ 2 GiB without the push being broken (deathrun's
+    /// pre-gc residue case). Used by the SIZE column to color the
+    /// cell Red iff the push is genuinely broken, not just because
+    /// the gitdir happens to be large. See `size_label` for the
+    /// full rationale + the deathrun CLEAN-vs-red contradiction
+    /// this fix prevents.
+    pack_too_large: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -4725,56 +4736,70 @@ pub(crate) fn commits_window_label(row: &RepoReportRow) -> String {
 }
 
 /// Render the `SIZE` column — git_size_bytes formatted in adaptive
-/// units (B / KiB / MiB / GiB), color-coded by the github 2-GiB
-/// pack-size threshold:
-/// - Red: ≥ 2 GiB (github pack-size guard will refuse to push;
-///   matches the daemon's PACK_SIZE_WARNING concern).
-/// - Yellow: ≥ 1 GiB (warning zone — close to the limit, capacity
-///   planning should start).
-/// - White: < 1 GiB (normal).
+/// units (B / KiB / MiB / GiB), color-coded by the github
+/// pack-size concern rather than the raw gitdir size threshold.
 ///
-/// Returns (label, color). The label is right-aligned (operator
-/// scans sizes by magnitude, so trailing `B` is fine).
-pub(crate) fn size_label(bytes: Option<u64>) -> (String, Color) {
+/// ADVISOR-CATCH (v0.113.8 follow-up): the original `size_label`
+/// colored the cell red based on `git_size_bytes` ≥ 2 GiB. But
+/// `git_size_bytes` (from `git count-objects -v`) is the COMPRESSED
+/// pack-on-disk size, while the daemon's `PACK_SIZE_WARNING` /
+/// `pack_too_large_forces_concern` predicates fire on the
+/// PUSHABLE-UNCOMPRESSED blob sum (the bytes that would actually
+/// ship to a remote). These diverge exactly where it matters:
+///
+/// - junk-runner: gitdir 2.06 GiB (compressed) vs 3.79 GiB
+///   pushable (uncompressed) → both are over 2 GiB, but the
+///   real signal is the pushable size.
+/// - deathrun: gitdir 4.08 GiB (pre-gc pack residue) but
+///   ✅ CLEAN (the pushable is well under 2 GiB post-orphan-cutover)
+///   → a red SIZE cell would falsely read as "github push broken"
+///   when it isn't.
+///
+/// The fix: the caller passes `pack_too_large` (the same bool
+/// the daemon uses for the PACK_SIZE_WARNING concern). Red iff
+/// `pack_too_large == true` (the actual github-rejection
+/// condition). Yellow iff gitdir ≥ 1 GiB (capacity-planning
+/// warning zone, irrespective of push). White otherwise.
+///
+/// Threshold constants match `dracon_git::github_pack_too_large`:
+/// 2 GiB = 2 * 1024^3 = 2_147_483_648 bytes. 1 GiB is half the
+/// threshold — the "warning zone" before github refuses.
+pub(crate) fn size_label(bytes: Option<u64>, pack_too_large: bool) -> (String, Color) {
     let Some(b) = bytes else {
         return ("?".to_string(), Color::DarkGrey);
     };
-    // Threshold constants match `dracon_git::github_pack_too_large`:
-    // 2 GiB = 2 * 1024^3 = 2_147_483_648 bytes. 1 GiB is half the
-    // threshold — the "warning zone" before github refuses.
     const GIB: u64 = 1024 * 1024 * 1024;
     const MIB: u64 = 1024 * 1024;
     const KIB: u64 = 1024;
-    let (label, color) = if b >= 2 * GIB {
-        (
-            if b >= GIB * 10 {
-                format!("{:.0} GiB", b as f64 / GIB as f64)
-            } else {
-                format!("{:.2} GiB", b as f64 / GIB as f64)
-            },
-            Color::Red,
-        )
+    // Adaptive-unit formatting (B → KiB → MiB → GiB), picking
+    // precision by magnitude so the cell stays scannable.
+    let format_size = |bytes: u64| -> String {
+        if bytes >= GIB * 10 {
+            format!("{:.0} GiB", bytes as f64 / GIB as f64)
+        } else if bytes >= GIB {
+            format!("{:.2} GiB", bytes as f64 / GIB as f64)
+        } else if bytes >= MIB * 100 {
+            format!("{:.0} MiB", bytes as f64 / MIB as f64)
+        } else if bytes >= MIB {
+            format!("{:.1} MiB", bytes as f64 / MIB as f64)
+        } else if bytes >= KIB {
+            format!("{:.0} KiB", bytes as f64 / KIB as f64)
+        } else {
+            format!("{bytes} B")
+        }
+    };
+    let label = format_size(b);
+    // Color priority: pack_too_large > gitdir ≥ 1 GiB > normal.
+    // This way the SIZE cell color and the row's CONCERN/ACTIVE
+    // state are visually consistent: a red SIZE cell means
+    // "github push is broken" (the operator's question),
+    // not "gitdir happens to be over 2 GiB".
+    let color = if pack_too_large {
+        Color::Red
     } else if b >= GIB {
-        (
-            format!("{:.2} GiB", b as f64 / GIB as f64),
-            Color::Yellow,
-        )
-    } else if b >= MIB {
-        (
-            if b >= MIB * 100 {
-                format!("{:.0} MiB", b as f64 / MIB as f64)
-            } else {
-                format!("{:.1} MiB", b as f64 / MIB as f64)
-            },
-            Color::White,
-        )
-    } else if b >= KIB {
-        (
-            format!("{:.0} KiB", b as f64 / KIB as f64),
-            Color::White,
-        )
+        Color::Yellow
     } else {
-        (format!("{b} B"), Color::White)
+        Color::White
     };
     (label, color)
 }
@@ -5179,20 +5204,22 @@ fn print_repos_rich_table(
         + COMMITS_COL
         + SIZE_COL
         + TOUCHED_COL;
-    // Sanity-check the table fits a 165-col terminal (the new
-    // post-v0.113.8 minimum); if it doesn't, the columns overflow
-    // and the table renders wrong. The test
-    // `test_rich_table_fits_narrow_terminal` pins this minimum.
-    // Operators on narrower terminals get the compact table instead
-    // (terminal-width branching in `run_repos_report`).
-    assert!(
-        fixed + border_overhead + cell_padding <= width || width >= 165,
-        "rich table fixed width {} + borders {} + padding {} > terminal width {}",
-        fixed,
-        border_overhead,
-        cell_padding,
-        width
-    );
+    // ADVISOR-CATCH (v0.113.8 follow-up): the original code had an
+    // `assert!` here that panicked the process when `--layout rich`
+    // was forced on a < 165-col terminal. The assert exists as a
+    // development-time sanity check (the test
+    // `test_rich_table_fits_narrow_terminal` pins the invariant),
+    // but panicking a user-facing CLI on a forced layout override
+    // is the wrong enforcement — comfy-table degrades gracefully
+    // by squashing columns when the Absolute width doesn't fit,
+    // and the column-set logic at runtime handles it.
+    //
+    // Operators on 90-164 col terminals get the Compact tier via
+    // `choose_layout_tier`. Operators who explicitly pass
+    // `--layout rich` on a narrower terminal get the same
+    // comfortable-column-squashing graceful render. No more
+    // runtime panics.
+    let _ = (fixed, border_overhead, cell_padding, width); // suppress unused warnings
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
@@ -5332,8 +5359,12 @@ fn print_repos_rich_table(
         let commits = truncate_unicode_width(&commits_window_label(row), commits_budget);
 
         // ADDED 2026-07-28 (v0.113.8): SIZE column = adaptive units,
-        // color-coded by github 2-GiB threshold.
-        let (size_text, size_color) = size_label(row.git_size_bytes);
+        // color-coded by the actual github-pack-limit concern
+        // (pack_too_large), not the raw gitdir size. See the doc
+        // comment on `size_label` for why this matters (deathrun
+        // would otherwise show a red SIZE cell while its STATUS
+        // cell is ✅ CLEAN, contradicting itself).
+        let (size_text, size_color) = size_label(row.git_size_bytes, row.pack_too_large);
 
         // ADDED 2026-07-28 (v0.113.8): TOUCHED column = last author + when.
         let touched = truncate_unicode_width(&touched_label(row), touched_budget);
