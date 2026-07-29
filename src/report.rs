@@ -11014,14 +11014,14 @@ mod tests {
                 untracked: 0,
                 ahead: 0,
                 behind: 0,
-                last_hash: last_hash.into(),
+                last_hash: (*last_hash).into(),
                 last_author: "DraconDev".into(),
                 last_when: "1h".into(),
                 last_msg: "msg".into(),
                 last_unix: 0,
-                commits_1h: c1h,
-                commits_6h: c6h,
-                commits_24h: c24h,
+                commits_1h: *c1h,
+                commits_6h: *c6h,
+                commits_24h: *c24h,
                 last_push: String::new(),
                 push_status: "OK".into(),
                 push_error: String::new(),
@@ -11062,7 +11062,7 @@ mod tests {
             ("3.79 GiB", (1024u64 * 1024 * 1024 * 379) / 100, "GiB"), // ≥ 2 GiB → red
             ("20.0 GiB", 20 * 1024 * 1024 * 1024, "GiB"),
         ];
-        for (name, bytes, expected_substr) in cases {
+        for (name, &bytes, expected_substr) in cases {
             let (label, color) = size_label(Some(bytes));
             assert!(
                 label.contains(expected_substr),
