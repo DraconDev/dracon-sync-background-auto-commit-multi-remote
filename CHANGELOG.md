@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added
+
+- **REM column in the rich `repos` table** (operator request,
+  2026-07-29): one icon per configured push remote — 🐙 github,
+  🦊 gitlab, 🗻 codeberg — bright when the daemon pushes there,
+  dimmed when excluded from auto-push (e.g. junk-runner's
+  policy-excluded codeberg). Unknown remote names render as their
+  first two letters rather than being dropped. Width funded by
+  narrowing REPO 22→20, ACTIVITY 28→23, TOUCHED 16→15 (still 165-col
+  budget). Requires comfy-table's `custom_styling` feature (now
+  enabled) so the per-icon embedded ANSI is width-safe. Legend gained
+  the REM explainer line. NOTE: codeberg is 🗻 (U+1F5FB) not ⛰/🏔 —
+  those measure width-1 in unicode-width but render 2, which would
+  break the table math.
+- **Last-push age in the PUSH cell** (operator request): a successful
+  push cell now reads `✅ OK 5m` / `✅ OK 3h` (git `%cr` relative time
+  parsed + shortened via the ACTIVITY age pipeline). PENDING/FAIL
+  cells unchanged.
+
 ## [0.113.14] - 2026-07-29
 
 ### Fixed
