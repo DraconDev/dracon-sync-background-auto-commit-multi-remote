@@ -263,10 +263,11 @@ fn compressed_pack_bytes(repo: &std::path::Path, shas: &str) -> Option<u64> {
 /// Estimate the raw byte size of objects reachable from the branch the daemon
 /// pushes (the checked-out branch), excluding submodule gitlink objects (which
 /// live in nested repos, not this one). Whole-branch variant retained for
-/// report/tests; the github guard uses the per-remote delta variant via
+/// tests; the github guard uses the per-remote delta variant via
 /// `github_push_basis_bytes`.
 ///
 /// Returns `u64::MAX` when the branch can't be determined or git errors.
+#[cfg(test)]
 fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
     let branch = match current_branch(repo) {
         Some(b) => b,

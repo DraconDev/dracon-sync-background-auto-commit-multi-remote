@@ -3735,6 +3735,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // blocked two statements later.
     if !dry_run {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
+        // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
+        // daemon-created branches + orphaned remote-tracking refs.
+        // Placed with maybe_auto_gc: post-fetch (tracking tips fresh
+        // for the remote-deletion comparisons), below
+        // `check_conflict_state` (never mutates refs mid-merge/
+        // rebase), and gated off in dry-run. Opt-in via
+        // `auto_prune_stale_backup_branches` (default false).
+        crate::git::maybe_prune_stale_backup_branches(
+            repo,
+            policy.auto_prune_stale_backup_branches,
+            &policy.backup_dir,
+        )
+        .await;
     }
 
     if !is_repo_ready(repo) {
