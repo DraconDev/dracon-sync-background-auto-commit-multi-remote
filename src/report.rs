@@ -10453,12 +10453,18 @@ mod tests {
         // Rich (6-column table), NOT Vertical. Vertical remains
         // available via `--layout vertical` and as the `repos <name>`
         // per-repo detail format.
-        for w in [40, 80, 100, 119, 120, 150, 180, 199, 219, 237, 241] {
+        // CHANGED 2026-07-28 (v0.113.8): 165-241 cols route to Rich;
+        // 90-164 cols route to Compact (the new Rich tier needs
+        // ≥165 cols minimum — added USED, COMMITS, SIZE, TOUCHED
+        // columns grew the total width from ~120 to ~165). The test
+        // covers both the new Compact zone (90-164) and the Rich
+        // zone (165-241).
+        for w in [165, 180, 199, 219, 237, 241] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
                 LayoutTier::Rich,
-                "width {} should be Rich (v0.112.38 default)",
+                "width {} should be Rich (v0.113.8 default)",
                 w
             );
         }
@@ -10474,7 +10480,10 @@ mod tests {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
         // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
         // 238 → 242 to match the HINT column bump (22 → 26 cols).
-        for w in [242, 249, 299] {
+        // CHANGED 2026-07-28 (v0.113.8): Compact now also covers the
+        // 90-164 zone (was previously Rich) — the new Rich tier
+        // needs ≥165 cols minimum. The 242-299 zone is unchanged.
+        for w in [90, 120, 164, 242, 249, 299] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
