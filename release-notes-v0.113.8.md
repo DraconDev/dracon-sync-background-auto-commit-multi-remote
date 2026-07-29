@@ -64,16 +64,33 @@ The split matters because:
   mean much, but combined with `0/0/0` in the smaller windows
   tells the operator the repo is dormant.
 
-### SIZE — gitdir bytes, color-coded by github 2-GiB threshold
+### SIZE — gitdir bytes, color-coded by the github pack-limit concern
 
 Adaptive units (B → KiB → MiB → GiB). Color the cell:
-- **Red** at ≥ 2 GiB (github pack-size guard refuses)
-- **Yellow** at ≥ 1 GiB (warning zone, capacity planning)
-- **White** at < 1 GiB (normal)
+- **Red** at `pack_too_large = true` (github genuinely refuses
+  the push; matches the daemon's `PACK_SIZE_WARNING` /
+  `pack_too_large_forces_concern` predicate exactly).
+- **Yellow** at ≥ 1 GiB gitdir (capacity-planning warning zone,
+  irrespective of whether the push is actually broken).
+- **White** at < 1 GiB gitdir (normal).
 
-The threshold matches the daemon's `PACK_SIZE_WARNING`
-concern exactly — so the SIZE cell color and the row's
-CONCERN/ACTIVE state are visually consistent.
+**ADVISOR-CATCH (v0.113.8 follow-up)**: the original `size_label`
+colored the cell red based on `git_size_bytes` ≥ 2 GiB. But
+`git_size_bytes` (from `git count-objects -v`) is the COMPRESSED
+pack-on-disk size, while the daemon's PACK_SIZE_WARNING concern
+fires on the PUSHABLE-UNCOMPRESSED blob sum (the bytes that would
+actually ship to a remote). These diverge exactly where it
+matters: **deathrun** has 4.08 GiB gitdir (pre-gc pack residue)
+but is ✅ CLEAN (the pushable is well under 2 GiB
+post-orphan-cutover). The original red would falsely read as
+"github push broken" when it isn't.
+
+The fix threads `pack_too_large` (the same bool the daemon
+uses for PACK_SIZE_WARNING) through `size_label(Option<u64>, bool)`.
+Red iff `pack_too_large == true` (the actual github-rejection
+condition); yellow iff gitdir ≥ 1 GiB (capacity warning
+independent of push). The SIZE cell color and the row's
+CONCERN/ACTIVE state are now visually consistent.
 
 ### TOUCHED — last commit author + when
 
@@ -140,9 +157,9 @@ into the per-repo detail view for any of these.
 **Lost**: the HINT column's prose. The `.git exceeds 2 GB
 (github limit)` hint was the most-asked-for hint in the
 fleet — it's now implicit from the SIZE cell color (red at
-≥ 2 GiB). Other hints (e.g. `intentional legacy isolation,
-no upstream configured`) are reachable via `dracon-sync repos
-<name>` or `--layout vertical`.
+`pack_too_large == true`). Other hints (e.g. `intentional
+legacy isolation, no upstream configured`) are reachable via
+`dracon-sync repos <name>` or `--layout vertical`.
 
 **Gained**: 4 diagnostic columns answering the operator's
 3 explicit questions. The information was already collected
@@ -154,6 +171,19 @@ Compact tier (16-column `--layout compact` view). The
 Compact tier is unchanged from v0.113.7 — it still has the
 HINT column + a PUSH-TO column for deep inspection on
 narrower terminals.
+
+**v0.113.8 follow-up (advisor-catch)**: the original
+`size_label(bytes: Option<u64>) -> (String, Color)` colored
+the cell red on `bytes ≥ 2 GiB`. This was wrong because
+`git_size_bytes` measures the COMPRESSED pack-on-disk size
+while the daemon's PACK_SIZE_WARNING concern fires on the
+PUSHABLE-UNCOMPRESSED blob sum. **deathrun** has 4.08 GiB
+gitdir but is ✅ CLEAN — the red cell would have falsely
+read as "github push broken" when it isn't. Fix:
+`size_label(Option<u64>, bool)` now takes `pack_too_large`
+explicitly. Red iff `pack_too_large == true` (matches the
+daemon's CONCERN predicate); yellow iff gitdir ≥ 1 GiB
+(capacity warning independent of push); white otherwise.
 
 ## Test discipline
 
