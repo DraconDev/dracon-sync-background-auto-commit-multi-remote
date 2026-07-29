@@ -5380,14 +5380,16 @@ fn print_repos_rich_table(
     const AB_COL: usize = 9;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
     const PUSH_COL: usize = 12;
-    // ADDED 2026-07-28 (v0.113.8): USED column (combined human+daemon
-    // activity tier). Width 9 fits the header `👆 USED` (7 cols) +
-    // 2 padding.
-    const USED_COL: usize = 9;
-    // COMMITS column: `N/N/N` (3 segments of up to 3 digits) = 9 chars
-    // + 2 padding = 11; absolute 12 fits the header `📊 COMMITS` (10 cols)
-    // + 2 padding.
-    const COMMITS_COL: usize = 12;
+    // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
+    // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
+    // and the single COMMITS column was split into three separate
+    // 1H / 6H / 24H columns (operator: "the commits per time can have
+    // columns too, now they are just dumped together"). Each fits a
+    // 3-digit value + 2 padding; the freed 21 cols (USED 9 + COMMITS
+    // 12) fund the 15 (3×5) with 6 cols of headroom returned.
+    const C1H_COL: usize = 5;
+    const C6H_COL: usize = 5;
+    const C24H_COL: usize = 5;
     // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
     // = 10; absolute 10 fits the largest realistic value.
     const SIZE_COL: usize = 10;
@@ -5396,7 +5398,7 @@ fn print_repos_rich_table(
     const TOUCHED_COL: usize = 16;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 10; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, USED, COMMITS, SIZE, TOUCHED
+    let num_cols = 11; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, 1H, 6H, 24H, SIZE, TOUCHED
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
@@ -5405,8 +5407,9 @@ fn print_repos_rich_table(
         + ACTIVITY_COL
         + AB_COL
         + PUSH_COL
-        + USED_COL
-        + COMMITS_COL
+        + C1H_COL
+        + C6H_COL
+        + C24H_COL
         + SIZE_COL
         + TOUCHED_COL;
     // ADVISOR-CATCH (v0.113.8 follow-up): the original code had an
@@ -5443,8 +5446,9 @@ fn print_repos_rich_table(
         bold("ACTIVITY"),
         bold("A/B"),
         bold("PUSH"),
-        bold("USED"),
-        bold("COMMITS"),
+        bold("1H"),
+        bold("6H"),
+        bold("24H"),
         bold("SIZE"),
         bold("TOUCHED"),
     ];
@@ -5476,25 +5480,27 @@ fn print_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
     table
         .column_mut(6)
-        .expect("USED column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(USED_COL as u16)));
+        .expect("1H column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C1H_COL as u16)));
     table
         .column_mut(7)
-        .expect("COMMITS column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(COMMITS_COL as u16)));
+        .expect("6H column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C6H_COL as u16)));
     table
         .column_mut(8)
+        .expect("24H column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C24H_COL as u16)));
+    table
+        .column_mut(9)
         .expect("SIZE column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
     table
-        .column_mut(9)
+        .column_mut(10)
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
     let repo_budget = REPO_COL.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
-    let used_budget = USED_COL.saturating_sub(2);
-    let commits_budget = COMMITS_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
         let (status_text, status_color) = status_pair(row);
@@ -5554,14 +5560,17 @@ fn print_repos_rich_table(
 
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
 
-        // ADDED 2026-07-28 (v0.113.8): USED column = combined
-        // human+daemon activity tier. See `used_label` for tier
-        // thresholds. Truncate to fit the narrow 5-col content area
-        // (the emoji takes 2 cols, the 4-char label takes 4).
-        let used = truncate_unicode_width(&used_label(row), used_budget);
-
-        // ADDED 2026-07-28 (v0.113.8): COMMITS column = 1h/6h/24h split.
-        let commits = truncate_unicode_width(&commits_window_label(row), commits_budget);
+        // CHANGED 2026-07-29 (v0.113.13): USED column dropped
+        // (duplicated ACTIVITY) and COMMITS split into three columns.
+        // A window with commits renders White (pulse), a zero window
+        // DarkGrey so the eye slides over dormant repos.
+        let pulse = |v: usize| {
+            if v > 0 {
+                Cell::new(format!("{v}")).fg(Color::White)
+            } else {
+                Cell::new("0").fg(Color::DarkGrey)
+            }
+        };
 
         // ADDED 2026-07-28 (v0.113.8): SIZE column = adaptive units,
         // color-coded by the actual github-pack-limit concern
@@ -5581,8 +5590,9 @@ fn print_repos_rich_table(
             Cell::new(activity).fg(Color::White),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
-            Cell::new(used).fg(Color::White),
-            Cell::new(commits).fg(Color::White),
+            pulse(row.commits_1h),
+            pulse(row.commits_6h),
+            pulse(row.commits_24h),
             Cell::new(size_text).fg(size_color),
             Cell::new(touched).fg(Color::White),
         ];
