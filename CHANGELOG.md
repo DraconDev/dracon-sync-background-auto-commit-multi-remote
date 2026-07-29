@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **WARN flag still read the RAW dirty counts** (operator live report,
+  2026-07-29): v0.113.13 applied exclusion-aware classification to the
+  ACTIVITY label and status flags but the `warn` computation in the
+  main `repos` row pass still read the unclassified `status` — a repo
+  whose only dirt is policy-excluded (junk-runner's
+  `.pi-glla/active.jsonl`) showed `synced · 1 excl` in ACTIVITY while
+  STATUS stayed 🟡 WARN, re-creating the exact false-WARN class the
+  release was shipped to kill. `real_is_dirty` now reads
+  `effective_status`. Verified live: junk-runner back to
+  `✅ CLEAN synced · 1 excl`, fleet header WARN 0.
+
 ## [0.113.13] - 2026-07-29
 
 ### Fixed
