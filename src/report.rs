@@ -5318,7 +5318,11 @@ fn print_repos_rich_table(
     let width = terminal_width().unwrap_or(120) as usize;
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
-    const REPO_COL: usize = 22;
+    // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
+    // ACTIVITY narrowed 28 → 24 to fund the new REM column (+9 cols
+    // incl. border+padding) within the 165-col rich-tier budget
+    // (operator: show which remotes each repo syncs to as icons).
+    const REPO_COL: usize = 20;
     // CHANGED 2026-07-28 (v0.113.8): ACTIVITY widened from 21 to 28 to
     // give the dirty/staged/untracked inline counts (`⏳ dirty 8m ·
     // 1 mod + 1 stg + 5 ut`) enough room to render without truncation
@@ -5326,7 +5330,7 @@ fn print_repos_rich_table(
     // columns take over the diagnostic role HINT used to fill, so
     // ACTIVITY can absorb the freed horizontal budget for the
     // dirty-count tail (operator's most-asked-for addition).
-    const ACTIVITY_COL: usize = 28;
+    const ACTIVITY_COL: usize = 24;
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
@@ -5334,7 +5338,20 @@ fn print_repos_rich_table(
     // 2 padding.
     const AB_COL: usize = 9;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
+    // v0.113.15: on success the cell also carries the last-push age
+    // (`✅ OK 5m`) — the string fits because the daemon pushes
+    // within seconds, so ages are almost always short forms.
     const PUSH_COL: usize = 12;
+    // ADDED 2026-07-29 (v0.113.15): REM column — one width-2 emoji
+    // per push remote (🐙 github · 🦊 gitlab · 🏔 codeberg), bright
+    // when the daemon pushes there, dim when excluded. Worst case
+    // 3 remotes × 2 cells = 6. Icons use embedded ANSI (comfy-table
+    // `custom_styling` feature makes width math ANSI-aware); a
+    // per-Cell fg can't express per-icon colors. NOTE: codeberg is
+    // 🏔 (U+1F3D4, guaranteed width-2), NOT ⛰ (U+26F0 measures
+    // width-1 in unicode-width but renders 2 — would break the
+    // table math).
+    const REM_COL: usize = 6;
     // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
     // and the single COMMITS column was split into three separate
@@ -5353,7 +5370,7 @@ fn print_repos_rich_table(
     const TOUCHED_COL: usize = 16;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 11; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, 1H, 6H, 24H, SIZE, TOUCHED
+    let num_cols = 12; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
@@ -5362,6 +5379,7 @@ fn print_repos_rich_table(
         + ACTIVITY_COL
         + AB_COL
         + PUSH_COL
+        + REM_COL
         + C1H_COL
         + C6H_COL
         + C24H_COL
@@ -5401,6 +5419,7 @@ fn print_repos_rich_table(
         bold("ACTIVITY"),
         bold("A/B"),
         bold("PUSH"),
+        bold("REM"),
         bold("1H"),
         bold("6H"),
         bold("24H"),
@@ -5435,22 +5454,26 @@ fn print_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
     table
         .column_mut(6)
+        .expect("REM column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REM_COL as u16)));
+    table
+        .column_mut(7)
         .expect("1H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C1H_COL as u16)));
     table
-        .column_mut(7)
+        .column_mut(8)
         .expect("6H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C6H_COL as u16)));
     table
-        .column_mut(8)
+        .column_mut(9)
         .expect("24H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C24H_COL as u16)));
     table
-        .column_mut(9)
+        .column_mut(10)
         .expect("SIZE column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
     table
-        .column_mut(10)
+        .column_mut(11)
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
