@@ -4910,13 +4910,17 @@ fn rem_cell_content(push_to: &[String], excluded: &[String]) -> String {
 }
 
 /// ADDED 2026-07-29 (v0.113.15): append the last-push age to a
-/// successful PUSH cell (`✅ OK 5m`). `last_push` is pre-formatted
-/// ("5m ago"); the " ago" suffix is stripped to fit PUSH_COL=12.
+/// successful PUSH cell (`✅ OK 5m`). `last_push` is a git `%cr`
+/// relative string ("4 minutes ago") — parsed to minutes and
+/// shortened via the same pipeline as ACTIVITY ages, because the
+/// raw string would overflow PUSH_COL=12 and truncate.
 fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
-    if push_text == "✅ OK" && !last_push.is_empty() {
-        format!("{} {}", push_text, last_push.trim_end_matches(" ago"))
-    } else {
-        push_text.to_string()
+    if push_text != "✅ OK" || last_push.is_empty() || last_push == "-" {
+        return push_text.to_string();
+    }
+    match parse_relative_minutes_to_u64(last_push) {
+        Some(mins) => format!("{} {}", push_text, shorten_mins(mins)),
+        None => push_text.to_string(),
     }
 }
 
@@ -5380,7 +5384,7 @@ fn print_repos_rich_table(
     // columns take over the diagnostic role HINT used to fill, so
     // ACTIVITY can absorb the freed horizontal budget for the
     // dirty-count tail (operator's most-asked-for addition).
-    const ACTIVITY_COL: usize = 24;
+    const ACTIVITY_COL: usize = 23;
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
@@ -5395,13 +5399,15 @@ fn print_repos_rich_table(
     // ADDED 2026-07-29 (v0.113.15): REM column — one width-2 emoji
     // per push remote (🐙 github · 🦊 gitlab · 🗻 codeberg), bright
     // when the daemon pushes there, dim when excluded. Worst case
-    // 3 remotes × 2 cells = 6. Icons use embedded ANSI (comfy-table
+    // 3 remotes × 2 cells = 6 content + 2 padding = 8 (Absolute
+    // width INCLUDES padding — v0.113.15 dev-test caught the dim
+    // codeberg icon being truncated at REM_COL=6). Icons use embedded ANSI (comfy-table
     // `custom_styling` feature makes width math ANSI-aware); a
     // per-Cell fg can't express per-icon colors. NOTE: codeberg is
     // 🗻 (U+1F5FB, Emoji_Presentation=Yes → width-2 in
     // unicode-width), NOT ⛰/🏔 (U+26F0/U+1F3D4 measure width-1 in
     // unicode-width but render 2 — would break the table math).
-    const REM_COL: usize = 6;
+    const REM_COL: usize = 8;
     // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
     // and the single COMMITS column was split into three separate
@@ -5417,7 +5423,7 @@ fn print_repos_rich_table(
     const SIZE_COL: usize = 10;
     // TOUCHED column: `<10-char author> <when>` = up to 14 chars +
     // 2 padding = 16; absolute 16 fits `Virtual-Pet 14m` cleanly.
-    const TOUCHED_COL: usize = 16;
+    const TOUCHED_COL: usize = 15;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
     let num_cols = 12; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
@@ -11422,16 +11428,16 @@ mod tests {
         // v0.113.15: REPO 22→20, ACTIVITY 28→24 fund the REM column (+9
         // with border+padding) inside the same 165-col budget.
         const REPO_COL: usize = 20;
-        const ACTIVITY_COL: usize = 24;
+        const ACTIVITY_COL: usize = 23;
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
-        const REM_COL: usize = 6;
+        const REM_COL: usize = 8;
         // v0.113.13: USED dropped, COMMITS split into 1H/6H/24H (5 each).
         const C1H_COL: usize = 5;
         const C6H_COL: usize = 5;
         const C24H_COL: usize = 5;
         const SIZE_COL: usize = 10;
-        const TOUCHED_COL: usize = 16;
+        const TOUCHED_COL: usize = 15;
         let num_cols = 12;
         let border_overhead = num_cols + 1;
         let cell_padding = num_cols * 2;
@@ -12184,9 +12190,12 @@ mod v011315_tests {
 
     #[test]
     fn push_cell_appends_age_on_success_only() {
-        assert_eq!(push_cell_with_age("✅ OK", "5m ago"), "✅ OK 5m");
+        assert_eq!(push_cell_with_age("✅ OK", "5 minutes ago"), "✅ OK 5m");
+        assert_eq!(push_cell_with_age("✅ OK", "3 hours ago"), "✅ OK 3h");
+        assert_eq!(push_cell_with_age("✅ OK", "2 days ago"), "✅ OK 2d");
         assert_eq!(push_cell_with_age("✅ OK", ""), "✅ OK");
-        assert_eq!(push_cell_with_age("🟣 PENDING", "5m ago"), "🟣 PENDING");
-        assert_eq!(push_cell_with_age("❌ FAIL", "5m ago"), "❌ FAIL");
+        assert_eq!(push_cell_with_age("✅ OK", "-"), "✅ OK");
+        assert_eq!(push_cell_with_age("🟣 PENDING", "5 minutes ago"), "🟣 PENDING");
+        assert_eq!(push_cell_with_age("❌ FAIL", "5 minutes ago"), "❌ FAIL");
     }
 }
