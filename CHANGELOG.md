@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **False WARN on excluded-only dirt** (goal-list item, 2026-07-29):
+  the report's dirty counts came from raw dracon-git status, which
+  includes files the daemon will never commit
+  (`auto_commit_exclude_patterns` — e.g. junk-runner's 15 MiB
+  append-only `.pi-glla/active.jsonl` — and submodule-worktree-only
+  gitlink dirt). Both looked like permanent stalls: junk-runner showed
+  `⏳ dirty 2h` + 🟡 WARN forever, and dracon-platform inherited a
+  second false WARN through the junk-runner submodule entry. The report
+  now re-derives dirty counts from `git status --porcelain -z
+  --ignore-submodules=dirty` for tracked-dirty repos only, classified
+  with the same patterns the sync loop stages by. Excluded entries show
+  as a `· N excl` ACTIVITY marker ("dirty by policy, visible, not
+  alarming") and CANNOT drive the dirty-clock or WARN; gitlink SHA
+  drift still counts (the daemon advances gitlinks). Fast: no
+  clean-filter pass, and clean repos pay nothing.
+
+### Changed
+
+- **`dracon-sync repos` table v2**: the USED column was dropped
+  (operator feedback: it duplicated ACTIVITY's tiers) and the single
+  `N/N/N` COMMITS cell was split into dedicated **1H / 6H / 24H**
+  columns (bright = active window, grey = zero). `used_label` and
+  `commits_window_label` removed; legend updated to match the shipped
+  columns; header-fit / narrow-terminal / legend tests updated.
+
 ## [0.113.12] - 2026-07-29
 
 ### Changed
