@@ -5137,17 +5137,19 @@ fn print_repos_rich_table(
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
-    // `—` = in sync. Compact (8 cols fits `↑99 ↓9`).
-    const AB_COL: usize = 8;
+    // `—` = in sync. Width 9 fits the header `↑/↓ A/B` (7 cols) +
+    // 2 padding.
+    const AB_COL: usize = 9;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
     const PUSH_COL: usize = 12;
     // ADDED 2026-07-28 (v0.113.8): USED column (combined human+daemon
-    // activity tier). Width: `🟢used` (5) + 2 padding = 7; absolute 8
-    // leaves 1 col of headroom for any future wider label.
-    const USED_COL: usize = 8;
+    // activity tier). Width 9 fits the header `👆 USED` (7 cols) +
+    // 2 padding.
+    const USED_COL: usize = 9;
     // COMMITS column: `N/N/N` (3 segments of up to 3 digits) = 9 chars
-    // + 2 padding = 11; absolute 11 fits `99/99/99` cleanly.
-    const COMMITS_COL: usize = 11;
+    // + 2 padding = 11; absolute 12 fits the header `📊 COMMITS` (10 cols)
+    // + 2 padding.
+    const COMMITS_COL: usize = 12;
     // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
     // = 10; absolute 10 fits the largest realistic value.
     const SIZE_COL: usize = 10;
@@ -10911,10 +10913,10 @@ mod tests {
             ("🏷 STATUS", 11),
             ("📦 REPO", 17),
             ("⏰ ACTIVITY", 17),
-            ("↑/↓ A/B", 8),
+            ("↑/↓ A/B", 9),
             ("🚀 PUSH", 13),
-            ("👆 USED", 8),
-            ("📊 COMMITS", 11),
+            ("👆 USED", 9),
+            ("📊 COMMITS", 12),
             ("📦 SIZE", 10),
             ("👤 TOUCHED", 16),
         ];
@@ -10934,16 +10936,20 @@ mod tests {
     /// Verify `used_label` returns the expected tier for each combination
     /// of (last_when, in_flight, push_status). The thresholds are:
     /// 🟢used = daemon active OR <60m · 🟡mod = 1h-24h · ⚪idle = 1d-7d · ⚫cold = ≥7d or unknown.
+    ///
+    /// NOTE: `last_when` is populated in the LONG form (e.g. "23 minutes ago"),
+    /// matching what `parse_relative_minutes` actually accepts — not the
+    /// shortened form (`"23m"`) that `shorten_mins()` produces.
     #[test]
     fn test_used_label_tiers() {
         let cases: &[(&str, &str, &str, &str)] = &[
             // (last_when, push_status, daemon_active_file, expected)
-            ("23m", "OK", "", "🟢used"),       // recent human commit
-            ("2h", "OK", "", "🟡mod"),         // 1h-24h
-            ("3d", "OK", "", "⚪idle"),        // 1d-7d
-            ("14d", "OK", "", "⚫cold"),        // ≥7d
-            ("—", "PENDING", "", "🟢used"),    // daemon pushing
-            ("14d", "PUSH_STUCK", "", "🟢used"), // daemon retrying
+            ("23 minutes ago", "OK", "", "🟢used"),       // recent human commit
+            ("2 hours ago", "OK", "", "🟡mod"),           // 1h-24h
+            ("3 days ago", "OK", "", "⚪idle"),           // 1d-7d
+            ("14 days ago", "OK", "", "⚫cold"),          // ≥7d
+            ("—", "PENDING", "", "🟢used"),              // daemon pushing
+            ("14 days ago", "PUSH_STUCK", "", "🟢used"),  // daemon retrying
         ];
         for (last_when, push_status, _daemon_active, expected) in cases {
             let row = RepoReportRow {
@@ -11134,11 +11140,12 @@ mod tests {
         // Standard case
         let r = row("abc", "DraconDev", "14m");
         assert_eq!(touched_label(&r), "DraconDev 14m");
-        // Long author truncates to 10 chars
-        let r = row("abc", "Virtual-Pet-Loop-Agent", "2h");
+        // Long author truncates to 10 cols (9 content + 1 ellipsis)
+        let r = row("abc", "Virtual-Pet-Loop-Agent", "2 hours ago");
         let got = touched_label(&r);
-        assert!(got.starts_with("Virtual-Pet") || got.starts_with("Virtual-Pe"), "got {got:?}");
-        assert!(got.ends_with(" 2h"), "got {got:?}");
+        // truncate_unicode_width(_, 10) produces "Virtual-P…" (9 content + 1 col for ellipsis)
+        assert!(got.starts_with("Virtual-P") && got.contains('…'), "got {got:?}");
+        assert!(got.ends_with("2 hours ago"), "got {got:?}");
         // Empty repo
         let r = row("-", "", "");
         assert_eq!(touched_label(&r), "- -");
@@ -11156,10 +11163,10 @@ mod tests {
         const STATUS_COL: usize = 12;
         const REPO_COL: usize = 22;
         const ACTIVITY_COL: usize = 28;
-        const AB_COL: usize = 8;
+        const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
-        const USED_COL: usize = 8;
-        const COMMITS_COL: usize = 11;
+        const USED_COL: usize = 9;
+        const COMMITS_COL: usize = 12;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 16;
         let num_cols = 10;
