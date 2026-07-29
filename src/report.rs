@@ -2822,11 +2822,11 @@ fn repos_legend_lines() -> &'static [&'static str] {
     &[
         "── legend ──────────────────────────────────────────────────────────────────────────────",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
-        " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
+        " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · N excl = excluded by policy",
+        "           🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed · 🟣 PENDING push in flight · ❌ FAIL last push failed (see journal)",
-        " USED      activity tier: 🟢used <1h · 🟡mod 1h-24h · ⚪idle 1d-7d · ⚫cold 7d+",
-        " COMMITS   commits in last 1h/6h/24h — the repo's pulse",
+        " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
         " hint      `dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand",
@@ -11136,8 +11136,10 @@ mod tests {
             ("⏰ ACTIVITY", 17),
             ("↑/↓ A/B", 9),
             ("🚀 PUSH", 13),
-            ("👆 USED", 9),
-            ("📊 COMMITS", 12),
+            // v0.113.13: USED dropped, COMMITS split into three.
+            ("1H", 5),
+            ("6H", 5),
+            ("24H", 5),
             ("📦 SIZE", 10),
             ("👤 TOUCHED", 16),
         ];
@@ -11285,12 +11287,13 @@ mod tests {
     #[test]
     /// v0.113.12: the legend must explain every column that ships in the
     /// rich table, plus the color semantics the operator asked about
-    /// (SIZE tiers, USED tiers).
+    /// (SIZE tiers). v0.113.13: column set changed — USED dropped,
+    /// COMMITS split into 1H/6H/24H, `N excl` marker added.
     #[test]
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
         for col in [
-            "STATUS", "ACTIVITY", "A/B", "PUSH", "USED", "COMMITS", "SIZE", "TOUCHED",
+            "STATUS", "ACTIVITY", "A/B", "PUSH", "1H/6H/24H", "SIZE", "TOUCHED", "excl",
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
@@ -11299,12 +11302,8 @@ mod tests {
             text.contains("2 GiB"),
             "SIZE red tier (github 2 GiB push limit)"
         );
-        for tier in ["🟢used", "🟡mod", "⚪idle", "⚫cold"] {
-            assert!(text.contains(tier), "USED tier {tier} must be explained");
-        }
-        // The shipped COMMITS windows are 1h/6h/24h — pin them so a future
-        // window change forces a legend update.
-        assert!(text.contains("1h/6h/24h"), "COMMITS windows");
+        // USED was dropped in v0.113.13 — the legend must not resurrect it.
+        assert!(!text.contains("USED"), "USED column was dropped");
     }
 
     /// Every legend line must fit LEGEND_MIN_WIDTH display columns so the
