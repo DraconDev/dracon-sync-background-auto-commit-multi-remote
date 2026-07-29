@@ -1,26 +1,17 @@
-# dracon-sync v0.113.14 (2026-07-29)
+## dracon-sync v0.113.14 — WARN flag reads the classified dirty counts
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Hotfix on top of v0.113.13's exclusion-aware dirty semantics.
 
-## What's Changed
+### Fixed
 
-- Bump version to 0.113.14
-- (See CHANGELOG.md for the full list of changes in this release)
+- **False WARN on excluded-only dirt, for real this time.** v0.113.13
+  applied the exclusion-aware classification to the ACTIVITY label
+  (`synced · 1 excl`) and the state flags, but the STATUS WARN flag in
+  the main `repos` row pass still read the *raw* dirty counts — so a
+  repo whose only dirt is policy-excluded (junk-runner's
+  `.pi-glla/active.jsonl`) showed `synced` in ACTIVITY while STATUS
+  stayed 🟡 WARN. One-line wiring fix: `real_is_dirty` now reads
+  `effective_status`. Verified live against the original repro:
+  junk-runner back to `✅ CLEAN synced · 1 excl`, fleet header WARN 0.
 
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.14
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.13...v0.113.14
+Upgrade: `cargo install dracon-sync --locked` or your usual update path.
