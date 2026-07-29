@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **REM column lied about codeberg for quota-postured repos**
+  (operator live-table spot, 2026-07-29): the report's
+  push-to/excluded computation applied only the codeberg-public-only
+  visibility gate, missing the daemon's v0.112.28 quota-posture rule
+  (`codeberg_push_excluded` — codeberg skipped at push time when the
+  repo has no codeberg tracking ref AND effective auto-create is
+  off). convos, dracon-libs, practice-form and DraconDev showed a
+  BRIGHT 🗻 while the daemon deliberately skipped codeberg — a
+  silent push-gap lie. New `report_effective_remotes` helper computes
+  the FULL daemon-equivalent filter once and drives both
+  `push_to_remotes` and `excluded_remotes`; `codeberg_skip_reason`
+  gains the `"quota"` variant so the compact/text renderers can
+  distinguish quota skips from visibility skips.
+
+### Added
+
+- **🔒 private-repo marker in the REPO cell** (operator request):
+  repos whose github visibility cache entry says private render as
+  `name 🔒` (3 cells carved from the truncate budget; unknown/unprobed
+  repos get no marker — a false 🔓 would be worse than none). Legend
+  gained the REPO line explaining both the ⚡branch fold and 🔒.
+
+## [0.113.16] - 2026-07-29
 ## [0.113.15] - 2026-07-29
 
 ### Added
