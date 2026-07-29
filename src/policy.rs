@@ -538,6 +538,23 @@ pub(crate) struct SyncPolicy {
     /// Default: 2 GiB. Set to 0 to disable.
     #[serde(default = "default_auto_gc_garbage_threshold_bytes")]
     pub(crate) auto_gc_garbage_threshold_bytes: u64,
+    /// ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
+    /// daemon-created branches (`backup/pre-sync-largeblob-fix-*`,
+    /// `daemon-standalone`) plus orphaned remote-tracking refs
+    /// (`refs/remotes/<removed-remote>/*`). When true, a daily per-repo
+    /// pass bundles the candidate branches into
+    /// `<backup_dir>/auto-prune/`, verifies the bundle, deletes them
+    /// locally, and deletes the remote copy on any remote whose tip
+    /// matches the recorded local tip (injecting
+    /// `DRACON_ALLOW_REWRITE=1` into that one push command's env — the
+    /// sanctioned narrow exception to the no-auto-rewrite policy,
+    /// scoped to branches the daemon itself created). Every deletion
+    /// is `log_warn!`'d with repo, branch, tip, and bundle path so the
+    /// journal remains the operator-review trail AGENTS.md assigns to
+    /// new `backup/*` branches. Requires `backup_dir` to be set.
+    /// Default: false (destructive-class actions are opt-in).
+    #[serde(default)]
+    pub(crate) auto_prune_stale_backup_branches: bool,
     #[serde(default = "default_repo_sync_timeout_secs")]
     pub(crate) repo_sync_timeout_secs: u64,
     /// Timeout for `git add` staging operations during a sync cycle.
