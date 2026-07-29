@@ -2826,7 +2826,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         "           🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
-        " REM       push remotes 🐙 github · 🦊 gitlab · 🏔 codeberg (dim = excluded from auto-push)",
+        " REM       push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (dim = excluded from auto-push)",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
@@ -4881,7 +4881,7 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
     } else if name.contains("gitlab") {
         Some("🦊")
     } else if name.contains("codeberg") {
-        Some("🏔")
+        Some("🗻")
     } else {
         None
     }
@@ -5393,14 +5393,14 @@ fn print_repos_rich_table(
     // within seconds, so ages are almost always short forms.
     const PUSH_COL: usize = 12;
     // ADDED 2026-07-29 (v0.113.15): REM column — one width-2 emoji
-    // per push remote (🐙 github · 🦊 gitlab · 🏔 codeberg), bright
+    // per push remote (🐙 github · 🦊 gitlab · 🗻 codeberg), bright
     // when the daemon pushes there, dim when excluded. Worst case
     // 3 remotes × 2 cells = 6. Icons use embedded ANSI (comfy-table
     // `custom_styling` feature makes width math ANSI-aware); a
     // per-Cell fg can't express per-icon colors. NOTE: codeberg is
-    // 🏔 (U+1F3D4, guaranteed width-2), NOT ⛰ (U+26F0 measures
-    // width-1 in unicode-width but renders 2 — would break the
-    // table math).
+    // 🗻 (U+1F5FB, Emoji_Presentation=Yes → width-2 in
+    // unicode-width), NOT ⛰/🏔 (U+26F0/U+1F3D4 measure width-1 in
+    // unicode-width but render 2 — would break the table math).
     const REM_COL: usize = 6;
     // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
@@ -12127,7 +12127,7 @@ mod v011315_tests {
     fn remote_icon_maps_canonical_hosts() {
         assert_eq!(remote_icon("github"), Some("🐙"));
         assert_eq!(remote_icon("gitlab"), Some("🦊"));
-        assert_eq!(remote_icon("codeberg"), Some("🏔"));
+        assert_eq!(remote_icon("codeberg"), Some("🗻"));
         // substring match: names like "github-mirror" still map
         assert_eq!(remote_icon("gitlab-backup"), Some("🦊"));
         assert_eq!(remote_icon("origin"), None);
@@ -12139,7 +12139,7 @@ mod v011315_tests {
             &["github".to_string(), "gitlab".to_string()],
             &["codeberg".to_string()],
         );
-        assert!(cell.contains('🐙') && cell.contains('🦊') && cell.contains('🏔'));
+        assert!(cell.contains('🐙') && cell.contains('🦊') && cell.contains('🗻'));
         // excluded icon is wrapped in the ANSI-90 dim escape (when color on)
         if crate::print::should_color() {
             assert!(cell.contains("\u{1b}[90m"), "excluded icon dimmed: {cell:?}");
