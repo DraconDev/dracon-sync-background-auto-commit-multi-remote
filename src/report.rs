@@ -2650,23 +2650,46 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 }
 
 /// Print the `repos` column legend. Invoked by `dracon-sync repos --legend`
-/// so the default report stays uncluttered; the legend is available on demand
-/// when a column is unclear.
+/// (2026-07-08) AND by the default report footer (v0.113.12, goal-list
+/// 2026-07-29: the operator was confused by the v0.113.8 columns even WITH
+/// the `--legend` pointer line — an explanation you have to remember to ask
+/// for doesn't explain). Rewritten in v0.113.12 to match the columns that
+/// actually ship in the rich table (the old text referenced removed columns:
+/// MOD, PUSH-TO, "Daemon =").
 fn print_repos_legend() {
-    println!("ℹ️  Columns:");
-    println!("   MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead · ↓ = behind upstream");
-    println!("   ACTIVITY (⏳): now = processing · pushing Xm = uploading · dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
-    println!("   USED: 🟢used = human commit in last 1h OR daemon is currently active · 🟡mod = recent (1h-24h) · ⚪idle = 1-7d · ⚫cold = 7d+");
-    println!("   COMMITS: 1h/6h/24h = commits in that window (e.g. '0/3/12' = 0 in last 1h, 3 in last 6h, 12 in last 24h)");
-    println!("   SIZE: gitdir bytes (🔴 ≥2 GiB = github pack limit; 🟡 ≥1 GiB = warning zone; ⚪ <1 GiB)");
-    println!("   TOUCHED: last commit author + when (e.g. 'DraconDev 14m')");
-    println!("ℹ️  STATUS (🏷): ✅ CLEAN = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) / no upstream / unbacked-up content (no commits) · 🚫 unowned = ownership guard tripped");
-    println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
-    println!("ℹ️  Daemon = last action + timestamp (e.g. '23s sync_commit') — proof the daemon is alive");
-    println!("⚠️  PACK SIZE: github rejects packs > 2 GiB, measured on the PUSHABLE branch (not whole .git);");
-    println!("   gitlab/codeberg have no such limit. A large repo may show 'pushing' for minutes during a");
-    println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
-    println!("ℹ️  Per-repo detail / 'why this status': run `dracon-sync repos <name>` (or --layout vertical)");
+    for line in repos_legend_lines() {
+        println!("{line}");
+    }
+}
+
+/// Narrow terminals get NO legend rather than a brokenly-wrapped one
+/// (the compact table tier prints there); `--legend` remains the
+/// on-demand escape hatch.
+const LEGEND_MIN_WIDTH: usize = 120;
+
+/// The legend as data (tests assert coverage + display width).
+fn repos_legend_lines() -> &'static [&'static str] {
+    &[
+        "── legend ──────────────────────────────────────────────────────────────────────────────",
+        " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight / recent commits · 🟡 WARN stalled · ❌ CONCERN needs a human",
+        " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
+        " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
+        " PUSH      ✅ OK all remotes pushed · 🟣 PENDING push queued/in flight · ❌ FAIL last push failed (journal has the error)",
+        " USED      activity tier: 🟢used <1h · 🟡mod 1h-24h · ⚪idle 1d-7d · ⚫cold 7d+",
+        " COMMITS   commits in last 1h/6h/24h — the repo's pulse",
+        " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
+        " TOUCHED   author + age of the most recent commit",
+        " hint      `dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand",
+    ]
+}
+
+/// Print the legend under every repos table, width-gated (v0.113.12).
+fn print_repos_legend_footer() {
+    let width = terminal_width().unwrap_or(120) as usize;
+    if width < LEGEND_MIN_WIDTH {
+        return;
+    }
+    print_repos_legend();
 }
 
 /// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
@@ -3746,13 +3769,6 @@ pub(crate) async fn run_repos_report(
     );
     println!();
 
-    // Legend moved to `dracon-sync repos --legend` (2026-07-08): the default
-    // report stays uncluttered; the legend is printed on demand when confused.
-    // See `print_repos_legend()` above for the text and the rationale.
-    println!(
-        "ℹ️  Confused by a column? Run `dracon-sync repos --legend` for the full key."
-    );
-
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
     // PUSH_STUCK used to render as letter-wrapped cells (P/U/S/H/_/S/T/U/C/K on separate
     // lines) because `ContentArrangement::Dynamic` shrinks 22 columns to ~3 chars each at
@@ -3802,6 +3818,11 @@ pub(crate) async fn run_repos_report(
             print_repos_full_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
         }
     }
+    // v0.113.12 (goal-list 2026-07-29): the legend prints UNDER every table
+    // by default (width-gated; --legend remains the on-demand form). The
+    // 2026-07-08 pointer line ("run --legend when confused") predated the
+    // v0.113.8 columns and the operator was confused anyway.
+    print_repos_legend_footer();
 
     Ok(())
 }
@@ -11247,6 +11268,46 @@ mod tests {
     /// `print_repos_compact_table` view (the terminal-width branching
     /// in `run_repos_report` already routes them there automatically).
     #[test]
+    /// v0.113.12: the legend must explain every column that ships in the
+    /// rich table, plus the color semantics the operator asked about
+    /// (SIZE tiers, USED tiers).
+    #[test]
+    fn test_repos_legend_covers_all_rich_columns() {
+        let text = repos_legend_lines().join("\n");
+        for col in [
+            "STATUS", "ACTIVITY", "A/B", "PUSH", "USED", "COMMITS", "SIZE", "TOUCHED",
+        ] {
+            assert!(text.contains(col), "legend must explain column {col}");
+        }
+        assert!(text.contains("1 GiB"), "SIZE yellow tier (≥ 1 GiB)");
+        assert!(
+            text.contains("2 GiB"),
+            "SIZE red tier (github 2 GiB push limit)"
+        );
+        for tier in ["🟢used", "🟡mod", "⚪idle", "⚫cold"] {
+            assert!(text.contains(tier), "USED tier {tier} must be explained");
+        }
+        // The shipped COMMITS windows are 1h/6h/24h — pin them so a future
+        // window change forces a legend update.
+        assert!(text.contains("1h/6h/24h"), "COMMITS windows");
+    }
+
+    /// Every legend line must fit LEGEND_MIN_WIDTH display columns so the
+    /// footer never wraps brokenly on terminals at the gate boundary.
+    #[test]
+    fn test_repos_legend_lines_fit_min_width() {
+        for line in repos_legend_lines() {
+            let w: usize = line
+                .chars()
+                .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+                .sum();
+            assert!(
+                w <= LEGEND_MIN_WIDTH,
+                "legend line ({w} cols) exceeds LEGEND_MIN_WIDTH {LEGEND_MIN_WIDTH}: {line:?}"
+            );
+        }
+    }
+
     fn test_rich_table_fits_narrow_terminal() {
         // Mirror the constants in print_repos_rich_table. If you bump a
         // column width, also bump this test and re-check on 165-col terminals.
