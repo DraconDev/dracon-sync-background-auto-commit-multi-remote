@@ -489,13 +489,20 @@ mod github_pack_tests {
             .expect("git update-ref");
     }
 
+    /// The fixture repos inherit init.defaultBranch from the ambient git
+    /// config (main on this fleet, master elsewhere) — never hardcode it.
+    fn fixture_branch(repo: &std::path::Path) -> String {
+        current_branch(repo).expect("fixture repo has a branch")
+    }
+
     #[test]
     fn delta_is_empty_when_github_already_has_the_branch() {
         // junk-runner class: the branch's objects are ALL on github already
         // (tracking ref at HEAD). Old whole-branch measure flagged this;
         // the delta is empty -> never too big.
         let repo = fixture_repo_with_github_remote();
-        set_tracking_ref(&repo, "gh", "master", &head_sha(&repo));
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
         let (too_big, basis) =
             github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
         assert!(!too_big, "empty delta must clear, basis={basis}");
@@ -543,7 +550,8 @@ mod github_pack_tests {
             .output()
             .expect("git commit-tree");
         let commit = String::from_utf8_lossy(&commit.stdout).trim().to_string();
-        set_tracking_ref(&repo, "gh", "master", &commit);
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &commit);
         let (too_big, _) =
             github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(
@@ -557,7 +565,8 @@ mod github_pack_tests {
         // gh1 is fully caught up (empty delta); gh2 is fresh (whole branch).
         // The verdict must follow the WORST remote, not the best.
         let repo = fixture_repo_with_github_remote();
-        set_tracking_ref(&repo, "gh", "master", &head_sha(&repo));
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
         crate::test_helpers::test_git_cmd()
             .args(["remote", "add", "gh2", "https://github.com/test/fixture2.git"])
             .current_dir(&repo)
