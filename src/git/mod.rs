@@ -330,10 +330,7 @@ fn blob_size_sum(repo: &std::path::Path, shas: &str) -> Option<u64> {
         Ok(c) => c,
         Err(_) => return None,
     };
-    let mut cat_stdin = match child.stdin.take() {
-        Some(s) => s,
-        None => return None,
-    };
+    let mut cat_stdin = child.stdin.take()?;
     // Writer thread: stream the SHA list, then drop stdin -> pipe EOF.
     // (owned copy: a &str borrow can't move into a thread)
     let shas_owned = shas.to_string();
