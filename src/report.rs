@@ -3573,6 +3573,13 @@ pub(crate) async fn run_repos_report(
             daemon_last_result,
             daemon_last_action_when,
             missing_objects,
+            // ADDED 2026-07-29 (v0.113.8 follow-up): the bool that
+            // drove the PACK_SIZE_WARNING flag (computed at line
+            // ~3205 above). Stored on the row so the SIZE cell can
+            // color red based on the actual github-rejection signal,
+            // not the raw gitdir size. See `size_label` for the
+            // deathrun CLEAN-vs-red contradiction this prevents.
+            pack_too_large: pack_too_large.0,
         })
             }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
@@ -4880,6 +4887,7 @@ impl crate::report::RepoReportRow {
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".into(),
             missing_objects: 0,
+            pack_too_large: false,
         }
     }
 }
@@ -9114,6 +9122,7 @@ mod tests {
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
             missing_objects: 0,
+            pack_too_large: false,
         };
         assert_eq!(row.repo, "/test/repo");
         assert_eq!(row.branch, "main");
@@ -9610,6 +9619,7 @@ mod tests {
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
             missing_objects: 0,
+            pack_too_large: false,
         }
     }
 
@@ -10247,6 +10257,7 @@ mod tests {
             daemon_last_result: String::new(),
             daemon_last_action_when: "none".to_string(),
             missing_objects: 0,
+            pack_too_large: false,
         };
         assert_eq!(row.push_status, "STUCK");
         assert!(row.push_error.contains("ahead=5"));
@@ -11043,6 +11054,7 @@ mod tests {
                 daemon_last_result: String::new(),
                 daemon_last_action_when: String::new(),
                 missing_objects: 0,
+                pack_too_large: false,
             };
             let got = used_label(&row);
             assert_eq!(
@@ -11100,16 +11112,20 @@ mod tests {
                 daemon_last_result: String::new(),
                 daemon_last_action_when: String::new(),
                 missing_objects: 0,
+                pack_too_large: false,
             };
             let got = commits_window_label(&row);
             assert_eq!(got, *expected, "commits_window_label for ({last_hash}, {c1h}, {c6h}, {c24h})");
         }
     }
 
-    /// Verify `size_label` renders adaptive units with color coding by the
-    /// github 2-GiB pack-size threshold.
+    /// Verify `size_label` renders adaptive units with color coding
+    /// by the github pack-limit concern (NOT the raw gitdir size —
+    /// see the deathrun contradiction the new signature prevents).
     #[test]
     fn test_size_label_units_and_colors() {
+        // Unit-format matrix: every reasonable byte magnitude
+        // produces the right unit suffix (B / KiB / MiB / GiB).
         let cases: &[(&str, u64, &str)] = &[
             // (label, bytes, expected_label_substring)
             ("100 bytes", 100, "B"),
@@ -11117,33 +11133,49 @@ mod tests {
             ("500 KiB", 500 * 1024, "KiB"),
             ("100 MiB", 100 * 1024 * 1024, "MiB"),
             ("999 MiB", 999 * 1024 * 1024, "MiB"),
-            ("1.50 GiB", (1024u64 * 1024 * 1024 * 3) / 2, "GiB"), // 1.5 GiB < 2 GiB → yellow
-            ("3.79 GiB", (1024u64 * 1024 * 1024 * 379) / 100, "GiB"), // ≥ 2 GiB → red
+            ("1.50 GiB", (1024u64 * 1024 * 1024 * 3) / 2, "GiB"),
+            ("3.79 GiB", (1024u64 * 1024 * 1024 * 379) / 100, "GiB"),
             ("20.0 GiB", 20 * 1024 * 1024 * 1024, "GiB"),
         ];
         for (name, bytes, expected_substr) in cases {
-            let (label, color) = size_label(Some(*bytes));
+            // Pass pack_too_large=false for the unit-format cases —
+            // the color is governed by the size threshold alone.
+            let (label, color) = size_label(Some(*bytes), false);
             assert!(
                 label.contains(expected_substr),
                 "size_label for {name} ({bytes} bytes): got label {label:?}, expected to contain {expected_substr:?}"
             );
-            // Sanity: the color is one of the 3 expected colors.
             assert!(
                 matches!(color, Color::Red | Color::Yellow | Color::White),
                 "size_label for {name}: got color {color:?}, expected Red/Yellow/White"
             );
         }
-        // 2-GiB threshold boundary: ≥ 2 GiB is red.
-        let (_, color_at_2gib) = size_label(Some(2 * 1024 * 1024 * 1024));
-        assert!(matches!(color_at_2gib, Color::Red), "2 GiB should be Red");
-        // 1.99 GiB is yellow (warning zone).
-        let (_, color_below_2gib) = size_label(Some((2u64 * 1024 * 1024 * 1024) - 1));
-        assert!(matches!(color_below_2gib, Color::Yellow), "1.99 GiB should be Yellow");
-        // 1 GiB exactly is yellow.
-        let (_, color_at_1gib) = size_label(Some(1024 * 1024 * 1024));
-        assert!(matches!(color_at_1gib, Color::Yellow), "1.00 GiB should be Yellow");
-        // 999 MiB is white.
-        let (_, color_below_1gib) = size_label(Some(999 * 1024 * 1024));
+        // Color threshold matrix: the `pack_too_large` bool is the
+        // authoritative red trigger (matches the daemon's
+        // PACK_SIZE_WARNING concern). Gitdir size only governs the
+        // yellow (capacity-planning) zone.
+        // - pack_too_large=true + any size → red (push genuinely broken)
+        // - pack_too_large=false + gitdir < 1 GiB → white
+        // - pack_too_large=false + gitdir ≥ 1 GiB → yellow
+        //
+        // deathrun's case (gitdir 4 GiB, pushable small) lands here:
+        let (_, color_deathrun) = size_label(Some(4 * 1024 * 1024 * 1024), false);
+        assert!(
+            matches!(color_deathrun, Color::Yellow),
+            "deathrun's case (4 GiB gitdir, pushable small) should be Yellow, got {color_deathrun:?}"
+        );
+        // junk-runner's case (gitdir 2 GiB, pushable > 2 GiB): red
+        let (_, color_junk) = size_label(Some(2 * 1024 * 1024 * 1024), true);
+        assert!(matches!(color_junk, Color::Red), "junk-runner's case (gitdir ≥ 2 GiB, pack_too_large=true) should be Red");
+        // 2-GiB gitdir WITHOUT pack_too_large = yellow (the
+        // pre-fix code would've colored this red, falsely)
+        let (_, color_2gib_no_concern) = size_label(Some(2 * 1024 * 1024 * 1024), false);
+        assert!(
+            matches!(color_2gib_no_concern, Color::Yellow),
+            "2 GiB gitdir with no pack_too_large concern should be Yellow (not Red)"
+        );
+        // 999 MiB is white (under the 1 GiB warning threshold)
+        let (_, color_below_1gib) = size_label(Some(999 * 1024 * 1024), false);
         assert!(matches!(color_below_1gib, Color::White), "999 MiB should be White");
     }
 
@@ -11189,6 +11221,7 @@ mod tests {
             daemon_last_result: String::new(),
             daemon_last_action_when: String::new(),
             missing_objects: 0,
+            pack_too_large: false,
         };
         // Standard case
         let r = row("abc", "DraconDev", "14m");
