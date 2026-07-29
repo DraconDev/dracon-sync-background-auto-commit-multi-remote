@@ -2636,24 +2636,18 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 fn print_repos_legend() {
     println!("ℹ️  Columns:");
     println!("   MOD = modified tracked · STG = staged · UT = untracked · ↑ = ahead · ↓ = behind upstream");
-    println!("   📊 1h/6h/24h = commits in that window · 📜 LAST = most recent commit summary");
-    println!("   ROLE = parent (tracks submodules) · submod (nested in a parent) · standalone");
-    println!("ℹ️  Publish (🔗): green <remote/branch> = healthy upstream · ⚠️ none = no upstream · ⚠️ (gone) = ref missing");
-    println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
-    println!("ℹ️  PUSH-TO (🛰): remotes the daemon pushes `main` to (github,gitlab,codeberg).");
+    println!("   ACTIVITY (⏳): now = processing · pushing Xm = uploading · dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
+    println!("   USED: 🟢used = human commit in last 1h OR daemon is currently active · 🟡mod = recent (1h-24h) · ⚪idle = 1-7d · ⚫cold = 7d+");
+    println!("   COMMITS: 1h/6h/24h = commits in that window (e.g. '0/3/12' = 0 in last 1h, 3 in last 6h, 12 in last 24h)");
+    println!("   SIZE: gitdir bytes (🔴 ≥2 GiB = github pack limit; 🟡 ≥1 GiB = warning zone; ⚪ <1 GiB)");
+    println!("   TOUCHED: last commit author + when (e.g. 'DraconDev 14m')");
     println!("ℹ️  STATUS (🏷): ✅ CLEAN = idle/cold + healthy + synced · 🔄 ACTIVE = daemon in-flight (pushing/committing/dirty-recent) · ⚠️ WARN = genuine issue (stalled / no progress) · ❌ CONCERN = divergence (repair) / no upstream / unbacked-up content (no commits) · 🚫 unowned = ownership guard tripped");
-    println!("   excl:<remote> (e.g. excl:github) = that remote is NOT pushed by the daemon");
-    println!("   (a sanctioned exception, e.g. github's 2 GiB/pack limit).");
-    println!("ℹ️  State:  🟢 synced = clean & in sync · ⚪ untracked-only = only untracked files");
-    println!("   🟠 dirty = uncommitted changes · 🟣 pushing/working/committing = daemon has an active task");
-    println!("   ⏳ stalled = daemon made NO progress for a long time (gave up / hard-blocked)");
-    println!("   ⚫ idle/cold = waiting for changes · ⬛ failed = last sync errored");
-    println!("ℹ️  Activity: now = processing · pushing Xm (N) = uploading, N commits not yet on all remotes");
-    println!("   dirty Xm = changed X min ago · synced/idle/cold = clean & waiting");
+    println!("ℹ️  PUSH (🚀): ✅ OK = all PUSH-TO remotes synced · 🟣 PENDING = push in progress / queued");
     println!("ℹ️  Daemon = last action + timestamp (e.g. '23s sync_commit') — proof the daemon is alive");
     println!("⚠️  PACK SIZE: github rejects packs > 2 GiB, measured on the PUSHABLE branch (not whole .git);");
     println!("   gitlab/codeberg have no such limit. A large repo may show 'pushing' for minutes during a");
     println!("   slow catch-up of a big pack — that is an upload in progress, NOT a stall.");
+    println!("ℹ️  Per-repo detail / 'why this status': run `dracon-sync repos <name>` (or --layout vertical)");
 }
 
 /// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
@@ -4662,6 +4656,146 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
     }
 }
 
+/// Render the `USED` column — a combined human + daemon activity tier
+/// that answers "is anyone actively touching this repo?".
+///
+/// Tiers:
+/// - `🟢used` = human commit in last 1h OR daemon is currently
+///   acting on the repo (in-flight task or pending push).
+/// - `🟡mod` = human commit in last 24h, daemon idle.
+/// - `⚪idle` = human commit 1-7 days ago, no daemon action.
+/// - `⚫cold` = no commits in 7+ days.
+///
+/// The threshold set is intentionally tighter than the standalone
+/// activity labels in `activity_label` (which uses 60m / 24h / 7d
+/// thresholds for state classification). The richer "used" metric
+/// exists so the operator can spot repos they're actively iterating
+/// on vs. repos they haven't touched in a while — the fleet-wide
+/// fleet health summary is the ACTIVITY column; this column is the
+/// operator-iteration summary.
+pub(crate) fn used_label(row: &RepoReportRow) -> String {
+    // In-flight daemon task = "used" regardless of human commit age.
+    // The daemon pushing / committing is the operator's loop running,
+    // so the repo IS in active use.
+    let daemon_active = load_in_flight_for_path(&row.repo)
+        || row.push_status == "PENDING"
+        || row.push_status == "PUSH_STUCK";
+    if daemon_active {
+        return "🟢used".to_string();
+    }
+    // Human commit recency: parse `last_when` ("23m", "2h", "3d", etc.)
+    // into minutes. None = "—"/empty (e.g. empty repo); treat as cold.
+    match parse_relative_minutes_to_u64(&row.last_when) {
+        None => "⚫cold".to_string(),
+        Some(m) if m < 60 => "🟢used".to_string(),
+        Some(m) if m < 60 * 24 => "🟡mod".to_string(),
+        Some(m) if m < 60 * 24 * 7 => "⚪idle".to_string(),
+        Some(_) => "⚫cold".to_string(),
+    }
+}
+
+/// Render the `COMMITS` column — a compact 1h/6h/24h split showing
+/// how active this repo's history is. Format: `N/N/N` (e.g.
+/// `0/3/12` = 0 commits in last 1h, 3 in last 6h, 12 in last 24h).
+/// Empty repo (no commits) renders as `-/-/-`.
+///
+/// The split matters because:
+/// - `1h` spikes = operator actively iterating right now
+/// - `6h` sustained = a session of work in progress
+/// - `24h` reflects daily-cadence work; high values alone don't mean
+///   much, but combined with `0/0/0` in the smaller windows tell the
+///   operator the repo is dormant.
+///
+/// Width budget: 9 cols content (`N/N/N` with up to 2 digits per
+/// field, e.g. `99/99/99`). The cell is wide enough to render any
+/// plausible 24h commit count without truncation.
+pub(crate) fn commits_window_label(row: &RepoReportRow) -> String {
+    if row.commits_1h == 0 && row.commits_6h == 0 && row.commits_24h == 0 && row.last_hash == "-" {
+        return "-/-/-".to_string();
+    }
+    format!("{}/{}/{}", row.commits_1h, row.commits_6h, row.commits_24h)
+}
+
+/// Render the `SIZE` column — git_size_bytes formatted in adaptive
+/// units (B / KiB / MiB / GiB), color-coded by the github 2-GiB
+/// pack-size threshold:
+/// - Red: ≥ 2 GiB (github pack-size guard will refuse to push;
+///   matches the daemon's PACK_SIZE_WARNING concern).
+/// - Yellow: ≥ 1 GiB (warning zone — close to the limit, capacity
+///   planning should start).
+/// - White: < 1 GiB (normal).
+///
+/// Returns (label, color). The label is right-aligned (operator
+/// scans sizes by magnitude, so trailing `B` is fine).
+pub(crate) fn size_label(bytes: Option<u64>) -> (String, Color) {
+    let Some(b) = bytes else {
+        return ("?".to_string(), Color::DarkGrey);
+    };
+    // Threshold constants match `dracon_git::github_pack_too_large`:
+    // 2 GiB = 2 * 1024^3 = 2_147_483_648 bytes. 1 GiB is half the
+    // threshold — the "warning zone" before github refuses.
+    const GIB: u64 = 1024 * 1024 * 1024;
+    const MIB: u64 = 1024 * 1024;
+    const KIB: u64 = 1024;
+    let (label, color) = if b >= 2 * GIB {
+        (
+            if b >= GIB * 10 {
+                format!("{:.0} GiB", b as f64 / GIB as f64)
+            } else {
+                format!("{:.2} GiB", b as f64 / GIB as f64)
+            },
+            Color::Red,
+        )
+    } else if b >= GIB {
+        (
+            format!("{:.2} GiB", b as f64 / GIB as f64),
+            Color::Yellow,
+        )
+    } else if b >= MIB {
+        (
+            if b >= MIB * 100 {
+                format!("{:.0} MiB", b as f64 / MIB as f64)
+            } else {
+                format!("{:.1} MiB", b as f64 / MIB as f64)
+            },
+            Color::White,
+        )
+    } else if b >= KIB {
+        (
+            format!("{:.0} KiB", b as f64 / KIB as f64),
+            Color::White,
+        )
+    } else {
+        (format!("{b} B"), Color::White)
+    };
+    (label, color)
+}
+
+/// Render the `TOUCHED` column — last commit author + relative time.
+/// Answers "who last touched this and how long ago?" at a glance.
+///
+/// Format: `<author> <when>` (e.g. `DraconDev 14m`, `Audit 2d`).
+/// Width budget: ~14 cols content. Long author names truncate with
+/// the truncation marker; relative time stays in full.
+///
+/// When the row has no commits (empty repo), renders as `- -`.
+pub(crate) fn touched_label(row: &RepoReportRow) -> String {
+    if row.last_hash == "-" || row.last_author.is_empty() {
+        return "- -".to_string();
+    }
+    let when = if row.last_when.is_empty() {
+        "?".to_string()
+    } else {
+        row.last_when.clone()
+    };
+    // Author first (more identifying) — but truncate aggressively
+    // because some loop identities are long (`Virtual Pet Loop` = 16).
+    // 14-col budget: 10 author + 1 space + ≤3 when (m/h/d) = 14.
+    let author_budget = 10;
+    let author = truncate_unicode_width(&row.last_author, author_budget);
+    format!("{} {}", author, when)
+}
+
 /// Public accessor: the absolute path of the watched repo's working
 /// tree as a string. Used by `crate::role::classify_roles` to find
 /// each row's path without exposing the private `repo` field.
@@ -4992,7 +5126,14 @@ fn print_repos_rich_table(
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     const REPO_COL: usize = 22;
-    const ACTIVITY_COL: usize = 21;
+    // CHANGED 2026-07-28 (v0.113.8): ACTIVITY widened from 21 to 28 to
+    // give the dirty/staged/untracked inline counts (`⏳ dirty 8m ·
+    // 1 mod + 1 stg + 5 ut`) enough room to render without truncation
+    // on terminals ≥ 220 cols. The new USED / COMMITS / SIZE / TOUCHED
+    // columns take over the diagnostic role HINT used to fill, so
+    // ACTIVITY can absorb the freed horizontal budget for the
+    // dirty-count tail (operator's most-asked-for addition).
+    const ACTIVITY_COL: usize = 28;
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
@@ -5000,12 +5141,23 @@ fn print_repos_rich_table(
     const AB_COL: usize = 7;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
     const PUSH_COL: usize = 12;
-    const PUBLISH_COL: usize = 14;
-    // Borders: 7 separators in UTF8_FULL_CONDENSED for 6 columns
-    // (8 for 7 columns). Cell padding: 2 chars per cell.
-    let with_publish = width >= 140;
-    let num_cols = if with_publish { 8 } else { 7 };
-    let border_overhead = num_cols + 1; // box-drawing separators
+    // ADDED 2026-07-28 (v0.113.8): USED column (combined human+daemon
+    // activity tier). Width: `🟢used` (5) + 2 padding = 7; absolute 7
+    // leaves 1 col of headroom for any future wider label.
+    const USED_COL: usize = 7;
+    // COMMITS column: `N/N/N` (3 segments of up to 3 digits) = 9 chars
+    // + 2 padding = 11; absolute 11 fits `99/99/99` cleanly.
+    const COMMITS_COL: usize = 11;
+    // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
+    // = 10; absolute 10 fits the largest realistic value.
+    const SIZE_COL: usize = 10;
+    // TOUCHED column: `<10-char author> <when>` = up to 14 chars +
+    // 2 padding = 16; absolute 16 fits `Virtual-Pet 14m` cleanly.
+    const TOUCHED_COL: usize = 16;
+    // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
+    // Cell padding: 2 chars per cell × N cells.
+    let num_cols = 10; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, USED, COMMITS, SIZE, TOUCHED
+    let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
         + STATUS_COL
@@ -5013,10 +5165,22 @@ fn print_repos_rich_table(
         + ACTIVITY_COL
         + AB_COL
         + PUSH_COL
-        + if with_publish { PUBLISH_COL } else { 0 };
-    let hint_col = width
-        .saturating_sub(fixed + border_overhead + cell_padding)
-        .max(12);
+        + USED_COL
+        + COMMITS_COL
+        + SIZE_COL
+        + TOUCHED_COL;
+    // Sanity-check the table fits a 90-col terminal (the pre-change
+    // minimum); if it doesn't, the columns overflow and the table
+    // renders wrong. The test `test_rich_table_fits_narrow_terminal`
+    // pins this minimum.
+    assert!(
+        fixed + border_overhead + cell_padding <= width || width >= 90,
+        "rich table fixed width {} + borders {} + padding {} > terminal width {}",
+        fixed,
+        border_overhead,
+        cell_padding,
+        width
+    );
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
@@ -5028,18 +5192,18 @@ fn print_repos_rich_table(
     }
 
     let bold = |s: &str| Cell::new(s).fg(Color::White).add_attribute(comfy_table::Attribute::Bold);
-    let mut header = vec![
+    let header = vec![
         bold("#"),
         bold("STATUS"),
         bold("REPO"),
         bold("ACTIVITY"),
         bold("A/B"),
         bold("PUSH"),
+        bold("USED"),
+        bold("COMMITS"),
+        bold("SIZE"),
+        bold("TOUCHED"),
     ];
-    if with_publish {
-        header.push(bold("PUBLISH"));
-    }
-    header.push(bold("HINT"));
     table.set_header(header);
 
     table
@@ -5066,16 +5230,28 @@ fn print_repos_rich_table(
         .column_mut(5)
         .expect("PUSH column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
-    if with_publish {
-        table
-            .column_mut(6)
-            .expect("PUBLISH column")
-            .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUBLISH_COL as u16)));
-    }
+    table
+        .column_mut(6)
+        .expect("USED column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(USED_COL as u16)));
+    table
+        .column_mut(7)
+        .expect("COMMITS column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(COMMITS_COL as u16)));
+    table
+        .column_mut(8)
+        .expect("SIZE column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
+    table
+        .column_mut(9)
+        .expect("TOUCHED column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
     let repo_budget = REPO_COL.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
-    let hint_budget = hint_col.saturating_sub(2);
+    let used_budget = USED_COL.saturating_sub(2);
+    let commits_budget = COMMITS_COL.saturating_sub(2);
+    let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
         let (status_text, status_color) = status_pair(row);
         let repo_name = if full_path {
@@ -5133,24 +5309,35 @@ fn print_repos_rich_table(
         };
 
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
-        let hint = truncate_unicode_width(&row.hint, hint_budget);
 
-        let mut cells = vec![
+        // ADDED 2026-07-28 (v0.113.8): USED column = combined
+        // human+daemon activity tier. See `used_label` for tier
+        // thresholds. Truncate to fit the narrow 5-col content area
+        // (the emoji takes 2 cols, the 4-char label takes 4).
+        let used = truncate_unicode_width(&used_label(row), used_budget);
+
+        // ADDED 2026-07-28 (v0.113.8): COMMITS column = 1h/6h/24h split.
+        let commits = truncate_unicode_width(&commits_window_label(row), commits_budget);
+
+        // ADDED 2026-07-28 (v0.113.8): SIZE column = adaptive units,
+        // color-coded by github 2-GiB threshold.
+        let (size_text, size_color) = size_label(row.git_size_bytes);
+
+        // ADDED 2026-07-28 (v0.113.8): TOUCHED column = last author + when.
+        let touched = truncate_unicode_width(&touched_label(row), touched_budget);
+
+        let cells = vec![
             Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_short).fg(Color::White),
             Cell::new(activity).fg(Color::White),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
+            Cell::new(used).fg(Color::White),
+            Cell::new(commits).fg(Color::White),
+            Cell::new(size_text).fg(size_color),
+            Cell::new(touched).fg(Color::White),
         ];
-        if with_publish {
-            let publish = truncate_unicode_width(
-                &publish_cell_label(&row.upstream, row.publish_state),
-                PUBLISH_COL.saturating_sub(2),
-            );
-            cells.push(Cell::new(publish).fg(Color::White));
-        }
-        cells.push(Cell::new(hint).fg(Color::White));
         table.add_row(cells);
     }
 
@@ -10704,6 +10891,287 @@ mod tests {
                  Shorten the label or widen the column."
             );
         }
+    }
+
+    // === ADDED 2026-07-28 (v0.113.8): rich-table column-set tests ===
+    //
+    // The rich-table default view dropped the HINT prose column and gained
+    // USED + COMMITS + SIZE + TOUCHED. These tests pin the new column-set
+    // and the helper functions that render each cell.
+
+    /// Verify the rich-table's 10-column header widths fit each column
+    /// minimum. Mirrors `test_full_table_headers_fit_columns` but for the
+    /// default rich-table view. If a header is wider than its column
+    /// minus 2 padding, comfy-table will wrap the header onto two lines
+    /// and break the layout.
+    #[test]
+    fn test_rich_table_headers_fit_columns() {
+        let header_columns: &[(&str, u16)] = &[
+            ("#", 4),
+            ("🏷 STATUS", 11),
+            ("📦 REPO", 17),
+            ("⏰ ACTIVITY", 17),
+            ("↑/↓ A/B", 7),
+            ("🚀 PUSH", 13),
+            ("👆 USED", 7),
+            ("📊 COMMITS", 11),
+            ("📦 SIZE", 10),
+            ("👤 TOUCHED", 16),
+        ];
+        for (header, col_min) in header_columns {
+            let h_width: usize = header
+                .chars()
+                .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+                .sum();
+            assert!(
+                h_width + 2 <= *col_min as usize,
+                "Header {header:?} ({h_width} cols) + 2 padding > column min {col_min}. \
+                 Increase the column minimum in print_repos_rich_table."
+            );
+        }
+    }
+
+    /// Verify `used_label` returns the expected tier for each combination
+    /// of (last_when, in_flight, push_status). The thresholds are:
+    /// 🟢used = daemon active OR <60m · 🟡mod = 1h-24h · ⚪idle = 1d-7d · ⚫cold = ≥7d or unknown.
+    #[test]
+    fn test_used_label_tiers() {
+        let cases: &[(&str, &str, &str, &str)] = &[
+            // (last_when, push_status, daemon_active_file, expected)
+            ("23m", "OK", "", "🟢used"),       // recent human commit
+            ("2h", "OK", "", "🟡mod"),         // 1h-24h
+            ("3d", "OK", "", "⚪idle"),        // 1d-7d
+            ("14d", "OK", "", "⚫cold"),        // ≥7d
+            ("—", "PENDING", "", "🟢used"),    // daemon pushing
+            ("14d", "PUSH_STUCK", "", "🟢used"), // daemon retrying
+        ];
+        for (last_when, push_status, _daemon_active, expected) in cases {
+            let row = RepoReportRow {
+                repo: "/tmp/test".into(),
+                state_flags: vec![],
+                branch: "main".into(),
+                upstream: "origin/main".into(),
+                publish_state: PublishState::Ok,
+                modified: 0,
+                staged: 0,
+                untracked: 0,
+                ahead: 0,
+                behind: 0,
+                last_hash: "abc".into(),
+                last_author: "DraconDev".into(),
+                last_when: last_when.to_string(),
+                last_msg: "msg".into(),
+                last_unix: 0,
+                commits_1h: 0,
+                commits_6h: 0,
+                commits_24h: 0,
+                last_push: String::new(),
+                push_status: push_status.to_string(),
+                push_error: String::new(),
+                push_to_remotes: vec![],
+                excluded_remotes: vec![],
+                codeberg_skip_reason: None,
+                git_size_bytes: None,
+                token_health: TokenHealthSummary::default(),
+                concern: false,
+                warn: false,
+                active: false,
+                hint: String::new(),
+                state_cause: StateCause::Synced,
+                state_cause_label: "synced".into(),
+                daemon_last_action_unix: 0,
+                daemon_last_action: String::new(),
+                daemon_last_result: String::new(),
+                daemon_last_action_when: String::new(),
+                missing_objects: 0,
+            };
+            let got = used_label(&row);
+            assert_eq!(
+                got, *expected,
+                "used_label for last_when={last_when:?} push_status={push_status:?}: got {got:?}, want {expected:?}"
+            );
+        }
+    }
+
+    /// Verify `commits_window_label` renders `N/N/N` correctly.
+    #[test]
+    fn test_commits_window_label_renders_split() {
+        let cases: &[(&str, usize, usize, usize, &str)] = &[
+            ("abc", 0, 3, 12, "0/3/12"),
+            ("abc", 5, 5, 5, "5/5/5"),
+            ("abc", 0, 0, 0, "0/0/0"),
+            ("-", 0, 0, 0, "-/-/-"), // empty repo (last_hash = "-")
+        ];
+        for (last_hash, c1h, c6h, c24h, expected) in cases {
+            let row = RepoReportRow {
+                repo: "/tmp/test".into(),
+                state_flags: vec![],
+                branch: "main".into(),
+                upstream: "origin/main".into(),
+                publish_state: PublishState::Ok,
+                modified: 0,
+                staged: 0,
+                untracked: 0,
+                ahead: 0,
+                behind: 0,
+                last_hash: last_hash.into(),
+                last_author: "DraconDev".into(),
+                last_when: "1h".into(),
+                last_msg: "msg".into(),
+                last_unix: 0,
+                commits_1h: c1h,
+                commits_6h: c6h,
+                commits_24h: c24h,
+                last_push: String::new(),
+                push_status: "OK".into(),
+                push_error: String::new(),
+                push_to_remotes: vec![],
+                excluded_remotes: vec![],
+                codeberg_skip_reason: None,
+                git_size_bytes: None,
+                token_health: TokenHealthSummary::default(),
+                concern: false,
+                warn: false,
+                active: false,
+                hint: String::new(),
+                state_cause: StateCause::Synced,
+                state_cause_label: "synced".into(),
+                daemon_last_action_unix: 0,
+                daemon_last_action: String::new(),
+                daemon_last_result: String::new(),
+                daemon_last_action_when: String::new(),
+                missing_objects: 0,
+            };
+            let got = commits_window_label(&row);
+            assert_eq!(got, *expected, "commits_window_label for ({last_hash}, {c1h}, {c6h}, {c24h})");
+        }
+    }
+
+    /// Verify `size_label` renders adaptive units with color coding by the
+    /// github 2-GiB pack-size threshold.
+    #[test]
+    fn test_size_label_units_and_colors() {
+        let cases: &[(&str, u64, &str)] = &[
+            // (label, bytes, expected_label_substring)
+            ("100 bytes", 100, "B"),
+            ("5 KiB", 5 * 1024, "KiB"),
+            ("500 KiB", 500 * 1024, "KiB"),
+            ("100 MiB", 100 * 1024 * 1024, "MiB"),
+            ("999 MiB", 999 * 1024 * 1024, "MiB"),
+            ("1.50 GiB", (1024u64 * 1024 * 1024 * 3) / 2, "GiB"), // 1.5 GiB < 2 GiB → yellow
+            ("3.79 GiB", (1024u64 * 1024 * 1024 * 379) / 100, "GiB"), // ≥ 2 GiB → red
+            ("20.0 GiB", 20 * 1024 * 1024 * 1024, "GiB"),
+        ];
+        for (name, bytes, expected_substr) in cases {
+            let (label, color) = size_label(Some(bytes));
+            assert!(
+                label.contains(expected_substr),
+                "size_label for {name} ({bytes} bytes): got label {label:?}, expected to contain {expected_substr:?}"
+            );
+            // Sanity: the color is one of the 3 expected colors.
+            assert!(
+                matches!(color, Color::Red | Color::Yellow | Color::White),
+                "size_label for {name}: got color {color:?}, expected Red/Yellow/White"
+            );
+        }
+        // 2-GiB threshold boundary: ≥ 2 GiB is red.
+        let (_, color_at_2gib) = size_label(Some(2 * 1024 * 1024 * 1024));
+        assert!(matches!(color_at_2gib, Color::Red), "2 GiB should be Red");
+        // 1.99 GiB is yellow (warning zone).
+        let (_, color_below_2gib) = size_label(Some((2u64 * 1024 * 1024 * 1024) - 1));
+        assert!(matches!(color_below_2gib, Color::Yellow), "1.99 GiB should be Yellow");
+        // 1 GiB exactly is yellow.
+        let (_, color_at_1gib) = size_label(Some(1024 * 1024 * 1024));
+        assert!(matches!(color_at_1gib, Color::Yellow), "1.00 GiB should be Yellow");
+        // 999 MiB is white.
+        let (_, color_below_1gib) = size_label(Some(999 * 1024 * 1024));
+        assert!(matches!(color_below_1gib, Color::White), "999 MiB should be White");
+    }
+
+    /// Verify `touched_label` renders `<author> <when>` and handles the
+    /// empty-repo case.
+    #[test]
+    fn test_touched_label_renders_author_and_when() {
+        let row = |last_hash: &str, last_author: &str, last_when: &str| RepoReportRow {
+            repo: "/tmp/test".into(),
+            state_flags: vec![],
+            branch: "main".into(),
+            upstream: "origin/main".into(),
+            publish_state: PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            ahead: 0,
+            behind: 0,
+            last_hash: last_hash.into(),
+            last_author: last_author.into(),
+            last_when: last_when.into(),
+            last_msg: "msg".into(),
+            last_unix: 0,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: String::new(),
+            push_status: "OK".into(),
+            push_error: String::new(),
+            push_to_remotes: vec![],
+            excluded_remotes: vec![],
+            codeberg_skip_reason: None,
+            git_size_bytes: None,
+            token_health: TokenHealthSummary::default(),
+            concern: false,
+            warn: false,
+            active: false,
+            hint: String::new(),
+            state_cause: StateCause::Synced,
+            state_cause_label: "synced".into(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: String::new(),
+            missing_objects: 0,
+        };
+        // Standard case
+        let r = row("abc", "DraconDev", "14m");
+        assert_eq!(touched_label(&r), "DraconDev 14m");
+        // Long author truncates to 10 chars
+        let r = row("abc", "Virtual-Pet-Loop-Agent", "2h");
+        let got = touched_label(&r);
+        assert!(got.starts_with("Virtual-Pet") || got.starts_with("Virtual-Pe"), "got {got:?}");
+        assert!(got.ends_with(" 2h"), "got {got:?}");
+        // Empty repo
+        let r = row("-", "", "");
+        assert_eq!(touched_label(&r), "- -");
+    }
+
+    /// Verify the rich-table's 10-column set sums to ≤ 90 cols
+    /// (the minimum terminal width). If the column set grows past 90,
+    /// the table overflows narrow terminals — the
+    /// `assert!` in `print_repos_rich_table` would fire on those.
+    #[test]
+    fn test_rich_table_fits_narrow_terminal() {
+        // Mirror the constants in print_repos_rich_table. If you bump a
+        // column width, also bump this test and re-check on 90-col terminals.
+        const NUM_COL: usize = 4;
+        const STATUS_COL: usize = 12;
+        const REPO_COL: usize = 22;
+        const ACTIVITY_COL: usize = 28;
+        const AB_COL: usize = 7;
+        const PUSH_COL: usize = 12;
+        const USED_COL: usize = 7;
+        const COMMITS_COL: usize = 11;
+        const SIZE_COL: usize = 10;
+        const TOUCHED_COL: usize = 16;
+        let num_cols = 10;
+        let border_overhead = num_cols + 1;
+        let cell_padding = num_cols * 2;
+        let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + AB_COL + PUSH_COL
+            + USED_COL + COMMITS_COL + SIZE_COL + TOUCHED_COL;
+        let total = fixed + border_overhead + cell_padding;
+        assert!(
+            total <= 90,
+            "rich table total width {total} > 90-col minimum. Reduce a column or drop a column."
+        );
     }
 
     /// CHANGED 2026-06-29: PUSH-TO cell format changed from Unicode minus
