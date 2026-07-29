@@ -11844,3 +11844,182 @@ mod codeberg_public_only_tests {
     }
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.113.13 (goal-list 2026-07-29): tests for the exclusion-aware dirty
+// classifier and the `· N excl` ACTIVITY marker.
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod v011313_tests {
+    use super::*;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    fn git(repo: &Path, args: &[&str]) {
+        let out = crate::git::git_cmd()
+            .args(args)
+            .current_dir(repo)
+            .output()
+            .expect("git run");
+        assert!(
+            out.status.success(),
+            "git {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    /// Repo with an initial commit containing `file.txt`.
+    fn init_repo(path: &Path) {
+        fs::create_dir_all(path).unwrap();
+        git(path, &["init", "-q", "-b", "main"]);
+        git(path, &["config", "user.email", "t@t.t"]);
+        git(path, &["config", "user.name", "T"]);
+        fs::write(path.join("file.txt"), "v1").unwrap();
+        git(path, &["add", "file.txt"]);
+        git(path, &["commit", "-q", "-m", "init"]);
+    }
+
+    fn pats(patterns: &[&str]) -> Vec<String> {
+        patterns.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[tokio::test]
+    async fn classify_excluded_tracked_pattern_is_not_committable() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        fs::write(repo.join("active.jsonl"), "{}").unwrap();
+        git(&repo, &["add", "active.jsonl"]);
+        git(&repo, &["commit", "-q", "-m", "add jsonl"]);
+        // Tracked modification matching auto_commit_exclude_patterns
+        fs::write(repo.join("active.jsonl"), "{\"more\":true}").unwrap();
+        let cls =
+            classify_dirty_entries(&repo, &pats(&["active.jsonl"]), &[]).await;
+        assert_eq!(cls.committable_modified, 0, "excluded mod must not count");
+        assert_eq!(cls.committable_staged, 0);
+        assert_eq!(cls.excluded, 1, "the excluded file must be counted");
+    }
+
+    #[tokio::test]
+    async fn classify_committable_modified_and_staged() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        fs::write(repo.join("file.txt"), "v2").unwrap(); // worktree mod
+        fs::write(repo.join("staged.txt"), "s").unwrap();
+        git(&repo, &["add", "staged.txt"]); // staged add
+        let cls = classify_dirty_entries(&repo, &[], &[]).await;
+        assert_eq!(cls.committable_modified, 1, "worktree mod counts");
+        assert_eq!(cls.committable_staged, 1, "staged add counts");
+        assert_eq!(cls.excluded, 0);
+    }
+
+    #[tokio::test]
+    async fn classify_untracked_never_committable_but_excludable() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        fs::write(repo.join("new.txt"), "n").unwrap(); // committable untracked
+        fs::write(repo.join("skip.log"), "l").unwrap(); // excluded untracked
+        let cls =
+            classify_dirty_entries(&repo, &[], &pats(&["*.log"])).await;
+        assert_eq!(cls.committable_modified, 0, "untracked never drives dirty");
+        assert_eq!(cls.committable_staged, 0);
+        assert_eq!(cls.excluded, 1, "*.log untracked is excluded");
+    }
+
+    #[tokio::test]
+    async fn classify_submodule_worktree_dirt_excluded_gitlink_drift_committable() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent = tmp.path().join("parent");
+        init_repo(&parent);
+        let nested = parent.join("sub");
+        init_repo(&nested);
+        git(&parent, &["add", "sub"]); // records gitlink at nested HEAD
+        git(&parent, &["commit", "-q", "-m", "add sub"]);
+
+        // Phase 1: dirty the nested WORKTREE only (gitlink unchanged).
+        fs::write(nested.join("file.txt"), "dirty").unwrap();
+        let cls = classify_dirty_entries(&parent, &[], &[]).await;
+        assert_eq!(
+            cls.committable_modified, 0,
+            "submodule worktree dirt must not count as parent dirt"
+        );
+        assert_eq!(cls.excluded, 1, "unchanged-gitlink dirt counts as excluded");
+
+        // Phase 2: commit inside the nested → gitlink SHA drifts.
+        git(&nested, &["add", "file.txt"]);
+        git(&nested, &["commit", "-q", "-m", "nested work"]);
+        let cls = classify_dirty_entries(&parent, &[], &[]).await;
+        assert_eq!(
+            cls.committable_modified, 1,
+            "gitlink SHA drift MUST count (daemon advances the gitlink)"
+        );
+        assert_eq!(cls.excluded, 0);
+    }
+
+    #[test]
+    fn parse_porcelain_z_handles_renames_and_untracked() {
+        // "R  new\0old\0" + "?? new.txt\0" + " M mod.txt\0"
+        let data = b"R  new.txt\0old.txt\0?? u.txt\0 M m.txt\0";
+        let recs = parse_porcelain_z(data);
+        assert_eq!(recs.len(), 3, "rename source path must be consumed: {recs:?}");
+        assert_eq!(recs[0], (b'R', b' ', "new.txt".to_string()));
+        assert_eq!(recs[1], (b'?', b'?', "u.txt".to_string()));
+        assert_eq!(recs[2], (b' ', b'M', "m.txt".to_string()));
+    }
+
+    #[test]
+    fn activity_label_appends_excl_marker() {
+        let mk = |excluded: usize| RepoReportRow {
+            publish_state: PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            excluded_dirty: excluded,
+            ahead: 0,
+            behind: 0,
+            last_hash: "abc".to_string(),
+            last_author: "T".to_string(),
+            last_when: "3 minutes ago".to_string(),
+            last_msg: "m".to_string(),
+            last_unix: 0,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: "-".to_string(),
+            push_status: "OK".to_string(),
+            push_error: String::new(),
+            push_to_remotes: vec![],
+            excluded_remotes: vec![],
+            codeberg_skip_reason: None,
+            repo: "/nonexistent-v011313-test".to_string(),
+            state_flags: vec![],
+            branch: "main".to_string(),
+            upstream: "-".to_string(),
+            git_size_bytes: None,
+            token_health: TokenHealthSummary::default(),
+            concern: false,
+            warn: false,
+            active: false,
+            hint: String::new(),
+            state_cause: StateCause::Healthy,
+            state_cause_label: String::new(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: String::new(),
+            missing_objects: 0,
+            pack_too_large: false,
+        };
+        let clean = activity_label(&mk(0));
+        assert!(!clean.contains("excl"), "no marker without excluded: {clean}");
+        let marked = activity_label(&mk(2));
+        assert!(
+            marked.contains("· 2 excl"),
+            "excluded dirt must surface as marker: {marked}"
+        );
+        assert!(marked.contains("synced"), "excluded-only repo shows synced: {marked}");
+    }
+}
