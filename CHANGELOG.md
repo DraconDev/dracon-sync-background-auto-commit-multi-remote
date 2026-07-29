@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed
+
+- **`dracon-sync repos` prints its legend under every table by
+  default** (goal-list item, 2026-07-29). The legend text was rewritten
+  to match the columns that actually ship in the v0.113.8 rich table
+  (the 2026-07-08 text referenced removed columns — MOD, PUSH-TO,
+  "Daemon =" — and the pointer line "run `repos --legend` when
+  confused" didn't prevent operator confusion: an explanation you have
+  to remember to ask for doesn't explain). Covers STATUS, ACTIVITY,
+  A/B, PUSH, USED, COMMITS (1h/6h/24h), SIZE (white <1 GiB / 🟡 ≥1 GiB
+  / 🔴 ≥2 GiB github limit), TOUCHED. Width-gated: suppressed on
+  terminals < 120 cols (compact tier) rather than wrapping brokenly;
+  `repos --legend` still prints it unconditionally on demand.
+
 ## [0.113.11] - 2026-07-29
 
 ### Added
