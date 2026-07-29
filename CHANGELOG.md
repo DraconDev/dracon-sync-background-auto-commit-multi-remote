@@ -13,6 +13,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added
+
+- **Tip-keyed verdict cache for the push-path `github_pack_too_large`
+  guard**. The verdict is fully determined by (pushed-branch tip, github
+  tracking tips, limit) under the v0.113.10 delta semantics, so the
+  cache key is resolved by reading ref files directly (loose refs,
+  packed-refs, HEAD indirection, config-file remote scan) — a cache hit
+  performs NO git subprocess and skips the `.git` dir walk. Previously
+  every push cycle re-measured in full; an actively-committing repo
+  with gitdir ≥ 2 GiB and an over-limit uncompressed delta would have
+  paid a multi-second `pack-objects` run per cycle. Only clean
+  determinations are cached (the conservative detached-HEAD/error
+  fallback is never pinned behind an unmoved key), and caller-supplied
+  precomputed sizes bypass the cache.
+
+### Fixed
+
+- **`release.sh` remote derivation + idempotency** (failed identically
+  on v0.113.9 and v0.113.10). The github push remote is now derived
+  from `remote.*.url` (new `scripts/resolve-github-remote.sh`) instead
+  of the hardcoded name `github` — this repo names it `origin`. The
+  CHANGELOG-close step is extracted to `scripts/close-changelog.py`
+  and is idempotent (a re-run on an already-closed version leaves the
+  file byte-identical; the v0.113.10 re-run duplicated the header).
+  Steps 5/6 now tolerate the partial-failure re-run path: already-
+  published crates.io version, existing tag, nothing-to-commit, and
+  existing GitHub release are all "already done", not fatal errors.
+  The script also prints the exact mirror-tag push commands
+  (codeberg/gitlab) at the end — both prior releases forgot them.
+
 ## [0.113.10] - 2026-07-29
 
 ### Changed

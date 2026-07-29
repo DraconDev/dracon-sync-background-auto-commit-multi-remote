@@ -328,7 +328,8 @@ fi
 # needed manual mirror tag pushes. Remind, with the exact commands.
 mirror_remotes=()
 while IFS= read -r mline; do
-    mname="${mline#remote.}"; mname="${mname%.url}"
+    mkey="${mline%% *}"          # "remote.<name>.url" (strip the value first)
+    mname="${mkey#remote.}"; mname="${mname%.url}"
     [[ "$mname" == "$REMOTE" ]] || mirror_remotes+=("$mname")
 done < <(git config --get-regexp '^remote\..*\.url$' || true)
 if [[ ${#mirror_remotes[@]} -gt 0 ]]; then
