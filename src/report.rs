@@ -8957,6 +8957,7 @@ mod tests {
             pull_op_timeout_secs: 30,
             push_op_timeout_secs: 300,
             auto_gc_garbage_threshold_bytes: crate::policy::default_auto_gc_garbage_threshold_bytes(),
+            auto_prune_stale_backup_branches: false,
             repo_sync_timeout_secs: 420,
             stage_op_timeout_secs: 60,
             stage_cooldown_secs: 3600,

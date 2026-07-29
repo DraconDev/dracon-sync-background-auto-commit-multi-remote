@@ -1891,6 +1891,7 @@ pub(crate) fn open_policy_in_editor(policy_path: &Path) -> Result<()> {
 #[cfg(test)]
 pub(crate) fn test_sync_policy() -> SyncPolicy {
     SyncPolicy {
+        auto_prune_stale_backup_branches: false,
         system_repo: String::new(),
         pulse_interval_secs: 1,
         trailing_drain_deadline_secs: 120,
