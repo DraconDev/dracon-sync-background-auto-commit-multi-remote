@@ -2671,10 +2671,10 @@ const LEGEND_MIN_WIDTH: usize = 120;
 fn repos_legend_lines() -> &'static [&'static str] {
     &[
         "── legend ──────────────────────────────────────────────────────────────────────────────",
-        " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight / recent commits · 🟡 WARN stalled · ❌ CONCERN needs a human",
+        " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
         " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
-        " PUSH      ✅ OK all remotes pushed · 🟣 PENDING push queued/in flight · ❌ FAIL last push failed (journal has the error)",
+        " PUSH      ✅ OK all remotes pushed · 🟣 PENDING push in flight · ❌ FAIL last push failed (see journal)",
         " USED      activity tier: 🟢used <1h · 🟡mod 1h-24h · ⚪idle 1d-7d · ⚫cold 7d+",
         " COMMITS   commits in last 1h/6h/24h — the repo's pulse",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
