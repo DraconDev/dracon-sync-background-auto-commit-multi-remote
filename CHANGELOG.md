@@ -13,6 +13,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed
+
+- **`github_pack_too_large` measures the push delta, not the whole
+  branch** (fixes the junk-runner-class false positive). The slow path
+  now computes, per github-host remote, the objects the remote does not
+  already have (`rev-list --objects <branch> --not <remote-tip>`), and
+  when the uncompressed delta exceeds the 2 GiB limit it takes a
+  compressed second chance: the same object set is streamed through
+  `git pack-objects --stdout` and counted — github's limit applies to
+  the compressed pack it receives. Compressible histories (junk-runner:
+  3.79 GiB uncompressed whole-branch vs 14.77 MiB actual next-push pack)
+  now clear correctly; incompressible over-limit deltas (CAG's PNGs)
+  remain flagged. Safety degradations: missing/non-ancestor tracking
+  tips and the no-github-remote case measure the whole branch
+  (fresh-remote = whole branch ships); multiple github remotes take the
+  worst case; measurement errors stay conservative. The `.git` < 2 GiB
+  fast path is unchanged.
+
+### Added
+
+- **`auto_prune_stale_backup_branches`** (default `false`): opt-in
+  janitor for stale daemon-created branches
+  (`backup/pre-sync-largeblob-fix-*`, `daemon-standalone`) and orphaned
+  remote-tracking refs (`refs/remotes/<removed-remote>/*`). A daily
+  per-repo pass bundles all candidates into
+  `<backup_dir>/auto-prune/`, verifies the bundle, deletes locally, and
+  deletes remote copies whose tracking tips match the bundled local tip
+  (never the remote's default-HEAD branch). The remote deletion injects
+  `DRACON_ALLOW_REWRITE=1` into that single push command's environment —
+  the sanctioned narrow exception to the no-auto-rewrite policy — and
+  every deletion is `log_warn!`'d with repo, ref, tip, and bundle path
+  so the journal remains the operator-review trail. Requires
+  `backup_dir`.
+
 ## [0.113.9] - 2026-07-29
 
 ### v0.113.9 — 2026-07-29 — advisor-catch: SIZE color semantics + assert removal
