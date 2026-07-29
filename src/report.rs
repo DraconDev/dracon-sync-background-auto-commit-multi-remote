@@ -4878,65 +4878,11 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
     }
 }
 
-/// Render the `USED` column — a combined human + daemon activity tier
-/// that answers "is anyone actively touching this repo?".
-///
-/// Tiers:
-/// - `🟢used` = human commit in last 1h OR daemon is currently
-///   acting on the repo (in-flight task or pending push).
-/// - `🟡mod` = human commit in last 24h, daemon idle.
-/// - `⚪idle` = human commit 1-7 days ago, no daemon action.
-/// - `⚫cold` = no commits in 7+ days.
-///
-/// The threshold set is intentionally tighter than the standalone
-/// activity labels in `activity_label` (which uses 60m / 24h / 7d
-/// thresholds for state classification). The richer "used" metric
-/// exists so the operator can spot repos they're actively iterating
-/// on vs. repos they haven't touched in a while — the fleet-wide
-/// fleet health summary is the ACTIVITY column; this column is the
-/// operator-iteration summary.
-pub(crate) fn used_label(row: &RepoReportRow) -> String {
-    // In-flight daemon task = "used" regardless of human commit age.
-    // The daemon pushing / committing is the operator's loop running,
-    // so the repo IS in active use.
-    let daemon_active = load_in_flight_for_path(&row.repo)
-        || row.push_status == "PENDING"
-        || row.push_status == "PUSH_STUCK";
-    if daemon_active {
-        return "🟢used".to_string();
-    }
-    // Human commit recency: parse `last_when` ("23m", "2h", "3d", etc.)
-    // into minutes. None = "—"/empty (e.g. empty repo); treat as cold.
-    match parse_relative_minutes_to_u64(&row.last_when) {
-        None => "⚫cold".to_string(),
-        Some(m) if m < 60 => "🟢used".to_string(),
-        Some(m) if m < 60 * 24 => "🟡mod".to_string(),
-        Some(m) if m < 60 * 24 * 7 => "⚪idle".to_string(),
-        Some(_) => "⚫cold".to_string(),
-    }
-}
-
-/// Render the `COMMITS` column — a compact 1h/6h/24h split showing
-/// how active this repo's history is. Format: `N/N/N` (e.g.
-/// `0/3/12` = 0 commits in last 1h, 3 in last 6h, 12 in last 24h).
-/// Empty repo (no commits) renders as `-/-/-`.
-///
-/// The split matters because:
-/// - `1h` spikes = operator actively iterating right now
-/// - `6h` sustained = a session of work in progress
-/// - `24h` reflects daily-cadence work; high values alone don't mean
-///   much, but combined with `0/0/0` in the smaller windows tell the
-///   operator the repo is dormant.
-///
-/// Width budget: 9 cols content (`N/N/N` with up to 2 digits per
-/// field, e.g. `99/99/99`). The cell is wide enough to render any
-/// plausible 24h commit count without truncation.
-pub(crate) fn commits_window_label(row: &RepoReportRow) -> String {
-    if row.commits_1h == 0 && row.commits_6h == 0 && row.commits_24h == 0 && row.last_hash == "-" {
-        return "-/-/-".to_string();
-    }
-    format!("{}/{}/{}", row.commits_1h, row.commits_6h, row.commits_24h)
-}
+// REMOVED 2026-07-29 (v0.113.13): `used_label` and
+// `commits_window_label` — the USED column duplicated ACTIVITY's tiers
+// (operator feedback) and the single `N/N/N` COMMITS cell was split
+// into dedicated 1H / 6H / 24H columns rendered inline in
+// `print_repos_rich_table` via the `pulse` closure.
 
 /// Render the `SIZE` column — git_size_bytes formatted in adaptive
 /// units (B / KiB / MiB / GiB), color-coded by the github
@@ -11208,129 +11154,6 @@ mod tests {
         }
     }
 
-    /// Verify `used_label` returns the expected tier for each combination
-    /// of (last_when, in_flight, push_status). The thresholds are:
-    /// 🟢used = daemon active OR <60m · 🟡mod = 1h-24h · ⚪idle = 1d-7d · ⚫cold = ≥7d or unknown.
-    ///
-    /// NOTE: `last_when` is populated in the LONG form (e.g. "23 minutes ago"),
-    /// matching what `parse_relative_minutes` actually accepts — not the
-    /// shortened form (`"23m"`) that `shorten_mins()` produces.
-    #[test]
-    fn test_used_label_tiers() {
-        let cases: &[(&str, &str, &str, &str)] = &[
-            // (last_when, push_status, daemon_active_file, expected)
-            ("23 minutes ago", "OK", "", "🟢used"),       // recent human commit
-            ("2 hours ago", "OK", "", "🟡mod"),           // 1h-24h
-            ("3 days ago", "OK", "", "⚪idle"),           // 1d-7d
-            ("14 days ago", "OK", "", "⚫cold"),          // ≥7d
-            ("—", "PENDING", "", "🟢used"),              // daemon pushing
-            ("14 days ago", "PUSH_STUCK", "", "🟢used"),  // daemon retrying
-        ];
-        for (last_when, push_status, _daemon_active, expected) in cases {
-            let row = RepoReportRow {
-                repo: "/tmp/test".into(),
-                state_flags: vec![],
-                branch: "main".into(),
-                upstream: "origin/main".into(),
-                publish_state: PublishState::Ok,
-                modified: 0,
-                staged: 0,
-                untracked: 0,
-                excluded_dirty: 0,
-                ahead: 0,
-                behind: 0,
-                last_hash: "abc".into(),
-                last_author: "DraconDev".into(),
-                last_when: last_when.to_string(),
-                last_msg: "msg".into(),
-                last_unix: 0,
-                commits_1h: 0,
-                commits_6h: 0,
-                commits_24h: 0,
-                last_push: String::new(),
-                push_status: push_status.to_string(),
-                push_error: String::new(),
-                push_to_remotes: vec![],
-                excluded_remotes: vec![],
-                codeberg_skip_reason: None,
-                git_size_bytes: None,
-                token_health: TokenHealthSummary::default(),
-                concern: false,
-                warn: false,
-                active: false,
-                hint: String::new(),
-                state_cause: StateCause::Synced,
-                state_cause_label: "synced".into(),
-                daemon_last_action_unix: 0,
-                daemon_last_action: String::new(),
-                daemon_last_result: String::new(),
-                daemon_last_action_when: String::new(),
-                missing_objects: 0,
-                pack_too_large: false,
-            };
-            let got = used_label(&row);
-            assert_eq!(
-                got, *expected,
-                "used_label for last_when={last_when:?} push_status={push_status:?}: got {got:?}, want {expected:?}"
-            );
-        }
-    }
-
-    /// Verify `commits_window_label` renders `N/N/N` correctly.
-    #[test]
-    fn test_commits_window_label_renders_split() {
-        let cases: &[(&str, usize, usize, usize, &str)] = &[
-            ("abc", 0, 3, 12, "0/3/12"),
-            ("abc", 5, 5, 5, "5/5/5"),
-            ("abc", 0, 0, 0, "0/0/0"),
-            ("-", 0, 0, 0, "-/-/-"), // empty repo (last_hash = "-")
-        ];
-        for (last_hash, c1h, c6h, c24h, expected) in cases {
-            let row = RepoReportRow {
-                repo: "/tmp/test".into(),
-                state_flags: vec![],
-                branch: "main".into(),
-                upstream: "origin/main".into(),
-                publish_state: PublishState::Ok,
-                modified: 0,
-                staged: 0,
-                untracked: 0,
-                excluded_dirty: 0,
-                ahead: 0,
-                behind: 0,
-                last_hash: (*last_hash).into(),
-                last_author: "DraconDev".into(),
-                last_when: "1h".into(),
-                last_msg: "msg".into(),
-                last_unix: 0,
-                commits_1h: *c1h,
-                commits_6h: *c6h,
-                commits_24h: *c24h,
-                last_push: String::new(),
-                push_status: "OK".into(),
-                push_error: String::new(),
-                push_to_remotes: vec![],
-                excluded_remotes: vec![],
-                codeberg_skip_reason: None,
-                git_size_bytes: None,
-                token_health: TokenHealthSummary::default(),
-                concern: false,
-                warn: false,
-                active: false,
-                hint: String::new(),
-                state_cause: StateCause::Synced,
-                state_cause_label: "synced".into(),
-                daemon_last_action_unix: 0,
-                daemon_last_action: String::new(),
-                daemon_last_result: String::new(),
-                daemon_last_action_when: String::new(),
-                missing_objects: 0,
-                pack_too_large: false,
-            };
-            let got = commits_window_label(&row);
-            assert_eq!(got, *expected, "commits_window_label for ({last_hash}, {c1h}, {c6h}, {c24h})");
-        }
-    }
 
     /// Verify `size_label` renders adaptive units with color coding
     /// by the github pack-limit concern (NOT the raw gitdir size —
@@ -11500,6 +11323,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn test_rich_table_fits_narrow_terminal() {
         // Mirror the constants in print_repos_rich_table. If you bump a
         // column width, also bump this test and re-check on 165-col terminals.
@@ -11509,15 +11333,17 @@ mod tests {
         const ACTIVITY_COL: usize = 28;
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
-        const USED_COL: usize = 9;
-        const COMMITS_COL: usize = 12;
+        // v0.113.13: USED dropped, COMMITS split into 1H/6H/24H (5 each).
+        const C1H_COL: usize = 5;
+        const C6H_COL: usize = 5;
+        const C24H_COL: usize = 5;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 16;
-        let num_cols = 10;
+        let num_cols = 11;
         let border_overhead = num_cols + 1;
         let cell_padding = num_cols * 2;
         let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + AB_COL + PUSH_COL
-            + USED_COL + COMMITS_COL + SIZE_COL + TOUCHED_COL;
+            + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
         let total = fixed + border_overhead + cell_padding;
         assert!(
             total <= 165,
