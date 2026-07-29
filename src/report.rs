@@ -3329,7 +3329,16 @@ pub(crate) async fn run_repos_report(
         // 94.7.0 which fixed the `is_wt_new()` double-count bug. Junk-Runner-bevy
         // is the canonical case: 3 untracked test-results/ PNGs were
         // being counted as 91 "modified".
-        let real_is_dirty = status.modified_files > 0 || status.staged_files > 0;
+        // CHANGED 2026-07-29 (v0.113.14): use `effective_status`, not the
+        // raw `status`. The v0.113.13 exclusion-aware classification block
+        // above zeroes modified/staged counts for excluded-only dirt, but
+        // this line still read the RAW counts — so a repo whose only dirt
+        // is policy-excluded (junk-runner's `.pi-glla/active.jsonl`)
+        // showed `synced · 1 excl` in ACTIVITY while STATUS stayed WARN,
+        // re-creating the exact false-WARN class v0.113.13 was shipped
+        // to kill.
+        let real_is_dirty =
+            effective_status.modified_files > 0 || effective_status.staged_files > 0;
         let recent_push_failure = recent_push_failures
             .as_ref()
             .map(|m| {
