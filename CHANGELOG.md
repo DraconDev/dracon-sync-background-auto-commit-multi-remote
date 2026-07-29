@@ -14,6 +14,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.8 — 2026-07-29 — rich-table diagnostic columns
+
+The `dracon-sync repos` rich-table default view dropped the
+HINT prose column and gained 4 new diagnostic columns:
+
+- **USED** — combined human + daemon activity tier
+  (`🟢used` / `🟡mod` / `⚪idle` / `⚫cold`). Answers
+  "which repos are used" at a glance.
+- **COMMITS** — 1h/6h/24h commit split (`N/N/N` format).
+  Reveals recent iteration cadence.
+- **SIZE** — gitdir bytes in adaptive units (B → KiB → MiB
+  → GiB), color-coded by github's 2 GiB pack-size threshold
+  (red at ≥ 2 GiB, yellow at ≥ 1 GiB, white below).
+- **TOUCHED** — last commit author + relative time
+  (`DraconDev 14m`, `dracon 10 sec`).
+
+The ACTIVITY column widened from 21 to 28 cols (now fits
+`⏳ dirty 8m · 1 mod + 5 ut` without truncation). The rich
+table grew from 7 to 10 columns; the minimum terminal width
+bumped from 90 to 165 cols (operators on narrower terminals
+route to the Compact tier automatically, unchanged from
+v0.113.7).
+
+Detail / "why is this row in this state?" moves to the
+per-repo drill-down (`dracon-sync repos <name>` or
+`--layout vertical`); the rich table surfaces *what* is
+happening (use, growth, recency) and leaves the *why* for
+follow-up.
+
+6 new unit tests cover the 4 new helpers
+(`used_label`, `commits_window_label`, `size_label`,
+`touched_label`) + the rich-table layout invariants
+(`test_rich_table_headers_fit_columns`,
+`test_rich_table_fits_narrow_terminal`). Total daemon
+test count: 854 (was 854 in v0.113.7; the new tests
+added 6 net new).
+
+See `release-notes-v0.113.8.md` for full source-change
+table, before/after fleet state, and trade-off analysis.
+
 ## [0.113.5] - 2026-07-27
 
 ### v0.113.7 — 2026-07-28 — concern-retry-softening: auto-mirror eager-create fix
