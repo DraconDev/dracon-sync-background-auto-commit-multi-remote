@@ -81,6 +81,15 @@ push_op_timeout_secs = 60
 # the daemon runs `git gc --prune=now` automatically (v0.113.0). Default:
 # 2147483648 (2 GiB). Set to 0 to disable.
 #auto_gc_garbage_threshold_bytes = 2147483648
+# When true (v0.113.10, default false), a daily per-repo janitor pass reaps
+# stale DAEMON-CREATED branches (`backup/pre-sync-largeblob-fix-*`,
+# `daemon-standalone`) and orphaned remote-tracking refs
+# (`refs/remotes/<removed-remote>/*`). Every candidate is bundled into
+# `<backup_dir>/auto-prune/` and verified BEFORE anything is deleted; remote
+# copies are deleted only when the remote tip matches the bundled local tip.
+# Each deletion is logged with repo, ref, tip, and bundle path (the journal
+# is the operator-review trail). Requires backup_dir to be set.
+#auto_prune_stale_backup_branches = false
 # Idle timeout (seconds) for `git add -A` and other staging operations on a
 # single repo. Large repos (thousands of dirty files) can take 60-90s to
 # stage; the default of 60s gives headroom for typical work without making
