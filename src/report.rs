@@ -5475,9 +5475,10 @@ fn print_repos_rich_table(
         // the count, so showing it here too is duplication that also
         // eats the narrow ACTIVITY budget.
         let mut activity = activity_label(row);
-        if let Some(stripped) = activity.strip_suffix(&format!(" ({} ahead)", row.ahead)) {
-            activity = stripped.to_string();
-        }
+        // v0.113.13: substring-strip (not suffix-strip) — the `· N excl`
+        // marker is appended AFTER any `(N ahead)` suffix, so a suffix
+        // strip misses and the duplicated count eats the cell budget.
+        activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
         let mut dirty_parts: Vec<String> = Vec::new();
         if row.modified > 0 {
             dirty_parts.push(format!("{} mod", row.modified));
