@@ -81,27 +81,221 @@ fn github_pack_too_large_with_limit(
     precomputed_size: Option<u64>,
     limit: u64,
 ) -> (bool, u64) {
+    // v0.113.11: tip-keyed verdict cache. Under the delta semantics the
+    // verdict is fully determined by (pushed-branch tip, github tracking
+    // tips, limit): the measured object set is the delta between those
+    // refs. The key is resolved by reading ref files DIRECTLY (no git
+    // subprocess), so a cache hit on an actively-committing big repo
+    // skips the dir walk AND every rev-list/cat-file/pack-objects run
+    // (previously: a full re-measure on every push cycle — the advisor
+    // flagged this for the CAG-wakes-up-pre-rewrite scenario). Caller-
+    // supplied sizes bypass the cache (the report path has its own).
+    let cache_key = if precomputed_size.is_none() {
+        guard_cache_key(repo, limit)
+    } else {
+        None
+    };
+    if let Some(key) = &cache_key {
+        if let Some(hit) = guard_cache_lookup(repo, key) {
+            return hit;
+        }
+    }
+    #[cfg(test)]
+    GUARD_MEASURE_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     // Use the precomputed size when supplied; otherwise measure `.git`.
     let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
-    // Fast path: small .git -> never too big (unchanged behavior for the vast
-    // majority of repos; no extra git subprocess).
-    if let Some(size) = measured {
-        if size < limit {
-            return (false, size);
+    let (result, clean) = if let Some(size) = measured.filter(|s| *s < limit) {
+        // Fast path: small .git -> never too big (unchanged behavior for
+        // the vast majority of repos; no extra git subprocess).
+        ((false, size), true)
+    } else {
+        // Large .git: measure the pack github would actually receive.
+        match github_push_basis_bytes(repo, limit) {
+            Some(basis) => ((basis >= limit, basis), true),
+            None => {
+                // Couldn't measure the branch (e.g. detached HEAD, git
+                // error). Fall back to the measured/whole .git size
+                // (conservative: skip). NOT cached: a transient error
+                // pinned behind an unmoved tip key would look permanent.
+                let whole = measured.unwrap_or(u64::MAX);
+                ((whole >= limit, whole), false)
+            }
+        }
+    };
+    if clean {
+        if let Some(key) = cache_key {
+            guard_cache_store(repo, key, result);
         }
     }
-    // Large .git: measure the pack github would actually receive.
-    match github_push_basis_bytes(repo, limit) {
-        Some(basis) => (basis >= limit, basis),
-        None => {
-            // Couldn't measure the branch (e.g. detached HEAD, git error).
-            // Fall back to the measured/whole .git size (conservative: skip).
-            let whole = measured
-                .or_else(|| crate::report::measure_git_size_bytes(repo))
-                .unwrap_or(u64::MAX);
-            (whole >= limit, whole)
+    result
+}
+
+/// v0.113.11: verdict cache for the push-path guard. One entry per repo
+/// (replaced on every store), keyed on the tip fingerprint from
+/// `guard_cache_key`. Unbounded growth is impossible: entries are per
+/// watched repo and replaced in place.
+static GUARD_VERDICT_CACHE: std::sync::Mutex<
+    Option<std::collections::HashMap<std::path::PathBuf, (String, (bool, u64))>>,
+> = std::sync::Mutex::new(None);
+
+/// Test instrumentation: counts full (uncached) guard computations. A
+/// cache hit must perform NO git subprocess; tests assert the counter
+/// does not advance on repeated measurements with unmoved tips.
+#[cfg(test)]
+static GUARD_MEASURE_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+#[cfg(test)]
+fn guard_measure_count() -> usize {
+    GUARD_MEASURE_COUNT.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(test)]
+fn clear_guard_verdict_cache() {
+    if let Ok(mut guard) = GUARD_VERDICT_CACHE.lock() {
+        if let Some(map) = guard.as_mut() {
+            map.clear();
         }
     }
+}
+
+fn guard_cache_lookup(repo: &std::path::Path, key: &str) -> Option<(bool, u64)> {
+    let guard = GUARD_VERDICT_CACHE.lock().ok()?;
+    guard
+        .as_ref()?
+        .get(repo)
+        .filter(|(k, _)| k == key)
+        .map(|(_, v)| *v)
+}
+
+fn guard_cache_store(repo: &std::path::Path, key: String, verdict: (bool, u64)) {
+    if let Ok(mut guard) = GUARD_VERDICT_CACHE.lock() {
+        guard
+            .get_or_insert_with(std::collections::HashMap::new)
+            .insert(repo.to_path_buf(), (key, verdict));
+    }
+}
+
+/// Build the cache key WITHOUT spawning git: read the worktree HEAD file,
+/// resolve refs from loose files / packed-refs, and scan the config file
+/// for github remotes. Returns None on ANY irregularity (detached HEAD,
+/// unreadable files, exotic layout) — the caller then takes the uncached
+/// path, so a key-parser limitation can never produce a wrong hit.
+fn guard_cache_key(repo: &std::path::Path, limit: u64) -> Option<String> {
+    let gitdir = resolve_gitdir_direct(repo)?;
+    let commondir = resolve_commondir_direct(&gitdir);
+    let head = std::fs::read_to_string(gitdir.join("HEAD")).ok()?;
+    let branch_ref = head.trim().strip_prefix("ref: ")?.to_string(); // detached -> None
+    let branch = branch_ref.strip_prefix("refs/heads/")?.to_string();
+    let branch_tip = resolve_ref_direct(&commondir, &branch_ref)?;
+    let mut remotes = github_remote_names_direct(&commondir);
+    remotes.sort();
+    let tips: Vec<String> = remotes
+        .iter()
+        .map(|name| {
+            // A missing tracking ref is a FRESH remote (whole branch
+            // ships); encode it explicitly so adding/fetching the ref
+            // changes the key and forces a re-measure.
+            resolve_ref_direct(&commondir, &format!("refs/remotes/{}/{}", name, branch))
+                .unwrap_or_else(|| "-".to_string())
+        })
+        .collect();
+    Some(format!(
+        "{}:{}:{}:{}",
+        limit,
+        branch_tip,
+        remotes.join(","),
+        tips.join(","),
+    ))
+}
+
+/// Resolve a repo's real gitdir: `.git` directory, or the `gitdir: <path>`
+/// indirection file used by submodules and linked worktrees.
+fn resolve_gitdir_direct(repo: &std::path::Path) -> Option<std::path::PathBuf> {
+    let dotgit = repo.join(".git");
+    if dotgit.is_dir() {
+        return Some(dotgit);
+    }
+    let content = std::fs::read_to_string(&dotgit).ok()?;
+    let target = content.trim().strip_prefix("gitdir: ")?;
+    let p = std::path::PathBuf::from(target);
+    Some(if p.is_absolute() { p } else { repo.join(p) })
+}
+
+/// Linked worktrees keep shared refs in the common dir (`commondir` file);
+/// plain repos and submodule gitdirs are their own common dir.
+fn resolve_commondir_direct(gitdir: &std::path::Path) -> std::path::PathBuf {
+    if let Ok(content) = std::fs::read_to_string(gitdir.join("commondir")) {
+        let rel = content.trim();
+        if !rel.is_empty() {
+            let p = gitdir.join(rel);
+            if p.is_dir() {
+                return p;
+            }
+        }
+    }
+    gitdir.to_path_buf()
+}
+
+/// Resolve a ref from loose files, then packed-refs. No git subprocess.
+fn resolve_ref_direct(gitdir: &std::path::Path, refname: &str) -> Option<String> {
+    let is_sha = |s: &str| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit());
+    if let Ok(s) = std::fs::read_to_string(gitdir.join(refname)) {
+        let t = s.trim();
+        if is_sha(t) {
+            return Some(t.to_string());
+        }
+    }
+    if let Ok(s) = std::fs::read_to_string(gitdir.join("packed-refs")) {
+        for line in s.lines() {
+            if line.starts_with('#') || line.starts_with('^') {
+                continue;
+            }
+            if let Some((sha, name)) = line.split_once(' ') {
+                if name == refname && is_sha(sha) {
+                    return Some(sha.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// github.com remote names parsed from the config FILE (no subprocess).
+/// Understands the daemon-written `[remote "name"]` + `url = ...` form;
+/// anything more exotic (config includes, continuation lines) simply
+/// yields no names here, which only affects cache-key construction — the
+/// uncached measurement still uses `git config` as the source of truth.
+fn github_remote_names_direct(gitdir: &std::path::Path) -> Vec<String> {
+    let content = match std::fs::read_to_string(gitdir.join("config")) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let mut names = Vec::new();
+    let mut current: Option<String> = None;
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') {
+            if let Some(name) = t
+                .strip_prefix("[remote \"")
+                .and_then(|s| s.strip_suffix("\"]"))
+            {
+                current = Some(name.to_string());
+            } else {
+                current = None;
+            }
+            continue;
+        }
+        if let (Some(name), Some(url)) = (
+            current.as_ref(),
+            t.strip_prefix("url").and_then(|s| s.trim_start().strip_prefix('=')),
+        ) {
+            if url.trim().to_ascii_lowercase().contains("github.com") {
+                names.push(name.clone());
+            }
+        }
+    }
+    names
 }
 
 /// What would the next push to github actually ship? Returns the decisive
