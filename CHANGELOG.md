@@ -14,6 +14,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.113.9 — 2026-07-29 — advisor-catch: SIZE color semantics + assert removal
+
+Two follow-up fixes to v0.113.8 surfaced by the
+post-release advisor review:
+
+- **SIZE color threads `pack_too_large` explicitly** —
+  `size_label(Option<u64>, bool)` now takes the same bool
+  the daemon uses for PACK_SIZE_WARNING / CONCERN. Red iff
+  `pack_too_large == true` (the actual github-rejection
+  condition); yellow iff gitdir ≥ 1 GiB (capacity warning
+  independent of push). **deathrun** (4.08 GiB gitdir but
+  ✅ CLEAN) was the test case that exposed the bug: the
+  original code colored it Red, contradicting its STATUS
+  cell. Post-fix: Yellow. `RepoReportRow` gained a new
+  `pack_too_large: bool` field.
+- **Removed runtime `assert!` in `print_repos_rich_table`** —
+  the column-set ≤ 165 cols invariant was enforced at
+  runtime (panicking the process on forced-narrow layouts).
+  The invariant is already pinned by the test
+  `test_rich_table_fits_narrow_terminal`; runtime enforcement
+  was the wrong layer. comfy-table's `Absolute(width)`
+  degrades gracefully on narrow terminals.
+
+`test_size_label_units_and_colors` rewritten to cover the
+new signature including the deathrun-vs-junk-runner
+color-distinction case. See `release-notes-v0.113.9.md`
+for full source-change table, before/after fleet state,
+and cross-references.
+
 ### v0.113.8 — 2026-07-29 — rich-table diagnostic columns
 
 The `dracon-sync repos` rich-table default view dropped the
