@@ -38,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repos get no marker — a false 🔓 would be worse than none). Legend
   gained the REPO line explaining both the ⚡branch fold and 🔒.
 
-## [0.113.16] - 2026-07-29
 ## [0.113.15] - 2026-07-29
 
 ### Added
