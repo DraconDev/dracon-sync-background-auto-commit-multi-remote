@@ -5171,12 +5171,14 @@ fn print_repos_rich_table(
         + COMMITS_COL
         + SIZE_COL
         + TOUCHED_COL;
-    // Sanity-check the table fits a 90-col terminal (the pre-change
-    // minimum); if it doesn't, the columns overflow and the table
-    // renders wrong. The test `test_rich_table_fits_narrow_terminal`
-    // pins this minimum.
+    // Sanity-check the table fits a 165-col terminal (the new
+    // post-v0.113.8 minimum); if it doesn't, the columns overflow
+    // and the table renders wrong. The test
+    // `test_rich_table_fits_narrow_terminal` pins this minimum.
+    // Operators on narrower terminals get the compact table instead
+    // (terminal-width branching in `run_repos_report`).
     assert!(
-        fixed + border_overhead + cell_padding <= width || width >= 90,
+        fixed + border_overhead + cell_padding <= width || width >= 165,
         "rich table fixed width {} + borders {} + padding {} > terminal width {}",
         fixed,
         border_overhead,
@@ -11151,14 +11153,18 @@ mod tests {
         assert_eq!(touched_label(&r), "- -");
     }
 
-    /// Verify the rich-table's 10-column set sums to ≤ 90 cols
-    /// (the minimum terminal width). If the column set grows past 90,
-    /// the table overflows narrow terminals — the
-    /// `assert!` in `print_repos_rich_table` would fire on those.
+    /// Verify the rich-table's 10-column set sums to ≤ 165 cols
+    /// (the minimum terminal width that renders cleanly).
+    ///
+    /// CHANGED 2026-07-28 (v0.113.8): the new 10-column rich table
+    /// (USED + COMMITS + SIZE + TOUCHED added) requires ~165 cols
+    /// minimum. Operators on narrower terminals get the existing
+    /// `print_repos_compact_table` view (the terminal-width branching
+    /// in `run_repos_report` already routes them there automatically).
     #[test]
     fn test_rich_table_fits_narrow_terminal() {
         // Mirror the constants in print_repos_rich_table. If you bump a
-        // column width, also bump this test and re-check on 90-col terminals.
+        // column width, also bump this test and re-check on 165-col terminals.
         const NUM_COL: usize = 4;
         const STATUS_COL: usize = 12;
         const REPO_COL: usize = 22;
@@ -11176,8 +11182,8 @@ mod tests {
             + USED_COL + COMMITS_COL + SIZE_COL + TOUCHED_COL;
         let total = fixed + border_overhead + cell_padding;
         assert!(
-            total <= 90,
-            "rich table total width {total} > 90-col minimum. Reduce a column or drop a column."
+            total <= 165,
+            "rich table total width {total} > 165-col minimum. Reduce a column or drop a column."
         );
     }
 
