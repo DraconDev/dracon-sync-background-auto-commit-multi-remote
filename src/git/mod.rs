@@ -138,8 +138,11 @@ fn github_pack_too_large_with_limit(
 /// (replaced on every store), keyed on the tip fingerprint from
 /// `guard_cache_key`. Unbounded growth is impossible: entries are per
 /// watched repo and replaced in place.
+/// Cached verdict entry: (tip fingerprint, (too_big, basis_bytes)).
+type GuardVerdictEntry = (String, (bool, u64));
+
 static GUARD_VERDICT_CACHE: std::sync::Mutex<
-    Option<std::collections::HashMap<std::path::PathBuf, (String, (bool, u64))>>,
+    Option<std::collections::HashMap<std::path::PathBuf, GuardVerdictEntry>>,
 > = std::sync::Mutex::new(None);
 
 /// Test instrumentation: counts full (uncached) guard computations PER
