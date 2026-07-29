@@ -13,6 +13,10 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
     crate::policy::tokio_git_command()
 }
 
+/// GitHub's incoming-pack hard limit (2 GiB). A push whose pack exceeds this
+/// is rejected by the forge.
+const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+
 /// GitHub's hard limit is 2 GiB per pack. Returns `(too_big_for_github,
 /// size_used_for_decision)` where `too_big_for_github` is true only when the
 /// pack we would actually send for the pushed branch exceeds 2 GiB.
@@ -24,11 +28,37 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
 /// GitHub for such repos, breaking push-to-all.
 ///
 /// Fast path: if the whole `.git` is already < 2 GiB, GitHub can receive any
-/// branch we push (the pack is at most the whole history), so we never skip.
-/// Only when `.git` is large do we refine by measuring the objects reachable
-/// from the pushed branch. That is an upper bound on the actual pack (which
-/// is compressed and excludes objects GitHub already has), so it is
-/// conservative: we still skip only if even the full branch exceeds 2 GiB.
+/// branch we push (a subset pack is never larger than the whole store), so we
+/// never skip.
+///
+/// CHANGED 2026-07-29 (v0.113.10): the slow path no longer measures the
+/// WHOLE branch's uncompressed blob sum. It now measures what github would
+/// actually RECEIVE on the next push, per github-host remote:
+///
+///   1. DELTA: objects on the pushed branch that the remote does not already
+///      have (`rev-list --objects <branch> --not <remote-tip>`). The old
+///      whole-branch measure false-flagged repos whose bloat was already on
+///      github from incremental pushes (junk-runner: 3.79 GiB measured vs a
+///      14.77 MiB actual next-push pack — github had the objects already).
+///      A missing tracking ref — or one whose tip is NOT an ancestor of the
+///      branch (rewound/recreated remote + stale local ref) — means the
+///      whole branch ships (fresh-remote case); a configured-absent github
+///      remote is also fresh because the daemon auto-creates the repo on
+///      first push. Under-estimating here is the unsafe direction, so both
+///      degrade to whole-branch.
+///   2. SECOND CHANCE (compressed): when the uncompressed delta exceeds the
+///      limit, we stream the same object set through `git pack-objects
+///      --stdout` and count bytes — github's limit applies to the COMPRESSED
+///      pack it receives. Highly compressible content (junk-runner's JSONL
+///      logs: 3.79 GiB uncompressed -> 736 MiB packed for the whole history)
+///      clears here; incompressible content (deathrun's July PNG bloat,
+///      which github genuinely rejected) does not. Without `--thin`, deltas
+///      are computed only within the shipped set, so this stays an upper
+///      bound on the real push pack (never an under-estimate).
+///
+/// The returned byte figure is the decisive one for the path taken: the
+/// `.git` size on the fast path, the uncompressed delta when that already
+/// clears, else the compressed pack size.
 ///
 /// The `is_pack_too_large` backstop in the push path catches any mis-estimate:
 /// if a push we allow is somehow rejected by GitHub, the daemon stops retrying
@@ -41,51 +71,222 @@ pub(crate) fn github_pack_too_large(
     repo: &std::path::Path,
     precomputed_size: Option<u64>,
 ) -> (bool, u64) {
-    const LIMIT: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB
+    github_pack_too_large_with_limit(repo, precomputed_size, GITHUB_PACK_LIMIT_BYTES)
+}
+
+/// Limit-parameterized core (tests use small limits against fixture repos).
+fn github_pack_too_large_with_limit(
+    repo: &std::path::Path,
+    precomputed_size: Option<u64>,
+    limit: u64,
+) -> (bool, u64) {
     // Use the precomputed size when supplied; otherwise measure `.git`.
     let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
     // Fast path: small .git -> never too big (unchanged behavior for the vast
     // majority of repos; no extra git subprocess).
     if let Some(size) = measured {
-        if size < LIMIT {
+        if size < limit {
             return (false, size);
         }
     }
-    // Large .git: refine using the pushed branch's reachable objects.
-    let pushable = pushed_branch_pushable_bytes(repo);
-    if pushable == u64::MAX {
-        // Couldn't measure the branch (e.g. detached HEAD, git error). Fall
-        // back to the measured/whole .git size (conservative: skip).
-        let whole = measured
-            .unwrap_or_else(|| crate::report::measure_git_size_bytes(repo).unwrap_or(u64::MAX));
-        (whole >= LIMIT, whole)
+    // Large .git: measure the pack github would actually receive.
+    match github_push_basis_bytes(repo, limit) {
+        Some(basis) => (basis >= limit, basis),
+        None => {
+            // Couldn't measure the branch (e.g. detached HEAD, git error).
+            // Fall back to the measured/whole .git size (conservative: skip).
+            let whole = measured
+                .or_else(|| crate::report::measure_git_size_bytes(repo))
+                .unwrap_or(u64::MAX);
+            (whole >= limit, whole)
+        }
+    }
+}
+
+/// What would the next push to github actually ship? Returns the decisive
+/// byte figure (uncompressed delta when that clears, else compressed pack
+/// size), maxed across all github-host remotes. `None` when the branch or
+/// its objects can't be measured (caller falls back conservatively).
+fn github_push_basis_bytes(repo: &std::path::Path, limit: u64) -> Option<u64> {
+    // The daemon pushes the checked-out branch.
+    let branch = current_branch(repo)?;
+    let remotes = github_remote_names(repo);
+    // Each entry is the exclusion-tip set for one push scenario. A github
+    // remote with no usable tracking ref — and the no-github-remote case
+    // (daemon auto-creates the repo on first push) — is a FRESH remote: the
+    // whole branch ships, no exclusions.
+    let scenarios: Vec<Vec<String>> = if remotes.is_empty() {
+        vec![Vec::new()]
     } else {
-        (pushable >= LIMIT, pushable)
+        remotes
+            .iter()
+            .map(|name| github_delta_excludes(repo, name, &branch))
+            .collect()
+    };
+    let mut best: u64 = 0;
+    for excludes in scenarios {
+        let shas = branch_object_shas(repo, &branch, &excludes)?;
+        let uncompressed = blob_size_sum(repo, &shas)?;
+        let basis = if uncompressed >= limit {
+            // Second chance: the pack github receives is COMPRESSED. On
+            // timeout/error keep the uncompressed figure (conservative:
+            // it is already >= limit, so the verdict stays "too big").
+            compressed_pack_bytes(repo, &shas).unwrap_or(uncompressed)
+        } else {
+            uncompressed
+        };
+        best = best.max(basis);
+    }
+    Some(best)
+}
+
+/// Names of the repo's remotes whose URL points at github.com (the forge
+/// with the 2 GiB pack limit). Local config only — no network.
+fn github_remote_names(repo: &std::path::Path) -> Vec<String> {
+    let out = match git_capture_stdout(repo, &["config", "--get-regexp", r"^remote\..*\.url$"]) {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+    out.lines()
+        .filter_map(|line| {
+            // `git config --get-regexp` output: "remote.<name>.url <url>".
+            let (key, url) = line.split_once(' ')?;
+            if !url.to_ascii_lowercase().contains("github.com") {
+                return None;
+            }
+            key.strip_prefix("remote.")?
+                .strip_suffix(".url")
+                .map(str::to_string)
+        })
+        .collect()
+}
+
+/// The objects a github remote already has, expressed as rev-list exclusion
+/// tips. Empty when the whole branch would ship to this remote (fresh,
+/// never-fetched, or rewound remote — see `github_push_basis_bytes`).
+fn github_delta_excludes(repo: &std::path::Path, remote: &str, branch: &str) -> Vec<String> {
+    let refname = format!("refs/remotes/{}/{}", remote, branch);
+    let tip = git_capture_stdout(repo, &["rev-parse", "--verify", "--quiet", &refname])
+        .map(|s| s.trim().to_string())
+        .filter(|t| t.len() == 40 && t.bytes().all(|b| b.is_ascii_hexdigit()));
+    match tip {
+        // Trust the tracking ref only when its tip is an ancestor of the
+        // branch; a non-ancestor tip (rewound/recreated remote + stale
+        // local ref) would make the delta an UNDER-estimate — the unsafe
+        // direction — so that case degrades to whole-branch too.
+        Some(t) if git_status_ok(repo, &["merge-base", "--is-ancestor", &t, branch]) => vec![t],
+        _ => Vec::new(),
+    }
+}
+
+/// Run a git command and report only whether it exited successfully.
+fn git_status_ok(repo: &std::path::Path, args: &[&str]) -> bool {
+    git_cmd()
+        .current_dir(repo)
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Compressed byte count of the pack containing exactly `shas` — what github
+/// would receive for this object set (minus `--thin` base-object deltas, so
+/// an upper bound). Streams stdout to a byte counter (never buffers the
+/// pack) and enforces a 600s ceiling; `None` on spawn failure, non-zero
+/// exit, or timeout (callers treat `None` conservatively).
+fn compressed_pack_bytes(repo: &std::path::Path, shas: &str) -> Option<u64> {
+    if shas.is_empty() {
+        return Some(0);
+    }
+    let mut cmd = git_cmd();
+    cmd.current_dir(repo)
+        .args(["pack-objects", "--stdout", "--quiet"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    let mut child = cmd.spawn().ok()?;
+    let mut pack_stdin = child.stdin.take()?;
+    let pack_stdout = child.stdout.take()?;
+    // Writer thread: stream the SHA list, then drop stdin -> pipe EOF. Same
+    // deadlock-avoidance pattern as `blob_size_sum` (the list can be tens of
+    // MiB; nobody may block on a full pipe in either direction).
+    let shas_owned = shas.to_string();
+    let writer = std::thread::spawn(move || {
+        use std::io::Write;
+        let _ = pack_stdin.write_all(shas_owned.as_bytes());
+    });
+    // Reader thread: drain stdout, counting bytes without buffering them.
+    let reader = std::thread::spawn(move || -> u64 {
+        use std::io::Read;
+        let mut reader = std::io::BufReader::new(pack_stdout);
+        let mut buf = [0u8; 65536];
+        let mut total: u64 = 0;
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => total = total.saturating_add(n as u64),
+                Err(_) => break,
+            }
+        }
+        total
+    });
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let _ = writer.join();
+                let total = reader.join().unwrap_or(0);
+                return if status.success() { Some(total) } else { None };
+            }
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = writer.join();
+                    let _ = reader.join();
+                    return None;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
     }
 }
 
 /// Estimate the raw byte size of objects reachable from the branch the daemon
 /// pushes (the checked-out branch), excluding submodule gitlink objects (which
-/// live in nested repos, not this one). This is an upper bound on the pack
-/// GitHub would receive for that branch.
+/// live in nested repos, not this one). Whole-branch variant retained for
+/// report/tests; the github guard uses the per-remote delta variant via
+/// `github_push_basis_bytes`.
 ///
 /// Returns `u64::MAX` when the branch can't be determined or git errors.
 fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
-    // The daemon pushes the checked-out branch.
-    let branch = match git_capture_stdout(repo, &["rev-parse", "--abbrev-ref", "HEAD"]) {
-        Some(s) => {
-            let b = s.trim().to_string();
-            if b.is_empty() || b == "HEAD" {
-                return u64::MAX; // detached HEAD -> can't determine
-            }
-            b
-        }
+    let branch = match current_branch(repo) {
+        Some(b) => b,
         None => return u64::MAX,
     };
-    let objects = match git_capture_stdout(repo, &["rev-list", "--objects", &branch]) {
-        Some(s) => s,
-        None => return u64::MAX,
-    };
+    match branch_object_shas(repo, &branch, &[]) {
+        Some(shas) => blob_size_sum(repo, &shas).unwrap_or(u64::MAX),
+        None => u64::MAX,
+    }
+}
+
+/// Collect the SHAs of every object reachable from `branch` minus the
+/// `excludes` tips (`git rev-list --objects <branch> --not <tip>...`), one
+/// 40-hex SHA per line. `None` on git error.
+fn branch_object_shas(repo: &std::path::Path, branch: &str, excludes: &[String]) -> Option<String> {
+    let mut args: Vec<&str> = vec!["rev-list", "--objects", branch];
+    for tip in excludes {
+        args.push("--not");
+        args.push(tip.as_str());
+    }
+    let objects = git_capture_stdout(repo, &args)?;
     // Collect object SHAs (first whitespace-delimited token per line).
     let mut shas = String::new();
     for line in objects.lines() {
@@ -96,8 +297,15 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
             }
         }
     }
+    Some(shas)
+}
+
+/// Sum the uncompressed sizes of the blob objects in `shas` (a newline-
+/// separated SHA list as produced by `branch_object_shas`). `None` when
+/// `git cat-file` can't be spawned (callers treat it as unmeasurable).
+fn blob_size_sum(repo: &std::path::Path, shas: &str) -> Option<u64> {
     if shas.is_empty() {
-        return 0;
+        return Some(0);
     }
 
     // Spawn `git cat-file --batch-check` to size each object.
@@ -118,16 +326,18 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
         .stderr(std::process::Stdio::null());
     let mut child = match cmd.spawn() {
         Ok(c) => c,
-        Err(_) => return u64::MAX,
+        Err(_) => return None,
     };
     let mut cat_stdin = match child.stdin.take() {
         Some(s) => s,
-        None => return u64::MAX,
+        None => return None,
     };
     // Writer thread: stream the SHA list, then drop stdin -> pipe EOF.
+    // (owned copy: a &str borrow can't move into a thread)
+    let shas_owned = shas.to_string();
     let writer = std::thread::spawn(move || {
         use std::io::Write;
-        let _ = cat_stdin.write_all(shas.as_bytes());
+        let _ = cat_stdin.write_all(shas_owned.as_bytes());
         // `cat_stdin` dropped here -> pipe EOF -> cat-file flushes.
     });
 
@@ -172,7 +382,7 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
     }
     let _ = child.wait();
     let _ = writer.join();
-    total
+    Some(total)
 }
 
 /// Run a git command in `repo` and return its stdout as a `String`, or `None`
