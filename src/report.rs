@@ -2472,7 +2472,15 @@ pub(crate) enum LayoutTier {
 /// the Absolute constraint and reintroduces the letter-wrap bug.
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
-    if w < 242 {
+    // CHANGED 2026-07-28 (v0.113.8): the rich table grew from 7-8
+    // columns to 10 (added USED + COMMITS + SIZE + TOUCHED) and
+    // widened the ACTIVITY column from 21 to 28. Minimum terminal
+    // width is now ~165 cols (vs the pre-change 90). Operators on
+    // narrower terminals route to the Compact tier instead — the
+    // 8-column compact view is the right answer for 90-165 cols.
+    if w < 165 {
+        LayoutTier::Compact
+    } else if w < 242 {
         LayoutTier::Rich
     } else if w < 315 {
         LayoutTier::Compact
@@ -10547,9 +10555,12 @@ mod tests {
         std::env::set_var("COLUMNS", "120"); // Force 120 explicitly via COLUMNS
         let w = terminal_width();
         assert_eq!(w, Some(120), "fallback for non-TTY must be Some(120), got {:?}", w);
-        // CHANGED 2026-07-22 (v0.112.38): < 242 routes to Rich, not
-        // Vertical.
-        assert_eq!(choose_layout_tier(), LayoutTier::Rich, "120 cols must route to Rich");
+        // CHANGED 2026-07-22 (v0.112.38): < 242 routes to Rich, not Vertical.
+        // CHANGED 2026-07-28 (v0.113.8): 120 cols now routes to Compact (the
+        // post-v0.113.8 Rich tier needs ≥165 cols minimum — added USED,
+        // COMMITS, SIZE, TOUCHED columns grew the total width from ~120 to
+        // ~165). The Compact tier handles 90-165 col terminals.
+        assert_eq!(choose_layout_tier(), LayoutTier::Compact, "120 cols must route to Compact");
         // Restore
         match prev_width {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
