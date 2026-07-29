@@ -316,6 +316,19 @@ fn shorten_when(s: &str) -> String {
 ///   - "cold Xd"    : clean, no activity for > 24h
 ///   - "—"          : unknown / no data
 pub(crate) fn activity_label(row: &RepoReportRow) -> String {
+    let base = activity_label_base(row);
+    // v0.113.13 (goal-list 2026-07-29): surface daemon-excluded dirty
+    // entries as `· N excl` so the operator can see that e.g.
+    // `.pi-glla/active.jsonl` sits dirty BY POLICY without it driving
+    // the dirty-clock or WARN (those already use the adjusted counts).
+    if row.excluded_dirty > 0 {
+        format!("{} · {} excl", base, row.excluded_dirty)
+    } else {
+        base
+    }
+}
+
+fn activity_label_base(row: &RepoReportRow) -> String {
     // Parse the last_when string ("N minutes ago", "N hours ago", etc.)
     // into a number of minutes. Returns None if unparseable.
     let last_when_mins = parse_relative_minutes_to_u64(&row.last_when);
