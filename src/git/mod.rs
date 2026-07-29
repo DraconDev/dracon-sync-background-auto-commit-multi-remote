@@ -1,5 +1,6 @@
 #[cfg(test)]
 use crate::policy::{AuthType, RemoteConfig};
+use crate::log_warn;
 #[cfg(test)]
 use dracon_git::types::FileStatus;
 #[cfg(test)]
@@ -3885,6 +3886,277 @@ pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) 
         }
     }
     Some(garbage)
+}
+
+// ---- v0.113.10: stale daemon-branch janitor (opt-in) ----
+
+/// Cooldown map for `maybe_prune_stale_backup_branches` (same pattern as
+/// AUTO_GC_ATTEMPTS): at most one janitor pass per repo per 24h, success
+/// or failure (failures retry tomorrow rather than log-spamming every
+/// sync cycle).
+static PRUNE_BRANCHES_ATTEMPTS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, std::time::Instant>>,
+> = std::sync::OnceLock::new();
+
+/// Branch names the daemon itself created at some point and may safely
+/// reap under the janitor's bundle-first protocol. `preserve/*` and
+/// operator/agent-created `backup/*` names (e.g.
+/// `backup/pre-deathrun-rewrite-*`) deliberately do NOT match — the
+/// janitor only ever touches the daemon's own artifacts.
+fn is_daemon_owned_stale_branch(name: &str) -> bool {
+    name.starts_with("backup/pre-sync-largeblob-fix-") || name == "daemon-standalone"
+}
+
+/// Names of the repo's configured remotes (`git remote`).
+fn configured_remote_names(repo: &std::path::Path) -> Vec<String> {
+    git_capture_stdout(repo, &["remote"])
+        .map(|s| s.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect())
+        .unwrap_or_default()
+}
+
+/// ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale daemon-created
+/// branches and orphaned remote-tracking refs — the automated form of the
+/// 2026-07-29 manual fleet cleanup (see
+/// docs/design/stale-backup-branch-cleanup-2026-07-29.md).
+///
+/// What a pass does (per repo, at most once per 24h):
+///   1. Collect stale LOCAL branches matching the daemon's own naming
+///      (`backup/pre-sync-largeblob-fix-*`, `daemon-standalone`),
+///      excluding the checked-out branch.
+///   2. Collect ORPHANED remote-tracking refs (`refs/remotes/<name>/*`
+///      where `<name>` is no longer a configured remote — the deathrun
+///      `restore/*` case pinned 2 GiB of dead objects for a week).
+///   3. Bundle EVERYTHING into `<backup_dir>/auto-prune/<repo>-<ts>.bundle`
+///      and `git bundle verify` it. Any bundle failure aborts the pass
+///      with nothing deleted — the bundle is the recovery trail.
+///   4. Delete the local branches + orphaned refs, `log_warn!`-ing each
+///      deletion with repo, ref, tip, and bundle path (the journal is
+///      the operator-review trail AGENTS.md assigns to `backup/*`
+///      branches — the janitor erases the in-repo signal, so it must
+///      move it to the journal, not drop it).
+///   5. For each stale branch, delete the REMOTE copy on any configured
+///      remote whose tracking tip equals the recorded local tip
+///      (mismatch => someone else owns that remote branch => skip),
+///      skipping the remote's default-HEAD branch. The push injects
+///      `DRACON_ALLOW_REWRITE=1` into that one command's env — the
+///      sanctioned narrow exception to the no-auto-rewrite policy,
+///      scoped to branches the daemon itself created, and itself
+///      gated behind the operator's `auto_prune_stale_backup_branches
+///      = true` opt-in.
+///
+/// Never fatal: every failure degrades to a warning and an early return.
+/// Requires `backup_dir` to be configured (empty => warn + no-op).
+pub(crate) async fn maybe_prune_stale_backup_branches(
+    repo: &std::path::Path,
+    enabled: bool,
+    backup_dir: &str,
+) {
+    if !enabled {
+        return;
+    }
+    {
+        let attempts =
+            PRUNE_BRANCHES_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let mut map = attempts.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(last) = map.get(repo) {
+            if last.elapsed() < std::time::Duration::from_secs(24 * 3600) {
+                return;
+            }
+        }
+        // Mark at entry: one pass per 24h regardless of outcome.
+        map.insert(repo.to_path_buf(), std::time::Instant::now());
+    }
+
+    // 1+2: collect candidates. (name-as-passed-to-git, tip, delete-refname)
+    let current = current_branch(repo);
+    let mut candidates: Vec<(String, String, String)> = Vec::new();
+    if let Some(out) = git_capture_stdout(
+        repo,
+        &["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads/"],
+    ) {
+        for line in out.lines() {
+            let mut it = line.split_whitespace();
+            let (Some(refname), Some(tip)) = (it.next(), it.next()) else {
+                continue;
+            };
+            let short = refname.trim_start_matches("refs/heads/");
+            if is_daemon_owned_stale_branch(short) && Some(short.to_string()) != current {
+                candidates.push((short.to_string(), tip.to_string(), refname.to_string()));
+            }
+        }
+    }
+    let remotes = configured_remote_names(repo);
+    let remote_set: std::collections::HashSet<&str> =
+        remotes.iter().map(|s| s.as_str()).collect();
+    if let Some(out) = git_capture_stdout(
+        repo,
+        &["for-each-ref", "--format=%(refname) %(objectname)", "refs/remotes/"],
+    ) {
+        for line in out.lines() {
+            let mut it = line.split_whitespace();
+            let (Some(refname), Some(tip)) = (it.next(), it.next()) else {
+                continue;
+            };
+            let short = refname.trim_start_matches("refs/remotes/");
+            let remote_name = short.split('/').next().unwrap_or("");
+            if !remote_name.is_empty() && !remote_set.contains(remote_name) {
+                candidates.push((refname.to_string(), tip.to_string(), refname.to_string()));
+            }
+        }
+    }
+    if candidates.is_empty() {
+        return;
+    }
+    if backup_dir.is_empty() {
+        log_warn!(
+            "🧹 {} has {} stale daemon branch(es)/orphaned ref(s) but backup_dir is unset — skipping janitor pass",
+            repo.display(),
+            candidates.len()
+        );
+        return;
+    }
+
+    // 3: bundle everything first. Recovery: `git fetch <bundle>
+    // 'refs/heads/*:refs/heads/restored-*'` (or the refs/remotes/* paths
+    // for orphaned tracking refs).
+    let dir = std::path::Path::new(backup_dir).join("auto-prune");
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        log_warn!("🧹 janitor: cannot create {}: {} — nothing deleted", dir.display(), e);
+        return;
+    }
+    let slug = repo
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "repo".to_string());
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let bundle = dir.join(format!("{}-{}.bundle", slug, ts));
+    let bundle_str = bundle.to_string_lossy().to_string();
+    let mut args: Vec<&str> = vec!["bundle", "create", &bundle_str];
+    for (name, _, _) in &candidates {
+        args.push(name);
+    }
+    let bundle_ok = git_cmd()
+        .current_dir(repo)
+        .args(&args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+        && git_cmd()
+            .current_dir(repo)
+            .args(["bundle", "verify", &bundle_str])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+    if !bundle_ok {
+        log_warn!(
+            "🧹 janitor: bundle create/verify failed for {} ({} refs) — nothing deleted",
+            repo.display(),
+            candidates.len()
+        );
+        let _ = std::fs::remove_file(&bundle);
+        return;
+    }
+
+    // Record remote-tracking tips BEFORE local deletion so the remote
+    // copy is only deleted when it matches what we bundled.
+    let mut remote_tips: std::collections::HashMap<(String, String), Option<String>> =
+        std::collections::HashMap::new();
+    for (name, _, _) in &candidates {
+        if name.starts_with("refs/") {
+            continue; // orphaned tracking ref — no remote exists to delete from
+        }
+        for r in &remotes {
+            let tref = format!("refs/remotes/{}/{}", r, name);
+            let tip = git_capture_stdout(repo, &["rev-parse", "--verify", "--quiet", &tref])
+                .map(|s| s.trim().to_string())
+                .filter(|t| t.len() == 40);
+            remote_tips.insert((r.clone(), name.clone()), tip);
+        }
+    }
+
+    // 4: local deletions.
+    for (_name, tip, refname) in &candidates {
+        let ok = git_cmd()
+            .current_dir(repo)
+            .args(["update-ref", "-d", refname])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if ok {
+            log_warn!(
+                "🧹 {} pruned stale ref {} (tip {}) — bundled to {}",
+                repo.display(),
+                refname,
+                tip,
+                bundle.display()
+            );
+        } else {
+            log_warn!("🧹 janitor: failed to delete {} in {} — skipping", refname, repo.display());
+        }
+    }
+
+    // 5: remote deletions (matching tips only; never the remote's
+    // default-HEAD branch; narrow DRACON_ALLOW_REWRITE injection).
+    for (name, local_tip, _) in &candidates {
+        if name.starts_with("refs/") {
+            continue;
+        }
+        for r in &remotes {
+            let matches = remote_tips
+                .get(&(r.clone(), name.clone()))
+                .and_then(|t| t.as_deref())
+                == Some(local_tip.as_str());
+            if !matches {
+                continue;
+            }
+            let remote_head = git_capture_stdout(
+                repo,
+                &["symbolic-ref", "--quiet", &format!("refs/remotes/{}/HEAD", r)],
+            )
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+            if remote_head == format!("refs/remotes/{}/{}", r, name) {
+                continue; // remote's default branch — never delete
+            }
+            match run_git_with_timeout_env(
+                repo,
+                &["push", r, "--delete", name],
+                600,
+                "push --delete (stale daemon branch)",
+                &[("DRACON_ALLOW_REWRITE", "1")],
+            )
+            .await
+            {
+                Ok(()) => {
+                    log_warn!(
+                        "🧹 {} deleted stale branch {} on remote {} (tip matched {})",
+                        repo.display(),
+                        name,
+                        r,
+                        local_tip
+                    );
+                }
+                Err(e) => {
+                    log_warn!(
+                        "🧹 janitor: remote delete of {} on {} failed for {}: {:#} — will retry next pass",
+                        name,
+                        r,
+                        repo.display(),
+                        e
+                    );
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
