@@ -568,6 +568,38 @@ fn format_push_to_remotes_cell(
 /// deterministic output for tests).
 ///
 /// ADDED 2026-07-17 (goal `codeberg-public-only`).
+///
+/// ADDED 2026-07-29 (v0.113.16): the report-side mirror of the
+/// daemon's FULL push-time remote filter. `effective_excluded_remotes`
+/// applies only the per-repo `exclude_remotes` + the
+/// codeberg-public-only visibility gate; the daemon's
+/// `push_mirror_remotes` additionally applies the v0.112.28
+/// quota-posture rule (`codeberg_push_excluded` — codeberg skipped
+/// when the repo has no codeberg tracking ref AND effective
+/// auto-create is off). Returning both lists from one place so
+/// `push_to_remotes` / `excluded_remotes` can never drift apart.
+///
+/// Returns `(push_to, excluded)`.
+pub(crate) fn report_effective_remotes(
+    policy: &crate::policy::SyncPolicy,
+    repo_override: &crate::policy::RepoPolicyOverride,
+    repo_path: &std::path::Path,
+) -> (Vec<String>, Vec<String>) {
+    let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
+    if crate::git::multi_remote::codeberg_push_excluded(
+        &policy.remotes,
+        repo_override.auto_create_on_codeberg,
+        crate::git::multi_remote::has_codeberg_tracking_ref(repo_path),
+    ) && !excluded.iter().any(|e| e == "codeberg")
+    {
+        excluded.push("codeberg".to_string());
+    }
+    let filtered =
+        crate::git::multi_remote::filter_remotes_by_exclude(&policy.remotes, &excluded);
+    let push_to = filtered.iter().map(|r| r.name.clone()).collect();
+    (push_to, excluded)
+}
+
 pub(crate) fn effective_excluded_remotes(
     policy: &crate::policy::SyncPolicy,
     repo_override: &crate::policy::RepoPolicyOverride,
@@ -2827,6 +2859,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
         " REM       push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (dim = excluded from auto-push)",
+        " REPO      name⚡branch when not on main · 🔒 = github repo private (visibility cache)",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
@@ -3722,33 +3755,49 @@ pub(crate) async fn run_repos_report(
             // `policy.remotes` — the SAME logic the daemon runs in
             // `push_mirror_remotes` at sync time. What you see in the
             // table is what the daemon will do.
-            push_to_remotes: {
-                let effective_exclude =
-                    effective_excluded_remotes(policy, &repo_override, repo.as_ref());
-                let filtered = crate::git::multi_remote::filter_remotes_by_exclude(
-                    &policy.remotes,
-                    &effective_exclude,
-                );
-                filtered.iter().map(|r| r.name.clone()).collect()
-            },
-            excluded_remotes: effective_excluded_remotes(policy, &repo_override, repo.as_ref()),
+            //
+            // CHANGED 2026-07-29 (v0.113.16): the computation was NOT
+            // the same logic — it missed the daemon's v0.112.28
+            // quota-posture rule (`codeberg_push_excluded`: codeberg is
+            // skipped at push time when the repo was never pushed there
+            // AND effective auto-create is off). Repos like convos and
+            // dracon-libs showed a BRIGHT 🗻 in the REM column while
+            // the daemon deliberately skipped codeberg — a silent
+            // push-gap lie the operator spotted in the live table. The
+            // combined exclusion is now computed once by
+            // `report_effective_remotes` and used for both fields.
+            push_to_remotes: report_effective_remotes(policy, &repo_override, repo.as_ref()).0,
+            excluded_remotes: report_effective_remotes(policy, &repo_override, repo.as_ref()).1,
             // When codeberg is in excluded_remotes AND the skip came
-            // from the public-only policy (not a manual per-repo
-            // `exclude_remotes`), record why so the renderer can
-            // annotate the row distinctly from a manual exclusion.
+            // from policy (not a manual per-repo `exclude_remotes`),
+            // record why so the renderer can annotate the row
+            // distinctly from a manual exclusion. v0.113.16 adds the
+            // "quota" reason: codeberg excluded by the v0.112.28
+            // quota-posture rule even though the visibility gate
+            // would have allowed it.
             codeberg_skip_reason: {
-                let eff = effective_excluded_remotes(policy, &repo_override, repo.as_ref());
-                if eff.iter().any(|r| r == "codeberg")
+                let (gate_exclude, combined_exclude) = {
+                    let gate =
+                        effective_excluded_remotes(policy, &repo_override, repo.as_ref());
+                    let combined =
+                        report_effective_remotes(policy, &repo_override, repo.as_ref()).1;
+                    (gate, combined)
+                };
+                if combined_exclude.iter().any(|r| r == "codeberg")
                     && !repo_override.exclude_remotes.iter().any(|r| r == "codeberg")
                 {
-                    // Policy-driven skip; visibility cache tells us why.
-                    Some(
-                        match crate::visibility::cached_repo_visibility(repo.as_ref()) {
-                            Some(true) => "private".to_string(),
-                            Some(false) => "public".to_string(), // shouldn't happen
-                            None => "unknown".to_string(),
-                        },
-                    )
+                    if gate_exclude.iter().any(|r| r == "codeberg") {
+                        // Visibility-gate skip; the cache tells us why.
+                        Some(
+                            match crate::visibility::cached_repo_visibility(repo.as_ref()) {
+                                Some(true) => "private".to_string(),
+                                Some(false) => "public".to_string(), // shouldn't happen
+                                None => "unknown".to_string(),
+                            },
+                        )
+                    } else {
+                        Some("quota".to_string())
+                    }
                 } else {
                     None
                 }
@@ -5555,7 +5604,22 @@ fn print_repos_rich_table(
         } else {
             repo_name
         };
-        let repo_short = truncate_unicode_width(&repo_display, repo_budget);
+        // ADDED 2026-07-29 (v0.113.16): 🔒 suffix when the visibility
+        // cache says the github repo is private (operator: "we should
+        // show public vs private repo too"). Unknown/unprobed repos
+        // get no marker — a false 🔓 would be worse than none. The
+        // marker costs 3 cells (" 🔒"), carved out of the truncate
+        // budget so the column width is unchanged.
+        let is_private = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo))
+            .unwrap_or(false);
+        let repo_short = if is_private {
+            format!(
+                "{} 🔒",
+                truncate_unicode_width(&repo_display, repo_budget.saturating_sub(3))
+            )
+        } else {
+            truncate_unicode_width(&repo_display, repo_budget)
+        };
 
         // ACTIVITY: the activity label + dirty counts inline.
         // CHANGED 2026-07-22 (v0.112.38 R2): strip the `(N ahead)`
