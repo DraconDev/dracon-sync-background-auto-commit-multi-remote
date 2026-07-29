@@ -448,6 +448,190 @@ mod github_pack_tests {
             "daemon main pushable {bytes} must fit github's 2 GiB limit"
         );
     }
+
+    // ---- v0.113.10 delta-vs-remote measurement tests (fixture repos) ----
+
+    /// Small limit + huge precomputed .git size forces the slow path against
+    /// a fixture repo (the fast path would otherwise short-circuit).
+    const TEST_LIMIT: u64 = 64 * 1024;
+    const TEST_PRECOMPUTED: u64 = 3 * 1024 * 1024 * 1024;
+
+    /// Fixture repo with a github-host remote named `gh` (fake URL — every
+    /// measurement is local; the URL is never contacted).
+    fn fixture_repo_with_github_remote() -> PathBuf {
+        let repo = crate::test_helpers::create_test_repo();
+        crate::test_helpers::test_git_cmd()
+            .args(["remote", "add", "gh", "https://github.com/test/fixture.git"])
+            .current_dir(&repo)
+            .output()
+            .expect("git remote add");
+        repo
+    }
+
+    fn head_sha(repo: &std::path::Path) -> String {
+        let out = crate::test_helpers::test_git_cmd()
+            .args(["rev-parse", "HEAD"])
+            .current_dir(repo)
+            .output()
+            .expect("git rev-parse");
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    }
+
+    fn set_tracking_ref(repo: &std::path::Path, remote: &str, branch: &str, sha: &str) {
+        crate::test_helpers::test_git_cmd()
+            .args([
+                "update-ref",
+                &format!("refs/remotes/{}/{}", remote, branch),
+                sha,
+            ])
+            .current_dir(repo)
+            .output()
+            .expect("git update-ref");
+    }
+
+    #[test]
+    fn delta_is_empty_when_github_already_has_the_branch() {
+        // junk-runner class: the branch's objects are ALL on github already
+        // (tracking ref at HEAD). Old whole-branch measure flagged this;
+        // the delta is empty -> never too big.
+        let repo = fixture_repo_with_github_remote();
+        set_tracking_ref(&repo, "gh", "master", &head_sha(&repo));
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
+        assert!(!too_big, "empty delta must clear, basis={basis}");
+        assert_eq!(basis, 0, "nothing to ship -> zero-byte basis");
+    }
+
+    #[test]
+    fn missing_tracking_ref_measures_whole_branch() {
+        // Fresh remote (never fetched): the whole branch ships.
+        let repo = fixture_repo_with_github_remote();
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(too_big, "whole branch exceeds a 1-byte limit");
+        assert!(basis > 0, "whole-branch basis must be nonzero");
+    }
+
+    #[test]
+    fn no_github_remote_measures_whole_branch() {
+        // No github remote configured: the daemon auto-creates the repo on
+        // first push, so the whole branch would ship (fresh-remote case).
+        let repo = crate::test_helpers::create_test_repo();
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(too_big, "no github remote == fresh remote == whole branch");
+        assert!(basis > 0);
+    }
+
+    #[test]
+    fn non_ancestor_tracking_tip_is_not_trusted() {
+        // A rewound/recreated remote leaves a stale tracking ref whose tip
+        // is NOT an ancestor of the branch. Trusting it would UNDER-
+        // estimate the delta (unsafe) -> must degrade to whole branch.
+        let repo = fixture_repo_with_github_remote();
+        // Build an unrelated root commit and point the tracking ref at it.
+        let tree = crate::test_helpers::test_git_cmd()
+            .args(["mktree"])
+            .current_dir(&repo)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .expect("git mktree");
+        let tree = String::from_utf8_lossy(&tree.stdout).trim().to_string();
+        let commit = crate::test_helpers::test_git_cmd()
+            .args(["commit-tree", &tree, "-m", "unrelated"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit-tree");
+        let commit = String::from_utf8_lossy(&commit.stdout).trim().to_string();
+        set_tracking_ref(&repo, "gh", "master", &commit);
+        let (too_big, _) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(
+            too_big,
+            "non-ancestor tip must degrade to whole-branch (exceeds 1-byte limit)"
+        );
+    }
+
+    #[test]
+    fn multiple_github_remotes_take_the_worst_case() {
+        // gh1 is fully caught up (empty delta); gh2 is fresh (whole branch).
+        // The verdict must follow the WORST remote, not the best.
+        let repo = fixture_repo_with_github_remote();
+        set_tracking_ref(&repo, "gh", "master", &head_sha(&repo));
+        crate::test_helpers::test_git_cmd()
+            .args(["remote", "add", "gh2", "https://github.com/test/fixture2.git"])
+            .current_dir(&repo)
+            .output()
+            .expect("git remote add gh2");
+        let (too_big, _) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(
+            too_big,
+            "a fresh second github remote means the whole branch ships to it"
+        );
+    }
+
+    /// Write `size` bytes of compressible (repeated) or incompressible
+    /// (urandom) content and commit it.
+    fn commit_large_file(repo: &std::path::Path, compressible: bool, size: usize) {
+        let data = if compressible {
+            vec![b'a'; size]
+        } else {
+            use std::io::Read;
+            let mut buf = vec![0u8; size];
+            std::fs::File::open("/dev/urandom")
+                .expect("urandom")
+                .read_exact(&mut buf)
+                .expect("read urandom");
+            buf
+        };
+        std::fs::write(repo.join("big.bin"), data).expect("write big file");
+        crate::test_helpers::test_git_cmd()
+            .args(["add", "big.bin"])
+            .current_dir(repo)
+            .output()
+            .expect("git add");
+        crate::test_helpers::test_commit_cmd()
+            .args(["-m", "big file"])
+            .current_dir(repo)
+            .output()
+            .expect("git commit");
+    }
+
+    #[test]
+    fn compressible_over_limit_clears_via_compressed_second_chance() {
+        // 256 KiB of repeated bytes: uncompressed delta exceeds the 64 KiB
+        // limit, but the compressed pack is a few hundred bytes -> clears.
+        // This is the junk-runner JSONL case (3.79 GiB uncompressed vs
+        // 736 MiB packed for the whole history).
+        let repo = crate::test_helpers::create_test_repo();
+        commit_large_file(&repo, true, 256 * 1024);
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
+        assert!(
+            !too_big,
+            "compressible content must clear via the compressed tier, basis={basis}"
+        );
+        assert!(
+            basis < TEST_LIMIT,
+            "compressed basis {basis} should be well under the limit"
+        );
+    }
+
+    #[test]
+    fn incompressible_over_limit_stays_flagged() {
+        // 256 KiB of urandom: uncompressed AND compressed exceed the limit.
+        // This is the deathrun-July PNG case (github genuinely rejected it).
+        let repo = crate::test_helpers::create_test_repo();
+        commit_large_file(&repo, false, 256 * 1024);
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
+        assert!(
+            too_big,
+            "incompressible content over the limit must stay flagged, basis={basis}"
+        );
+        assert!(basis >= TEST_LIMIT);
+    }
 }
 
 mod branch;
