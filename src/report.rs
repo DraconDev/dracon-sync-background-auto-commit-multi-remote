@@ -4871,6 +4871,55 @@ fn state_color_for(cause: &StateCause) -> Color {
 
 /// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
 /// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
+/// ADDED 2026-07-29 (v0.113.15): map a configured push-remote name to
+/// its rich-table icon. Width-2 emoji only (see REM_COL comment).
+/// Unknown remote names return None and render as their first two
+/// letters so an unfamiliar topology is still visible, never dropped.
+pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
+    if name.contains("github") {
+        Some("🐙")
+    } else if name.contains("gitlab") {
+        Some("🦊")
+    } else if name.contains("codeberg") {
+        Some("🏔")
+    } else {
+        None
+    }
+}
+
+/// ADDED 2026-07-29 (v0.113.15): compose the REM cell — every remote
+/// the daemon knows about for this repo, bright when pushed-to, dim
+/// (ANSI 90) when excluded. Embedded ANSI is width-safe because the
+/// `custom_styling` comfy-table feature measures with ANSI stripped;
+/// do NOT set a Cell fg on top of this string.
+fn rem_cell_content(push_to: &[String], excluded: &[String]) -> String {
+    let mut s = String::new();
+    for name in push_to {
+        match remote_icon(name) {
+            Some(icon) => s.push_str(icon),
+            None => s.push_str(&name.chars().take(2).collect::<String>()),
+        }
+    }
+    for name in excluded {
+        match remote_icon(name) {
+            Some(icon) => s.push_str(&ansi("90", icon)),
+            None => s.push_str(&ansi("90", &name.chars().take(2).collect::<String>())),
+        }
+    }
+    s
+}
+
+/// ADDED 2026-07-29 (v0.113.15): append the last-push age to a
+/// successful PUSH cell (`✅ OK 5m`). `last_push` is pre-formatted
+/// ("5m ago"); the " ago" suffix is stripped to fit PUSH_COL=12.
+fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
+    if push_text == "✅ OK" && !last_push.is_empty() {
+        format!("{} {}", push_text, last_push.trim_end_matches(" ago"))
+    } else {
+        push_text.to_string()
+    }
+}
+
 fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
     match push_status {
         "OK" => ("✅ OK", Color::Green),
@@ -12066,5 +12115,78 @@ mod v011313_tests {
             "excluded dirt must surface as marker: {marked}"
         );
         assert!(marked.contains("synced"), "excluded-only repo shows synced: {marked}");
+    }
+}
+
+/// ADDED 2026-07-29 (v0.113.15): REM icon column + PUSH last-push age.
+#[cfg(test)]
+mod v011315_tests {
+    use super::*;
+
+    #[test]
+    fn remote_icon_maps_canonical_hosts() {
+        assert_eq!(remote_icon("github"), Some("🐙"));
+        assert_eq!(remote_icon("gitlab"), Some("🦊"));
+        assert_eq!(remote_icon("codeberg"), Some("🏔"));
+        // substring match: names like "github-mirror" still map
+        assert_eq!(remote_icon("gitlab-backup"), Some("🦊"));
+        assert_eq!(remote_icon("origin"), None);
+    }
+
+    #[test]
+    fn rem_cell_bright_active_dim_excluded() {
+        let cell = rem_cell_content(
+            &["github".to_string(), "gitlab".to_string()],
+            &["codeberg".to_string()],
+        );
+        assert!(cell.contains('🐙') && cell.contains('🦊') && cell.contains('🏔'));
+        // excluded icon is wrapped in the ANSI-90 dim escape (when color on)
+        if crate::print::should_color() {
+            assert!(cell.contains("\u{1b}[90m"), "excluded icon dimmed: {cell:?}");
+        }
+        // active icons carry no escape of their own
+        assert!(cell.starts_with("🐙🦊"), "active icons lead, unstyled: {cell:?}");
+    }
+
+    #[test]
+    fn rem_cell_unknown_remote_renders_letters_not_dropped() {
+        let cell = rem_cell_content(&["origin".to_string()], &[]);
+        assert_eq!(cell, "or");
+    }
+
+    #[test]
+    fn rem_cell_fits_column_budget() {
+        // worst case: 3 remotes, all icons → 6 display cells (ANSI stripped)
+        let cell = rem_cell_content(
+            &["github".to_string(), "gitlab".to_string(), "codeberg".to_string()],
+            &[],
+        );
+        // strip ANSI escapes manually (console is only a transitive dep)
+        let mut stripped = String::new();
+        let mut chars = cell.chars();
+        while let Some(c) = chars.next() {
+            if c == '\u{1b}' {
+                for c2 in chars.by_ref() {
+                    if c2 == 'm' {
+                        break;
+                    }
+                }
+            } else {
+                stripped.push(c);
+            }
+        }
+        let w: usize = stripped
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
+        assert_eq!(w, 6, "3-icon REM cell must measure exactly 6 cols");
+    }
+
+    #[test]
+    fn push_cell_appends_age_on_success_only() {
+        assert_eq!(push_cell_with_age("✅ OK", "5m ago"), "✅ OK 5m");
+        assert_eq!(push_cell_with_age("✅ OK", ""), "✅ OK");
+        assert_eq!(push_cell_with_age("🟣 PENDING", "5m ago"), "🟣 PENDING");
+        assert_eq!(push_cell_with_age("❌ FAIL", "5m ago"), "❌ FAIL");
     }
 }
