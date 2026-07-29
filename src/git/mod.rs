@@ -101,7 +101,11 @@ fn github_pack_too_large_with_limit(
         }
     }
     #[cfg(test)]
-    GUARD_MEASURE_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    if let Ok(mut g) = GUARD_MEASURE_COUNT.lock() {
+        *g.get_or_insert_with(std::collections::HashMap::new)
+            .entry(repo.to_path_buf())
+            .or_insert(0) += 1;
+    }
     // Use the precomputed size when supplied; otherwise measure `.git`.
     let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
     let (result, clean) = if let Some(size) = measured.filter(|s| *s < limit) {
@@ -138,25 +142,23 @@ static GUARD_VERDICT_CACHE: std::sync::Mutex<
     Option<std::collections::HashMap<std::path::PathBuf, (String, (bool, u64))>>,
 > = std::sync::Mutex::new(None);
 
-/// Test instrumentation: counts full (uncached) guard computations. A
-/// cache hit must perform NO git subprocess; tests assert the counter
-/// does not advance on repeated measurements with unmoved tips.
+/// Test instrumentation: counts full (uncached) guard computations PER
+/// REPO (tests run in parallel in one process; a global counter would be
+/// perturbed by unrelated tests). A cache hit must perform NO git
+/// subprocess; tests assert their repo's counter does not advance on
+/// repeated measurements with unmoved tips.
 #[cfg(test)]
-static GUARD_MEASURE_COUNT: std::sync::atomic::AtomicUsize =
-    std::sync::atomic::AtomicUsize::new(0);
+static GUARD_MEASURE_COUNT: std::sync::Mutex<
+    Option<std::collections::HashMap<std::path::PathBuf, usize>>,
+> = std::sync::Mutex::new(None);
 
 #[cfg(test)]
-fn guard_measure_count() -> usize {
-    GUARD_MEASURE_COUNT.load(std::sync::atomic::Ordering::SeqCst)
-}
-
-#[cfg(test)]
-fn clear_guard_verdict_cache() {
-    if let Ok(mut guard) = GUARD_VERDICT_CACHE.lock() {
-        if let Some(map) = guard.as_mut() {
-            map.clear();
-        }
-    }
+fn guard_measure_count(repo: &std::path::Path) -> usize {
+    GUARD_MEASURE_COUNT
+        .lock()
+        .ok()
+        .and_then(|g| g.as_ref()?.get(repo).copied())
+        .unwrap_or(0)
 }
 
 fn guard_cache_lookup(repo: &std::path::Path, key: &str) -> Option<(bool, u64)> {
