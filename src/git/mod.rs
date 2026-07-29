@@ -4184,3 +4184,215 @@ mod auto_gc_tests {
         assert!(!map.contains_key(&repo));
     }
 }
+
+#[cfg(test)]
+mod janitor_tests {
+    //! v0.113.10: `maybe_prune_stale_backup_branches` — the opt-in stale
+    //! daemon-branch janitor. Fixture repos come from
+    //! `crate::test_helpers` (origin -> local bare, `--no-verify`
+    //! commits); the janitor's own `DRACON_ALLOW_REWRITE=1` injection is
+    //! what lets its `push --delete` through warden's global pre-push
+    //! hook in environments where that hook is active.
+
+    fn local_branch_exists(repo: &std::path::Path, name: &str) -> bool {
+        crate::test_helpers::test_git_cmd()
+            .args(["rev-parse", "--verify", "--quiet", &format!("refs/heads/{}", name)])
+            .current_dir(repo)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+
+    fn remote_branch_exists(bare: &std::path::Path, name: &str) -> bool {
+        local_branch_exists(bare, name) // a bare repo's branches are refs/heads/*
+    }
+
+    fn ref_exists(repo: &std::path::Path, refname: &str) -> bool {
+        crate::test_helpers::test_git_cmd()
+            .args(["rev-parse", "--verify", "--quiet", refname])
+            .current_dir(repo)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+
+    fn make_branch(repo: &std::path::Path, name: &str) {
+        crate::test_helpers::test_git_cmd()
+            .args(["branch", name])
+            .current_dir(repo)
+            .output()
+            .expect("git branch");
+    }
+
+    fn push_all(repo: &std::path::Path) {
+        let out = crate::test_helpers::test_git_cmd()
+            .args(["push", "origin", "--all"])
+            .current_dir(repo)
+            .output()
+            .expect("git push --all");
+        assert!(
+            out.status.success(),
+            "push --all failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    /// Repo + bare origin with the two daemon-owned stale branches, one
+    /// operator `preserve/*` branch, all pushed to origin.
+    fn fixture_with_stale_branches() -> (std::path::PathBuf, std::path::PathBuf) {
+        let (repo, bare) = crate::test_helpers::create_test_repo_with_remote();
+        make_branch(&repo, "backup/pre-sync-largeblob-fix-999");
+        make_branch(&repo, "daemon-standalone");
+        make_branch(&repo, "preserve/keep-me");
+        push_all(&repo);
+        (repo, bare)
+    }
+
+    #[tokio::test]
+    async fn disabled_is_noop() {
+        let (repo, _bare) = fixture_with_stale_branches();
+        let backup = tempfile::tempdir().unwrap();
+        super::maybe_prune_stale_backup_branches(
+            &repo,
+            false,
+            &backup.path().to_string_lossy(),
+        )
+        .await;
+        assert!(local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(local_branch_exists(&repo, "daemon-standalone"));
+        // ...and not even the bundle dir was created.
+        assert!(!backup.path().join("auto-prune").exists());
+    }
+
+    #[tokio::test]
+    async fn prunes_daemon_branches_with_bundle_and_remote_delete() {
+        let (repo, bare) = fixture_with_stale_branches();
+        let backup = tempfile::tempdir().unwrap();
+        super::maybe_prune_stale_backup_branches(
+            &repo,
+            true,
+            &backup.path().to_string_lossy(),
+        )
+        .await;
+        // Local: daemon branches gone, operator branches untouched.
+        assert!(!local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(!local_branch_exists(&repo, "daemon-standalone"));
+        assert!(local_branch_exists(&repo, "preserve/keep-me"));
+        // Bundle exists and verifies against the repo.
+        let bundles: Vec<_> = std::fs::read_dir(backup.path().join("auto-prune"))
+            .expect("auto-prune dir")
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".bundle"))
+            .collect();
+        assert_eq!(bundles.len(), 1, "exactly one bundle expected");
+        let verify = crate::test_helpers::test_git_cmd()
+            .args(["bundle", "verify", &bundles[0].path().to_string_lossy()])
+            .current_dir(&repo)
+            .output()
+            .expect("git bundle verify");
+        assert!(
+            verify.status.success(),
+            "bundle must verify: {}",
+            String::from_utf8_lossy(&verify.stderr)
+        );
+        // Remote: daemon branches deleted (tips matched), preserve kept.
+        assert!(!remote_branch_exists(&bare, "backup/pre-sync-largeblob-fix-999"));
+        assert!(!remote_branch_exists(&bare, "daemon-standalone"));
+        assert!(remote_branch_exists(&bare, "preserve/keep-me"));
+    }
+
+    #[tokio::test]
+    async fn skips_remote_delete_when_tracking_tip_differs() {
+        let (repo, bare) = fixture_with_stale_branches();
+        // Simulate a remote that MOVED after our last fetch: point the
+        // local tracking ref at a different commit than the local branch
+        // tip. The janitor must still delete locally (bundled) but MUST
+        // NOT delete the remote copy.
+        let other = {
+            let tree = crate::test_helpers::test_git_cmd()
+                .args(["mktree"])
+                .current_dir(&repo)
+                .output()
+                .expect("mktree");
+            let tree = String::from_utf8_lossy(&tree.stdout).trim().to_string();
+            let c = crate::test_helpers::test_git_cmd()
+                .args(["commit-tree", &tree, "-m", "moved"])
+                .current_dir(&repo)
+                .output()
+                .expect("commit-tree");
+            String::from_utf8_lossy(&c.stdout).trim().to_string()
+        };
+        crate::test_helpers::test_git_cmd()
+            .args([
+                "update-ref",
+                "refs/remotes/origin/backup/pre-sync-largeblob-fix-999",
+                &other,
+            ])
+            .current_dir(&repo)
+            .output()
+            .expect("update-ref");
+        let backup = tempfile::tempdir().unwrap();
+        super::maybe_prune_stale_backup_branches(
+            &repo,
+            true,
+            &backup.path().to_string_lossy(),
+        )
+        .await;
+        assert!(!local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(
+            remote_branch_exists(&bare, "backup/pre-sync-largeblob-fix-999"),
+            "tip mismatch must keep the remote copy"
+        );
+        // The matched-tip branch is still deleted remotely.
+        assert!(!remote_branch_exists(&bare, "daemon-standalone"));
+    }
+
+    #[tokio::test]
+    async fn prunes_orphaned_tracking_refs() {
+        let (repo, _bare) = fixture_with_stale_branches();
+        // A tracking ref for a remote that is no longer configured (the
+        // deathrun restore/* case).
+        let head = {
+            let out = crate::test_helpers::test_git_cmd()
+                .args(["rev-parse", "HEAD"])
+                .current_dir(&repo)
+                .output()
+                .expect("rev-parse");
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        };
+        crate::test_helpers::test_git_cmd()
+            .args(["update-ref", "refs/remotes/restore/main", &head])
+            .current_dir(&repo)
+            .output()
+            .expect("update-ref");
+        let backup = tempfile::tempdir().unwrap();
+        super::maybe_prune_stale_backup_branches(
+            &repo,
+            true,
+            &backup.path().to_string_lossy(),
+        )
+        .await;
+        assert!(
+            !ref_exists(&repo, "refs/remotes/restore/main"),
+            "orphaned tracking ref must be pruned"
+        );
+        assert!(
+            ref_exists(&repo, "refs/remotes/origin/preserve/keep-me"),
+            "configured-remote tracking refs stay"
+        );
+    }
+
+    #[tokio::test]
+    async fn aborts_when_bundle_fails() {
+        let (repo, _bare) = fixture_with_stale_branches();
+        // Unwritable backup_dir -> bundle create fails -> NOTHING deleted.
+        super::maybe_prune_stale_backup_branches(&repo, true, "/proc/definitely-not-writable")
+            .await;
+        assert!(local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(local_branch_exists(&repo, "daemon-standalone"));
+    }
+}
