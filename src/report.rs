@@ -5137,14 +5137,14 @@ fn print_repos_rich_table(
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
-    // `—` = in sync. Compact (7 cols fits `↑99 ↓9`).
-    const AB_COL: usize = 7;
+    // `—` = in sync. Compact (8 cols fits `↑99 ↓9`).
+    const AB_COL: usize = 8;
     // PUSH must fit `🟣 PENDING` (2+1+7 = 10 content) + 2 padding.
     const PUSH_COL: usize = 12;
     // ADDED 2026-07-28 (v0.113.8): USED column (combined human+daemon
-    // activity tier). Width: `🟢used` (5) + 2 padding = 7; absolute 7
+    // activity tier). Width: `🟢used` (5) + 2 padding = 7; absolute 8
     // leaves 1 col of headroom for any future wider label.
-    const USED_COL: usize = 7;
+    const USED_COL: usize = 8;
     // COMMITS column: `N/N/N` (3 segments of up to 3 digits) = 9 chars
     // + 2 padding = 11; absolute 11 fits `99/99/99` cleanly.
     const COMMITS_COL: usize = 11;
@@ -10911,9 +10911,9 @@ mod tests {
             ("🏷 STATUS", 11),
             ("📦 REPO", 17),
             ("⏰ ACTIVITY", 17),
-            ("↑/↓ A/B", 7),
+            ("↑/↓ A/B", 8),
             ("🚀 PUSH", 13),
-            ("👆 USED", 7),
+            ("👆 USED", 8),
             ("📊 COMMITS", 11),
             ("📦 SIZE", 10),
             ("👤 TOUCHED", 16),
@@ -11062,8 +11062,8 @@ mod tests {
             ("3.79 GiB", (1024u64 * 1024 * 1024 * 379) / 100, "GiB"), // ≥ 2 GiB → red
             ("20.0 GiB", 20 * 1024 * 1024 * 1024, "GiB"),
         ];
-        for (name, &bytes, expected_substr) in cases {
-            let (label, color) = size_label(Some(bytes));
+        for (name, bytes, expected_substr) in cases {
+            let (label, color) = size_label(Some(*bytes));
             assert!(
                 label.contains(expected_substr),
                 "size_label for {name} ({bytes} bytes): got label {label:?}, expected to contain {expected_substr:?}"
@@ -11156,9 +11156,9 @@ mod tests {
         const STATUS_COL: usize = 12;
         const REPO_COL: usize = 22;
         const ACTIVITY_COL: usize = 28;
-        const AB_COL: usize = 7;
+        const AB_COL: usize = 8;
         const PUSH_COL: usize = 12;
-        const USED_COL: usize = 7;
+        const USED_COL: usize = 8;
         const COMMITS_COL: usize = 11;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 16;
