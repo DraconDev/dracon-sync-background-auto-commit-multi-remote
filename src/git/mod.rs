@@ -836,6 +836,114 @@ mod github_pack_tests {
         );
         assert!(basis >= TEST_LIMIT);
     }
+
+    // ---- v0.113.11 tip-keyed verdict cache tests ----
+    // None-precomputed calls consult the cache; the fixture gitdir exceeds
+    // this limit, forcing the slow (subprocess) path on a miss.
+    const CACHE_TEST_LIMIT: u64 = 1024;
+
+    #[test]
+    fn cache_hit_performs_no_remeasurement() {
+        let repo = fixture_repo_with_github_remote();
+        let before = guard_measure_count(&repo);
+        let r1 = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 1,
+            "first call must measure"
+        );
+        let r2 = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(r1, r2, "cached verdict must equal the measured one");
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 1,
+            "second call with unmoved tips must be a cache hit (no git subprocess)"
+        );
+    }
+
+    #[test]
+    fn cache_hit_survives_packed_refs() {
+        // `git pack-refs --all` removes the loose ref files; the key
+        // resolver must find the same tips in packed-refs and still hit.
+        let repo = fixture_repo_with_github_remote();
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
+        let r1 = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let before = guard_measure_count(&repo);
+        crate::test_helpers::test_git_cmd()
+            .args(["pack-refs", "--all"])
+            .current_dir(&repo)
+            .output()
+            .expect("git pack-refs");
+        let r2 = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(r1, r2);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before,
+            "packed-refs resolution must still hit the cache"
+        );
+    }
+
+    #[test]
+    fn moved_branch_tip_remeasures() {
+        let repo = fixture_repo_with_github_remote();
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let before = guard_measure_count(&repo);
+        commit_large_file(&repo, true, 8 * 1024); // any commit moves the tip
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 1,
+            "a moved branch tip must re-measure"
+        );
+    }
+
+    #[test]
+    fn moved_tracking_tip_remeasures() {
+        let repo = fixture_repo_with_github_remote();
+        let branch = fixture_branch(&repo);
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let before = guard_measure_count(&repo);
+        // Fresh-remote marker "-" -> real sha changes the key.
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 1,
+            "a new/moved tracking tip must re-measure"
+        );
+    }
+
+    #[test]
+    fn different_limit_remeasures() {
+        let repo = fixture_repo_with_github_remote();
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let before = guard_measure_count(&repo);
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT * 2);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 1,
+            "the limit is part of the cache key"
+        );
+    }
+
+    #[test]
+    fn detached_head_is_not_cached() {
+        let repo = fixture_repo_with_github_remote();
+        crate::test_helpers::test_git_cmd()
+            .args(["checkout", "--detach", "HEAD"])
+            .current_dir(&repo)
+            .output()
+            .expect("git checkout --detach");
+        let before = guard_measure_count(&repo);
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let _ = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(
+            guard_measure_count(&repo),
+            before + 2,
+            "detached HEAD builds no cache key -> every call measures"
+        );
+    }
 }
 
 mod branch;
