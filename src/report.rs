@@ -11451,7 +11451,8 @@ mod tests {
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
         for col in [
-            "STATUS", "ACTIVITY", "A/B", "PUSH", "REM", "1H/6H/24H", "SIZE", "TOUCHED", "excl",
+            "STATUS", "ACTIVITY", "A/B", "PUSH", "REM", "REPO", "1H/6H/24H", "SIZE", "TOUCHED",
+            "excl",
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
@@ -11465,6 +11466,9 @@ mod tests {
         // v0.113.15: REM icon semantics explained (dim = excluded).
         assert!(text.contains("🐙"), "REM github icon in legend");
         assert!(text.contains("dim"), "REM dim=excluded note in legend");
+        // v0.113.16: REPO cell semantics (branch fold + privacy marker).
+        assert!(text.contains("🔒"), "REPO private marker in legend");
+        assert!(text.contains("⚡"), "REPO branch fold in legend");
     }
 
     /// Every legend line must fit LEGEND_MIN_WIDTH display columns so the
@@ -12261,5 +12265,102 @@ mod v011315_tests {
         assert_eq!(push_cell_with_age("✅ OK", "-"), "✅ OK");
         assert_eq!(push_cell_with_age("🟣 PENDING", "5 minutes ago"), "🟣 PENDING");
         assert_eq!(push_cell_with_age("❌ FAIL", "5 minutes ago"), "❌ FAIL");
+    }
+}
+
+/// ADDED 2026-07-29 (v0.113.16): report REM truth — the report's
+/// push-to/excluded computation must include the daemon's v0.112.28
+/// quota-posture codeberg rule, not just the visibility gate.
+#[cfg(test)]
+mod v011316_tests {
+    use super::*;
+    use crate::policy::{test_sync_policy, RemoteConfig, RepoPolicyOverride, SyncPolicy};
+
+    fn quota_policy() -> SyncPolicy {
+        // Visibility gate OFF so the quota rule is the only possible
+        // source of a codeberg exclusion.
+        SyncPolicy {
+            codeberg_public_only: false,
+            remotes: vec![
+                RemoteConfig {
+                    name: "codeberg".to_string(),
+                    push_url: "git@codeberg.org:example/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::Codeberg,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+                RemoteConfig {
+                    name: "github".to_string(),
+                    push_url: "git@github.com:example/{repo}.git".to_string(),
+                    auto_create: false,
+                    auto_create_account: String::new(),
+                    auth_type: crate::policy::AuthType::GitHub,
+                    priority: 50,
+                    api_endpoint: None,
+                    auto_create_token_var: None,
+                    repo_name_map: std::collections::HashMap::new(),
+                    force_push_when_behind: false,
+                },
+            ],
+            ..test_sync_policy()
+        }
+    }
+
+    #[test]
+    fn quota_rule_excludes_codeberg_without_tracking_ref() {
+        let dir = std::env::temp_dir().join("dracon-v011316-no-ref");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let policy = quota_policy();
+        let (push_to, excluded) =
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir);
+        assert_eq!(push_to, vec!["github".to_string()]);
+        assert!(
+            excluded.iter().any(|e| e == "codeberg"),
+            "codeberg must be excluded by the quota rule: {excluded:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn quota_rule_keeps_codeberg_with_tracking_ref() {
+        let dir = std::env::temp_dir().join("dracon-v011316-with-ref");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        // Real git repo with a codeberg tracking ref (pre-v0.112.28
+        // mirror → codeberg pushes must keep working).
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "git {:?} failed", args);
+        };
+        run(&["init", "-q", "-b", "main"]);
+        run(&["-c", "user.name=T", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]);
+        let sha = String::from_utf8(
+            std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .current_dir(&dir)
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .unwrap();
+        run(&["update-ref", "refs/remotes/codeberg/main", sha.trim()]);
+        let policy = quota_policy();
+        let (push_to, _excluded) =
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir);
+        assert!(
+            push_to.iter().any(|r| r == "codeberg"),
+            "codeberg must stay a push target with a tracking ref: {push_to:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
