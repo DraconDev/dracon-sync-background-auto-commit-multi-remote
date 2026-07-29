@@ -870,6 +870,140 @@ fn shorten_mins_days(mins: u64) -> String {
     format!("{}d", d)
 }
 
+// ---------------------------------------------------------------------------
+// v0.113.13 (goal-list 2026-07-29): exclusion-aware dirty classification.
+//
+// The raw dracon-git counts (`RepoStatus.modified_files` / `staged_files`)
+// include files the daemon will NEVER commit:
+//   - `auto_commit_exclude_patterns` matches (e.g. junk-runner's
+//     `.pi-glla/active.jsonl` — 15 MiB append-only session scratch),
+//   - submodule-worktree-only gitlink dirt (the sync loop's
+//     `is_gitlink_unchanged` skips these; the gitlink SHA didn't move).
+// The report used the raw counts for the ACTIVITY dirty-clock AND the WARN
+// escalation, so an intentionally-excluded file looked like a permanent
+// stall — the 2026-07-29 junk-runner (`⏳ dirty 2h · 1 mod` 🟡 WARN forever)
+// + dracon-platform (inherited via the submodule gitlink) false-WARN pair.
+//
+// This classifier re-derives dirty counts from `git status --porcelain -z`
+// (fast: no clean-filter pass, unlike `repo_diff_entries` — see the perf
+// comment in the main pass) and subtracts what the daemon ignores. Only
+// called for repos whose raw tracked-dirty count is > 0, so the common
+// clean-repo path pays nothing.
+
+/// Dirty counts split by whether the daemon will act on them.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct DirtyClassification {
+    /// Tracked worktree modifications the daemon WILL commit.
+    committable_modified: usize,
+    /// Staged changes the daemon WILL commit.
+    committable_staged: usize,
+    /// Dirty entries the daemon intentionally won't commit
+    /// (pattern-excluded tracked/untracked + submodule-worktree-only
+    /// gitlinks). Surfaced as `· N excl` in ACTIVITY.
+    excluded: usize,
+}
+
+/// Parse `git status --porcelain -z` output into (x, y, path) tuples.
+/// Rename/copy records carry a second NUL-separated source path which is
+/// skipped. Unparseable short records are dropped (defensive).
+fn parse_porcelain_z(stdout: &[u8]) -> Vec<(u8, u8, String)> {
+    let mut out = Vec::new();
+    let mut it = stdout.split(|&b| b == 0).filter(|s| !s.is_empty());
+    while let Some(rec) = it.next() {
+        if rec.len() < 4 {
+            continue;
+        }
+        let (x, y) = (rec[0], rec[1]);
+        let path = String::from_utf8_lossy(&rec[3..]).to_string();
+        if matches!(x, b'R' | b'C') {
+            it.next(); // consume the source path of a rename/copy
+        }
+        out.push((x, y, path));
+    }
+    out
+}
+
+/// Classify a dirty repo's porcelain entries into committable vs excluded.
+/// `untracked_excludes` are the global `untracked_exclude_patterns` (daemon
+/// won't stage those either); `auto_commit_excludes` are the effective
+/// per-repo (fallback global) `auto_commit_exclude_patterns`.
+async fn classify_dirty_entries(
+    repo: &Path,
+    auto_commit_excludes: &[String],
+    untracked_excludes: &[String],
+) -> DirtyClassification {
+    let run = |extra: &str| {
+        let mut cmd = crate::git::git_cmd();
+        cmd.args(["status", "--porcelain", "-z"])
+            .current_dir(repo);
+        if !extra.is_empty() {
+            cmd.arg(extra);
+        }
+        cmd.output()
+    };
+    // `--ignore-submodules=dirty` drops submodule-worktree-only entries
+    // (unchanged gitlink) — the exact semantics the sync loop's
+    // `is_gitlink_unchanged` applies at staging time. Gitlink SHA drift
+    // still shows in BOTH passes and therefore stays committable.
+    let (plain, base) = match (run(""), run("--ignore-submodules=dirty")) {
+        (Ok(p), Ok(b)) if p.status.success() && b.status.success() => {
+            (parse_porcelain_z(&p.stdout), parse_porcelain_z(&b.stdout))
+        }
+        // Defensive: porcelain unavailable → treat everything as
+        // committable (pre-v0.113.13 behavior) so we never hide real dirt.
+        _ => {
+            return DirtyClassification {
+                committable_modified: 1,
+                committable_staged: 0,
+                excluded: 0,
+            };
+        }
+    };
+
+    let mut out = DirtyClassification::default();
+    let base_paths: std::collections::HashSet<&str> =
+        base.iter().map(|r| r.2.as_str()).collect();
+    for (_, _, path) in &plain {
+        if !base_paths.contains(path.as_str()) && repo.join(path).join(".git").exists() {
+            out.excluded += 1; // submodule worktree dirt, unchanged gitlink
+        }
+    }
+
+    for (x, y, path) in &base {
+        let tracked = *x != b'?' && *x != b'!';
+        let excluded = (!auto_commit_excludes.is_empty()
+            && crate::exclude::matches_untracked_exclude(
+                repo,
+                &repo.join(path),
+                auto_commit_excludes,
+            ))
+            || (!tracked
+                && !untracked_excludes.is_empty()
+                && crate::exclude::matches_untracked_exclude(
+                    repo,
+                    &repo.join(path),
+                    untracked_excludes,
+                ));
+        if excluded {
+            out.excluded += 1;
+            continue;
+        }
+        if !tracked {
+            // Untracked the daemon WOULD commit: visible in the UT count
+            // but never drives the dirty-clock / WARN (pre-existing
+            // report semantics, preserved).
+            continue;
+        }
+        if matches!(*x, b'M' | b'A' | b'D' | b'R' | b'C' | b'T') {
+            out.committable_staged += 1;
+        }
+        if matches!(*y, b'M' | b'D' | b'T') {
+            out.committable_modified += 1;
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RepoFilter {
     All,
@@ -900,6 +1034,9 @@ pub(crate) struct RepoReportRow {
     modified: usize,
     staged: usize,
     untracked: usize,
+    /// v0.113.13: dirty entries the daemon intentionally won't commit
+    /// (see [`DirtyClassification`]). Displayed as `· N excl` in ACTIVITY.
+    excluded_dirty: usize,
     ahead: usize,
     behind: usize,
     last_hash: String,
@@ -3051,7 +3188,31 @@ pub(crate) async fn run_repos_report(
         // Libgit2 already correctly excludes .gitignore'd files (target/,
         // node_modules/, build outputs) from its modified count, so it gives us
         // the same "real source changes" answer without the slow clean-filter pass.
-        let effective_status = status.clone();
+        let mut effective_status = status.clone();
+        // v0.113.13 (goal-list 2026-07-29): subtract the dirt the daemon
+        // intentionally won't commit (auto_commit_exclude_patterns,
+        // untracked excludes, unchanged-gitlink submodule dirt) from the
+        // tracked-dirty counts, and remember how much was excluded for
+        // the `· N excl` ACTIVITY marker. Only runs when the RAW counts
+        // say there's tracked dirt, so clean repos pay nothing. After
+        // this adjustment every downstream consumer (ACTIVITY label,
+        // WARN escalation, JSON) sees "what the daemon will act on".
+        let mut excluded_dirty = 0usize;
+        if effective_status.modified_files + effective_status.staged_files > 0 {
+            let auto_commit_excludes: &[String] = repo_override
+                .auto_commit_exclude_patterns
+                .as_deref()
+                .unwrap_or(&policy.auto_commit_exclude_patterns);
+            let cls = classify_dirty_entries(
+                &repo,
+                auto_commit_excludes,
+                &policy.untracked_exclude_patterns,
+            )
+            .await;
+            effective_status.modified_files = cls.committable_modified;
+            effective_status.staged_files = cls.committable_staged;
+            excluded_dirty = cls.excluded;
+        }
         // ADDED 2026-06-30, goal `mr0grjhl-q1g5bo`: subtract the
         // untracked entries that point to sibling subrepo directories
         // (each containing its own `.git/`) from the parent's UT count.
@@ -3518,6 +3679,7 @@ pub(crate) async fn run_repos_report(
             modified: effective_status.modified_files,
             staged: effective_status.staged_files,
             untracked: effective_untracked_files,
+            excluded_dirty,
             ahead: effective_status.ahead,
             behind: effective_status.behind,
             last_hash,
