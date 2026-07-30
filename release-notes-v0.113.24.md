@@ -1,26 +1,8 @@
-# dracon-sync v0.113.24 (2026-07-30)
+## dracon-sync v0.113.24 — legend spacing
 
-Invisible git sync daemon for deterministic AI-assisted development.
-
-## What's Changed
-
-- Bump version to 0.113.24
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.24
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.23...v0.113.24
+Operator polish: the legend footer was one dense block of text. It
+now has a blank gap after the header rule and blank lines between
+semantic groups (state / work / sync / identity / pulse / hint) —
+same content, scannable layout. 1213 workspace tests green;
+clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
