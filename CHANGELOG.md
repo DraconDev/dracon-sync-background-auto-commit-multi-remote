@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.19)
+
+- **CHANGES column split into four per-class columns** (operator:
+  "the changes should be in their respective columns, not just
+  dumped there"): 📝 modified · 📦 staged · 🆕 untracked · 🚫
+  excluded-by-policy, icon headers, count in white when non-zero,
+  `—` dim when clean. Each column is 5 wide so a 3-digit count
+  (junk-runner's 282-modified churn) fits unclipped. Table is now
+  16 columns / 158 cols total (still inside the 165-col rich floor).
+
+### Fixed (v0.113.19)
+
+- **SIZE column: du-fallback double-counted submodule gitdirs**
+  (operator: "is the dracon platform size calculation wrong?"). The
+  `count-objects` fast path measures only the repo's OWN object
+  store, but the `du -sb` fallback descended into
+  `<gitdir>/modules/` — a superproject would report its own pack
+  PLUS every submodule's gitdir (each already reported in the
+  nested repo's own row). The fallback now subtracts `modules/`, so
+  both paths agree. Ground truth on dracon-platform: the 12 GiB
+  SIZE is the parent's own genuine pack (345k objects); the 7.7 GiB
+  of `modules/` is correctly reported in the game repos' own rows —
+  the calculation was right, but only via the fast path.
+
 ## [0.113.18] - 2026-07-30
 
 ### Changed (operator table feedback, 2026-07-29)
