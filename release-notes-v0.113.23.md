@@ -1,26 +1,7 @@
-# dracon-sync v0.113.23 (2026-07-30)
+## dracon-sync v0.113.23 — submodule badge glyph `>`
 
-Invisible git sync daemon for deterministic AI-assisted development.
-
-## What's Changed
-
-- Bump version to 0.113.23
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.23
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.22...v0.113.23
+Operator feedback: the v0.113.22 `└` tree-child badge rendered as an
+ambiguous little corner mark. Nested submodules now show `🔒> name`
+— plain ASCII `>`, identical in every font, reads as "sub of a
+parent". 1213 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
