@@ -12645,3 +12645,70 @@ mod v011318b_tests {
         assert!(cell.contains('…'), "ellipsis marks truncation: {cell}");
     }
 }
+
+/// ADDED 2026-07-30 (v0.113.20): superproject SIZE cell tests.
+#[cfg(test)]
+mod v011320_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    #[test]
+    fn size_compact_formats_units() {
+        const GIB: u64 = 1024 * 1024 * 1024;
+        const MIB: u64 = 1024 * 1024;
+        assert_eq!(size_compact(12 * GIB + 380 * MIB), "12G");
+        assert_eq!(size_compact(7 * GIB + 717 * MIB), "7.7G");
+        assert_eq!(size_compact(713 * MIB), "713M");
+        assert_eq!(size_compact(48 * 1024), "48K");
+        assert_eq!(size_compact(500), "500B");
+    }
+
+    #[test]
+    fn size_cell_plain_repo_uses_adaptive_label() {
+        const MIB: u64 = 1024 * 1024;
+        let (text, _) = size_cell_text(Some(713 * MIB), 0, false);
+        assert_eq!(text, "713 MiB", "no modules → unchanged label");
+    }
+
+    #[test]
+    fn size_cell_superproject_shows_own_plus_modules() {
+        const GIB: u64 = 1024 * 1024 * 1024;
+        // dracon-platform ground truth: own 12 GiB, modules 7.7 GiB
+        let (text, _) = size_cell_text(
+            Some(12 * GIB + 380 * 1024 * 1024),
+            7 * GIB + 717 * 1024 * 1024,
+            false,
+        );
+        assert_eq!(text, "12G+7.7G", "{text}");
+        assert!(
+            UnicodeWidthStr::width(text.as_str()) <= 9,
+            "fits the SIZE_COL content budget (11 − 2): {text}"
+        );
+    }
+
+    #[test]
+    fn size_cell_color_follows_own_pack() {
+        const GIB: u64 = 1024 * 1024 * 1024;
+        // own pack over the limit → red even though modules are small
+        let (_, color) = size_cell_text(Some(3 * GIB), 100, true);
+        assert!(matches!(color, comfy_table::Color::Red));
+    }
+
+    #[test]
+    fn measure_modules_size_bytes_counts_modules_dir() {
+        let dir = std::env::temp_dir().join("dracon-v011320-modules");
+        let _ = std::fs::remove_dir_all(&dir);
+        let modules = dir.join(".git/modules/web-games-x");
+        std::fs::create_dir_all(&modules).unwrap();
+        std::fs::write(modules.join("blob.bin"), vec![0u8; 4096]).unwrap();
+        let size = measure_modules_size_bytes(&dir);
+        assert!(size >= 4096, "modules dir measured: {size}");
+        // a repo with no .git at all → 0, no panic
+        let empty = std::env::temp_dir().join("dracon-v011320-none");
+        let _ = std::fs::remove_dir_all(&empty);
+        std::fs::create_dir_all(&empty).unwrap();
+        assert_eq!(measure_modules_size_bytes(&empty), 0);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&empty);
+    }
+}
