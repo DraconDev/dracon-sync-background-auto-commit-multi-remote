@@ -5502,12 +5502,17 @@ fn print_repos_rich_table(
     // the dirty counts moved to their own CHANGES column (operator:
     // "the activity can just have the first part").
     const ACTIVITY_COL: usize = 16;
-    // ADDED 2026-07-29 (v0.113.17): CHANGES column — the uncommitted
-    // counts (N mod/stg/ut + N excl) that used to tail the ACTIVITY
-    // label (operator: "anything excluded or modified or changed or
-    // waiting to commit can be its own column"). Worst case
-    // `12 mod 3 ut` / `2 mod 1 excl` = 12 content + 2 padding = 14.
-    const CHANGES_COL: usize = 14;
+    // CHANGED 2026-07-29 (v0.113.19): the single CHANGES column
+    // split into FOUR per-class columns (operator: "the changes
+    // should be in their respective columns, not just dumped
+    // there") — 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded
+    // by policy. Width 5 each (3 content + 2 padding) so a 3-digit
+    // count like junk-runner's 282 modified fits without clipping.
+    // Icon headers (width-2); `—` when the class is clean.
+    const CHG_MOD_COL: usize = 5;
+    const CHG_STG_COL: usize = 5;
+    const CHG_UT_COL: usize = 5;
+    const CHG_EXCL_COL: usize = 5;
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
@@ -5548,14 +5553,17 @@ fn print_repos_rich_table(
     const TOUCHED_COL: usize = 15;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 13; // fixed: #, STATUS, REPO, ACTIVITY, CHANGES, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
+    let num_cols = 16; // fixed: #, STATUS, REPO, ACTIVITY, 📝,📦,🆕,🚫, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
         + STATUS_COL
         + REPO_COL
         + ACTIVITY_COL
-        + CHANGES_COL
+        + CHG_MOD_COL
+        + CHG_STG_COL
+        + CHG_UT_COL
+        + CHG_EXCL_COL
         + AB_COL
         + PUSH_COL
         + REM_COL
@@ -5596,7 +5604,10 @@ fn print_repos_rich_table(
         bold("STATUS"),
         bold("REPO"),
         bold("ACTIVITY"),
-        bold("CHANGES"),
+        bold("📝"),
+        bold("📦"),
+        bold("🆕"),
+        bold("🚫"),
         bold("A/B"),
         bold("PUSH"),
         bold("REM"),
@@ -5626,44 +5637,58 @@ fn print_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(ACTIVITY_COL as u16)));
     table
         .column_mut(4)
-        .expect("CHANGES column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHANGES_COL as u16)));
+        .expect("modified-count column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_MOD_COL as u16)));
     table
         .column_mut(5)
+        .expect("staged-count column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_STG_COL as u16)));
+    table
+        .column_mut(6)
+        .expect("untracked-count column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_UT_COL as u16)));
+    table
+        .column_mut(7)
+        .expect("excluded-count column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_EXCL_COL as u16)));
+    table
+        .column_mut(8)
         .expect("A/B column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(AB_COL as u16)));
     table
-        .column_mut(6)
+        .column_mut(9)
         .expect("PUSH column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
     table
-        .column_mut(7)
+        .column_mut(10)
         .expect("REM column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REM_COL as u16)));
     table
-        .column_mut(8)
+        .column_mut(11)
         .expect("1H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C1H_COL as u16)));
     table
-        .column_mut(9)
+        .column_mut(12)
         .expect("6H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C6H_COL as u16)));
     table
-        .column_mut(10)
+        .column_mut(13)
         .expect("24H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C24H_COL as u16)));
     table
-        .column_mut(11)
+        .column_mut(14)
         .expect("SIZE column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
     table
-        .column_mut(12)
+        .column_mut(15)
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
     let repo_budget = REPO_COL.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
-    let changes_budget = CHANGES_COL.saturating_sub(2);
+    // v0.113.19: per-class change columns — 3-cell content budget
+    // (col width 5 − 2 padding) holds any realistic count.
+    let chg_budget = 3;
     let ab_budget = AB_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
@@ -5702,21 +5727,16 @@ fn print_repos_rich_table(
         activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
         let activity = truncate_unicode_width(&activity, activity_budget);
 
-        // CHANGES (v0.113.18): icon-per-class form (operator:
-        // "changes should be shown differently") — 📝 modified,
-        // 📦 staged, 🆕 untracked, 🚫 excluded by policy; count
-        // adjacent to its icon. `—` when the worktree is clean.
-        let (changes_text, changes_color) = {
-            let content = changes_cell_content(
-                row.modified,
-                row.staged,
-                row.untracked,
-                row.excluded_dirty,
-            );
-            if content == "—" {
-                (content, Color::DarkGrey)
+        // CHANGES (v0.113.19): one narrow column per class —
+        // 📝 modified, 📦 staged, 🆕 untracked, 🚫 excluded by
+        // policy. Count in White when non-zero, `—` DarkGrey when
+        // the class is clean (same zero-dimming as the COMMITS
+        // columns so clean classes don't shout).
+        let chg = |n: usize| {
+            if n > 0 {
+                Cell::new(truncate_unicode_width(&n.to_string(), chg_budget)).fg(Color::White)
             } else {
-                (truncate_unicode_width(&content, changes_budget), Color::Yellow)
+                Cell::new("—").fg(Color::DarkGrey)
             }
         };
 
@@ -5771,7 +5791,10 @@ fn print_repos_rich_table(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_short).fg(Color::White),
             Cell::new(activity).fg(Color::White),
-            Cell::new(changes_text).fg(changes_color),
+            chg(row.modified),
+            chg(row.staged),
+            chg(row.untracked),
+            chg(row.excluded_dirty),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
             Cell::new(rem_text),
