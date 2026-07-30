@@ -12699,12 +12699,12 @@ mod v011318b_tests {
         assert_eq!(unk_cell, "    mystery", "{unk_cell}");
         assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
         assert!(pub_cell.starts_with("🔓 "), "{pub_cell}");
-        // unknown gets a 3-cell pad so names align in one column
-        assert!(unk_cell.starts_with("   mystery"), "{unk_cell:?}");
-        // all three variants reserve the same 3-cell prefix
+        // v0.113.22: fixed 4-cell prefix (vis 2 + badge-slot 1 +
+        // space 1); unknown vis pads the vis slot with spaces.
+        assert!(unk_cell.starts_with("    mystery"), "{unk_cell:?}");
         assert_eq!(
-            UnicodeWidthStr::width("🔒 ") as usize,
-            UnicodeWidthStr::width("   "),
+            UnicodeWidthStr::width("🔒  ") as usize,
+            UnicodeWidthStr::width("    "),
             "icon prefix and pad must be the same width"
         );
     }
@@ -12856,9 +12856,11 @@ mod v011321_tests {
         assert!(UnicodeWidthStr::width(long.as_str()) <= 18);
         // names align across nested/standalone (fixed 4-cell prefix)
         let plain = repo_cell_content(Some(true), "dracon-sync", 18, false);
+        assert!(plain.starts_with("🔒  "), "standalone badge slot padded: {plain}");
         assert_eq!(
-            UnicodeWidthStr::width(cell.as_str()),
-            UnicodeWidthStr::width(plain.as_str())
+            UnicodeWidthStr::width("🔒└ ") as usize,
+            UnicodeWidthStr::width("🔒  ") as usize,
+            "badge and pad slot must be the same width"
         );
     }
 
