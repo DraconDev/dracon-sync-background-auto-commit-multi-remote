@@ -2915,8 +2915,8 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " CHANGES   per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing",
-        " REM       🐙 github · 🦊 gitlab · 🗻 codeberg · bright = pushing · dim = policy-excluded",
-        " REPO      🔒 private · 🔓 public · ↳ = nested submodule checkout · name⚡branch when not on main",
+        " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
+        " REPO      🔒 private · 🔓 public · └ = nested submodule (badge after lock) · name⚡branch",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
         " TOUCHED   author + age of the most recent commit",
@@ -5023,24 +5023,20 @@ fn repo_cell_content(
     is_nested: bool,
 ) -> String {
     // v0.113.21: nested submodule checkouts (`.git` is a gitdir
-    // POINTER FILE, not a dir) get a ` ↳` suffix so the operator can
-    // distinguish them from standalone repos at a glance (operator:
-    // "we are not showing if submod or standalone repo"). The suffix
-    // reserves 2 cells from the name budget.
-    let suffix_reserve = if is_nested { 2 } else { 0 };
-    let name_budget = budget.saturating_sub(3 + suffix_reserve);
-    let suffix = if is_nested { " ↳" } else { "" };
-    match visibility {
-        Some(true) => format!(
-            "🔒 {}{suffix}",
-            truncate_unicode_width(display, name_budget)
-        ),
-        Some(false) => format!(
-            "🔓 {}{suffix}",
-            truncate_unicode_width(display, name_budget)
-        ),
-        None => format!("   {}{suffix}", truncate_unicode_width(display, name_budget)),
-    }
+    // POINTER FILE, not a dir) vs standalone (`.git` DIR).
+    // v0.113.22 (operator): the badge moves DIRECTLY AFTER the lock
+    // so all markers form one fixed column (same reason the lock
+    // leads), and becomes the tree-child glyph `└` — "child of a
+    // parent", exactly like `tree` output. Prefix is a fixed 4
+    // cells: vis(2) + badge(1: └ or space) + space.
+    let name_budget = budget.saturating_sub(4);
+    let vis = match visibility {
+        Some(true) => "🔒",
+        Some(false) => "🔓",
+        None => "  ",
+    };
+    let badge = if is_nested { "└" } else { " " };
+    format!("{vis}{badge} {}", truncate_unicode_width(display, name_budget))
 }
 
 // REMOVED 2026-07-29 (v0.113.19): `changes_cell_content` (the
@@ -5941,9 +5937,12 @@ fn print_repos_rich_table(
         let push_text = push_cell_with_age(push_text, &row.last_push);
         // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
         let push_text = push_cell_with_markers(push_text, row, PUSH_COL.saturating_sub(2));
-        // v0.113.21: REM cell — active bright, policy-excluded dim
-        // (embedded ANSI). No `.fg()` when ANSI is embedded.
-        let rem_text = rem_cell_content_rich(&row.push_to_remotes, &row.excluded_remotes);
+        // v0.113.22 (operator): REM cell — active push remotes
+        // only. The v0.113.21 dim-excluded suffix put a 🗻 on EVERY
+        // row under the codeberg quota posture (fleet-wide
+        // exclusion = noise, not signal): "leave it out if we are
+        // not using it — easier to see".
+        let rem_text = rem_cell_content(&row.push_to_remotes);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
@@ -5982,11 +5981,7 @@ fn print_repos_rich_table(
             chg(row.excluded_dirty),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
-            if rem_text.contains('\x1b') {
-                Cell::new(rem_text)
-            } else {
-                Cell::new(rem_text).fg(Color::Cyan)
-            },
+            Cell::new(rem_text).fg(Color::Cyan),
             pulse(row.commits_1h),
             pulse(row.commits_6h),
             pulse(row.commits_24h),
@@ -11760,12 +11755,13 @@ mod tests {
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
         assert!(!text.contains("USED"), "USED column was dropped");
-        // v0.113.15: REM icon semantics explained. v0.113.21: REM
-        // shows active bright + policy-excluded dim.
+        // v0.113.15: REM icon semantics explained. v0.113.22: REM
+        // shows ACTIVE push remotes only (the v0.113.21 dim-excluded
+        // suffix was fleet-wide noise under the quota posture).
         assert!(text.contains("🐙"), "REM github icon in legend");
         assert!(
-            text.contains("dim = policy-excluded"),
-            "REM dim-excluded note in legend"
+            text.contains("excluded not shown"),
+            "REM active-only note in legend"
         );
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
@@ -12698,6 +12694,9 @@ mod v011318b_tests {
         let priv_cell = repo_cell_content(Some(true), "hellhunter", 18, false);
         let pub_cell = repo_cell_content(Some(false), "dracon-sync", 18, false);
         let unk_cell = repo_cell_content(None, "mystery", 18, false);
+        // v0.113.22: fixed 4-cell prefix (vis + badge-slot + space)
+        assert_eq!(priv_cell, "🔒  hellhunter", "{priv_cell}");
+        assert_eq!(unk_cell, "    mystery", "{unk_cell}");
         assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
         assert!(pub_cell.starts_with("🔓 "), "{pub_cell}");
         // unknown gets a 3-cell pad so names align in one column
@@ -12797,23 +12796,6 @@ mod v011321_tests {
     use super::*;
     use unicode_width::UnicodeWidthStr;
 
-    fn strip_ansi(s: &str) -> String {
-        let mut out = String::new();
-        let mut chars = s.chars();
-        while let Some(c) = chars.next() {
-            if c == '\x1b' {
-                for c2 in chars.by_ref() {
-                    if c2 == 'm' {
-                        break;
-                    }
-                }
-            } else {
-                out.push(c);
-            }
-        }
-        out
-    }
-
     fn base_row() -> RepoReportRow {
         RepoReportRow {
             repo: String::new(),
@@ -12864,14 +12846,20 @@ mod v011321_tests {
     }
 
     #[test]
-    fn repo_cell_nested_gets_arrow_suffix() {
+    fn repo_cell_nested_badge_after_lock() {
         let cell = repo_cell_content(Some(true), "hellhunter", 18, true);
-        assert_eq!(cell, "🔒 hellhunter ↳", "{cell}");
+        assert_eq!(cell, "🔒└ hellhunter", "{cell}");
         assert!(UnicodeWidthStr::width(cell.as_str()) <= 18);
-        // long nested names truncate AROUND the suffix
+        // the badge never truncates away — only the name does
         let long = repo_cell_content(Some(true), "capture-anime-girls-deluxe", 18, true);
-        assert!(long.ends_with(" ↳"), "suffix survives: {long}");
+        assert!(long.starts_with("🔒└ "), "badge survives: {long}");
         assert!(UnicodeWidthStr::width(long.as_str()) <= 18);
+        // names align across nested/standalone (fixed 4-cell prefix)
+        let plain = repo_cell_content(Some(true), "dracon-sync", 18, false);
+        assert_eq!(
+            UnicodeWidthStr::width(cell.as_str()),
+            UnicodeWidthStr::width(plain.as_str())
+        );
     }
 
     #[test]
@@ -12906,16 +12894,11 @@ mod v011321_tests {
     }
 
     #[test]
-    fn rem_cell_excluded_remotes_are_dim_and_fit() {
-        let cell = rem_cell_content_rich(
-            &["github".to_string(), "gitlab".to_string()],
-            &["codeberg".to_string()],
-        );
-        assert!(cell.contains("\x1b[90m🗻\x1b[0m"), "excluded dim: {cell:?}");
-        assert_eq!(UnicodeWidthStr::width(strip_ansi(&cell).as_str()), 6);
-        // no exclusions → plain icons, no ANSI (the .fg(Cyan) path)
-        let cell = rem_cell_content_rich(&["github".to_string()], &[]);
+    fn rem_cell_active_only_no_excluded() {
+        // v0.113.22: excluded remotes are NOT rendered (fleet-wide
+        // codeberg exclusion made a dim 🗻 appear on every row).
+        let cell = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
+        assert_eq!(cell, "🐙🦊");
         assert!(!cell.contains('\x1b'));
-        assert_eq!(cell, "🐙");
     }
 }
