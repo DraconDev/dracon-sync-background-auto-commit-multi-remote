@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.21)
+
+- **Rich-table information audit, four additions** (operator: "audit
+  what else we could feature on the table — we are not showing if
+  submod or standalone"):
+  - **↳ nested-submodule marker** in the REPO cell: a `.git` gitdir
+    POINTER FILE (nested submodule / linked worktree checkout) vs a
+    `.git` DIR (standalone) — e.g. `🔒 hellhunter ↳`. Suffix
+    survives name truncation.
+  - **🩹 broken-history marker** in the PUSH cell when the repo has
+    missing objects (the next push WILL fail — makes the last
+    invisible hegemon-class precondition explicit; the config-based
+    "filter-only push" case no longer exists in the daemon).
+  - **🔑 token-missing marker** in the PUSH cell when a forge token
+    file is absent for a forge the repo pushes to (or is
+    policy-excluded from) — auth failures visible before ❌ FAIL.
+    Markers append only while the 10-cell budget allows.
+  - **Dim policy-excluded remotes** in the REM cell: active remotes
+    bright, policy-excluded appended dim (embedded ANSI, no `.fg()`
+    repaint) — e.g. `🐙🦊` + dim `🗻` under the codeberg quota
+    posture explains WHY the forge is absent at a glance.
+  - Legend updated for all four (REPO / PUSH / REM lines).
+
 ## [0.113.20] - 2026-07-30
 
 ### Added (v0.113.20)
