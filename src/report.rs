@@ -11487,9 +11487,13 @@ mod tests {
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
         assert!(!text.contains("USED"), "USED column was dropped");
-        // v0.113.15: REM icon semantics explained (dim = excluded).
+        // v0.113.15: REM icon semantics explained. v0.113.17: REM
+        // shows active push remotes only — excluded are omitted.
         assert!(text.contains("🐙"), "REM github icon in legend");
-        assert!(text.contains("dim"), "REM dim=excluded note in legend");
+        assert!(
+            text.contains("excluded not shown"),
+            "REM active-only note in legend"
+        );
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
         assert!(text.contains("🔓"), "REPO public marker in legend");
