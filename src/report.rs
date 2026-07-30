@@ -3884,6 +3884,7 @@ pub(crate) async fn run_repos_report(
             // to `git count-objects -v` for ~17× speedup on multi-GiB
             // gitdirs. `du -sb` is retained as the fallback.
             git_size_bytes,
+            git_modules_bytes,
             // Probe each forge's token file. We check both the modern
             // `~/.dracon/utilities/sync/secrets/` dir and the legacy
             // `~/.dracon/secrets/pat/` dir (the daemon's `load_secret`
@@ -5195,6 +5196,51 @@ pub(crate) fn size_label(bytes: Option<u64>, pack_too_large: bool) -> (String, C
     (label, color)
 }
 
+/// ADDED 2026-07-30 (v0.113.20): ultra-compact size for the
+/// superproject `own+mods` form — `12G`, `7.7G`, `713M`, `48K`.
+fn size_compact(bytes: u64) -> String {
+    const GIB: u64 = 1024 * 1024 * 1024;
+    const MIB: u64 = 1024 * 1024;
+    const KIB: u64 = 1024;
+    if bytes >= GIB {
+        let v = bytes as f64 / GIB as f64;
+        if v >= 10.0 {
+            format!("{v:.0}G")
+        } else {
+            format!("{v:.1}G")
+        }
+    } else if bytes >= MIB {
+        let v = bytes as f64 / MIB as f64;
+        if v >= 100.0 {
+            format!("{v:.0}M")
+        } else {
+            format!("{v:.1}M")
+        }
+    } else if bytes >= KIB {
+        format!("{}K", bytes / KIB)
+    } else {
+        format!("{bytes}B")
+    }
+}
+
+/// ADDED 2026-07-30 (v0.113.20): SIZE cell — own .git size via
+/// `size_label`; superprojects with submodule gitdirs render
+/// `own+mods` (operator: "we made them submods so we don't end up
+/// with one huge repo, so it would be useful to know both sizes" —
+/// the combined number doubles as the would-this-get-stuck-on-a-
+/// wholesale-push gauge). Color always follows the OWN pack (that
+/// is what actually pushes per-push); the suffix is informational.
+fn size_cell_text(own: Option<u64>, modules: u64, pack_too_large: bool) -> (String, Color) {
+    let (label, color) = size_label(own, pack_too_large);
+    if modules == 0 {
+        return (label, color);
+    }
+    match own {
+        Some(b) => (format!("{}+{}", size_compact(b), size_compact(modules)), color),
+        None => (label, color),
+    }
+}
+
 /// Render the `TOUCHED` column — last commit author + relative time.
 /// Answers "who last touched this and how long ago?" at a glance.
 ///
@@ -5260,6 +5306,7 @@ impl crate::report::RepoReportRow {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
+            git_modules_bytes: 0,
             token_health: crate::report::TokenHealthSummary::default(),
             concern: false,
             warn: false,
@@ -11578,6 +11625,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
+            git_modules_bytes: 0,
             token_health: TokenHealthSummary::default(),
             concern: false,
             warn: false,
@@ -12358,6 +12406,7 @@ mod v011313_tests {
             branch: "main".to_string(),
             upstream: "-".to_string(),
             git_size_bytes: None,
+            git_modules_bytes: 0,
             token_health: TokenHealthSummary::default(),
             concern: false,
             warn: false,
