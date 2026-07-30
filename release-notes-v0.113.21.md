@@ -1,26 +1,23 @@
-# dracon-sync v0.113.21 (2026-07-30)
+## dracon-sync v0.113.21 — richer table: submodule markers, risk markers, dim-excluded remotes
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Operator audit request: "what else could we feature on the table —
+we are not showing if submod or standalone repo." Four additions to
+the rich `repos` table:
 
-## What's Changed
+- **↳ nested-submodule marker** (REPO cell): distinguishes nested
+  submodule checkouts (`.git` is a gitdir pointer file) from
+  standalone repos (`.git` dir). Survives name truncation.
+- **🩹 broken-history marker** (PUSH cell): shown when the repo has
+  missing objects — the next push will fail. The config-based
+  "filter-only push" case no longer exists in the daemon, so this
+  makes the last invisible hegemon-class precondition explicit.
+- **🔑 token-missing marker** (PUSH cell): a forge token file is
+  absent for a forge this repo pushes to / is excluded from — auth
+  failures visible before they become ❌ FAIL.
+- **Dim policy-excluded remotes** (REM cell): active bright,
+  excluded dim — e.g. `🐙🦊` + dim `🗻` under the codeberg quota
+  posture, so it's obvious WHY a forge is absent.
 
-- Bump version to 0.113.21
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.21
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.20...v0.113.21
+Legend updated (REPO/PUSH/REM lines). 1213 workspace tests green;
+clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
