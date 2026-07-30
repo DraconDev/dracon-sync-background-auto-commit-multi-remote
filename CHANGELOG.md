@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.24)
+
+- **Legend spacing** (operator: "lets make the legend better looking,
+  give it some spacing"): blank gap after the header rule and blank
+  lines between the semantic groups — daemon state (STATUS /
+  ACTIVITY), local work (CHANGES / A/B), remote sync (PUSH / REM),
+  repo identity (REPO / SIZE / TOUCHED), the pulse columns
+  (1H/6H/24H), and the hint. Same content, scannable layout.
+
 ## [0.113.23] - 2026-07-30
 
 ### Changed (v0.113.23)

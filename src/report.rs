@@ -2908,18 +2908,28 @@ const LEGEND_MIN_WIDTH: usize = 120;
 
 /// The legend as data (tests assert coverage + display width).
 fn repos_legend_lines() -> &'static [&'static str] {
+    // v0.113.24 (operator: "give it some spacing"): blank gap after
+    // the header rule and between semantic groups — daemon STATE,
+    // local WORK, remote SYNC, repo IDENTITY, the PULSE columns,
+    // then the hint. Content lines stay ≤ LEGEND_MIN_WIDTH cols.
     &[
         "── legend ──────────────────────────────────────────────────────────────────────────────",
+        "",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
         " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
+        "",
         " CHANGES   per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
+        "",
         " PUSH      ✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing",
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
+        "",
         " REPO      🔒 private · 🔓 public · > = nested submodule (badge after lock) · name⚡branch",
-        " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
         " TOUCHED   author + age of the most recent commit",
+        "",
+        " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
+        "",
         " hint      `dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand",
     ]
 }
