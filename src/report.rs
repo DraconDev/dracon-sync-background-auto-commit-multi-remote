@@ -12837,7 +12837,7 @@ mod v011321_tests {
             commits_24h: 0,
             last_push: String::new(),
             push_status: "OK".into(),
-            push_error: None,
+            push_error: String::new(),
             push_to_remotes: vec!["github".into()],
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
