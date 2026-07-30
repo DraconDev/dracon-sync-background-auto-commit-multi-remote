@@ -654,26 +654,7 @@ pub(crate) fn effective_excluded_remotes(
 /// For worktrees/submodules where `.git` is a file (not a directory),
 /// reads the `gitdir:` pointer and measures the shared gitdir instead.
 pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
-    let git_path = repo.join(".git");
-    if !git_path.exists() {
-        return None;
-    }
-
-    // Handle worktrees/submodules: `.git` is a file containing
-    // `gitdir: <path>`. Resolve the actual gitdir.
-    let git_dir = if git_path.is_file() {
-        let content = std::fs::read_to_string(&git_path).ok()?;
-        let gitdir_line = content.lines().find(|l| l.starts_with("gitdir:"))?;
-        let rel_path = gitdir_line.strip_prefix("gitdir:")?.trim();
-        // Resolve relative path against the repo root.
-        repo.join(rel_path)
-    } else {
-        git_path
-    };
-
-    if !git_dir.exists() {
-        return None;
-    }
+    let git_dir = resolve_git_dir(repo)?;
 
     // Fast path: `git count-objects -v` — queries git's pack index.
     // Bounded at 4s (same pattern as `run_git_bounded`); on success
@@ -702,6 +683,45 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
         }
     }
     Some(bytes)
+}
+
+/// Resolve a repo's real gitdir: `<repo>/.git` when it is a
+/// directory, or the `gitdir:` pointer target when `.git` is a file
+/// (worktrees / submodules).
+fn resolve_git_dir(repo: &std::path::Path) -> Option<std::path::PathBuf> {
+    let git_path = repo.join(".git");
+    if !git_path.exists() {
+        return None;
+    }
+    let git_dir = if git_path.is_file() {
+        let content = std::fs::read_to_string(&git_path).ok()?;
+        let gitdir_line = content.lines().find(|l| l.starts_with("gitdir:"))?;
+        let rel_path = gitdir_line.strip_prefix("gitdir:")?.trim();
+        repo.join(rel_path)
+    } else {
+        git_path
+    };
+    if !git_dir.exists() {
+        return None;
+    }
+    Some(git_dir)
+}
+
+/// ADDED 2026-07-30 (v0.113.20): combined size of a superproject's
+/// `<gitdir>/modules/` dir (the submodule gitdirs). 0 when absent.
+/// The operator wants BOTH numbers for superprojects — own pack AND
+/// the combined footprint: "we made them submods so we don't end up
+/// with one huge repo, so it would be useful to know both sizes",
+/// partly as the "would this get stuck on a wholesale push" gauge.
+pub(crate) fn measure_modules_size_bytes(repo: &std::path::Path) -> u64 {
+    let Some(git_dir) = resolve_git_dir(repo) else {
+        return 0;
+    };
+    let modules = git_dir.join("modules");
+    if !modules.is_dir() {
+        return 0;
+    }
+    du_bytes(&modules).unwrap_or(0)
 }
 
 /// `du -sb` on a single path, parsed to bytes. Shared by the
@@ -1173,6 +1193,10 @@ pub(crate) struct RepoReportRow {
     /// ship to a remote, plus dangling tmp_pack_* bloat) rather than
     /// the whole gitdir tree (which included logs, refs, config).
     git_size_bytes: Option<u64>,
+    /// ADDED 2026-07-30 (v0.113.20): combined size of submodule
+    /// gitdirs (`<gitdir>/modules/`) for superprojects; 0 otherwise.
+    /// Rendered in the SIZE cell as `own+mods` when non-zero.
+    git_modules_bytes: u64,
     /// Per-forge token health summary. Shows whether each forge's token
     /// file is present on disk, so the operator can spot auth-side
     /// issues BEFORE they cause push failures. Always present (not
@@ -2894,7 +2918,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
         " REPO      🔒 private · 🔓 public (leading icon, github visibility cache) · name⚡branch when not on main",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
-        " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
+        " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
         " TOUCHED   author + age of the most recent commit",
         " hint      `dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand",
     ]
@@ -2967,6 +2991,11 @@ struct CachedRepoSize {
     /// this field existed — forces one recompute, then cached.
     #[serde(default)]
     cached_at_secs: Option<u64>,
+    /// ADDED 2026-07-30 (v0.113.20): submodule-gitdir bytes, cached
+    /// alongside the own-size probe. 0 for cache files written
+    /// before this field existed (the 30s TTL recomputes quickly).
+    #[serde(default)]
+    git_modules_bytes: u64,
 }
 
 /// ADDED 2026-07-23 (v0.112.39): count objects referenced by `main`'s
@@ -3341,7 +3370,8 @@ pub(crate) async fn run_repos_report(
                 .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
                 .unwrap_or(false)
         };
-        let (git_size_bytes, pack_too_large, missing_objects) = match cache_lookup.get(&cache_key) {
+        let (git_size_bytes, git_modules_bytes, pack_too_large, missing_objects) =
+            match cache_lookup.get(&cache_key) {
             // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
             // freshness check. If the entry was written within
             // REPO_SIZE_CACHE_TTL_SECS, we honor it regardless of
@@ -3356,12 +3386,14 @@ pub(crate) async fn run_repos_report(
             {
                 (
                     Some(c.git_size_bytes),
+                    c.git_modules_bytes,
                     (c.pack_too_large, c.pack_pushable_bytes),
                     c.missing_objects.unwrap_or(0),
                 )
             }
             _ => {
                 let size = measure_git_size_bytes(&repo);
+                let modules = measure_modules_size_bytes(&repo);
                 let pack = crate::git::github_pack_too_large(&repo, size);
                 // ADDED 2026-07-23 (v0.112.39): probe broken-history
                 // alongside the size measure (same 24h cache TTL).
@@ -3378,9 +3410,10 @@ pub(crate) async fn run_repos_report(
                         // wall-clock write time so the TTL check can
                         // honor fresh entries across daemon activity.
                         cached_at_secs: Some(now_secs),
+                        git_modules_bytes: modules,
                     },
                 );
-                (size, pack, missing)
+                (size, modules, pack, missing)
             }
         };
 
@@ -5573,7 +5606,10 @@ fn print_repos_rich_table(
     const C24H_COL: usize = 5;
     // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
     // = 10; absolute 10 fits the largest realistic value.
-    const SIZE_COL: usize = 10;
+    // v0.113.20: 10 → 11 so the superproject `own+mods` form
+    // (`12G+7.7G` = 8 content) fits with headroom for MiB-scale
+    // combos (`446M+713M` = 9).
+    const SIZE_COL: usize = 11;
     // TOUCHED column: `<10-char author> <when>` = up to 14 chars +
     // 2 padding = 16; absolute 16 fits `Virtual-Pet 14m` cleanly.
     const TOUCHED_COL: usize = 15;
@@ -5807,7 +5843,10 @@ fn print_repos_rich_table(
         // comment on `size_label` for why this matters (deathrun
         // would otherwise show a red SIZE cell while its STATUS
         // cell is ✅ CLEAN, contradicting itself).
-        let (size_text, size_color) = size_label(row.git_size_bytes, row.pack_too_large);
+        // v0.113.20: superprojects show `own+mods` (submodule
+        // gitdirs) in the SIZE cell.
+        let (size_text, size_color) =
+            size_cell_text(row.git_size_bytes, row.git_modules_bytes, row.pack_too_large);
 
         // ADDED 2026-07-28 (v0.113.8): TOUCHED column = last author + when.
         let touched = truncate_unicode_width(&touched_label(row), touched_budget);
@@ -9553,6 +9592,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
+            git_modules_bytes: 0,
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
             warn: false,
@@ -10051,6 +10091,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
+            git_modules_bytes: 0,
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: false,
             warn: false,
@@ -10690,6 +10731,7 @@ mod tests {
             excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
             codeberg_skip_reason: None,
             git_size_bytes: Some(20_518_397_949),
+            git_modules_bytes: 0,
             token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
             concern: true,
             warn: false,
@@ -11643,7 +11685,7 @@ mod tests {
         const C1H_COL: usize = 5;
         const C6H_COL: usize = 5;
         const C24H_COL: usize = 5;
-        const SIZE_COL: usize = 10;
+        const SIZE_COL: usize = 11;
         const TOUCHED_COL: usize = 15;
         let num_cols = 16;
         let border_overhead = num_cols + 1;
@@ -11656,8 +11698,8 @@ mod tests {
             + REM_COL + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
         let total = fixed + border_overhead;
         assert_eq!(
-            total, 158,
-            "rich table total width drifted from the measured 158 — re-check the 165-col rich-tier floor"
+            total, 159,
+            "rich table total width drifted from the measured 159 — re-check the 165-col rich-tier floor"
         );
         assert!(
             total <= 165,
@@ -11770,6 +11812,7 @@ mod size_cache_tests {
                 gitdir_sig: 99,
                 missing_objects: Some(0),
                 cached_at_secs: Some(1234567890),
+                git_modules_bytes: 0,
             },
         );
         save_repo_size_cache(&path, &cache);
@@ -11816,6 +11859,7 @@ mod size_cache_tests {
             gitdir_sig,
             missing_objects: Some(0),
             cached_at_secs,
+            git_modules_bytes: 0,
         }
     }
 
