@@ -685,11 +685,31 @@ pub(crate) fn measure_git_size_bytes(repo: &std::path::Path) -> Option<u64> {
 
     // Fallback: `du -sb` (POSIX). Slow on multi-GiB gitdirs (~200ms+
     // each) but works on any gitdir where `count-objects` fails.
-    // Output is "<bytes>\t<path>\n". Parse the first whitespace-separated
-    // token. Use a simple split to avoid pulling in a parser.
+    //
+    // v0.113.19 (operator question: "is the dracon-platform size
+    // calculation wrong?"): `du` descends into `<gitdir>/modules/`
+    // (submodule gitdirs) while the count-objects fast path does NOT
+    // count them (they are separate gitdirs, each reported in the
+    // nested repo's OWN row — dracon-platform: 12 GiB own pack vs
+    // 7.7 GiB of modules). Subtract the modules dir here so both
+    // paths agree and a superproject's SIZE never double-counts its
+    // submodules.
+    let mut bytes = du_bytes(&git_dir)?;
+    let modules = git_dir.join("modules");
+    if modules.is_dir() {
+        if let Some(module_bytes) = du_bytes(&modules) {
+            bytes = bytes.saturating_sub(module_bytes);
+        }
+    }
+    Some(bytes)
+}
+
+/// `du -sb` on a single path, parsed to bytes. Shared by the
+/// git-size fallback and its `modules/` subtraction.
+fn du_bytes(path: &std::path::Path) -> Option<u64> {
     let output = std::process::Command::new("du")
         .arg("-sb")
-        .arg(&git_dir)
+        .arg(path)
         .output()
         .ok()?;
     if !output.status.success() {
@@ -2868,7 +2888,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         "── legend ──────────────────────────────────────────────────────────────────────────────",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
         " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
-        " CHANGES   waiting for daemon: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded by policy · — = clean",
+        " CHANGES   one column per class: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded — counts waiting for the daemon · — = none",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
@@ -4971,35 +4991,40 @@ fn repo_cell_content(visibility: Option<bool>, display: &str, budget: usize) -> 
     }
 }
 
-/// ADDED 2026-07-29 (v0.113.18): compose the CHANGES cell — one
-/// icon per dirty class with the count adjacent (📝 modified,
-/// 📦 staged, 🆕 untracked, 🚫 excluded by policy). Pure function so
-/// the composition is directly unit-testable. All four icons are
-/// Emoji_Presentation=Yes (width-2 in unicode-width — verified by
-/// `v011318_tests::change_icons_are_width_two`). `—` when clean.
-fn changes_cell_content(
-    modified: usize,
-    staged: usize,
-    untracked: usize,
-    excluded_dirty: usize,
-) -> String {
-    let mut s = String::new();
-    if modified > 0 {
-        s.push_str(&format!("📝{}", modified));
+/// REMOVED 2026-07-29 (v0.113.19): `changes_cell_content` (the
+/// single combined CHANGES cell) — the operator asked for the counts
+/// in their RESPECTIVE columns, so the rich table now renders four
+/// narrow per-class columns inline (📝/📦/🆕/🚫 headers) and this
+/// helper has no callers.
+
+mod v011318_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    #[test]
+    fn table_icons_are_width_two() {
+        // unicode-width honesty: every icon used in the table (CHANGE
+        // column headers, REPO markers, REM cells) must measure 2
+        // cells (Emoji_Presentation=Yes). ✏ (U+270F) measures 1 but
+        // renders 2 — banned; see the 🗻 episode in v0.113.15.
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻"] {
+            assert_eq!(
+                UnicodeWidthStr::width(icon),
+                2,
+                "{icon} must measure width-2"
+            );
+        }
     }
-    if staged > 0 {
-        s.push_str(&format!("📦{}", staged));
+
+    #[test]
+    fn three_digit_change_counts_fit_column_budget() {
+        // v0.113.19: per-class columns have a 3-cell content budget
+        // (width 5 − 2 padding) — junk-runner's 282-modified churn
+        // must fit without clipping.
+        let truncated = truncate_unicode_width("282", 3);
+        assert_eq!(truncated, "282");
+        assert_eq!(UnicodeWidthStr::width(truncated.as_str()), 3);
     }
-    if untracked > 0 {
-        s.push_str(&format!("🆕{}", untracked));
-    }
-    if excluded_dirty > 0 {
-        s.push_str(&format!("🚫{}", excluded_dirty));
-    }
-    if s.is_empty() {
-        s.push('—');
-    }
-    s
 }
 
 /// ADDED 2026-07-29 (v0.113.15): compose the REM cell. CHANGED
@@ -11606,7 +11631,10 @@ mod tests {
         // with border+padding) inside the same 165-col budget.
         const REPO_COL: usize = 20;
         const ACTIVITY_COL: usize = 16;
-        const CHANGES_COL: usize = 14;
+        const CHG_MOD_COL: usize = 5;
+        const CHG_STG_COL: usize = 5;
+        const CHG_UT_COL: usize = 5;
+        const CHG_EXCL_COL: usize = 5;
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
         const REM_COL: usize = 8;
@@ -11616,12 +11644,20 @@ mod tests {
         const C24H_COL: usize = 5;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 15;
-        let num_cols = 13;
+        let num_cols = 16;
         let border_overhead = num_cols + 1;
-        let cell_padding = num_cols * 2;
-        let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + AB_COL + PUSH_COL
+        // v0.113.18 (audit M1): comfy-table Absolute(Width::Fixed(N))
+        // INCLUDES the 2-cell padding — the total is sum(widths) +
+        // borders, NO separate padding term. The old test omitted
+        // the CHANGES column AND added a bogus cell_padding term; the
+        // two errors cancelled and it passed ≤165 by coincidence.
+        let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + CHG_MOD_COL + CHG_STG_COL + CHG_UT_COL + CHG_EXCL_COL + AB_COL + PUSH_COL
             + REM_COL + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
-        let total = fixed + border_overhead + cell_padding;
+        let total = fixed + border_overhead;
+        assert_eq!(
+            total, 158,
+            "rich table total width drifted from the measured 158 — re-check the 165-col rich-tier floor"
+        );
         assert!(
             total <= 165,
             "rich table total width {total} > 165-col minimum. Reduce a column or drop a column."
@@ -12479,46 +12515,6 @@ mod v011316_tests {
     }
 }
 
-/// ADDED 2026-07-29 (v0.113.18): CHANGES icon form + leading
-/// visibility marker.
-#[cfg(test)]
-mod v011318_tests {
-    use super::*;
-    use unicode_width::UnicodeWidthStr;
-
-    #[test]
-    fn change_icons_are_width_two() {
-        // unicode-width honesty: every icon used in the CHANGES and
-        // REPO cells must measure 2 cells (Emoji_Presentation=Yes).
-        // ✏ (U+270F) measures 1 but renders 2 — banned; see the 🗻
-        // episode in v0.113.15.
-        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻"] {
-            assert_eq!(
-                UnicodeWidthStr::width(icon),
-                2,
-                "{icon} must measure width-2"
-            );
-        }
-    }
-
-    #[test]
-    fn changes_cell_composition() {
-        assert_eq!(changes_cell_content(0, 0, 0, 0), "—");
-        assert_eq!(changes_cell_content(2, 0, 0, 0), "📝2");
-        assert_eq!(changes_cell_content(1, 3, 4, 0), "📝1📦3🆕4");
-        // excluded joins as its own icon (junk-runner case)
-        assert_eq!(changes_cell_content(1, 0, 0, 1), "📝1🚫1");
-        assert_eq!(changes_cell_content(0, 0, 0, 2), "🚫2");
-    }
-
-    #[test]
-    fn changes_cell_worst_case_fits_budget() {
-        // 4 classes × (2-cell icon + 1 digit) = 12 = CHANGES_COL − 2.
-        let s = changes_cell_content(9, 9, 9, 9);
-        assert_eq!(UnicodeWidthStr::width(s.as_str()), 12, "{s}");
-    }
-}
-
 /// ADDED 2026-07-29 (v0.113.18): audit fix-batch tests — REPO cell
 /// pure-fn coverage + CHANGES truncation pinning.
 #[cfg(test)]
@@ -12553,18 +12549,5 @@ mod v011318b_tests {
         );
         assert!(cell.starts_with("🔒 "), "marker survives truncation");
         assert!(cell.contains('…'), "ellipsis marks truncation: {cell}");
-    }
-
-    #[test]
-    fn changes_cell_two_digit_counts_truncate_cleanly() {
-        // 2-digit counts overflow the 12-cell budget; truncation must
-        // stay within budget and not split an emoji.
-        let content = changes_cell_content(12, 34, 5, 1);
-        let truncated = truncate_unicode_width(&content, 12);
-        assert!(
-            UnicodeWidthStr::width(truncated.as_str()) <= 12,
-            "{truncated} ({} cells)",
-            UnicodeWidthStr::width(truncated.as_str())
-        );
     }
 }
