@@ -4958,6 +4958,19 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
     }
 }
 
+/// ADDED 2026-07-29 (v0.113.18): compose the REPO cell — leading
+/// visibility marker (🔒 private / 🔓 public / 3-space pad for
+/// unknown) so the icons form a single vertical column and the names
+/// align. Pure function so the composition is directly unit-testable.
+fn repo_cell_content(visibility: Option<bool>, display: &str, budget: usize) -> String {
+    let name_budget = budget.saturating_sub(3);
+    match visibility {
+        Some(true) => format!("🔒 {}", truncate_unicode_width(display, name_budget)),
+        Some(false) => format!("🔓 {}", truncate_unicode_width(display, name_budget)),
+        None => format!("   {}", truncate_unicode_width(display, name_budget)),
+    }
+}
+
 /// ADDED 2026-07-29 (v0.113.18): compose the CHANGES cell — one
 /// icon per dirty class with the count adjacent (📝 modified,
 /// 📦 staged, 🆕 untracked, 🚫 excluded by policy). Pure function so
@@ -5651,6 +5664,7 @@ fn print_repos_rich_table(
     let repo_budget = REPO_COL.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
     let changes_budget = CHANGES_COL.saturating_sub(2);
+    let ab_budget = AB_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
         let (status_text, status_color) = status_pair(row);
@@ -5678,12 +5692,7 @@ fn print_repos_rich_table(
         // names still align (absence of icon = unknown). The marker
         // costs 3 cells ("X "), carved out of the truncate budget.
         let visibility = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo));
-        let name_budget = repo_budget.saturating_sub(3);
-        let repo_short = match visibility {
-            Some(true) => format!("🔒 {}", truncate_unicode_width(&repo_display, name_budget)),
-            Some(false) => format!("🔓 {}", truncate_unicode_width(&repo_display, name_budget)),
-            None => format!("   {}", truncate_unicode_width(&repo_display, name_budget)),
-        };
+        let repo_short = repo_cell_content(visibility, &repo_display, repo_budget);
 
         // ACTIVITY (v0.113.17): the state label ONLY — the dirty
         // counts moved to their own CHANGES column (operator: "the
@@ -5712,8 +5721,11 @@ fn print_repos_rich_table(
         };
 
         // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind cell.
+        // v0.113.18 (audit L7): no-space `↑423↓12` (one cell cheaper)
+        // and truncate to the column budget — a 4-digit double count
+        // used to overflow silently, showing a clipped wrong number.
         let (ab_text, ab_color) = if row.ahead > 0 && row.behind > 0 {
-            (format!("↑{} ↓{}", row.ahead, row.behind), Color::Yellow)
+            (format!("↑{}↓{}", row.ahead, row.behind), Color::Yellow)
         } else if row.ahead > 0 {
             (format!("↑{}", row.ahead), Color::Yellow)
         } else if row.behind > 0 {
@@ -5721,6 +5733,7 @@ fn print_repos_rich_table(
         } else {
             ("—".to_string(), Color::DarkGrey)
         };
+        let ab_text = truncate_unicode_width(&ab_text, ab_budget);
 
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
         // v0.113.15: successful PUSH cells carry the last-push age.
@@ -12301,29 +12314,13 @@ mod v011315_tests {
     #[test]
     fn rem_cell_fits_column_budget() {
         // worst case: 3 remotes, all icons → 6 display cells
+        // (v0.113.18: the REM cell carries no ANSI — measure directly)
         let cell = rem_cell_content(&[
             "github".to_string(),
             "gitlab".to_string(),
             "codeberg".to_string(),
         ]);
-        // strip ANSI escapes manually (console is only a transitive dep)
-        let mut stripped = String::new();
-        let mut chars = cell.chars();
-        while let Some(c) = chars.next() {
-            if c == '\u{1b}' {
-                for c2 in chars.by_ref() {
-                    if c2 == 'm' {
-                        break;
-                    }
-                }
-            } else {
-                stripped.push(c);
-            }
-        }
-        let w: usize = stripped
-            .chars()
-            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
-            .sum();
+        let w = unicode_width::UnicodeWidthStr::width(cell.as_str());
         assert_eq!(w, 6, "3-icon REM cell must measure exactly 6 cols");
     }
 
@@ -12389,7 +12386,7 @@ mod v011316_tests {
         std::fs::create_dir_all(&dir).unwrap();
         let policy = quota_policy();
         let (push_to, excluded) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir);
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert_eq!(push_to, vec!["github".to_string()]);
         assert!(
             excluded.iter().any(|e| e == "codeberg"),
@@ -12427,10 +12424,33 @@ mod v011316_tests {
         run(&["update-ref", "refs/remotes/codeberg/main", sha.trim()]);
         let policy = quota_policy();
         let (push_to, _excluded) =
-            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir);
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, false);
         assert!(
             push_to.iter().any(|r| r == "codeberg"),
             "codeberg must stay a push target with a tracking ref: {push_to:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn too_big_for_github_excludes_github() {
+        // v0.113.18 (audit M2): the daemon adds github to
+        // combined_exclude when the pack exceeds github's 2 GiB limit
+        // (sync.rs:1807-1811); the report must mirror that or the REM
+        // cell shows 🐙 for a repo the daemon deliberately skips.
+        let dir = std::env::temp_dir().join("dracon-v011318-too-big");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let policy = quota_policy();
+        let (push_to, excluded) =
+            report_effective_remotes(&policy, &RepoPolicyOverride::default(), &dir, true);
+        assert!(
+            excluded.iter().any(|e| e == "github"),
+            "github must be excluded when too big: {excluded:?}"
+        );
+        assert!(
+            !push_to.iter().any(|r| r == "github"),
+            "github must not be a push target when too big: {push_to:?}"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -12473,5 +12493,55 @@ mod v011318_tests {
         // 4 classes × (2-cell icon + 1 digit) = 12 = CHANGES_COL − 2.
         let s = changes_cell_content(9, 9, 9, 9);
         assert_eq!(UnicodeWidthStr::width(s.as_str()), 12, "{s}");
+    }
+}
+
+/// ADDED 2026-07-29 (v0.113.18): audit fix-batch tests — REPO cell
+/// pure-fn coverage + CHANGES truncation pinning.
+#[cfg(test)]
+mod v011318b_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    #[test]
+    fn repo_cell_leading_marker_and_alignment() {
+        let priv_cell = repo_cell_content(Some(true), "hellhunter", 18);
+        let pub_cell = repo_cell_content(Some(false), "dracon-sync", 18);
+        let unk_cell = repo_cell_content(None, "mystery", 18);
+        assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
+        assert!(pub_cell.starts_with("🔓 "), "{pub_cell}");
+        // unknown gets a 3-cell pad so names align in one column
+        assert!(unk_cell.starts_with("   mystery"), "{unk_cell:?}");
+        // all three variants reserve the same 3-cell prefix
+        assert_eq!(
+            UnicodeWidthStr::width("🔒 ") as usize,
+            UnicodeWidthStr::width("   "),
+            "icon prefix and pad must be the same width"
+        );
+    }
+
+    #[test]
+    fn repo_cell_truncates_long_names_after_marker() {
+        let cell = repo_cell_content(Some(true), "pully-fully-pull-based-fleet-reconciler", 18);
+        assert!(
+            UnicodeWidthStr::width(cell.as_str()) <= 18,
+            "cell fits REPO budget: {cell} ({} cells)",
+            UnicodeWidthStr::width(cell.as_str())
+        );
+        assert!(cell.starts_with("🔒 "), "marker survives truncation");
+        assert!(cell.contains('…'), "ellipsis marks truncation: {cell}");
+    }
+
+    #[test]
+    fn changes_cell_two_digit_counts_truncate_cleanly() {
+        // 2-digit counts overflow the 12-cell budget; truncation must
+        // stay within budget and not split an emoji.
+        let content = changes_cell_content(12, 34, 5, 1);
+        let truncated = truncate_unicode_width(&content, 12);
+        assert!(
+            UnicodeWidthStr::width(truncated.as_str()) <= 12,
+            "{truncated} ({} cells)",
+            UnicodeWidthStr::width(truncated.as_str())
+        );
     }
 }
