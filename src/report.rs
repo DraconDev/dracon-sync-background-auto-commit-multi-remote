@@ -5150,24 +5150,6 @@ fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> S
     out
 }
 
-/// ADDED 2026-07-30 (v0.113.21): REM cell — active push remotes
-/// bright, POLICY-EXCLUDED remotes appended as dim (dark-grey via
-/// embedded ANSI) icons so the operator sees WHY a forge is absent
-/// (e.g. codeberg quota posture) without reviving the pre-v0.113.17
-/// clutter. The `.fg()` call must be skipped when ANSI is embedded
-/// (it would repaint the whole cell).
-fn rem_cell_content_rich(push_to: &[String], excluded: &[String]) -> String {
-    let mut s = rem_cell_content(push_to);
-    for name in excluded {
-        if let Some(icon) = remote_icon(name) {
-            s.push_str("[90m");
-            s.push_str(icon);
-            s.push_str("[0m");
-        }
-    }
-    s
-}
-
 fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
     match push_status {
         "OK" => ("✅ OK", Color::Green),
