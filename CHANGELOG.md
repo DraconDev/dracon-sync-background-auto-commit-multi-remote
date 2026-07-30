@@ -13,6 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.20)
+
+- **SIZE column shows `own+mods` for superprojects** (operator: "we
+  made them submods so we don't end up with one huge repo, so it
+  would be useful to know both sizes — partly to see if it would
+  get stuck when pushed"): dracon-platform now renders `12G+7.3G`
+  (own pack + combined submodule gitdirs under `.git/modules/`).
+  Plain repos are unchanged (adaptive `713 MiB` form). Color still
+  follows the OWN pack (that is what pushes per-push); the suffix is
+  the wholesale-push gauge. New `measure_modules_size_bytes` probe
+  (one extra `du` only for repos with a `modules/` dir), cached
+  alongside the own-size probe (`git_modules_bytes` in
+  CachedRepoSize, serde-default 0 for old cache files). SIZE column
+  widened 10 → 11 for MiB-scale combos; table total 159 cols.
+
+- Ground truth documented: dracon-platform's own pack is genuinely
+  ~12 GiB (345k objects, zero garbage); the 7.3 GiB of submodule
+  gitdirs is additionally reported per-game in the nested repos'
+  own rows.
+
 ## [0.113.19] - 2026-07-30
 
 ### Changed (v0.113.19)
