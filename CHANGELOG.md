@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   column budget. Composition extracted into the pure
   `changes_cell_content` helper for direct unit-testing.
 
+### Fixed (independent audit of the v0.113.15-18 table work)
+
+- **Report missed the daemon's over-2-GiB github skip** (audit M2):
+  `report_effective_remotes` now takes the `pack_too_large` signal and
+  excludes github, mirroring `sync.rs:1807-1811` — latent today (no
+  repo currently over the limit) but the REM cell would have shown 🐙
+  for a repo the daemon deliberately skips. The helper is also called
+  ONCE per repo now (was 3× = 3 `git rev-parse` subprocesses).
+- **Legend printed under every tier** (audit M3) while documenting
+  only the rich columns — now rich tier only; `--legend` unchanged.
+- **Width-test arithmetic corrected** (audit M1): the rich-table
+  floor test omitted CHANGES_COL AND added a bogus padding term
+  (Absolute widths already include padding) — passed ≤165 by
+  coincidence. Now asserts the exact measured total (149).
+- **Compact PUSH-TO reason annotation clipped** (audit L4): the
+  ` (quota)` suffix pushed past the 30-col budget; reason folded into
+  the bracket — `github,gitlab [codeberg:quota]` = exactly 30.
+- **A/B cell could silently clip** (audit L7): `↑423 ↓12` overflowed
+  the 7-cell budget showing a wrong count; now no-space + truncated.
+- Stale REM_COL/rem-cell comments claiming dim/ANSI rendering
+  (removed in v0.113.17) corrected; REPO-cell marker extracted into
+  the pure `repo_cell_content` helper with tests.
+
 ## [0.113.17] - 2026-07-30
 
 ### Changed (operator table feedback, 2026-07-29)
