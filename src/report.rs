@@ -2854,12 +2854,12 @@ fn repos_legend_lines() -> &'static [&'static str] {
     &[
         "── legend ──────────────────────────────────────────────────────────────────────────────",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
-        " ACTIVITY  ⏳ dirty Nm · k mod/stg/ut = uncommitted (daemon commits shortly) · N excl = excluded by policy",
-        "           🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
+        " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
+        " CHANGES   uncommitted N mod/stg/ut waiting for the daemon · N excl = excluded by policy · — = clean",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
-        " REM       push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (dim = excluded from auto-push)",
-        " REPO      name⚡branch when not on main · 🔒 = github repo private (visibility cache)",
+        " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
+        " REPO      name⚡branch when not on main · 🔒 private · 🔓 public (github visibility cache)",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
@@ -11475,8 +11475,8 @@ mod tests {
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
         for col in [
-            "STATUS", "ACTIVITY", "A/B", "PUSH", "REM", "REPO", "1H/6H/24H", "SIZE", "TOUCHED",
-            "excl",
+            "STATUS", "ACTIVITY", "CHANGES", "A/B", "PUSH", "REM", "REPO", "1H/6H/24H", "SIZE",
+            "TOUCHED", "excl",
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
@@ -11492,6 +11492,7 @@ mod tests {
         assert!(text.contains("dim"), "REM dim=excluded note in legend");
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
+        assert!(text.contains("🔓"), "REPO public marker in legend");
         assert!(text.contains("⚡"), "REPO branch fold in legend");
     }
 
@@ -11520,7 +11521,8 @@ mod tests {
         // v0.113.15: REPO 22→20, ACTIVITY 28→24 fund the REM column (+9
         // with border+padding) inside the same 165-col budget.
         const REPO_COL: usize = 20;
-        const ACTIVITY_COL: usize = 23;
+        const ACTIVITY_COL: usize = 16;
+        const CHANGES_COL: usize = 14;
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
         const REM_COL: usize = 8;
@@ -11530,7 +11532,7 @@ mod tests {
         const C24H_COL: usize = 5;
         const SIZE_COL: usize = 10;
         const TOUCHED_COL: usize = 15;
-        let num_cols = 12;
+        let num_cols = 13;
         let border_overhead = num_cols + 1;
         let cell_padding = num_cols * 2;
         let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + AB_COL + PUSH_COL
@@ -12232,33 +12234,30 @@ mod v011315_tests {
     }
 
     #[test]
-    fn rem_cell_bright_active_dim_excluded() {
-        let cell = rem_cell_content(
-            &["github".to_string(), "gitlab".to_string()],
-            &["codeberg".to_string()],
-        );
-        assert!(cell.contains('🐙') && cell.contains('🦊') && cell.contains('🗻'));
-        // excluded icon is wrapped in the ANSI-90 dim escape (when color on)
-        if crate::print::should_color() {
-            assert!(cell.contains("\u{1b}[90m"), "excluded icon dimmed: {cell:?}");
-        }
-        // active icons carry no escape of their own
-        assert!(cell.starts_with("🐙🦊"), "active icons lead, unstyled: {cell:?}");
+    fn rem_cell_shows_only_active_push_remotes() {
+        // v0.113.17: excluded remotes are not rendered at all — the
+        // function takes only the active push-to list.
+        let cell = rem_cell_content(&["github".to_string(), "gitlab".to_string()]);
+        assert_eq!(cell, "🐙🦊", "active icons only, adjacent: {cell:?}");
+        assert!(rem_cell_content(&[]).contains('—'), "empty push set → dash");
     }
 
     #[test]
     fn rem_cell_unknown_remote_renders_letters_not_dropped() {
-        let cell = rem_cell_content(&["origin".to_string()], &[]);
+        let cell = rem_cell_content(&["origin".to_string()]);
         assert_eq!(cell, "or");
+        let mixed = rem_cell_content(&["github".to_string(), "origin".to_string()]);
+        assert_eq!(mixed, "🐙 or", "icon + spaced letters: {mixed:?}");
     }
 
     #[test]
     fn rem_cell_fits_column_budget() {
-        // worst case: 3 remotes, all icons → 6 display cells (ANSI stripped)
-        let cell = rem_cell_content(
-            &["github".to_string(), "gitlab".to_string(), "codeberg".to_string()],
-            &[],
-        );
+        // worst case: 3 remotes, all icons → 6 display cells
+        let cell = rem_cell_content(&[
+            "github".to_string(),
+            "gitlab".to_string(),
+            "codeberg".to_string(),
+        ]);
         // strip ANSI escapes manually (console is only a transitive dep)
         let mut stripped = String::new();
         let mut chars = cell.chars();
