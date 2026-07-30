@@ -4936,24 +4936,29 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
     }
 }
 
-/// ADDED 2026-07-29 (v0.113.15): compose the REM cell — every remote
-/// the daemon knows about for this repo, bright when pushed-to, dim
-/// (ANSI 90) when excluded. Embedded ANSI is width-safe because the
-/// `custom_styling` comfy-table feature measures with ANSI stripped;
-/// do NOT set a Cell fg on top of this string.
-fn rem_cell_content(push_to: &[String], excluded: &[String]) -> String {
+/// ADDED 2026-07-29 (v0.113.15): compose the REM cell. CHANGED
+/// 2026-07-29 (v0.113.17, operator: "we are showing github gitlab
+/// and codeberg for all, that is almost certainly wrong"): the cell
+/// now shows ONLY the remotes the daemon actually pushes to —
+/// excluded remotes are no longer rendered dim (invisible in pastes
+/// and misleading at a glance); exclusion detail lives in
+/// `repos <name>` / the JSON row. Unknown remote names render as
+/// their first two letters rather than being silently dropped.
+fn rem_cell_content(push_to: &[String]) -> String {
     let mut s = String::new();
     for name in push_to {
         match remote_icon(name) {
             Some(icon) => s.push_str(icon),
-            None => s.push_str(&name.chars().take(2).collect::<String>()),
+            None => {
+                if !s.is_empty() {
+                    s.push(' ');
+                }
+                s.push_str(&name.chars().take(2).collect::<String>());
+            }
         }
     }
-    for name in excluded {
-        match remote_icon(name) {
-            Some(icon) => s.push_str(&ansi("90", icon)),
-            None => s.push_str(&ansi("90", &name.chars().take(2).collect::<String>())),
-        }
+    if s.is_empty() {
+        s.push('—');
     }
     s
 }
@@ -5426,14 +5431,17 @@ fn print_repos_rich_table(
     // incl. border+padding) within the 165-col rich-tier budget
     // (operator: show which remotes each repo syncs to as icons).
     const REPO_COL: usize = 20;
-    // CHANGED 2026-07-28 (v0.113.8): ACTIVITY widened from 21 to 28 to
-    // give the dirty/staged/untracked inline counts (`⏳ dirty 8m ·
-    // 1 mod + 1 stg + 5 ut`) enough room to render without truncation
-    // on terminals ≥ 220 cols. The new USED / COMMITS / SIZE / TOUCHED
-    // columns take over the diagnostic role HINT used to fill, so
-    // ACTIVITY can absorb the freed horizontal budget for the
-    // dirty-count tail (operator's most-asked-for addition).
-    const ACTIVITY_COL: usize = 23;
+    // CHANGED 2026-07-29 (v0.113.17): ACTIVITY narrowed 23 → 16 —
+    // it now holds ONLY the state label (`🟢 synced 19m` = 13 max);
+    // the dirty counts moved to their own CHANGES column (operator:
+    // "the activity can just have the first part").
+    const ACTIVITY_COL: usize = 16;
+    // ADDED 2026-07-29 (v0.113.17): CHANGES column — the uncommitted
+    // counts (N mod/stg/ut + N excl) that used to tail the ACTIVITY
+    // label (operator: "anything excluded or modified or changed or
+    // waiting to commit can be its own column"). Worst case
+    // `12 mod 3 ut` / `2 mod 1 excl` = 12 content + 2 padding = 14.
+    const CHANGES_COL: usize = 14;
     // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind column — the
     // most important missing field. `↑N` = unpushed commits (data
     // at risk), `↓N` = upstream drift (needs pull), `↑N ↓M` = both,
@@ -5475,7 +5483,7 @@ fn print_repos_rich_table(
     const TOUCHED_COL: usize = 15;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
-    let num_cols = 12; // fixed: #, STATUS, REPO, ACTIVITY, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
+    let num_cols = 13; // fixed: #, STATUS, REPO, ACTIVITY, CHANGES, A/B, PUSH, REM, 1H, 6H, 24H, SIZE, TOUCHED
     let border_overhead = num_cols + 1;
     let cell_padding = num_cols * 2;
     let fixed = NUM_COL
@@ -5522,6 +5530,7 @@ fn print_repos_rich_table(
         bold("STATUS"),
         bold("REPO"),
         bold("ACTIVITY"),
+        bold("CHANGES"),
         bold("A/B"),
         bold("PUSH"),
         bold("REM"),
@@ -5551,39 +5560,44 @@ fn print_repos_rich_table(
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(ACTIVITY_COL as u16)));
     table
         .column_mut(4)
+        .expect("CHANGES column")
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHANGES_COL as u16)));
+    table
+        .column_mut(5)
         .expect("A/B column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(AB_COL as u16)));
     table
-        .column_mut(5)
+        .column_mut(6)
         .expect("PUSH column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
     table
-        .column_mut(6)
+        .column_mut(7)
         .expect("REM column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REM_COL as u16)));
     table
-        .column_mut(7)
+        .column_mut(8)
         .expect("1H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C1H_COL as u16)));
     table
-        .column_mut(8)
+        .column_mut(9)
         .expect("6H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C6H_COL as u16)));
     table
-        .column_mut(9)
+        .column_mut(10)
         .expect("24H column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(C24H_COL as u16)));
     table
-        .column_mut(10)
+        .column_mut(11)
         .expect("SIZE column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(SIZE_COL as u16)));
     table
-        .column_mut(11)
+        .column_mut(12)
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
     let repo_budget = REPO_COL.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
+    let changes_budget = CHANGES_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
         let (status_text, status_color) = status_pair(row);
@@ -5604,47 +5618,56 @@ fn print_repos_rich_table(
         } else {
             repo_name
         };
-        // ADDED 2026-07-29 (v0.113.16): 🔒 suffix when the visibility
-        // cache says the github repo is private (operator: "we should
-        // show public vs private repo too"). Unknown/unprobed repos
-        // get no marker — a false 🔓 would be worse than none. The
-        // marker costs 3 cells (" 🔒"), carved out of the truncate
-        // budget so the column width is unchanged.
-        let is_private = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo))
-            .unwrap_or(false);
-        let repo_short = if is_private {
-            format!(
+        // CHANGED 2026-07-29 (v0.113.17): 🔒 private / 🔓 public
+        // suffix from the github visibility cache (operator: "we need
+        // to show public and private"). Unknown/unprobed repos get no
+        // marker. The marker costs 3 cells (" X"), carved out of the
+        // truncate budget so the column width is unchanged.
+        let visibility = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo));
+        let repo_short = match visibility {
+            Some(true) => format!(
                 "{} 🔒",
                 truncate_unicode_width(&repo_display, repo_budget.saturating_sub(3))
-            )
-        } else {
-            truncate_unicode_width(&repo_display, repo_budget)
+            ),
+            Some(false) => format!(
+                "{} 🔓",
+                truncate_unicode_width(&repo_display, repo_budget.saturating_sub(3))
+            ),
+            None => truncate_unicode_width(&repo_display, repo_budget),
         };
 
-        // ACTIVITY: the activity label + dirty counts inline.
-        // CHANGED 2026-07-22 (v0.112.38 R2): strip the `(N ahead)`
-        // suffix from the PENDING label — the new A/B column carries
-        // the count, so showing it here too is duplication that also
-        // eats the narrow ACTIVITY budget.
-        let mut activity = activity_label(row);
-        // v0.113.13: substring-strip (not suffix-strip) — the `· N excl`
-        // marker is appended AFTER any `(N ahead)` suffix, so a suffix
-        // strip misses and the duplicated count eats the cell budget.
+        // ACTIVITY (v0.113.17): the state label ONLY — the dirty
+        // counts moved to their own CHANGES column (operator: "the
+        // activity can just have the first part"). The `(N ahead)`
+        // strip stays: the A/B column carries that count.
+        let mut activity = activity_label_base(row);
         activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
-        let mut dirty_parts: Vec<String> = Vec::new();
+        let activity = truncate_unicode_width(&activity, activity_budget);
+
+        // CHANGES (v0.113.17): anything modified/staged/untracked
+        // waiting for the daemon, plus policy-excluded dirty entries.
+        // `—` when the worktree is clean.
+        let mut change_parts: Vec<String> = Vec::new();
         if row.modified > 0 {
-            dirty_parts.push(format!("{} mod", row.modified));
+            change_parts.push(format!("{} mod", row.modified));
         }
         if row.staged > 0 {
-            dirty_parts.push(format!("{} stg", row.staged));
+            change_parts.push(format!("{} stg", row.staged));
         }
         if row.untracked > 0 {
-            dirty_parts.push(format!("{} ut", row.untracked));
+            change_parts.push(format!("{} ut", row.untracked));
         }
-        if !dirty_parts.is_empty() {
-            activity = format!("{} · {}", activity, dirty_parts.join(" + "));
+        if row.excluded_dirty > 0 {
+            change_parts.push(format!("{} excl", row.excluded_dirty));
         }
-        let activity = truncate_unicode_width(&activity, activity_budget);
+        let (changes_text, changes_color) = if change_parts.is_empty() {
+            ("—".to_string(), Color::DarkGrey)
+        } else {
+            (
+                truncate_unicode_width(&change_parts.join(" "), changes_budget),
+                Color::Yellow,
+            )
+        };
 
         // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind cell.
         let (ab_text, ab_color) = if row.ahead > 0 && row.behind > 0 {
@@ -5661,7 +5684,7 @@ fn print_repos_rich_table(
         // v0.113.15: successful PUSH cells carry the last-push age.
         let push_text = push_cell_with_age(push_text, &row.last_push);
         // v0.113.15: REM cell — embedded ANSI, so no .fg() on this cell.
-        let rem_text = rem_cell_content(&row.push_to_remotes, &row.excluded_remotes);
+        let rem_text = rem_cell_content(&row.push_to_remotes);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
@@ -5691,6 +5714,7 @@ fn print_repos_rich_table(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_short).fg(Color::White),
             Cell::new(activity).fg(Color::White),
+            Cell::new(changes_text).fg(changes_color),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
             Cell::new(rem_text),
