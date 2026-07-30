@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.23)
+
+- **Submodule badge glyph `>`** (operator: the `└` tree-child glyph
+  "doesn't look right, maybe do > to imply it's a sub"): nested
+  submodules now render `🔒> name` — plain ASCII, renders
+  identically in every font, reads as "sub of a parent".
+
 ## [0.113.22] - 2026-07-30
 
 ### Changed (v0.113.22)
