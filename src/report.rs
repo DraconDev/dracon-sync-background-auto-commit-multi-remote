@@ -2916,7 +2916,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing",
         " REM       🐙 github · 🦊 gitlab · 🗻 codeberg · bright = pushing · dim = policy-excluded",
-        " REPO      🔒 private · 🔓 public (leading icon, github visibility cache) · name⚡branch when not on main",
+        " REPO      🔒 private · 🔓 public · ↳ = nested submodule checkout · name⚡branch when not on main",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
         " TOUCHED   author + age of the most recent commit",
@@ -5940,7 +5940,7 @@ fn print_repos_rich_table(
         // v0.113.15: successful PUSH cells carry the last-push age.
         let push_text = push_cell_with_age(push_text, &row.last_push);
         // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
-        let push_text = push_cell_with_markers(push_text, &row, PUSH_COL.saturating_sub(2));
+        let push_text = push_cell_with_markers(push_text, row, PUSH_COL.saturating_sub(2));
         // v0.113.21: REM cell — active bright, policy-excluded dim
         // (embedded ANSI). No `.fg()` when ANSI is embedded.
         let rem_text = rem_cell_content_rich(&row.push_to_remotes, &row.excluded_remotes);
@@ -12883,7 +12883,8 @@ mod v011321_tests {
 
         row.token_health.github_present = false;
         let out = push_cell_with_markers("❌ FAIL".to_string(), &row, 10);
-        assert_eq!(out, "❌ FAIL🩹🔑", "{out}");
+        // ❌ FAIL = 7 cells; 🩹 fits (9), 🔑 would make 11 > 10 → dropped
+        assert_eq!(out, "❌ FAIL🩹", "{out}");
 
         // budget respected: a 9-cell label can't take a 2-cell marker
         let out = push_cell_with_markers("✅ INTENT".to_string(), &row, 10);
