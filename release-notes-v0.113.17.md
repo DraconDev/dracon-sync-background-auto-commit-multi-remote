@@ -1,26 +1,26 @@
-# dracon-sync v0.113.17 (2026-07-30)
+## dracon-sync v0.113.17 — table: truthful REM, CHANGES column, 🔓
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Three changes from one round of operator feedback on the live table.
 
-## What's Changed
+### REM shows ACTIVE push remotes only
 
-- Bump version to 0.113.17
-- (See CHANGELOG.md for the full list of changes in this release)
+Excluded remotes are no longer rendered dim — the dim styling was
+invisible in pastes and read as "every repo has github+gitlab+
+codeberg", which is wrong (most of the fleet pushes github+gitlab
+only; codeberg is gated by the public-only policy and the v0.112.28
+quota posture). Now `🐙🦊` is the honest common case; exclusion
+detail lives in `repos <name>` and the JSON row.
 
-## Install
+### CHANGES column split out of ACTIVITY
 
-```bash
-cargo install dracon-sync --version 0.113.17
-```
+ACTIVITY holds only the state label (`⏳ dirty 0m` / `🟢 synced 19m` /
+`⚪ idle 6h` / `⚫ cold 1d`). Everything modified/staged/untracked/
+excluded (`1 mod`, `1 mod 1 excl`) renders in its own CHANGES column,
+`—` when clean. The rich-tier floor stays ≤ 165 cols.
 
-## Docker / systemd
+### 🔓 public marker joins 🔒
 
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
+The REPO cell now shows BOTH github visibility states (cache-driven);
+unknown/unprobed repos get no marker.
 
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.16...v0.113.17
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
