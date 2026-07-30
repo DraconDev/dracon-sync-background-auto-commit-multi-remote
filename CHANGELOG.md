@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.25)
+
+- **Periodic visibility sweep** (operator: "some rows are just
+  missing the lock icon — why?"): the GitHub visibility probe ran
+  only inside `sync_repo`, but the daemon's fast path skips dispatch
+  entirely for clean+synced repos — so an idle repo whose cache was
+  pruned/missing NEVER re-probed and its REPO cell showed a blank
+  icon forever (pi-length-continue, bookmarks-new-tab,
+  folder-auto-banner-fab were all blank despite GitHub knowing their
+  visibility). A spawned sweep now refreshes stale caches for ALL
+  watched repos every `sync_visibility_interval_hours`, decoupled
+  from sync dispatch; mirror flips use the same remotes as the
+  sync-time path.
+
+### Changed (v0.113.25)
+
+- **Public icon 🔓 → 🌍** (operator: "the lock character is
+  effectively the same with a tiny piece missing on the unlocked
+  one"): locked/unlocked padlocks differ by a 2-pixel shackle gap;
+  a globe reads "public to the world" at a glance. Private stays
+  🔒; blank remains "unknown" (now rare thanks to the sweep).
+- **Legend is now a comfy-table** (operator: "make the legend
+  table-like") in the same UTF8_FULL_CONDENSED style as the main
+  table: label column + meaning column, blank rows between the
+  semantic groups, 120-col fixed width. Legend content is now
+  single-sourced as (label, text) rows.
+
 ## [0.113.24] - 2026-07-30
 
 ### Changed (v0.113.24)
