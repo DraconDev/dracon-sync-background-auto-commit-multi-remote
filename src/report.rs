@@ -2914,8 +2914,8 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
         " CHANGES   per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
-        " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
-        " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
+        " PUSH      ✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing",
+        " REM       🐙 github · 🦊 gitlab · 🗻 codeberg · bright = pushing · dim = policy-excluded",
         " REPO      🔒 private · 🔓 public (leading icon, github visibility cache) · name⚡branch when not on main",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
@@ -5016,12 +5016,30 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
 /// visibility marker (🔒 private / 🔓 public / 3-space pad for
 /// unknown) so the icons form a single vertical column and the names
 /// align. Pure function so the composition is directly unit-testable.
-fn repo_cell_content(visibility: Option<bool>, display: &str, budget: usize) -> String {
-    let name_budget = budget.saturating_sub(3);
+fn repo_cell_content(
+    visibility: Option<bool>,
+    display: &str,
+    budget: usize,
+    is_nested: bool,
+) -> String {
+    // v0.113.21: nested submodule checkouts (`.git` is a gitdir
+    // POINTER FILE, not a dir) get a ` ↳` suffix so the operator can
+    // distinguish them from standalone repos at a glance (operator:
+    // "we are not showing if submod or standalone repo"). The suffix
+    // reserves 2 cells from the name budget.
+    let suffix_reserve = if is_nested { 2 } else { 0 };
+    let name_budget = budget.saturating_sub(3 + suffix_reserve);
+    let suffix = if is_nested { " ↳" } else { "" };
     match visibility {
-        Some(true) => format!("🔒 {}", truncate_unicode_width(display, name_budget)),
-        Some(false) => format!("🔓 {}", truncate_unicode_width(display, name_budget)),
-        None => format!("   {}", truncate_unicode_width(display, name_budget)),
+        Some(true) => format!(
+            "🔒 {}{suffix}",
+            truncate_unicode_width(display, name_budget)
+        ),
+        Some(false) => format!(
+            "🔓 {}{suffix}",
+            truncate_unicode_width(display, name_budget)
+        ),
+        None => format!("   {}{suffix}", truncate_unicode_width(display, name_budget)),
     }
 }
 
@@ -5042,7 +5060,7 @@ mod v011318_tests {
         // column headers, REPO markers, REM cells) must measure 2
         // cells (Emoji_Presentation=Yes). ✏ (U+270F) measures 1 but
         // renders 2 — banned; see the 🗻 episode in v0.113.15.
-        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻"] {
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻", "🩹", "🔑"] {
             assert_eq!(
                 UnicodeWidthStr::width(icon),
                 2,
@@ -5102,6 +5120,56 @@ fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
         Some(mins) => format!("{} {}", push_text, shorten_mins(mins)),
         None => push_text.to_string(),
     }
+}
+
+/// ADDED 2026-07-30 (v0.113.21): PUSH cell risk markers, appended
+/// in priority order while the 10-cell content budget allows:
+/// - 🩹 broken history (`missing_objects > 0`) — the next push WILL
+///   fail; the hegemon "✅ OK but GitHub empty" class had no visible
+///   precondition, this makes the remaining invisible one explicit.
+/// - 🔑 a forge token file is missing for a forge this repo pushes
+///   to (or is policy-excluded from) — auth-side failures before
+///   they surface as ❌ FAIL.
+fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> String {
+    use unicode_width::UnicodeWidthStr;
+    let mut out = text;
+    if row.missing_objects > 0
+        && UnicodeWidthStr::width(out.as_str()) + 2 <= budget
+    {
+        out.push('🩹');
+    }
+    let token_missing = row
+        .push_to_remotes
+        .iter()
+        .chain(row.excluded_remotes.iter())
+        .any(|r| match r.as_str() {
+            "github" => !row.token_health.github_present,
+            "gitlab" => !row.token_health.gitlab_present,
+            "codeberg" => !row.token_health.codeberg_present,
+            _ => false,
+        });
+    if token_missing && UnicodeWidthStr::width(out.as_str()) + 2 <= budget {
+        out.push('🔑');
+    }
+    out
+}
+
+/// ADDED 2026-07-30 (v0.113.21): REM cell — active push remotes
+/// bright, POLICY-EXCLUDED remotes appended as dim (dark-grey via
+/// embedded ANSI) icons so the operator sees WHY a forge is absent
+/// (e.g. codeberg quota posture) without reviving the pre-v0.113.17
+/// clutter. The `.fg()` call must be skipped when ANSI is embedded
+/// (it would repaint the whole cell).
+fn rem_cell_content_rich(push_to: &[String], excluded: &[String]) -> String {
+    let mut s = rem_cell_content(push_to);
+    for name in excluded {
+        if let Some(icon) = remote_icon(name) {
+            s.push_str("[90m");
+            s.push_str(icon);
+            s.push_str("[0m");
+        }
+    }
+    s
 }
 
 fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
@@ -5826,7 +5894,11 @@ fn print_repos_rich_table(
         // names still align (absence of icon = unknown). The marker
         // costs 3 cells ("X "), carved out of the truncate budget.
         let visibility = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo));
-        let repo_short = repo_cell_content(visibility, &repo_display, repo_budget);
+        // v0.113.21: `.git` as a FILE = nested submodule / linked
+        // worktree checkout (gitdir pointer); a DIR = standalone.
+        let is_nested = std::path::Path::new(&row.repo).join(".git").is_file();
+        let repo_short =
+            repo_cell_content(visibility, &repo_display, repo_budget, is_nested);
 
         // ACTIVITY (v0.113.17): the state label ONLY — the dirty
         // counts moved to their own CHANGES column (operator: "the
@@ -5867,10 +5939,11 @@ fn print_repos_rich_table(
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
         // v0.113.15: successful PUSH cells carry the last-push age.
         let push_text = push_cell_with_age(push_text, &row.last_push);
-        // v0.113.17: REM cell — active push remotes only, plain
-        // icons (no ANSI), so a Cell fg would be safe but is
-        // unnecessary.
-        let rem_text = rem_cell_content(&row.push_to_remotes);
+        // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
+        let push_text = push_cell_with_markers(push_text, &row, PUSH_COL.saturating_sub(2));
+        // v0.113.21: REM cell — active bright, policy-excluded dim
+        // (embedded ANSI). No `.fg()` when ANSI is embedded.
+        let rem_text = rem_cell_content_rich(&row.push_to_remotes, &row.excluded_remotes);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
         // (duplicated ACTIVITY) and COMMITS split into three columns.
@@ -5909,7 +5982,11 @@ fn print_repos_rich_table(
             chg(row.excluded_dirty),
             Cell::new(ab_text).fg(ab_color),
             Cell::new(push_text).fg(push_color),
-            Cell::new(rem_text),
+            if rem_text.contains('\x1b') {
+                Cell::new(rem_text)
+            } else {
+                Cell::new(rem_text).fg(Color::Cyan)
+            },
             pulse(row.commits_1h),
             pulse(row.commits_6h),
             pulse(row.commits_24h),
@@ -12618,9 +12695,9 @@ mod v011318b_tests {
 
     #[test]
     fn repo_cell_leading_marker_and_alignment() {
-        let priv_cell = repo_cell_content(Some(true), "hellhunter", 18);
-        let pub_cell = repo_cell_content(Some(false), "dracon-sync", 18);
-        let unk_cell = repo_cell_content(None, "mystery", 18);
+        let priv_cell = repo_cell_content(Some(true), "hellhunter", 18, false);
+        let pub_cell = repo_cell_content(Some(false), "dracon-sync", 18, false);
+        let unk_cell = repo_cell_content(None, "mystery", 18, false);
         assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
         assert!(pub_cell.starts_with("🔓 "), "{pub_cell}");
         // unknown gets a 3-cell pad so names align in one column
@@ -12635,7 +12712,7 @@ mod v011318b_tests {
 
     #[test]
     fn repo_cell_truncates_long_names_after_marker() {
-        let cell = repo_cell_content(Some(true), "pully-fully-pull-based-fleet-reconciler", 18);
+        let cell = repo_cell_content(Some(true), "pully-fully-pull-based-fleet-reconciler", 18, false);
         assert!(
             UnicodeWidthStr::width(cell.as_str()) <= 18,
             "cell fits REPO budget: {cell} ({} cells)",
@@ -12710,5 +12787,134 @@ mod v011320_tests {
         assert_eq!(measure_modules_size_bytes(&empty), 0);
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&empty);
+    }
+}
+
+/// ADDED 2026-07-30 (v0.113.21): submodule marker, PUSH risk
+/// markers, dim-excluded REM tests.
+#[cfg(test)]
+mod v011321_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    fn strip_ansi(s: &str) -> String {
+        let mut out = String::new();
+        let mut chars = s.chars();
+        while let Some(c) = chars.next() {
+            if c == '\x1b' {
+                for c2 in chars.by_ref() {
+                    if c2 == 'm' {
+                        break;
+                    }
+                }
+            } else {
+                out.push(c);
+            }
+        }
+        out
+    }
+
+    fn base_row() -> RepoReportRow {
+        RepoReportRow {
+            repo: String::new(),
+            state_flags: vec![],
+            branch: "main".into(),
+            upstream: "-".into(),
+            publish_state: PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            excluded_dirty: 0,
+            ahead: 0,
+            behind: 0,
+            last_hash: String::new(),
+            last_author: String::new(),
+            last_when: String::new(),
+            last_msg: String::new(),
+            last_unix: 0,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: String::new(),
+            push_status: "OK".into(),
+            push_error: None,
+            push_to_remotes: vec!["github".into()],
+            excluded_remotes: vec![],
+            codeberg_skip_reason: None,
+            git_size_bytes: None,
+            git_modules_bytes: 0,
+            token_health: TokenHealthSummary {
+                codeberg_present: true,
+                github_present: true,
+                gitlab_present: true,
+            },
+            concern: false,
+            warn: false,
+            active: false,
+            hint: String::new(),
+            state_cause: StateCause::Healthy,
+            state_cause_label: "healthy".into(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: String::new(),
+            missing_objects: 0,
+            pack_too_large: false,
+        }
+    }
+
+    #[test]
+    fn repo_cell_nested_gets_arrow_suffix() {
+        let cell = repo_cell_content(Some(true), "hellhunter", 18, true);
+        assert_eq!(cell, "🔒 hellhunter ↳", "{cell}");
+        assert!(UnicodeWidthStr::width(cell.as_str()) <= 18);
+        // long nested names truncate AROUND the suffix
+        let long = repo_cell_content(Some(true), "capture-anime-girls-deluxe", 18, true);
+        assert!(long.ends_with(" ↳"), "suffix survives: {long}");
+        assert!(UnicodeWidthStr::width(long.as_str()) <= 18);
+    }
+
+    #[test]
+    fn push_markers_broken_history_and_token() {
+        let mut row = base_row();
+        row.missing_objects = 3;
+        let out = push_cell_with_markers("✅ OK 2m".to_string(), &row, 10);
+        assert_eq!(out, "✅ OK 2m🩹", "{out}");
+
+        row.token_health.github_present = false;
+        let out = push_cell_with_markers("❌ FAIL".to_string(), &row, 10);
+        assert_eq!(out, "❌ FAIL🩹🔑", "{out}");
+
+        // budget respected: a 9-cell label can't take a 2-cell marker
+        let out = push_cell_with_markers("✅ INTENT".to_string(), &row, 10);
+        assert_eq!(out, "✅ INTENT", "marker dropped when it would overflow");
+    }
+
+    #[test]
+    fn push_marker_token_only_for_relevant_forges() {
+        let mut row = base_row();
+        // codeberg token missing, but the repo neither pushes to nor
+        // is excluded from codeberg → no marker
+        row.token_health.codeberg_present = false;
+        let out = push_cell_with_markers("✅ OK".to_string(), &row, 10);
+        assert_eq!(out, "✅ OK");
+        // add codeberg to the excluded list → now it's relevant
+        row.excluded_remotes = vec!["codeberg".into()];
+        let out = push_cell_with_markers("✅ OK".to_string(), &row, 10);
+        assert_eq!(out, "✅ OK🔑", "{out}");
+    }
+
+    #[test]
+    fn rem_cell_excluded_remotes_are_dim_and_fit() {
+        let cell = rem_cell_content_rich(
+            &["github".to_string(), "gitlab".to_string()],
+            &["codeberg".to_string()],
+        );
+        assert!(cell.contains("\x1b[90m🗻\x1b[0m"), "excluded dim: {cell:?}");
+        assert_eq!(UnicodeWidthStr::width(strip_ansi(&cell).as_str()), 6);
+        // no exclusions → plain icons, no ANSI (the .fg(Cyan) path)
+        let cell = rem_cell_content_rich(&["github".to_string()], &[]);
+        assert!(!cell.contains('\x1b'));
+        assert_eq!(cell, "🐙");
     }
 }
