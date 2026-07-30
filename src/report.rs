@@ -2916,7 +2916,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing",
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
-        " REPO      🔒 private · 🔓 public · └ = nested submodule (badge after lock) · name⚡branch",
+        " REPO      🔒 private · 🔓 public · > = nested submodule (badge after lock) · name⚡branch",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit",
         " TOUCHED   author + age of the most recent commit",
@@ -5026,16 +5026,17 @@ fn repo_cell_content(
     // POINTER FILE, not a dir) vs standalone (`.git` DIR).
     // v0.113.22 (operator): the badge moves DIRECTLY AFTER the lock
     // so all markers form one fixed column (same reason the lock
-    // leads), and becomes the tree-child glyph `└` — "child of a
-    // parent", exactly like `tree` output. Prefix is a fixed 4
-    // cells: vis(2) + badge(1: └ or space) + space.
+    // leads). v0.113.23 (operator): glyph is `>` ("implies it's a
+    // sub") — the v0.113.22 tree-child `└` rendered as an
+    // ambiguous little corner mark. Prefix is a fixed 4 cells:
+    // vis(2) + badge(1: > or space) + space.
     let name_budget = budget.saturating_sub(4);
     let vis = match visibility {
         Some(true) => "🔒",
         Some(false) => "🔓",
         None => "  ",
     };
-    let badge = if is_nested { "└" } else { " " };
+    let badge = if is_nested { ">" } else { " " };
     format!("{vis}{badge} {}", truncate_unicode_width(display, name_budget))
 }
 
@@ -12830,17 +12831,17 @@ mod v011321_tests {
     #[test]
     fn repo_cell_nested_badge_after_lock() {
         let cell = repo_cell_content(Some(true), "hellhunter", 18, true);
-        assert_eq!(cell, "🔒└ hellhunter", "{cell}");
+        assert_eq!(cell, "🔒> hellhunter", "{cell}");
         assert!(UnicodeWidthStr::width(cell.as_str()) <= 18);
         // the badge never truncates away — only the name does
         let long = repo_cell_content(Some(true), "capture-anime-girls-deluxe", 18, true);
-        assert!(long.starts_with("🔒└ "), "badge survives: {long}");
+        assert!(long.starts_with("🔒> "), "badge survives: {long}");
         assert!(UnicodeWidthStr::width(long.as_str()) <= 18);
         // names align across nested/standalone (fixed 4-cell prefix)
         let plain = repo_cell_content(Some(true), "dracon-sync", 18, false);
         assert!(plain.starts_with("🔒  "), "standalone badge slot padded: {plain}");
         assert_eq!(
-            UnicodeWidthStr::width("🔒└ ") as usize,
+            UnicodeWidthStr::width("🔒> ") as usize,
             UnicodeWidthStr::width("🔒  ") as usize,
             "badge and pad slot must be the same width"
         );
