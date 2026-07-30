@@ -1,26 +1,31 @@
-# dracon-sync v0.113.18 (2026-07-30)
+## dracon-sync v0.113.18 — leading locks, icon CHANGES, audit batch
 
-Invisible git sync daemon for deterministic AI-assisted development.
+### Table polish (operator feedback)
 
-## What's Changed
+- **Visibility markers moved to the FRONT** of the REPO cell —
+  `🔒 name` / `🔓 name` / aligned pad for unknown, so the icons form
+  a single vertical column.
+- **CHANGES cell is now icon-form** — 📝 modified · 📦 staged ·
+  🆕 untracked · 🚫 excluded-by-policy (`📝1🚫3`), `—` when clean.
 
-- Bump version to 0.113.18
-- (See CHANGELOG.md for the full list of changes in this release)
+### Independent audit of the v0.113.15–18 table work — findings fixed
 
-## Install
+- **M2**: the report now mirrors the daemon's over-2-GiB github skip
+  (`pack_too_large` → github excluded from REM) — was latent (no repo
+  currently over the limit) but would have shown 🐙 for a skipped
+  remote. Helper called once per repo instead of 3×.
+- **M3**: legend footer now prints under the rich tier only (it
+  documents rich columns); `--legend` unchanged.
+- **M1**: rich-table width-test arithmetic corrected (was passing by
+  coincidence: omitted CHANGES_COL + double-counted padding; now
+  asserts the exact 149-col total).
+- **L4**: compact-tier PUSH-TO reason folded into the bracket —
+  `github,gitlab [codeberg:quota]` fits the 30-col budget exactly.
+- **L7**: A/B cell no-space form + truncation (a 4-digit double count
+  could silently clip).
+- Test gaps closed: `repo_cell_content` pure-fn tests, CHANGES
+  2-digit-count truncation pinning, width-2 verification for all nine
+  table icons.
 
-```bash
-cargo install dracon-sync --version 0.113.18
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.17...v0.113.18
+1206 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
