@@ -547,7 +547,12 @@ fn format_push_to_remotes_cell(
         let excl = excluded_remotes.join(",");
         let mut cell_text = format!("{main} [excl:{excl}]");
         if let Some(reason) = codeberg_skip_reason {
-            cell_text.push_str(&format!(" ({reason})"));
+            // v0.113.18 (audit L4): the " (reason)" suffix pushed the
+            // cell past the 30-col truncation budget, clipping the
+            // annotation in exactly the rows it described. Fold the
+            // reason INTO the bracket: `github,gitlab [codeberg:quota]`
+            // is exactly 30 cols for the common case.
+            cell_text = format!("{main} [{excl}:{reason}]");
         }
         // F30v2: truncate to fit the Absolute(32) PUSH-TO column
         // minus 2 padding = 30 cols content.
@@ -584,6 +589,7 @@ pub(crate) fn report_effective_remotes(
     policy: &crate::policy::SyncPolicy,
     repo_override: &crate::policy::RepoPolicyOverride,
     repo_path: &std::path::Path,
+    too_big_for_github: bool,
 ) -> (Vec<String>, Vec<String>) {
     let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
     if crate::git::multi_remote::codeberg_push_excluded(
@@ -593,6 +599,13 @@ pub(crate) fn report_effective_remotes(
     ) && !excluded.iter().any(|e| e == "codeberg")
     {
         excluded.push("codeberg".to_string());
+    }
+    // v0.113.18 (audit M2): mirror the daemon's over-2-GiB github skip
+    // (sync.rs:1807-1811 — the daemon adds github to combined_exclude
+    // when the pack exceeds github's 2 GiB limit). Without this the
+    // REM cell shows 🐙 for a repo the daemon deliberately skips.
+    if too_big_for_github && !excluded.iter().any(|e| e == "github") {
+        excluded.push("github".to_string());
     }
     let filtered =
         crate::git::multi_remote::filter_remotes_by_exclude(&policy.remotes, &excluded);
@@ -3726,6 +3739,16 @@ pub(crate) async fn run_repos_report(
         let (upstream_label, publish_state) =
             branch_upstream(&repo, &effective_status.branch);
         let active = repo_is_active(&push_status, &state_cause);
+        // v0.113.18 (audit M2/L5): compute the effective push remotes
+        // ONCE (the helper spawns a `git rev-parse` subprocess per
+        // call) and pass the pack_too_large signal so the report
+        // mirrors the daemon's over-2-GiB github skip.
+        let (push_to_list, excluded_list) = report_effective_remotes(
+            policy,
+            &repo_override,
+            repo.as_ref(),
+            pack_too_large.0,
+        );
         Some(RepoReportRow {
             repo: repo.display().to_string(),
             state_flags: flags,
@@ -3766,8 +3789,8 @@ pub(crate) async fn run_repos_report(
             // push-gap lie the operator spotted in the live table. The
             // combined exclusion is now computed once by
             // `report_effective_remotes` and used for both fields.
-            push_to_remotes: report_effective_remotes(policy, &repo_override, repo.as_ref()).0,
-            excluded_remotes: report_effective_remotes(policy, &repo_override, repo.as_ref()).1,
+            push_to_remotes: push_to_list,
+            excluded_remotes: excluded_list.clone(),
             // When codeberg is in excluded_remotes AND the skip came
             // from policy (not a manual per-repo `exclude_remotes`),
             // record why so the renderer can annotate the row
@@ -3776,16 +3799,11 @@ pub(crate) async fn run_repos_report(
             // quota-posture rule even though the visibility gate
             // would have allowed it.
             codeberg_skip_reason: {
-                let (gate_exclude, combined_exclude) = {
-                    let gate =
-                        effective_excluded_remotes(policy, &repo_override, repo.as_ref());
-                    let combined =
-                        report_effective_remotes(policy, &repo_override, repo.as_ref()).1;
-                    (gate, combined)
-                };
-                if combined_exclude.iter().any(|r| r == "codeberg")
+                if excluded_list.iter().any(|r| r == "codeberg")
                     && !repo_override.exclude_remotes.iter().any(|r| r == "codeberg")
                 {
+                    let gate_exclude =
+                        effective_excluded_remotes(policy, &repo_override, repo.as_ref());
                     if gate_exclude.iter().any(|r| r == "codeberg") {
                         // Visibility-gate skip; the cache tells us why.
                         Some(
@@ -4041,6 +4059,11 @@ pub(crate) async fn run_repos_report(
     match tier {
         LayoutTier::Rich => {
             print_repos_rich_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            // v0.113.18 (audit M3): the legend documents the RICH
+            // columns — printing it under the compact/full tiers
+            // described columns those tiers don't have. `--legend`
+            // remains the on-demand form for every tier.
+            print_repos_legend_footer();
         }
         LayoutTier::Vertical => {
             print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
@@ -4052,11 +4075,10 @@ pub(crate) async fn run_repos_report(
             print_repos_full_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
         }
     }
-    // v0.113.12 (goal-list 2026-07-29): the legend prints UNDER every table
-    // by default (width-gated; --legend remains the on-demand form). The
-    // 2026-07-08 pointer line ("run --legend when confused") predated the
-    // v0.113.8 columns and the operator was confused anyway.
-    print_repos_legend_footer();
+    // v0.113.12 (goal-list 2026-07-29): the legend prints UNDER the
+    // table by default (width-gated; --legend remains the on-demand
+    // form). v0.113.18: rich tier only (moved into the match arm
+    // above — audit M3).
 
     Ok(())
 }
@@ -5485,13 +5507,12 @@ fn print_repos_rich_table(
     // within seconds, so ages are almost always short forms.
     const PUSH_COL: usize = 12;
     // ADDED 2026-07-29 (v0.113.15): REM column — one width-2 emoji
-    // per push remote (🐙 github · 🦊 gitlab · 🗻 codeberg), bright
-    // when the daemon pushes there, dim when excluded. Worst case
-    // 3 remotes × 2 cells = 6 content + 2 padding = 8 (Absolute
-    // width INCLUDES padding — v0.113.15 dev-test caught the dim
-    // codeberg icon being truncated at REM_COL=6). Icons use embedded ANSI (comfy-table
-    // `custom_styling` feature makes width math ANSI-aware); a
-    // per-Cell fg can't express per-icon colors. NOTE: codeberg is
+    // per ACTIVE push remote (🐙 github · 🦊 gitlab · 🗻 codeberg).
+    // v0.113.17: excluded remotes are NOT rendered (operator: showing
+    // all three for every repo read as "all repos have all remotes").
+    // Worst case 3 remotes × 2 cells = 6 content + 2 padding = 8
+    // (Absolute width INCLUDES padding — v0.113.15 dev-test caught
+    // the third icon being truncated at REM_COL=6). NOTE: codeberg is
     // 🗻 (U+1F5FB, Emoji_Presentation=Yes → width-2 in
     // unicode-width), NOT ⛰/🏔 (U+26F0/U+1F3D4 measure width-1 in
     // unicode-width but render 2 — would break the table math).
@@ -5521,6 +5542,7 @@ fn print_repos_rich_table(
         + STATUS_COL
         + REPO_COL
         + ACTIVITY_COL
+        + CHANGES_COL
         + AB_COL
         + PUSH_COL
         + REM_COL
@@ -5703,7 +5725,9 @@ fn print_repos_rich_table(
         let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
         // v0.113.15: successful PUSH cells carry the last-push age.
         let push_text = push_cell_with_age(push_text, &row.last_push);
-        // v0.113.15: REM cell — embedded ANSI, so no .fg() on this cell.
+        // v0.113.17: REM cell — active push remotes only, plain
+        // icons (no ANSI), so a Cell fg would be safe but is
+        // unnecessary.
         let rem_text = rem_cell_content(&row.push_to_remotes);
 
         // CHANGED 2026-07-29 (v0.113.13): USED column dropped
