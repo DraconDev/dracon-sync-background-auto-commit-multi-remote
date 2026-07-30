@@ -2855,11 +2855,11 @@ fn repos_legend_lines() -> &'static [&'static str] {
         "── legend ──────────────────────────────────────────────────────────────────────────────",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
         " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
-        " CHANGES   uncommitted N mod/stg/ut waiting for the daemon · N excl = excluded by policy · — = clean",
+        " CHANGES   waiting for daemon: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded by policy · — = clean",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
-        " REPO      name⚡branch when not on main · 🔒 private · 🔓 public (github visibility cache)",
+        " REPO      🔒 private · 🔓 public (leading icon, github visibility cache) · name⚡branch when not on main",
         " 1H/6H/24H commits in the last 1/6/24 hours — the repo's pulse (bright = active window)",
         " SIZE      .git dir size · white <1 GiB · 🟡 ≥1 GiB watch zone · 🔴 ≥2 GiB = over github's pack limit (push skipped)",
         " TOUCHED   author + age of the most recent commit",
@@ -4936,6 +4936,37 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
     }
 }
 
+/// ADDED 2026-07-29 (v0.113.18): compose the CHANGES cell — one
+/// icon per dirty class with the count adjacent (📝 modified,
+/// 📦 staged, 🆕 untracked, 🚫 excluded by policy). Pure function so
+/// the composition is directly unit-testable. All four icons are
+/// Emoji_Presentation=Yes (width-2 in unicode-width — verified by
+/// `v011318_tests::change_icons_are_width_two`). `—` when clean.
+fn changes_cell_content(
+    modified: usize,
+    staged: usize,
+    untracked: usize,
+    excluded_dirty: usize,
+) -> String {
+    let mut s = String::new();
+    if modified > 0 {
+        s.push_str(&format!("📝{}", modified));
+    }
+    if staged > 0 {
+        s.push_str(&format!("📦{}", staged));
+    }
+    if untracked > 0 {
+        s.push_str(&format!("🆕{}", untracked));
+    }
+    if excluded_dirty > 0 {
+        s.push_str(&format!("🚫{}", excluded_dirty));
+    }
+    if s.is_empty() {
+        s.push('—');
+    }
+    s
+}
+
 /// ADDED 2026-07-29 (v0.113.15): compose the REM cell. CHANGED
 /// 2026-07-29 (v0.113.17, operator: "we are showing github gitlab
 /// and codeberg for all, that is almost certainly wrong"): the cell
@@ -5618,22 +5649,18 @@ fn print_repos_rich_table(
         } else {
             repo_name
         };
-        // CHANGED 2026-07-29 (v0.113.17): 🔒 private / 🔓 public
-        // suffix from the github visibility cache (operator: "we need
-        // to show public and private"). Unknown/unprobed repos get no
-        // marker. The marker costs 3 cells (" X"), carved out of the
-        // truncate budget so the column width is unchanged.
+        // CHANGED 2026-07-29 (v0.113.18): the visibility marker moved
+        // to the FRONT so the icons form a single vertical column
+        // (operator: "the lock in front so its in one column
+        // visually"). Unknown/unprobed repos get a 3-cell pad so the
+        // names still align (absence of icon = unknown). The marker
+        // costs 3 cells ("X "), carved out of the truncate budget.
         let visibility = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo));
+        let name_budget = repo_budget.saturating_sub(3);
         let repo_short = match visibility {
-            Some(true) => format!(
-                "{} 🔒",
-                truncate_unicode_width(&repo_display, repo_budget.saturating_sub(3))
-            ),
-            Some(false) => format!(
-                "{} 🔓",
-                truncate_unicode_width(&repo_display, repo_budget.saturating_sub(3))
-            ),
-            None => truncate_unicode_width(&repo_display, repo_budget),
+            Some(true) => format!("🔒 {}", truncate_unicode_width(&repo_display, name_budget)),
+            Some(false) => format!("🔓 {}", truncate_unicode_width(&repo_display, name_budget)),
+            None => format!("   {}", truncate_unicode_width(&repo_display, name_budget)),
         };
 
         // ACTIVITY (v0.113.17): the state label ONLY — the dirty
@@ -5644,29 +5671,22 @@ fn print_repos_rich_table(
         activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
         let activity = truncate_unicode_width(&activity, activity_budget);
 
-        // CHANGES (v0.113.17): anything modified/staged/untracked
-        // waiting for the daemon, plus policy-excluded dirty entries.
-        // `—` when the worktree is clean.
-        let mut change_parts: Vec<String> = Vec::new();
-        if row.modified > 0 {
-            change_parts.push(format!("{} mod", row.modified));
-        }
-        if row.staged > 0 {
-            change_parts.push(format!("{} stg", row.staged));
-        }
-        if row.untracked > 0 {
-            change_parts.push(format!("{} ut", row.untracked));
-        }
-        if row.excluded_dirty > 0 {
-            change_parts.push(format!("{} excl", row.excluded_dirty));
-        }
-        let (changes_text, changes_color) = if change_parts.is_empty() {
-            ("—".to_string(), Color::DarkGrey)
-        } else {
-            (
-                truncate_unicode_width(&change_parts.join(" "), changes_budget),
-                Color::Yellow,
-            )
+        // CHANGES (v0.113.18): icon-per-class form (operator:
+        // "changes should be shown differently") — 📝 modified,
+        // 📦 staged, 🆕 untracked, 🚫 excluded by policy; count
+        // adjacent to its icon. `—` when the worktree is clean.
+        let (changes_text, changes_color) = {
+            let content = changes_cell_content(
+                row.modified,
+                row.staged,
+                row.untracked,
+                row.excluded_dirty,
+            );
+            if content == "—" {
+                (content, Color::DarkGrey)
+            } else {
+                (truncate_unicode_width(&content, changes_budget), Color::Yellow)
+            }
         };
 
         // ADDED 2026-07-22 (v0.112.38 R2): ahead/behind cell.
@@ -12389,5 +12409,45 @@ mod v011316_tests {
             "codeberg must stay a push target with a tracking ref: {push_to:?}"
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// ADDED 2026-07-29 (v0.113.18): CHANGES icon form + leading
+/// visibility marker.
+#[cfg(test)]
+mod v011318_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    #[test]
+    fn change_icons_are_width_two() {
+        // unicode-width honesty: every icon used in the CHANGES and
+        // REPO cells must measure 2 cells (Emoji_Presentation=Yes).
+        // ✏ (U+270F) measures 1 but renders 2 — banned; see the 🗻
+        // episode in v0.113.15.
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻"] {
+            assert_eq!(
+                UnicodeWidthStr::width(icon),
+                2,
+                "{icon} must measure width-2"
+            );
+        }
+    }
+
+    #[test]
+    fn changes_cell_composition() {
+        assert_eq!(changes_cell_content(0, 0, 0, 0), "—");
+        assert_eq!(changes_cell_content(2, 0, 0, 0), "📝2");
+        assert_eq!(changes_cell_content(1, 3, 4, 0), "📝1📦3🆕4");
+        // excluded joins as its own icon (junk-runner case)
+        assert_eq!(changes_cell_content(1, 0, 0, 1), "📝1🚫1");
+        assert_eq!(changes_cell_content(0, 0, 0, 2), "🚫2");
+    }
+
+    #[test]
+    fn changes_cell_worst_case_fits_budget() {
+        // 4 classes × (2-cell icon + 1 digit) = 12 = CHANGES_COL − 2.
+        let s = changes_cell_content(9, 9, 9, 9);
+        assert_eq!(UnicodeWidthStr::width(s.as_str()), 12, "{s}");
     }
 }
