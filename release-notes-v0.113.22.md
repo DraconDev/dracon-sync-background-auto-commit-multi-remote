@@ -1,26 +1,16 @@
-# dracon-sync v0.113.22 (2026-07-30)
+## dracon-sync v0.113.22 — submodule badge redesign + REM active-only
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Operator feedback on v0.113.21:
 
-## What's Changed
+- **Submodule badge: `🔒└ name`** — the `↳` name suffix is now the
+  tree-child glyph `└` placed directly after the privacy lock, so
+  all markers form one fixed leading column (same reason the lock
+  leads). Fixed 4-cell REPO prefix keeps names aligned across
+  nested/standalone/unknown rows, and the badge never truncates.
+- **REM is active-only again** — the dim-excluded suffix rendered a
+  🗻 on every row under the fleet-wide codeberg quota posture
+  (noise, not signal). Excluded remotes are omitted again; codeberg
+  now appears on a row only when the repo actually pushes to it.
 
-- Bump version to 0.113.22
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.22
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.21...v0.113.22
+1213 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
