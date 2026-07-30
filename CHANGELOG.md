@@ -13,6 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (operator table feedback, 2026-07-29)
+
+- **REM column shows ACTIVE push remotes only** — excluded remotes
+  are no longer rendered dim (operator: "we are showing github gitlab
+  and codeberg for all, that is almost certainly wrong"). The dim
+  styling was invisible in pastes and read as "all repos have all
+  three remotes". Now `🐙🦊` = github+gitlab only; exclusion detail
+  lives in `repos <name>` / the JSON row.
+- **CHANGES column split out of ACTIVITY** (operator: "the activity
+  can just have the first part and anything excluded or modified or
+  changed or waiting to commit can be its own column"). ACTIVITY now
+  holds only the state label (`⏳ dirty 0m` / `🟢 synced 19m` /
+  `⚪ idle 6h` / `⚫ cold 1d`); the counts (`1 mod`, `1 mod 1 excl`)
+  render in their own column, `—` when clean. ACTIVITY_COL 23 → 16,
+  CHANGES_COL 14, rich-tier floor still ≤ 165.
+- **🔓 public marker** joins 🔒: the REPO cell now shows BOTH
+  visibility states from the github visibility cache (operator: "we
+  need to show public and private"). Unknown/unprobed repos still get
+  no marker.
+
 ## [0.113.16] - 2026-07-29
 
 ### Fixed
