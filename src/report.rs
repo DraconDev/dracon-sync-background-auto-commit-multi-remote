@@ -4991,12 +4991,13 @@ fn repo_cell_content(visibility: Option<bool>, display: &str, budget: usize) -> 
     }
 }
 
-/// REMOVED 2026-07-29 (v0.113.19): `changes_cell_content` (the
-/// single combined CHANGES cell) — the operator asked for the counts
-/// in their RESPECTIVE columns, so the rich table now renders four
-/// narrow per-class columns inline (📝/📦/🆕/🚫 headers) and this
-/// helper has no callers.
+// REMOVED 2026-07-29 (v0.113.19): `changes_cell_content` (the
+// single combined CHANGES cell) — the operator asked for the counts
+// in their RESPECTIVE columns, so the rich table now renders four
+// narrow per-class columns inline (📝/📦/🆕/🚫 headers) and the
+// helper has no callers.
 
+#[cfg(test)]
 mod v011318_tests {
     use super::*;
     use unicode_width::UnicodeWidthStr;
