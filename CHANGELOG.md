@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.22)
+
+- **Submodule badge redesigned** (operator: "we need a better badge
+  and put it after the lock for similar reason"): the v0.113.21 `↳`
+  name SUFFIX is now the tree-child glyph `└` DIRECTLY AFTER the
+  privacy lock (`🔒└ hellhunter`) — all markers form one fixed
+  leading column, and the badge never truncates away. The REPO
+  prefix is a fixed 4 cells (vis 2 + badge slot 1 + space 1) so
+  names align across nested/standalone/unknown rows.
+- **REM reverted to active-push-remotes-only** (operator: "leave
+  codeberg out if we are not using it — easier to see"): the
+  v0.113.21 dim-excluded suffix put a dim 🗻 on EVERY row under the
+  fleet-wide codeberg quota posture — noise, not signal. Excluded
+  remotes are again omitted (see `repos <name>` for detail).
+  Net effect: codeberg appears on a row only when the repo actually
+  pushes to it.
+
 ## [0.113.21] - 2026-07-30
 
 ### Added (v0.113.21)
