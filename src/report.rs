@@ -2888,7 +2888,7 @@ fn repos_legend_lines() -> &'static [&'static str] {
         "── legend ──────────────────────────────────────────────────────────────────────────────",
         " STATUS    ✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human",
         " ACTIVITY  ⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd",
-        " CHANGES   one column per class: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded — counts waiting for the daemon · — = none",
+        " CHANGES   per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none",
         " A/B       commits ahead/behind upstream (↑ = unpushed work) · — = in sync",
         " PUSH      ✅ OK all remotes pushed (+age of last push) · 🟣 PENDING push in flight · ❌ FAIL (see journal)",
         " REM       ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)",
