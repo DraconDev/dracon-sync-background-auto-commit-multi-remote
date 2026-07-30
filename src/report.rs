@@ -2896,9 +2896,29 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 /// actually ship in the rich table (the old text referenced removed columns:
 /// MOD, PUSH-TO, "Daemon =").
 fn print_repos_legend() {
-    for line in repos_legend_lines() {
-        println!("{line}");
+    use comfy_table::{
+        presets::UTF8_FULL_CONDENSED, Cell, ColumnConstraint, ContentArrangement, Table,
+        Width,
+    };
+    // v0.113.25: legend as a comfy-table matching the main table's
+    // UTF8_FULL_CONDENSED style. Label column 11 + text column 106 +
+    // 3 border chars = 120 = LEGEND_MIN_WIDTH (the width gate above
+    // guarantees the terminal is at least this wide).
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL_CONDENSED);
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    table.set_width(LEGEND_MIN_WIDTH as u16);
+    if let Some(col) = table.column_mut(0) {
+        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(11)));
     }
+    if let Some(col) = table.column_mut(1) {
+        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(106)));
+    }
+    for (label, text) in repos_legend_rows() {
+        table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
+    }
+    println!("── legend {}", "─".repeat(LEGEND_MIN_WIDTH as usize - 11));
+    println!("{table}");
 }
 
 /// Narrow terminals get NO legend rather than a brokenly-wrapped one
@@ -2907,7 +2927,49 @@ fn print_repos_legend() {
 const LEGEND_MIN_WIDTH: usize = 120;
 
 /// The legend as data (tests assert coverage + display width).
-fn repos_legend_lines() -> &'static [&'static str] {
+/// ADDED 2026-07-30 (v0.113.25): single source of legend content as
+/// (label, text) rows; a ("","") row is a group-separating blank.
+/// `repos_legend_lines` formats these for tests/back-compat;
+/// `print_repos_legend` renders them as a comfy-table (operator:
+/// "make the legend table-like").
+fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("STATUS", "✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human"),
+        ("ACTIVITY", "⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd"),
+        ("", ""),
+        ("CHANGES", "per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none"),
+        ("A/B", "commits ahead/behind upstream (↑ = unpushed work) · — = in sync"),
+        ("", ""),
+        ("PUSH", "✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing"),
+        ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
+        ("", ""),
+        ("REPO", "🔒 private · 🌍 public · > = nested submodule (badge after lock) · name⚡branch"),
+        ("SIZE", "own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit"),
+        ("TOUCHED", "author + age of the most recent commit"),
+        ("", ""),
+        ("1H/6H/24H", "commits in the last 1/6/24 hours — the repo's pulse (bright = active window)"),
+        ("", ""),
+        ("hint", "`dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand"),
+    ]
+}
+
+fn repos_legend_lines() -> Vec<String> {
+    let mut lines = vec![
+        "── legend ──────────────────────────────────────────────────────────────────────────────"
+            .to_string(),
+    ];
+    for (label, text) in repos_legend_rows() {
+        if label.is_empty() {
+            lines.push(String::new());
+        } else {
+            lines.push(format!(" {label:10}{text}"));
+        }
+    }
+    lines
+}
+
+#[allow(dead_code)]
+fn repos_legend_lines_old() -> &'static [&'static str] {
     // v0.113.24 (operator: "give it some spacing"): blank gap after
     // the header rule and between semantic groups — daemon STATE,
     // local WORK, remote SYNC, repo IDENTITY, the PULSE columns,
@@ -5023,7 +5085,7 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
 }
 
 /// ADDED 2026-07-29 (v0.113.18): compose the REPO cell — leading
-/// visibility marker (🔒 private / 🔓 public / 3-space pad for
+/// visibility marker (🔒 private / 🌍 public / pad for
 /// unknown) so the icons form a single vertical column and the names
 /// align. Pure function so the composition is directly unit-testable.
 fn repo_cell_content(
@@ -5043,7 +5105,10 @@ fn repo_cell_content(
     let name_budget = budget.saturating_sub(4);
     let vis = match visibility {
         Some(true) => "🔒",
-        Some(false) => "🔓",
+        // v0.113.25 (operator): 🔓→🌍 — the locked/unlocked
+        // padlocks differ by a 2-pixel shackle gap ("effectively
+        // the same"); a globe reads "public to the world".
+        Some(false) => "🌍",
         None => "  ",
     };
     let badge = if is_nested { ">" } else { " " };
@@ -5067,7 +5132,7 @@ mod v011318_tests {
         // column headers, REPO markers, REM cells) must measure 2
         // cells (Emoji_Presentation=Yes). ✏ (U+270F) measures 1 but
         // renders 2 — banned; see the 🗻 episode in v0.113.15.
-        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🔓", "🐙", "🦊", "🗻", "🩹", "🔑"] {
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🌍", "🐙", "🦊", "🗻", "🩹", "🔑"] {
             assert_eq!(
                 UnicodeWidthStr::width(icon),
                 2,
@@ -11758,7 +11823,7 @@ mod tests {
         );
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
-        assert!(text.contains("🔓"), "REPO public marker in legend");
+        assert!(text.contains("🌍"), "REPO public marker in legend");
         assert!(text.contains("⚡"), "REPO branch fold in legend");
     }
 
@@ -12691,7 +12756,7 @@ mod v011318b_tests {
         assert_eq!(priv_cell, "🔒  hellhunter", "{priv_cell}");
         assert_eq!(unk_cell, "    mystery", "{unk_cell}");
         assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
-        assert!(pub_cell.starts_with("🔓 "), "{pub_cell}");
+        assert!(pub_cell.starts_with("🌍 "), "{pub_cell}");
         // v0.113.22: fixed 4-cell prefix (vis 2 + badge-slot 1 +
         // space 1); unknown vis pads the vis slot with spaces.
         assert!(unk_cell.starts_with("    mystery"), "{unk_cell:?}");

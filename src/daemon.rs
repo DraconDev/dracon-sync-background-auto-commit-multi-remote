@@ -3069,6 +3069,16 @@ pub(crate) async fn run_daemon(
         );
     }
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
+    // ADDED 2026-07-30 (v0.113.25): periodic visibility SWEEP state.
+    // Visibility refresh historically ran only inside `sync_repo`
+    // (maybe_sync_visibility_and_metadata) — but the daemon's fast
+    // path skips dispatch entirely for clean+synced repos, so an
+    // idle repo whose cache was pruned/missing NEVER re-probed and
+    // its REPO-cell lock icon stayed blank forever (pi-length-
+    // continue / bookmarks-new-tab / folder-auto-banner-fab). This
+    // sweep refreshes stale caches for ALL watched repos on the
+    // policy interval, decoupled from sync dispatch.
+    let mut last_visibility_sweep: Option<Instant> = None;
     let mut cycle_count: u64 = 0;
     // Repos with an active `sync_repo` task. The COLLECT phase
     // consults this set and skips re-dispatching repos that already
@@ -4635,6 +4645,46 @@ pub(crate) async fn run_daemon(
                     );
                 }
             }
+        }
+
+        // ADDED 2026-07-30 (v0.113.25): periodic visibility sweep.
+        // Spawned (non-blocking) once per sync_visibility_interval_hours;
+        // `sync_mirror_visibility` itself early-returns on fresh caches,
+        // so only genuinely stale/missing entries cost a `gh api` call.
+        // Mirror flips use the same remotes as the sync-time path, so
+        // visibility drift on idle repos is corrected identically.
+        let sweep_due = policy.sync_visibility
+            && last_visibility_sweep.is_none_or(|t| {
+                t.elapsed()
+                    >= Duration::from_secs(policy.sync_visibility_interval_hours.max(1) * 3600)
+            });
+        if sweep_due {
+            last_visibility_sweep = Some(Instant::now());
+            let sweep_repos: Vec<PathBuf> = repo_set.iter().cloned().collect();
+            let sweep_remotes = policy.remotes.clone();
+            let sweep_interval = policy.sync_visibility_interval_hours;
+            tokio::task::spawn_blocking(move || {
+                for repo in &sweep_repos {
+                    let origin_raw =
+                        crate::git::multi_remote::get_remote_url(repo, "origin");
+                    let vis_url = origin_raw
+                        .as_ref()
+                        .filter(|u| crate::visibility::parse_github_owner_repo(u).is_some())
+                        .cloned()
+                        .or_else(|| crate::git::multi_remote::get_remote_url(repo, "github"))
+                        .or(origin_raw);
+                    if let Some(url) = vis_url {
+                        if crate::visibility::parse_github_owner_repo(&url).is_some() {
+                            crate::visibility::sync_mirror_visibility(
+                                &url,
+                                &sweep_remotes,
+                                repo,
+                                sweep_interval,
+                            );
+                        }
+                    }
+                }
+            });
         }
 
         sleep(Duration::from_secs(scan_interval)).await;
