@@ -2917,7 +2917,7 @@ fn print_repos_legend() {
     for (label, text) in repos_legend_rows() {
         table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
     }
-    println!("── legend {}", "─".repeat(LEGEND_MIN_WIDTH as usize - 11));
+    println!("── legend {}", "─".repeat(LEGEND_MIN_WIDTH - 11));
     println!("{table}");
 }
 
@@ -2953,6 +2953,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     ]
 }
 
+#[cfg(test)]
 fn repos_legend_lines() -> Vec<String> {
     let mut lines = vec![
         "── legend ──────────────────────────────────────────────────────────────────────────────"
