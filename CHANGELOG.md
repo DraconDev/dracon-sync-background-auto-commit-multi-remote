@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (operator table feedback, 2026-07-29)
+
+- **Visibility marker moved to the FRONT of the REPO cell** —
+  `🔒 name` / `🔓 name` / 3-space pad for unknown, so the icons form
+  a single vertical column (operator: "the lock in front so its in
+  one column visually").
+- **CHANGES cell switched to icon form** (operator: "changes should
+  be shown differently") — 📝 modified · 📦 staged · 🆕 untracked ·
+  🚫 excluded-by-policy, count adjacent to its icon (`📝1🚫3`).
+  All four icons verified Emoji_Presentation=Yes (width-2) by the new
+  `v011318_tests`; worst case `📝9📦9🆕9🚫9` = 12 cells = the exact
+  column budget. Composition extracted into the pure
+  `changes_cell_content` helper for direct unit-testing.
+
 ## [0.113.17] - 2026-07-30
 
 ### Changed (operator table feedback, 2026-07-29)
