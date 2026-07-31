@@ -5872,7 +5872,7 @@ fn print_repos_rich_table(
     table
         .column_mut(2)
         .expect("REPO column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REPO_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(repo_col as u16)));
     table
         .column_mut(3)
         .expect("ACTIVITY column")
