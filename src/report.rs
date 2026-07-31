@@ -2947,7 +2947,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("", ""),
         ("REPO", "🔒 private · no icon = public/unknown · > = nested submodule (badge after lock) · name⚡branch"),
         ("SIZE", "own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit"),
-        ("TOUCHED", "author + age of the most recent commit"),
+        ("TOUCHED", "author of the most recent commit (the age lives in ACTIVITY)"),
         ("", ""),
         ("1H/6H/24H", "commits in the last 1/6/24 hours — the repo's pulse (bright = active window)"),
         ("", ""),
@@ -5356,29 +5356,21 @@ fn size_cell_text(own: Option<u64>, modules: u64, pack_too_large: bool) -> (Stri
     }
 }
 
-/// Render the `TOUCHED` column — last commit author + relative time.
-/// Answers "who last touched this and how long ago?" at a glance.
+/// Render the `TOUCHED` column — last commit author.
+/// Answers "who last touched this?" at a glance.
 ///
-/// Format: `<author> <when>` (e.g. `DraconDev 14m`, `Audit 2d`).
-/// Width budget: ~14 cols content. Long author names truncate with
-/// the truncation marker; relative time stays in full.
+/// v0.113.30 (operator: "touched is a bit of a weak column — who
+/// touched, perhaps, but the time we already show"): the relative
+/// age was dropped — ACTIVITY already carries the timing (`synced
+/// 19m`), so TOUCHED now holds only the author, giving long loop
+/// identities (`Virtual Pet Loop`) the full column budget.
 ///
-/// When the row has no commits (empty repo), renders as `- -`.
+/// When the row has no commits (empty repo), renders as `-`.
 pub(crate) fn touched_label(row: &RepoReportRow) -> String {
     if row.last_hash == "-" || row.last_author.is_empty() {
-        return "- -".to_string();
+        return "-".to_string();
     }
-    let when = if row.last_when.is_empty() {
-        "?".to_string()
-    } else {
-        row.last_when.clone()
-    };
-    // Author first (more identifying) — but truncate aggressively
-    // because some loop identities are long (`Virtual Pet Loop` = 16).
-    // 14-col budget: 10 author + 1 space + ≤3 when (m/h/d) = 14.
-    let author_budget = 10;
-    let author = truncate_unicode_width(&row.last_author, author_budget);
-    format!("{} {}", author, when)
+    row.last_author.clone()
 }
 
 /// Public accessor: the absolute path of the watched repo's working
@@ -5718,6 +5710,32 @@ fn print_repos_rich_table(
     // incl. border+padding) within the 165-col rich-tier budget
     // (operator: show which remotes each repo syncs to as icons).
     const REPO_COL: usize = 20;
+    // v0.113.30 (operator: "make the table as wide as the screen,
+    // and flex grow like the repo name"): REPO is the flex column —
+    // it absorbs every terminal column beyond the fixed floor (159,
+    // pinned by test_rich_table_fits_narrow_terminal), so the table
+    // always spans the full screen and names truncate less on wide
+    // terminals. Below the floor REPO stays at REPO_COL and
+    // comfy-table squashes gracefully.
+    let repo_col = {
+        let fixed_non_repo = NUM_COL
+            + STATUS_COL
+            + ACTIVITY_COL
+            + CHG_MOD_COL
+            + CHG_STG_COL
+            + CHG_UT_COL
+            + CHG_EXCL_COL
+            + AB_COL
+            + PUSH_COL
+            + REM_COL
+            + C1H_COL
+            + C6H_COL
+            + C24H_COL
+            + SIZE_COL
+            + TOUCHED_COL
+            + 17; // 16 columns → 17 border cells
+        width.saturating_sub(fixed_non_repo).max(REPO_COL)
+    };
     // CHANGED 2026-07-29 (v0.113.17): ACTIVITY narrowed 23 → 16 —
     // it now holds ONLY the state label (`🟢 synced 19m` = 13 max);
     // the dirty counts moved to their own CHANGES column (operator:
@@ -5908,7 +5926,7 @@ fn print_repos_rich_table(
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
-    let repo_budget = REPO_COL.saturating_sub(2);
+    let repo_budget = repo_col.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
     // v0.113.19: per-class change columns — 3-cell content budget
     // (col width 5 − 2 padding) holds any realistic count.
@@ -5980,6 +5998,15 @@ fn print_repos_rich_table(
             (format!("↓{}", row.behind), Color::Magenta)
         } else {
             ("—".to_string(), Color::DarkGrey)
+        };
+        // v0.113.30 (operator: "A/B oddness"): when a push is IN
+        // FLIGHT the ↑N is exactly the batch being pushed right now
+        // — dim it so it reads as pipeline-in-motion rather than
+        // unpushed-work alarm. The count stays (it's still true).
+        let ab_color = if row.push_status == "PENDING" && row.ahead > 0 && row.behind == 0 {
+            Color::DarkGrey
+        } else {
+            ab_color
         };
         let ab_text = truncate_unicode_width(&ab_text, ab_budget);
 
