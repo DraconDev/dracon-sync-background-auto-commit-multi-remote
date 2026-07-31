@@ -2933,7 +2933,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("PUSH", "✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing"),
         ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
         ("", ""),
-        ("REPO", "🔒 private · 🌍 public · > = nested submodule (badge after lock) · name⚡branch"),
+        ("REPO", "🔒 private · no icon = public/unknown · > = nested submodule (badge after lock) · name⚡branch"),
         ("SIZE", "own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit"),
         ("TOUCHED", "author + age of the most recent commit"),
         ("", ""),
@@ -4067,7 +4067,10 @@ pub(crate) async fn run_repos_report(
         return Ok(());
     }
 
-    println!("📜 {}", policy_path.display());
+    // v0.113.27 (operator): the 📜 config-path line was dropped from
+    // default output ("make the top better looking") — the path is
+    // stable knowledge, still shown by `repos --json` / doctor flows.
+    let _ = policy_path;
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => {
@@ -4104,10 +4107,31 @@ pub(crate) async fn run_repos_report(
             ok_count_all, active_count_all, warn_count_all, concern_count_all
         ),
     };
-    println!(
-        "📦 {total} repos  {ok_str}  {active_str}  {warn_str}  {concern_str}  ⛔ init/status failed: {init_or_status_failures}{filter_note}",
+    // v0.113.27 (operator: "make the top better looking too", picked
+    // the single banner line): one styled rule in the legend-rule
+    // language, counts inline, padded with ─ to the table width.
+    let banner_plain = format!(
+        "── dracon-sync repos ── 📦 {total} · ✅ {ok_count} clean · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} · ⛔ {init_or_status_failures}{filter_note_plain}",
         total = rows.len(),
+        filter_note_plain = match filter {
+            RepoFilter::All => String::new(),
+            RepoFilter::Concern | RepoFilter::Warn => format!(
+                " · (all: {} ok {} active {} warn {} concern)",
+                ok_count_all, active_count_all, warn_count_all, concern_count_all
+            ),
+        },
     );
+    let banner_colored = format!(
+        "── dracon-sync repos ── 📦 {total} · {} clean · {} active · {} · {} · ⛔ {init_or_status_failures}{filter_note}",
+        total = rows.len(),
+        ansi("32", &format!("✅ {ok_count}")),
+        ansi("36", &format!("🔄 {active_count}")),
+        ansi("33", &format!("🟡 {warn_count}")),
+        ansi("31", &format!("❌ {concern_count}")),
+    );
+    let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
+    let pad = pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(banner_plain.as_str()) + 1);
+    println!("{banner_colored} {}", "─".repeat(pad));
     println!();
 
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
@@ -5048,7 +5072,7 @@ pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
 }
 
 /// ADDED 2026-07-29 (v0.113.18): compose the REPO cell — leading
-/// visibility marker (🔒 private / 🌍 public / pad for
+/// visibility marker (🔒 private / blank = public or unknown —
 /// unknown) so the icons form a single vertical column and the names
 /// align. Pure function so the composition is directly unit-testable.
 fn repo_cell_content(
@@ -5068,11 +5092,11 @@ fn repo_cell_content(
     let name_budget = budget.saturating_sub(4);
     let vis = match visibility {
         Some(true) => "🔒",
-        // v0.113.25 (operator): 🔓→🌍 — the locked/unlocked
-        // padlocks differ by a 2-pixel shackle gap ("effectively
-        // the same"); a globe reads "public to the world".
-        Some(false) => "🌍",
-        None => "  ",
+        // v0.113.27 (operator): public/unknown render BLANK — only
+        // private repos carry a marker ("blank for public is good").
+        // The 2-space pad keeps the repo name starting at display
+        // column 4 for EVERY row, same as the 🔒 prefix.
+        Some(false) | None => "  ",
     };
     let badge = if is_nested { ">" } else { " " };
     format!("{vis}{badge} {}", truncate_unicode_width(display, name_budget))
@@ -5095,7 +5119,7 @@ mod v011318_tests {
         // column headers, REPO markers, REM cells) must measure 2
         // cells (Emoji_Presentation=Yes). ✏ (U+270F) measures 1 but
         // renders 2 — banned; see the 🗻 episode in v0.113.15.
-        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🌍", "🐙", "🦊", "🗻", "🩹", "🔑"] {
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🐙", "🦊", "🗻", "🩹", "🔑"] {
             assert_eq!(
                 UnicodeWidthStr::width(icon),
                 2,
@@ -11784,7 +11808,7 @@ mod tests {
         );
         // v0.113.16: REPO cell semantics (branch fold + privacy marker).
         assert!(text.contains("🔒"), "REPO private marker in legend");
-        assert!(text.contains("🌍"), "REPO public marker in legend");
+        assert!(text.contains("public"), "REPO public wording in legend");
         assert!(text.contains("⚡"), "REPO branch fold in legend");
     }
 
