@@ -2940,7 +2940,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("ACTIVITY", "⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd"),
         ("", ""),
         ("CHANGES", "per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none"),
-        ("A/B", "commits ahead/behind upstream (↑ = unpushed work) · — = in sync"),
+        ("A/B", "commits ahead/behind upstream (↑ = unpushed work, dim ↑ = being pushed right now) · — = in sync"),
         ("", ""),
         ("PUSH", "✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing"),
         ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
@@ -11789,18 +11789,16 @@ mod tests {
             missing_objects: 0,
             pack_too_large: false,
         };
-        // Standard case
+        // Standard case — author only (age dropped v0.113.30)
         let r = row("abc", "DraconDev", "14m");
-        assert_eq!(touched_label(&r), "DraconDev 14m");
-        // Long author truncates to 10 cols (9 content + 1 ellipsis)
+        assert_eq!(touched_label(&r), "DraconDev");
+        // Long author returned in full — the callsite truncates to
+        // the (now wider) column budget
         let r = row("abc", "Virtual-Pet-Loop-Agent", "2 hours ago");
-        let got = touched_label(&r);
-        // truncate_unicode_width(_, 10) produces "Virtual-P…" (9 content + 1 col for ellipsis)
-        assert!(got.starts_with("Virtual-P") && got.contains('…'), "got {got:?}");
-        assert!(got.ends_with("2 hours ago"), "got {got:?}");
+        assert_eq!(touched_label(&r), "Virtual-Pet-Loop-Agent");
         // Empty repo
         let r = row("-", "", "");
-        assert_eq!(touched_label(&r), "- -");
+        assert_eq!(touched_label(&r), "-");
     }
 
     /// Verify the rich-table's 10-column set sums to ≤ 165 cols
