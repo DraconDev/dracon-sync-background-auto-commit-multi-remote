@@ -1977,16 +1977,20 @@ mod tests {
     use super::*;
 
     /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
-    /// (backcompat) and is deserializable as a per-repo opt-out.
+    /// for TOML-loaded configs (serde default) and is deserializable
+    /// as a per-repo opt-out. NOTE: `SyncPolicy::default()` (derived)
+    /// gives `false` for every bool — the documented derive-Default
+    /// footgun shared with `auto_repair_concerns` & siblings; the
+    /// serde default is what governs real configs.
     #[test]
     fn test_build_artifact_cleanup_default_true_and_opt_out() {
-        let p = SyncPolicy::default();
-        assert!(p.build_artifact_cleanup, "default must preserve prior behavior");
+        let p: SyncPolicy = toml::from_str("").expect("parse empty");
+        assert!(p.build_artifact_cleanup, "missing field must default true");
         let p: SyncPolicy =
             toml::from_str("build_artifact_cleanup = false").expect("parse");
         assert!(!p.build_artifact_cleanup, "per-repo opt-out must parse");
-        let p: SyncPolicy = toml::from_str("").expect("parse empty");
-        assert!(p.build_artifact_cleanup, "missing field must default true");
+        // Derived Default matches its auto_* siblings (false).
+        assert!(!SyncPolicy::default().build_artifact_cleanup);
     }
 
     /// ADDED 2026-07-21 (v0.112.33, audit M22/F3.4):
