@@ -2619,7 +2619,16 @@ auto_bump_versions = false
     }
     impl VarGuard {
         fn set_temp(var: &str, value: &str) -> Self {
-            let lock = POLICY_ENV_GUARD.lock().unwrap();
+            // v0.113.31: tolerate a poisoned lock — a panicking env
+            // test used to cascade-fail EVERY later VarGuard user at
+            // this unwrap (observed 2026-07-31 when a real
+            // ~/.dracon/dracon-sync.freeze marker failed one freeze
+            // test and 2 innocent tests died at line 2622). The
+            // guard's purpose is serialization, not integrity — a
+            // poisoned mutex still serializes.
+            let lock = POLICY_ENV_GUARD
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             let original = std::env::var(var).ok();
             if value.is_empty() {
                 std::env::remove_var(var);
@@ -2695,7 +2704,19 @@ auto_bump_versions = false
     #[test]
     fn test_freeze_reason_none_when_not_frozen() {
         let _guard = VarGuard::set_temp("DRACON_SYNC_FREEZE", "");
+        // v0.113.31: isolate HOME — freeze_marker_paths probes the
+        // REAL ~/.dracon/ regardless of the policy path arg, so a
+        // live operator pause (dracon-sync.pause marker) failed this
+        // test on a real machine. The VarGuard above already holds
+        // the env mutex, so touching HOME here is serialized.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let orig_home = std::env::var("HOME").ok();
+        std::env::set_var("HOME", tmp.path());
         let reason = freeze_reason(std::path::Path::new("/fake/policy.toml"));
+        match orig_home {
+            Some(h) => std::env::set_var("HOME", h),
+            None => std::env::remove_var("HOME"),
+        }
         assert!(reason.is_none());
     }
 

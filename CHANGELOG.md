@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.31)
+
+- **Legend moved ABOVE the table** (operator): terminals auto-scroll
+  to the bottom when `repos` finishes, so the table — the thing you
+  actually look at — is now the last thing printed. Previously the
+  legend occupied the bottom of the screen and every run required a
+  scroll-up to see the table.
+
+### Fixed (v0.113.31)
+
+- **Freeze tests isolated from machine state**: `freeze_marker_paths`
+  intentionally probes the real `~/.dracon/` (ignoring its policy
+  path arg), so a live operator pause marker
+  (`~/.dracon/dracon-sync.freeze`) failed
+  `test_freeze_reason_none_when_not_frozen` /
+  `test_freeze_reason_none_when_no_marker` on a real machine. Both
+  tests now redirect `HOME` to a tempdir. Bonus hardening: the
+  policy env mutex now tolerates poisoning (`into_inner`) — a
+  panicking env test no longer cascade-fails every later `VarGuard`
+  user at `lock().unwrap()` (2 innocent tests died that way here).
+
 ## [0.113.30] - 2026-07-31
 
 ### Changed (v0.113.30)

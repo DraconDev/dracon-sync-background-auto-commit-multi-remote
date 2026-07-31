@@ -1999,6 +1999,12 @@ remotes = []
     fn test_freeze_reason_none_when_no_marker() {
         let tmp = TempDir::new().unwrap();
         std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();
+        // v0.113.31: isolate HOME — freeze_marker_paths probes the
+        // REAL ~/.dracon/ (ignoring the policy path arg), so a live
+        // operator pause marker failed this test on a real machine.
+        // Tests are serial (RUST_TEST_THREADS=1) so EnvRestorer is
+        // race-free here.
+        let _home = crate::test_helpers::EnvRestorer::new("HOME", tmp.path().to_str().unwrap());
 
         let policy_tmp = temp_policy(vec!["/dev/null"]);
         let policy_path = policy_tmp.path().join("policy.toml");

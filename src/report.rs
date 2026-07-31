@@ -4177,12 +4177,17 @@ pub(crate) async fn run_repos_report(
     }
     match tier {
         LayoutTier::Rich => {
-            print_repos_rich_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            // v0.113.31 (operator): legend moved ABOVE the table —
+            // terminals auto-scroll to the bottom when the command
+            // finishes, so the table (the thing you actually look
+            // at) must be the LAST thing printed; a bottom legend
+            // forced a scroll-up every run.
             // v0.113.18 (audit M3): the legend documents the RICH
-            // columns — printing it under the compact/full tiers
+            // columns — printing it with the compact/full tiers
             // described columns those tiers don't have. `--legend`
             // remains the on-demand form for every tier.
             print_repos_legend_footer();
+            print_repos_rich_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
         }
         LayoutTier::Vertical => {
             print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
