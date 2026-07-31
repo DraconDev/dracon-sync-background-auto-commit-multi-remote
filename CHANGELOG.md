@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.34)
+
+- **Per-repo override coverage tripwire** (operator: "prevent such
+  things automatically, not hack every separate case"): the
+  v0.113.29→v0.113.33 incident class — a SyncPolicy knob whose
+  RepoPolicyOverride half was forgotten, silently dropping per-repo
+  settings in production — is now structurally impossible.
+  `test_repo_override_field_coverage_tripwire` enumerates both
+  structs' serde field names and FAILS `cargo test` when:
+  (a) a SyncPolicy field has no RepoPolicyOverride counterpart and
+  isn't listed in `OVERRIDE_COVERAGE_GLOBAL_ONLY`,
+  (b) an override field names no global field and isn't in
+  `OVERRIDE_COVERAGE_OVERRIDE_ONLY`, or
+  (c) either allow-list rots (stale entries).
+  Adding a knob now forces the decision "per-repo or global-only?"
+  at test time. SyncPolicy, RepoPolicyOverride, RemoteConfig,
+  PublishTarget, StandardFileConfig, AuthType, PublishRegistry
+  gained `Serialize` derives to enable the enumeration. The
+  convention is documented in the meta-repo AGENTS.md
+  ("Per-repo knobs need BOTH halves").
+
 ## [0.113.33] - 2026-07-31
 
 ### Fixed (v0.113.33)
