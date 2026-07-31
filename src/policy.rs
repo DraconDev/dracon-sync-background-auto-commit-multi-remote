@@ -68,7 +68,7 @@ impl DerefMut for TokioGitCommand {
 
 pub(crate) const DEFAULT_GIT_HOST_BLOB_LIMIT_BYTES: u64 = 100 * 1024 * 1024;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub(crate) struct StandardFileConfig {
     pub(crate) source: String,
     pub(crate) target: String,
@@ -160,7 +160,7 @@ impl StandardFilesEntry {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub(crate) struct RemoteConfig {
     pub(crate) name: String,
     pub(crate) push_url: String,
@@ -388,7 +388,7 @@ pub(crate) fn timestamp_secs() -> u64 {
         .unwrap_or(0)
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, serde::Serialize, Clone)]
 pub(crate) struct SyncPolicy {
     #[serde(default)]
     pub(crate) system_repo: String,
@@ -783,7 +783,7 @@ impl PublishRegistry {
 }
 
 /// A configured package registry publish target.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub(crate) struct PublishTarget {
     /// Human-readable name for this target (used in per-repo opt-in lists).
     pub(crate) name: String,
@@ -813,7 +813,7 @@ fn default_cold_commit_minutes() -> u64 {
     1440
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, serde::Serialize, Default, Clone)]
 pub(crate) struct RepoPolicyOverride {
     /// Optional per-repo override for `auto_bump_versions`.
     pub(crate) auto_bump_versions: Option<bool>,
@@ -3443,5 +3443,19 @@ auto_github_private = false
             "example.toml max_stage_file_bytes must match code \
              default (drift = silent regression)"
         );
+    }
+}
+
+#[cfg(test)]
+mod override_coverage_dump {
+    #[test]
+    fn dump_field_sets() {
+        let g = serde_json::to_value(crate::policy::SyncPolicy::default()).unwrap();
+        let o = serde_json::to_value(crate::policy::RepoPolicyOverride::default()).unwrap();
+        let gk: std::collections::BTreeSet<String> = g.as_object().unwrap().keys().cloned().collect();
+        let ok: std::collections::BTreeSet<String> = o.as_object().unwrap().keys().cloned().collect();
+        println!("GLOBAL_ONLY_CANDIDATES: {:?}", gk.difference(&ok).collect::<Vec<_>>());
+        println!("OVERRIDE_ONLY_CANDIDATES: {:?}", ok.difference(&gk).collect::<Vec<_>>());
+        println!("COUNTS: global={} override={}", gk.len(), ok.len());
     }
 }
