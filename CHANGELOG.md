@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed (v0.113.33)
+
+- **Per-repo `build_artifact_cleanup = false` actually works now**.
+  v0.113.29 added the SyncPolicy field but forgot the
+  `RepoPolicyOverride` half: per-repo `.dracon/dracon-sync.toml`
+  files are parsed into `RepoPolicyOverride` (not SyncPolicy), which
+  lacked the field — serde silently dropped the setting, and the
+  ai-auto-writer `output/` ping-pong kept running in production
+  (every ~84s: untrack + gitignore, loop re-adds) despite the
+  opt-out being set. The churn starved pushes again (the "pushing
+  78m" PENDING the operator spotted). The effective value is now
+  resolved exactly like `auto_bump_versions`
+  (`repo_override.build_artifact_cleanup.unwrap_or(policy.*)`),
+  carried on `SyncContext`, and `clean_staged_paths` reads the
+  merged value. Regression test
+  `test_repo_override_build_artifact_cleanup_round_trip` pins the
+  per-repo file → override → resolution path that v0.113.29's
+  SyncPolicy-only test missed.
+
 ## [0.113.32] - 2026-07-31
 
 ### Added (v0.113.32)
