@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.28)
+
+- **Unchanged-gitlink submodule dirt no longer counts as "excluded"**
+  (operator: "just because they didn't commit why are they counting
+  as excluded"): the 🚫 column and `· N excl` marker mixed two
+  different things — POLICY exclusions (per-repo
+  `auto_commit_exclude_patterns`, e.g. junk-runner's
+  `.pi-glla/active.jsonl`) and MECHANICS (a submodule whose worktree
+  is dirty but whose gitlink SHA didn't move — there is nothing to
+  commit at the parent, and the gitlink auto-advances the moment the
+  sub commits). The mechanics bucket now has its own
+  `DirtyClassification.unchanged_gitlink` counter: still subtracted
+  from the parent's committable counts (v0.113.13 behavior intact)
+  but never displayed. 🚫 now fires only for true, documented
+  pattern exclusions — dracon-platform's transient 🚫 3 is gone,
+  junk-runner's stable 🚫 1 stays.
+
 ## [0.113.27] - 2026-07-31
 
 ### Changed (v0.113.27)

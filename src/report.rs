@@ -995,10 +995,21 @@ struct DirtyClassification {
     committable_modified: usize,
     /// Staged changes the daemon WILL commit.
     committable_staged: usize,
-    /// Dirty entries the daemon intentionally won't commit
-    /// (pattern-excluded tracked/untracked + submodule-worktree-only
-    /// gitlinks). Surfaced as `· N excl` in ACTIVITY.
+    /// Dirty entries the daemon intentionally won't commit BY POLICY
+    /// (per-repo `auto_commit_exclude_patterns` /
+    /// `untracked_exclude_patterns` matches only). Surfaced as the 🚫
+    /// CHANGES column and the `· N excl` ACTIVITY marker.
+    /// v0.113.28 (operator: "just because they didn't commit why are
+    /// they counting as excluded"): unchanged-gitlink submodule dirt
+    /// NO LONGER counts here — it's routine mechanics (the sub hasn't
+    /// committed yet; the gitlink auto-advances when it does), not a
+    /// policy exclusion, and showing it raised questions.
     excluded: usize,
+    /// Submodule-worktree-only dirt whose gitlink SHA didn't move.
+    /// Subtracted from the parent's committable counts (there is
+    /// nothing to commit at the parent) but NEVER displayed as an
+    /// exclusion — pure mechanics (v0.113.28).
+    unchanged_gitlink: usize,
 }
 
 /// Parse `git status --porcelain -z` output into (x, y, path) tuples.
@@ -1054,6 +1065,7 @@ async fn classify_dirty_entries(
                 committable_modified: 1,
                 committable_staged: 0,
                 excluded: 0,
+                unchanged_gitlink: 0,
             };
         }
     };
@@ -1063,7 +1075,7 @@ async fn classify_dirty_entries(
         base.iter().map(|r| r.2.as_str()).collect();
     for (_, _, path) in &plain {
         if !base_paths.contains(path.as_str()) && repo.join(path).join(".git").exists() {
-            out.excluded += 1; // submodule worktree dirt, unchanged gitlink
+            out.unchanged_gitlink += 1; // submodule worktree dirt, unchanged gitlink
         }
     }
 
@@ -12463,7 +12475,10 @@ mod v011313_tests {
             cls.committable_modified, 0,
             "submodule worktree dirt must not count as parent dirt"
         );
-        assert_eq!(cls.excluded, 1, "unchanged-gitlink dirt counts as excluded");
+        // v0.113.28: unchanged-gitlink dirt is mechanics, NOT an
+        // exclusion — it no longer feeds the 🚫 column / `· N excl`.
+        assert_eq!(cls.excluded, 0, "unchanged-gitlink dirt is not an exclusion");
+        assert_eq!(cls.unchanged_gitlink, 1, "gitlink no-op counted separately");
 
         // Phase 2: commit inside the nested → gitlink SHA drifts.
         git(&nested, &["add", "file.txt"]);
