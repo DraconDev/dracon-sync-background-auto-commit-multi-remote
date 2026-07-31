@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.26)
+
+- **Wide terminals now get the rich table too** (operator: ran
+  `repos` on a maximized window and got "the old table, no legend or
+  indicators"): the auto-pick bands `242-314 → Compact` and
+  `≥315 → Full` were pre-rich-design leftovers — a terminal ≥242
+  cols silently served the OLD 16-column compact table instead of
+  the 10-column rich one. Auto-pick is now simply `< 165 → Compact`
+  (rich table can't fit) / `≥ 165 → Rich`. Compact, Full, and
+  Vertical remain reachable via `--layout`.
+
 ## [0.113.25] - 2026-07-30
 
 ### Added (v0.113.25)
