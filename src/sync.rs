@@ -563,18 +563,23 @@ async fn clean_staged_paths(ctx: &SyncContext<'_>) -> Result<()> {
         );
     }
 
-    if let Some(removed_dirs) = if dry_run {
-        None
-    } else {
-        remove_tracked_excluded_paths(repo, excluded_dir_names)?
-    } {
-        if !removed_dirs.is_empty() {
-            eprintln!(
-                "🧹 removed {} tracked excluded dir(s) from {}: {:?}",
-                removed_dirs.len(),
-                repo.display(),
-                removed_dirs
-            );
+    // v0.113.29: per-repo opt-out for repos where a "build
+    // artifact" dir name is actually content (ai-auto-writer's
+    // output/ = the generated books).
+    if policy.build_artifact_cleanup {
+        if let Some(removed_dirs) = if dry_run {
+            None
+        } else {
+            remove_tracked_excluded_paths(repo, excluded_dir_names)?
+        } {
+            if !removed_dirs.is_empty() {
+                eprintln!(
+                    "🧹 removed {} tracked excluded dir(s) from {}: {:?}",
+                    removed_dirs.len(),
+                    repo.display(),
+                    removed_dirs
+                );
+            }
         }
     }
 

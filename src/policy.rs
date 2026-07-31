@@ -475,6 +475,16 @@ pub(crate) struct SyncPolicy {
     pub(crate) auto_commit_exclude_patterns: Vec<String>,
     #[serde(default = "default_true")]
     pub(crate) auto_repair_concerns: bool,
+    /// Untrack tracked files living inside hard-coded build-artifact
+    /// dir names (output/, dist-new/, gen/, …) and add the dir to
+    /// .gitignore. Set false per-repo when such a dir is CONTENT,
+    /// not residue — e.g. ai-auto-writer's `output/` holds the
+    /// generated books, the project's actual deliverable
+    /// (2026-07-31 operator decision: the daemon's untrack fought the
+    /// loop's deliberate chapter commits in a 30-commit/hour
+    /// ping-pong that starved pushes).
+    #[serde(default = "default_true")]
+    pub(crate) build_artifact_cleanup: bool,
     #[serde(default = "default_true")]
     pub(crate) auto_repair_warns: bool,
     #[serde(default = "default_true")]
@@ -1906,6 +1916,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         exclude_dir_names: vec![],
         exclude_file_patterns: vec![],
         auto_repair_concerns: true,
+        build_artifact_cleanup: true,
         auto_repair_warns: true,
         auto_rewrite_large_blobs: true,
         auto_stage_untracked: true,
@@ -1964,6 +1975,19 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
+    /// (backcompat) and is deserializable as a per-repo opt-out.
+    #[test]
+    fn test_build_artifact_cleanup_default_true_and_opt_out() {
+        let p = SyncPolicy::default();
+        assert!(p.build_artifact_cleanup, "default must preserve prior behavior");
+        let p: SyncPolicy =
+            toml::from_str("build_artifact_cleanup = false").expect("parse");
+        assert!(!p.build_artifact_cleanup, "per-repo opt-out must parse");
+        let p: SyncPolicy = toml::from_str("").expect("parse empty");
+        assert!(p.build_artifact_cleanup, "missing field must default true");
+    }
 
     /// ADDED 2026-07-21 (v0.112.33, audit M22/F3.4):
     /// `expand_tilde("~/x")` must resolve to `$HOME/x` — the pre-fix
