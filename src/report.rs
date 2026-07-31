@@ -2704,38 +2704,28 @@ pub(crate) enum LayoutTier {
 
 /// Pick the layout tier from terminal width.
 ///
-/// - `< 242` cols → **Rich** (the default table: 6 columns, fits any width ≥ ~90)
-/// - `242-314` cols → **Compact** (16-col table; min 242 cols + comfy-table width-fitting)
-/// - `>= 315` cols → **Full** (23-col v1 table; min ~289 cols + headroom)
+/// - `< 165` cols → **Compact** (the rich table's fixed 190 cols can't fit)
+/// - `>= 165` cols → **Rich** (the 10-column table; the operator's table)
 ///
-/// CHANGED 2026-07-22 (v0.112.38): the `< 242` default was Vertical
-/// (per-repo multi-line blocks), which the operator found too
-/// verbose for the default. Rich is now the default; Vertical
-/// remains available via `--layout vertical` and as the format for
-/// `repos <name>` (per-repo detail).
+/// CHANGED 2026-07-30 (v0.113.26): the 242-314 → Compact and >= 315
+/// → Full bands were REMOVED from auto-pick. They were leftovers from
+/// the pre-rich design: a maximized terminal (242+ cols) silently
+/// served the OLD 16-column compact table, and the operator's
+/// reaction was "this looks like the old table — no legend or
+/// indicators". The rich table is the product now; a wider terminal
+/// gets the same rich table (190 cols fixed, trailing whitespace is
+/// fine). Compact/Full/Vertical remain reachable via `--layout`.
 ///
-/// 2026-07-19 (goal `4555eaf6` v0.112.25): Compact threshold bumped
-/// 238 to 242 to match the HINT column bump (22 to 26 cols to fit
-/// "daemon handles after changes settle"). New column sum is 227
-/// plus 15 borders, totalling 242. When the terminal is narrower
-/// than 242, comfy-table squashes columns to fit, which overrides
-/// the Absolute constraint and reintroduces the letter-wrap bug.
+/// History: `< 242` default was Vertical (v0.112.38), then Rich
+/// (v0.112.38); 165-col Rich minimum since v0.113.8 (added USED +
+/// COMMITS + SIZE + TOUCHED columns grew the table from ~120 to
+/// ~165 cols).
 pub(crate) fn choose_layout_tier() -> LayoutTier {
     let w = terminal_width().unwrap_or(120);
-    // CHANGED 2026-07-28 (v0.113.8): the rich table grew from 7-8
-    // columns to 10 (added USED + COMMITS + SIZE + TOUCHED) and
-    // widened the ACTIVITY column from 21 to 28. Minimum terminal
-    // width is now ~165 cols (vs the pre-change 90). Operators on
-    // narrower terminals route to the Compact tier instead — the
-    // 8-column compact view is the right answer for 90-165 cols.
     if w < 165 {
         LayoutTier::Compact
-    } else if w < 242 {
-        LayoutTier::Rich
-    } else if w < 315 {
-        LayoutTier::Compact
     } else {
-        LayoutTier::Full
+        LayoutTier::Rich
     }
 }
 
@@ -11132,13 +11122,11 @@ mod tests {
         // Rich (6-column table), NOT Vertical. Vertical remains
         // available via `--layout vertical` and as the `repos <name>`
         // per-repo detail format.
-        // CHANGED 2026-07-28 (v0.113.8): 165-241 cols route to Rich;
-        // 90-164 cols route to Compact (the new Rich tier needs
-        // ≥165 cols minimum — added USED, COMMITS, SIZE, TOUCHED
-        // columns grew the total width from ~120 to ~165). The test
-        // covers both the new Compact zone (90-164) and the Rich
-        // zone (165-241).
-        for w in [165, 180, 199, 219, 237, 241] {
+        // CHANGED 2026-07-30 (v0.113.26): Rich is the auto-pick for
+        // EVERYTHING ≥165 cols — the 242-314 Compact band and the
+        // ≥315 Full band were removed (a maximized terminal silently
+        // served the OLD compact table; "looks like the old table").
+        for w in [165, 180, 199, 219, 237, 241, 242, 300, 314, 315, 500] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -11157,12 +11145,9 @@ mod tests {
     #[test]
     fn test_choose_layout_tier_compact() {
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
-        // 2026-07-19 (goal `4555eaf6` v0.112.25): threshold bumped
-        // 238 → 242 to match the HINT column bump (22 → 26 cols).
-        // CHANGED 2026-07-28 (v0.113.8): Compact now also covers the
-        // 90-164 zone (was previously Rich) — the new Rich tier
-        // needs ≥165 cols minimum. The 242-299 zone is unchanged.
-        for w in [90, 120, 164, 242, 249, 299] {
+        // v0.113.26: Compact is ONLY the < 165 fallback now; the
+        // 242-299 band is Rich (was Compact before v0.113.26).
+        for w in [40, 90, 120, 164] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
@@ -11179,13 +11164,16 @@ mod tests {
 
     #[test]
     fn test_choose_layout_tier_full() {
+        // v0.113.26: Full is NEVER auto-picked (the ≥315 band was
+        // removed) — wide terminals get Rich. Full remains an opt-in
+        // via `--layout full` only.
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
         for w in [315, 400, 500, 1000] {
             std::env::set_var("DRACON_SYNC_TERM_WIDTH", w.to_string());
             assert_eq!(
                 choose_layout_tier(),
-                LayoutTier::Full,
-                "width {} should be Full",
+                LayoutTier::Rich,
+                "width {} should auto-pick Rich (Full is --layout-only since v0.113.26)",
                 w
             );
         }
