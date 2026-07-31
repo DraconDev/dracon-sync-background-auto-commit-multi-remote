@@ -9594,6 +9594,7 @@ mod tests {
             exclude_dir_names: vec![],
             exclude_file_patterns: vec![],
             auto_repair_concerns: true,
+            build_artifact_cleanup: true,
             auto_repair_warns: true,
             auto_rewrite_large_blobs: true,
             sem_max_concurrent_sync: 4,
