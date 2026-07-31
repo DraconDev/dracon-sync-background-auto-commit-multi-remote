@@ -1,26 +1,13 @@
-# dracon-sync v0.113.27 (2026-07-31)
+## dracon-sync v0.113.27 — blank-for-public, banner header
 
-Invisible git sync daemon for deterministic AI-assisted development.
+- **Public = blank**: only private repos carry 🔒 in the REPO cell;
+  public/unknown rows pad so names still start at the same column
+  on every row. Retires the 🌍 globe (glyph centering looked
+  off-column). Legend updated.
+- **Single banner header**: `── dracon-sync repos ── 📦 36 · ✅ 33
+  clean · 🔄 3 active · 🟡 0 · ❌ 0 · ⛔ 0 ───…` replaces the
+  two-line 📜+📦 top. The config-path line no longer prints by
+  default.
 
-## What's Changed
-
-- Bump version to 0.113.27
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.27
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.26...v0.113.27
+1213 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
