@@ -4140,6 +4140,21 @@ pub(crate) async fn run_repos_report(
     println!("{banner_colored} {}", "─".repeat(pad));
     println!();
 
+    // v0.113.32 (operator: "a paused daemon is a good thing to check
+    // for and warn about"): while the daemon is frozen EVERY row is
+    // stale — PENDING pushes never complete, ↑N accumulates across
+    // the fleet — and nothing in the table said why. Surface the
+    // freeze front-and-center, right under the banner.
+    if let Some(reason) = crate::policy::freeze_reason(policy_path) {
+        let pause_plain = format!(
+            "── ⏸️ DAEMON PAUSED ({reason}) — nothing is committing or pushing · resume: dracon-sync resume "
+        );
+        let pause_pad = pad_target
+            .saturating_sub(unicode_width::UnicodeWidthStr::width(pause_plain.as_str()) + 1);
+        println!("{} {}", ansi("1;33", &pause_plain), "─".repeat(pause_pad));
+        println!();
+    }
+
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
     // PUSH_STUCK used to render as letter-wrapped cells (P/U/S/H/_/S/T/U/C/K on separate
     // lines) because `ContentArrangement::Dynamic` shrinks 22 columns to ~3 chars each at
