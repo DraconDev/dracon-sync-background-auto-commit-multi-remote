@@ -1,26 +1,12 @@
-# dracon-sync v0.113.32 (2026-07-31)
+## dracon-sync v0.113.32 — daemon-pause warning in `repos`
 
-Invisible git sync daemon for deterministic AI-assisted development.
+When the daemon is frozen (`dracon-sync pause` marker or
+`DRACON_SYNC_FREEZE`), `repos` now prints a bold-yellow
+`── ⏸️ DAEMON PAUSED (<reason>) — nothing is committing or pushing ·
+resume: dracon-sync resume ──` line right under the banner, in every
+layout tier. A paused daemon used to make every row silently stale —
+PENDING pushes never completed, ↑N accumulated fleet-wide — with no
+hint as to why. Invisible when not frozen.
 
-## What's Changed
-
-- Bump version to 0.113.32
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.32
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.31...v0.113.32
+1214 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
