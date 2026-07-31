@@ -817,6 +817,14 @@ fn default_cold_commit_minutes() -> u64 {
 pub(crate) struct RepoPolicyOverride {
     /// Optional per-repo override for `auto_bump_versions`.
     pub(crate) auto_bump_versions: Option<bool>,
+    /// Optional per-repo override for `build_artifact_cleanup`
+    /// (v0.113.33 — v0.113.29 added the SyncPolicy field but forgot
+    /// this override-struct half, so the per-repo
+    /// `.dracon/dracon-sync.toml` opt-out parsed into thin air and
+    /// the ai-auto-writer output/ ping-pong kept running in
+    /// production despite `build_artifact_cleanup = false` being set).
+    #[serde(default)]
+    pub(crate) build_artifact_cleanup: Option<bool>,
     /// Per-repo override for auto-tagging. Defaults to true (inherited from global).
     /// Set to false to disable version tags for this repo.
     #[serde(default)]

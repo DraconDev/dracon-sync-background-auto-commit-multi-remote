@@ -206,6 +206,10 @@ struct SyncContext<'a> {
     has_upstream: bool,
     #[allow(dead_code)]
     auto_bump_versions: bool,
+    /// v0.113.33: effective per-repo value of
+    /// `build_artifact_cleanup` (global policy merged with the
+    /// repo's `.dracon/dracon-sync.toml` override).
+    build_artifact_cleanup: bool,
     remote_failures: Option<&'a mut HashMap<String, usize>>,
     /// When true, the daemon's auto-commit backstop is active for this
     /// repo. The backstop fires when `ahead > threshold` AND
@@ -566,7 +570,10 @@ async fn clean_staged_paths(ctx: &SyncContext<'_>) -> Result<()> {
     // v0.113.29: per-repo opt-out for repos where a "build
     // artifact" dir name is actually content (ai-auto-writer's
     // output/ = the generated books).
-    if policy.build_artifact_cleanup {
+    // v0.113.33: read the MERGED per-repo value (ctx), not the raw
+    // global policy — the override-file half of v0.113.29 was
+    // missing, so the opt-out never reached this gate.
+    if ctx.build_artifact_cleanup {
         if let Some(removed_dirs) = if dry_run {
             None
         } else {
@@ -3702,6 +3709,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             has_origin: false,
             has_upstream: false,
             auto_bump_versions: false,
+            build_artifact_cleanup: policy.build_artifact_cleanup,
             remote_failures: None,
             backstop_active: false,
         };
@@ -3720,6 +3728,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             has_origin: false,
             has_upstream: false,
             auto_bump_versions: false,
+            build_artifact_cleanup: policy.build_artifact_cleanup,
             remote_failures: None,
             backstop_active: false,
         };
@@ -3800,6 +3809,13 @@ pub(crate) async fn sync_repo_with_ahead_since(
     let auto_bump_versions = repo_override
         .auto_bump_versions
         .unwrap_or(policy.auto_bump_versions);
+    // v0.113.33: resolve the per-repo opt-out the SAME way
+    // auto_bump_versions is resolved — v0.113.29 read the global
+    // policy field directly in clean_staged_paths, so the per-repo
+    // override file never reached the gate.
+    let build_artifact_cleanup = repo_override
+        .build_artifact_cleanup
+        .unwrap_or(policy.build_artifact_cleanup);
 
     // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
     // The previous version of this code unconditionally
@@ -3865,6 +3881,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
         has_origin,
         has_upstream,
         auto_bump_versions,
+        build_artifact_cleanup,
         remote_failures,
         backstop_active,
     };
