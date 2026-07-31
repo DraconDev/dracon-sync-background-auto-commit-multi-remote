@@ -2001,6 +2001,29 @@ mod tests {
         assert!(!SyncPolicy::default().build_artifact_cleanup);
     }
 
+    #[test]
+    fn test_repo_override_build_artifact_cleanup_round_trip() {
+        // v0.113.33: the per-repo opt-out must round-trip through
+        // `load_repo_override` — v0.113.29 only tested SyncPolicy
+        // parsing, missing that `RepoPolicyOverride` lacked the field
+        // entirely, so ai-auto-writer's `.dracon/dracon-sync.toml`
+        // `build_artifact_cleanup = false` parsed into thin air and
+        // the output/ ping-pong kept running in production.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "build_artifact_cleanup = false\n",
+        )
+        .unwrap();
+        let o = load_repo_override(repo);
+        assert_eq!(o.build_artifact_cleanup, Some(false));
+        // Absent file → None → global policy governs.
+        let dir2 = tempfile::tempdir().unwrap();
+        assert_eq!(load_repo_override(dir2.path()).build_artifact_cleanup, None);
+    }
+
     /// ADDED 2026-07-21 (v0.112.33, audit M22/F3.4):
     /// `expand_tilde("~/x")` must resolve to `$HOME/x` — the pre-fix
     /// code kept the leading `/` after `~`, and `Path::join` with an
