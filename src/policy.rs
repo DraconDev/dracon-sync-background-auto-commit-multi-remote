@@ -216,7 +216,7 @@ fn default_priority() -> u32 {
     50
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum AuthType {
     #[default]
@@ -763,7 +763,7 @@ pub(crate) struct SyncPolicy {
 }
 
 /// Package registry type for auto-publish.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum PublishRegistry {
     #[default]
@@ -1999,6 +1999,150 @@ mod tests {
         assert!(!p.build_artifact_cleanup, "per-repo opt-out must parse");
         // Derived Default matches its auto_* siblings (false).
         assert!(!SyncPolicy::default().build_artifact_cleanup);
+    }
+
+    // ====================================================================
+    // Per-repo override COVERAGE tripwire (v0.113.34, operator:
+    // "prevent such things automatically, not hack every case").
+    //
+    // The v0.113.29/v0.113.33 incident class: a knob was added to
+    // SyncPolicy and consumed in sync.rs, but its RepoPolicyOverride
+    // half was forgotten — per-repo `.dracon/dracon-sync.toml`
+    // settings parsed into thin air (serde ignores unknown fields),
+    // and the bug only surfaced in production months later.
+    //
+    // This test makes that structurally impossible: every SyncPolicy
+    // field must EITHER have a RepoPolicyOverride counterpart OR be
+    // listed in GLOBAL_ONLY below; every override field must name a
+    // global field OR be listed in OVERRIDE_ONLY. Adding a field to
+    // either struct without deciding its per-repo story FAILS this
+    // test at `cargo test` time, not in production.
+    // ====================================================================
+
+    /// Global-only knobs (no per-repo override by design or pending a
+    /// demonstrated need — migrate an entry to RepoPolicyOverride when
+    /// a repo needs to tune it; the test then enforces the wiring).
+    const OVERRIDE_COVERAGE_GLOBAL_ONLY: &[&str] = &[
+        "alert_unpushed_threshold",
+        "auto_commit",
+        "auto_commit_backstop_min_age_secs",
+        "auto_commit_backstop_threshold",
+        "auto_gc_garbage_threshold_bytes",
+        "auto_github_private",
+        "auto_github_private_account",
+        "auto_prune_stale_backup_branches",
+        "auto_pull",
+        "auto_push",
+        "auto_repair_concerns",
+        "auto_repair_warns",
+        "auto_resolve_unmerged",
+        "auto_rewrite_large_blobs",
+        "auto_stage_untracked",
+        "backup_dir",
+        "backup_policy",
+        "exclude_dir_names",
+        "exclude_file_patterns",
+        "exclude_repos",
+        "inactivity_push_delay_secs",
+        "incident_ledger_max_age_days",
+        "incident_ledger_max_lines",
+        "max_push_blob_bytes",
+        "max_stage_batch_files",
+        "max_stage_file_bytes",
+        "min_commit_interval_secs",
+        "publish_targets",
+        "pull_op_timeout_secs",
+        "pulse_interval_secs",
+        "push_debounce_secs",
+        "push_max_retries",
+        "push_op_timeout_secs",
+        "push_retries",
+        "remotes",
+        "repair_cooldown_secs",
+        "repo_sync_timeout_secs",
+        "sem_max_concurrent_sync",
+        "stage_cooldown_secs",
+        "stage_op_timeout_secs",
+        "standard_files",
+        "standard_files_auto",
+        "sync_metadata",
+        "sync_visibility",
+        "sync_visibility_interval_hours",
+        "system_repo",
+        "trailing_drain_deadline_secs",
+        "trusted_authors",
+        "trusted_emails",
+        "trusted_remote_hosts",
+        "untracked_exclude_patterns",
+        "untracked_warn_threshold",
+        "watch_roots",
+        "webhook_url",
+    ];
+
+    /// Override-only knobs (per-repo concepts with no meaningful
+    /// global counterpart).
+    const OVERRIDE_COVERAGE_OVERRIDE_ONLY: &[&str] = &[
+        "auto_create_on_codeberg",
+        "exclude_remotes",
+        "intentional_no_upstream",
+        "owned",
+        "revert_excluded_to_head",
+        "skip_standard_files",
+    ];
+
+    fn serde_field_names<T: serde::Serialize>(v: &T) -> std::collections::BTreeSet<String> {
+        serde_json::to_value(v)
+            .expect("serialize")
+            .as_object()
+            .expect("struct serializes to object")
+            .keys()
+            .cloned()
+            .collect()
+    }
+
+    #[test]
+    fn test_repo_override_field_coverage_tripwire() {
+        let global = serde_field_names(&SyncPolicy::default());
+        let over = serde_field_names(&RepoPolicyOverride::default());
+
+        let mut failures = Vec::new();
+        for name in &global {
+            if OVERRIDE_COVERAGE_GLOBAL_ONLY.contains(&name.as_str()) {
+                continue;
+            }
+            if !over.contains(name) {
+                failures.push(format!(
+                    "SyncPolicy field `{name}` has no RepoPolicyOverride counterpart — \
+                     add it (with merge resolution at the point of use, see \
+                     auto_bump_versions) or list it in OVERRIDE_COVERAGE_GLOBAL_ONLY"
+                ));
+            }
+        }
+        for name in &over {
+            if OVERRIDE_COVERAGE_OVERRIDE_ONLY.contains(&name.as_str()) {
+                continue;
+            }
+            if !global.contains(name) {
+                failures.push(format!(
+                    "RepoPolicyOverride field `{name}` names no SyncPolicy field — \
+                     per-repo files would set a knob nothing consumes; add the global \
+                     field or list it in OVERRIDE_COVERAGE_OVERRIDE_ONLY"
+                ));
+            }
+        }
+        // The allow-lists must not rot: every entry must still name a
+        // real field on its side.
+        for name in OVERRIDE_COVERAGE_GLOBAL_ONLY {
+            if !global.contains(*name) {
+                failures.push(format!("GLOBAL_ONLY entry `{name}` is not a SyncPolicy field — stale list entry"));
+            }
+        }
+        for name in OVERRIDE_COVERAGE_OVERRIDE_ONLY {
+            if !over.contains(*name) {
+                failures.push(format!("OVERRIDE_ONLY entry `{name}` is not a RepoPolicyOverride field — stale list entry"));
+            }
+        }
+        assert!(failures.is_empty(), "override coverage tripwire:\n  - {}", failures.join("\n  - "));
     }
 
     #[test]
