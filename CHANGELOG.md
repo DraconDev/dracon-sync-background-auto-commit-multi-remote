@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.29)
+
+- **`build_artifact_cleanup` per-repo opt-out** (operator decision
+  2026-07-31): the daemon hard-codes `output` (and `gen`, `.output`,
+  `*_output`, …) as build-artifact dir names and was untracking +
+  gitignoring tracked files under them every cycle. For
+  **ai-auto-writer** `output/` is CONTENT — the generated books are
+  the project's deliverable and the audit loop deliberately commits
+  new chapters — so daemon and loop fought in a ~30-commit/hour
+  ping-pong (daemon untracked, loop re-added) that starved pushes
+  (permanent ↑N A/B, "pushing 25m"). Set
+  `build_artifact_cleanup = false` in a repo's
+  `.dracon/dracon-sync.toml` to keep such dirs tracked. Default
+  stays `true` for TOML-loaded configs (derived `Default` stays
+  `false`, matching the documented auto_* footgun). Deployed on
+  ai-auto-writer alongside removing the daemon-added `/output/`
+  .gitignore line.
+
 ## [0.113.28] - 2026-07-31
 
 ### Changed (v0.113.28)
