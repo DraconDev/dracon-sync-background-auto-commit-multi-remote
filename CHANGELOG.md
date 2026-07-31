@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.30)
+
+- **Rich table flex-grows to full terminal width** (operator: "make
+  the table as wide as the screen, and flex grow like the repo
+  name"): REPO is now the flex column — it absorbs every terminal
+  column beyond the 159-col fixed floor, so the table always spans
+  the full screen and repo names truncate far less on wide
+  terminals. Below the floor REPO stays 20 (test-pinned) and
+  comfy-table squashes gracefully as before.
+- **TOUCHED column = author only** (operator: "touched is a bit of
+  a weak column — who touched, perhaps, but the time we already
+  show"): the relative age was redundant with ACTIVITY's
+  `synced 19m`; dropping it gives long loop identities
+  (`Virtual Pet Loop`) the full column budget.
+- **A/B dims while a push is in flight** (operator: "A/B oddness"):
+  the ↑N shown during 🟣 PENDING is exactly the batch being pushed
+  — it now renders DarkGrey (pipeline-in-motion) instead of Yellow
+  (unpushed-work alarm). The count stays; only the urgency changes.
+
 ## [0.113.29] - 2026-07-31
 
 ### Added (v0.113.29)
