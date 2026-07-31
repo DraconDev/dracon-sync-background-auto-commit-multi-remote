@@ -1,26 +1,12 @@
-# dracon-sync v0.113.29 (2026-07-31)
+## dracon-sync v0.113.29 — build_artifact_cleanup opt-out
 
-Invisible git sync daemon for deterministic AI-assisted development.
+The daemon hard-codes `output/` (and `gen`, `.output`, `*_output`, …)
+as build-artifact dirs and untracked + gitignored tracked files under
+them every cycle. For ai-auto-writer, `output/` holds the generated
+books — the deliverable — and its loop deliberately commits chapters,
+producing a ~30-commit/hour daemon↔loop ping-pong that starved
+pushes. New per-repo knob: `build_artifact_cleanup = false` in
+`.dracon/dracon-sync.toml`. Default unchanged (`true`).
 
-## What's Changed
-
-- Bump version to 0.113.29
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.29
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.28...v0.113.29
+1214 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
