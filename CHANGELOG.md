@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Changed (v0.113.27)
+
+- **Public repos now render BLANK in the REPO cell** (operator:
+  "blank for public is good but make sure we see the text in the
+  same cell column"): only private repos carry 🔒; public/unknown
+  rows pad the vis slot with 2 spaces so the repo name starts at
+  display column 4 on every row. Retires the 🌍 globe (one day old)
+  whose glyph centering looked off-column in the operator's font.
+  Legend updated: "no icon = public/unknown".
+- **Header is now a single banner line** (operator: "make the top
+  better looking too", picked the banner mockup):
+  `── dracon-sync repos ── 📦 36 · ✅ 33 clean · 🔄 3 active · 🟡 0
+  · ❌ 0 · ⛔ 0 ────…`, color-aware, padded with ─ to the table
+  width. The 📜 config-path line was dropped from default output
+  (stable knowledge; still in `--json` payload / doctor flows).
+
 ## [0.113.26] - 2026-07-31
 
 ### Changed (v0.113.26)

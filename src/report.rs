@@ -12735,9 +12735,11 @@ mod v011318b_tests {
         assert_eq!(priv_cell, "🔒  hellhunter", "{priv_cell}");
         assert_eq!(unk_cell, "    mystery", "{unk_cell}");
         assert!(priv_cell.starts_with("🔒 "), "{priv_cell}");
-        assert!(pub_cell.starts_with("🌍 "), "{pub_cell}");
-        // v0.113.22: fixed 4-cell prefix (vis 2 + badge-slot 1 +
-        // space 1); unknown vis pads the vis slot with spaces.
+        // v0.113.27 (operator): public renders BLANK like unknown —
+        // only private carries 🔒. Alignment contract: the repo name
+        // starts at display column 4 on EVERY row (operator: "make
+        // sure we see the text in the same cell column").
+        assert_eq!(pub_cell, "    dracon-sync", "{pub_cell}");
         assert!(unk_cell.starts_with("    mystery"), "{unk_cell:?}");
         assert_eq!(
             UnicodeWidthStr::width("🔒  ") as usize,
