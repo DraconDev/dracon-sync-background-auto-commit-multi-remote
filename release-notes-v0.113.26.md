@@ -1,26 +1,9 @@
-# dracon-sync v0.113.26 (2026-07-31)
+## dracon-sync v0.113.26 — rich table at every width ≥165
 
-Invisible git sync daemon for deterministic AI-assisted development.
+Running `repos` on a maximized terminal (242+ cols) silently served
+the OLD 16-column compact table — leftover auto-pick bands from the
+pre-rich design. Auto-pick is now: `< 165 → Compact`, `≥ 165 → Rich`.
+Compact / Full / Vertical remain available via `--layout`.
 
-## What's Changed
-
-- Bump version to 0.113.26
-- (See CHANGELOG.md for the full list of changes in this release)
-
-## Install
-
-```bash
-cargo install dracon-sync --version 0.113.26
-```
-
-## Docker / systemd
-
-```bash
-# systemd unit (Linux)
-curl -fsSL https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service \
-    -o ~/.config/systemd/user/dracon-sync.service
-systemctl --user daemon-reload
-systemctl --user enable --now dracon-sync.service
-```
-
-**Full Changelog**: https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/0.113.25...v0.113.26
+1213 workspace tests green; clippy/deny clean.
+Upgrade: `cargo install dracon-sync --locked` or your usual path.
