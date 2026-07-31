@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added (v0.113.32)
+
+- **Daemon-pause warning in `repos`** (operator: "a good thing to
+  check for and warn about"): when the daemon is frozen
+  (`dracon-sync pause` marker or `DRACON_SYNC_FREEZE`), a bold-yellow
+  `── ⏸️ DAEMON PAUSED (<reason>) — nothing is committing or pushing
+  · resume: dracon-sync resume ──` line prints directly under the
+  banner, in every layout tier. Motivation: the 2026-07-31 pause
+  made every row silently stale — PENDING pushes never completed,
+  ↑N accumulated fleet-wide — and nothing in the table said why.
+  Invisible when the daemon is not frozen.
+
 ## [0.113.31] - 2026-07-31
 
 ### Changed (v0.113.31)
