@@ -4088,18 +4088,10 @@ pub(crate) async fn run_repos_report(
             );
         }
     }
-    // ---- Summary one-liner (color-aware, no raw ANSI when piped) ----
-    let ok_str = ansi("32", &format!("✅ CLEAN {ok_count}"));
-    let active_str = ansi("36", &format!("🔄 ACTIVE {active_count}"));
-    // CHANGED 2026-07-22 (v0.112.36): WARN uses 🟡 (yellow circle,
-    // unicode-width = 2) instead of ⚠️ (U+26A0, unicode-width = 1
-    // but rendered 2 cells in emoji presentation). The width
-    // mismatch made every WARN row's separators drift one column
-    // right of the table frame (spotted live on darklord). 🟡 keeps
-    // the yellow semantics AND matches the activity-dot family
-    // (🟢⚪⚫🟣 — all width-2).
-    let warn_str = ansi("33", &format!("🟡 WARN {warn_count}"));
-    let concern_str = ansi("31", &format!("❌ CONCERN {concern_count}"));
+    // ---- Summary banner (color-aware, no raw ANSI when piped) ----
+    // NOTE (v0.112.36): WARN uses 🟡 (yellow circle, unicode-width = 2)
+    // instead of ⚠️ (width-1 glyph rendered 2 cells wide) — the width
+    // mismatch used to drift table separators one column right.
     let filter_note = match filter {
         RepoFilter::All => String::new(),
         RepoFilter::Concern | RepoFilter::Warn => format!(
@@ -4122,12 +4114,14 @@ pub(crate) async fn run_repos_report(
         },
     );
     let banner_colored = format!(
-        "── dracon-sync repos ── 📦 {total} · {} clean · {} active · {} · {} · ⛔ {init_or_status_failures}{filter_note}",
-        total = rows.len(),
+        "── dracon-sync repos ── 📦 {} · {} clean · {} active · {} · {} · ⛔ {}{}",
+        rows.len(),
         ansi("32", &format!("✅ {ok_count}")),
         ansi("36", &format!("🔄 {active_count}")),
         ansi("33", &format!("🟡 {warn_count}")),
         ansi("31", &format!("❌ {concern_count}")),
+        init_or_status_failures,
+        filter_note,
     );
     let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
     let pad = pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(banner_plain.as_str()) + 1);
