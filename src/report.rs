@@ -12554,7 +12554,7 @@ mod codeberg_public_only_tests {
 mod v011313_tests {
     use super::*;
     use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
 
     fn git(repo: &Path, args: &[&str]) {
         let out = crate::git::git_cmd()
