@@ -1118,6 +1118,7 @@ pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
         || lower.contains("does not exist")
         || lower.contains("not found")
         || lower.contains("push to create is not enabled")
+        || lower.contains("cannot find repository")
         || lower.contains("404")
 }
 

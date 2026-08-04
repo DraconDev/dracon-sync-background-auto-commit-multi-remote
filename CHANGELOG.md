@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.38] - 2026-08-05
+
+### Fixed (v0.113.38)
+
+- Codeberg Forgejo `Cannot find repository` responses are classified as
+  definitive missing repositories, allowing public mirror auto-provisioning
+  instead of leaving the repository in an inconclusive retry state.
+
 ## [0.113.37] - 2026-08-05
 
 ### Fixed (v0.113.37)
