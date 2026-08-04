@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.39] - 2026-08-05
+
+### Fixed (v0.113.39)
+
+- Public-only Codeberg eligibility is no longer marked terminally confirmed
+  while visibility is private or unknown. A later visibility refresh can now
+  authorize mirror creation for clean repositories instead of requiring a
+  manual change to trigger the create path.
+
 ## [0.113.38] - 2026-08-05
 
 ### Fixed (v0.113.38)

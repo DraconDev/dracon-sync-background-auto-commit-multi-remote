@@ -3416,6 +3416,36 @@ pub(crate) async fn run_daemon(
                             );
                         }
                     }
+                    // Public-only Codeberg is dynamic: an unknown/private
+                    // visibility result can become public after the next
+                    // refresh. Do not mark the repo terminally confirmed
+                    // while a missing Codeberg mirror is still eligible for
+                    // a future public auto-provisioning decision.
+                    let repo_override_for_visibility =
+                        crate::policy::load_repo_override(&repo);
+                    let codeberg_public_only = repo_override_for_visibility
+                        .codeberg_public_only
+                        .unwrap_or(policy.codeberg_public_only);
+                    let codeberg_configured = policy.remotes.iter().any(|r| {
+                        matches!(
+                            r.effective_auth_type(),
+                            crate::policy::AuthType::Codeberg
+                        )
+                    });
+                    let codeberg_waiting_for_visibility = codeberg_configured
+                        && codeberg_public_only
+                        && repo_override_for_visibility.auto_create_on_codeberg != Some(false)
+                        && !crate::git::multi_remote::has_codeberg_tracking_ref(&repo)
+                        && crate::visibility::cached_repo_visibility(&repo) != Some(false);
+                    if codeberg_waiting_for_visibility {
+                        all_ok = false;
+                        if debug_enabled() {
+                            eprintln!(
+                                "⏳ {} Codeberg auto-create remains eligible after visibility refresh",
+                                repo.display()
+                            );
+                        }
+                    }
                     if all_ok {
                         forge_confirmed.insert(repo.clone());
                     }
