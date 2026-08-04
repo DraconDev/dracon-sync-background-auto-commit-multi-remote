@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.36] - 2026-08-04
+
+### Fixed (v0.113.36)
+
+- A public Codeberg mirror whose existence check was inconclusive no longer
+  falls through to a guaranteed Forgejo push-to-create failure. Definitive
+  Forgejo `Push to create is not enabled` responses are classified as missing
+  so the API auto-create path can run; if creation still fails, Codeberg is
+  excluded for that cycle and retried later.
+
 ## [0.113.35] - 2026-08-04
 
 ### Added (v0.113.35)
