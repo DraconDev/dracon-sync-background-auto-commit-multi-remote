@@ -449,6 +449,12 @@ pub(crate) async fn push_mirror_remotes_create_only(
         codeberg_override,
         Some(repo),
     );
+    // A repo can already have origin/gitlab while a newly-authorized public
+    // Codeberg mirror is absent from `.git/config`. Configure the filtered
+    // policy remotes before `remote_repo_exists`, otherwise the existence
+    // probe reports "codeberg is not a git repository" and auto-create is
+    // never attempted.
+    configure_all_remotes(repo, &filtered, &repo_name, &[]);
     let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
     let policy_names: Vec<&str> = remotes.iter().map(|r| r.name.as_str()).collect();
     if let Err(e) = remove_stale_remotes(repo, &all_remote_names, &policy_names) {

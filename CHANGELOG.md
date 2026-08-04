@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.37] - 2026-08-05
+
+### Fixed (v0.113.37)
+
+- Public Codeberg auto-provisioning now configures a newly authorized
+  Codeberg remote before probing its existence. Repositories that already
+  have GitHub/GitLab remotes no longer report `codeberg is not a git
+  repository` and skip creation forever.
+
 ## [0.113.36] - 2026-08-04
 
 ### Fixed (v0.113.36)
