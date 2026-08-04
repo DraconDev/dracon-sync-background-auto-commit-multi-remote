@@ -132,6 +132,7 @@ pub(crate) fn has_codeberg_tracking_ref(repo: &Path) -> bool {
 /// every `git push codeberg` fails with "Forgejo: Push to create is
 /// not enabled" (guaranteed-failure spam). Pre-existing codeberg
 /// mirrors (tracking ref present) and explicit opt-ins keep working.
+#[allow(dead_code)] // retained as a pure policy helper for regression tests
 pub(crate) fn codeberg_push_excluded(
     remotes: &[RemoteConfig],
     codeberg_override: Option<bool>,
@@ -149,6 +150,64 @@ pub(crate) fn codeberg_push_excluded(
         matches!(r.effective_auth_type(), AuthType::Codeberg)
             && !(r.auto_create || codeberg_override.unwrap_or(false))
     })
+}
+
+/// Repo-aware Codeberg gate. A positively public owned forge permits creating
+/// and pushing a new Codeberg mirror even when the global quota posture has
+/// `codeberg.auto_create = false`. A private or unknown result remains
+/// excluded; an existing tracking ref is always preserved and pushed.
+pub(crate) fn codeberg_push_excluded_for_repo(
+    remotes: &[RemoteConfig],
+    codeberg_override: Option<bool>,
+    has_tracking_ref: bool,
+    repo: &Path,
+) -> bool {
+    if has_tracking_ref {
+        return false;
+    }
+    let has_codeberg = remotes
+        .iter()
+        .any(|r| matches!(r.effective_auth_type(), AuthType::Codeberg));
+    if !has_codeberg {
+        return false;
+    }
+    if matches!(codeberg_override, Some(true))
+        || remotes.iter().any(|r| {
+            matches!(r.effective_auth_type(), AuthType::Codeberg) && r.auto_create
+        })
+    {
+        return false;
+    }
+    // `Some(false)` is an explicit per-repo opt-out. A public cache is the
+    // only implicit opt-in under the public-only policy.
+    if codeberg_override == Some(false) {
+        return true;
+    }
+    !matches!(
+        crate::visibility::cached_repo_visibility(repo),
+        Some(false)
+    )
+}
+
+fn effective_codeberg_auto_create_override(
+    remotes: &[RemoteConfig],
+    codeberg_override: Option<bool>,
+    repo: Option<&Path>,
+) -> Option<bool> {
+    if codeberg_override.is_some() {
+        return codeberg_override;
+    }
+    let repo = repo?;
+    if codeberg_push_excluded_for_repo(remotes, None, false, repo) {
+        None
+    } else if remotes
+        .iter()
+        .any(|r| matches!(r.effective_auth_type(), AuthType::Codeberg))
+    {
+        Some(true)
+    } else {
+        None
+    }
 }
 
 /// Configure all remotes from policy for a given repo, skipping any
@@ -282,18 +341,33 @@ pub(crate) async fn push_mirror_remotes(
     // codeberg remote is also removed from `.git/config` on the
     // first push under this rule.
     let mut combined_exclude: Vec<String> = exclude.to_vec();
-    if codeberg_push_excluded(remotes, codeberg_override, has_codeberg_tracking_ref(repo))
-        && !combined_exclude.iter().any(|e| e == "codeberg")
+    if codeberg_push_excluded_for_repo(
+        remotes,
+        codeberg_override,
+        has_codeberg_tracking_ref(repo),
+        repo,
+    ) && !combined_exclude.iter().any(|e| e == "codeberg")
     {
         combined_exclude.push("codeberg".to_string());
     }
 
     let filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
+    let effective_codeberg_override = effective_codeberg_auto_create_override(
+        remotes,
+        codeberg_override,
+        Some(repo),
+    );
 
     configure_all_remotes(repo, &filtered, &repo_name, &[]);
 
-    for (remote_name, create_result) in
-        auto_create_all_remotes(&filtered, &repo_name, private, Some(repo), codeberg_override).await
+    for (remote_name, create_result) in auto_create_all_remotes(
+        &filtered,
+        &repo_name,
+        private,
+        Some(repo),
+        effective_codeberg_override,
+    )
+    .await
     {
         match create_result {
             Ok(_) => {}
@@ -348,7 +422,22 @@ pub(crate) async fn push_mirror_remotes_create_only(
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let filtered = filter_remotes_by_exclude(remotes, exclude);
+    let mut combined_exclude = exclude.to_vec();
+    if codeberg_push_excluded_for_repo(
+        remotes,
+        codeberg_override,
+        has_codeberg_tracking_ref(repo),
+        repo,
+    ) && !combined_exclude.iter().any(|e| e == "codeberg")
+    {
+        combined_exclude.push("codeberg".to_string());
+    }
+    let filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
+    let effective_codeberg_override = effective_codeberg_auto_create_override(
+        remotes,
+        codeberg_override,
+        Some(repo),
+    );
     let all_remote_names: Vec<_> = filtered.iter().map(|r| r.name.as_str()).collect();
     let policy_names: Vec<&str> = remotes.iter().map(|r| r.name.as_str()).collect();
     if let Err(e) = remove_stale_remotes(repo, &all_remote_names, &policy_names) {
@@ -358,7 +447,14 @@ pub(crate) async fn push_mirror_remotes_create_only(
             e
         );
     }
-    auto_create_all_remotes(&filtered, &repo_name, private, Some(repo), codeberg_override).await
+    auto_create_all_remotes(
+        &filtered,
+        &repo_name,
+        private,
+        Some(repo),
+        effective_codeberg_override,
+    )
+    .await
 }
 
 /// Get the URL for a given remote name.
@@ -940,7 +1036,18 @@ pub(crate) async fn auto_create_all_remotes(
                     }
                 }
             }
-            let result = auto_create_repo(remote, &resolved_name, private).await;
+            // GitHub/GitLab provisioning remains private by default. A
+            // Codeberg repository is public only after a fresh positive
+            // public visibility result; unknown/private stays private (and
+            // is normally excluded before reaching this branch).
+            let create_private = if matches!(remote.effective_auth_type(), AuthType::Codeberg)
+            {
+                repo.and_then(crate::visibility::cached_repo_visibility)
+                    .unwrap_or(true)
+            } else {
+                private
+            };
+            let result = auto_create_repo(remote, &resolved_name, create_private).await;
             results.push((remote.name.clone(), result));
         }
     }
@@ -1164,6 +1271,29 @@ mod tests {
             codeberg_push_excluded(&remotes, None, false),
             "codeberg remote with default (unset) auth_type must still be excluded"
         );
+    }
+
+    #[test]
+    fn test_public_visibility_allows_new_codeberg_mirror() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let remotes = vec![make_codeberg_remote(false)];
+        crate::visibility::update_visibility_cache(&repo, false);
+        assert!(!codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
+    }
+
+    #[test]
+    fn test_private_or_unknown_visibility_blocks_new_codeberg_mirror() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let remotes = vec![make_codeberg_remote(false)];
+        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        crate::visibility::update_visibility_cache(&repo, true);
+        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
     }
 
     #[test]

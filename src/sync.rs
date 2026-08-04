@@ -1934,7 +1934,10 @@ fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
         }
     }
     let repo_override = load_repo_override(repo);
-    if repo_override.owned == Some(true) {
+    if repo_override.owned == Some(false) {
+        return false;
+    }
+    if repo_override.owned == Some(true) || policy.path_is_owned(repo) {
         return true;
     }
     let email_ok = git_config_get(repo, "user.email")
@@ -3498,7 +3501,11 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         authors: policy.trusted_authors.clone(),
         remote_hosts: policy.trusted_remote_hosts.clone(),
     };
-    let ownership = crate::ownership::detect_ownership(repo, &trusted, repo_override.owned);
+    let ownership = if policy.path_is_owned(repo) {
+        crate::ownership::detect_ownership_path_owned(repo, &trusted, repo_override.owned)
+    } else {
+        crate::ownership::detect_ownership(repo, &trusted, repo_override.owned)
+    };
     let auto_skip_unowned = repo_override
         .auto_skip_unowned
         .unwrap_or(policy.auto_skip_unowned);
@@ -5302,6 +5309,48 @@ trusted_authors = ["test"]
             !commit_allowed_by_ownership(&repo, &policy),
             "untrusted identity without override must block"
         );
+    }
+
+    #[tokio::test]
+    async fn test_commit_guard_allows_path_owned_untrusted_identity() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        crate::git::git_cmd()
+            .args(["config", "user.email", "darklord@dracon.local"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["config", "user.name", "darklord-dev"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        let toml_str = format!(
+            r#"auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+watch_roots = ["{}"]
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#,
+            tmp.path().display()
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+        assert!(commit_allowed_by_ownership(&repo, &policy));
     }
 
     #[tokio::test]

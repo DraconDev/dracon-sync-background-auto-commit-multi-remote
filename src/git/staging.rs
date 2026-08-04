@@ -275,12 +275,20 @@ pub(crate) fn rewrite_ahead_paths(
     // objects (a probe artifact). The guard is kept as cheap
     // insurance: if a genuinely damaged gitdir ever appears, we
     // refuse to rewrite it and alert instead of making it worse.
-    let missing = crate::report::probe_missing_objects(repo);
-    if missing > 0 {
+    let history = crate::report::probe_history(repo);
+    if history.failed || history.missing_objects > 0 {
+        let detail = if history.failed {
+            "history probe failed (invalid HEAD/ref or timeout)".to_string()
+        } else {
+            format!(
+                "{} objects referenced by main's history are missing from the object store",
+                history.missing_objects
+            )
+        };
         return Err(anyhow::anyhow!(
-            "refusing history rewrite in {}: {} objects referenced by main's history are missing from the object store (damaged gitdir) — restore from the forge or orphan-cutover first (backup not created)",
+            "refusing history rewrite in {}: {} (damaged gitdir) — restore from the forge or orphan-cutover first (backup not created)",
             repo.display(),
-            missing
+            detail
         ));
     }
 

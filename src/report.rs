@@ -592,10 +592,11 @@ pub(crate) fn report_effective_remotes(
     too_big_for_github: bool,
 ) -> (Vec<String>, Vec<String>) {
     let mut excluded = effective_excluded_remotes(policy, repo_override, repo_path);
-    if crate::git::multi_remote::codeberg_push_excluded(
+    if crate::git::multi_remote::codeberg_push_excluded_for_repo(
         &policy.remotes,
         repo_override.auto_create_on_codeberg,
         crate::git::multi_remote::has_codeberg_tracking_ref(repo_path),
+        repo_path,
     ) && !excluded.iter().any(|e| e == "codeberg")
     {
         excluded.push("codeberg".to_string());
@@ -2065,6 +2066,14 @@ pub(crate) fn repo_is_warn(
 /// that is dirty but `Stalled` (no progress for a long time) is NOT
 /// active — it is a genuine `WARN`.
 pub(crate) fn repo_is_active(push_status: &str, state_cause: &StateCause) -> bool {
+    // An ownership-blocked repo may still have ahead commits, but the
+    // daemon is deliberately not working on it. Likewise, a broken-history
+    // row must never look ACTIVE merely because its old ahead count remains.
+    if matches!(state_cause, StateCause::Unowned { .. })
+        || matches!(push_status, "BLOCKED" | "BROKEN")
+    {
+        return false;
+    }
     push_status == "PENDING"
         || matches!(
             state_cause,
@@ -2241,7 +2250,7 @@ pub(crate) fn classify_state_cause(
     if inputs.push_status == "PENDING" {
         return StateCause::Pushing;
     }
-    if inputs.push_status == "FAIL" || inputs.push_status == "STUCK" {
+    if matches!(inputs.push_status, "FAIL" | "STUCK" | "BROKEN" | "BLOCKED") {
         return StateCause::Failed;
     }
     if inputs.flags.iter().any(|f| f == "INTENTIONAL_NO_UPSTREAM") {
@@ -3030,6 +3039,11 @@ struct CachedRepoSize {
     /// (forces one recompute, then cached).
     #[serde(default)]
     missing_objects: Option<u64>,
+    /// Whether the history probe failed (invalid HEAD, missing ref, or
+    /// timeout). `None` means this field predates the probe-failure state
+    /// and forces one recomputation.
+    #[serde(default)]
+    history_probe_failed: Option<bool>,
     /// ADDED 2026-07-24 (v0.112.40): wall-clock time the cache entry
     /// was written, in seconds since UNIX epoch. Combined with
     /// `REPO_SIZE_CACHE_TTL_SECS`, lets the cache survive brief
@@ -3127,18 +3141,25 @@ fn run_git_bounded(
     }
 }
 
-pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
-    // CHANGED 2026-07-23 (v0.112.39 R2): bound BOTH subprocess steps
-    // (rev-list and cat-file) to a shared deadline so one huge repo
-    // can't stall the whole `repos` render (the v0.112.39 unbounded
-    // probe made `repos` hang whenever many gitdirs changed —
-    // dracon-platform's 100k+ object history). On timeout we return
-    // 0 ("unknown") and do NOT flag BROKEN_HISTORY — a repo that
-    // can't be probed quickly is treated as healthy-looking rather
-    // than mis-reported as damaged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HistoryProbe {
+    pub(crate) missing_objects: u64,
+    pub(crate) failed: bool,
+}
+
+/// Probe the objects reachable from HEAD. A failed probe is distinct from a
+/// healthy repository with zero missing objects: an invalid HEAD (as seen in
+/// `ai-auto-writer`) must not be rendered as an empty repository.
+pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
+    // Bound BOTH subprocess steps so one huge repo cannot stall the whole
+    // `repos` render. A failed/invalid HEAD is reported as `failed`, not
+    // silently converted to zero.
     const BOUND: std::time::Duration = std::time::Duration::from_secs(4);
     let Some(list) = run_git_bounded(&["rev-list", "--objects", "HEAD"], repo, &[], BOUND) else {
-        return 0;
+        return HistoryProbe {
+            missing_objects: 0,
+            failed: true,
+        };
     };
     // Strip the path annotations (`<sha> <path>` → `<sha>`) so
     // `cat-file` sees bare object names. Without this, every
@@ -3158,12 +3179,18 @@ pub(crate) fn probe_missing_objects(repo: &Path) -> u64 {
         &stripped,
         BOUND,
     ) else {
-        return 0;
+        return HistoryProbe {
+            missing_objects: 0,
+            failed: true,
+        };
     };
-    String::from_utf8_lossy(&out)
-        .lines()
-        .filter(|l| l.ends_with(" missing"))
-        .count() as u64
+    HistoryProbe {
+        missing_objects: String::from_utf8_lossy(&out)
+            .lines()
+            .filter(|l| l.ends_with(" missing"))
+            .count() as u64,
+        failed: false,
+    }
 }
 
 /// Cache file lives next to the policy toml (a config dir, never a watched
@@ -3417,8 +3444,13 @@ pub(crate) async fn run_repos_report(
                 .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
                 .unwrap_or(false)
         };
-        let (git_size_bytes, git_modules_bytes, pack_too_large, missing_objects) =
-            match cache_lookup.get(&cache_key) {
+        let (
+            git_size_bytes,
+            git_modules_bytes,
+            pack_too_large,
+            missing_objects,
+            history_probe_failed,
+        ) = match cache_lookup.get(&cache_key) {
             // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
             // freshness check. If the entry was written within
             // REPO_SIZE_CACHE_TTL_SECS, we honor it regardless of
@@ -3429,22 +3461,23 @@ pub(crate) async fn run_repos_report(
             // cache files).
             Some(c)
                 if cached_entry_is_fresh(c)
-                    && c.missing_objects.is_some() =>
+                    && c.missing_objects.is_some()
+                    && c.history_probe_failed.is_some() =>
             {
                 (
                     Some(c.git_size_bytes),
                     c.git_modules_bytes,
                     (c.pack_too_large, c.pack_pushable_bytes),
                     c.missing_objects.unwrap_or(0),
+                    c.history_probe_failed.unwrap_or(false),
                 )
             }
             _ => {
                 let size = measure_git_size_bytes(&repo);
                 let modules = measure_modules_size_bytes(&repo);
                 let pack = crate::git::github_pack_too_large(&repo, size);
-                // ADDED 2026-07-23 (v0.112.39): probe broken-history
-                // alongside the size measure (same 24h cache TTL).
-                let missing = probe_missing_objects(&repo);
+                // Probe broken-history alongside the size measure.
+                let history = probe_history(&repo);
                 cache_record.lock().unwrap().insert(
                     cache_key.clone(),
                     CachedRepoSize {
@@ -3452,7 +3485,8 @@ pub(crate) async fn run_repos_report(
                         pack_too_large: pack.0,
                         pack_pushable_bytes: pack.1,
                         gitdir_sig,
-                        missing_objects: Some(missing),
+                        missing_objects: Some(history.missing_objects),
+                        history_probe_failed: Some(history.failed),
                         // ADDED 2026-07-24 (v0.112.40): record the
                         // wall-clock write time so the TTL check can
                         // honor fresh entries across daemon activity.
@@ -3460,9 +3494,10 @@ pub(crate) async fn run_repos_report(
                         git_modules_bytes: modules,
                     },
                 );
-                (size, modules, pack, missing)
+                (size, modules, pack, history.missing_objects, history.failed)
             }
         };
+        let history_broken = history_probe_failed || missing_objects > 0;
 
         // Classification: a repo is WARN if it has TRACKED modifications or
         // staged changes. Untracked files (e.g., target/, node_modules/) are
@@ -3516,10 +3551,10 @@ pub(crate) async fn run_repos_report(
         // pushed broken history once (deathrun, 2092 missing objects
         // on both sides, days undetected). Always surface as CONCERN
         // so the operator investigates.
-        if missing_objects > 0 {
+        if history_broken {
             concern = true;
         }
-        let warn = !concern && real_is_dirty;
+        let mut warn = !concern && real_is_dirty;
 
         // Flags still use effective_status for ahead/behind/origin detection.
         // Only mark STUCK_PUSH when the daemon has actually recorded a recent
@@ -3576,8 +3611,12 @@ pub(crate) async fn run_repos_report(
         // object store. Drives the CONCERN classification (set above)
         // and the hint. See `probe_missing_objects` + the deathrun
         // incident (2092 missing, both sides broken).
-        if missing_objects > 0 {
-            flags.push(format!("BROKEN_HISTORY:{}", missing_objects));
+        if history_broken {
+            if history_probe_failed {
+                flags.push("BROKEN_HISTORY:probe-failed".to_string());
+            } else {
+                flags.push(format!("BROKEN_HISTORY:{}", missing_objects));
+            }
         }
 
         // ── Ownership override (compute early) ─────────
@@ -3600,14 +3639,29 @@ pub(crate) async fn run_repos_report(
             remote_hosts: policy.trusted_remote_hosts.clone(),
         };
         let ownership_report = if effective_skip {
-            Some(crate::ownership::detect_ownership(
-                &repo,
-                &trusted_for_ownership,
-                repo_override_for_ownership.owned,
-            ))
+            Some(if policy.path_is_owned(&repo) {
+                crate::ownership::detect_ownership_path_owned(
+                    &repo,
+                    &trusted_for_ownership,
+                    repo_override_for_ownership.owned,
+                )
+            } else {
+                crate::ownership::detect_ownership(
+                    &repo,
+                    &trusted_for_ownership,
+                    repo_override_for_ownership.owned,
+                )
+            })
         } else {
             None
         };
+        if ownership_report
+            .as_ref()
+            .map(|r| r.has_path_warning())
+            .unwrap_or(false)
+        {
+            warn = true;
+        }
 
         // Pull the daemon's push-retry tracking (consecutive
         // failures + last error message). When the retry budget
@@ -3641,19 +3695,29 @@ pub(crate) async fn run_repos_report(
             ),
             _ => None,
         };
+        let ownership_warning_hint = match &ownership_report {
+            Some(report) if report.has_path_warning() => {
+                Some(format!("⚠️ path-owned identity/origin warning: {}", report.label()))
+            }
+            _ => None,
+        };
 
         let hint = if let Some(h) = unowned_hint {
             h
-        } else if missing_objects > 0 {
-            // ADDED 2026-07-23 (v0.112.39): broken-history hint —
-            // the most actionable pointer for the operator. A repo
-            // with missing objects is damaged (fresh clones fail);
-            // the fix is a fresh clone from the forge or an orphan
-            // cutover (as done for deathrun).
-            format!(
-                "history damaged ({} objects missing) — fresh clones fail; needs clone-from-forge or orphan cutover",
-                missing_objects
-            )
+        } else if history_broken {
+            // An invalid HEAD/ref can make libgit2 report every file as
+            // untracked and `last_commit_hash` as None. It is broken
+            // history, not an empty repository.
+            if history_probe_failed {
+                "history probe failed (invalid HEAD/ref or timeout) — repair from a verified remote; not an empty repo".to_string()
+            } else {
+                format!(
+                    "history damaged ({} objects missing) — fresh clones fail; needs clone-from-forge or orphan cutover",
+                    missing_objects
+                )
+            }
+        } else if let Some(h) = ownership_warning_hint {
+            h
         } else if push_budget_exhausted {
             let info = stuck_info.as_ref().unwrap();
             let error_summary = if info.last_error.is_empty() {
@@ -3677,8 +3741,26 @@ pub(crate) async fn run_repos_report(
             repo_hint(&flags, warn, concern)
         };
 
-        // Calculate push status from flags
-        let (push_status, push_error) = if push_budget_exhausted {
+        // Calculate push status from flags. Ownership rejection is a
+        // deliberate block, not an in-flight push; do not infer PENDING
+        // from the stale ahead count in that case.
+        let ownership_blocked = matches!(
+            &ownership_report,
+            Some(crate::ownership::OwnershipReport::Unowned { .. })
+                | Some(crate::ownership::OwnershipReport::Unknown { .. })
+        );
+        let (push_status, push_error) = if ownership_blocked {
+            let detail = match ownership_report.as_ref() {
+                Some(crate::ownership::OwnershipReport::Unowned { reason, .. }) => {
+                    format!("ownership blocked: {}", reason)
+                }
+                Some(crate::ownership::OwnershipReport::Unknown { .. }) => {
+                    "ownership blocked: unknown".to_string()
+                }
+                _ => "ownership blocked".to_string(),
+            };
+            ("BLOCKED".to_string(), detail)
+        } else if push_budget_exhausted {
             let info = stuck_info.as_ref().unwrap();
             let err = if info.last_error.is_empty() {
                 format!("{} consecutive push failures", info.consecutive_failures)
@@ -3695,6 +3777,15 @@ pub(crate) async fn run_repos_report(
             (
                 "INTENTIONAL".to_string(),
                 "intentional legacy isolation, no upstream configured".to_string(),
+            )
+        } else if history_broken {
+            (
+                "BROKEN".to_string(),
+                if history_probe_failed {
+                    "history probe failed — invalid HEAD/ref or timeout".to_string()
+                } else {
+                    format!("{} objects missing from history", missing_objects)
+                },
             )
         } else if flags.iter().any(|f| f == "EMPTY_REPO") {
             // ADDED 2026-07-21 (v0.112.29): empty repos (no commits)
@@ -5252,6 +5343,8 @@ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static s
         }
         "FAIL" => ("❌ FAIL", Color::Red),
         "STUCK" => ("🛑 STUCK", Color::Red),
+        "BROKEN" => ("🩹 BROKEN", Color::Red),
+        "BLOCKED" => ("🚫 BLOCKED", Color::Yellow),
         _ => ("?", Color::White),
     }
 }
@@ -8992,6 +9085,38 @@ mod tests {
     }
 
     #[test]
+    fn test_unowned_pending_is_blocked_not_active() {
+        let cause = StateCause::Unowned {
+            reason: "untrusted_email".to_string(),
+            detail: "user.email = --global".to_string(),
+        };
+        assert!(!repo_is_active("PENDING", &cause));
+        assert_eq!(push_cell_label("BLOCKED", None).0, "🚫 BLOCKED");
+    }
+
+    #[test]
+    fn test_broken_history_is_not_active() {
+        assert!(!repo_is_active("BROKEN", &StateCause::Failed));
+        assert_eq!(push_cell_label("BROKEN", None).0, "🩹 BROKEN");
+    }
+
+    #[test]
+    fn test_probe_history_invalid_head_is_failure_not_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::process::Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(repo)
+            .status()
+            .unwrap();
+        std::fs::write(repo.join(".git/refs/heads/main"), "0000000000000000000000000000000000000000\n")
+            .unwrap();
+        let probe = probe_history(repo);
+        assert!(probe.failed);
+        assert_eq!(probe.missing_objects, 0);
+    }
+
+    #[test]
     fn test_repo_is_warn_not_concern() {
         let status = make_status(false, 0, 0);
         // has_origin=false, has_any_remote=false → still a concern,
@@ -11829,7 +11954,6 @@ mod tests {
     /// minimum. Operators on narrower terminals get the existing
     /// `print_repos_compact_table` view (the terminal-width branching
     /// in `run_repos_report` already routes them there automatically).
-    #[test]
     /// v0.113.12: the legend must explain every column that ships in the
     /// rich table, plus the color semantics the operator asked about
     /// (SIZE tiers). v0.113.13: column set changed — USED dropped,
@@ -12027,6 +12151,7 @@ mod size_cache_tests {
                 pack_pushable_bytes: 1234,
                 gitdir_sig: 99,
                 missing_objects: Some(0),
+                history_probe_failed: Some(false),
                 cached_at_secs: Some(1234567890),
                 git_modules_bytes: 0,
             },
@@ -12074,6 +12199,7 @@ mod size_cache_tests {
             pack_pushable_bytes: 1234,
             gitdir_sig,
             missing_objects: Some(0),
+            history_probe_failed: Some(false),
             cached_at_secs,
             git_modules_bytes: 0,
         }

@@ -22,9 +22,10 @@
 //!   "unowned" than to "owned" in the safety-first default.
 //!
 //! The signal checks are config-driven: `policy.trusted_emails`,
-//! `policy.trusted_authors`, and `policy.trusted_remote_hosts`. The
-//! `RepoPolicyOverride.owned` field can override an individual repo
-//! back to Owned when the operator knows better than the heuristic.
+//! `policy.trusted_authors`, and `policy.trusted_remote_hosts`. For daemon
+//! operation, configured watch-root membership is the ownership signal and
+//! these checks become warnings; `RepoPolicyOverride.owned = false` remains
+//! the hard opt-out. The legacy `owned = true` override is still supported.
 
 use std::path::Path;
 use std::process::Command;
@@ -73,10 +74,19 @@ impl OwnershipReport {
         }
     }
 
+    /// True when path ownership allowed synchronization despite an
+    /// untrusted identity or origin signal.
+    pub fn has_path_warning(&self) -> bool {
+        matches!(self, OwnershipReport::Owned { reason } if reason.starts_with("path_owned:"))
+    }
+
     /// Hint text for the HINT column.
     #[allow(dead_code)] // intentional public API for future CLI consumers
     pub fn hint(&self) -> &'static str {
         match self {
+            OwnershipReport::Owned { reason } if reason.starts_with("path_owned:") => {
+                "path-owned; identity/origin warning"
+            }
             OwnershipReport::Owned { .. } => "owned by operator",
             OwnershipReport::Unowned { .. } | OwnershipReport::Unknown { .. } => {
                 "repo not owned by operator (run ownership --explain <repo>)"
@@ -143,6 +153,27 @@ pub struct OwnershipInputs {
 ///    `trusted_email` (the strongest positive signal).
 /// 6. None of the above → Unknown.
 pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipReport {
+    classify_with_path_ownership(inputs, trusted, false)
+}
+
+/// Classify a repository that was discovered beneath a configured watch root.
+///
+/// Watch-root membership is the ownership signal for daemon operation. Git
+/// identity and remote checks remain useful diagnostics, but they must not
+/// block synchronization of a path the operator explicitly configured. The
+/// only hard opt-out is `RepoPolicyOverride.owned = false`.
+pub fn classify_path_owned(
+    inputs: &OwnershipInputs,
+    trusted: &TrustedSet,
+) -> OwnershipReport {
+    classify_with_path_ownership(inputs, trusted, true)
+}
+
+fn classify_with_path_ownership(
+    inputs: &OwnershipInputs,
+    trusted: &TrustedSet,
+    path_owned: bool,
+) -> OwnershipReport {
     // 1. Override
     if let Some(forced) = inputs.override_owned {
         return if forced {
@@ -154,6 +185,47 @@ pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipRepo
                 reason: "override".to_string(),
                 detail: "RepoPolicyOverride.owned = false".to_string(),
             }
+        };
+    }
+
+    // A configured watch path is owned by policy. Preserve the old heuristic
+    // as a warning signal for operators, but do not turn it into an auto-sync
+    // gate. Explicit `owned = false` was handled above and remains a hard
+    // opt-out.
+    if path_owned {
+        if let Some(ref email) = inputs.user_email {
+            if !trusted.emails.iter().any(|e| e == email) {
+                return OwnershipReport::Owned {
+                    reason: "path_owned:untrusted_email".to_string(),
+                };
+            }
+        }
+        if inputs.head_author_email.is_some() || inputs.head_author_name.is_some() {
+            let email_trusted = inputs
+                .head_author_email
+                .as_ref()
+                .map(|e| trusted.emails.iter().any(|t| t == e))
+                .unwrap_or(true);
+            let name_trusted = inputs
+                .head_author_name
+                .as_ref()
+                .map(|n| trusted.authors.iter().any(|t| t == n))
+                .unwrap_or(true);
+            if !email_trusted || !name_trusted {
+                return OwnershipReport::Owned {
+                    reason: "path_owned:untrusted_author".to_string(),
+                };
+            }
+        }
+        if let Some(ref url) = inputs.origin_url {
+            if !is_trusted_origin(url, &trusted.remote_hosts) {
+                return OwnershipReport::Owned {
+                    reason: "path_owned:untrusted_origin".to_string(),
+                };
+            }
+        }
+        return OwnershipReport::Owned {
+            reason: "path_owned".to_string(),
         };
     }
 
@@ -366,12 +438,8 @@ fn parse_origin(url: &str) -> Option<(&str, &str)> {
     // Scheme-form: scheme://[user@]host[:port]/path
     let after_scheme = url.split_once("://")?.1;
     // Strip optional userinfo (user@) and port
-    let host_and_path = if let Some(slash) = after_scheme.find('/') {
-        &after_scheme[..slash]
-    } else {
-        // No path at all — `https://github.com` — no owner.
-        return None;
-    };
+    // No path at all — `https://github.com` — no owner.
+    let host_and_path = &after_scheme[..after_scheme.find('/')?];
     let host = host_and_path.rsplit('@').next()?.split(':').next()?; // strip optional `:port`
     let path_start = after_scheme.find('/').map(|i| i + 1)?;
     let path = &after_scheme[path_start..];
@@ -524,6 +592,19 @@ pub fn detect_ownership(
     classify(&inputs, trusted)
 }
 
+/// Detect ownership for a repository discovered under a configured watch root.
+/// The path policy permits synchronization while retaining identity/origin
+/// mismatches in the `Owned` reason for warning/reporting purposes.
+pub fn detect_ownership_path_owned(
+    repo: &Path,
+    trusted: &TrustedSet,
+    override_owned: Option<bool>,
+) -> OwnershipReport {
+    let mut inputs = read_signals(repo);
+    inputs.override_owned = override_owned;
+    classify_path_owned(&inputs, trusted)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -573,6 +654,34 @@ mod tests {
             }
             other => panic!("expected Unowned, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_classify_path_owned_untrusted_identity_is_warning_only() {
+        let inputs = OwnershipInputs {
+            user_email: Some("darklord@dracon.local".to_string()),
+            head_author_email: Some("--global".to_string()),
+            head_author_name: Some("--global".to_string()),
+            origin_url: Some("git@gitlab.com:someone-else/repo.git".to_string()),
+            override_owned: None,
+        };
+        let report = classify_path_owned(&inputs, &default_trusted());
+        assert!(matches!(report, OwnershipReport::Owned { .. }));
+        assert!(report.has_path_warning());
+        assert!(report.label().contains("path_owned:untrusted_email"));
+    }
+
+    #[test]
+    fn test_classify_path_owned_false_override_remains_hard_opt_out() {
+        let inputs = OwnershipInputs {
+            user_email: None,
+            head_author_email: None,
+            head_author_name: None,
+            origin_url: None,
+            override_owned: Some(false),
+        };
+        let report = classify_path_owned(&inputs, &default_trusted());
+        assert!(matches!(report, OwnershipReport::Unowned { reason, .. } if reason == "override"));
     }
 
     #[test]

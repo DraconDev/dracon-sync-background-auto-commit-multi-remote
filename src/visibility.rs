@@ -173,7 +173,18 @@ pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
     let Ok(content) = std::fs::read_to_string(&path) else {
         return None;
     };
-    parse_visibility_cache(&content).map(|(private, _)| private)
+    let (private, ts) = parse_visibility_cache(&content)?;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    // A stale positive-public cache must not authorize a new Codeberg
+    // publication after an API failure. Unknown/stale therefore follows the
+    // same safe path as an absent cache.
+    if now.saturating_sub(ts) >= 24 * 60 * 60 {
+        return None;
+    }
+    Some(private)
 }
 
 /// Test-only accessor for the cache path. Lives here so tests in
@@ -289,6 +300,97 @@ pub(crate) fn get_github_visibility_opt(owner: &str, repo: &str) -> Option<bool>
         "true" => Some(true),
         "false" => Some(false),
         _ => None,
+    }
+}
+
+/// Query GitLab visibility without putting the token in the process list.
+/// Returns `true` for private, `false` for public, and `None` for an
+/// authentication/transport/API response that cannot be trusted.
+fn get_gitlab_visibility_opt(owner: &str, repo: &str, token: &str) -> Option<bool> {
+    use std::io::Write;
+    let encoded = format!("{}%2F{}", owner, repo);
+    let url = GITLAB_API_PROJECTS.replace("{}", &encoded);
+    let mut child = std::process::Command::new("curl")
+        .args(["-sS", "--max-time", "10", "-H", "@-", &url])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
+    child
+        .stdin
+        .as_mut()?
+        .write_all(format!("PRIVATE-TOKEN: {}\r\n", token).as_bytes())
+        .ok()?;
+    let output = child.wait_with_output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let body = String::from_utf8_lossy(&output.stdout);
+    if body.contains("\"visibility\":\"public\"")
+        || body.contains("\"visibility\": \"public\"")
+    {
+        Some(false)
+    } else if body.contains("\"visibility\":\"private\"")
+        || body.contains("\"visibility\": \"private\"")
+    {
+        Some(true)
+    } else {
+        None
+    }
+}
+
+/// Determine the visibility of the operator-owned GitHub/GitLab mirrors.
+/// `Some(false)` (public) wins if ANY owned forge positively reports public;
+/// `Some(true)` means every queried forge positively reported private;
+/// `None` means visibility is unknown and must never authorize publication.
+pub(crate) fn owned_forge_visibility_opt(
+    repo_path: &Path,
+    remotes: &[RemoteConfig],
+) -> Option<bool> {
+    let repo_name = repo_path.file_name()?.to_string_lossy().to_string();
+    let mut saw_owned_forge = false;
+    let mut saw_unknown = false;
+    let mut all_private = true;
+
+    for remote in remotes {
+        let resolved_name = remote.resolve_repo_name(&repo_name);
+        let visibility = match remote.effective_auth_type() {
+            AuthType::GitHub => {
+                saw_owned_forge = true;
+                get_github_visibility_opt(&remote.resolve_account(), &resolved_name)
+            }
+            AuthType::GitLab => {
+                saw_owned_forge = true;
+                let token = remote
+                    .auto_create_token_var
+                    .as_deref()
+                    .unwrap_or("GITLAB_TOKEN");
+                load_secret(token, &sync_secrets_dir()).and_then(|token| {
+                    get_gitlab_visibility_opt(
+                        &remote.resolve_account(),
+                        &resolved_name,
+                        &token,
+                    )
+                })
+            }
+            AuthType::Codeberg | AuthType::Generic => continue,
+        };
+        match visibility {
+            Some(private) => {
+                if !private {
+                    return Some(false);
+                }
+                all_private &= private;
+            }
+            None => saw_unknown = true,
+        }
+    }
+
+    if saw_owned_forge && !saw_unknown {
+        Some(all_private)
+    } else {
+        None
     }
 }
 
@@ -610,7 +712,7 @@ pub(crate) fn flip_repo_visibility(
 /// This function is **non-fatal**: errors are logged but never propagated,
 /// so a visibility sync failure will never break the git push pipeline.
 pub(crate) fn sync_mirror_visibility(
-    origin_url: &str,
+    _origin_url: &str,
     remotes: &[RemoteConfig],
     repo_path: &Path,
     interval_hours: u64,
@@ -628,38 +730,25 @@ pub(crate) fn sync_mirror_visibility(
         return;
     }
 
-    let Some((owner, gh_repo)) = parse_github_owner_repo(origin_url) else {
-        eprintln!(
-            "⚠️ could not parse GitHub owner/repo from origin URL: {}",
-            origin_url
-        );
-        return;
-    };
-
-    // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H4): the pre-fix code
-    // used the bool `get_github_visibility` (safe-default `true` on
-    // ANY transient gh failure) and then unconditionally wrote the
-    // cache "even on partial failures" — violating the
-    // `get_github_visibility_opt` cache-poison invariant (the _opt
-    // variant exists precisely for callers that write the cache or
-    // drive remote state changes). A network hiccup / auth expiry /
-    // rate limit flipped PUBLIC mirrors to private (uncommanded,
-    // unaudited remote state change) and poisoned the cache for 24h,
-    // gating the codeberg-public-only push path off. On `None`
-    // (unknown) we now skip BOTH the mirror flips AND the cache write.
-    let Some(github_private) = get_github_visibility_opt(&owner, &gh_repo) else {
+    // Query every configured operator-owned forge. A positive public result
+    // from any forge enables a public Codeberg mirror; an unknown/API-failure
+    // result never authorizes publication and does not poison the cache.
+    let Some(repo_private) = owned_forge_visibility_opt(repo_path, remotes) else {
         if crate::policy::debug_enabled() {
             eprintln!(
-                "🐛 GitHub visibility for {}/{} unknown (transient gh failure) — skipping mirror flips + cache write",
-                owner, gh_repo
+                "🐛 visibility for {} is unknown — skipping mirror flips + cache write",
+                repo_path.display()
             );
         }
         return;
     };
-    let visibility_str = if github_private { "private" } else { "public" };
+    let visibility_str = if repo_private { "private" } else { "public" };
 
     if crate::policy::debug_enabled() {
-        eprintln!("🐛 GitHub repo {}/{} is {}", owner, gh_repo, visibility_str);
+        eprintln!(
+            "🐛 owned forge visibility for {} is {} (any-public aggregation)",
+            repo_path.display(), visibility_str
+        );
     }
 
     for remote in remotes {
@@ -673,7 +762,7 @@ pub(crate) fn sync_mirror_visibility(
             if let Some(token) = load_secret(token_var, &sync_secrets_dir()) {
                 let resolved_name = remote.resolve_repo_name(&repo_name);
                 if let Err(e) =
-                    set_gitlab_visibility(&account, &resolved_name, &token, github_private)
+                    set_gitlab_visibility(&account, &resolved_name, &token, repo_private)
                 {
                     eprintln!(
                         "⚠️ failed to set GitLab visibility for {}: {}",
@@ -698,7 +787,7 @@ pub(crate) fn sync_mirror_visibility(
             if let Some(token) = load_secret(token_var, &sync_secrets_dir()) {
                 let resolved_name = remote.resolve_repo_name(&repo_name);
                 if let Err(e) =
-                    set_codeberg_visibility(&account, &resolved_name, &token, github_private)
+                    set_codeberg_visibility(&account, &resolved_name, &token, repo_private)
                 {
                     eprintln!(
                         "⚠️ failed to set Codeberg visibility for {}: {}",
@@ -719,9 +808,10 @@ pub(crate) fn sync_mirror_visibility(
         }
     }
 
-    // Update cache even on partial failures — we don't want to hammer APIs
-    // on every sync cycle when a token is permanently missing.
-    update_visibility_cache(repo_path, github_private);
+    // Only a fully known visibility result reaches the cache. A later
+    // transient API failure therefore becomes unknown rather than reusing
+    // a stale public value to publish private content.
+    update_visibility_cache(repo_path, repo_private);
 }
 
 /// Repo metadata fetched from GitHub: description + topics.

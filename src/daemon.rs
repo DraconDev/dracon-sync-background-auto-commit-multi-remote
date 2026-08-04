@@ -371,10 +371,11 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
         // first place (previously it was added here, then every push
         // failed with "Forgejo: Push to create is not enabled" until
         // `remove_stale_remotes` cleaned it up).
-        if crate::git::multi_remote::codeberg_push_excluded(
+        if crate::git::multi_remote::codeberg_push_excluded_for_repo(
             &policy.remotes,
             repo_override.auto_create_on_codeberg,
             crate::git::multi_remote::has_codeberg_tracking_ref(repo),
+            repo,
         ) && !combined_exclude.iter().any(|e| e == "codeberg")
         {
             combined_exclude.push("codeberg".to_string());
@@ -3557,11 +3558,19 @@ pub(crate) async fn run_daemon(
                     authors: policy.trusted_authors.clone(),
                     remote_hosts: policy.trusted_remote_hosts.clone(),
                 };
-                let report = crate::ownership::detect_ownership(
-                    &repo,
-                    &trusted,
-                    repo_override.owned,
-                );
+                let report = if policy.path_is_owned(&repo) {
+                    crate::ownership::detect_ownership_path_owned(
+                        &repo,
+                        &trusted,
+                        repo_override.owned,
+                    )
+                } else {
+                    crate::ownership::detect_ownership(
+                        &repo,
+                        &trusted,
+                        repo_override.owned,
+                    )
+                };
                 // Surface remediation: a repo that WAS classified
                 // Unowned/Unknown and now classifies as Owned gets a
                 // recovery line (and ledger alert) so the operator

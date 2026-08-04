@@ -619,37 +619,33 @@ pub(crate) struct SyncPolicy {
     pub(crate) push_max_retries: u32,
     /// Safety guard rail: when true (default), the daemon skips
     /// auto-commit AND auto-push for repos classified as
-    /// `Unowned` or `Unknown` by `ownership::detect_ownership`.
-    /// This prevents the daemon from committing/pushing into a
-    /// repo whose `origin` remote points to someone else's
-    /// GitHub/GitLab account (e.g. `zerostack-reference`'s
-    /// `gi-dellav/zerostack.git`) or whose HEAD author is a
-    /// historical bad config (e.g. `dracon-ai-lib`'s
-    /// `Dracon <dracon@void>`). Set to false to re-enable
-    /// auto-handling for unowned repos (NOT recommended).
+    /// `Unowned` or `Unknown` outside configured watch roots.
+    /// Repositories beneath a configured watch root are path-owned by
+    /// default; their identity/origin mismatches are warnings instead.
+    /// `owned = false` remains a hard per-repo opt-out. Set this false
+    /// to re-enable heuristic handling for explicitly unowned paths.
     /// Per-repo override: `RepoPolicyOverride.auto_skip_unowned`.
     #[serde(default = "default_true")]
     pub(crate) auto_skip_unowned: bool,
-    /// Trusted git `user.email` values. A repo is classified as
-    /// Owned when its local `git config user.email` matches one
-    /// of these. Default: `["dracsharp@gmail.com"]`. This is the
-    /// strongest ownership signal — a repo with the wrong
-    /// `user.email` will be classified `Unowned` with reason
-    /// `untrusted_email`.
+    /// Trusted git `user.email` values. Outside configured watch roots,
+    /// a repo is classified as Owned when its local `git config user.email`
+    /// matches one of these. For path-owned repos this remains a warning
+    /// signal. Default: `["dracsharp@gmail.com"]`.
     #[serde(default = "default_trusted_emails")]
     pub(crate) trusted_emails: Vec<String>,
-    /// Trusted git author name values. A repo is classified as
-    /// Owned when its HEAD commit author name matches one of
-    /// these (e.g. when the operator's commit name was changed
-    /// in the global git config but historical commits still
-    /// have the old name). Default: `["DraconDev"]`.
+    /// Trusted git author name values. Outside configured watch roots, a
+    /// repo is classified as Owned when its HEAD commit author name matches
+    /// one of these (e.g. when the operator's commit name was changed in the
+    /// global git config but historical commits still have the old name).
+    /// For path-owned repos this remains a warning signal. Default:
+    /// `["DraconDev"]`.
     #[serde(default = "default_trusted_authors")]
     pub(crate) trusted_authors: Vec<String>,
-    /// Trusted `origin` remote URL substrings. A repo is
-    /// classified as Owned when its `origin` URL contains one of
-    /// these (matched as a substring, e.g.
-    /// `github.com/DraconDev`). Default: the three DraconDev
-    /// hosts on GitHub, GitLab, and Codeberg.
+    /// Trusted `origin` remote URL substrings. Outside configured watch roots,
+    /// a repo is classified as Owned when its `origin` URL matches one of
+    /// these host/account pairs. For path-owned repos a foreign origin is
+    /// fetch-only and remains a warning. Default: the three DraconDev hosts
+    /// on GitHub, GitLab, and Codeberg.
     #[serde(default = "default_trusted_remote_hosts")]
     pub(crate) trusted_remote_hosts: Vec<String>,
     /// When a repo has been dirty continuously for longer than
@@ -893,11 +889,11 @@ pub(crate) struct RepoPolicyOverride {
     /// "delete the operator's work".
     #[serde(default)]
     pub(crate) revert_excluded_to_head: Option<bool>,
-    /// Per-repo override for `auto_skip_unowned`. Some(true)
-    /// forces the repo to be classified as Owned (the daemon
-    /// will commit and push even if its origin or author isn't
-    /// trusted). Some(false) forces Unowned (skip regardless of
-    /// signals). None inherits the global policy.
+    /// Per-repo ownership override. Some(false) is the explicit hard
+    /// opt-out, even beneath an owned watch root. Some(true) is retained
+    /// for backwards compatibility and forces Owned. None follows path
+    /// ownership beneath configured watch roots and the legacy heuristic
+    /// outside them.
     #[serde(default)]
     pub(crate) owned: Option<bool>,
     /// Per-repo override for `auto_skip_unowned`. Some(false)
@@ -1363,6 +1359,18 @@ impl SyncPolicy {
                 }
             })
             .collect()
+    }
+
+    /// Return true when `repo` is beneath one of the explicitly configured
+    /// watch roots. Configured path membership is the daemon's ownership
+    /// signal; per-repo `owned = false` remains the explicit opt-out.
+    pub(crate) fn path_is_owned(&self, repo: &Path) -> bool {
+        let repo = std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());
+        self.watch_roots.iter().any(|root| {
+            let root = PathBuf::from(root);
+            let root = std::fs::canonicalize(&root).unwrap_or(root);
+            repo == root || repo.starts_with(&root)
+        })
     }
 }
 

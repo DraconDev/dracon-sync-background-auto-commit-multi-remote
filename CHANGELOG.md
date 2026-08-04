@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.35] - 2026-08-04
+
+### Added (v0.113.35)
+
+- **Path-owned synchronization**: repositories beneath configured watch roots
+  are owned by policy by default; `owned = false` remains the explicit opt-out
+  and legacy `owned = true` remains compatible. Untrusted identity and foreign
+  origin signals are warnings rather than synchronization gates for owned paths.
+- **Any-public Codeberg mirroring**: a positive public result from any owned
+  GitHub/GitLab forge enables a public Codeberg mirror. Unknown/API-failure
+  visibility never authorizes publication; private-everywhere repositories
+  stop new Codeberg pushes without deleting existing mirrors.
+- **State accuracy**: invalid HEAD/ref probes are reported as broken history,
+  not empty repositories, and ownership-skipped rows show `BLOCKED` instead of
+  a false active `PENDING` push.
+- Added regression coverage for path ownership, stale/unknown visibility,
+  Codeberg gating, broken history, and ownership-blocked activity.
+
+### Fixed (v0.113.35)
+
+- GitLab and Codeberg visibility aggregation now preserves the safe unknown
+  state and provisions new mirrors with the correct public/private setting.
+- History-repair preflight refuses to operate when the history probe itself
+  fails, not only when it finds explicitly missing objects.
+
 ## [0.113.34] - 2026-07-31
 
 ### Added (v0.113.34)

@@ -1842,7 +1842,8 @@ fn cmd_ownership(
     json: bool,
 ) -> Result<()> {
     use crate::ownership::{
-        detect_ownership, read_signals, OwnershipInputs, OwnershipReport, TrustedSet,
+        detect_ownership, detect_ownership_path_owned, read_signals, OwnershipInputs,
+        OwnershipReport, TrustedSet,
     };
     use crate::policy::{load_repo_override, SyncPolicy};
     use comfy_table::{presets::UTF8_FULL_CONDENSED, Cell, Color, ContentArrangement, Table};
@@ -1873,7 +1874,11 @@ fn cmd_ownership(
         let inputs = read_signals(repo_path);
         let override_ = load_repo_override(repo_path);
         let override_owned = override_.owned;
-        let report = detect_ownership(repo_path, &trusted, override_owned);
+        let report = if policy.path_is_owned(repo_path) {
+            detect_ownership_path_owned(repo_path, &trusted, override_owned)
+        } else {
+            detect_ownership(repo_path, &trusted, override_owned)
+        };
         rows.push(Row {
             repo: repo_path.display().to_string(),
             report,
