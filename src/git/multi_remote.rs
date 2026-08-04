@@ -351,7 +351,7 @@ pub(crate) async fn push_mirror_remotes(
         combined_exclude.push("codeberg".to_string());
     }
 
-    let filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
+    let mut filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
     let effective_codeberg_override = effective_codeberg_auto_create_override(
         remotes,
         codeberg_override,
@@ -376,6 +376,17 @@ pub(crate) async fn push_mirror_remotes(
                     "⚠️ auto-create failed for {} on {}: {}",
                     repo_name, remote_name, e
                 );
+                // A new Codeberg mirror must not fall through to a raw push
+                // when creation was inconclusive or failed: Forgejo rejects
+                // push-to-create, producing a guaranteed failure loop. Retry
+                // creation on the next cycle instead.
+                if remote_name == "codeberg"
+                    && !has_codeberg_tracking_ref(repo)
+                    && !combined_exclude.iter().any(|e| e == "codeberg")
+                {
+                    combined_exclude.push("codeberg".to_string());
+                    filtered = filter_remotes_by_exclude(remotes, &combined_exclude);
+                }
             }
         }
     }
@@ -1100,6 +1111,7 @@ pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
         || lower.contains("could not be found")
         || lower.contains("does not exist")
         || lower.contains("not found")
+        || lower.contains("push to create is not enabled")
         || lower.contains("404")
 }
 
@@ -1192,6 +1204,9 @@ mod tests {
         ));
         assert!(ls_remote_indicates_missing("repository does not exist"));
         assert!(ls_remote_indicates_missing("HTTP 404 Not Found"));
+        assert!(ls_remote_indicates_missing(
+            "Forgejo: Push to create is not enabled for users."
+        ));
         // Transport/auth failures must NOT read as missing.
         assert!(!ls_remote_indicates_missing(
             "ssh: connect to host github.com port 22: Connection timed out"
