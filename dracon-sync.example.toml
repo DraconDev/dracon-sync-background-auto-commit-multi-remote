@@ -625,3 +625,18 @@ auto_create = false
 # settling_max_delay_secs = 60
 # dirty_max_age_action = "commit"  # or "warn" or "ignore"
 # min_commit_interval_secs = 5
+
+# =============================================================================
+#  SECTION 14b: STALE-DIRTY PILE-UP ALERT (v0.113.42)
+# =============================================================================
+# When a watched repo has committable changes whose OLDEST file mtime
+# is older than `stale_dirty_alert_secs`, the daemon emits a
+# "Changes Piling Up" alert (journal + alerts ledger, throttled to
+# once per 30 min per repo). The age is mtime-based, so a frozen
+# daemon or a wedged cycle is surfaced on the first cycle after the
+# daemon resumes — even when it then commits immediately.
+#
+# Default 600s (10 min). Set to 0 to disable.
+# To override per-repository, set in `<repo>/.dracon/dracon-sync.toml`:
+#   stale_dirty_alert_secs = 900
+# stale_dirty_alert_secs = 600

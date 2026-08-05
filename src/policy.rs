@@ -1252,7 +1252,7 @@ pub(crate) fn default_min_commit_interval_secs() -> u64 {
     5
 }
 
-fn default_stale_dirty_alert_secs() -> u64 {
+pub(crate) fn default_stale_dirty_alert_secs() -> u64 {
     600
 }
 

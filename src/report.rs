@@ -9748,6 +9748,7 @@ mod tests {
 
     fn test_sync_policy() -> SyncPolicy {
         SyncPolicy {
+            stale_dirty_alert_secs: 600,
             max_stage_batch_files: 100000,
             auto_resolve_unmerged: default_auto_resolve_unmerged(),
             push_debounce_secs: default_push_debounce_secs(),
