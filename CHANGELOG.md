@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.40] - 2026-08-05
+
+### Fixed (v0.113.40)
+
+- Clean repositories now retry configured mirrors that are behind the local
+  primary tip, even when the primary `origin` is already synchronized. A
+  divergent/ahead mirror is excluded from this fast-forward retry path so it
+  remains an explicit reconciliation concern instead of causing push churn.
+
 ## [0.113.39] - 2026-08-05
 
 ### Fixed (v0.113.39)

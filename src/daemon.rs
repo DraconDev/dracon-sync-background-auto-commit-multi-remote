@@ -27,7 +27,8 @@ macro_rules! veprintln {
 
 use crate::exclude::{excluded_dir_names_set, has_sync_relevant_dirty_entries};
 use crate::git::{
-    count_unpushed_vs_mirrors, current_branch, discover_git_repos, git_diff_head_files,
+    count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
+    discover_git_repos, git_diff_head_files,
     has_both_main_and_master, has_origin_remote, has_tracking_upstream, is_repo_ready,
     is_safe_branch_name, repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
 };
@@ -3866,6 +3867,25 @@ pub(crate) async fn run_daemon(
             // is the fallback after the mirror-based counts.
             let upstream_ref_missing =
                 has_upstream && crate::git::upstream_tracking_ref_missing(&repo);
+            // A clean repo can still have a configured mirror behind its
+            // local HEAD while the primary origin is already current. Use
+            // the local mirror tracking refs to dispatch one ordinary
+            // fast-forward push; divergent/ahead mirrors are deliberately
+            // excluded by the helper and remain an operator-reconciliation
+            // concern rather than a retry loop.
+            if status.ahead == 0 {
+                let mirror_ahead = count_pushable_unpushed_vs_mirrors(&repo);
+                if mirror_ahead > 0 {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} mirror-ahead override: status.ahead=0 → {}",
+                            repo.display(),
+                            mirror_ahead
+                        );
+                    }
+                    status.ahead = mirror_ahead as usize;
+                }
+            }
             if status.ahead == 0 && (!has_upstream || upstream_ref_missing) {
                 let unpushed = count_unpushed_vs_mirrors(&repo);
                 // CHANGED 2026-07-21 (v0.112.31, audit H7/F1.4):

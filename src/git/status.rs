@@ -364,6 +364,42 @@ pub(crate) fn count_unpushed_vs_mirrors(repo: &Path) -> u64 {
     0
 }
 
+/// Count local commits that can be fast-forward-pushed to a mirror whose
+/// tracking ref is behind HEAD. Unlike `count_unpushed_vs_mirrors`, this
+/// excludes divergent/ahead mirrors: those require reconciliation and must
+/// not cause the daemon to retry a push on every clean cycle.
+pub(crate) fn count_pushable_unpushed_vs_mirrors(repo: &Path) -> u64 {
+    let known_mirror_refs = [
+        "refs/remotes/github/main",
+        "refs/remotes/gitlab/main",
+        "refs/remotes/codeberg/main",
+    ];
+    let mut max_count = 0;
+    for mirror_ref in &known_mirror_refs {
+        let ancestor = crate::policy::std_git_command()
+            .args(["merge-base", "--is-ancestor", mirror_ref, "HEAD"])
+            .current_dir(repo)
+            .output();
+        if !ancestor.is_ok_and(|output| output.status.success()) {
+            continue;
+        }
+        let output = crate::policy::std_git_command()
+            .args(["rev-list", "--count", &format!("{}..HEAD", mirror_ref)])
+            .current_dir(repo)
+            .output();
+        if let Ok(o) = output {
+            if o.status.success() {
+                let count: u64 = String::from_utf8_lossy(&o.stdout)
+                    .trim()
+                    .parse()
+                    .unwrap_or(0);
+                max_count = max_count.max(count);
+            }
+        }
+    }
+    max_count
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -661,5 +697,52 @@ mod tests {
             .unwrap();
         assert!(status.success());
         assert!(any_mirror_tracking_ref_exists(&repo));
+    }
+
+    #[test]
+    fn test_count_pushable_unpushed_mirrors_excludes_divergence() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        let first = crate::policy::std_git_command()
+            .args(["rev-parse", "HEAD"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let first = String::from_utf8_lossy(&first.stdout).trim().to_string();
+        crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/gitlab/main", &first])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 0);
+
+        commit_file(&repo, "b.txt", "local ahead");
+        assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 1);
+
+        // Point the mirror at a different root. A divergent mirror is not a
+        // fast-forward push candidate and must not trigger retry churn. Make
+        // the unrelated root in this repository so the ref points at an
+        // object Git can inspect (rather than a dangling test ref).
+        let tree = crate::policy::std_git_command()
+            .args(["write-tree"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tree = String::from_utf8_lossy(&tree.stdout).trim().to_string();
+        let foreign = crate::policy::std_git_command()
+            .args(["commit-tree", &tree, "-m", "foreign"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(foreign.status.success());
+        let foreign = String::from_utf8_lossy(&foreign.stdout).trim().to_string();
+        crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/gitlab/main", &foreign])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 0);
     }
 }
