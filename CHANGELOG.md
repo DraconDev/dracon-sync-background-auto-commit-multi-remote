@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.42] - 2026-08-05
 ### Added (v0.113.42)
 
 - **Stale-dirty pile-up alert**: when a watched repo has committable
