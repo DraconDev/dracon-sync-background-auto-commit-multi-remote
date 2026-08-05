@@ -2643,7 +2643,7 @@ fn oldest_dirty_change_secs_core(
         let Ok(modified) = meta.modified() else {
             continue;
         };
-        if oldest.map_or(true, |o| modified < o) {
+        if oldest.is_none_or(|o| modified < o) {
             oldest = Some(modified);
         }
     }
