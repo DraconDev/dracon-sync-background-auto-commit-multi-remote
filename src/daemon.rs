@@ -3690,6 +3690,11 @@ pub(crate) async fn run_daemon(
                         continue;
                     }
                     pending_repos.remove(&repo);
+                    // Mark the grace period as completed. Keep this marker
+                    // through successful syncs; removing it on every success
+                    // would make an existing repo re-enter the 15s grace on
+                    // every daemon cycle and starve ordinary mirror pushes.
+                    initial_repos.insert(repo.clone());
                 } else {
                     // First time seeing this repo after startup: enter grace period
                     pending_repos.insert(repo.clone(), Instant::now());
@@ -3956,7 +3961,6 @@ pub(crate) async fn run_daemon(
                 let has_remote_issues = !has_origin || !has_upstream;
                 if !has_remote_issues {
                     activity.remove(&repo);
-                    initial_repos.remove(&repo);
                     continue;
                 }
                 // Remote issues but clean — check for dirty files that
@@ -3973,7 +3977,6 @@ pub(crate) async fn run_daemon(
                 );
                 if !dirty {
                     activity.remove(&repo);
-                    initial_repos.remove(&repo);
                     continue;
                 }
                 (dirty, entries)
@@ -4025,7 +4028,6 @@ pub(crate) async fn run_daemon(
                     dirty || status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
                 if !has_local_or_pending_work {
                     activity.remove(&repo);
-                    initial_repos.remove(&repo);
                     continue;
                 }
                 // No-redispatch invariant: a repo with an in-flight
@@ -4349,7 +4351,6 @@ pub(crate) async fn run_daemon(
                     // a success clears the max-failures backoff too.
                     max_fail_cooldowns.remove(&repo);
                     activity.remove(&repo);
-                    initial_repos.remove(&repo);
                 } else if matches!(outcome, ApplyOutcome::Failure) {
                     // CHANGED 2026-07-27 (v0.113.5, audit M4): the
                     // helper already encodes which outcomes are
@@ -4510,7 +4511,6 @@ pub(crate) async fn run_daemon(
                                 entry.failure_count = 0;
                                 max_fail_cooldowns.remove(&repo);
                                 activity.remove(&repo);
-                                initial_repos.remove(&repo);
                             }
                             ApplyOutcome::Blocked
                             | ApplyOutcome::BackstopSkipped => {

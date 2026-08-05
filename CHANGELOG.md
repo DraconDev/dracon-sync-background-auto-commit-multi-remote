@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.41] - 2026-08-05
+
+### Fixed (v0.113.41)
+
+- A repository that completed discovery grace is now retained as initialized
+  across successful syncs. Previously successful clean mirror retries removed
+  the marker and re-entered the 15-second grace period every cycle, starving
+  the normal push path.
+
 ## [0.113.40] - 2026-08-05
 
 ### Fixed (v0.113.40)
