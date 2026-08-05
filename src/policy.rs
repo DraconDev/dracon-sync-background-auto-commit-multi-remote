@@ -671,6 +671,18 @@ pub(crate) struct SyncPolicy {
     #[serde(default = "default_min_commit_interval_secs")]
     #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) min_commit_interval_secs: u64,
+    /// When a watched repo has committable changes whose OLDEST file
+    /// mtime is older than this many seconds, the daemon emits a
+    /// "Changes Piling Up" alert (journal + alerts ledger, throttled
+    /// to once per 30 min per repo). The age is mtime-based, so a
+    /// frozen daemon or a wedged cycle is surfaced on the first
+    /// cycle after the daemon resumes — even when it then commits
+    /// immediately. Default 600s (10 min). Set to 0 to disable.
+    /// Per-repo override via `stale_dirty_alert_secs` in
+    /// `<repo>/.dracon/dracon-sync.toml`. ADDED 2026-08-05
+    /// (v0.113.42).
+    #[serde(default = "default_stale_dirty_alert_secs")]
+    pub(crate) stale_dirty_alert_secs: u64,
 
     #[serde(default)]
     pub(crate) sync_visibility: bool,
@@ -914,6 +926,11 @@ pub(crate) struct RepoPolicyOverride {
     #[serde(default)]
     #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) dirty_max_age_action: Option<DirtyMaxAgeAction>,
+    /// Optional per-repo override for `stale_dirty_alert_secs`.
+    /// None inherits the global value. See
+    /// [`SyncPolicy::stale_dirty_alert_secs`].
+    #[serde(default)]
+    pub(crate) stale_dirty_alert_secs: Option<u64>,
     /// Per-repo list of remote names to skip when configuring
     /// and pushing mirrors. Each entry is a remote name as
     /// defined in the global `[[remotes]]` config (e.g. "gitlab").
@@ -1233,6 +1250,10 @@ pub(crate) fn default_settling_max_delay_secs() -> u64 {
 
 pub(crate) fn default_min_commit_interval_secs() -> u64 {
     5
+}
+
+fn default_stale_dirty_alert_secs() -> u64 {
+    600
 }
 
 pub(crate) fn default_dirty_max_age_action() -> DirtyMaxAgeAction {
@@ -1971,6 +1992,7 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         settling_max_delay_secs: 60,
         dirty_max_age_action: DirtyMaxAgeAction::Commit,
         min_commit_interval_secs: 5,
+        stale_dirty_alert_secs: 600,
         sync_visibility: false,
         sync_visibility_interval_hours: 24,
         sync_metadata: false,

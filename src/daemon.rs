@@ -2031,6 +2031,119 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         assert_eq!(default_dirty_max_age_action(), crate::policy::DirtyMaxAgeAction::Commit);
     }
 
+    // ── stale-dirty pile-up alert (v0.113.42) ──
+
+    /// The pile-up alert must only fire when the OLDEST committable
+    /// change is older than the threshold, and the per-repo cooldown
+    /// must throttle re-alerts. Threshold 0 disables the alert.
+    #[test]
+    fn test_stale_dirty_alert_due_throttle_and_disable() {
+        use crate::daemon::stale_dirty_alert_due;
+        let mut cooldowns = HashMap::new();
+        let repo = PathBuf::from("/tmp/test-repo");
+        // Below threshold → never fires.
+        assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns));
+        // Over threshold → fires.
+        assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns));
+        // Re-alert within the 30-min cooldown → throttled.
+        assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns));
+        // Disabled (0) → never, even far over the threshold.
+        let mut c2 = HashMap::new();
+        assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2));
+        // Different repo → independent cooldown.
+        let repo2 = PathBuf::from("/tmp/other-repo");
+        assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns));
+    }
+
+    /// The age computation must be mtime-based (oldest file wins),
+    /// skip `Deleted` entries (no worktree mtime) and skip oversized
+    /// files (never staged, so they must not trigger pile-up alerts).
+    #[test]
+    fn test_oldest_dirty_change_secs_core_mtime_based() {
+        use crate::daemon::oldest_dirty_change_secs_core;
+        use dracon_git::types::{DiffFile, FileStatus};
+        use std::fs::File;
+        use std::time::{Duration as StdDuration, SystemTime};
+        let dir = std::env::temp_dir().join(format!(
+            "dracon-sync-stale-dirty-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let old_path = dir.join("old.txt");
+        let new_path = dir.join("new.txt");
+        std::fs::write(&old_path, b"old").unwrap();
+        std::fs::write(&new_path, b"new").unwrap();
+        // old.txt's mtime sits 120s in the past; new.txt stays "now".
+        let past = SystemTime::now() - StdDuration::from_secs(120);
+        File::options()
+            .write(true)
+            .open(&old_path)
+            .unwrap()
+            .set_modified(past)
+            .unwrap();
+        let entries = vec![
+            DiffFile::new(PathBuf::from("old.txt"), FileStatus::Modified),
+            DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
+        ];
+        let names =
+            crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
+        let age = oldest_dirty_change_secs_core(
+            &dir,
+            &entries,
+            &names,
+            &[],
+            100_000_000,
+            &[],
+        )
+        .unwrap();
+        // The oldest file (old.txt) drives the age; tolerate skew.
+        assert!(age >= 110 && age <= 130, "expected ~120s, got {age}");
+        // Deletions have no mtime → no age → None (caller stays silent).
+        let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
+        assert_eq!(
+            oldest_dirty_change_secs_core(&dir, &del, &names, &[], 100_000_000, &[]),
+            None
+        );
+        // Oversized files are never staged → excluded from aging.
+        let big = vec![DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added)];
+        assert_eq!(
+            oldest_dirty_change_secs_core(&dir, &big, &names, &[], 1, &[]),
+            None
+        );
+        // Excluded patterns → not committable → no age.
+        assert_eq!(
+            oldest_dirty_change_secs_core(
+                &dir,
+                &entries,
+                &names,
+                &[],
+                100_000_000,
+                &["*.txt".to_string()],
+            ),
+            None
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The policy knob must default to 600 and round-trip through
+    /// TOML on both the global policy and the per-repo override.
+    #[test]
+    fn test_stale_dirty_alert_policy_default_and_serde() {
+        use crate::policy::{RepoPolicyOverride, SyncPolicy};
+        assert_eq!(crate::policy::default_stale_dirty_alert_secs(), 600);
+        assert_eq!(crate::policy::test_sync_policy().stale_dirty_alert_secs, 600);
+        let parsed: SyncPolicy =
+            toml::from_str("stale_dirty_alert_secs = 120\n").unwrap();
+        assert_eq!(parsed.stale_dirty_alert_secs, 120);
+        let disabled: SyncPolicy =
+            toml::from_str("stale_dirty_alert_secs = 0\n").unwrap();
+        assert_eq!(disabled.stale_dirty_alert_secs, 0);
+        let over: RepoPolicyOverride =
+            toml::from_str("stale_dirty_alert_secs = 900\n").unwrap();
+        assert_eq!(over.stale_dirty_alert_secs, Some(900));
+    }
+
     /// Verify `auto_skip_unowned` defaults to `true` (safety
     /// first). A regression here would silently disable the
     /// ownership safety guard rail.
@@ -2440,6 +2553,127 @@ pub(crate) fn notify_throttled(
     } else {
         false
     }
+}
+
+/// Per-repo re-alert cadence for the stale-dirty pile-up alert.
+/// After an alert fires for a repo, the next one for the same repo
+/// waits at least this long (unless the threshold was re-crossed
+/// after a clean cycle — the cooldown key is per-repo, not per-streak).
+const STALE_DIRTY_ALERT_COOLDOWN: Duration = Duration::from_secs(1800);
+
+/// Age (seconds) of the OLDEST committable change in `entries` for
+/// `repo`, measured from worktree file mtimes. Only entries the
+/// daemon would actually stage (`should_stage_entry`, including
+/// per-repo auto-commit excludes) contribute an mtime; `Deleted`
+/// entries and entries whose worktree file is missing are skipped.
+/// Returns `None` when no entry yields an mtime (e.g. deletions
+/// only) — no age can be measured, so the caller stays silent.
+///
+/// v0.113.42: the age is mtime-based (not observation-based) so a
+/// frozen daemon or a wedged cycle is surfaced on the first cycle
+/// after the daemon resumes, even when it then commits immediately.
+pub(crate) async fn oldest_dirty_change_secs(
+    repo: &Path,
+    entries: &[dracon_git::types::DiffFile],
+    excluded_dir_names: &BTreeSet<String>,
+    excluded_file_patterns: &[String],
+    max_stage_file_bytes: u64,
+    auto_commit_exclude_patterns: &[String],
+) -> Option<u64> {
+    let repo_owned = repo.to_path_buf();
+    let entries_owned = entries.to_vec();
+    let names = excluded_dir_names.clone();
+    let pats = excluded_file_patterns.to_vec();
+    let acp = auto_commit_exclude_patterns.to_vec();
+    tokio::task::spawn_blocking(move || {
+        oldest_dirty_change_secs_core(
+            &repo_owned,
+            &entries_owned,
+            &names,
+            &pats,
+            max_stage_file_bytes,
+            &acp,
+        )
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+fn oldest_dirty_change_secs_core(
+    repo: &Path,
+    entries: &[dracon_git::types::DiffFile],
+    excluded_dir_names: &BTreeSet<String>,
+    excluded_file_patterns: &[String],
+    max_stage_file_bytes: u64,
+    auto_commit_exclude_patterns: &[String],
+) -> Option<u64> {
+    let mut oldest: Option<std::time::SystemTime> = None;
+    for entry in entries {
+        if matches!(
+            entry.status,
+            dracon_git::types::FileStatus::Deleted
+        ) {
+            // Deletions have no worktree mtime — nothing to age.
+            continue;
+        }
+        // Defense in depth: entry paths come from git porcelain, but
+        // never follow absolute or parent-relative paths.
+        let rel = &entry.path;
+        if rel.is_absolute()
+            || rel
+                .components()
+                .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            continue;
+        }
+        if !crate::exclude::should_stage_entry(
+            repo,
+            entry,
+            excluded_dir_names,
+            excluded_file_patterns,
+            max_stage_file_bytes,
+            auto_commit_exclude_patterns,
+        ) {
+            continue;
+        }
+        let Ok(meta) = std::fs::metadata(repo.join(rel)) else {
+            continue;
+        };
+        let Ok(modified) = meta.modified() else {
+            continue;
+        };
+        if oldest.map_or(true, |o| modified < o) {
+            oldest = Some(modified);
+        }
+    }
+    let oldest = oldest?;
+    let age = std::time::SystemTime::now()
+        .duration_since(oldest)
+        .unwrap_or(Duration::ZERO)
+        .as_secs();
+    Some(age)
+}
+
+/// Returns `true` (and arms the per-repo cooldown) when a
+/// "Changes Piling Up" alert should be emitted for `repo`: the
+/// oldest committable change is older than `threshold_secs`
+/// (`0` disables the alert entirely) and the per-repo cooldown
+/// has expired. v0.113.42.
+pub(crate) fn stale_dirty_alert_due(
+    repo: &Path,
+    oldest_secs: u64,
+    threshold_secs: u64,
+    cooldowns: &mut HashMap<String, Instant>,
+) -> bool {
+    if threshold_secs == 0 || oldest_secs <= threshold_secs {
+        return false;
+    }
+    notify_throttled(
+        cooldowns,
+        &format!("stale-dirty-{}", repo.display()),
+        STALE_DIRTY_ALERT_COOLDOWN,
+    )
 }
 
 /// Path to the in-flight state file. The daemon writes the current
@@ -3953,7 +4187,7 @@ pub(crate) async fn run_daemon(
 
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Only do detailed diff analysis when the repo actually has changes.
-            let (effective_dirty, _entries) = if status.is_clean
+            let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
             {
@@ -4041,6 +4275,60 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
+
+            // v0.113.42 — stale-dirty pile-up alert. When a watched
+            // repo has committable changes whose OLDEST file mtime
+            // exceeds `stale_dirty_alert_secs`, emit a "Changes Piling
+            // Up" alert (journal + alerts ledger, throttled per repo).
+            // The age is mtime-based, so a frozen daemon or a wedged
+            // cycle is surfaced on the first cycle after the daemon
+            // resumes — even when it then commits immediately. Only
+            // repos the daemon would actually stage count (excluded
+            // dirs/files, per-repo auto-commit excludes, oversized
+            // files, unchanged gitlinks are all filtered out).
+            if effective_dirty {
+                let threshold = repo_override
+                    .stale_dirty_alert_secs
+                    .unwrap_or(policy.stale_dirty_alert_secs);
+                if threshold > 0 {
+                    // Per-repo auto-commit excludes EXTEND the global
+                    // list (AGENTS.md commit policy) — mirror the merge
+                    // so per-repo-excluded files never trigger the alert.
+                    let mut effective_excludes =
+                        policy.auto_commit_exclude_patterns.clone();
+                    if let Some(extra) = &repo_override.auto_commit_exclude_patterns {
+                        effective_excludes.extend(extra.iter().cloned());
+                    }
+                    if let Some(oldest_secs) = oldest_dirty_change_secs(
+                        &repo,
+                        &entries,
+                        &excluded_dir_names,
+                        &policy.exclude_file_patterns,
+                        policy.max_stage_file_bytes,
+                        &effective_excludes,
+                    )
+                    .await
+                    {
+                        if stale_dirty_alert_due(
+                            &repo,
+                            oldest_secs,
+                            threshold,
+                            &mut remote_notify_cooldowns,
+                        ) {
+                            crate::report::record_sync_alert(
+                                &repo,
+                                "Changes Piling Up",
+                                &format!(
+                                    "oldest committable change is {}s old (threshold {}s); {} committable entries; the daemon will keep committing as usual — this alert marks a pile-up that already exceeded the threshold",
+                                    oldest_secs,
+                                    threshold,
+                                    entries.len(),
+                                ),
+                            );
+                        }
+                    }
+                }
+            }
 
             // FIX (2026-06-19): include untracked_files in the fingerprint so
             // untracked file additions don't trigger the fingerprint stability
