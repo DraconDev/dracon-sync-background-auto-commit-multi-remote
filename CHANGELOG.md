@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed (v0.113.43)
+
+- **`refresh-visibility` now prefers the named `github` remote over
+  the legacy `origin` remote.** Previously, when a repo had both
+  remotes and `origin` was mispointed (e.g. `folder-auto-banner-fab`
+  → `DraconDev/folder-auto-banner`, a *different* public repo), the
+  refresh queried the wrong GitHub repo and cached the wrong
+  visibility. The `github` remote is the canonical name the daemon
+  uses for its multi-remote push path, so the preference is now
+  aligned. The `origin` fallback is preserved for repos that
+  only have `origin`. Extracted into
+  `visibility::select_github_remote_url` so the preference order is
+  unit-testable. 4 new tests cover the regression and edge cases.
+  See `docs/design/refresh-visibility-origin-preference-2026-08-06.md`.
+
 ## [0.113.42] - 2026-08-05
 ### Added (v0.113.42)
 
