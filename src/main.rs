@@ -1321,12 +1321,15 @@ async fn main() -> Result<()> {
             let mut errors = 0usize;
 
             for repo_path in &repos {
-                // Try `origin` first (most common), then fall back to `github`
-                // (some repos — e.g. opencode-plugins — use `github` as the
-                // remote name instead of `origin`).
-                let mut origin_url = String::new();
-                for remote_name in ["origin", "github"] {
-                    if let Ok(o) = std::process::Command::new("git")
+                // CHANGED 2026-08-06 (v0.113.43): use the
+                // `select_github_remote_url` helper which prefers the
+                // named `github` remote over `origin`. This fixes the
+                // folder-auto-banner-fab visibility-cache poisoning bug
+                // where a mispointed `origin` caused the refresh to
+                // query the wrong GitHub repo. See the helper's doc
+                // for the full rationale.
+                let origin_url = crate::visibility::select_github_remote_url(|remote_name| {
+                    let output = std::process::Command::new("git")
                         .args([
                             "-C",
                             &repo_path.to_string_lossy(),
@@ -1335,16 +1338,13 @@ async fn main() -> Result<()> {
                             remote_name,
                         ])
                         .output()
-                    {
-                        if o.status.success() {
-                            let url = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                            if !url.is_empty() {
-                                origin_url = url;
-                                break;
-                            }
-                        }
+                        .ok()?;
+                    if !output.status.success() {
+                        return None;
                     }
-                }
+                    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+                })
+                .unwrap_or_default();
 
                 let Some((owner, gh_repo)) =
                     crate::visibility::parse_github_owner_repo(&origin_url)

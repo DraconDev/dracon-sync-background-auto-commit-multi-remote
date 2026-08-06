@@ -259,6 +259,37 @@ pub(crate) fn parse_github_owner_repo(remote_url: &str) -> Option<(String, Strin
     None
 }
 
+/// Select the GitHub remote URL to use for visibility queries.
+///
+/// Prefers the named `github` remote over the legacy `origin` remote.
+/// This is the fix for the v0.113.43 bug where `folder-auto-banner-fab`'s
+/// mispointed `origin` (→ `DraconDev/folder-auto-banner`, a different
+/// public repo) caused `refresh-visibility` to query the wrong
+/// GitHub repo and cache `public` for the local repo (which is private).
+///
+/// The `github` remote is the canonical name the daemon uses for its
+/// multi-remote push path. The `origin` fallback is preserved for repos
+/// that only have `origin` (the common case) and for repos where the
+/// `github` remote URL is empty.
+///
+/// The `get_url` closure should return `Some(url)` for a remote that
+/// exists and has a non-empty URL, or `None` if the remote doesn't
+/// exist (or the lookup failed).
+pub(crate) fn select_github_remote_url<F>(get_url: F) -> Option<String>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    for remote_name in ["github", "origin"] {
+        if let Some(url) = get_url(remote_name) {
+            let trimmed = url.trim().to_string();
+            if !trimmed.is_empty() {
+                return Some(trimmed);
+            }
+        }
+    }
+    None
+}
+
 /// Query GitHub for the visibility of a repo using `gh api`.
 /// Returns `true` if the repo is private, `false` if public.
 /// On any error (gh not installed, no auth, network failure), returns `true` as the safe default.
@@ -1944,5 +1975,66 @@ mod tests {
         assert_eq!(line1, "visibility=private");
 
         let _ = std::fs::remove_file(&path);
+    }
+
+    // ---- select_github_remote_url tests (v0.113.43, folder-auto-banner-fab fix) ----
+    //
+    // The fix for the visibility-cache poisoning bug where a mispointed
+    // `origin` remote (`folder-auto-banner-fab` → `DraconDev/folder-auto-banner`,
+    // a *different* public repo) caused the refresh to query the wrong
+    // GitHub repo. The helper now prefers the named `github` remote over
+    // `origin`.
+
+    #[test]
+    fn test_select_github_remote_prefers_github_over_origin() {
+        // Regression: both remotes exist, but origin is mispointed.
+        // The helper must prefer the `github` remote.
+        let get_url = |name: &str| -> Option<String> {
+            match name {
+                "github" => Some("git@github.com:DraconDev/folder-auto-banner-fab.git".to_string()),
+                "origin" => Some("git@github.com:DraconDev/folder-auto-banner.git".to_string()),
+                _ => None,
+            }
+        };
+        let url = select_github_remote_url(get_url).unwrap();
+        assert_eq!(url, "git@github.com:DraconDev/folder-auto-banner-fab.git");
+        assert!(
+            parse_github_owner_repo(&url).unwrap().1 == "folder-auto-banner-fab",
+            "must resolve to the correct (private) repo, not the mispointed origin"
+        );
+    }
+
+    #[test]
+    fn test_select_github_remote_falls_back_to_origin() {
+        // Common case: repo only has `origin` (no `github` remote).
+        let get_url = |name: &str| -> Option<String> {
+            match name {
+                "github" => None,
+                "origin" => Some("git@github.com:DraconDev/dracon-sync.git".to_string()),
+                _ => None,
+            }
+        };
+        let url = select_github_remote_url(get_url).unwrap();
+        assert_eq!(url, "git@github.com:DraconDev/dracon-sync.git");
+    }
+
+    #[test]
+    fn test_select_github_remote_skips_empty_github_uses_origin() {
+        // Defensive: if `github` remote exists but is empty, fall back to `origin`.
+        let get_url = |name: &str| -> Option<String> {
+            match name {
+                "github" => Some(String::new()),
+                "origin" => Some("git@github.com:DraconDev/dracon-sync.git".to_string()),
+                _ => None,
+            }
+        };
+        let url = select_github_remote_url(get_url).unwrap();
+        assert_eq!(url, "git@github.com:DraconDev/dracon-sync.git");
+    }
+
+    #[test]
+    fn test_select_github_remote_returns_none_when_nothing() {
+        let get_url = |_name: &str| -> Option<String> { None };
+        assert!(select_github_remote_url(get_url).is_none());
     }
 }
