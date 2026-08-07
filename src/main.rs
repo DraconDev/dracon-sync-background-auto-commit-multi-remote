@@ -151,6 +151,24 @@ enum Command {
     Pause,
     /// Resume sync (removes freeze marker).
     Resume,
+    /// Run a command with sync paused; always resumes afterwards.
+    ///
+    /// Usage: `dracon-sync maintenance -- <command> [args...]`
+    ///
+    /// The daemon keeps RUNNING (health stays green) but skips all sync
+    /// cycles while the command executes, then resumes automatically —
+    /// even if the command fails. This is the sanctioned way to run git
+    /// surgery (merge --abort, rebase, filter-repo, ...) on daemon-owned
+    /// repos: the daemon never goes down, so a forgotten restart is
+    /// impossible. If sync was ALREADY paused (freeze marker present or
+    /// `DRACON_SYNC_FREEZE` set), the command runs without touching the
+    /// freeze state — a pause that predates this invocation is not ours
+    /// to lift. Exits with the command's exit code.
+    Maintenance {
+        /// The command to run (everything after `--`).
+        #[arg(last = true, required = true)]
+        command: Vec<String>,
+    },
     /// Manage sync configuration.
     Config {
         #[command(subcommand)]
@@ -848,6 +866,14 @@ async fn main() -> Result<()> {
                 }
             } else {
                 anyhow::bail!("cannot determine home directory");
+            }
+        }
+        Command::Maintenance { command } => {
+            let home = dirs::home_dir()
+                .ok_or_else(|| anyhow::anyhow!("cannot determine home directory"))?;
+            let code = run_maintenance(&home, &policy_path, &command);
+            if code != 0 {
+                std::process::exit(code);
             }
         }
         Command::Once => {
