@@ -2178,6 +2178,96 @@ remotes = []
             );
         }
     }
+
+    #[test]
+    fn test_run_maintenance_pauses_runs_resumes() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();
+        let _home = crate::test_helpers::EnvRestorer::new("HOME", tmp.path().to_str().unwrap());
+        let policy_tmp = temp_policy(vec!["/dev/null"]);
+        let policy_path = policy_tmp.path().join("policy.toml");
+
+        let ran = tmp.path().join("ran.txt");
+        let code = crate::run_maintenance(
+            tmp.path(),
+            &policy_path,
+            &[
+                "sh".to_string(),
+                "-c".to_string(),
+                format!("touch {}", ran.display()),
+            ],
+        );
+        assert_eq!(code, 0, "successful command should exit 0");
+        assert!(ran.exists(), "command should have run");
+        assert!(
+            !crate::pause_marker_path(tmp.path()).exists(),
+            "freeze marker must be removed after success"
+        );
+    }
+
+    #[test]
+    fn test_run_maintenance_resumes_even_on_failure() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();
+        let _home = crate::test_helpers::EnvRestorer::new("HOME", tmp.path().to_str().unwrap());
+        let policy_tmp = temp_policy(vec!["/dev/null"]);
+        let policy_path = policy_tmp.path().join("policy.toml");
+
+        let code = crate::run_maintenance(
+            tmp.path(),
+            &policy_path,
+            &["sh".to_string(), "-c".to_string(), "exit 3".to_string()],
+        );
+        assert_eq!(code, 3, "command's exit code must be propagated");
+        assert!(
+            !crate::pause_marker_path(tmp.path()).exists(),
+            "freeze marker must be removed even when the command fails"
+        );
+    }
+
+    #[test]
+    fn test_run_maintenance_preserves_existing_freeze() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();
+        let _home = crate::test_helpers::EnvRestorer::new("HOME", tmp.path().to_str().unwrap());
+        let policy_tmp = temp_policy(vec!["/dev/null"]);
+        let policy_path = policy_tmp.path().join("policy.toml");
+
+        // Simulate a pause that predates this invocation (e.g. another
+        // agent's `dracon-sync pause`).
+        std::fs::write(crate::pause_marker_path(tmp.path()), "paused at 0\n").unwrap();
+
+        let code = crate::run_maintenance(
+            tmp.path(),
+            &policy_path,
+            &["sh".to_string(), "-c".to_string(), "exit 0".to_string()],
+        );
+        assert_eq!(code, 0);
+        assert!(
+            crate::pause_marker_path(tmp.path()).exists(),
+            "pre-existing freeze must be left untouched"
+        );
+    }
+
+    #[test]
+    fn test_run_maintenance_spawn_failure_returns_127_and_resumes() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();
+        let _home = crate::test_helpers::EnvRestorer::new("HOME", tmp.path().to_str().unwrap());
+        let policy_tmp = temp_policy(vec!["/dev/null"]);
+        let policy_path = policy_tmp.path().join("policy.toml");
+
+        let code = crate::run_maintenance(
+            tmp.path(),
+            &policy_path,
+            &["/nonexistent/definitely-not-a-binary".to_string()],
+        );
+        assert_eq!(code, 127, "spawn failure should exit 127");
+        assert!(
+            !crate::pause_marker_path(tmp.path()).exists(),
+            "freeze marker must be removed even when the command cannot spawn"
+        );
+    }
 }
 
 // daemon-push-test: 2026-06-21 12:18 — verify end-to-end propagation
