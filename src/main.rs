@@ -31,6 +31,53 @@ fn onoff(b: bool) -> &'static str {
     }
 }
 
+/// Canonical freeze-marker path (mirrors `policy::freeze_marker_paths`).
+fn pause_marker_path(home: &Path) -> PathBuf {
+    home.join(".dracon").join("dracon-sync.freeze")
+}
+
+/// Run a command with sync paused; ALWAYS resumes afterwards (even on
+/// failure), unless sync was already paused before this invocation — in
+/// that case the pre-existing freeze state is left untouched. Returns the
+/// command's exit code (127 spawn failure, 128 signal-kill).
+fn run_maintenance(home: &Path, policy_path: &Path, command: &[String]) -> i32 {
+    let marker = pause_marker_path(home);
+    // freeze_reason() also auto-clears stale (>24h TTL) markers, so a
+    // forgotten freeze is treated as "not paused" and replaced fresh.
+    let was_frozen = freeze_reason(policy_path).is_some();
+    if !was_frozen {
+        if let Err(e) = std::fs::write(
+            &marker,
+            format!("paused by dracon-sync maintenance at {}\n", timestamp_secs()),
+        ) {
+            eprintln!("⚠️  maintenance: could not create freeze marker: {e}");
+        } else {
+            println!("⏸️  Sync paused for maintenance (freeze marker: {})", marker.display());
+        }
+    } else {
+        println!("⏸️  Sync already paused — running command without touching freeze state");
+    }
+
+    let exit_code = match std::process::Command::new(&command[0]).args(&command[1..]).status() {
+        Ok(status) => status.code().unwrap_or(128),
+        Err(e) => {
+            eprintln!("⚠️  maintenance: command failed to spawn: {e}");
+            127
+        }
+    };
+
+    if !was_frozen {
+        if marker.exists() {
+            if let Err(e) = std::fs::remove_file(&marker) {
+                eprintln!("⚠️  maintenance: could not remove freeze marker: {e}");
+            } else {
+                println!("▶️  Sync resumed (freeze marker removed)");
+            }
+        }
+    }
+    exit_code
+}
+
 use anyhow::Result;
 use clap::{ArgAction, Parser, Subcommand};
 use daemon::{list_stuck_repos, run_daemon, run_once, unstuck_repo};
@@ -42,7 +89,7 @@ use report::{
     push_large_blob_threshold_bytes, run_repair_concerns, run_repair_warns, run_repos_report,
     run_scan_bloat_report, ConcernRepairFilter, RepoFilter,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use sync::sync_repo;
 
