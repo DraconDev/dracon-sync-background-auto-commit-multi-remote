@@ -2126,6 +2126,97 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// Submodule entries must be aged by the parent's last gitlink
+    /// update, not by the submodule DIRECTORY's mtime (which only
+    /// moves on file create/delete inside, so it fabricates huge
+    /// ages for healthy, actively-committing submodules). v0.113.45.
+    #[test]
+    fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
+        use crate::daemon::oldest_dirty_change_secs_core;
+        use dracon_git::types::{DiffFile, FileStatus};
+        use std::time::{Duration as StdDuration, SystemTime};
+        let td = tempfile::tempdir().unwrap();
+        let parent = td.path().join("parent");
+        std::fs::create_dir_all(&parent).unwrap();
+        let git_c = |repo: &std::path::Path, args: &[&str]| {
+            std::process::Command::new("git")
+                .arg("-C")
+                .arg(repo)
+                .args(args)
+                .output()
+                .unwrap()
+        };
+        let init_repo = |repo: &std::path::Path| {
+            git_c(repo, &["init", "-q", "-b", "main"]);
+            git_c(repo, &["config", "user.email", "t@t"]);
+            git_c(repo, &["config", "user.name", "t"]);
+            // Global warden hooks reject non-hardened temp repos.
+            git_c(repo, &["config", "core.hooksPath", "/dev/null"]);
+        };
+        init_repo(&parent);
+
+        // Real nested submodule.
+        let sub = parent.join("sub");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("f.txt"), b"x").unwrap();
+        init_repo(&sub);
+        git_c(&sub, &["add", "."]);
+        git_c(&sub, &["commit", "-q", "-m", "init"]);
+
+        // Register the gitlink in the parent with a BACKDATED commit:
+        // the parent last absorbed submodule work 300s ago.
+        git_c(&parent, &["add", "sub"]);
+        let past_secs = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .saturating_sub(300);
+        std::process::Command::new("git")
+            .arg("-C")
+            .arg(&parent)
+            .env("GIT_COMMITTER_DATE", format!("@{past_secs}"))
+            .args(["commit", "-q", "-m", "register sub"])
+            .output()
+            .unwrap();
+
+        // Sanity: the submodule dir mtime is NOW (just created) — any
+        // dir-mtime-based aging would report ~0s. Only the gitlink
+        // absorption age (300s) is meaningful.
+        let dir_age = SystemTime::now()
+            .duration_since(
+                std::fs::metadata(&sub).unwrap().modified().unwrap(),
+            )
+            .unwrap()
+            .as_secs();
+        assert!(dir_age < 30, "test precondition: dir mtime must be fresh");
+
+        // Make the submodule advance past the parent's gitlink — the
+        // committable state the alert exists for. (A synced gitlink
+        // is correctly filtered as not-committable by
+        // `should_stage_entry`.)
+        std::fs::write(sub.join("g.txt"), b"y").unwrap();
+        git_c(&sub, &["add", "."]);
+        git_c(&sub, &["commit", "-q", "-m", "advance"]);
+
+        let entries =
+            vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
+        let names =
+            crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
+        let age = oldest_dirty_change_secs_core(
+            &parent,
+            &entries,
+            &names,
+            &[],
+            100_000_000,
+            &[],
+        )
+        .unwrap();
+        assert!(
+            age >= 260 && age <= 340,
+            "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
+        );
+    }
+
     /// The policy knob must default to 600 and round-trip through
     /// TOML on both the global policy and the per-repo override.
     #[test]
@@ -2642,6 +2733,40 @@ fn oldest_dirty_change_secs_core(
         };
         let Ok(modified) = meta.modified() else {
             continue;
+        };
+        // Submodule entries (directories): the worktree DIRECTORY
+        // mtime only moves when files are created/deleted inside —
+        // content edits do not bump it. Aging a submodule by its
+        // dir mtime therefore fabricates huge ages for healthy,
+        // actively-committing submodules (2026-08-07
+        // dracon-platform: endless-td's dir mtime was anchored at
+        // 2026-08-03 16:25 while its gitlink was updated every ~3
+        // minutes all day; the alert reported a "92h pile-up" that
+        // was minutes old). The meaningful age for a gitlink-ahead
+        // submodule is how long the parent has NOT absorbed
+        // submodule work: the commit time of the parent's last
+        // commit that touched this gitlink path. A stalled gitlink
+        // still ages correctly (endless-td's real 46.8h catch,
+        // v0.113.42, keeps firing). Fall back to the dir mtime when
+        // git cannot answer (path never committed, non-repo dir) —
+        // conservative: may over-alert, never under-alert.
+        let modified = if meta.is_dir() {
+            crate::git::git_cmd()
+                .current_dir(repo)
+                .args(["log", "-1", "--format=%ct", "--"])
+                .arg(rel)
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .and_then(|o| {
+                    let s = String::from_utf8_lossy(&o.stdout);
+                    let secs: u64 = s.trim().parse().ok()?;
+                    std::time::UNIX_EPOCH
+                        .checked_add(std::time::Duration::from_secs(secs))
+                })
+                .unwrap_or(modified)
+        } else {
+            modified
         };
         if oldest.is_none_or(|o| modified < o) {
             oldest = Some(modified);
