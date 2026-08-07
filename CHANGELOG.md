@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.44] - 2026-08-07
+
+### Added (v0.113.44)
+
+- **`dracon-sync maintenance -- <cmd...>`** — the sanctioned wrapper
+  for git surgery on daemon-owned repos. Pauses sync (freeze marker),
+  runs the command, then ALWAYS resumes — even when the command
+  fails — and exits with the command's exit code (127 spawn failure,
+  128 signal-kill). If sync was already paused (freeze marker or
+  `DRACON_SYNC_FREEZE`), the command runs without touching the
+  pre-existing freeze state. This replaces the
+  `systemctl --user stop` … `start` pattern, which had no backstop:
+  `Restart=always` only covers crashes, so a forgotten manual stop
+  left the fleet unsynced (see the 2026-08-06 dracon-platform
+  remediation). The daemon keeps RUNNING during maintenance — health
+  stays green, and the 24h freeze TTL self-heals forgotten pauses.
+  The resume-after-failure and preserve-existing-freeze semantics are
+  covered by 4 new unit tests. See
+  `docs/design/daemon-quiesce-policy-2026-08-07.md`.
+
 ## [0.113.43] - 2026-08-06
 
 ### Fixed (v0.113.43)
