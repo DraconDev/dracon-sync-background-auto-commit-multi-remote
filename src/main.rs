@@ -66,13 +66,10 @@ fn run_maintenance(home: &Path, policy_path: &Path, command: &[String]) -> i32 {
         }
     };
 
-    if !was_frozen {
-        if marker.exists() {
-            if let Err(e) = std::fs::remove_file(&marker) {
-                eprintln!("⚠️  maintenance: could not remove freeze marker: {e}");
-            } else {
-                println!("▶️  Sync resumed (freeze marker removed)");
-            }
+    if !was_frozen && marker.exists() {
+        match std::fs::remove_file(&marker) {
+            Ok(()) => println!("▶️  Sync resumed (freeze marker removed)"),
+            Err(e) => eprintln!("⚠️  maintenance: could not remove freeze marker: {e}"),
         }
     }
     exit_code
