@@ -13,6 +13,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.45] - 2026-08-07
+
+### Fixed (v0.113.45)
+
+- **"Changes Piling Up" alert now ages submodule entries by gitlink
+  absorption time, not directory mtime.** The stale-dirty scan aged
+  every entry via `metadata().modified()`; for a submodule entry that
+  path is the submodule DIRECTORY, whose mtime only moves on file
+  create/delete inside — never on content edits. Healthy,
+  actively-committing submodules therefore fabricated huge pile-up
+  ages (dracon-platform: endless-td's dir mtime anchored at
+  2026-08-03 16:25 while its gitlink was updated every ~3 min all
+  day; the alert reported a 92h pile-up that was minutes old, and
+  re-fired every cooldown while any submodule sat in its normal
+  gitlink-ahead window). The age for directory entries is now the
+  commit time of the parent's last commit touching the gitlink path
+  (`git log -1 --format=%ct -- <path>`) — i.e. how long the parent
+  has NOT absorbed submodule work. Genuine stalls still fire
+  (endless-td's real 46.8h catch from v0.113.42 keeps working); a
+  gitlink updated minutes ago does not. Non-git directories fall
+  back to the dir mtime (conservative: may over-alert, never
+  under-alert). New unit test
+  `test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age`
+  (backdated gitlink registration vs fresh dir mtime). The committable
+  entry COUNT is unaffected — content-dirty submodules are filtered
+  before the alert by the diff-HEAD check and
+  `should_stage_entry::is_gitlink_unchanged`, and those changes are
+  committed by the submodule's own daemon instance (hegemon/polis
+  verified live, 2026-08-07).
+
 ## [0.113.44] - 2026-08-07
 
 ### Added (v0.113.44)
