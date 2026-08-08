@@ -288,12 +288,16 @@ log "step 6/${TOTAL_STEPS}: fixture check on packaged artifact (phantom-untracke
 # crate reproduces the exact dependency resolution a crates.io install would
 # use (no workspace lock, no patch) — if the result fails the fixture, the
 # release must not proceed.
-PKG_DIR="$REPO_ROOT/target/package/${CRATE_NAME}-${VERSION}"
+PKG_DIR="$(cargo metadata --no-deps --format-version 1 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["workspace_root"])' 2>/dev/null || echo "$REPO_ROOT")/target/package/${CRATE_NAME}-${VERSION}"
 if [[ -d "$PKG_DIR" ]]; then
     FIXTURE_ROOT="$REPO_ROOT/target/fixture-bin"
-    run cargo install --path "$PKG_DIR" --root "$FIXTURE_ROOT" --force
-    if ! "$SCRIPT_DIR/verify-install.sh" "$FIXTURE_ROOT/bin/dracon-sync"; then
-        die_pub "fixture check FAILED on the packaged artifact — release is broken, do NOT tag"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        printf '   $ cargo install --path %s --root %s --force  (skipped: --dry-run)\n' "$PKG_DIR" "$FIXTURE_ROOT"
+    else
+        run cargo install --path "$PKG_DIR" --root "$FIXTURE_ROOT" --force
+        if ! "$SCRIPT_DIR/verify-install.sh" "$FIXTURE_ROOT/bin/dracon-sync"; then
+            die_pub "fixture check FAILED on the packaged artifact — release is broken, do NOT tag"
+        fi
     fi
 else
     die_pub "packaged crate dir $PKG_DIR missing — cannot run fixture check (publish must have failed)"

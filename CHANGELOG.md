@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed (v0.113.46)
+
+- **`dracon-git` resolved from crates.io v94.7.2 — `[patch.crates-io]` removed (2026-08-08)**: `dracon-git v94.7.2` (with the `git ls-files --others --exclude-standard` untracked-count override, the git2 0.21 ssh/https transport fix, and the agent-less ssh fallback) was published to crates.io. The workspace `[patch.crates-io]` git+tag workaround (2026-07-18 → 2026-07-25) is removed and the dependency bumped to `dracon-git = "94.7.2"`; `deny.toml [sources].allow-git` cleared. Why this matters: `cargo publish` strips `[patch]` sections from the published manifest, so every `cargo install dracon-sync --version X` silently built against crates.io dracon-git 94.7.0 — whose libgit2 status path counts gitignored files (`.pi/`, `docs/screenshots/`, …) as untracked (the 2026-08-08 phantom-untracked incident: endless-td 294 / dracon-platform 48 / hellhunter 16 / polis 8 / deathrun 4 while `git status` said 0). Display/classification noise only — commit/push paths use git CLI and were never affected. See `docs/design/installed-binary-drops-patch-dracon-git-2026-08-08.md`.
+- **Release pipeline: fixture check on the published artifact (new step 6)**: `scripts/verify-install.sh` builds a scratch repo with a gitignored `.pi/` dir and asserts the binary under test reports `untracked=0`. `scripts/release.sh` now installs the packaged crate (the exact artifact that goes to crates.io, with fresh dependency resolution — no workspace lock, no patch) and runs the fixture before the tag is created; a failure aborts the release. The same check is reminded after every release for the operator's own `cargo install`.
+
+  Test suite unchanged: **1237 passed, 9 ignored**, clippy `-D warnings` clean, `cargo deny check` clean.
+
 ## [0.113.45] - 2026-08-07
 
 ### Fixed (v0.113.45)
