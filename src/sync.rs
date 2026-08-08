@@ -4178,7 +4178,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
             eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", repo.display());
         }
 
-        return Ok(SyncOutcome::Synced);
+        // CHANGED 2026-08-09 (v0.113.47, dracon-platform incident):
+        // do NOT return `Synced` here — fall through to the
+        // `handle_ahead_push` gate below. A repo that is dirty
+        // (`is_clean=false`) with nothing committable (`to_stage`
+        // empty — every dirty file excluded by
+        // `auto_commit_exclude_patterns`, or phantom WT_MODIFIED
+        // submodule gitlinks from the libgit2 ignore bug) but with
+        // unpushed commits ahead was wedged: the old early return
+        // skipped `handle_ahead_push` entirely, so ahead>0 commits
+        // sat unpushed forever while the daemon logged `🔁 synced`
+        // every cycle and the report showed a false "pushing Xm".
+        // Observed live: dracon-platform's 690d39180 stuck unpushed
+        // for 40+ minutes on 2026-08-09.
     }
 
     maybe_sync_visibility_and_metadata(&ctx);
@@ -4861,6 +4873,132 @@ auto_bump_versions = false
         assert!(
             matches!(result, Ok(SyncOutcome::NothingToDo)),
             "clean repo should return false (nothing to sync)"
+        );
+    }
+
+    /// REGRESSION (2026-08-09, v0.113.47, dracon-platform incident):
+    /// a repo that is dirty (`is_clean=false`) with nothing
+    /// committable (`to_stage` empty — every dirty file excluded by
+    /// `auto_commit_exclude_patterns`, or phantom WT_MODIFIED
+    /// submodule gitlinks from the libgit2 ignore bug) AND with
+    /// unpushed commits ahead was wedged: the pre-fix code returned
+    /// `Synced` at the end of the auto-commit block WITHOUT calling
+    /// `handle_ahead_push`, so the ahead commits were never pushed
+    /// and the report showed a false "pushing Xm" with a permanently
+    /// stale upstream. Live incident: dracon-platform's 690d39180
+    /// stuck unpushed for 40+ minutes on 2026-08-09 while the daemon
+    /// logged `🔁 synced` every ~40s.
+    #[tokio::test]
+    async fn test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead() {
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "master"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        // Tracked file that will later be modified but excluded from
+        // staging (so the repo is dirty with an empty to_stage).
+        std::fs::write(repo.join("dirty.txt"), "v1").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "add", "dirty.txt"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "--no-verify", "-m", "init"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "origin",
+                &origin_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        configure_branch_upstream(&repo, "master", "origin");
+        // Push the initial commit so the repo starts fully in sync.
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "push", "-q", "origin", "master"])
+            .status()
+            .unwrap();
+        // Now create an UNPUSHED commit (ahead=1) ...
+        std::fs::write(repo.join("ahead.txt"), "new").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "add", "ahead.txt"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "--no-verify", "-m", "unpushed"])
+            .status()
+            .unwrap();
+        // ... and a dirty tracked file that the policy excludes from
+        // staging: is_clean=false, to_stage=0, ahead=1.
+        std::fs::write(repo.join("dirty.txt"), "v2-excluded").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+auto_commit_exclude_patterns = ["dirty.txt"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo should succeed: {:?}", result);
+
+        // The ahead commit must have been PUSHED despite the
+        // dirty-but-nothing-to-stage state.
+        let head = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
+            .output()
+            .unwrap();
+        let origin_ref = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "refs/remotes/origin/master"])
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&head.stdout).trim(),
+            String::from_utf8_lossy(&origin_ref.stdout).trim(),
+            "unpushed commit must be pushed even though the dirty file \
+             was excluded from staging (pre-fix this repo was wedged: \
+             ahead commit never pushed)"
+        );
+
+        // The excluded dirty file must still be modified in the
+        // worktree (exclusion preserves content, v0.112.34 semantics)
+        // and must NOT have been committed.
+        assert_eq!(
+            std::fs::read_to_string(repo.join("dirty.txt")).unwrap(),
+            "v2-excluded",
+            "excluded file content must be preserved in the worktree"
+        );
+        let diff = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "diff", "--name-only", "HEAD"])
+            .output()
+            .unwrap();
+        assert!(
+            String::from_utf8_lossy(&diff.stdout).contains("dirty.txt"),
+            "excluded file must remain modified-unstaged after sync"
         );
     }
 
