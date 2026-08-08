@@ -90,7 +90,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 TAG="v${VERSION}"
-TOTAL_STEPS=6
+TOTAL_STEPS=7
 
 # ----- colors (only on a tty) ---------------------------------------------
 if [[ -t 1 ]]; then
@@ -280,8 +280,27 @@ else
     fi
 fi
 
-# ----- step 6: commit, tag, push, gh release ------------------------------
-log "step 6/${TOTAL_STEPS}: commit + tag + push + gh release"
+# ----- step 6: fixture check on the published artifact (2026-08-08 guard) ---
+log "step 6/${TOTAL_STEPS}: fixture check on packaged artifact (phantom-untracked guard)"
+# The 2026-08-08 incident: `cargo publish` drops [patch.crates-io], so a
+# binary installed via `cargo install` resolved an unpatched dracon-git and
+# reported gitignored .pi/ files as untracked. Installing from the PACKAGED
+# crate reproduces the exact dependency resolution a crates.io install would
+# use (no workspace lock, no patch) — if the result fails the fixture, the
+# release must not proceed.
+PKG_DIR="$REPO_ROOT/target/package/${CRATE_NAME}-${VERSION}"
+if [[ -d "$PKG_DIR" ]]; then
+    FIXTURE_ROOT="$REPO_ROOT/target/fixture-bin"
+    run cargo install --path "$PKG_DIR" --root "$FIXTURE_ROOT" --force
+    if ! "$SCRIPT_DIR/verify-install.sh" "$FIXTURE_ROOT/bin/dracon-sync"; then
+        die_pub "fixture check FAILED on the packaged artifact — release is broken, do NOT tag"
+    fi
+else
+    die_pub "packaged crate dir $PKG_DIR missing — cannot run fixture check (publish must have failed)"
+fi
+
+# ----- step 7: commit, tag, push, gh release ------------------------------
+log "step 7/${TOTAL_STEPS}: commit + tag + push + gh release"
 run git add Cargo.toml CHANGELOG.md "$NOTES"
 # Idempotent re-run path: skip the commit when there is nothing to commit.
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -346,6 +365,10 @@ ok "✓ dracon-sync v${VERSION} released"
 ok "  crates.io:  https://crates.io/crates/dracon-sync"
 ok "  github:     https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/releases/tag/${TAG}"
 ok "════════════════════════════════════════════"
+
+warn ""
+warn "after 'cargo install dracon-sync --version ${VERSION}', run the fixture check:"
+warn "    scripts/verify-install.sh"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     echo ""
