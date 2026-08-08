@@ -4174,6 +4174,12 @@ pub(crate) async fn sync_repo_with_ahead_since(
             {
                 return Ok(outcome);
             }
+            // `Ok(None)` from stage_commit_and_push = commit + push
+            // succeeded. Report `Synced` (the honest "this cycle did
+            // work" outcome; the fresh status after the push has
+            // ahead=0, so handle_ahead_push below would find nothing
+            // to do anyway).
+            return Ok(SyncOutcome::Synced);
         } else if policy.auto_push && !has_origin && policy.remotes.is_empty() {
             eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", repo.display());
         }
