@@ -4178,8 +4178,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
             eprintln!("ℹ️ skip push for {} (no origin remote and no mirror remotes)", repo.display());
         }
 
-        return Ok(SyncOutcome::Synced);
-
+        // CHANGED 2026-08-09 (v0.113.47, dracon-platform incident):
+        // do NOT return `Synced` here — fall through to the
+        // `handle_ahead_push` gate below. A repo that is dirty
+        // (`is_clean=false`) with nothing committable (`to_stage`
+        // empty — every dirty file excluded by
+        // `auto_commit_exclude_patterns`, or phantom WT_MODIFIED
+        // submodule gitlinks from the libgit2 ignore bug) but with
+        // unpushed commits ahead was wedged: the old early return
+        // skipped `handle_ahead_push` entirely, so ahead>0 commits
+        // sat unpushed forever while the daemon logged `🔁 synced`
+        // every cycle and the report showed a false "pushing Xm".
+        // Observed live: dracon-platform's 690d39180 stuck unpushed
+        // for 40+ minutes on 2026-08-09.
     }
 
     maybe_sync_visibility_and_metadata(&ctx);
