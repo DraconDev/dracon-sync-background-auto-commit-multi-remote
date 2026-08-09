@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Restore secret-scrubber damage from the 2026-06-21 monorepo split**
+  (audit LOW, 2026-08-10): commit `817ecb2` left
+  `[DRACON_SECRET:<age-blob>]` markers embedded mid-word in comments
+  and stripped a test fixture. Decrypted each marker with the warden
+  machine identity and restored the exact originals from pre-split
+  history (`817ecb2^`):
+  - `src/daemon.rs` — two comments now read
+    `` `test_record_push_failure_increments_consecutive_failures` ``
+    (was truncated to `test_record_push_failu[…]`)
+  - `src/sync.rs` — two comments now read
+    `` `test_sync_repo_mirror_failure_tracks_remote_failures` ``
+    (was truncated to `test_sync_repo_mirror_failu[…]`)
+  - `src/git/mod.rs` — the `test_gh_cmd_uses_configured_pat_…` fixture
+    write is `"GH_TOKEN=test_pat_from_file\n"` again (was the marker,
+    so the PAT-loading path was no longer exercised), and the gh mock
+    comparison is restored to `!= "test_pat_from_file"` (was weakened
+    to a bare `[ -n ]`-style presence check when the marker was
+    hand-deleted). `test_gh_cmd_uses_configured_pat_and_disables_prompts`
+    now genuinely verifies the configured PAT is injected.
+  - `src/release.rs` was damaged in the same event but hand-repaired
+    (fixture renamed to `ghp_test_token_for_release`, mock now checks
+    presence) — left as-is.
+- **Remove 0-byte `*.rs.plaintext` scrub debris** (audit LOW,
+  2026-08-10): seven empty files (`src/bump.rs.plaintext`,
+  `src/daemon.rs.plaintext`, `src/git/mod.rs.plaintext`,
+  `src/release.rs.plaintext`, `src/report.rs.plaintext`,
+  `src/sync.rs.plaintext`, `dracon-sync.example.toml.plaintext`) had
+  been tracked since the monorepo split. They are regeneratable
+  plaintext siblings with no content — deleted.
+
 ## [0.113.50] - 2026-08-09
 
 ### Changed (v0.113.50)
