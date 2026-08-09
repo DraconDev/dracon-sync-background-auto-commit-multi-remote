@@ -2879,7 +2879,7 @@ fn compute_blast_radius(repo: &Path) -> String {
         // Pause reason (abbreviated)
         if let Some(ref reason) = goal_meta.pause_reason {
             let short_reason = if reason.len() > 50 {
-                format!("{}...", &reason[..47])
+                format!("{}...", reason.chars().take(47).collect::<String>())
             } else {
                 reason.clone()
             };
@@ -2915,7 +2915,7 @@ fn compute_blast_radius(repo: &Path) -> String {
                     // that invariant visible to future maintainers.
                     let ev = t.evidence.as_ref().expect("filter guarantees Some");
                     if ev.len() > 40 {
-                        format!("{}:{}", t.id, &ev[..37])
+                        format!("{}:{}", t.id, ev.chars().take(37).collect::<String>())
                     } else {
                         format!("{}:{}", t.id, ev)
                     }
@@ -2944,7 +2944,7 @@ fn compute_blast_radius(repo: &Path) -> String {
                     // that invariant visible to future maintainers.
                     let reason = t.skip_reason.as_ref().expect("filter guarantees Some");
                     if reason.len() > 40 {
-                        format!("{}:{}", t.id, &reason[..37])
+                        format!("{}:{}", t.id, reason.chars().take(37).collect::<String>())
                     } else {
                         format!("{}:{}", t.id, reason)
                     }
@@ -4442,6 +4442,77 @@ mod tests {
 
         let msg = compute_blast_radius(repo);
         assert!(msg.starts_with("MERGE: | "));
+    }
+
+    #[test]
+    fn test_goal_metrics_multibyte_utf8_no_panic() {
+        // Regression (audit HIGH, 2026-08-09): the goal-metrics
+        // builder truncated pause_reason / task evidence / skip_reason
+        // with byte-index slicing (`&s[..47]`, `&s[..37]`) guarded
+        // only by byte-length checks. A `.pi/goals/` pauseReason or
+        // evidence containing multi-byte UTF-8 (CJK, emoji) > 50 bytes
+        // crossed a char boundary and panicked the daemon's commit
+        // path ("byte index N is not a char boundary"). Truncation now
+        // uses `chars().take(N)` (same convention as report.rs:3729).
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(repo)
+            .status()
+            .unwrap();
+        let goals_dir = repo.join(".pi/goals");
+        std::fs::create_dir_all(&goals_dir).unwrap();
+        // pauseReason: emoji + 22 CJK chars = ~70 bytes (> 50);
+        // evidence/skipReason use emoji (4 bytes each) to exceed the
+        // 40-byte thresholds.
+        let goal = r#"{"status":"paused","pauseReason":"🔑 密钥轮换完成所有远程仓库已同步最新密钥并验证推送","taskList":{"tasks":[
+        {"id":"t1","status":"complete","evidence":"🔑🔑🔑🔑🔑🔑🔑🔑🔑🔑🔑 evidence with emoji"},
+        {"id":"t2","status":"skipped","skipReason":"🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒 skip reason with emoji"}
+    ]}}
+
+# Goal title
+- [x] task one
+"#;
+        std::fs::write(
+            goals_dir.join("20260809183644-td98a6.md"),
+            goal,
+        )
+        .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "add",
+                ".pi/goals/20260809183644-td98a6.md",
+            ])
+            .status()
+            .unwrap();
+
+        // Pre-fix this panicked ("byte index 47 is not a char
+        // boundary") inside the daemon's commit path.
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.contains("PAUSE:"),
+            "message should carry the pause reason: {}",
+            msg
+        );
+        assert!(
+            msg.contains("EVIDENCE:"),
+            "message should carry task evidence: {}",
+            msg
+        );
+        assert!(
+            msg.contains("SKIPPED:"),
+            "message should carry skip reasons: {}",
+            msg
+        );
+        let pause_part = msg.split("PAUSE:").nth(1).unwrap_or("");
+        assert!(
+            pause_part.chars().count() <= 50,
+            "pause reason should be truncated to <=50 chars: {}",
+            pause_part
+        );
     }
 
     #[test]
