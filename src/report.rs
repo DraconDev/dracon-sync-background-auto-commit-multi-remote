@@ -2951,7 +2951,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none"),
         ("A/B", "commits ahead/behind upstream (↑ = unpushed work, dim ↑ = being pushed right now) · — = in sync"),
         ("", ""),
-        ("PUSH", "✅ OK +age · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 missing obj, +🔑 no token)"),
+        ("PUSH", "✅ OK +age · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑 markers)"),
         ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
         ("", ""),
         ("REPO", "🔒 private · no icon = public/unknown · > = nested submodule (badge after lock) · name⚡branch"),
