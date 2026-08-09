@@ -41,7 +41,7 @@ use crate::git::list_submodules;
 /// Result of a single spawned `sync_repo` task: the per-repo counters
 /// (incremented during the sync) and the outcome the sync reported.
 pub(crate) type SyncTaskResult =
-    (HashMap<String, usize>, Result<SyncOutcome, anyhow::Error>);
+    (HashMap<String, RemoteFailInfo>, Result<SyncOutcome, anyhow::Error>);
 
 /// Join handle for a spawned sync task, tagged with the repo path so
 /// the in-flight collector can route the result back to the right repo.
@@ -52,7 +52,7 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     PathBuf,
     u64,
-    HashMap<String, usize>,
+    HashMap<String, RemoteFailInfo>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
@@ -5088,7 +5088,7 @@ pub(crate) async fn run_daemon(
                         // network/credentials when the real cause was a
                         // history fork (non-fast-forward rejection). Name
                         // the classified cause instead.
-                        let cause = crate::git::push::classify_push_failure(&fail_info.last_error);
+                        let cause = crate::git::classify_push_failure(&fail_info.last_error);
                         crate::report::send_sync_conflict_notification(
                             repo,
                             &format!("Mirror Degraded: {}", mirror_name),

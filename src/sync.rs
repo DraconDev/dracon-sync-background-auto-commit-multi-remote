@@ -1919,7 +1919,7 @@ fn classify_failing_remotes(
     let mut causes: Vec<&'static str> = remote_failures
         .map(|map| {
             map.values()
-                .map(|f| crate::git::push::classify_push_failure(&f.last_error))
+                .map(|f| crate::git::classify_push_failure(&f.last_error))
                 .collect()
         })
         .unwrap_or_default();
