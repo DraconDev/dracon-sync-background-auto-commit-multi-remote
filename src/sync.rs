@@ -2233,17 +2233,25 @@ fn extract_goal_metadata(repo: &Path) -> Option<GoalMetadata> {
     let content = std::fs::read_to_string(&goal_path).ok()?;
 
     // Parse JSON - goal files have JSON at the top, markdown at the bottom
-    // Find the end of JSON by counting braces
+    // Find the end of JSON by counting braces. FIXED 2026-08-09 (audit
+    // HIGH, pi-goal-list-loop-audit): the pre-fix loop enumerated
+    // CHARS but sliced `&content[..json_end]` with the resulting index
+    // as a BYTE offset. A goal file whose JSON contains multi-byte
+    // UTF-8 (emoji/CJK pauseReason, evidence, skipReason) then either
+    // panicked the daemon's commit path ("byte index N is not a char
+    // boundary") or silently truncated the JSON so the parse failed
+    // and ALL goal metrics were dropped. `char_indices` + `len_utf8`
+    // yields a true byte offset.
     let mut depth = 0;
     let mut json_end = 0;
-    for (i, c) in content.chars().enumerate() {
-        if c == '{' {
-            depth += 1;
-        } else if c == '}' {
-            depth -= 1;
+    for (i, c) in content.char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            _ => {}
         }
         if depth == 0 && i > 0 {
-            json_end = i + 1;
+            json_end = i + c.len_utf8();
             break;
         }
     }
@@ -4489,8 +4497,10 @@ mod tests {
             .status()
             .unwrap();
 
-        // Pre-fix this panicked ("byte index 47 is not a char
-        // boundary") inside the daemon's commit path.
+        // Pre-fix this panicked ("byte index N is not a char
+        // boundary") inside the daemon's commit path — both in
+        // extract_goal_metadata's JSON-end slicing and in the
+        // metrics-builder truncation.
         let msg = compute_blast_radius(repo);
         assert!(
             msg.contains("PAUSE:"),
