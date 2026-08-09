@@ -5074,20 +5074,27 @@ pub(crate) async fn run_daemon(
             }
 
             // Mirror degraded (one mirror consistently failing)
-            for (mirror_name, fail_count) in &entry.mirror_consecutive_fails {
-                if *fail_count >= MIRROR_DEGRADED_THRESHOLD {
+            for (mirror_name, fail_info) in &entry.mirror_consecutive_fails {
+                if fail_info.consecutive >= MIRROR_DEGRADED_THRESHOLD {
                     let notify_key = format!("mirror-{}-{}", repo.display(), mirror_name);
                     if notify_throttled(
                         &mut remote_notify_cooldowns,
                         &notify_key,
                         Duration::from_secs(1800),
                     ) {
+                        // CHANGED 2026-08-09 (v0.113.50, pi-goal-loop-audit
+                        // divergence incident): the pre-fix text "mirror may
+                        // be unreachable" misdirected the operator to
+                        // network/credentials when the real cause was a
+                        // history fork (non-fast-forward rejection). Name
+                        // the classified cause instead.
+                        let cause = crate::git::push::classify_push_failure(&fail_info.last_error);
                         crate::report::send_sync_conflict_notification(
                             repo,
                             &format!("Mirror Degraded: {}", mirror_name),
                             &format!(
-                                "{} consecutive push failures — mirror may be unreachable",
-                                fail_count
+                                "{} consecutive push failures — {}",
+                                fail_info.consecutive, cause
                             ),
                         );
                     }

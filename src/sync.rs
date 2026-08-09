@@ -210,7 +210,7 @@ struct SyncContext<'a> {
     /// `build_artifact_cleanup` (global policy merged with the
     /// repo's `.dracon/dracon-sync.toml` override).
     build_artifact_cleanup: bool,
-    remote_failures: Option<&'a mut HashMap<String, usize>>,
+    remote_failures: Option<&'a mut HashMap<String, crate::daemon::RemoteFailInfo>>,
     /// When true, the daemon's auto-commit backstop is active for this
     /// repo. The backstop fires when `ahead > threshold` AND
     /// `push pending > min_age_secs` — see `is_backstop_active`. While
@@ -5979,11 +5979,17 @@ auto_bump_versions = false
     /// so the repos HINT column says WHICH forge is failing.
     #[test]
     fn test_failing_remote_names_formats_sorted() {
-        let mut map: HashMap<String, usize> = HashMap::new();
+        let mut map: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
         assert_eq!(failing_remote_names(None), "unknown");
         assert_eq!(failing_remote_names(Some(&map)), "unknown");
-        map.insert("gitlab".to_string(), 2);
-        map.insert("codeberg".to_string(), 1);
+        map.insert("gitlab".to_string(), crate::daemon::RemoteFailInfo {
+            consecutive: 2,
+            last_error: "rejected (non-fast-forward)".to_string(),
+        });
+        map.insert("codeberg".to_string(), crate::daemon::RemoteFailInfo {
+            consecutive: 1,
+            last_error: "connection timed out".to_string(),
+        });
         assert_eq!(failing_remote_names(Some(&map)), "codeberg, gitlab");
     }
 
