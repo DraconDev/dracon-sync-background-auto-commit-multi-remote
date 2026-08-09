@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed (v0.113.47)
+
+- **Dirty-but-nothing-to-stage repos never pushed ahead commits (2026-08-09, dracon-platform incident)**: when a repo was dirty (`is_clean=false`) but nothing was committable (`to_stage` empty — e.g. every dirty file excluded by `auto_commit_exclude_patterns`, or phantom WT_MODIFIED submodule gitlinks from the libgit2 ignore bug), `sync_repo` returned `Synced` at the end of the auto-commit block WITHOUT calling `handle_ahead_push`. Unpushed commits (`ahead > 0`) then sat unpushed forever: the daemon logged `🔁 synced` every ~40s, the report showed a false "pushing Xm", and no push was ever attempted. Observed live: dracon-platform's `690d39180` stuck unpushed for 40+ minutes on 2026-08-09 (last successful push 00:17, ahead commit 00:24, no push attempt in between). The dirty-nothing-to-stage path now falls through to the `handle_ahead_push` gate; the committed case (`Ok(None)` from `stage_commit_and_push`) still returns `Synced` as before. New regression test `test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead` (fails pre-fix, passes post-fix).
+
+  Test suite: **1238 passed, 9 ignored** (+1 regression test), clippy `-D warnings` clean, `cargo deny check` clean.
+
 ## [0.113.46] - 2026-08-08
 
 ### Fixed (v0.113.46)
