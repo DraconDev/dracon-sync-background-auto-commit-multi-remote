@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.50] - 2026-08-09
+
+### Changed (v0.113.50)
+
+- **Classified push failures in the Mirror Degraded alert + stuck ledger (2026-08-09, pi-goal-loop-audit divergence incident)**: the alert text "mirror may be unreachable" misdirected the operator to network/credentials when the real cause was a history fork, and the stuck-ledger `last_error` recorded only the failing remote names ("git push returned non-zero (remotes: gitlab, codeberg)") without the rejection reason. New `classify_push_failure()` (`src/git/push.rs`) maps a raw push error to one of four operator-actionable causes — `history divergence (non-fast-forward …)`, `server-side policy rejection (protected branch / hook declined / missing repo / lost key)`, `pack exceeds forge size limit`, `transport/auth failure`. Per-remote failure tracking now carries `RemoteFailInfo { consecutive, last_error }` (was a bare `usize` count) so the raw error survives to the reporting layer; the Mirror Degraded alert names the classified cause; the stuck-ledger `last_error` appends a deduplicated cause line so the `repos` HINT column shows WHY, not just WHO.
+
+  Test suite: **1244 passed, 9 ignored** (+3: classifier coverage for all four failure modes, cause dedupe across two divergent mirrors, empty-map fallback; the mirror-failure tracking test now also asserts the raw error is captured). Clippy `-D warnings` clean; `cargo deny check` clean. Incident analysis + reconciliation options: `docs/design/pi-goal-loop-audit-divergence-2026-08-09.md`.
+
 ## [0.113.49] - 2026-08-09
 
 ### Fixed (v0.113.49)
