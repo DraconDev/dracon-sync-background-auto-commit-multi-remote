@@ -1373,7 +1373,7 @@ exit 0
         std::fs::write(
             &gh_mock,
             "#!/bin/sh
-if [ \"$GH_TOKEN\" ]; then
+if [ \"$GH_TOKEN\" != \"test_pat_from_file\" ]; then
   echo 'missing GH_TOKEN' >&2
   exit 20
 fi
@@ -1392,7 +1392,7 @@ exit 0
         std::fs::create_dir_all(&secrets_dir).expect("create secrets dir");
         std::fs::write(
             secrets_dir.join("github.env"),
-            "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA0ckpjbUZ1WnhrcEpZczI5TzlFYVJnbkJJZkpkMnNSYk1NTzNab2s2NjFnCmtQcGpBMFUvSzFLVnZQaktVSWtnY3h3ZVh4Q0o2WDFCYWVhK2FrUFdTRXcKLT4gWDI1NTE5IGlZd2xUU0h6R01zTjFQb1ZsMHFGYUl3TStPNHBiS09JTXU1SEgxenZHV2cKenRYOXZEVXRTZzhvSDgyKytsT1FDUjFNZDRpU1VaWU4zckNQKy9VcFFzSQotPiBYMjU1MTkgQjYrTFova1d6amd3NmlhVkpQcWtyOUFZd2wrM1VBbWpDMUpRTVh2QlhGYwpqM0dVMFNTUTN1UUVvbzdHUUd3d2dXRnJJWUlaaFJLZkdHclRSR1Z2RGxzCi0+IFgyNTUxOSBHY1hoSjRGZWRrVmFwODhBTFh6eDA4Qng0NHJ0WEFXUExaRUI2TWE0bkZJCjNIcjN5anlaNDYrTHE3QTQxWU52VWRHMlovdW1ZcC9HZERVODl4WU1qdmsKLT4gWDI1NTE5IDBZVmk2ckU0TUVJS291TW5VcDkzQm5ZVjNTbXZGbDB4anZES0hkR1ZhaXMKTjRER1diWittOWRvSk1DMkNmT2xDVll6UkN4UktVbExEYzRubkxvL0kvNAotPiB5IjpGPnt5LWdyZWFzZSBXb3UtOzpCIDUoCmxaUkxmL2N1TFp3cTVFbHVqQnN6SmVDcXFWZFkzVVY1NUFON2FHeFk4SFZKVnAva1cvaWh3UE5yRml0eVNhTVcKZnRldHBPcVF1WFVIcjJLRW5TNEVnMFBzTUlTNEh3dDYwTDNGNFRpRjBrd0Y2cjgKLS0tIGxIYmZxNWlMK0lacmNjUTBqZFhCMmJ2bUs0VDM4Zlc0cSs5eUtXMUE4eFkKvOk0gKXDEuhG9BdiYi2yaw4jV19AkRlZdQQ9ksMqZsnFVwzhsObCBASqdhhNMzhS5VRVNt7iBjgAAy5A2g==]",
+            "GH_TOKEN=test_pat_from_file\n",
         )
         .expect("write github env");
 

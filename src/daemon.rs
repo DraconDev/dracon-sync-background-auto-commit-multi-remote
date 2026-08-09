@@ -1524,7 +1524,7 @@ mod tests {
 
     #[test]
     fn test_record_push_success_clears_entry() {
-        // See `test_record_push_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBpR29oN2dGRHpLVG93UVRtR01ScnpyK3dURVF4NS9SREd5bm9hVFc0OFdFCm53RTBVdHQxdzBSd1d5bTN6OHVTWGIybFVxWjd5eXc5Smd4YTJ5dmtLWHMKLT4gWDI1NTE5IHVEVEhvTmJpUVp1SDA2ZXMwOFo4eG5UZWhuVlo1dEpPbWJDelBpbHJIeTgKUnBjRGpXdEtzenR6ZnpCdURlTHZqMTlza2M0aTRMYXQ1YnNJTk1DaUd3UQotPiBYMjU1MTkgR01WWXlYZ3Y5WkFnOERrRFpvZGpzNDM0RWJFZ0FyY1pkMGN4ZXB2ZzRIYwoxZ0RYZytZSkVvdjZHb1VxMHV1OElvb2w5THY3c284V2pjOGNnaVNQb2t3Ci0+IFgyNTUxOSB1UWcraFNXdWw5RGY3TDZ1WndCQzZZTi9zVmNiSGl3NmE3cFFHbHZFR1RNCmN2Zkd3VzdiSXBkMmhrSCtWMFhKcWJGUit6emhqaTd0NGNVaUN2dFZaUWcKLT4gWDI1NTE5IDdHY1Z6QWVXMW10R0NvV1lvMk5kaXo5U3RFS25lS3FGRG5yeXN1V3dOVGsKZmEvVVZQdnJ1azFEaHVGRnphbWUzdklhcGVpcnpUNHFXaERTcG5CSzVDbwotPiAoNF58VTEtZ3JlYXNlIGxJQ1hTTXkgJHEgTQpKN1dOb0laUHl1d01BU2VHbVYremcxL1pzam5uZ0t4THkvdEFDR0kweGhnNDFoenFTeEZUcHFNCi0tLSB5OUhQSGZlK1VXclRqbWdiZVBYRDJrS1IvY3NTbXczcmRoaU52Umw5N3NzCj/aK0ntHuvwUkgJw+IQoVBPVJASljLDE3uww4CzGLc6qn/MA7IZbpIUQIEZW130K6X2yyqgzQ3WIiwMAST5uFf5Ag==]`
+        // See `test_record_push_failure_increments_consecutive_failures`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
@@ -1546,7 +1546,7 @@ mod tests {
 
     #[test]
     fn test_record_push_failure_returns_repo_state() {
-        // See `test_record_push_failu[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA1bXlHRU1mdjgzSnJSTWpDSjIvYVBLQ3R1R3lMTDllVmNtZ1ViVlU5TFhVCndBa0s0UXlVNzRjUndmSVRTMzN2ZmNFU3RkcEMxSEZlUjJJZzREK0FsTTAKLT4gWDI1NTE5IEVYbVJFbjNlNjFrN0gwdTJ1N1l4dG5PL0N2UFJMMVBiT1FhMkpYVTRxeG8KWHdSRWY3U1hVWUo2NHFON1o2WnFFSm92U29QaDJUc294L0dDOTdnbmdmSQotPiBYMjU1MTkgNVpBVW1BSUdkUDF1N1hkQUNwSHNHakJ4NW5rdDRpRTIyQlNFR1hrNm5tOApVY0pseWR3WXZ4NGJ5RDA1eTdLSW9MM2ZoQmdZd3p0cFlZNkI1Rm94Y1RRCi0+IFgyNTUxOSBGMUZXM0x3Lythcmwzb0FuSjRkMWZCcjlHbHc5S0VhSVpCa1JEWURYcFdzCjZDRGFldk1SRnJvcGp5MlBCM0l2OTZ5UmR6czJ1V1RON250RDBWMStMcUEKLT4gWDI1NTE5IHlnZGE5amZKbVVrWWRoZXBaTzZQN2JOd245VW1VWkVBVnRqU1lSbk82bWsKcCswYXRuMHEwVXE2Q3FqcHJxbzlSalU4Qm9OUHNaQzVQTEMwTGZUMnRLcwotPiB0NEctZ3JlYXNlCmlLMXZjR0tkU01KLytYSGp2TTdDcTcyQnJOc0M2TzFWVDZ6dlprMlV3aWtMRFJTK1AvdGlXK0xLCi0tLSBBeTA4S3VLQzh1ZERaL0wvVDRpaUFyNXF1MFh1dlNZRnE0WmpOL3k4bndvCjBF2hEU1d+fE8vRM+6Gcz+22zj64LeHthNoCxuxGZrAPy41PicyAu4JFMc/XJTT5qjRlOdg6SwQcC2D6g+JPrTyjw==]`
+        // See `test_record_push_failure_increments_consecutive_failures`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
