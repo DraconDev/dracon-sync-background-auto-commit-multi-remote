@@ -57,7 +57,12 @@ watch_roots = ["$REPO"]
 EOF
 
 # ── run the binary under test and read its untracked count ───────────────
-OUT="$("$BIN" repos --json 2>/dev/null || true)"
+# DRACON_SYNC_POLICY wires the fixture policy into the binary under test so
+# `repos --json` scans ONLY the fixture repo. (FIXED 2026-08-09, audit HIGH:
+# the env was previously unset, so the check asserted rows[0] of the
+# operator's REAL fleet — passing only while the fleet happens to be clean
+# and false-failing whenever a legitimately-dirty fleet repo is row 0.)
+OUT="$(DRACON_SYNC_POLICY="$TMP/policy.toml" "$BIN" repos --json 2>/dev/null || true)"
 UNTRACKED="$(printf '%s' "$OUT" | python3 -c '
 import json, sys
 try:
@@ -67,6 +72,22 @@ try:
 except Exception:
     print("-1")
 ' 2>/dev/null || echo "-1")"
+SCANNED="$(printf '%s' "$OUT" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    rows = d["rows"] if isinstance(d, dict) and "rows" in d else d
+    print(rows[0]["repo"] if rows else "")
+except Exception:
+    print("")
+' 2>/dev/null || echo "")"
+
+if [[ "$SCANNED" != "$REPO" ]]; then
+    echo "✗ FAIL: '$BIN' scanned '$SCANNED' — expected the fixture repo '$REPO'." >&2
+    echo "  The fixture policy (\$DRACON_SYNC_POLICY=$TMP/policy.toml) was not honored; the" >&2
+    echo "  check would silently test the operator's real fleet instead of the fixture." >&2
+    exit 1
+fi
 
 if [[ "$UNTRACKED" != "0" ]]; then
     echo "✗ FAIL: '$BIN' reports untracked=$UNTRACKED for a repo whose only untracked files are gitignored (.pi/)." >&2
