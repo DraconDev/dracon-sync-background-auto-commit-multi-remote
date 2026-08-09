@@ -496,7 +496,7 @@ mod tests {
         assert!(divergence.contains("history divergence"), "got: {}", divergence);
         // Policy rejection (protected branch).
         let policy_msg = classify_push_failure(
-            "remote: error: GH006: Protected branch update failed for main",
+            "remote: error: GH006: Protected branch update failed for main.\n! [remote rejected] main -> main (protected branch hook declined)",
         );
         assert!(
             policy_msg.contains("server-side policy"),
