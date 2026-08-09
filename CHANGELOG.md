@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.49] - 2026-08-09
+
+### Fixed (v0.113.49)
+
+- **PUSH legend documented all 8 cell labels (2026-08-09, pi-goal-list-loop-audit cascade finding)**: the `repos` legend's PUSH row used to list 5 markers (✅ OK, 🟣 push in flight, ❌ FAIL, 🩹 broken history, 🔑 forge token missing) while the code in `push_cell_label` (`src/report.rs:5337`) emits 8 distinct cell labels — three of which were undocumented: `🛑 STUCK` (the `PUSH_STUCK` and `STUCK` states — a critical alarm that has fired in production), `🩹 BROKEN` (the BROKEN push_status cell label), `🚫 BLOCKED` (BLOCKED), plus `✅ INTENT` (INTENTIONAL). Operators seeing `🛑 STUCK` in the PUSH column had no legend entry to look it up. The PUSH legend now reads: `✅ OK +age · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑 markers)` — listing every cell label the code emits (with `🩹` and `🔑` noted as appended markers). New regression test `test_repos_legend_covers_all_push_cell_labels` (`src/report.rs`) pins the legend as the source of truth: it iterates every `push_status` value passed through `push_cell_label`, asserts the rendered text appears in the legend, and asserts the 🩹 and 🔑 markers are documented. The existing `test_repos_legend_lines_fit_min_width` (≤ 120 cols) still passes.
+
+  Test suite: **1241 passed, 9 ignored** (+1 regression test), clippy `-D warnings` clean (0 new warnings in the touched file), `cargo deny check` clean.
+
 ## [0.113.48] - 2026-08-09
 
 ### Fixed (v0.113.48)
