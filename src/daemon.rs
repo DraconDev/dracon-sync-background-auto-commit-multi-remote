@@ -125,7 +125,7 @@ pub(crate) enum ApplyOutcome {
 pub(crate) fn apply_outcome(
     repo: &Path,
     sync_res: &Result<SyncOutcome, anyhow::Error>,
-    remote_failures: HashMap<String, usize>,
+    remote_failures: HashMap<String, RemoteFailInfo>,
     entry: &mut RepoActivity,
     stage_cooldowns: &mut HashMap<PathBuf, Instant>,
     remote_notify_cooldowns: &mut HashMap<String, Instant>,
@@ -593,6 +593,21 @@ pub(crate) struct StuckRepoEntry {
     /// Now the entry persists and this field throttles attempts.
     #[serde(default)]
     pub(crate) last_retry_at: u64,
+}
+
+/// ADDED 2026-08-09 (v0.113.50, pi-goal-loop-audit divergence
+/// incident): per-remote push failure tracking — consecutive failure
+/// count plus the most recent raw error message. Replaces the
+/// pre-fix `HashMap<String, usize>` counts so the Mirror Degraded
+/// alert and the stuck-ledger hint can name the CAUSE (history
+/// divergence vs transport vs policy) instead of the misleading
+/// "mirror may be unreachable".
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct RemoteFailInfo {
+    /// Consecutive failures for this remote (reset on success).
+    pub(crate) consecutive: usize,
+    /// Most recent raw `git push` error text for this remote.
+    pub(crate) last_error: String,
 }
 
 /// ADDED 2026-07-22 (v0.112.37): whether an `Option<Instant>`
@@ -3313,10 +3328,10 @@ pub(crate) struct RepoActivity {
     ahead_since: Option<Instant>,
     /// When the repo first became behind origin (unpulled commits).
     behind_since: Option<Instant>,
-    /// Which mirrors have failed consecutively (name → consecutive fail count).
-    mirror_consecutive_fails: HashMap<String, usize>,
+    /// Which mirrors have failed consecutively (name → failure info).
+    mirror_consecutive_fails: HashMap<String, RemoteFailInfo>,
     failure_count: usize,
-    remote_failures: HashMap<String, usize>,
+    remote_failures: HashMap<String, RemoteFailInfo>,
     /// Cached ownership report for this repo. Re-computed
     /// once per cycle when missing; never re-computed during
     /// the same cycle. The daemon uses this to skip

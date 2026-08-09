@@ -303,6 +303,24 @@ pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
         || err_msg.contains("[rejected]")
 }
 
+/// ADDED 2026-08-09 (v0.113.50, pi-goal-loop-audit divergence incident):
+/// human-readable cause for a failed push, so the Mirror Degraded
+/// alert and the stuck-ledger `last_error` say WHY instead of the
+/// pre-fix "mirror may be unreachable" (which misdirected the operator
+/// to network/credentials when the true cause was a history fork).
+/// Mirrors the predicate set above; keep the arms in the same order.
+pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
+    if is_pack_too_large(err_msg) {
+        "pack exceeds forge size limit (needs history rewrite)"
+    } else if is_permanent_push_rejection(err_msg) {
+        "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
+    } else if is_push_rejected(err_msg) {
+        "history divergence (non-fast-forward: remote has commits not on local; needs operator reconciliation)"
+    } else {
+        "transport/auth failure (network, timeout, or credentials)"
+    }
+}
+
 /// Check if an error message indicates a permanent push rejection that
 /// retrying will not fix. These are server-side policy errors (protected
 /// branches, required reviews, deny rules) that the daemon should
