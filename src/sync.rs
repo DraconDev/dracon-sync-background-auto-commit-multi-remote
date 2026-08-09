@@ -6388,9 +6388,16 @@ push_url = "git@nonexistent.example.com:repo.git"
             "mirror push failure must return PushFailed (origin succeeded but mirror failed)"
         );
         assert_eq!(
-            remote_failures.get("bad-mirror"),
-            Some(&1),
+            remote_failures.get("bad-mirror").map(|f| f.consecutive),
+            Some(1),
             "bad-mirror failure should be tracked"
+        );
+        assert!(
+            remote_failures
+                .get("bad-mirror")
+                .map(|f| f.last_error.contains("nonexistent"))
+                .unwrap_or(false),
+            "bad-mirror failure should carry the raw error"
         );
     }
 
