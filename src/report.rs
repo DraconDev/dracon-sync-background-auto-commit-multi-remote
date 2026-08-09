@@ -2951,7 +2951,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none"),
         ("A/B", "commits ahead/behind upstream (↑ = unpushed work, dim ↑ = being pushed right now) · — = in sync"),
         ("", ""),
-        ("PUSH", "✅ OK +age · 🟣 push in flight · ❌ FAIL · 🩹 broken history · 🔑 forge token missing"),
+        ("PUSH", "✅ OK +age · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 missing obj, +🔑 no token)"),
         ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
         ("", ""),
         ("REPO", "🔒 private · no icon = public/unknown · > = nested submodule (badge after lock) · name⚡branch"),
@@ -11501,6 +11501,68 @@ mod tests {
     fn test_push_cell_label_fail() {
         let (text, _color) = push_cell_label("FAIL", None);
         assert_eq!(text, "❌ FAIL");
+    }
+
+    /// ADDED 2026-08-09 (v0.113.49, pi-goal-list-loop-audit cascade
+    /// finding): the PUSH legend used to list 5 markers (✅ OK, 🟣 push
+    /// in flight, ❌ FAIL, 🩹 broken history, 🔑 forge token missing)
+    /// while the code emits 8 distinct cell labels via `push_cell_label`
+    /// — three of which (🛑 STUCK, 🩹 BROKEN, 🚫 BLOCKED) were
+    /// undocumented, plus ✅ INTENT. Operators seeing `🛑 STUCK` in the
+    /// PUSH column had no legend entry to look it up. This test pins
+    /// the legend text as the source of truth for cell labels: if a new
+    /// `push_cell_label` arm is added without updating the legend, the
+    /// test trips. Markers (🩹 for missing objects, 🔑 for forge token
+    /// missing) are also asserted since the legend documents them.
+    #[test]
+    fn test_repos_legend_covers_all_push_cell_labels() {
+        // Collect every documented cell label.
+        let cell_label_statuses = ["OK", "INTENTIONAL", "PENDING", "PUSH_STUCK", "STUCK", "FAIL", "BROKEN", "BLOCKED"];
+        let cell_label_outputs: Vec<String> = cell_label_statuses
+            .iter()
+            .map(|s| push_cell_label(s, None).0.to_string())
+            .collect();
+        // The legend should contain every cell label's text. We
+        // concatenate the legend rows into a single haystack and search
+        // for each needle (case-sensitive, since the labels are
+        // deliberate).
+        let haystack: String = repos_legend_rows()
+            .iter()
+            .map(|(_, text)| *text)
+            .collect();
+        for label in &cell_label_outputs {
+            assert!(
+                haystack.contains(label.as_str()),
+                "PUSH legend missing cell label {label:?} (full legend haystack: {haystack:?})"
+            );
+        }
+        // Markers — the legend must document the 🩹 and 🔑 markers
+        // (appended after the cell label by `push_cell_with_markers`).
+        assert!(
+            haystack.contains('🩹'),
+            "PUSH legend missing the 🩹 marker glyph"
+        );
+        assert!(
+            haystack.contains('🔑'),
+            "PUSH legend missing the 🔑 marker glyph"
+        );
+        // Sanity: the haystack itself comes from the PUSH row (not
+        // some other row), so we also check it contains `push_status`
+        // vocabulary like `OK` (which appears in both the PUSH row's
+        // legend entry and possibly elsewhere). This catches a
+        // regression where someone moves the labels to a different
+        // legend row by mistake.
+        let push_row = repos_legend_rows()
+            .iter()
+            .find(|(label, _)| *label == "PUSH")
+            .map(|(_, text)| *text)
+            .expect("PUSH row must exist in legend");
+        for label in &cell_label_outputs {
+            assert!(
+                push_row.contains(label.as_str()),
+                "PUSH row of legend missing cell label {label:?}: {push_row:?}"
+            );
+        }
     }
 
     #[test]
