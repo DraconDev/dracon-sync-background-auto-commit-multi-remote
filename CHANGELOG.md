@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.48] - 2026-08-09
+
+### Fixed (v0.113.48)
+
+- **Detached-HEAD push stuck on bare `HEAD` refspec (2026-08-09, pi-goal-loop-audit incident)**: three push sites — `push_with_transport_fallbacks` (`src/git/push.rs:97`), `push_with_retries` (`src/git/push.rs:165`), and `multi_remote::push_to_remote`'s retry loop (`src/git/multi_remote.rs:609`) — used the bare refspec `HEAD` when `current_branch(repo) = Some(branch)` and only fully-qualified `HEAD:refs/heads/main` as the detached fallback. When `HEAD` is interpreted as a commit SHA (detached worktree, mid-migration race), git rejects it with `error: The destination you provided is not a full refname`. Observed live: `pi-goal-loop-audit`'s 197-file commit stuck for ~50 minutes (10:05:42 → ~10:55) on gitlab before self-recovering via the HTTPS fallback's already-correct refspec. All three sites now use `HEAD:refs/heads/<branch>` whenever a branch is known (works for both attached and detached worktrees); the detached-only fallback to `"main"` is preserved as a last resort. The corresponding regression test in `git/mod.rs` (`test_push_to_named_remote_https_fallback_failure_still_retries_ssh`) is updated to assert the new (deterministic) failure mode: with the qualified refspec, the retry loop fails the same way as the SSH attempt instead of accidentally succeeding via the bare-HEAD escape hatch.
+- **New regression tests for detached-HEAD push**: `test_push_succeeds_with_detached_head` (`src/sync.rs`) — builds a repo, detaches HEAD, and verifies the fully-qualified refspec push from a detached HEAD lands on origin. `test_refspec_format_is_always_qualified` (`src/sync.rs`) — pins the contract that no push refspec is the bare `HEAD` form.
+
+  Test suite: **1240 passed, 9 ignored** (+2 regression tests, −0 broken), clippy `-D warnings` clean (only the 6 pre-existing daemon.rs / report.rs warnings remain — none in the touched files), `cargo deny check` clean.
+
 ## [0.113.47] - 2026-08-09
 
 ### Fixed (v0.113.47)
