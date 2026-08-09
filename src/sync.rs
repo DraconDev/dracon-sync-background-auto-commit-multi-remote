@@ -4517,7 +4517,13 @@ mod tests {
             "message should carry skip reasons: {}",
             msg
         );
-        let pause_part = msg.split("PAUSE:").nth(1).unwrap_or("");
+        // Metrics are space-joined, so isolate the PAUSE: fragment
+        // before asserting its length.
+        let pause_part = msg
+            .split("PAUSE:")
+            .nth(1)
+            .and_then(|s| s.split(" EVIDENCE:").next())
+            .unwrap_or("");
         assert!(
             pause_part.chars().count() <= 50,
             "pause reason should be truncated to <=50 chars: {}",
