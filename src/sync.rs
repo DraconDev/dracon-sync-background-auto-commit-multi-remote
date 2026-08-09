@@ -1628,7 +1628,7 @@ async fn push_background(
     repo: &std::path::Path,
     policy: &SyncPolicy,
     has_origin: bool,
-    mut remote_failures: Option<&mut HashMap<String, usize>>,
+    mut remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
 ) -> Result<bool> {
     // Scale the push idle timeout with the local ahead count. A 60s
     // timeout is fine for a small push, but a 28-commit push with
@@ -1664,7 +1664,7 @@ async fn push_background(
     // rather than spamming the journal every cycle.
     let github_already_flagged = remote_failures
         .as_ref()
-        .map(|rf| rf.get("github").copied().unwrap_or(0) > 0)
+        .map(|rf| rf.get("github").map(|f| f.consecutive > 0).unwrap_or(false))
         .unwrap_or(false);
 
     // Detect whether `origin` points at github. This matters for the
@@ -1732,7 +1732,9 @@ async fn push_background(
                         e
                     );
                     if let Some(rf) = remote_failures.as_deref_mut() {
-                        *rf.entry("origin".to_string()).or_insert(0) += 1;
+                        let fail = rf.entry("origin".to_string()).or_default();
+                        fail.consecutive += 1;
+                        fail.last_error = e.to_string();
                     }
                     origin_failed = true;
                 }
@@ -1824,7 +1826,12 @@ async fn push_background(
             // Record the skip so the one-time notification doesn't re-fire
             // every cycle, and so the repo shows as intentionally-skipped.
             if let Some(rf) = remote_failures.as_deref_mut() {
-                *rf.entry("github".to_string()).or_insert(0) += 1;
+                let fail = rf.entry("github".to_string()).or_default();
+                fail.consecutive += 1;
+                if fail.last_error.is_empty() {
+                    fail.last_error =
+                        "skipped: pushable branch exceeds github's 2 GiB pack limit".to_string();
+                }
             }
             if !github_already_flagged {
                 log_warn!(
@@ -1861,7 +1868,9 @@ async fn push_background(
                         notify_webhook_failure(url, repo, name, &e.to_string());
                     }
                     if let Some(rf) = remote_failures.as_deref_mut() {
-                        *rf.entry(name.clone()).or_insert(0) += 1;
+                        let fail = rf.entry(name.clone()).or_default();
+                        fail.consecutive += 1;
+                        fail.last_error = e.to_string();
                     }
                 }
             }
@@ -1888,7 +1897,7 @@ async fn push_background(
 /// `repos` HINT column without grepping the daemon log. The
 /// pre-fix message was the generic "git push returned non-zero
 /// (see daemon log)" for every failure mode.
-fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> String {
+fn failing_remote_names(remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>) -> String {
     match remote_failures {
         Some(map) if !map.is_empty() => {
             let mut names: Vec<&str> = map.keys().map(String::as_str).collect();
@@ -1896,6 +1905,30 @@ fn failing_remote_names(remote_failures: Option<&HashMap<String, usize>>) -> Str
             names.join(", ")
         }
         _ => "unknown".to_string(),
+    }
+}
+
+/// ADDED 2026-08-09 (v0.113.50, pi-goal-loop-audit divergence
+/// incident): aggregate the per-remote push-error classifications
+/// into one human-readable cause line for the stuck-ledger
+/// `last_error`. Deduplicates identical causes across remotes so the
+/// HINT says "history divergence" once, not per-forge.
+fn classify_failing_remotes(
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+) -> String {
+    let mut causes: Vec<&'static str> = remote_failures
+        .map(|map| {
+            map.values()
+                .map(|f| crate::git::push::classify_push_failure(&f.last_error))
+                .collect()
+        })
+        .unwrap_or_default();
+    causes.sort_unstable();
+    causes.dedup();
+    if causes.is_empty() {
+        "cause unknown (no per-remote error recorded)".to_string()
+    } else {
+        causes.join("; ")
     }
 }
 
@@ -3425,11 +3458,18 @@ async fn stage_commit_and_push(
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error so
                 // the repos HINT says WHICH forge is failing.
+                // CHANGED 2026-08-09 (v0.113.50): also classify the
+                // per-remote errors (divergence vs transport vs
+                // policy) so the HINT says WHY, not just WHO.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
+                let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
                 eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
                 crate::daemon::record_push_failure(
                     repo,
-                    &format!("git push returned non-zero (remotes: {})", names),
+                    &format!(
+                        "git push returned non-zero (remotes: {}) — {}",
+                        names, cause
+                    ),
                 );
                 push_failed = true;
             }
@@ -3680,7 +3720,7 @@ pub(crate) async fn sync_repo(
     policy: &SyncPolicy,
     excluded_dir_names: &BTreeSet<String>,
     idle_seconds: u64,
-    remote_failures: Option<&mut HashMap<String, usize>>,
+    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
     dry_run: bool,
     policy_path: Option<&Path>,
 ) -> Result<SyncOutcome> {
@@ -3696,7 +3736,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     policy: &SyncPolicy,
     excluded_dir_names: &BTreeSet<String>,
     idle_seconds: u64,
-    remote_failures: Option<&mut HashMap<String, usize>>,
+    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
     dry_run: bool,
     policy_path: Option<&Path>,
     ahead_since: Option<std::time::Instant>,
@@ -5991,6 +6031,36 @@ auto_bump_versions = false
             last_error: "connection timed out".to_string(),
         });
         assert_eq!(failing_remote_names(Some(&map)), "codeberg, gitlab");
+    }
+
+    /// ADDED 2026-08-09 (v0.113.50): the ledger cause line must
+    /// classify each failing remote's error and dedupe identical
+    /// causes (two divergent mirrors → one "history divergence"
+    /// cause, not two).
+    #[test]
+    fn test_classify_failing_remotes_dedupes_divergence() {
+        let mut map: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
+        map.insert("gitlab".to_string(), crate::daemon::RemoteFailInfo {
+            consecutive: 5,
+            last_error: "! [rejected] HEAD -> main (non-fast-forward)".to_string(),
+        });
+        map.insert("codeberg".to_string(), crate::daemon::RemoteFailInfo {
+            consecutive: 5,
+            last_error: "error: failed to push some refs (fetch first)".to_string(),
+        });
+        let cause = classify_failing_remotes(Some(&map));
+        assert!(cause.contains("history divergence"), "got: {}", cause);
+        // Dedupe: both remotes classify the same way.
+        assert_eq!(cause.matches("history divergence").count(), 1);
+        assert!(!cause.contains("unknown"), "got: {}", cause);
+    }
+
+    #[test]
+    fn test_classify_failing_remotes_empty_map() {
+        let map: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
+        let cause = classify_failing_remotes(Some(&map));
+        assert!(cause.contains("unknown"), "got: {}", cause);
+        assert_eq!(classify_failing_remotes(None), classify_failing_remotes(Some(&map)));
     }
 
     /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): after a mirror

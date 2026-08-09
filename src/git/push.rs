@@ -482,6 +482,36 @@ mod tests {
         assert!(!is_push_rejected("connection timed out"));
     }
 
+    /// ADDED 2026-08-09 (v0.113.50): the classifier must map each
+    /// failure mode to the operator-actionable cause the alert and
+    /// stuck-ledger will show. Divergence (non-fast-forward) is the
+    /// headline case from the pi-goal-loop-audit incident.
+    #[test]
+    fn test_classify_push_failure_maps_every_mode() {
+        // Divergence: non-fast-forward rejection (the 2026-08-09
+        // pi-goal-loop-audit case).
+        let divergence = classify_push_failure(
+            "! [rejected] HEAD -> main (non-fast-forward)\nerror: failed to push some refs",
+        );
+        assert!(divergence.contains("history divergence"), "got: {}", divergence);
+        // Policy rejection (protected branch).
+        let policy_msg = classify_push_failure(
+            "remote: error: GH006: Protected branch update failed for main",
+        );
+        assert!(
+            policy_msg.contains("server-side policy"),
+            "got: {}",
+            policy_msg
+        );
+        // Pack too large (github GH001).
+        let pack_msg =
+            classify_push_failure("remote: error: GH001: Large files detected.");
+        assert!(pack_msg.contains("pack exceeds"), "got: {}", pack_msg);
+        // Transport: no rejection markers at all.
+        let transport = classify_push_failure("Connection timed out");
+        assert!(transport.contains("transport/auth"), "got: {}", transport);
+    }
+
     #[test]
     fn test_is_pack_too_large_recognises_github_gh001() {
         // github's oversized-pack / large-file rejection.
