@@ -6431,6 +6431,108 @@ push_url = "{}"
         );
     }
 
+    /// REGRESSION (2026-08-09, v0.113.48, pi-goal-loop-audit incident):
+    /// a repo whose HEAD is detached at push time (e.g. mid-migration,
+    /// worktree-state race, agent left it detached) must still push its
+    /// ahead commits. Pre-fix: `push_with_transport_fallbacks`,
+    /// `push_with_retries`, and `multi_remote::push_to_remote`'s retry
+    /// loop all picked the bare refspec `"HEAD"` when
+    /// `current_branch(repo) = Some(branch)` — but `HEAD` is a commit
+    /// SHA on a detached worktree, and git rejects it with "The
+    /// destination you provided is not a full refname". The daemon then
+    /// retried for ~50 minutes (10:05:42 → ~10:55) before self-recovering
+    /// via the HTTPS fallback path. Fix: always use
+    /// `HEAD:refs/heads/<branch>` when a branch is known — safe for both
+    /// attached and detached worktrees.
+    #[tokio::test]
+    async fn test_push_succeeds_with_detached_head() {
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "main"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "--no-verify", "--allow-empty", "-m", "init"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "remote", "add", "origin", &origin_bare.to_string_lossy()])
+            .status()
+            .unwrap();
+        // push the initial commit so upstream is configured
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "push", "-q", "-u", "origin", "main"])
+            .status()
+            .unwrap();
+
+        // Now DETACH HEAD. This is the scenario that broke in
+        // production: an agent (or migration script) left the
+        // worktree at a SHA while commits were still being made.
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "checkout", "--detach", "HEAD"])
+            .status()
+            .unwrap();
+        // Confirm detached: .git/HEAD contains a raw SHA.
+        let head_content = std::fs::read_to_string(repo.join(".git").join("HEAD")).unwrap();
+        assert!(
+            !head_content.starts_with("ref: "),
+            "test setup must produce a detached HEAD (got: {:?})",
+            head_content
+        );
+
+        // Make an ahead commit while detached.
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "--no-verify", "--allow-empty", "-m", "ahead"])
+            .status()
+            .unwrap();
+
+        let policy_str = r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(policy_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(
+            result.is_ok(),
+            "push must succeed on a detached HEAD with the fully-qualified refspec (got: {:?})",
+            result
+        );
+        // assert ahead was actually pushed
+        let head_sha = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
+            .output()
+            .unwrap();
+        let origin_sha = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "refs/remotes/origin/main"])
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&head_sha.stdout).trim(),
+            String::from_utf8_lossy(&origin_sha.stdout).trim(),
+            "ahead commit must land on origin even with a detached HEAD"
+        );
+    }
+
     /// ADDED 2026-07-27 (v0.113.5, audit M3): a mirror-only repo
     /// (no upstream tracking branch configured) that is already
     /// fully pushed to its mirror must NOT cause `sync_repo` to

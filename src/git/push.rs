@@ -100,8 +100,18 @@ pub(crate) async fn push_with_transport_fallbacks(
     // This is the case for nested-on-main architectures where the
     // nested submodule path is watched while still detached at the
     // parent's gitlink SHA (during migration windows).
+    //
+    // CHANGED 2026-08-09 (v0.113.48, pi-goal-loop-audit incident):
+    // always use the fully-qualified `HEAD:refs/heads/<branch>` form
+    // when a branch is known. Bare `HEAD` is interpreted as a commit
+    // SHA by git when HEAD is detached, even if `current_branch()`
+    // returned `Some(branch)` (worktree-state race: HEAD-file cached
+    // while the worktree is mid-detach). The fully-qualified form is
+    // safe in both attached and detached HEADs — git pushes the commit
+    // pointed at by HEAD to `refs/heads/<branch>`. The detached
+    // fallback to `main` is preserved as a last resort.
     let ssh_refspec = match crate::git::branch::current_branch(repo) {
-        Some(_branch) => "HEAD".to_string(),
+        Some(branch) => format!("HEAD:refs/heads/{branch}"),
         None => "HEAD:refs/heads/main".to_string(),
     };
     match super::run_git_with_timeout_env_progress(
@@ -161,8 +171,13 @@ pub(crate) async fn push_with_retries(
         // CHANGED 2026-07-02 (goal `354fe3cb`):
         // When the worktree is detached, `git push origin HEAD` fails.
         // Build a fully-qualified refspec instead.
+        //
+        // CHANGED 2026-08-09 (v0.113.48): see `push_with_transport_fallbacks`
+        // — always use the fully-qualified `HEAD:refs/heads/<branch>` form
+        // when a branch is known. Bare `HEAD` fails with the same refspec
+        // error on a detached worktree.
         let ssh_refspec = match crate::git::branch::current_branch(repo) {
-            Some(_branch) => "HEAD".to_string(),
+            Some(branch) => format!("HEAD:refs/heads/{branch}"),
             None => "HEAD:refs/heads/main".to_string(),
         };
         match super::run_git_with_timeout_env_progress(

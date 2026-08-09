@@ -604,9 +604,15 @@ pub(crate) async fn push_to_named_remote(
     }
 
     for attempt in 1..=retries.max(1) {
+        // CHANGED 2026-08-09 (v0.113.48, pi-goal-loop-audit incident):
+        // use the already-built fully-qualified refspec instead of bare
+        // `HEAD`. The bare form fails with "destination you provided is
+        // not a full refname" when HEAD is detached (git interprets
+        // `HEAD` as a commit SHA in that case). The fully-qualified form
+        // is safe for both attached and detached HEADs.
         match run_git_with_timeout_env_progress(
             repo,
-            &["push", "--no-verify", remote_name, "HEAD"],
+            &["push", "--no-verify", remote_name, &refspec],
             timeout_secs,
             &format!("push-to-{}", remote_name),
             &[
