@@ -2907,80 +2907,47 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 /// actually ship in the rich table (the old text referenced removed columns:
 /// MOD, PUSH-TO, "Daemon =").
 fn print_repos_legend() {
-    use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, ColumnConstraint, ContentArrangement, Table,
-        Width,
-    };
-    // v0.113.25: legend as a comfy-table matching the main table's
-    // UTF8_FULL_CONDENSED style. CHANGED 2026-08-10 (operator request):
-    // the legend spans the terminal width, and wide terminals now use
-    // paired panels instead of leaving the new width as trailing blanks:
-    // STATUS/ACTIVITY, CHANGES/A/B, PUSH/REM, REPO/SIZE, and
-    // TOUCHED/1H/6H/24H. Text is word-wrapped to each panel.
-    // Clamped to >= LEGEND_MIN_WIDTH and <= 1000.
+    // CHANGED 2026-08-10 (operator request): replace the heavy
+    // full-width table with a short, aligned glossary. The full-width
+    // rule still separates the legend visually from the repos table,
+    // while each line maps directly to one or more real table columns.
+    // Clamped to >= LEGEND_MIN_WIDTH and <= 1000; long lines wrap using
+    // terminal display width so emoji do not break alignment.
     let width = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
         .max(LEGEND_MIN_WIDTH as u16)
         .min(1000) as usize;
-    let (left_text_width, right_text_width) = legend_panel_widths(width);
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL_CONDENSED);
-    table.set_content_arrangement(ContentArrangement::Disabled);
-    table.set_width(width as u16);
-
-    let entries: Vec<_> = repos_legend_rows()
-        .iter()
-        .filter(|(label, _)| !label.is_empty())
-        .copied()
-        .collect();
-    for (pair_index, pair) in entries.chunks(2).enumerate() {
-        let (left_label, left_text) = pair[0];
-        let (right_label, right_text) = pair.get(1).copied().unwrap_or(("", ""));
-        table.add_row(vec![
-            Cell::new(left_label),
-            Cell::new(wrap_legend_text(left_text, left_text_width.saturating_sub(2))),
-            Cell::new(right_label),
-            Cell::new(wrap_legend_text(right_text, right_text_width.saturating_sub(2))),
-        ]);
-        if pair_index + 1 < entries.len().div_ceil(2) {
-            table.add_row(vec![Cell::new(""), Cell::new(""), Cell::new(""), Cell::new("")]);
-        }
+    for line in legend_display_lines(width) {
+        println!("{line}");
     }
-
-    // Constraints MUST be set after add_row: column_mut() returns None
-    // (and silently drops the constraint) before rows exist. Absolute
-    // widths are used here so the two text panels consume the full
-    // terminal width instead of growing only to their natural content.
-    for (index, column_width) in [
-        LEGEND_LABEL_WIDTH,
-        left_text_width,
-        LEGEND_LABEL_WIDTH,
-        right_text_width,
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        if let Some(col) = table.column_mut(index) {
-            col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(
-                column_width as u16,
-            )));
-        }
-    }
-    println!("── legend {}", "─".repeat(width.saturating_sub(10)));
-    println!("{table}");
+    println!();
 }
 
 const LEGEND_LABEL_WIDTH: usize = 11;
-const LEGEND_GRID_BORDER_WIDTH: usize = 5;
 
-/// Return the two text-panel widths for the four-column legend grid.
-/// The five border/separator characters and two fixed label columns are
-/// accounted for so the constrained table is exactly the terminal width.
-fn legend_panel_widths(width: usize) -> (usize, usize) {
-    let text_width = width.saturating_sub(
-        LEGEND_GRID_BORDER_WIDTH + (LEGEND_LABEL_WIDTH * 2),
-    );
-    let left = text_width.div_ceil(2);
-    (left, text_width.saturating_sub(left))
+/// Format the short glossary for a terminal of `width` display columns.
+/// Kept separate from stdout emission so layout and Unicode-width tests
+/// can exercise the exact lines shown to operators.
+fn legend_display_lines(width: usize) -> Vec<String> {
+    let mut lines = vec![format!("── legend {}", "─".repeat(width.saturating_sub(10)))];
+    let text_width = width.saturating_sub(LEGEND_LABEL_WIDTH + 2);
+    let continuation_indent = " ".repeat(LEGEND_LABEL_WIDTH + 2);
+    for (label, text) in repos_legend_rows() {
+        if label.is_empty() {
+            lines.push(String::new());
+            continue;
+        }
+        for (index, text_line) in wrap_legend_text(text, text_width).lines().enumerate() {
+            if index == 0 {
+                lines.push(format!(
+                    "{label:<label_width$}  {text_line}",
+                    label_width = LEGEND_LABEL_WIDTH
+                ));
+            } else {
+                lines.push(format!("{continuation_indent}{text_line}"));
+            }
+        }
+    }
+    lines
 }
 
 /// Wrap legend prose at word boundaries using terminal display width.
