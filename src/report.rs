@@ -2991,39 +2991,27 @@ const LEGEND_MIN_WIDTH: usize = 120;
 /// "make the legend table-like").
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("STATUS", "✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled · ❌ CONCERN needs a human"),
-        ("ACTIVITY", "⏳ dirty Nm settling · 🟢 synced Nm · ⚪ idle Nh · ⚫ cold Nd"),
+        ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
+        ("ACTIVITY", "⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold"),
         ("", ""),
-        ("CHANGES", "per-class columns: 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · — = none"),
-        ("A/B", "commits ahead/behind upstream (↑ = unpushed work, dim ↑ = being pushed right now) · — = in sync"),
+        ("REPO", "🔒 private · public/unknown · > submodule · name⚡branch"),
+        ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
+        ("A/B", "↑ ahead · ↓ behind · — synced"),
         ("", ""),
-        ("PUSH", "✅ OK +age · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑 markers)"),
-        ("REM", "ACTIVE push remotes 🐙 github · 🦊 gitlab · 🗻 codeberg (excluded not shown — see repos <name>)"),
+        ("PUSH", "✅ OK · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑)"),
+        ("REM", "🐙 github · 🦊 gitlab · 🗻 codeberg (active only; excluded not shown)"),
         ("", ""),
-        ("REPO", "🔒 private · no icon = public/unknown · > = nested submodule (badge after lock) · name⚡branch"),
-        ("SIZE", "own .git size · +N = submodule gitdirs combined · 🟡 ≥1 GiB · 🔴 ≥2 GiB over github's push limit"),
-        ("TOUCHED", "author of the most recent commit (the age lives in ACTIVITY)"),
+        ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
+        ("SIZE", "own .git · +N submodule gitdirs · 🟡 ≥1 GiB · 🔴 ≥2 GiB github limit"),
+        ("TOUCHED", "latest commit author"),
         ("", ""),
-        ("1H/6H/24H", "commits in the last 1/6/24 hours — the repo's pulse (bright = active window)"),
-        ("", ""),
-        ("hint", "`dracon-sync repos <name>` = per-repo detail · `repos --legend` = this key on demand"),
+        ("hint", "`dracon-sync repos <name>` = detail · `repos --legend` = this key"),
     ]
 }
 
 #[cfg(test)]
 fn repos_legend_lines() -> Vec<String> {
-    let mut lines = vec![
-        "── legend ──────────────────────────────────────────────────────────────────────────────"
-            .to_string(),
-    ];
-    for (label, text) in repos_legend_rows() {
-        if label.is_empty() {
-            lines.push(String::new());
-        } else {
-            lines.push(format!(" {label:10}{text}"));
-        }
-    }
-    lines
+    legend_display_lines(LEGEND_MIN_WIDTH)
 }
 
 /// Print the legend under every repos table, width-gated (v0.113.12).
@@ -12114,15 +12102,17 @@ mod tests {
     }
 
     #[test]
-    fn test_legend_panel_widths_fill_requested_width() {
+    fn test_legend_glossary_lines_fit_requested_width() {
         for width in [LEGEND_MIN_WIDTH, 160, 220, 1000] {
-            let (left, right) = legend_panel_widths(width);
-            assert_eq!(
-                LEGEND_GRID_BORDER_WIDTH + (LEGEND_LABEL_WIDTH * 2) + left + right,
-                width,
-                "legend grid must consume exactly {width} columns"
-            );
-            assert!(left >= right && left - right <= 1);
+            let lines = legend_display_lines(width);
+            assert!(lines.iter().any(|line| line.starts_with("STATUS")));
+            for line in lines {
+                let display_width = unicode_width::UnicodeWidthStr::width(line.as_str());
+                assert!(
+                    display_width <= width,
+                    "glossary line ({display_width} cols) exceeds requested width {width}: {line:?}"
+                );
+            }
         }
     }
 
