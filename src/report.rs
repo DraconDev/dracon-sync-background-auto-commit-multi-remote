@@ -2912,23 +2912,27 @@ fn print_repos_legend() {
         Width,
     };
     // v0.113.25: legend as a comfy-table matching the main table's
-    // UTF8_FULL_CONDENSED style. Label column 11 + text column 106 +
-    // 3 border chars = 120 = LEGEND_MIN_WIDTH (the width gate above
-    // guarantees the terminal is at least this wide).
+    // UTF8_FULL_CONDENSED style. CHANGED 2026-08-10 (operator request):
+    // the legend now spans the FULL terminal width instead of a fixed
+    // 120 cols — the operator's terminal has spare width and a
+    // full-width legend block separates visually from the table above
+    // it. Label column stays fixed at 11; the text column expands to
+    // fill. Clamped to >= LEGEND_MIN_WIDTH (narrow terminals get the
+    // fixed 120 as before) and <= 1000 (degenerate terminals).
+    let width = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
+        .max(LEGEND_MIN_WIDTH as u16)
+        .min(1000);
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
-    table.set_width(LEGEND_MIN_WIDTH as u16);
+    table.set_width(width);
     if let Some(col) = table.column_mut(0) {
         col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(11)));
-    }
-    if let Some(col) = table.column_mut(1) {
-        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(106)));
     }
     for (label, text) in repos_legend_rows() {
         table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
     }
-    println!("── legend {}", "─".repeat(LEGEND_MIN_WIDTH - 11));
+    println!("── legend {}", "─".repeat(width as usize - 11));
     println!("{table}");
 }
 
