@@ -355,7 +355,10 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             .codeberg_public_only
             .unwrap_or(policy.codeberg_public_only);
         if codeberg_public_only_effective {
-            let cached_priv = crate::visibility::cached_repo_visibility(repo);
+            let cached_priv = crate::visibility::cached_repo_visibility(
+                repo,
+                policy.sync_visibility_interval_hours,
+            );
             let skip_codeberg = match cached_priv {
                 Some(true) | None => true,
                 Some(false) => false,
@@ -377,6 +380,7 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             repo_override.auto_create_on_codeberg,
             crate::git::multi_remote::has_codeberg_tracking_ref(repo),
             repo,
+            policy.sync_visibility_interval_hours,
         ) && !combined_exclude.iter().any(|e| e == "codeberg")
         {
             combined_exclude.push("codeberg".to_string());
@@ -3193,8 +3197,10 @@ pub(crate) async fn materialize_pending_submodules(
                     .codeberg_public_only
                     .unwrap_or(policy.codeberg_public_only);
                 if codeberg_public_only_effective {
-                    let cached_priv =
-                        crate::visibility::cached_repo_visibility(&nested_submodule_path);
+                    let cached_priv = crate::visibility::cached_repo_visibility(
+                        &nested_submodule_path,
+                        policy.sync_visibility_interval_hours,
+                    );
                     let skip_codeberg = match cached_priv {
                         Some(true) | None => true,
                         Some(false) => false,
@@ -3859,6 +3865,7 @@ pub(crate) async fn run_daemon(
                               // default to private.
                         &repo_override_for_create.exclude_remotes,
                         repo_override_for_create.auto_create_on_codeberg,
+                        policy.sync_visibility_interval_hours,
                     )
                     .await;
                     // ADDED 2026-07-21 (v0.112.33, audit M2/F1.9):
@@ -3914,7 +3921,10 @@ pub(crate) async fn run_daemon(
                         && codeberg_public_only
                         && repo_override_for_visibility.auto_create_on_codeberg != Some(false)
                         && !crate::git::multi_remote::has_codeberg_tracking_ref(&repo)
-                        && crate::visibility::cached_repo_visibility(&repo) != Some(false);
+                        && crate::visibility::cached_repo_visibility(
+                            &repo,
+                            policy.sync_visibility_interval_hours,
+                        ) != Some(false);
                     if codeberg_waiting_for_visibility {
                         all_ok = false;
                         if debug_enabled() {

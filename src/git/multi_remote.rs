@@ -188,7 +188,7 @@ pub(crate) fn codeberg_push_excluded_for_repo(
         return true;
     }
     !matches!(
-        crate::visibility::cached_repo_visibility(repo),
+        crate::visibility::cached_repo_visibility(repo, interval_hours),
         Some(false)
     )
 }

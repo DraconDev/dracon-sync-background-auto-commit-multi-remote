@@ -1782,7 +1782,7 @@ async fn push_background(
             .codeberg_public_only
             .unwrap_or(policy.codeberg_public_only);
         if codeberg_public_only_effective {
-            let cached_priv = cached_repo_visibility(repo);
+            let cached_priv = cached_repo_visibility(repo, policy.sync_visibility_interval_hours);
             // Skip codeberg when:
             //   (a) cached visibility says private, OR
             //   (b) cache is empty (legacy or never-visibility-synced) —
@@ -1875,6 +1875,7 @@ async fn push_background(
             private,
             &combined_exclude,
             repo_override.auto_create_on_codeberg,
+            policy.sync_visibility_interval_hours,
         )
         .await;
         let all_ok = push_results.iter().all(|(_, r)| r.is_ok());

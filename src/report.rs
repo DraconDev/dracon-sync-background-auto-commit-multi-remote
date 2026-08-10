@@ -597,6 +597,7 @@ pub(crate) fn report_effective_remotes(
         repo_override.auto_create_on_codeberg,
         crate::git::multi_remote::has_codeberg_tracking_ref(repo_path),
         repo_path,
+        policy.sync_visibility_interval_hours,
     ) && !excluded.iter().any(|e| e == "codeberg")
     {
         excluded.push("codeberg".to_string());
@@ -624,7 +625,10 @@ pub(crate) fn effective_excluded_remotes(
         .codeberg_public_only
         .unwrap_or(policy.codeberg_public_only);
     if codeberg_public_only_effective {
-        let cached_priv = crate::visibility::cached_repo_visibility(repo_path);
+        let cached_priv = crate::visibility::cached_repo_visibility(
+            repo_path,
+            policy.sync_visibility_interval_hours,
+        );
         let skip_codeberg = match cached_priv {
             Some(true) => true,
             Some(false) => false,
@@ -4032,7 +4036,10 @@ pub(crate) async fn run_repos_report(
                     if gate_exclude.iter().any(|r| r == "codeberg") {
                         // Visibility-gate skip; the cache tells us why.
                         Some(
-                            match crate::visibility::cached_repo_visibility(repo.as_ref()) {
+                            match crate::visibility::cached_repo_visibility(
+                                repo.as_ref(),
+                                policy.sync_visibility_interval_hours,
+                            ) {
                                 Some(true) => "private".to_string(),
                                 Some(false) => "public".to_string(), // shouldn't happen
                                 None => "unknown".to_string(),
@@ -6871,6 +6878,7 @@ async fn handle_ahead(
                         true,
                         &repo_override.exclude_remotes,
                         repo_override.auto_create_on_codeberg,
+                        policy.sync_visibility_interval_hours,
                     )
                     .await;
                     for (name, result) in &mirror_results {
@@ -7234,6 +7242,7 @@ async fn handle_ahead(
                                                 true,
                                                 &repo_override.exclude_remotes,
                                                 repo_override.auto_create_on_codeberg,
+                                                policy.sync_visibility_interval_hours,
                                             )
                                             .await;
                                         }
