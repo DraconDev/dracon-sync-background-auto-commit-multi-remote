@@ -161,9 +161,12 @@ pub(crate) fn update_visibility_cache(repo_path: &Path, private: bool) {
 /// exists OR the cache is in legacy timestamp-only format (the next
 /// sync cycle will refresh it).
 ///
-/// This is the cheap read path used by the `repos` command and the
-/// push-time codeberg gate. The actual `gh api` call lives in
-/// `sync_mirror_visibility` and runs only when the cache is stale.
+/// This is the cheap freshness-checked read path used by the push-time
+/// Codeberg gate and the report's effective-remotes calculation. The actual
+/// `gh api` call lives in `sync_mirror_visibility` and runs only when the
+/// cache is stale. The REPO display uses
+/// `cached_repo_visibility_last_known` so a stale private marker does not
+/// disappear while the safety gate remains fail-closed.
 ///
 /// Backward compatibility: old timestamp-only cache files are
 /// treated as `None` (unknown) so the safe-default path (skip codeberg)
