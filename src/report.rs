@@ -2994,7 +2994,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
         ("ACTIVITY", "⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold"),
         ("", ""),
-        ("REPO", "🔒 private · public/unknown · > submodule · name⚡branch"),
+        ("REPO", "🔒 private (last known) · public/unknown · > submodule · name⚡branch"),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
         ("A/B", "↑ ahead · ↓ behind · — synced"),
         ("", ""),
@@ -6103,9 +6103,14 @@ fn print_repos_rich_table(
         // to the FRONT so the icons form a single vertical column
         // (operator: "the lock in front so its in one column
         // visually"). Unknown/unprobed repos get a 3-cell pad so the
-        // names still align (absence of icon = unknown). The marker
-        // costs 3 cells ("X "), carved out of the truncate budget.
-        let visibility = crate::visibility::cached_repo_visibility(std::path::Path::new(&row.repo));
+        // names still align (absence of icon = public or unknown). Keep
+        // the last-known private value visible even when its 24h cache is
+        // stale; publication/codeberg safety still uses the freshness-
+        // checked helper and remains fail-closed.
+        // The marker costs 3 cells ("X "), carved out of the truncate budget.
+        let visibility = crate::visibility::cached_repo_visibility_last_known(
+            std::path::Path::new(&row.repo),
+        );
         // v0.113.21: `.git` as a FILE = nested submodule / linked
         // worktree checkout (gitdir pointer); a DIR = standalone.
         let is_nested = std::path::Path::new(&row.repo).join(".git").is_file();

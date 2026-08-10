@@ -187,6 +187,19 @@ pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
     Some(private)
 }
 
+/// Return the last successfully queried visibility for display purposes.
+///
+/// Unlike [`cached_repo_visibility`], this deliberately does not enforce the
+/// 24-hour freshness window. The REPO column can still show a 🔒 for a
+/// private repo whose cache needs refreshing, while push/codeberg safety
+/// paths continue to treat stale data as unknown. Never use this helper to
+/// authorize publication or a visibility change.
+pub(crate) fn cached_repo_visibility_last_known(repo_path: &Path) -> Option<bool> {
+    let path = visibility_cache_path(repo_path);
+    let content = std::fs::read_to_string(&path).ok()?;
+    parse_visibility_cache(&content).map(|(private, _)| private)
+}
+
 /// Test-only accessor for the cache path. Lives here so tests in
 /// other modules (e.g. `report.rs`) can populate the visibility cache
 /// without depending on internal layout. Production code should use
@@ -1643,6 +1656,27 @@ mod tests {
             None,
             "legacy timestamp-only cache must surface as None (unknown)"
         );
+        assert_eq!(
+            cached_repo_visibility_last_known(repo_path),
+            None,
+            "legacy timestamp-only cache has no displayable visibility"
+        );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_last_known_visibility_survives_stale_cache_for_display_only() {
+        let repo_path = Path::new("/tmp/test_stale_private_display");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        std::fs::write(&path, "visibility=private\\n1234567890").unwrap();
+
+        // Stale data is still unsafe for the Codeberg/publication gate.
+        assert_eq!(cached_repo_visibility(repo_path), None);
+        // The report can retain the last-known private marker instead of
+        // making it disappear from the REPO column after 24 hours.
+        assert_eq!(cached_repo_visibility_last_known(repo_path), Some(true));
+
         let _ = std::fs::remove_file(&path);
     }
 
