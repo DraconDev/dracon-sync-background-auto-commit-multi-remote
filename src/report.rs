@@ -2913,39 +2913,102 @@ fn print_repos_legend() {
     };
     // v0.113.25: legend as a comfy-table matching the main table's
     // UTF8_FULL_CONDENSED style. CHANGED 2026-08-10 (operator request):
-    // the legend now spans the FULL terminal width instead of a fixed
-    // 120 cols — the operator's terminal has spare width and a
-    // full-width legend block separates visually from the table above
-    // it. Label column stays fixed at 11; the text column expands to
-    // fill. Clamped to >= LEGEND_MIN_WIDTH (narrow terminals get the
-    // fixed 120 as before) and <= 1000 (degenerate terminals).
+    // the legend spans the terminal width, and wide terminals now use
+    // paired panels instead of leaving the new width as trailing blanks:
+    // STATUS/ACTIVITY, CHANGES/A/B, PUSH/REM, REPO/SIZE, and
+    // TOUCHED/1H/6H/24H. Text is word-wrapped to each panel.
+    // Clamped to >= LEGEND_MIN_WIDTH and <= 1000.
     let width = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
         .max(LEGEND_MIN_WIDTH as u16)
-        .min(1000);
+        .min(1000) as usize;
+    let (left_text_width, right_text_width) = legend_panel_widths(width);
     let mut table = Table::new();
     table.load_preset(UTF8_FULL_CONDENSED);
-    table.set_content_arrangement(ContentArrangement::Dynamic);
-    table.set_width(width);
-    for (label, text) in repos_legend_rows() {
-        table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
+    table.set_content_arrangement(ContentArrangement::Disabled);
+    table.set_width(width as u16);
+
+    let entries: Vec<_> = repos_legend_rows()
+        .iter()
+        .filter(|(label, _)| !label.is_empty())
+        .copied()
+        .collect();
+    for (pair_index, pair) in entries.chunks(2).enumerate() {
+        let (left_label, left_text) = pair[0];
+        let (right_label, right_text) = pair.get(1).copied().unwrap_or(("", ""));
+        table.add_row(vec![
+            Cell::new(left_label),
+            Cell::new(wrap_legend_text(left_text, left_text_width.saturating_sub(2))),
+            Cell::new(right_label),
+            Cell::new(wrap_legend_text(right_text, right_text_width.saturating_sub(2))),
+        ]);
+        if pair_index + 1 < entries.len().div_ceil(2) {
+            table.add_row(vec![Cell::new(""), Cell::new(""), Cell::new(""), Cell::new("")]);
+        }
     }
+
     // Constraints MUST be set after add_row: column_mut() returns None
-    // (and silently drops the constraint) before rows exist — the old
-    // pre-row constraints were no-ops and the legend was content-width
-    // (~116 cols) no matter what. Verified against comfy-table 7.2.2:
-    // with one undecided column, a LowerBoundary above the average
-    // remaining width fixes the column at exactly that width.
-    if let Some(col) = table.column_mut(0) {
-        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(11)));
+    // (and silently drops the constraint) before rows exist. Absolute
+    // widths are used here so the two text panels consume the full
+    // terminal width instead of growing only to their natural content.
+    for (index, column_width) in [
+        LEGEND_LABEL_WIDTH,
+        left_text_width,
+        LEGEND_LABEL_WIDTH,
+        right_text_width,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if let Some(col) = table.column_mut(index) {
+            col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(
+                column_width as u16,
+            )));
+        }
     }
-    let text_width = (width as usize).saturating_sub(11 + 3);
-    if let Some(col) = table.column_mut(1) {
-        col.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(
-            text_width as u16,
-        )));
-    }
-    println!("── legend {}", "─".repeat(width as usize - 11));
+    println!("── legend {}", "─".repeat(width.saturating_sub(10)));
     println!("{table}");
+}
+
+const LEGEND_LABEL_WIDTH: usize = 11;
+const LEGEND_GRID_BORDER_WIDTH: usize = 5;
+
+/// Return the two text-panel widths for the four-column legend grid.
+/// The five border/separator characters and two fixed label columns are
+/// accounted for so the constrained table is exactly the terminal width.
+fn legend_panel_widths(width: usize) -> (usize, usize) {
+    let text_width = width.saturating_sub(
+        LEGEND_GRID_BORDER_WIDTH + (LEGEND_LABEL_WIDTH * 2),
+    );
+    let left = text_width.div_ceil(2);
+    (left, text_width.saturating_sub(left))
+}
+
+/// Wrap legend prose at word boundaries using terminal display width.
+/// Legend entries contain emoji, so byte/character counts are not enough.
+fn wrap_legend_text(value: &str, max_width: usize) -> String {
+    if max_width == 0 {
+        return String::new();
+    }
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    let mut current_width = 0;
+    for word in value.split_whitespace() {
+        let word_width = unicode_width::UnicodeWidthStr::width(word);
+        if current_width > 0 && current_width + 1 + word_width > max_width {
+            lines.push(std::mem::take(&mut current));
+            current_width = 0;
+        }
+        if current_width > 0 {
+            current.push(' ');
+            current_width += 1;
+        }
+        current.push_str(word);
+        current_width += word_width;
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines.join("\n")
 }
 
 /// Narrow terminals get NO legend rather than a brokenly-wrapped one
@@ -12079,6 +12142,33 @@ mod tests {
             assert!(
                 w <= LEGEND_MIN_WIDTH,
                 "legend line ({w} cols) exceeds LEGEND_MIN_WIDTH {LEGEND_MIN_WIDTH}: {line:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_legend_panel_widths_fill_requested_width() {
+        for width in [LEGEND_MIN_WIDTH, 160, 220, 1000] {
+            let (left, right) = legend_panel_widths(width);
+            assert_eq!(
+                LEGEND_GRID_BORDER_WIDTH + (LEGEND_LABEL_WIDTH * 2) + left + right,
+                width,
+                "legend grid must consume exactly {width} columns"
+            );
+            assert!(left >= right && left - right <= 1);
+        }
+    }
+
+    #[test]
+    fn test_wrap_legend_text_respects_unicode_width() {
+        let text = "✅ CLEAN healthy+synced · 🔄 ACTIVE daemon in flight · 🟡 WARN stalled";
+        let wrapped = wrap_legend_text(text, 24);
+        assert!(wrapped.contains("✅ CLEAN"));
+        assert!(wrapped.contains('\n'));
+        for line in wrapped.lines() {
+            assert!(
+                unicode_width::UnicodeWidthStr::width(line) <= 24,
+                "wrapped legend line is too wide: {line:?}"
             );
         }
     }
