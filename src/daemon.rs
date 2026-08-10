@@ -1545,6 +1545,41 @@ mod tests {
     }
 
     #[test]
+    fn test_record_push_failure_redacts_url_credentials() {
+        // Audit LOW 2026-08-11: an error message carrying a
+        // credential-bearing remote URL must be redacted before it is
+        // stored in the stuck-push ledger (the report HINT column
+        // surfaces `last_error` verbatim).
+        let temp_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            temp_dir.path().to_string_lossy().as_ref(),
+        );
+        let repo = make_test_repo_path("redact-ledger");
+        let _ = crate::daemon::unstuck_repo(&repo);
+
+        record_push_failure(
+            &repo,
+            "fatal: unable to access 'https://user:sup3rsecret@github.com/a/b.git/': connection refused",
+        );
+        let info = get_stuck_push_info(&repo).expect("entry should exist");
+        assert!(
+            info.last_error.contains("https://user@github.com/a/b.git/"),
+            "ledger must store the redacted URL, got: {}",
+            info.last_error
+        );
+        assert!(
+            !info.last_error.contains("sup3rsecret"),
+            "ledger must NOT contain the password, got: {}",
+            info.last_error
+        );
+
+        // Cleanup
+        let _ = crate::daemon::unstuck_repo(&repo);
+    }
+
+
+    #[test]
     fn test_record_push_failure_returns_repo_state() {
         // See `test_record_push_failure_increments_counter`
         // for the rationale on using a temp state dir.
@@ -2611,7 +2646,12 @@ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
         last_retry_at: 0,
     });
     entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
-    entry.last_error = error.to_string();
+    // CHANGED 2026-08-11 (audit LOW): redact embedded URL credentials
+    // before the error lands in the ledger — a push_url with userinfo
+    // (`https://user:token@host/...`) echoed by git's stderr would
+    // otherwise be stored verbatim and surfaced in the report HINT
+    // column. See `ownership::redact_url_credentials`.
+    entry.last_error = crate::ownership::redact_url_credentials(error);
     entry.last_error_at = now;
     // If this is the first time the repo gets stuck, set the
     // stuck_since timestamp so the 5-minute retry backoff works.

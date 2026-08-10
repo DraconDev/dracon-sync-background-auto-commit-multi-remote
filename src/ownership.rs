@@ -494,6 +494,61 @@ fn redact_origin_credentials(url: &str) -> String {
     )
 }
 
+/// Redact credentials from every `scheme://...` URL embedded in
+/// free-text error strings (git push stderr, etc.) before the text
+/// lands in the stuck-push ledger, terminal output, or the report's
+/// HINT column. LOW audit 2026-08-11: `record_push_failure` and the
+/// `handle_ahead_push`/`stage_commit_and_push` eprintln sites wrote
+/// `error.to_string()` verbatim; a configured `push_url` embedding
+/// credentials (`https://user:token@host/...`) could leak into the
+/// ledger file and the terminal.
+///
+/// Text without any `://` passes through byte-identical (this covers
+/// the fleet's ssh URLs like `git@codeberg.org:...`, which carry no
+/// scheme and no credential material). URL tokens keep their
+/// surrounding quotes/brackets/punctuation; only the userinfo
+/// password is stripped (same semantics as `redact_origin_credentials`).
+pub(crate) fn redact_url_credentials(text: &str) -> String {
+    if !text.contains("://") {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut cursor = 0;
+    let bytes = text.as_bytes();
+    while let Some(rel) = text[cursor..].find("://") {
+        // Walk back over the scheme to find the token start.
+        let mut start = cursor + rel;
+        while start > cursor && is_url_scheme_char(bytes[start - 1]) {
+            start -= 1;
+        }
+        // Walk forward until a delimiter (whitespace or a quote/bracket
+        // that never appears inside a URL).
+        let mut end = cursor + rel + 3;
+        while end < bytes.len() && !is_url_delimiter(bytes[end]) {
+            end += 1;
+        }
+        // Trim trailing punctuation that belongs to the sentence, not
+        // the URL (`fatal: ... (https://user:pass@host/x.git)`).
+        while end > start && matches!(bytes[end - 1], b',' | b';' | b')' | b']' | b'}' | b'.') {
+            end -= 1;
+        }
+        let redacted = redact_origin_credentials(&text[start..end]);
+        out.push_str(&text[cursor..start]);
+        out.push_str(&redacted);
+        cursor = end;
+    }
+    out.push_str(&text[cursor..]);
+    out
+}
+
+fn is_url_scheme_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'+' | b'-' | b'.' | b'_')
+}
+
+fn is_url_delimiter(b: u8) -> bool {
+    b.is_ascii_whitespace() || matches!(b, b'\'' | b'"' | b'`' | b'<' | b'>')
+}
+
 
 /// Read the signals from a git repo. Each `git` invocation is
 /// independent — failures on any one do not block the others.
@@ -976,6 +1031,49 @@ mod tests {
             redact_origin_credentials("https://user:secret@gitlab.com/owner/u@v.git"),
             "https://user@gitlab.com/owner/u@v.git"
         );
+    }
+
+    #[test]
+    fn test_redact_url_credentials_in_text() {
+        // Audit LOW 2026-08-11: free-text error strings with embedded
+        // credential URLs must be redacted before hitting the ledger
+        // or the terminal. Only the userinfo password is stripped;
+        // surrounding quotes and punctuation are preserved.
+        assert_eq!(
+            redact_url_credentials(
+                "fatal: unable to access 'https://user:secret@github.com/a/b.git/': connection refused"
+            ),
+            "fatal: unable to access 'https://user@github.com/a/b.git/': connection refused"
+        );
+        // Multiple URLs in one message, each redacted.
+        assert_eq!(
+            redact_url_credentials(
+                "remote error: https://u1:p1@h1/x.git and https://u2:p2@h2/y.git"
+            ),
+            "remote error: https://u1@h1/x.git and https://u2@h2/y.git"
+        );
+        // ssh:// scheme with token-as-password.
+        assert_eq!(
+            redact_url_credentials("push error: ssh://git:token@gitlab.com/o/r.git"),
+            "push error: ssh://git@gitlab.com/o/r.git"
+        );
+        // URL wrapped in parens + trailing punctuation of the sentence.
+        assert_eq!(
+            redact_url_credentials("(https://user:pass@host/x.git)"),
+            "(https://user@host/x.git)"
+        );
+        // URL without userinfo passes through unchanged (this still
+        // contains `://`, so it exercises the scan path).
+        let no_creds = "fatal: could not read Username for 'https://github.com': terminal prompts disabled";
+        assert_eq!(redact_url_credentials(no_creds), no_creds);
+        // `user@host` without a password is preserved verbatim.
+        assert_eq!(
+            redact_url_credentials("fatal: 'https://user@github.com/x.git' is not a git repository"),
+            "fatal: 'https://user@github.com/x.git' is not a git repository"
+        );
+        // Non-URL error text without `://` is unchanged.
+        let plain = "permission denied (publickey)";
+        assert_eq!(redact_url_credentials(plain), plain);
     }
 
     #[test]

@@ -3530,7 +3530,7 @@ async fn stage_commit_and_push(
                 push_failed = true;
             }
             Err(e) => {
-                eprintln!("⚠️ push error for {}: {}", repo.display(), e);
+                eprintln!("⚠️ push error for {}: {}", repo.display(), crate::ownership::redact_url_credentials(&e.to_string()));
                 crate::daemon::record_push_failure(repo, &e.to_string());
                 push_failed = true;
             }
@@ -4439,7 +4439,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 return Ok(false);
             }
             Err(e) => {
-                eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), e);
+                eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), crate::ownership::redact_url_credentials(&e.to_string()));
                 crate::daemon::record_push_failure(ctx.repo, &e.to_string());
                 return Ok(false);
             }

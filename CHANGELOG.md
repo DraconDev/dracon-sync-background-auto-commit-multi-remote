@@ -32,6 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Push errors are now redacted before reaching the stuck-push
+  ledger and the terminal** (audit LOW, 2026-08-11): `record_push_failure`
+  and the `handle_ahead_push`/`stage_commit_and_push` eprintln sites
+  stored/printed `error.to_string()` verbatim, so a configured remote
+  URL embedding credentials (`https://user:token@host/...`) echoed by
+  git's stderr could land in the ledger file and the report's HINT
+  column. The new `redact_url_credentials` text scrubber (extending
+  the F54 `redact_origin_credentials` precedent) strips the userinfo
+  password from every `scheme://` URL in a message while preserving
+  surrounding quotes/punctuation; text without `://` passes through
+  byte-identical (scp-style `git@host:...` remotes are untouched).
+  Covered by new unit tests in ownership.rs and a ledger test in
+  daemon.rs.
+
 - **The staging batch limit now applies to the union of regular and
   gitlink entries** (audit LOW-MED, 2026-08-11): when a repo had more
   pending files than `max_stage_batch_files`, the regular and gitlink
