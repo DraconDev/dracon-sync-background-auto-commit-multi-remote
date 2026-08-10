@@ -29,7 +29,10 @@
 #                         can inspect the diff. Use --abort to revert.
 #   --abort               Revert any local modifications made by --dry-run
 #                         (cargo + changelog + release-notes). Refuses to
-#                         run if the working tree was already dirty at start.
+#                         run if the working tree contains pre-existing
+#                         modifications outside those release surfaces
+#                         (CORRECTED 2026-08-10, audit LOW: the guard is now
+#                         real — the abort path used to run unchecked).
 #   --remote <name>       Push to this git remote (default: auto-detect the
 #                         github.com remote via scripts/resolve-github-remote.sh).
 #   --yes                 Skip the interactive "are you sure" prompt before
@@ -140,6 +143,26 @@ require_credentials() {
 # ----- abort path ----------------------------------------------------------
 if [[ $ABORT -eq 1 ]]; then
     log "Reverting local modifications from a previous --dry-run..."
+    # Dirty-at-start guard (audit LOW 2026-08-10): a --dry-run touches ONLY
+    # Cargo.toml, Cargo.lock, CHANGELOG.md and untracked release-notes-v*.md,
+    # so any modified/untracked file outside those release surfaces can only
+    # be pre-existing work that the operator did not create via the dry-run.
+    # Refuse rather than risk reverting (or removing) it.
+    other_modified=()
+    while IFS= read -r f; do
+        other_modified+=("$f")
+    done < <(git ls-files --modified --exclude-standard \
+        | grep -vE '^(Cargo\.toml|Cargo\.lock|CHANGELOG\.md)$' || true)
+    other_untracked=()
+    while IFS= read -r f; do
+        other_untracked+=("$f")
+    done < <(git ls-files --others --exclude-standard \
+        | grep -vE '^release-notes-v[0-9][^/]*\.md$' || true)
+    if [[ ${#other_modified[@]} -gt 0 || ${#other_untracked[@]} -gt 0 ]]; then
+        die_pre "working tree dirty outside the release surfaces ("\
+            "${#other_modified[@]} modified, ${#other_untracked[@]} untracked); "\
+            "commit or stash first — --abort only reverts dry-run changes"
+    fi
     abort_tracked=()
     while IFS= read -r f; do
         abort_tracked+=("$f")
