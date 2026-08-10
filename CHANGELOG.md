@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`release.sh` now runs the AGENTS.md test-discipline gates** (audit
+  LOW, 2026-08-10): the script's only build check used to be
+  `cargo publish --dry-run` (compiles, but runs no tests), so a single
+  release command could publish a tree that never passed
+  `cargo test`/`clippy`/`deny`. New step 1 runs all four gates
+  (`cargo test --workspace --locked`, `cargo build --release --locked`,
+  `cargo deny check`, `cargo clippy --workspace --locked -- -D warnings`)
+  before any mutation — a failed gate leaves the tree untouched. The
+  gates run pre-bump because the version bump rewrites the root package's
+  entry in Cargo.lock, which makes every `--locked` invocation fail; they
+  also run under `--dry-run` (local + read-only). Steps renumbered
+  1-8. `cargo-deny` is now a required command.
+
 - **`scale_push_timeout` tiers are no longer dead** (audit LOW,
   2026-08-10): the old fixed 600s cap made the 4×/6× multiplier
   branches unobservable at any base ≥ 150 (with the 300s code default,
