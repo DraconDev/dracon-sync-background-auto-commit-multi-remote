@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It remains clamped to >= 120 and <= 1000 columns; the detailed
   per-repo explanation remains available via `repos <name>`.
 
+- **The REPO lock marker now survives a stale visibility cache** (audit
+  follow-up, 2026-08-10): the renderer uses the last-known private value
+  for display after the 24-hour refresh window, while Codeberg/publication
+  decisions continue using the freshness-checked value and remain
+  fail-closed when visibility is stale or unknown.
+
 ### Fixed
 
 - **`release.sh --abort` now enforces its claimed dirty-at-start guard**

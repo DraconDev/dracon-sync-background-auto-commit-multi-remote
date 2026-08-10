@@ -1669,7 +1669,7 @@ mod tests {
         let repo_path = Path::new("/tmp/test_stale_private_display");
         let path = visibility_cache_path(repo_path);
         std::fs::create_dir_all(visibility_cache_dir()).unwrap();
-        std::fs::write(&path, "visibility=private\\n1234567890").unwrap();
+        std::fs::write(&path, "visibility=private\n1234567890").unwrap();
 
         // Stale data is still unsafe for the Codeberg/publication gate.
         assert_eq!(cached_repo_visibility(repo_path), None);
