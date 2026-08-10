@@ -3408,6 +3408,31 @@ pub(crate) struct RepoActivity {
     unowned_since: Option<Instant>,
 }
 
+/// Sleep for at most `total`, waking early when `wake()` turns true or
+/// the SIGHUP `reload_notify` fires. The daemon's sleeps used to be a
+/// single blind `sleep(scan_interval)` (up to 120s+), so a `kill -HUP`
+/// soft reset or a `pause`/`resume` marker flip could take a full pulse
+/// (plus the cycle body) to land. ADDED 2026-08-11 (audit LOW,
+/// daemon.rs:3524-3576): the loop now sleeps in 1s slices and re-checks
+/// the wake predicate each slice, so operator remediations take effect
+/// within ~1s of the current cycle ending.
+async fn sleep_responsive<F>(reload_notify: &tokio::sync::Notify, wake: F, total: Duration)
+where
+    F: Fn() -> bool,
+{
+    let deadline = Instant::now() + total;
+    loop {
+        if wake() || Instant::now() >= deadline {
+            return;
+        }
+        let slice = (deadline - Instant::now()).min(Duration::from_secs(1));
+        tokio::select! {
+            _ = sleep(slice) => {}
+            _ = reload_notify.notified() => return,
+        }
+    }
+}
+
 pub(crate) async fn run_daemon(
     policy_path: PathBuf,
     override_interval_secs: Option<u64>,
@@ -3539,6 +3564,15 @@ pub(crate) async fn run_daemon(
     let shutdown_sigint = shutdown.clone();
     let reload = Arc::new(AtomicBool::new(false));
     let reload_sighup = reload.clone();
+    // ADDED 2026-08-11 (audit LOW, daemon.rs:3524-3576): wake channel
+    // for the SIGHUP handler — the loop's sleeps are
+    // `select!({sleep, notified})`, so `kill -HUP` ends a sleep
+    // immediately instead of waiting out a full pulse interval. The
+    // reload AtomicBool remains the source of truth (a notify fired
+    // while no waiter was registered is harmless — the flag is still
+    // seen at loop top).
+    let reload_notify = Arc::new(tokio::sync::Notify::new());
+    let reload_notify_sighup = reload_notify.clone();
 
     tokio::spawn(async move {
         if let Ok(mut sig) = tokio::signal::unix::signal(SignalKind::terminate()) {
@@ -3565,6 +3599,9 @@ pub(crate) async fn run_daemon(
             while sig.recv().await.is_some() {
                 veprintln!(1, "sync: received SIGHUP, will reload policy...");
                 reload_sighup.store(true, Ordering::SeqCst);
+                // Wake any responsive sleep so the reload lands as
+                // soon as the current cycle body ends (2026-08-11).
+                reload_notify_sighup.notify_waiters();
             }
         } else {
             eprintln!("sync: failed to set up SIGHUP handler");
@@ -3627,6 +3664,24 @@ pub(crate) async fn run_daemon(
         let scan_interval = override_interval_secs
             .unwrap_or(policy.pulse_interval_secs)
             .max(1);
+        // CHANGED 2026-08-11 (audit LOW, daemon.rs:3524-3576): the
+        // freeze marker used to be checked only after repo discovery
+        // and the sleeps were blind — a `pause` could land a full
+        // pulse + discovery late, and a `resume` while frozen waited
+        // out a whole scan_interval. The check now also runs here at
+        // loop top, and both freeze sleeps wake on SIGHUP and on
+        // marker flips, so pause and resume take effect within ~1s of
+        // the current cycle ending.
+        if let Some(reason) = freeze_reason(&policy_path) {
+            eprintln!("⏸️ sync daemon paused ({})", reason);
+            sleep_responsive(
+                &reload_notify,
+                || freeze_reason(&policy_path).is_none(),
+                Duration::from_secs(scan_interval),
+            )
+            .await;
+            continue;
+        }
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
         let roots = policy.watch_root_paths();
         let excluded_dir_names = excluded_dir_names_set(&policy);
@@ -3704,7 +3759,15 @@ pub(crate) async fn run_daemon(
 
         if let Some(reason) = freeze_reason(&policy_path) {
             eprintln!("⏸️ sync daemon paused ({})", reason);
-            sleep(Duration::from_secs(scan_interval)).await;
+            // CHANGED 2026-08-11 (audit LOW): responsive sleep — a
+            // `resume` (marker removed) or SIGHUP wakes this early
+            // instead of waiting out a full scan_interval.
+            sleep_responsive(
+                &reload_notify,
+                || freeze_reason(&policy_path).is_none(),
+                Duration::from_secs(scan_interval),
+            )
+            .await;
             continue;
         }
 
@@ -5221,7 +5284,19 @@ pub(crate) async fn run_daemon(
             });
         }
 
-        sleep(Duration::from_secs(scan_interval)).await;
+        // CHANGED 2026-08-11 (audit LOW, daemon.rs:3524-3576): the
+        // bottom-of-cycle sleep is responsive — it wakes early on
+        // SIGHUP (reload lands at the next loop top) and on a fresh
+        // freeze marker (pause lands at the next loop top instead of
+        // a full pulse later). With `pulse_interval_secs` up to 120s+,
+        // the plain `sleep(scan_interval)` kept operator remediations
+        // (kill -HUP, `pause`/`resume`) blind for a whole pulse.
+        sleep_responsive(
+            &reload_notify,
+            || freeze_reason(&policy_path).is_some(),
+            Duration::from_secs(scan_interval),
+        )
+        .await;
     }
     // === Daemon shutdown: clean up the in-flight state file ===
     // Removing the file signals to `repos` that the daemon is no
@@ -5404,6 +5479,70 @@ mod submodule_materialize_tests {
         assert!(
             !watch_root.join("deathrun").exists(),
             "materialize_pending_submodules must NOT create a standalone worktree at deathrun (goal 730eaf2a)"
+        );
+    }
+
+    // ── sleep_responsive (audit LOW 2026-08-11: SIGHUP / freeze
+    //    marker latency — daemon.rs:3524-3576) ──
+
+    #[tokio::test]
+    async fn test_sleep_responsive_wakes_early_on_notify() {
+        // A SIGHUP must end the sleep immediately (the reload flag is
+        // set by the handler; the Notify only wakes the sleep).
+        let notify = std::sync::Arc::new(tokio::sync::Notify::new());
+        let n2 = notify.clone();
+        let waker = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            n2.notify_waiters();
+        });
+        let start = Instant::now();
+        sleep_responsive(&notify, || false, Duration::from_secs(5)).await;
+        waker.await.unwrap();
+        assert!(
+            start.elapsed() < Duration::from_secs(2),
+            "must wake on notify, slept {:?}",
+            start.elapsed()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sleep_responsive_wakes_early_on_predicate() {
+        // A freeze-marker flip (pause → resume) must end the sleep
+        // within one slice.
+        let notify = tokio::sync::Notify::new();
+        let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let flag2 = flag.clone();
+        let flipper = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            flag2.store(true, std::sync::atomic::Ordering::SeqCst);
+        });
+        let start = Instant::now();
+        sleep_responsive(&notify, || flag.load(std::sync::atomic::Ordering::SeqCst), Duration::from_secs(5)).await;
+        flipper.await.unwrap();
+        assert!(
+            start.elapsed() < Duration::from_secs(2),
+            "must wake on predicate flip, slept {:?}",
+            start.elapsed()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sleep_responsive_respects_total() {
+        // Without notify or predicate activity the sleep must last
+        // the full duration (no busy-loop / early return).
+        let notify = tokio::sync::Notify::new();
+        let start = Instant::now();
+        sleep_responsive(&notify, || false, Duration::from_millis(300)).await;
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed >= Duration::from_millis(250),
+            "must not return early, slept {:?}",
+            elapsed
+        );
+        assert!(
+            elapsed < Duration::from_secs(2),
+            "must not oversleep, slept {:?}",
+            elapsed
         );
     }
 }

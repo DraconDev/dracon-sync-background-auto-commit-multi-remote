@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **SIGHUP and freeze markers now take effect within ~1s instead of a
+  full pulse** (audit LOW, 2026-08-11): the daemon loop's sleeps were
+  single blind `sleep(scan_interval)` calls (up to 120s+ with a large
+  `pulse_interval_secs`), and the freeze marker was only checked after
+  repo discovery — so a `kill -HUP` soft reset, `pause`, or `resume`
+  could take a whole pulse (plus the cycle body) to land. The new
+  `sleep_responsive` helper sleeps in 1s slices and wakes early on the
+  SIGHUP wake channel (`tokio::sync::Notify` fired by the HUP handler)
+  and on freeze-marker flips; the freeze check also runs at loop top.
+  Covered by three new `#[tokio::test]` tests (notify wake, predicate
+  wake, full-duration sleep).
+
 - **Push errors are now redacted before reaching the stuck-push
   ledger and the terminal** (audit LOW, 2026-08-11): `record_push_failure`
   and the `handle_ahead_push`/`stage_commit_and_push` eprintln sites
