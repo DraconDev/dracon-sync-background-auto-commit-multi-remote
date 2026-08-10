@@ -90,7 +90,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 TAG="v${VERSION}"
-TOTAL_STEPS=7
+TOTAL_STEPS=8
 
 # ----- colors (only on a tty) ---------------------------------------------
 if [[ -t 1 ]]; then
@@ -188,8 +188,33 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
     die_pre "version '$VERSION' is not semver (expected e.g. 0.112.12)"
 fi
 
-# ----- step 1: bump Cargo.toml version ------------------------------------
-log "step 1/${TOTAL_STEPS}: bumping Cargo.toml to ${VERSION}"
+# ----- step 1: test discipline gates (AGENTS.md) -------------------------
+log "step 1/${TOTAL_STEPS}: test discipline gates (AGENTS.md)"
+# audit LOW 2026-08-10: release.sh used to have NO test/clippy/deny gate —
+# the only build check was `cargo publish --dry-run` (compiles, but runs no
+# tests), so a single release command could publish a tree that never passed
+# the AGENTS.md "Test discipline" gates. Now the four gates run here, before
+# any mutation:
+#   - they run on the CLEAN pre-bump tree (a failed gate leaves the tree
+#     untouched); the version bump below would rewrite the root package's
+#     version entry in Cargo.lock, which makes every `--locked` invocation
+#     fail with "the lock file needs to be updated", so post-bump gating
+#     would need to drop --locked — this is why they run pre-bump.
+#   - they always run, even under --dry-run (local, read-only; only
+#     target/ is touched).
+require_cmd cargo-deny
+run_gate() {
+    printf '   $ %s\n' "$*"
+    "$@"
+}
+run_gate cargo test --workspace --locked
+run_gate cargo build --release --locked
+run_gate cargo deny check
+run_gate cargo clippy --workspace --locked -- -D warnings
+ok "  all gates passed"
+
+# ----- step 2: bump Cargo.toml version ------------------------------------
+log "step 2/${TOTAL_STEPS}: bumping Cargo.toml to ${VERSION}"
 CRATE_TOML="Cargo.toml"
 current=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$CRATE_TOML" 2>/dev/null || true)
 if [[ -z "$current" ]]; then
@@ -204,8 +229,8 @@ else
     ok "  $CRATE_TOML: $current → $VERSION"
 fi
 
-# ----- step 2: close CHANGELOG [Unreleased] -------------------------------
-log "step 2/${TOTAL_STEPS}: closing CHANGELOG.md [Unreleased] → [${VERSION}]"
+# ----- step 3: close CHANGELOG [Unreleased] -------------------------------
+log "step 3/${TOTAL_STEPS}: closing CHANGELOG.md [Unreleased] → [${VERSION}]"
 CHANGELOG="CHANGELOG.md"
 DATE=$(date -u +%Y-%m-%d)
 if [[ $DRY_RUN -eq 0 ]]; then
@@ -218,8 +243,8 @@ else
     ok "  CHANGELOG.md: would close [Unreleased] → [${VERSION}] - ${DATE} (skipped: --dry-run)"
 fi
 
-# ----- step 3: create release-notes file ----------------------------------
-log "step 3/${TOTAL_STEPS}: creating release-notes-v${VERSION}.md"
+# ----- step 4: create release-notes file ----------------------------------
+log "step 4/${TOTAL_STEPS}: creating release-notes-v${VERSION}.md"
 NOTES="release-notes-v${VERSION}.md"
 if [[ -f "$NOTES" ]]; then
     ok "  $NOTES already exists"
@@ -257,12 +282,12 @@ EOF
     ok "  $NOTES created"
 fi
 
-# ----- step 4: cargo publish --dry-run (sanity) ---------------------------
-log "step 4/${TOTAL_STEPS}: cargo publish --dry-run (sanity check)"
+# ----- step 5: cargo publish --dry-run (sanity) ---------------------------
+log "step 5/${TOTAL_STEPS}: cargo publish --dry-run (sanity check)"
 run cargo publish -p "$CRATE_NAME" --dry-run --allow-dirty
 
-# ----- step 5: cargo publish for real -------------------------------------
-log "step 5/${TOTAL_STEPS}: cargo publish -p $CRATE_NAME"
+# ----- step 6: cargo publish for real -------------------------------------
+log "step 6/${TOTAL_STEPS}: cargo publish -p $CRATE_NAME"
 # Idempotent re-run path (v0.113.11): when a previous run already published
 # this version but failed later (e.g. the v0.113.9/v0.113.10 push step),
 # 'already exists on crates.io index' is success, not a fatal error.
@@ -280,8 +305,8 @@ else
     fi
 fi
 
-# ----- step 6: fixture check on the published artifact (2026-08-08 guard) ---
-log "step 6/${TOTAL_STEPS}: fixture check on packaged artifact (phantom-untracked guard)"
+# ----- step 7: fixture check on the published artifact (2026-08-08 guard) ---
+log "step 7/${TOTAL_STEPS}: fixture check on packaged artifact (phantom-untracked guard)"
 # The 2026-08-08 incident: `cargo publish` drops [patch.crates-io], so a
 # binary installed via `cargo install` resolved an unpatched dracon-git and
 # reported gitignored .pi/ files as untracked. Installing from the PACKAGED
@@ -303,8 +328,8 @@ else
     die_pub "packaged crate dir $PKG_DIR missing — cannot run fixture check (publish must have failed)"
 fi
 
-# ----- step 7: commit, tag, push, gh release ------------------------------
-log "step 7/${TOTAL_STEPS}: commit + tag + push + gh release"
+# ----- step 8: commit, tag, push, gh release ------------------------------
+log "step 8/${TOTAL_STEPS}: commit + tag + push + gh release"
 run git add Cargo.toml CHANGELOG.md "$NOTES"
 # Idempotent re-run path: skip the commit when there is nothing to commit.
 if [[ $DRY_RUN -eq 1 ]]; then
