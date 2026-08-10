@@ -16,17 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`repos --legend` now uses the full terminal width as a two-panel
-  grid** (operator request, 2026-08-10): the first full-width attempt
-  only added trailing padding to the old single prose column. Wide
-  legends now pair related keys side-by-side — STATUS/ACTIVITY,
-  CHANGES/A/B, PUSH/REM, REPO/SIZE, and TOUCHED/1H/6H/24H — with
-  Unicode-width-aware word wrapping, so the available width carries
-  useful information instead of blank space. The layout is clamped to
-  >= 120 and <= 1000 columns; the final hint remains in the footer
-  panel. Constraints are applied after `add_row` (comfy-table's
-  `column_mut()` returns None before rows exist) and fixed panel widths
-  are tested to sum exactly to the terminal width.
+- **`repos --legend` is now a clean short glossary** (operator
+  request, 2026-08-10): the earlier full-width panel grid still made
+  the column meanings harder to scan. The legend now uses one aligned
+  line per real table category, concise symbol meanings, Unicode-width-
+  aware wrapping, and a full-width separator rule without a heavy box.
+  It remains clamped to >= 120 and <= 1000 columns; the detailed
+  per-repo explanation remains available via `repos <name>`.
 
 ### Fixed
 
