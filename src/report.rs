@@ -2926,21 +2926,23 @@ fn print_repos_legend() {
     table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
     table.set_width(width);
+    for (label, text) in repos_legend_rows() {
+        table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
+    }
+    // Constraints MUST be set after add_row: column_mut() returns None
+    // (and silently drops the constraint) before rows exist — the old
+    // pre-row constraints were no-ops and the legend was content-width
+    // (~116 cols) no matter what. Verified against comfy-table 7.2.2:
+    // with one undecided column, a LowerBoundary above the average
+    // remaining width fixes the column at exactly that width.
     if let Some(col) = table.column_mut(0) {
         col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(11)));
     }
-    // Text column = table width - label column - 3 border chars
-    // (left │ + separator ┆ + right │). Absolute is required: Dynamic
-    // arrangement never grows a column beyond its content width, and
-    // LowerBoundary(Percentage) does not expand either (verified
-    // 2026-08-10 against comfy-table 7.2.2). At width = LEGEND_MIN_WIDTH
-    // this reproduces the pre-change 106-char text column exactly.
     let text_width = (width as usize).saturating_sub(11 + 3);
     if let Some(col) = table.column_mut(1) {
-        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(text_width as u16)));
-    }
-    for (label, text) in repos_legend_rows() {
-        table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
+        col.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(
+            text_width as u16,
+        )));
     }
     println!("── legend {}", "─".repeat(width as usize - 11));
     println!("{table}");
