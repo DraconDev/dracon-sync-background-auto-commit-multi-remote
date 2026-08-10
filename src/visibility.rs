@@ -161,6 +161,17 @@ pub(crate) fn update_visibility_cache(repo_path: &Path, private: bool) {
 /// exists OR the cache is in legacy timestamp-only format (the next
 /// sync cycle will refresh it).
 ///
+/// FIXED 2026-08-11 (audit LOW): the freshness window used to be a
+/// hardcoded `24 * 60 * 60` while the refresh sweep
+/// (`is_visibility_cache_fresh`) used the `sync_visibility_interval_hours`
+/// policy field. A tuned interval therefore applied to the refresh
+/// cadence but NOT to this gate. Both paths now take the SAME
+/// `interval_hours` from the caller (the policy value), so the gate
+/// trusts exactly as much data as the policy declares fresh. This
+/// matters for fail-closed safety: a stale cache that says PUBLIC would
+/// otherwise authorize a Codeberg push with data older than the policy's
+/// declared freshness.
+///
 /// This is the cheap freshness-checked read path used by the push-time
 /// Codeberg gate and the report's effective-remotes calculation. The actual
 /// `gh api` call lives in `sync_mirror_visibility` and runs only when the
@@ -171,7 +182,7 @@ pub(crate) fn update_visibility_cache(repo_path: &Path, private: bool) {
 /// Backward compatibility: old timestamp-only cache files are
 /// treated as `None` (unknown) so the safe-default path (skip codeberg)
 /// fires until the cache refreshes.
-pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
+pub(crate) fn cached_repo_visibility(repo_path: &Path, interval_hours: u64) -> Option<bool> {
     let path = visibility_cache_path(repo_path);
     let Ok(content) = std::fs::read_to_string(&path) else {
         return None;
@@ -183,8 +194,11 @@ pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
         .as_secs();
     // A stale positive-public cache must not authorize a new Codeberg
     // publication after an API failure. Unknown/stale therefore follows the
-    // same safe path as an absent cache.
-    if now.saturating_sub(ts) >= 24 * 60 * 60 {
+    // same safe path as an absent cache. The window is the caller's
+    // `interval_hours` — the SAME policy value the sweep uses
+    // (`is_visibility_cache_fresh`), never a separately hardcoded constant.
+    let interval_secs = interval_hours.saturating_mul(3600);
+    if now.saturating_sub(ts) >= interval_secs {
         return None;
     }
     Some(private)
@@ -193,7 +207,7 @@ pub(crate) fn cached_repo_visibility(repo_path: &Path) -> Option<bool> {
 /// Return the last successfully queried visibility for display purposes.
 ///
 /// Unlike [`cached_repo_visibility`], this deliberately does not enforce the
-/// 24-hour freshness window. The REPO column can still show a 🔒 for a
+/// freshness window. The REPO column can still show a 🔒 for a
 /// private repo whose cache needs refreshing, while push/codeberg safety
 /// paths continue to treat stale data as unknown. Never use this helper to
 /// authorize publication or a visibility change.
@@ -1624,14 +1638,14 @@ mod tests {
     fn test_cached_repo_visibility_returns_none_when_no_file() {
         let repo_path = Path::new("/tmp/test_no_cache_file");
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
-        assert_eq!(cached_repo_visibility(repo_path), None);
+        assert_eq!(cached_repo_visibility(repo_path, 24), None);
     }
 
     #[test]
     fn test_cached_repo_visibility_returns_private() {
         let repo_path = Path::new("/tmp/test_cached_private");
         update_visibility_cache(repo_path, true);
-        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
     }
 
@@ -1639,7 +1653,7 @@ mod tests {
     fn test_cached_repo_visibility_returns_public() {
         let repo_path = Path::new("/tmp/test_cached_public");
         update_visibility_cache(repo_path, false);
-        assert_eq!(cached_repo_visibility(repo_path), Some(false));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(false));
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
     }
 
@@ -1655,7 +1669,7 @@ mod tests {
         std::fs::create_dir_all(visibility_cache_dir()).unwrap();
         std::fs::write(&path, "1234567890").unwrap();
         assert_eq!(
-            cached_repo_visibility(repo_path),
+            cached_repo_visibility(repo_path, 24),
             None,
             "legacy timestamp-only cache must surface as None (unknown)"
         );
@@ -1675,7 +1689,7 @@ mod tests {
         std::fs::write(&path, "visibility=private\n1234567890").unwrap();
 
         // Stale data is still unsafe for the Codeberg/publication gate.
-        assert_eq!(cached_repo_visibility(repo_path), None);
+        assert_eq!(cached_repo_visibility(repo_path, 24), None);
         // The report can retain the last-known private marker instead of
         // making it disappear from the REPO column after 24 hours.
         assert_eq!(cached_repo_visibility_last_known(repo_path), Some(true));
@@ -1918,13 +1932,13 @@ mod tests {
         std::fs::write(&path, old_ts).unwrap();
 
         // BEFORE refresh: legacy file surfaces as None (= unknown).
-        assert_eq!(cached_repo_visibility(repo_path), None);
+        assert_eq!(cached_repo_visibility(repo_path, 24), None);
 
         // Simulate refresh-visibility subcommand: write new format with private=true.
         update_visibility_cache(repo_path, true);
 
         // AFTER refresh: new format surfaces as Some(true) (= private).
-        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
 
         // File content must be in the new format.
         let content = std::fs::read_to_string(&path).unwrap();
@@ -1945,11 +1959,11 @@ mod tests {
         std::fs::create_dir_all(visibility_cache_dir()).unwrap();
         // Write initial new-format file with public=false.
         update_visibility_cache(repo_path, false);
-        assert_eq!(cached_repo_visibility(repo_path), Some(false));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(false));
 
         // Re-run with private=true (simulates re-refresh with different result).
         update_visibility_cache(repo_path, true);
-        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
 
         let content = std::fs::read_to_string(&path).unwrap();
         assert!(content.starts_with("visibility=private\n"));
@@ -1982,7 +1996,7 @@ mod tests {
         );
         let repo_path = Path::new("/tmp/test_refresh_fallback_unknown");
         update_visibility_cache(repo_path, result);
-        assert_eq!(cached_repo_visibility(repo_path), Some(true));
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
     }
 

@@ -156,11 +156,15 @@ pub(crate) fn codeberg_push_excluded(
 /// and pushing a new Codeberg mirror even when the global quota posture has
 /// `codeberg.auto_create = false`. A private or unknown result remains
 /// excluded; an existing tracking ref is always preserved and pushed.
+/// `interval_hours` is the caller's `sync_visibility_interval_hours` — the
+/// SAME freshness window the visibility sweep uses (see
+/// [`crate::visibility::cached_repo_visibility`]).
 pub(crate) fn codeberg_push_excluded_for_repo(
     remotes: &[RemoteConfig],
     codeberg_override: Option<bool>,
     has_tracking_ref: bool,
     repo: &Path,
+    interval_hours: u64,
 ) -> bool {
     if has_tracking_ref {
         return false;
@@ -193,12 +197,13 @@ fn effective_codeberg_auto_create_override(
     remotes: &[RemoteConfig],
     codeberg_override: Option<bool>,
     repo: Option<&Path>,
+    interval_hours: u64,
 ) -> Option<bool> {
     if codeberg_override.is_some() {
         return codeberg_override;
     }
     let repo = repo?;
-    if codeberg_push_excluded_for_repo(remotes, None, false, repo) {
+    if codeberg_push_excluded_for_repo(remotes, None, false, repo, interval_hours) {
         None
     } else if remotes
         .iter()
@@ -322,6 +327,7 @@ pub(crate) async fn push_mirror_remotes(
     private: bool,
     exclude: &[String],
     codeberg_override: Option<bool>,
+    interval_hours: u64,
 ) -> Vec<(String, Result<()>)> {
     let repo_name = repo
         .file_name()
@@ -346,6 +352,7 @@ pub(crate) async fn push_mirror_remotes(
         codeberg_override,
         has_codeberg_tracking_ref(repo),
         repo,
+        interval_hours,
     ) && !combined_exclude.iter().any(|e| e == "codeberg")
     {
         combined_exclude.push("codeberg".to_string());
@@ -356,6 +363,7 @@ pub(crate) async fn push_mirror_remotes(
         remotes,
         codeberg_override,
         Some(repo),
+        interval_hours,
     );
 
     configure_all_remotes(repo, &filtered, &repo_name, &[]);
@@ -366,6 +374,7 @@ pub(crate) async fn push_mirror_remotes(
         private,
         Some(repo),
         effective_codeberg_override,
+        interval_hours,
     )
     .await
     {
@@ -427,6 +436,7 @@ pub(crate) async fn push_mirror_remotes_create_only(
     private: bool,
     exclude: &[String],
     codeberg_override: Option<bool>,
+    interval_hours: u64,
 ) -> Vec<(String, Result<String>)> {
     let repo_name = repo
         .file_name()
@@ -439,6 +449,7 @@ pub(crate) async fn push_mirror_remotes_create_only(
         codeberg_override,
         has_codeberg_tracking_ref(repo),
         repo,
+        interval_hours,
     ) && !combined_exclude.iter().any(|e| e == "codeberg")
     {
         combined_exclude.push("codeberg".to_string());
@@ -448,6 +459,7 @@ pub(crate) async fn push_mirror_remotes_create_only(
         remotes,
         codeberg_override,
         Some(repo),
+        interval_hours,
     );
     // A repo can already have origin/gitlab while a newly-authorized public
     // Codeberg mirror is absent from `.git/config`. Configure the filtered
@@ -470,6 +482,7 @@ pub(crate) async fn push_mirror_remotes_create_only(
         private,
         Some(repo),
         effective_codeberg_override,
+        interval_hours,
     )
     .await
 }
@@ -999,6 +1012,7 @@ pub(crate) async fn auto_create_all_remotes(
     private: bool,
     repo: Option<&Path>,
     codeberg_override: Option<bool>,
+    interval_hours: u64,
 ) -> Vec<(String, Result<String>)> {
     let mut results = Vec::new();
     for remote in remotes {
@@ -1308,7 +1322,7 @@ mod tests {
         std::fs::create_dir_all(&repo).unwrap();
         let remotes = vec![make_codeberg_remote(false)];
         crate::visibility::update_visibility_cache(&repo, false);
-        assert!(!codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        assert!(!codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
         let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
     }
 
@@ -1318,9 +1332,9 @@ mod tests {
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).unwrap();
         let remotes = vec![make_codeberg_remote(false)];
-        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
         crate::visibility::update_visibility_cache(&repo, true);
-        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo));
+        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
         let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
     }
 
