@@ -1079,7 +1079,7 @@ pub(crate) async fn auto_create_all_remotes(
             // is normally excluded before reaching this branch).
             let create_private = if matches!(remote.effective_auth_type(), AuthType::Codeberg)
             {
-                repo.and_then(crate::visibility::cached_repo_visibility)
+                repo.and_then(|p| crate::visibility::cached_repo_visibility(p, interval_hours))
                     .unwrap_or(true)
             } else {
                 private
