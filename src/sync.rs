@@ -3190,6 +3190,33 @@ async fn check_untracked_threshold(
     Ok(count)
 }
 
+/// Cap the UNION of regular + gitlink paths at `max_batch` entries per
+/// commit. Gitlink pointer updates take priority (each is a single
+/// non-recursive index entry and they drive the parent's submodule-gitlink
+/// convergence); regular files fill the remainder. Entries beyond the cap
+/// stay dirty and are committed by a later cycle.
+///
+/// CHANGED 2026-08-11 (audit find): previously each list was truncated
+/// independently to `max_batch`, so a commit could stage up to 2×max_batch
+/// entries when both entry classes were present — the union cap the
+/// batching feature documents was silently doubled.
+fn cap_batch_union(
+    regular_paths: Vec<String>,
+    gitlink_paths: Vec<String>,
+    max_batch: usize,
+) -> (Vec<String>, Vec<String>) {
+    let total = regular_paths.len() + gitlink_paths.len();
+    if total <= max_batch {
+        return (regular_paths, gitlink_paths);
+    }
+    let take_gitlink = gitlink_paths.len().min(max_batch);
+    let take_regular = regular_paths.len().min(max_batch.saturating_sub(take_gitlink));
+    (
+        regular_paths.into_iter().take(take_regular).collect(),
+        gitlink_paths.into_iter().take(take_gitlink).collect(),
+    )
+}
+
 async fn stage_commit_and_push(
     svc: &GitService,
     ctx: &mut SyncContext<'_>,
@@ -3248,23 +3275,26 @@ async fn stage_commit_and_push(
     // recursion-skip behavior so they don't contribute to the
     // subdir-expansion that would otherwise inflate counts (a single
     // gitlink path is one entry, not many).
+    //
+    // CHANGED 2026-08-11 (audit find, stage_commit_and_push batch
+    // union): the cap is now enforced on the UNION — the previous code
+    // truncated each list independently to `max_batch`, so a commit
+    // could stage up to 2×max_batch entries whenever both entry classes
+    // were present. Gitlink pointer updates get priority (single
+    // non-recursive index entries that drive the parent's submodule-
+    // gitlink convergence); regular files fill the remainder. Deferred
+    // entries stay dirty and are picked up by the next cycle.
     let max_batch = policy.max_stage_batch_files;
     let total_to_stage = regular_paths.len() + gitlink_paths.len();
-    let (regular_paths, gitlink_paths): (Vec<String>, Vec<String>) =
-        if total_to_stage > max_batch {
-            eprintln!(
-                "📦 batching {} entries into chunks of {}",
-                total_to_stage,
-                max_batch
-            );
-            let take = max_batch;
-            (
-                regular_paths.into_iter().take(take).collect(),
-                gitlink_paths.into_iter().take(take).collect(),
-            )
-        } else {
-            (regular_paths, gitlink_paths)
-        };
+    let (regular_paths, gitlink_paths) = if total_to_stage > max_batch {
+        eprintln!(
+            "📦 batching {} entries into chunks of {}",
+            total_to_stage, max_batch
+        );
+        cap_batch_union(regular_paths, gitlink_paths, max_batch)
+    } else {
+        (regular_paths, gitlink_paths)
+    };
 
     let (existing, missing): (Vec<_>, Vec<_>) =
         regular_paths.into_iter().partition(|p| repo.join(p).exists());
@@ -10447,6 +10477,67 @@ untracked_exclude_patterns = ["scratch-*"]
             sub_head_v2,
             index_sha_after_v2
         );
+    }
+
+    #[test]
+    fn test_cap_batch_union_caps_the_union_not_each_list() {
+        // Regression (2026-08-11 audit find): each list used to be
+        // truncated independently to max_batch, so 150 regular + 150
+        // gitlink entries staged 200 in one commit despite max_batch
+        // 100. The union must be capped at 100.
+        let (regular, gitlink) = cap_batch_union(
+            (0..150).map(|i| format!("f{i}")).collect(),
+            (0..150).map(|i| format!("g{i}")).collect(),
+            100,
+        );
+        assert_eq!(regular.len() + gitlink.len(), 100);
+    }
+
+    #[test]
+    fn test_cap_batch_union_gitlink_priority() {
+        // Gitlink pointer updates get priority: with 3 gitlinks and
+        // 1000 regular files, all 3 gitlinks stage and regular files
+        // fill the remainder of the batch.
+        let (regular, gitlink) = cap_batch_union(
+            (0..1000).map(|i| format!("f{i}")).collect(),
+            (0..3).map(|i| format!("g{i}")).collect(),
+            100,
+        );
+        assert_eq!(gitlink.len(), 3);
+        assert_eq!(regular.len(), 97);
+        assert_eq!(regular.len() + gitlink.len(), 100);
+    }
+
+    #[test]
+    fn test_cap_batch_union_under_limit_is_unchanged() {
+        let (regular, gitlink) = cap_batch_union(
+            (0..50).map(|i| format!("f{i}")).collect(),
+            (0..50).map(|i| format!("g{i}")).collect(),
+            100,
+        );
+        assert_eq!(regular.len(), 50);
+        assert_eq!(gitlink.len(), 50);
+    }
+
+    #[test]
+    fn test_cap_batch_union_single_class_behavior_unchanged() {
+        // Regular-only and gitlink-only batches behave like the old
+        // per-list truncation.
+        let (regular, gitlink) = cap_batch_union(
+            (0..1000).map(|i| format!("f{i}")).collect(),
+            Vec::new(),
+            100,
+        );
+        assert_eq!(regular.len(), 100);
+        assert!(gitlink.is_empty());
+
+        let (regular, gitlink) = cap_batch_union(
+            Vec::new(),
+            (0..1000).map(|i| format!("g{i}")).collect(),
+            100,
+        );
+        assert!(regular.is_empty());
+        assert_eq!(gitlink.len(), 100);
     }
 
 }

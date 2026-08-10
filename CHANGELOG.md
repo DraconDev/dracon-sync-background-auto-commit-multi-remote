@@ -32,6 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The staging batch limit now applies to the union of regular and
+  gitlink entries** (audit LOW-MED, 2026-08-11): when a repo had more
+  pending files than `max_stage_batch_files`, the regular and gitlink
+  path lists were each truncated independently to the limit, so a
+  single commit could stage up to 2× the configured batch size
+  whenever both entry classes were present — the documented union cap
+  was silently doubled. The new `cap_batch_union` helper caps the
+  union at `max_batch`, gives gitlink pointer updates priority (single
+  non-recursive index entries that drive the parent's submodule
+  convergence), and lets regular files fill the remainder. Entries
+  beyond the cap stay dirty and are committed by the next cycle (as
+  before). Covered by four new unit tests.
+
 - **`release.sh --abort` now enforces its claimed dirty-at-start guard**
   (audit LOW, 2026-08-10): the help text promised "Refuses to run if
   the working tree was already dirty at start" but the abort path ran
