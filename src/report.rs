@@ -2929,6 +2929,16 @@ fn print_repos_legend() {
     if let Some(col) = table.column_mut(0) {
         col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(11)));
     }
+    // Text column = table width - label column - 3 border chars
+    // (left │ + separator ┆ + right │). Absolute is required: Dynamic
+    // arrangement never grows a column beyond its content width, and
+    // LowerBoundary(Percentage) does not expand either (verified
+    // 2026-08-10 against comfy-table 7.2.2). At width = LEGEND_MIN_WIDTH
+    // this reproduces the pre-change 106-char text column exactly.
+    let text_width = (width as usize).saturating_sub(11 + 3);
+    if let Some(col) = table.column_mut(1) {
+        col.set_constraint(ColumnConstraint::Absolute(Width::Fixed(text_width as u16)));
+    }
     for (label, text) in repos_legend_rows() {
         table.add_row(vec![Cell::new(*label), Cell::new(*text)]);
     }
