@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`push_with_retries` comment corrected** (audit LOW, 2026-08-10):
+  the post-pull `continue` note claimed "we don't increment `attempt`
+  either" — wrong: the `for attempt in 1..=attempts` range iterator
+  advances on every iteration, so the immediate retry after a
+  successful auto-pull DOES consume one retry-budget slot (it only
+  skips the backoff sleep below). The corrected comment documents the
+  real semantics: pull is recovery, not a free retry. Comment-only
+  change; no behavior change.
+
 - **Restore secret-scrubber damage from the 2026-06-21 monorepo split**
   (audit LOW, 2026-08-10): commit `817ecb2` left
   `[DRACON_SECRET:<age-blob>]` markers embedded mid-word in comments,

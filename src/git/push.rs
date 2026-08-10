@@ -249,9 +249,15 @@ pub(crate) async fn push_with_retries(
                     .await;
                     match pull_result {
                         Ok(()) => {
-                            // Don't sleep — retry the push immediately
-                            // (we don't increment `attempt` either; treat
-                            // the pull as part of the recovery).
+                            // Pull succeeded — retry the push immediately
+                            // (skipping the backoff sleep below). Note that
+                            // this `continue` DOES advance `attempt`: the
+                            // range iterator advances on every iteration,
+                            // so the post-pull retry consumes one slot of
+                            // the retry budget — the pull is recovery, not
+                            // a free retry (CORRECTED 2026-08-10, audit
+                            // LOW: the pre-fix note claimed "we don't
+                            // increment `attempt` either", which was wrong).
                             continue;
                         }
                         Err(pull_err) => {
