@@ -159,9 +159,7 @@ if [[ $ABORT -eq 1 ]]; then
     done < <(git ls-files --others --exclude-standard \
         | grep -vE '^release-notes-v[0-9][^/]*\.md$' || true)
     if [[ ${#other_modified[@]} -gt 0 || ${#other_untracked[@]} -gt 0 ]]; then
-        die_pre "working tree dirty outside the release surfaces ("\
-            "${#other_modified[@]} modified, ${#other_untracked[@]} untracked); "\
-            "commit or stash first — --abort only reverts dry-run changes"
+        die_pre "working tree dirty outside the release surfaces (${#other_modified[@]} modified, ${#other_untracked[@]} untracked); commit or stash first — --abort only reverts dry-run changes"
     fi
     abort_tracked=()
     while IFS= read -r f; do

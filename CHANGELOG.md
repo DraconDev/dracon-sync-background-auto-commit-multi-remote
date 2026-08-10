@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`release.sh --abort` now enforces its claimed dirty-at-start guard**
+  (audit LOW, 2026-08-10): the help text promised "Refuses to run if
+  the working tree was already dirty at start" but the abort path ran
+  unchecked and blindly reverted `*.toml`/`CHANGELOG.md` and removed
+  untracked `release-notes-v*.md`. The guard is now real: a `--dry-run`
+  touches only Cargo.toml/Cargo.lock/CHANGELOG.md and untracked
+  `release-notes-v*.md`, so any modified/untracked file OUTSIDE those
+  release surfaces can only be pre-existing work — `--abort` now
+  refuses (exit 2, nothing reverted) when such files exist. The help
+  text was tightened to describe the actual rule. Verified live in a
+  scratch repo: dry-run-only state aborts cleanly; unrelated modified
+  or untracked files both refuse with the tree untouched.
+
 - **`release.sh` now runs the AGENTS.md test-discipline gates** (audit
   LOW, 2026-08-10): the script's only build check used to be
   `cargo publish --dry-run` (compiles, but runs no tests), so a single
