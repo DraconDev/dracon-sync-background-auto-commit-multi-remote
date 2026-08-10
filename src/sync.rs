@@ -162,10 +162,20 @@ pub(crate) fn is_backstop_active(
 /// count so a large 28-commit push doesn't time out at 60s.
 ///
 /// Formula:
-///   ahead ≤ 5  →  base timeout
+///   ahead ≤ 5  →  base × 1
 ///   ahead ≤ 20 →  base × 2
 ///   ahead ≤ 50 →  base × 4
-///   ahead > 50 →  base × 6 (capped at 600s = 10 min)
+///   ahead > 50 →  base × 6
+///
+/// Cap: `max(600, base × 6)` — the top tier itself. CORRECTED
+/// 2026-08-10 (audit LOW: "scale_push_timeout multiplier branches are
+/// dead"): the old fixed 600s cap made the 4×/6× branches unobservable
+/// at any base ≥ 150 (with the 300s code default, every ahead > 20
+/// yielded exactly 600s) and at the live 900s config it truncated the
+/// operator's configured timeout DOWN to 600s for every push. A
+/// base-relative cap keeps all four tiers observable at any base while
+/// still bounding a runaway push (worst case: base × 6). For bases
+/// below 100s the cap is unchanged at 600s.
 ///
 /// Example with base = 60s:
 ///   ahead =  3 →  60s
@@ -173,7 +183,11 @@ pub(crate) fn is_backstop_active(
 ///   ahead = 28 → 240s
 ///   ahead = 60 → 360s
 ///
-/// Cap at 600s so a runaway push doesn't block the daemon forever.
+/// Example with base = 300s (code default):
+///   ahead =  3 →  300s
+///   ahead = 10 →  600s
+///   ahead = 28 → 1200s
+///   ahead = 60 → 1800s
 pub(crate) fn scale_push_timeout(base: u64, ahead: u64) -> u64 {
     let multiplier: u64 = if ahead <= 5 {
         1
@@ -184,7 +198,7 @@ pub(crate) fn scale_push_timeout(base: u64, ahead: u64) -> u64 {
     } else {
         6
     };
-    (base * multiplier).min(600)
+    (base * multiplier).min(600u64.max(base * 6))
 }
 
 impl SyncOutcome {
@@ -1637,8 +1651,12 @@ async fn push_background(
     // times out, the daemon burns its 3-attempt retry budget, falls
     // through to the 4-remote HTTPS fallback chain, and the operator
     // sees "pushing 4m" — a stall that the new ACTIVITY column will
-    // surface, but that we should prevent. Capped at 600s (10 min) so
-    // a runaway push can't block the daemon forever.
+    // surface, but that we should prevent. CORRECTED 2026-08-10 (audit
+    // LOW): the cap is now base-relative (`max(600, base × 6)`), so at
+    // the live 900s config the timeout is never truncated below the
+    // configured value (the old fixed 600s cap silently overrode the
+    // operator's 900s to 600s for EVERY push) and the 4×/6× tiers stay
+    // observable; a runaway push is still bounded at base × 6.
     let ahead_count = count_ahead_commits(repo).await.unwrap_or(0);
     let scaled_timeout = scale_push_timeout(policy.push_op_timeout_secs, ahead_count);
     if scaled_timeout != policy.push_op_timeout_secs {
@@ -8377,13 +8395,40 @@ trusted_authors = ["test"]
     }
 
     #[test]
-    fn test_scale_push_timeout_huge_push_sextuples_capped() {
-        // >50 ahead → 6x base, capped at 600s
+    fn test_scale_push_timeout_huge_push_sextuples() {
+        // >50 ahead → 6x base
         assert_eq!(scale_push_timeout(60, 51), 360);
         assert_eq!(scale_push_timeout(60, 100), 360);
-        // With a larger base, the cap kicks in
-        assert_eq!(scale_push_timeout(300, 100), 600);
-        assert_eq!(scale_push_timeout(500, 200), 600);
+        // Cap is base-relative: max(600, base × 6), so the 4×/6× tiers
+        // stay observable at larger bases instead of collapsing into a
+        // fixed 600s (audit LOW 2026-08-10 — pre-fix these returned 600).
+        assert_eq!(scale_push_timeout(300, 100), 1800);
+        assert_eq!(scale_push_timeout(500, 200), 3000);
+        // ...but the 600s floor still bounds small bases.
+        assert_eq!(scale_push_timeout(60, 1000), 360);
+    }
+
+    #[test]
+    fn test_scale_push_timeout_tiers_live_at_default_base() {
+        // audit LOW 2026-08-10: with the 300s code default the old fixed
+        // 600s cap made every ahead > 20 yield exactly 600s (4×/6× dead).
+        assert_eq!(scale_push_timeout(300, 5), 300);
+        assert_eq!(scale_push_timeout(300, 20), 600);
+        assert_eq!(scale_push_timeout(300, 21), 1200);
+        assert_eq!(scale_push_timeout(300, 50), 1200);
+        assert_eq!(scale_push_timeout(300, 51), 1800);
+    }
+
+    #[test]
+    fn test_scale_push_timeout_never_truncates_live_base() {
+        // audit LOW 2026-08-10: at the live 900s config the old fixed
+        // 600s cap truncated EVERY push (even 0 ahead) down to 600s;
+        // the base-relative cap must never return less than the base.
+        assert_eq!(scale_push_timeout(900, 0), 900);
+        assert_eq!(scale_push_timeout(900, 3), 900);
+        assert_eq!(scale_push_timeout(900, 6), 1800);
+        assert_eq!(scale_push_timeout(900, 21), 3600);
+        assert_eq!(scale_push_timeout(900, 51), 5400);
     }
 
     #[test]
