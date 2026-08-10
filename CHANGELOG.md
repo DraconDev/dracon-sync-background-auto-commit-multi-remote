@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`repos --legend` now spans the full terminal width** (operator
+  request, 2026-08-10): the legend used to render at its natural
+  content width (~116 cols) while the terminal had plenty of spare
+  width. It now spans the full terminal width (clamped to >= 120, the
+  pre-change minimum, and <= 1000): the label column stays fixed at 11
+  chars and the text column fills the rest, so the legend visually
+  matches the wide repos table above it. Root cause found along the
+  way: the column constraints were set BEFORE rows were added, when
+  `column_mut()` returns None and silently drops the constraint — the
+  old Absolute(11)/Absolute(106) constraints were no-ops and the 120-col
+  legend was pure content sizing, not a deliberate layout. Constraints
+  are now applied after `add_row`, with a LowerBoundary on the text
+  column (verified against comfy-table 7.2.2's arrangement algorithm
+  that a lower boundary above the average remaining width fixes the
+  column at exactly that width).
+
 ### Fixed
 
 - **`release.sh --abort` now enforces its claimed dirty-at-start guard**
