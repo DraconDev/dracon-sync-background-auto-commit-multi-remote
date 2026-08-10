@@ -16,6 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`scale_push_timeout` tiers are no longer dead** (audit LOW,
+  2026-08-10): the old fixed 600s cap made the 4×/6× multiplier
+  branches unobservable at any base ≥ 150 (with the 300s code default,
+  every ahead > 20 yielded exactly 600s, and the "scaling push timeout"
+  log always showed the same 300→600). Worse, at the live 900s config
+  the cap truncated the operator's configured timeout DOWN to 600s for
+  EVERY push (even 0 commits ahead). The cap is now base-relative:
+  `max(600, base × 6)` — all four tiers stay observable at any base,
+  the timeout is never reduced below the configured value, and a
+  runaway push is still bounded at base × 6. Tests updated and
+  extended: tiers at the default base (300 → 1200 → 1800), never
+  truncating the live 900s base (900/1800/3600/5400), and the 600s
+  floor for small bases unchanged.
+
 - **`push_with_retries` comment corrected** (audit LOW, 2026-08-10):
   the post-pull `continue` note claimed "we don't increment `attempt`
   either" — wrong: the `for attempt in 1..=attempts` range iterator
