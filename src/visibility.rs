@@ -1658,6 +1658,38 @@ mod tests {
     }
 
     #[test]
+    fn test_cached_repo_visibility_window_follows_interval_hours() {
+        // FIXED 2026-08-11 (audit LOW): the gate's freshness window used
+        // to be a hardcoded 24h while the refresh sweep used the policy
+        // interval (`is_visibility_cache_fresh`). Now both take the SAME
+        // `interval_hours`, so a tuned interval applies to the refresh
+        // cadence AND the accept window. A stale PUBLIC cache must not
+        // authorize a Codeberg push.
+        let repo_path = Path::new("/tmp/test_visibility_window_interval");
+        let path = visibility_cache_path(repo_path);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        // Cache written 2 hours ago.
+        std::fs::write(&path, format!("visibility=public\n{}", now - 2 * 3600)).unwrap();
+        // Default 24h policy interval: the 2h-old cache is accepted.
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(false));
+        // Tightened 1h interval: the same cache is stale → None (= unknown)
+        // → the Codeberg gate fails closed (skip codeberg).
+        assert_eq!(cached_repo_visibility(repo_path, 1), None);
+
+        // Boundary: exactly `interval_hours` old is stale, matching
+        // is_visibility_cache_fresh's strict `<` comparison.
+        std::fs::write(&path, format!("visibility=private\n{}", now - 3600)).unwrap();
+        assert_eq!(cached_repo_visibility(repo_path, 1), None);
+        assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
     fn test_cached_repo_visibility_treats_legacy_format_as_unknown() {
         // Backward compat: cache files written before the new
         // format (timestamp only) must surface as None, not as
