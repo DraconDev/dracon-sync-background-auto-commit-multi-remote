@@ -3440,7 +3440,7 @@ async fn stage_commit_and_push(
         // `ctx.remote_failures` (the caller passes a `&mut HashMap`).
         // The `tokio::spawn` fire-and-forget pattern was removed because
         // it bypassed the failure-tracking needed by callers like
-        // `test_sync_repo_mirror_failure_tracks_remote_failures`.
+        // `test_sync_repo_mirror_push_failure_second`.
         match push_background(repo, policy, has_origin, ctx.remote_failures.as_deref_mut()).await {
             Ok(true) => {
                 if let Err(e) = crate::daemon::refresh_publish_upstream(repo, policy).await {
@@ -4366,7 +4366,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`
         // (fire-and-forget), which made the failure tracking unreachable
-        // for callers like the test `test_sync_repo_mirror_failure_tracks_remote_failures`.
+        // for callers like the test `test_sync_repo_mirror_push_failure_second`.
         match push_background(ctx.repo, ctx.policy, ctx.has_origin, ctx.remote_failures.as_deref_mut()).await {
             Ok(true) => {
                 crate::daemon::record_push_success(ctx.repo);

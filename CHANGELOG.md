@@ -18,16 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Restore secret-scrubber damage from the 2026-06-21 monorepo split**
   (audit LOW, 2026-08-10): commit `817ecb2` left
-  `[DRACON_SECRET:<age-blob>]` markers embedded mid-word in comments
-  and stripped a test fixture. Decrypted each marker with the warden
-  machine identity and restored the exact originals from pre-split
-  history (`817ecb2^`):
+  `[DRACON_SECRET:<age-blob>]` markers embedded mid-word in comments,
+  stripped a test fixture, and scrubbed an example-config line. Every
+  marker was decrypted with the warden machine identity and cross-checked
+  against the pre-split tree (`817ecb2^`); the same commit also RENAMED
+  the two referenced test functions, so the comment references are
+  repointed to the current names rather than left dangling:
   - `src/daemon.rs` — two comments now read
-    `` `test_record_push_failure_increments_consecutive_failures` ``
-    (was truncated to `test_record_push_failu[…]`)
+    `` `test_record_push_failure_increments_counter` `` (the renamed
+    test; was truncated to `test_record_push_failu[…]`)
   - `src/sync.rs` — two comments now read
-    `` `test_sync_repo_mirror_failure_tracks_remote_failures` ``
-    (was truncated to `test_sync_repo_mirror_failu[…]`)
+    `` `test_sync_repo_mirror_push_failure_second` `` (the renamed
+    test; was truncated to `test_sync_repo_mirror_failu[…]`)
   - `src/git/mod.rs` — the `test_gh_cmd_uses_configured_pat_…` fixture
     write is `"GH_TOKEN=test_pat_from_file\n"` again (was the marker,
     so the PAT-loading path was no longer exercised), and the gh mock
@@ -38,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `src/release.rs` was damaged in the same event but hand-repaired
     (fixture renamed to `ghp_test_token_for_release`, mock now checks
     presence) — left as-is.
+  - `dracon-sync.example.toml` — the commented-out
+    `# token_secret = "CARGO_REGISTRY_TOKEN"   # env var name (token in
+    secrets/cratesio.env)` line under `[[publish_targets]]` was
+    restored verbatim from `817ecb2^` (was `# [DRACON_SECRET:…]`).
+  - After this pass a full tracked-tree scan
+    (`git grep DRACON_SECRET`) finds no remaining markers; the only
+    mention is this CHANGELOG entry itself.
 - **Remove 0-byte `*.rs.plaintext` scrub debris** (audit LOW,
   2026-08-10): seven empty files (`src/bump.rs.plaintext`,
   `src/daemon.rs.plaintext`, `src/git/mod.rs.plaintext`,

@@ -1524,7 +1524,7 @@ mod tests {
 
     #[test]
     fn test_record_push_success_clears_entry() {
-        // See `test_record_push_failure_increments_consecutive_failures`
+        // See `test_record_push_failure_increments_counter`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
@@ -1546,7 +1546,7 @@ mod tests {
 
     #[test]
     fn test_record_push_failure_returns_repo_state() {
-        // See `test_record_push_failure_increments_consecutive_failures`
+        // See `test_record_push_failure_increments_counter`
         // for the rationale on using a temp state dir.
         let temp_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
