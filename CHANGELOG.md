@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Stale test comment in `test_terminal_width_fallback_is_compact`
+  rewritten** (audit LOW, 2026-08-11): the comment described the
+  removed Vertical (< 220) / Compact (220-299) bands; the tier layout
+  is now Compact < 165 / Rich ≥ 165 (v0.113.8 rewrite, Vertical
+  removed in v0.113.26), and 120 columns routes to Compact. The
+  assertion and fallback value (120, not 300) are unchanged — only
+  the commentary is corrected.
+
 - **SIGHUP and freeze markers now take effect within ~1s instead of a
   full pulse** (audit LOW, 2026-08-11): the daemon loop's sleeps were
   single blind `sleep(scan_interval)` calls (up to 120s+ with a large

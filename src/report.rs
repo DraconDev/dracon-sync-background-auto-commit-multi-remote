@@ -11464,10 +11464,15 @@ mod tests {
     fn test_terminal_width_fallback_is_compact() {
         // When neither env var is set and terminal_size fails (test env / pipe),
         // the fallback must be 120 (Compact-friendly), NOT 300 (Full-only).
-        // The width 120 sits at the boundary between Vertical (< 220) and Compact
-        // (220-299), so when terminal_size() returns Some(120, _) the dispatcher
-        // routes to Vertical (correct), but the fallback's *value* must be 120 —
-        // NOT 300 — so that piped output is never accidentally Full-width.
+        // CHANGED 2026-08-11 (audit LOW, report.rs:11460-11462): the
+        // comment used to describe the removed Vertical (< 220) / Compact
+        // (220-299) bands — Vertical was deleted in v0.113.26 and the
+        // v0.113.8 tier rewrite made the boundary Compact < 165, Rich ≥ 165
+        // (see `choose_layout_tier`). The width 120 sits below that
+        // boundary, so when terminal_size() returns Some(120, _) the
+        // dispatcher routes to Compact (correct), but the fallback's
+        // *value* must be 120 — NOT 300 — so that piped output is never
+        // accidentally Rich-width.
         let prev_width = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
         let prev_cols = std::env::var("COLUMNS").ok();
         std::env::remove_var("DRACON_SYNC_TERM_WIDTH");
