@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Release dry-runs now bump `Cargo.toml` before validation** (audit LOW,
+  2026-08-11): `scripts/release.sh --dry-run` now writes the requested
+  manifest version instead of reporting a preview while leaving the old
+  version in place. A subsequent cargo publish dry-run therefore validates
+  the release being previewed; `--abort` restores the manifest.
+
 - **`repos --legend` is now a clean short glossary** (operator
   request, 2026-08-10): the earlier full-width panel grid still made
   the column meanings harder to scan. The legend now uses one aligned
