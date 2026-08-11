@@ -176,9 +176,9 @@ pub(crate) fn codeberg_push_excluded_for_repo(
         return false;
     }
     if matches!(codeberg_override, Some(true))
-        || remotes.iter().any(|r| {
-            matches!(r.effective_auth_type(), AuthType::Codeberg) && r.auto_create
-        })
+        || remotes
+            .iter()
+            .any(|r| matches!(r.effective_auth_type(), AuthType::Codeberg) && r.auto_create)
     {
         return false;
     }
@@ -282,11 +282,7 @@ pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig])
         .current_dir(repo)
         .status()
     {
-        eprintln!(
-            "⚠️ failed to add origin for {}: {}",
-            repo.display(),
-            e
-        );
+        eprintln!("⚠️ failed to add origin for {}: {}", repo.display(), e);
         return;
     }
     // Also set branch.<name>.remote = origin if a default branch
@@ -302,11 +298,7 @@ pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig])
             let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !branch.is_empty() && crate::git::is_safe_branch_name(&branch) {
                 let _ = std_git_command()
-                    .args([
-                        "config",
-                        &format!("branch.{branch}.remote"),
-                        "origin",
-                    ])
+                    .args(["config", &format!("branch.{branch}.remote"), "origin"])
                     .current_dir(repo)
                     .status();
             }
@@ -549,10 +541,7 @@ pub(crate) fn remove_stale_remotes(
                 .args(["config", "--get", &format!("dracon.managed-{}", remote)])
                 .current_dir(repo)
                 .output()
-                .map(|o| {
-                    o.status.success()
-                        && String::from_utf8_lossy(&o.stdout).trim() == "true"
-                })
+                .map(|o| o.status.success() && String::from_utf8_lossy(&o.stdout).trim() == "true")
                 .unwrap_or(false);
         if !managed {
             if debug_enabled() {
@@ -788,7 +777,8 @@ pub(crate) async fn push_to_all_remotes(
         let name = remote.name.clone();
         let force_push = remote.force_push_when_behind;
         futures.push(tokio::spawn(async move {
-            let result = push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
+            let result =
+                push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
             (name, result)
         }));
     }
@@ -931,7 +921,10 @@ fn ensure_gitlab_main_protected(account: &str, repo_name: &str) {
             }
         }
         Err(e) => {
-            eprintln!("⚠️ gitlab protect main spawn failed for {}/{}: {}", account, repo_name, e);
+            eprintln!(
+                "⚠️ gitlab protect main spawn failed for {}/{}: {}",
+                account, repo_name, e
+            );
         }
     }
 }
@@ -1047,8 +1040,7 @@ pub(crate) async fn auto_create_all_remotes(
                         if debug_enabled() {
                             eprintln!(
                                 "ℹ️  {} already exists on {} — skipping auto-create",
-                                resolved_name,
-                                remote.name
+                                resolved_name, remote.name
                             );
                         }
                         results.push((remote.name.clone(), Ok(resolved_name.clone())));
@@ -1077,8 +1069,7 @@ pub(crate) async fn auto_create_all_remotes(
             // Codeberg repository is public only after a fresh positive
             // public visibility result; unknown/private stays private (and
             // is normally excluded before reaching this branch).
-            let create_private = if matches!(remote.effective_auth_type(), AuthType::Codeberg)
-            {
+            let create_private = if matches!(remote.effective_auth_type(), AuthType::Codeberg) {
                 repo.and_then(|p| crate::visibility::cached_repo_visibility(p, interval_hours))
                     .unwrap_or(true)
             } else {
@@ -1120,9 +1111,8 @@ static EXISTS_CACHE: std::sync::OnceLock<
     parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>>,
 > = std::sync::OnceLock::new();
 
-fn exists_cache() -> &'static parking_lot::Mutex<
-    std::collections::HashSet<(std::path::PathBuf, String)>,
-> {
+fn exists_cache(
+) -> &'static parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>> {
     EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
 }
 
@@ -1242,7 +1232,9 @@ mod tests {
             "git@github.com: Permission denied (publickey)."
         ));
         assert!(!ls_remote_indicates_missing("Connection reset by peer"));
-        assert!(!ls_remote_indicates_missing("Temporary failure in name resolution"));
+        assert!(!ls_remote_indicates_missing(
+            "Temporary failure in name resolution"
+        ));
     }
 
     // ---- codeberg_push_excluded / has_codeberg_tracking_ref (v0.112.30) ----
@@ -1322,7 +1314,9 @@ mod tests {
         std::fs::create_dir_all(&repo).unwrap();
         let remotes = vec![make_codeberg_remote(false)];
         crate::visibility::update_visibility_cache(&repo, false);
-        assert!(!codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
+        assert!(!codeberg_push_excluded_for_repo(
+            &remotes, None, false, &repo, 24
+        ));
         let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
     }
 
@@ -1332,9 +1326,13 @@ mod tests {
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).unwrap();
         let remotes = vec![make_codeberg_remote(false)];
-        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
+        assert!(codeberg_push_excluded_for_repo(
+            &remotes, None, false, &repo, 24
+        ));
         crate::visibility::update_visibility_cache(&repo, true);
-        assert!(codeberg_push_excluded_for_repo(&remotes, None, false, &repo, 24));
+        assert!(codeberg_push_excluded_for_repo(
+            &remotes, None, false, &repo, 24
+        ));
         let _ = std::fs::remove_file(crate::visibility::visibility_cache_path_test(&repo));
     }
 
@@ -1383,7 +1381,10 @@ mod tests {
             assert!(status.success());
         }
         std::fs::write(repo.join("a.txt"), "x\n").unwrap();
-        for args in [vec!["add", "a.txt"], vec!["commit", "--no-verify", "-q", "-m", "i"]] {
+        for args in [
+            vec!["add", "a.txt"],
+            vec!["commit", "--no-verify", "-q", "-m", "i"],
+        ] {
             let status = std_git_command()
                 .args(&args)
                 .current_dir(&repo)
@@ -1656,9 +1657,13 @@ exit 1
             .unwrap();
         crate::policy::std_git_command()
             .args([
-                "-c", "user.email=test@example.com",
-                "-c", "user.name=test",
-                "commit", "-m", "init",
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "user.name=test",
+                "commit",
+                "-m",
+                "init",
             ])
             .current_dir(path)
             .output()
@@ -1714,7 +1719,12 @@ exit 1
 
         // Pre-set origin to a deliberately-unusual URL.
         crate::policy::std_git_command()
-            .args(["remote", "add", "origin", "git@internal.example.com:keep.git"])
+            .args([
+                "remote",
+                "add",
+                "origin",
+                "git@internal.example.com:keep.git",
+            ])
             .current_dir(&repo)
             .output()
             .unwrap();

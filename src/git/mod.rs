@@ -1,6 +1,6 @@
+use crate::log_warn;
 #[cfg(test)]
 use crate::policy::{AuthType, RemoteConfig};
-use crate::log_warn;
 #[cfg(test)]
 use dracon_git::types::FileStatus;
 #[cfg(test)]
@@ -293,7 +293,8 @@ fn github_remote_names_direct(gitdir: &std::path::Path) -> Vec<String> {
         }
         if let (Some(name), Some(url)) = (
             current.as_ref(),
-            t.strip_prefix("url").and_then(|s| s.trim_start().strip_prefix('=')),
+            t.strip_prefix("url")
+                .and_then(|s| s.trim_start().strip_prefix('=')),
         ) {
             if url.trim().to_ascii_lowercase().contains("github.com") {
                 names.push(name.clone());
@@ -560,9 +561,10 @@ fn blob_size_sum(repo: &std::path::Path, shas: &str) -> Option<u64> {
                     // 40-hex SHA if present, then read type and size.
                     let parts: Vec<&str> = trimmed.split_whitespace().collect();
                     let mut i = 0;
-                    if parts.first().is_some_and(|p| {
-                        p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit())
-                    }) {
+                    if parts
+                        .first()
+                        .is_some_and(|p| p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit()))
+                    {
                         i += 1;
                     }
                     let ty = parts.get(i);
@@ -711,8 +713,7 @@ mod github_pack_tests {
     fn missing_tracking_ref_measures_whole_branch() {
         // Fresh remote (never fetched): the whole branch ships.
         let repo = fixture_repo_with_github_remote();
-        let (too_big, basis) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, basis) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(too_big, "whole branch exceeds a 1-byte limit");
         assert!(basis > 0, "whole-branch basis must be nonzero");
     }
@@ -722,8 +723,7 @@ mod github_pack_tests {
         // No github remote configured: the daemon auto-creates the repo on
         // first push, so the whole branch would ship (fresh-remote case).
         let repo = crate::test_helpers::create_test_repo();
-        let (too_big, basis) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, basis) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(too_big, "no github remote == fresh remote == whole branch");
         assert!(basis > 0);
     }
@@ -750,8 +750,7 @@ mod github_pack_tests {
         let commit = String::from_utf8_lossy(&commit.stdout).trim().to_string();
         let branch = fixture_branch(&repo);
         set_tracking_ref(&repo, "gh", &branch, &commit);
-        let (too_big, _) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, _) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(
             too_big,
             "non-ancestor tip must degrade to whole-branch (exceeds 1-byte limit)"
@@ -766,12 +765,16 @@ mod github_pack_tests {
         let branch = fixture_branch(&repo);
         set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
         crate::test_helpers::test_git_cmd()
-            .args(["remote", "add", "gh2", "https://github.com/test/fixture2.git"])
+            .args([
+                "remote",
+                "add",
+                "gh2",
+                "https://github.com/test/fixture2.git",
+            ])
             .current_dir(&repo)
             .output()
             .expect("git remote add gh2");
-        let (too_big, _) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, _) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(
             too_big,
             "a fresh second github remote means the whole branch ships to it"
@@ -1567,8 +1570,12 @@ exit 0
             .current_dir(&repo)
             .status()
             .expect("git remote add mirror2");
-        crate::git::multi_remote::remove_stale_remotes(&repo, &["mirror1"], &["mirror1", "mirror2"])
-            .expect("remove_stale_remotes");
+        crate::git::multi_remote::remove_stale_remotes(
+            &repo,
+            &["mirror1"],
+            &["mirror1", "mirror2"],
+        )
+        .expect("remove_stale_remotes");
         let remotes = multi_remote::list_remotes(&repo);
         assert!(
             remotes.contains(&"origin".to_string()),
@@ -1610,14 +1617,19 @@ exit 0
             .expect("git remote add backup");
         // Daemon-managed remote (policy name in managed_names).
         test_git_cmd()
-            .args(["remote", "add", "codeberg", "git@codeberg.org:test/repo.git"])
+            .args([
+                "remote",
+                "add",
+                "codeberg",
+                "git@codeberg.org:test/repo.git",
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add codeberg");
 
         crate::git::multi_remote::remove_stale_remotes(
             &repo,
-            &["github"],              // keep
+            &["github"],             // keep
             &["github", "codeberg"], // daemon-managed names (policy)
         )
         .expect("remove_stale_remotes");
@@ -1646,12 +1658,8 @@ exit 0
             .status()
             .expect("git init");
         // ensure_remote stamps the marker.
-        crate::git::multi_remote::ensure_remote(
-            &repo,
-            "oldmirror",
-            "git@old.example.com:repo.git",
-        )
-        .expect("ensure_remote");
+        crate::git::multi_remote::ensure_remote(&repo, "oldmirror", "git@old.example.com:repo.git")
+            .expect("ensure_remote");
         let marker = test_git_cmd()
             .args(["config", "--get", "dracon.managed-oldmirror"])
             .current_dir(&repo)
@@ -1821,8 +1829,15 @@ exit 0
                 force_push_when_behind: false,
             },
         ];
-        let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None, 24).await;
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &remotes,
+            "test-repo",
+            true,
+            None,
+            None,
+            24,
+        )
+        .await;
         assert!(
             results.is_empty(),
             "should return empty vec when no remotes have auto_create=true"
@@ -1926,8 +1941,15 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None, 24).await;
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &remotes,
+            "test-repo",
+            true,
+            None,
+            None,
+            24,
+        )
+        .await;
         assert_eq!(results.len(), 1);
         assert!(results[0].1.is_err(), "Generic auth should return error");
         let err_msg = format!("{}", results[0].1.as_ref().unwrap_err());
@@ -1954,8 +1976,15 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None, 24).await;
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &remotes,
+            "test-repo",
+            true,
+            None,
+            None,
+            24,
+        )
+        .await;
         assert_eq!(results.len(), 1);
         assert!(
             results[0].1.is_err(),
@@ -1996,8 +2025,15 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None, 24).await;
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &remotes,
+            "test-repo",
+            true,
+            None,
+            None,
+            24,
+        )
+        .await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "https://github.com/testaccount/test-repo.git");
@@ -2031,8 +2067,15 @@ exit 0
             repo_name_map: Default::default(),
             force_push_when_behind: false,
         }];
-        let results =
-            crate::git::multi_remote::auto_create_all_remotes(&remotes, "test-repo", true, None, None, 24).await;
+        let results = crate::git::multi_remote::auto_create_all_remotes(
+            &remotes,
+            "test-repo",
+            true,
+            None,
+            None,
+            24,
+        )
+        .await;
         assert_eq!(results.len(), 1);
         let url = results[0].1.as_ref().unwrap();
         assert_eq!(url, "git@gitlab.com:testaccount/test-repo.git");
@@ -2233,7 +2276,9 @@ exit 0
             .arg(&repo)
             .status()
             .expect("git init");
-        let results = crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true, &[], None, 24).await;
+        let results =
+            crate::git::multi_remote::push_mirror_remotes(&repo, &[], 1, 0, true, &[], None, 24)
+                .await;
         assert!(
             results.is_empty(),
             "should return empty results for empty remotes"
@@ -3054,9 +3099,15 @@ exit 0
         // loop IS REACHED (otherwise we'd return Ok earlier). We
         // confirm this by checking the error message mentions
         // SSH/connectivity, not a refspec rejection.
-        let err_msg = result.as_ref().err().map(|e| e.to_string()).unwrap_or_default();
+        let err_msg = result
+            .as_ref()
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
         assert!(
-            err_msg.contains("SSH") || err_msg.contains("initial SSH failure") || err_msg.contains("failed"),
+            err_msg.contains("SSH")
+                || err_msg.contains("initial SSH failure")
+                || err_msg.contains("failed"),
             "retry loop should be exercised after HTTPS fallback fails: {:?}",
             result
         );
@@ -4205,11 +4256,7 @@ pub(crate) async fn maybe_auto_gc(repo: &std::path::Path, threshold_bytes: u64) 
             );
         }
         Err(e) => {
-            eprintln!(
-                "⚠️ gc failed for {} (cooldown 1h): {:#}",
-                repo.display(),
-                e
-            );
+            eprintln!("⚠️ gc failed for {} (cooldown 1h): {:#}", repo.display(), e);
         }
     }
     Some(garbage)
@@ -4237,7 +4284,12 @@ fn is_daemon_owned_stale_branch(name: &str) -> bool {
 /// Names of the repo's configured remotes (`git remote`).
 fn configured_remote_names(repo: &std::path::Path) -> Vec<String> {
     git_capture_stdout(repo, &["remote"])
-        .map(|s| s.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect())
+        .map(|s| {
+            s.lines()
+                .map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -4299,7 +4351,11 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
     let mut candidates: Vec<(String, String, String)> = Vec::new();
     if let Some(out) = git_capture_stdout(
         repo,
-        &["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads/"],
+        &[
+            "for-each-ref",
+            "--format=%(refname) %(objectname)",
+            "refs/heads/",
+        ],
     ) {
         for line in out.lines() {
             let mut it = line.split_whitespace();
@@ -4313,11 +4369,14 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
         }
     }
     let remotes = configured_remote_names(repo);
-    let remote_set: std::collections::HashSet<&str> =
-        remotes.iter().map(|s| s.as_str()).collect();
+    let remote_set: std::collections::HashSet<&str> = remotes.iter().map(|s| s.as_str()).collect();
     if let Some(out) = git_capture_stdout(
         repo,
-        &["for-each-ref", "--format=%(refname) %(objectname)", "refs/remotes/"],
+        &[
+            "for-each-ref",
+            "--format=%(refname) %(objectname)",
+            "refs/remotes/",
+        ],
     ) {
         for line in out.lines() {
             let mut it = line.split_whitespace();
@@ -4348,7 +4407,11 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
     // for orphaned tracking refs).
     let dir = std::path::Path::new(backup_dir).join("auto-prune");
     if let Err(e) = std::fs::create_dir_all(&dir) {
-        log_warn!("🧹 janitor: cannot create {}: {} — nothing deleted", dir.display(), e);
+        log_warn!(
+            "🧹 janitor: cannot create {}: {} — nothing deleted",
+            dir.display(),
+            e
+        );
         return;
     }
     let slug = repo
@@ -4427,7 +4490,11 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
                 bundle.display()
             );
         } else {
-            log_warn!("🧹 janitor: failed to delete {} in {} — skipping", refname, repo.display());
+            log_warn!(
+                "🧹 janitor: failed to delete {} in {} — skipping",
+                refname,
+                repo.display()
+            );
         }
     }
 
@@ -4447,7 +4514,11 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
             }
             let remote_head = git_capture_stdout(
                 repo,
-                &["symbolic-ref", "--quiet", &format!("refs/remotes/{}/HEAD", r)],
+                &[
+                    "symbolic-ref",
+                    "--quiet",
+                    &format!("refs/remotes/{}/HEAD", r),
+                ],
             )
             .map(|s| s.trim().to_string())
             .unwrap_or_default();
@@ -4505,10 +4576,12 @@ mod auto_gc_tests {
         // Disabled.
         assert!(super::maybe_auto_gc(&repo, 0).await.is_none());
         // Fresh repo has ~0 garbage — far below a 2 GiB threshold.
-        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024).await.is_none());
+        assert!(super::maybe_auto_gc(&repo, 2 * 1024 * 1024 * 1024)
+            .await
+            .is_none());
         // No attempt was recorded (nothing to gc).
-        let attempts = super::AUTO_GC_ATTEMPTS
-            .get_or_init(|| std::sync::Mutex::new(Default::default()));
+        let attempts =
+            super::AUTO_GC_ATTEMPTS.get_or_init(|| std::sync::Mutex::new(Default::default()));
         let map = attempts.lock().unwrap_or_else(|p| p.into_inner());
         assert!(!map.contains_key(&repo));
     }
@@ -4525,7 +4598,12 @@ mod janitor_tests {
 
     fn local_branch_exists(repo: &std::path::Path, name: &str) -> bool {
         crate::test_helpers::test_git_cmd()
-            .args(["rev-parse", "--verify", "--quiet", &format!("refs/heads/{}", name)])
+            .args([
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                &format!("refs/heads/{}", name),
+            ])
             .current_dir(repo)
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -4585,13 +4663,12 @@ mod janitor_tests {
     async fn disabled_is_noop() {
         let (repo, _bare) = fixture_with_stale_branches();
         let backup = tempfile::tempdir().unwrap();
-        super::maybe_prune_stale_backup_branches(
+        super::maybe_prune_stale_backup_branches(&repo, false, &backup.path().to_string_lossy())
+            .await;
+        assert!(local_branch_exists(
             &repo,
-            false,
-            &backup.path().to_string_lossy(),
-        )
-        .await;
-        assert!(local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+            "backup/pre-sync-largeblob-fix-999"
+        ));
         assert!(local_branch_exists(&repo, "daemon-standalone"));
         // ...and not even the bundle dir was created.
         assert!(!backup.path().join("auto-prune").exists());
@@ -4601,14 +4678,13 @@ mod janitor_tests {
     async fn prunes_daemon_branches_with_bundle_and_remote_delete() {
         let (repo, bare) = fixture_with_stale_branches();
         let backup = tempfile::tempdir().unwrap();
-        super::maybe_prune_stale_backup_branches(
-            &repo,
-            true,
-            &backup.path().to_string_lossy(),
-        )
-        .await;
+        super::maybe_prune_stale_backup_branches(&repo, true, &backup.path().to_string_lossy())
+            .await;
         // Local: daemon branches gone, operator branches untouched.
-        assert!(!local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(!local_branch_exists(
+            &repo,
+            "backup/pre-sync-largeblob-fix-999"
+        ));
         assert!(!local_branch_exists(&repo, "daemon-standalone"));
         assert!(local_branch_exists(&repo, "preserve/keep-me"));
         // Bundle exists and verifies against the repo.
@@ -4629,7 +4705,10 @@ mod janitor_tests {
             String::from_utf8_lossy(&verify.stderr)
         );
         // Remote: daemon branches deleted (tips matched), preserve kept.
-        assert!(!remote_branch_exists(&bare, "backup/pre-sync-largeblob-fix-999"));
+        assert!(!remote_branch_exists(
+            &bare,
+            "backup/pre-sync-largeblob-fix-999"
+        ));
         assert!(!remote_branch_exists(&bare, "daemon-standalone"));
         assert!(remote_branch_exists(&bare, "preserve/keep-me"));
     }
@@ -4665,13 +4744,12 @@ mod janitor_tests {
             .output()
             .expect("update-ref");
         let backup = tempfile::tempdir().unwrap();
-        super::maybe_prune_stale_backup_branches(
+        super::maybe_prune_stale_backup_branches(&repo, true, &backup.path().to_string_lossy())
+            .await;
+        assert!(!local_branch_exists(
             &repo,
-            true,
-            &backup.path().to_string_lossy(),
-        )
-        .await;
-        assert!(!local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+            "backup/pre-sync-largeblob-fix-999"
+        ));
         assert!(
             remote_branch_exists(&bare, "backup/pre-sync-largeblob-fix-999"),
             "tip mismatch must keep the remote copy"
@@ -4699,12 +4777,8 @@ mod janitor_tests {
             .output()
             .expect("update-ref");
         let backup = tempfile::tempdir().unwrap();
-        super::maybe_prune_stale_backup_branches(
-            &repo,
-            true,
-            &backup.path().to_string_lossy(),
-        )
-        .await;
+        super::maybe_prune_stale_backup_branches(&repo, true, &backup.path().to_string_lossy())
+            .await;
         assert!(
             !ref_exists(&repo, "refs/remotes/restore/main"),
             "orphaned tracking ref must be pruned"
@@ -4721,7 +4795,10 @@ mod janitor_tests {
         // Unwritable backup_dir -> bundle create fails -> NOTHING deleted.
         super::maybe_prune_stale_backup_branches(&repo, true, "/proc/definitely-not-writable")
             .await;
-        assert!(local_branch_exists(&repo, "backup/pre-sync-largeblob-fix-999"));
+        assert!(local_branch_exists(
+            &repo,
+            "backup/pre-sync-largeblob-fix-999"
+        ));
         assert!(local_branch_exists(&repo, "daemon-standalone"));
     }
 }

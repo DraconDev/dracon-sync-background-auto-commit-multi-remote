@@ -269,10 +269,7 @@ fn extract_repo_name(repo: &Path) -> anyhow::Result<String> {
             // git@host:owner/repo(.git) → strip git@, then host:...
             // Find the colon-after-host (NOT in path).
             let after_at = url.strip_prefix("git@").unwrap_or(&url);
-            after_at
-                .split_once('/')
-                .map(|(_, p)| p)
-                .unwrap_or(after_at)
+            after_at.split_once('/').map(|(_, p)| p).unwrap_or(after_at)
         };
         Ok(path.trim_end_matches(".git").to_string())
     } else if url.starts_with("https://") || url.starts_with("http://") {

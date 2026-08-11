@@ -116,12 +116,10 @@ pub(crate) fn discover_git_repos(
             // it's already discovered by the recursive walk —
             // skip adding a candidate.
             let nested_path = parent.join(&sub.path);
-            let nested_already_discovered = nested_path
-                .join(".git")
-                .exists()
-                && repos
-                    .iter()
-                    .any(|r| std::fs::canonicalize(r).ok() == std::fs::canonicalize(&nested_path).ok());
+            let nested_already_discovered = nested_path.join(".git").exists()
+                && repos.iter().any(|r| {
+                    std::fs::canonicalize(r).ok() == std::fs::canonicalize(&nested_path).ok()
+                });
 
             if nested_already_discovered {
                 continue;
@@ -418,12 +416,9 @@ fn resolve_primary_gitdir(gitdir: &Path) -> Option<PathBuf> {
     let canon = std::fs::canonicalize(gitdir)
         .ok()
         .unwrap_or_else(|| gitdir.to_path_buf());
-    let components: Vec<std::path::Component> =
-        canon.components().collect();
+    let components: Vec<std::path::Component> = canon.components().collect();
     // Find a "worktrees" segment in the path.
-    let worktrees_idx = components
-        .iter()
-        .position(|c| c.as_os_str() == "worktrees");
+    let worktrees_idx = components.iter().position(|c| c.as_os_str() == "worktrees");
     if let Some(idx) = worktrees_idx {
         // Primary = components[..idx] (the components BEFORE
         // `/worktrees`).
@@ -493,7 +488,7 @@ pub(crate) fn list_submodules(parent: &Path) -> Vec<SubmoduleEntry> {
         if trimmed.is_empty() || trimmed.starts_with('#') {
             continue;
         }
-        if trimmed.starts_with('[' ) && trimmed.ends_with(']') {
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
             let section = &trimmed[1..trimmed.len() - 1];
             if let Some(rest) = section.strip_prefix("submodule ") {
                 let name = rest.trim().trim_matches('"').to_string();
@@ -766,11 +761,7 @@ mod nested_repo_tests {
         let sub = repo.join("sub");
         fs::create_dir_all(&sub).unwrap();
         fs::create_dir_all(repo.join(".git/modules/sub")).unwrap();
-        fs::write(
-            sub.join(".git"),
-            "gitdir: /fake/path/.git/modules/sub\n",
-        )
-        .unwrap();
+        fs::write(sub.join(".git"), "gitdir: /fake/path/.git/modules/sub\n").unwrap();
         let entries = vec!["sub".to_string()];
         assert_eq!(
             count_nested_repo_untracked_entries(&repo, &entries),
@@ -833,14 +824,18 @@ mod submodule_tests {
                 .unwrap()
         };
         assert!(run(&["init", "-q"]).status.success(), "git init failed");
-        assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run(&["config", "user.email", "test@example.com"])
+            .status
+            .success());
         assert!(run(&["config", "user.name", "Test"]).status.success());
         assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
         assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
         // Disable hooks so globally-installed warden hooks don't reject
         // commits in temp test repos that lack `.gitattributes` with
         // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
-        assert!(run(&["config", "core.hooksPath", "/dev/null"]).status.success());
+        assert!(run(&["config", "core.hooksPath", "/dev/null"])
+            .status
+            .success());
         // Need at least one commit for the index to be readable by
         // `git ls-files --stage`. Add an empty commit so HEAD exists.
         fs::write(dir.join("README.md"), b"# test\n").unwrap();
@@ -889,9 +884,18 @@ mod submodule_tests {
             .unwrap()
             .stdout;
         let head_sha = String::from_utf8_lossy(&head).trim().to_string();
-        for path in ["web/games/wip/polis", "web/games/wip/deathrun", "web/games/wip/junk-runner"] {
+        for path in [
+            "web/games/wip/polis",
+            "web/games/wip/deathrun",
+            "web/games/wip/junk-runner",
+        ] {
             Command::new("git")
-                .args(["update-index", "--add", "--cacheinfo", &format!("160000,{},{}", head_sha, path)])
+                .args([
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("160000,{},{}", head_sha, path),
+                ])
                 .current_dir(&parent)
                 .output()
                 .unwrap();
@@ -903,7 +907,10 @@ mod submodule_tests {
         // The order is by path (stable sort).
         assert_eq!(entries[0].name, "web-games-deathrun");
         assert_eq!(entries[0].path, "web/games/wip/deathrun");
-        assert_eq!(entries[0].url, "git@github.com:DraconDev/web-games-deathrun.git");
+        assert_eq!(
+            entries[0].url,
+            "git@github.com:DraconDev/web-games-deathrun.git"
+        );
         assert_eq!(entries[0].sha, head_sha);
 
         assert_eq!(entries[1].name, "web-games-junk-runner");
@@ -914,8 +921,7 @@ mod submodule_tests {
         assert_eq!(entries[2].name, "web-games-polis");
         assert_eq!(entries[2].path, "web/games/wip/polis");
         assert_eq!(
-            entries[2].url,
-            "git@github.com:DraconDev/web-games-polis.git",
+            entries[2].url, "git@github.com:DraconDev/web-games-polis.git",
             "first URL wins when multiple are declared"
         );
         assert_eq!(entries[2].sha, head_sha);
@@ -952,7 +958,11 @@ mod submodule_tests {
         let _head = init_parent_repo(&parent);
 
         // Garbage in .gitmodules: must not panic, must return empty.
-        fs::write(parent.join(".gitmodules"), "this is not\na valid gitconfig [[[\n").unwrap();
+        fs::write(
+            parent.join(".gitmodules"),
+            "this is not\na valid gitconfig [[[\n",
+        )
+        .unwrap();
         assert_eq!(list_submodules(&parent), Vec::<SubmoduleEntry>::new());
     }
 
@@ -1009,9 +1019,18 @@ mod submodule_tests {
             .unwrap()
             .stdout;
         let head_sha = String::from_utf8_lossy(&head).trim().to_string();
-        for path in ["web/games/wip/polis", "web/games/wip/deathrun", "web/games/wip/junk-runner"] {
+        for path in [
+            "web/games/wip/polis",
+            "web/games/wip/deathrun",
+            "web/games/wip/junk-runner",
+        ] {
             Command::new("git")
-                .args(["update-index", "--add", "--cacheinfo", &format!("160000,{},{}", head_sha, path)])
+                .args([
+                    "update-index",
+                    "--add",
+                    "--cacheinfo",
+                    &format!("160000,{},{}", head_sha, path),
+                ])
                 .current_dir(&parent_dir)
                 .output()
                 .unwrap();
@@ -1034,7 +1053,10 @@ mod submodule_tests {
         );
 
         // The parent must be present.
-        assert!(discovered.contains(&parent_dir), "parent not in discovered list");
+        assert!(
+            discovered.contains(&parent_dir),
+            "parent not in discovered list"
+        );
 
         // The 3 submodule candidates (under tmp.path() because
         // tmp.path() is the anchor root).
@@ -1057,7 +1079,12 @@ mod submodule_tests {
         let exclude_repos: Vec<String> = vec![];
         let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
 
-        assert_eq!(discovered.len(), 1, "expected 1 parent, got: {:?}", discovered);
+        assert_eq!(
+            discovered.len(),
+            1,
+            "expected 1 parent, got: {:?}",
+            discovered
+        );
         assert_eq!(discovered[0], parent_dir);
     }
 
@@ -1141,7 +1168,11 @@ mod submodule_tests {
         // Materialize the standalone at <tmp.path()>/polis.
         // It must point to the same shared gitdir.
         fs::create_dir_all(&standalone_dir).unwrap();
-        fs::write(standalone_dir.join(".git"), b"gitdir: ../dracon-platform/.git/modules/web-games-polis\n").unwrap();
+        fs::write(
+            standalone_dir.join(".git"),
+            b"gitdir: ../dracon-platform/.git/modules/web-games-polis\n",
+        )
+        .unwrap();
 
         let roots = vec![tmp.path().to_path_buf()];
         let excluded: BTreeSet<String> = BTreeSet::new();

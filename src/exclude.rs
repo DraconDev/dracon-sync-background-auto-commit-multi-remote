@@ -247,7 +247,14 @@ mod tests {
         )];
         let excluded: BTreeSet<String> = ["target".to_string()].into_iter().collect();
         assert!(
-            !has_sync_relevant_dirty_entries(repo, &entries, &excluded, &[], 100 * 1024 * 1024, &[]),
+            !has_sync_relevant_dirty_entries(
+                repo,
+                &entries,
+                &excluded,
+                &[],
+                100 * 1024 * 1024,
+                &[]
+            ),
             "untracked file in excluded dir should be ignored (not large, not restorable)"
         );
     }
@@ -399,14 +406,7 @@ mod tests {
         let excluded: BTreeSet<String> = BTreeSet::new();
         let patterns = vec!["**/test-results/**".to_string()];
         assert!(
-            !should_stage_entry(
-                repo,
-                &entry,
-                &excluded,
-                &[],
-                100 * 1024 * 1024,
-                &patterns,
-            ),
+            !should_stage_entry(repo, &entry, &excluded, &[], 100 * 1024 * 1024, &patterns,),
             "test-results PNG should be excluded by auto_commit_exclude_patterns"
         );
     }
@@ -792,11 +792,7 @@ mod tests {
         // reaches `<tempdir>/parent/` where `.git/modules/<name>`
         // lives.
         std::fs::remove_dir_all(&sub_dot_git).unwrap();
-        std::fs::write(
-            &sub_dot_git,
-            b"gitdir: ../../.git/modules/web-games-foo\n",
-        )
-        .unwrap();
+        std::fs::write(&sub_dot_git, b"gitdir: ../../.git/modules/web-games-foo\n").unwrap();
 
         // Register the submodule as a gitlink in the parent.
         // sub_sha was captured earlier (before .git was replaced with
@@ -819,7 +815,10 @@ mod tests {
         let gitmodules = "[submodule \"web-games-foo\"]\n\tpath = nested/foo\n\turl = git@gitlab.com:DraconDev/web-games-foo.git\n";
         std::fs::write(parent.join(".gitmodules"), gitmodules).unwrap();
         git_c(&parent, &["add", ".gitmodules"]);
-        git_c(&parent, &["commit", "-q", "-m", "add submodule .gitmodules"]);
+        git_c(
+            &parent,
+            &["commit", "-q", "-m", "add submodule .gitmodules"],
+        );
 
         (td, parent, standalone_dir, sub_sha)
     }
@@ -840,8 +839,7 @@ mod tests {
         // is_gitlink_unchanged returns false (shared main !=
         // parent gitlink), allowing the parent's gitlink to be
         // updated.
-        let (_td, parent, _standalone, _initial_sub_sha) =
-            build_parent_with_standalone_submodule();
+        let (_td, parent, _standalone, _initial_sub_sha) = build_parent_with_standalone_submodule();
 
         // Advance the SHARED gitdir's refs/heads/main to a NEW commit.
         let shared_gitdir = parent.join(".git/modules/web-games-foo");
@@ -904,8 +902,7 @@ mod tests {
         // gitlink, `stale_gitlink_paths` MUST return empty (the
         // parent's gitlink already matches the standalone's
         // canonical head ref).
-        let (_td, parent, _standalone, _initial_sub_sha) =
-            build_parent_with_standalone_submodule();
+        let (_td, parent, _standalone, _initial_sub_sha) = build_parent_with_standalone_submodule();
 
         let shared_gitdir = parent.join(".git/modules/web-games-foo");
         let main_ref = shared_gitdir.join("refs/heads/main");
@@ -1340,7 +1337,9 @@ pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
         }
         let stdout = String::from_utf8_lossy(&out.stdout);
         // Format: "160000 <sha>\t<path>".
-        let Some(first_line) = stdout.lines().next() else { continue };
+        let Some(first_line) = stdout.lines().next() else {
+            continue;
+        };
         let mut parts = first_line.split_whitespace();
         let mode = parts.next().unwrap_or("");
         if mode != "160000" {
@@ -1380,10 +1379,7 @@ pub(crate) fn stale_gitlink_paths(repo: &Path) -> Vec<std::path::PathBuf> {
 /// now on `main` directly), the helper simplifies to just
 /// reading `refs/heads/main`. The "prefer local branch over
 /// upstream" complication is gone: the standalone is `main`.
-pub(crate) fn shared_submodule_canonical_head_sha(
-    repo: &Path,
-    path: &Path,
-) -> Option<String> {
+pub(crate) fn shared_submodule_canonical_head_sha(repo: &Path, path: &Path) -> Option<String> {
     let shared_gitdir = shared_submodule_gitdir(repo, path)?;
     let main_ref = shared_gitdir.join("refs/heads/main");
     let content = std::fs::read_to_string(&main_ref).ok()?;
@@ -1842,12 +1838,28 @@ mod m28_tests {
         let repo = Path::new("/repo");
         // `reports/kdp-live-*.md` — silently DEAD in the pre-fix
         // matcher (fell through both branches).
-        assert!(m(repo, "reports/kdp-live-2026.md", &["reports/kdp-live-*.md"]));
+        assert!(m(
+            repo,
+            "reports/kdp-live-2026.md",
+            &["reports/kdp-live-*.md"]
+        ));
         assert!(!m(repo, "reports/other.md", &["reports/kdp-live-*.md"]));
-        assert!(!m(repo, "other/kdp-live-2026.md", &["reports/kdp-live-*.md"]));
+        assert!(!m(
+            repo,
+            "other/kdp-live-2026.md",
+            &["reports/kdp-live-*.md"]
+        ));
         // `web/test-results/*.png` (the auto_commit_exclude example).
-        assert!(m(repo, "web/test-results/shot.png", &["web/test-results/*.png"]));
-        assert!(!m(repo, "web/test-results/deep/shot.png", &["web/test-results/*.png"]));
+        assert!(m(
+            repo,
+            "web/test-results/shot.png",
+            &["web/test-results/*.png"]
+        ));
+        assert!(!m(
+            repo,
+            "web/test-results/deep/shot.png",
+            &["web/test-results/*.png"]
+        ));
     }
 
     #[test]
@@ -1865,10 +1877,22 @@ mod m28_tests {
         assert!(m(repo, "x/~/y", &["**/~/**"]));
         assert!(!m(repo, "notes/~draft.md", &["**/~/**"]));
         // Multi-segment middle: `**/research/scratch/**`.
-        assert!(m(repo, "docs/research/scratch/x.md", &["**/research/scratch/**"]));
+        assert!(m(
+            repo,
+            "docs/research/scratch/x.md",
+            &["**/research/scratch/**"]
+        ));
         assert!(m(repo, "research/scratch/x", &["**/research/scratch/**"]));
-        assert!(!m(repo, "docs/unresearched/scratch/x.md", &["**/research/scratch/**"]));
-        assert!(!m(repo, "docs/research/other/x.md", &["**/research/scratch/**"]));
+        assert!(!m(
+            repo,
+            "docs/unresearched/scratch/x.md",
+            &["**/research/scratch/**"]
+        ));
+        assert!(!m(
+            repo,
+            "docs/research/other/x.md",
+            &["**/research/scratch/**"]
+        ));
     }
 
     #[test]

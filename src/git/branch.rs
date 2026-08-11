@@ -59,8 +59,7 @@ fn resolve_head_path(repo: &Path) -> Option<std::path::PathBuf> {
         };
         let rest = content.trim().strip_prefix("gitdir:")?;
         let gitdir_rel = rest.trim();
-        let base_canon =
-            std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());
+        let base_canon = std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());
         let resolved = base_canon.join(gitdir_rel);
         let Ok(canon_resolved) = std::fs::canonicalize(&resolved) else {
             return None;

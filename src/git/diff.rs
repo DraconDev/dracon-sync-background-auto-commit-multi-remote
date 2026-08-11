@@ -314,7 +314,6 @@ pub(crate) async fn tracked_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
         .collect())
 }
 
-
 #[cfg(test)]
 mod f33_tests {
     use super::{parse_name_status_line, parse_name_status_z, FileStatus};
@@ -335,10 +334,7 @@ mod f33_tests {
         out.push(0);
         let entries = parse_name_status_z(&out);
         assert_eq!(entries.len(), 2);
-        assert_eq!(
-            entries[0],
-            (PathBuf::from("café.rs"), FileStatus::Modified)
-        );
+        assert_eq!(entries[0], (PathBuf::from("café.rs"), FileStatus::Modified));
         assert_eq!(
             entries[1],
             (PathBuf::from("src/new file.rs"), FileStatus::Added)

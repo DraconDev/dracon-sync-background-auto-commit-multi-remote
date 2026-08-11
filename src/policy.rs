@@ -525,7 +525,8 @@ pub(crate) struct SyncPolicy {
     /// Default: 30s.
     /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
     #[serde(default = "default_push_debounce_secs")]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) push_debounce_secs: u64,
 
     /// When the untracked-file count exceeds this threshold, the
@@ -655,21 +656,24 @@ pub(crate) struct SyncPolicy {
     /// have stale dirty state from previous sessions. Default
     /// 60s. Set to 0 to disable (back to 5s fingerprint wait).
     #[serde(default = "default_settling_max_delay_secs")]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) settling_max_delay_secs: u64,
     /// Action to take when a dirty repo exceeds
     /// `settling_max_delay_secs`. `Commit` (default) force-
     /// commits the current state; `Warn` logs a warning but
     /// does not commit; `Ignore` does nothing.
     #[serde(default = "default_dirty_max_age_action")]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) dirty_max_age_action: DirtyMaxAgeAction,
     /// Minimum time between consecutive auto-commits for the
     /// same repo. Prevents thrashing when the operator is
     /// actively editing. Default 5s. Setting this too high will
     /// make the daemon appear to "stall" on dirty repos.
     #[serde(default = "default_min_commit_interval_secs")]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) min_commit_interval_secs: u64,
     /// When a watched repo has committable changes whose OLDEST file
     /// mtime is older than this many seconds, the daemon emits a
@@ -919,12 +923,14 @@ pub(crate) struct RepoPolicyOverride {
     /// inherits the global value. See
     /// [`SyncPolicy::settling_max_delay_secs`].
     #[serde(default)]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) settling_max_delay_secs: Option<u64>,
     /// Per-repo override for `dirty_max_age_action`. None
     /// inherits the global value.
     #[serde(default)]
-    #[allow(dead_code)] // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
+    #[allow(dead_code)]
+    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
     pub(crate) dirty_max_age_action: Option<DirtyMaxAgeAction>,
     /// Optional per-repo override for `stale_dirty_alert_secs`.
     /// None inherits the global value. See
@@ -980,7 +986,6 @@ pub(crate) struct RepoPolicyOverride {
     /// the 85 GiB context.
     #[serde(default)]
     pub(crate) auto_create_on_codeberg: Option<bool>,
-
 }
 
 pub(crate) fn default_true() -> bool {
@@ -1276,7 +1281,6 @@ pub(crate) enum DirtyMaxAgeAction {
     /// Do nothing. Same as `Warn` but with no log line.
     Ignore,
 }
-
 
 fn default_sync_visibility_interval_hours() -> u64 {
     24
@@ -1574,10 +1578,7 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
     for (idx, sf) in policy.standard_files.iter().enumerate() {
         let target_str = sf.target.as_str();
         if target_str.is_empty() {
-            result.error(format!(
-                "standard_files[{}].target is empty",
-                idx
-            ));
+            result.error(format!("standard_files[{}].target is empty", idx));
             continue;
         }
         let target_path = std::path::Path::new(target_str);
@@ -1706,8 +1707,8 @@ fn check_toml_field_ordering(content: &str, result: &mut ValidateResult) {
     let bytes = content.as_bytes();
 
     let mut in_table = false; // inside a [[remotes]] or [[...]] table entry
-    // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): which [[table]]
-    // we're inside (for the absorbed-key check below).
+                              // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): which [[table]]
+                              // we're inside (for the absorbed-key check below).
     let mut current_table: Option<String> = None;
 
     // ADDED 2026-07-21 (v0.112.33, audit M20/F3.2): known field
@@ -2024,8 +2025,7 @@ mod tests {
     fn test_build_artifact_cleanup_default_true_and_opt_out() {
         let p: SyncPolicy = toml::from_str("").expect("parse empty");
         assert!(p.build_artifact_cleanup, "missing field must default true");
-        let p: SyncPolicy =
-            toml::from_str("build_artifact_cleanup = false").expect("parse");
+        let p: SyncPolicy = toml::from_str("build_artifact_cleanup = false").expect("parse");
         assert!(!p.build_artifact_cleanup, "per-repo opt-out must parse");
         // Derived Default matches its auto_* siblings (false).
         assert!(!SyncPolicy::default().build_artifact_cleanup);
@@ -2164,7 +2164,9 @@ mod tests {
         // real field on its side.
         for name in OVERRIDE_COVERAGE_GLOBAL_ONLY {
             if !global.contains(*name) {
-                failures.push(format!("GLOBAL_ONLY entry `{name}` is not a SyncPolicy field — stale list entry"));
+                failures.push(format!(
+                    "GLOBAL_ONLY entry `{name}` is not a SyncPolicy field — stale list entry"
+                ));
             }
         }
         for name in OVERRIDE_COVERAGE_OVERRIDE_ONLY {
@@ -2172,7 +2174,11 @@ mod tests {
                 failures.push(format!("OVERRIDE_ONLY entry `{name}` is not a RepoPolicyOverride field — stale list entry"));
             }
         }
-        assert!(failures.is_empty(), "override coverage tripwire:\n  - {}", failures.join("\n  - "));
+        assert!(
+            failures.is_empty(),
+            "override coverage tripwire:\n  - {}",
+            failures.join("\n  - ")
+        );
     }
 
     #[test]
@@ -2298,17 +2304,17 @@ mod tests {
         // `test_default_untracked_exclude_patterns_preserves_intentional_content`
         // below.
         for forbidden in [
-            "**/audit/**",     // intentional audit evidence
-            "**/evidence/**",  // intentional evidence
+            "**/audit/**",       // intentional audit evidence
+            "**/evidence/**",    // intentional evidence
             "**/screenshots/**", // intentional screenshots (1mg marketing lives here)
-            "*.png",           // media (intentional game art is committed via `git add`)
+            "*.png",             // media (intentional game art is committed via `git add`)
             "*.jpg",
             "*.jpeg",
             "*.gif",
             "*.webp",
             "*.mp4",
             "*.mov",
-            "**/note.md",      // notes
+            "**/note.md", // notes
             "**/notes.md",
             "**/NOTE.md",
             "**/scratch.md",
@@ -2556,8 +2562,7 @@ auto_skip_unowned = false
 settling_max_delay_secs = 30
 dirty_max_age_action = "warn"
 "#;
-        let parsed: RepoPolicyOverride =
-            toml::from_str(toml).expect("parse override");
+        let parsed: RepoPolicyOverride = toml::from_str(toml).expect("parse override");
         assert_eq!(parsed.owned, Some(true));
         assert_eq!(parsed.auto_skip_unowned, Some(false));
         assert_eq!(parsed.settling_max_delay_secs, Some(30));
@@ -2572,8 +2577,7 @@ dirty_max_age_action = "warn"
         let toml = r#"
 auto_bump_versions = false
 "#;
-        let parsed: RepoPolicyOverride =
-            toml::from_str(toml).expect("parse old override");
+        let parsed: RepoPolicyOverride = toml::from_str(toml).expect("parse old override");
         assert_eq!(parsed.owned, None);
         assert_eq!(parsed.auto_skip_unowned, None);
         assert_eq!(parsed.settling_max_delay_secs, None);
@@ -2831,9 +2835,7 @@ auto_bump_versions = false
             // test and 2 innocent tests died at line 2622). The
             // guard's purpose is serialization, not integrity — a
             // poisoned mutex still serializes.
-            let lock = POLICY_ENV_GUARD
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let lock = POLICY_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
             let original = std::env::var(var).ok();
             if value.is_empty() {
                 std::env::remove_var(var);
@@ -3194,7 +3196,10 @@ standard_files = [{{ source = "templates/LICENSE", target = {bad_target}, overwr
                 result.errors
             );
             assert!(
-                result.errors.iter().any(|e| e.contains("not a relative path")),
+                result
+                    .errors
+                    .iter()
+                    .any(|e| e.contains("not a relative path")),
                 "target {} ({}) error message missing, got {:?}",
                 bad_target,
                 why,
@@ -3561,17 +3566,19 @@ auto_github_private = false
         // CARGO_MANIFEST_DIR points at <workspace>/dracon-sync
         // for the dracon-sync crate, so the file is at
         // $CARGO_MANIFEST_DIR/dracon-sync.example.toml.
-        let example_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("dracon-sync.example.toml");
-        let content = std::fs::read_to_string(&example_path)
-            .unwrap_or_else(|e| panic!(
+        let example_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dracon-sync.example.toml");
+        let content = std::fs::read_to_string(&example_path).unwrap_or_else(|e| {
+            panic!(
                 "could not read example config at {}: {}",
-                example_path.display(), e
-            ));
+                example_path.display(),
+                e
+            )
+        });
         // Parse the example config into a `SyncPolicy` so the
         // comparison exercises the same loader a real daemon uses.
-        let example: SyncPolicy = toml::from_str(&content)
-            .expect("dracon-sync.example.toml must parse as SyncPolicy");
+        let example: SyncPolicy =
+            toml::from_str(&content).expect("dracon-sync.example.toml must parse as SyncPolicy");
 
         // 1. `exclude_file_patterns` in the example must be
         //    empty, matching the code default of
@@ -3613,7 +3620,8 @@ auto_github_private = false
         //    code default (100 MiB).
         let example_max = example.max_stage_file_bytes;
         assert_eq!(
-            example_max, default_max_stage_file_bytes(),
+            example_max,
+            default_max_stage_file_bytes(),
             "example.toml max_stage_file_bytes must match code \
              default (drift = silent regression)"
         );
@@ -3626,10 +3634,18 @@ mod override_coverage_dump {
     fn dump_field_sets() {
         let g = serde_json::to_value(crate::policy::SyncPolicy::default()).unwrap();
         let o = serde_json::to_value(crate::policy::RepoPolicyOverride::default()).unwrap();
-        let gk: std::collections::BTreeSet<String> = g.as_object().unwrap().keys().cloned().collect();
-        let ok: std::collections::BTreeSet<String> = o.as_object().unwrap().keys().cloned().collect();
-        println!("GLOBAL_ONLY_CANDIDATES: {:?}", gk.difference(&ok).collect::<Vec<_>>());
-        println!("OVERRIDE_ONLY_CANDIDATES: {:?}", ok.difference(&gk).collect::<Vec<_>>());
+        let gk: std::collections::BTreeSet<String> =
+            g.as_object().unwrap().keys().cloned().collect();
+        let ok: std::collections::BTreeSet<String> =
+            o.as_object().unwrap().keys().cloned().collect();
+        println!(
+            "GLOBAL_ONLY_CANDIDATES: {:?}",
+            gk.difference(&ok).collect::<Vec<_>>()
+        );
+        println!(
+            "OVERRIDE_ONLY_CANDIDATES: {:?}",
+            ok.difference(&gk).collect::<Vec<_>>()
+        );
         println!("COUNTS: global={} override={}", gk.len(), ok.len());
     }
 }

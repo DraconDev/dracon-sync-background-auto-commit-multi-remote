@@ -162,10 +162,7 @@ pub fn classify(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipRepo
 /// identity and remote checks remain useful diagnostics, but they must not
 /// block synchronization of a path the operator explicitly configured. The
 /// only hard opt-out is `RepoPolicyOverride.owned = false`.
-pub fn classify_path_owned(
-    inputs: &OwnershipInputs,
-    trusted: &TrustedSet,
-) -> OwnershipReport {
+pub fn classify_path_owned(inputs: &OwnershipInputs, trusted: &TrustedSet) -> OwnershipReport {
     classify_with_path_ownership(inputs, trusted, true)
 }
 
@@ -232,8 +229,7 @@ fn classify_with_path_ownership(
     // Track which signals are available (not None) for the
     // fallback Unknown case.
     let have_user_email = inputs.user_email.is_some();
-    let have_head = inputs.head_author_email.is_some()
-        || inputs.head_author_name.is_some();
+    let have_head = inputs.head_author_email.is_some() || inputs.head_author_name.is_some();
     let have_origin = inputs.origin_url.is_some();
 
     // 2. user.email (strongest negative signal — local config error)
@@ -284,10 +280,13 @@ fn classify_with_path_ownership(
             // other is not, surface it explicitly so the operator
             // can decide. The flag still fires (we treat asymmetry
             // as suspicious).
-            let flag_asymmetry = (email_untrusted && head_name_trusted)
-                || (name_untrusted && head_email_trusted);
+            let flag_asymmetry =
+                (email_untrusted && head_name_trusted) || (name_untrusted && head_email_trusted);
             let detail = if flag_asymmetry {
-                format!("{} (asymmetric trust — one signal untrusted, one trusted)", detail)
+                format!(
+                    "{} (asymmetric trust — one signal untrusted, one trusted)",
+                    detail
+                )
             } else {
                 detail
             };
@@ -332,8 +331,7 @@ fn classify_with_path_ownership(
     // commits and no origin. Unknown defaults to skip in the
     // daemon.
     OwnershipReport::Unknown {
-        detail: "no signals available (no user.email, no HEAD, no origin)"
-            .to_string(),
+        detail: "no signals available (no user.email, no HEAD, no origin)".to_string(),
     }
 }
 
@@ -479,8 +477,8 @@ fn redact_origin_credentials(url: &str) -> String {
     };
     let auth_userinfo = &authority[..at_in_authority];
     let host_part = &authority[at_in_authority + 1..]; // after the '@'
-    // auth_userinfo is either "user" or "user:password".
-    // Keep the user, drop the password if any.
+                                                       // auth_userinfo is either "user" or "user:password".
+                                                       // Keep the user, drop the password if any.
     let user_only = match auth_userinfo.find(':') {
         Some(colon) => &auth_userinfo[..colon],
         None => auth_userinfo,
@@ -548,7 +546,6 @@ fn is_url_scheme_char(b: u8) -> bool {
 fn is_url_delimiter(b: u8) -> bool {
     b.is_ascii_whitespace() || matches!(b, b'\'' | b'"' | b'`' | b'<' | b'>')
 }
-
 
 /// Read the signals from a git repo. Each `git` invocation is
 /// independent — failures on any one do not block the others.
@@ -788,8 +785,8 @@ mod tests {
         // flagged Unowned with the "asymmetric trust" detail.
         let inputs = OwnershipInputs {
             user_email: Some("dracsharp@gmail.com".to_string()),
-            head_author_email: Some("evil@bad.com".to_string()),   // untrusted email
-            head_author_name: Some("DraconDev".to_string()),       // trusted name
+            head_author_email: Some("evil@bad.com".to_string()), // untrusted email
+            head_author_name: Some("DraconDev".to_string()),     // trusted name
             origin_url: Some("git@github.com:DraconDev/x.git".to_string()),
             override_owned: None,
         };
@@ -819,7 +816,10 @@ mod tests {
                 assert_eq!(reason, "untrusted_author");
                 assert!(detail.contains("asymmetric trust"));
             }
-            other => panic!("expected Unowned on F44 name-side asymmetry, got {:?}", other),
+            other => panic!(
+                "expected Unowned on F44 name-side asymmetry, got {:?}",
+                other
+            ),
         }
     }
 
@@ -995,7 +995,10 @@ mod tests {
     fn test_is_trusted_origin_empty_hosts() {
         // Empty trusted list → nothing is trusted. Forces Unowned.
         let hosts: Vec<String> = vec![];
-        assert!(!is_trusted_origin("https://github.com/DraconDev/r.git", &hosts));
+        assert!(!is_trusted_origin(
+            "https://github.com/DraconDev/r.git",
+            &hosts
+        ));
     }
 
     #[test]
@@ -1064,11 +1067,14 @@ mod tests {
         );
         // URL without userinfo passes through unchanged (this still
         // contains `://`, so it exercises the scan path).
-        let no_creds = "fatal: could not read Username for 'https://github.com': terminal prompts disabled";
+        let no_creds =
+            "fatal: could not read Username for 'https://github.com': terminal prompts disabled";
         assert_eq!(redact_url_credentials(no_creds), no_creds);
         // `user@host` without a password is preserved verbatim.
         assert_eq!(
-            redact_url_credentials("fatal: 'https://user@github.com/x.git' is not a git repository"),
+            redact_url_credentials(
+                "fatal: 'https://user@github.com/x.git' is not a git repository"
+            ),
             "fatal: 'https://user@github.com/x.git' is not a git repository"
         );
         // Non-URL error text without `://` is unchanged.

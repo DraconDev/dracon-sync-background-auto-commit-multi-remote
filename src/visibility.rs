@@ -91,8 +91,8 @@ fn parse_visibility_cache(content: &str) -> Option<(bool, u64)> {
     let ts_line = lines.next()?;
     let vis_str = vis_line.strip_prefix("visibility=")?.trim();
     let visibility = match vis_str {
-        "public" => false,  // false = public
-        "private" => true,  // true = private
+        "public" => false, // false = public
+        "private" => true, // true = private
         _ => return None,
     };
     let ts = ts_line.trim().parse::<u64>().ok()?;
@@ -273,10 +273,7 @@ pub(crate) fn parse_github_owner_repo(remote_url: &str) -> Option<(String, Strin
             let after_scheme = &remote_url[scheme.len()..];
             // Strip optional userinfo (everything up to the LAST `@`
             // before the host) — `user:token@github.com/...`.
-            let host_path = after_scheme
-                .rsplit('@')
-                .next()
-                .unwrap_or(after_scheme);
+            let host_path = after_scheme.rsplit('@').next().unwrap_or(after_scheme);
             let (host, path) = host_path.split_once('/')?;
             let host_no_port = host.split(':').next().unwrap_or(host);
             if !host_no_port.eq_ignore_ascii_case("github.com") {
@@ -388,9 +385,7 @@ fn get_gitlab_visibility_opt(owner: &str, repo: &str, token: &str) -> Option<boo
         return None;
     }
     let body = String::from_utf8_lossy(&output.stdout);
-    if body.contains("\"visibility\":\"public\"")
-        || body.contains("\"visibility\": \"public\"")
-    {
+    if body.contains("\"visibility\":\"public\"") || body.contains("\"visibility\": \"public\"") {
         Some(false)
     } else if body.contains("\"visibility\":\"private\"")
         || body.contains("\"visibility\": \"private\"")
@@ -428,11 +423,7 @@ pub(crate) fn owned_forge_visibility_opt(
                     .as_deref()
                     .unwrap_or("GITLAB_TOKEN");
                 load_secret(token, &sync_secrets_dir()).and_then(|token| {
-                    get_gitlab_visibility_opt(
-                        &remote.resolve_account(),
-                        &resolved_name,
-                        &token,
-                    )
+                    get_gitlab_visibility_opt(&remote.resolve_account(), &resolved_name, &token)
                 })
             }
             AuthType::Codeberg | AuthType::Generic => continue,
@@ -808,7 +799,8 @@ pub(crate) fn sync_mirror_visibility(
     if crate::policy::debug_enabled() {
         eprintln!(
             "🐛 owned forge visibility for {} is {} (any-public aggregation)",
-            repo_path.display(), visibility_str
+            repo_path.display(),
+            visibility_str
         );
     }
 
@@ -1231,8 +1223,14 @@ mod tests {
         // hosts must return None (the pre-fix parser accepted
         // gitlab/codeberg origins as GitHub pairs, feeding
         // wrong-forge visibility lookups).
-        assert_eq!(parse_github_owner_repo("git@gitlab.com:someone/repo.git"), None);
-        assert_eq!(parse_github_owner_repo("git@codeberg.org:someone/repo.git"), None);
+        assert_eq!(
+            parse_github_owner_repo("git@gitlab.com:someone/repo.git"),
+            None
+        );
+        assert_eq!(
+            parse_github_owner_repo("git@codeberg.org:someone/repo.git"),
+            None
+        );
         assert_eq!(
             parse_github_owner_repo("https://gitlab.com/someone/repo.git"),
             None
@@ -1438,8 +1436,7 @@ mod tests {
         let encoded = format!("{}%2F{}", owner, repo);
         let url = GITLAB_API_PROJECTS.replace("{}", &encoded);
         assert_eq!(
-            url,
-            "https://gitlab.com/api/v4/projects/DraconDev%2Fdracon-sync",
+            url, "https://gitlab.com/api/v4/projects/DraconDev%2Fdracon-sync",
             "GitLab API URL must be exactly `.../projects/{{owner}}%2F{{repo}}`, no duplication"
         );
         assert!(
@@ -1463,8 +1460,7 @@ mod tests {
         let repo = "dracon-sync";
         let url = CODEBERG_API_REPOS.replace("{}", &format!("{}/{}", owner, repo));
         assert_eq!(
-            url,
-            "https://codeberg.org/api/v1/repos/dracondev/dracon-sync",
+            url, "https://codeberg.org/api/v1/repos/dracondev/dracon-sync",
             "Codeberg API URL must be exactly `.../repos/{{owner}}/{{repo}}`, no duplication"
         );
         assert!(
@@ -2022,10 +2018,7 @@ mod tests {
         // as private) are safe; false positives (private treated as public)
         // could leak private content to codeberg.
         let result = get_github_visibility("nonexistent-owner-12345", "nonexistent-repo-67890");
-        assert!(
-            result,
-            "gh failure must default to private (safe default)"
-        );
+        assert!(result, "gh failure must default to private (safe default)");
         let repo_path = Path::new("/tmp/test_refresh_fallback_unknown");
         update_visibility_cache(repo_path, result);
         assert_eq!(cached_repo_visibility(repo_path, 24), Some(true));
@@ -2054,7 +2047,10 @@ mod tests {
         // Visibility line must be identical (timestamps can differ)
         let line1 = content_1.lines().next().unwrap();
         let line2 = content_2.lines().next().unwrap();
-        assert_eq!(line1, line2, "visibility line must be stable across refresh");
+        assert_eq!(
+            line1, line2,
+            "visibility line must be stable across refresh"
+        );
         assert_eq!(line1, "visibility=private");
 
         let _ = std::fs::remove_file(&path);

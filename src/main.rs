@@ -48,17 +48,26 @@ fn run_maintenance(home: &Path, policy_path: &Path, command: &[String]) -> i32 {
     if !was_frozen {
         if let Err(e) = std::fs::write(
             &marker,
-            format!("paused by dracon-sync maintenance at {}\n", timestamp_secs()),
+            format!(
+                "paused by dracon-sync maintenance at {}\n",
+                timestamp_secs()
+            ),
         ) {
             eprintln!("⚠️  maintenance: could not create freeze marker: {e}");
         } else {
-            println!("⏸️  Sync paused for maintenance (freeze marker: {})", marker.display());
+            println!(
+                "⏸️  Sync paused for maintenance (freeze marker: {})",
+                marker.display()
+            );
         }
     } else {
         println!("⏸️  Sync already paused — running command without touching freeze state");
     }
 
-    let exit_code = match std::process::Command::new(&command[0]).args(&command[1..]).status() {
+    let exit_code = match std::process::Command::new(&command[0])
+        .args(&command[1..])
+        .status()
+    {
         Ok(status) => status.code().unwrap_or(128),
         Err(e) => {
             eprintln!("⚠️  maintenance: command failed to spawn: {e}");
@@ -554,9 +563,7 @@ fn handle_visibility_flip(
     }
 
     if any_fail {
-        println!(
-            "\n⚠️  some remotes failed; the flip is partial. Re-run to retry."
-        );
+        println!("\n⚠️  some remotes failed; the flip is partial. Re-run to retry.");
     } else {
         println!("\n✅ all remotes flipped to {}", visibility_str);
     }
@@ -581,15 +588,12 @@ fn handle_visibility_flip(
             if policy::debug_enabled() {
                 eprintln!("🐛 updated visibility cache for {}", repo_path.display());
             }
-        } else if let Some((owner, gh_repo)) =
-            visibility::parse_github_owner_repo(&origin_url)
-        {
+        } else if let Some((owner, gh_repo)) = visibility::parse_github_owner_repo(&origin_url) {
             // Github flip failed — cache the OBSERVED state (not the
             // target), so the gate tracks reality. When the observed
             // state is UNKNOWN (gh hiccup), skip the cache write
             // entirely (v0.112.33, audit M25/F3.7).
-            if let Some(observed_private) =
-                visibility::get_github_visibility_opt(&owner, &gh_repo)
+            if let Some(observed_private) = visibility::get_github_visibility_opt(&owner, &gh_repo)
             {
                 visibility::update_visibility_cache(&repo_path, observed_private);
                 if policy::debug_enabled() {
@@ -1497,7 +1501,13 @@ async fn main() -> Result<()> {
             include_codeberg,
             no_cache_update,
         } => {
-            handle_visibility_flip(&policy_path, &repo, include_codeberg, no_cache_update, false)?;
+            handle_visibility_flip(
+                &policy_path,
+                &repo,
+                include_codeberg,
+                no_cache_update,
+                false,
+            )?;
         }
         Command::MakePrivate {
             repo,
@@ -2027,12 +2037,14 @@ fn cmd_ownership(
                 Cell::new(&r.repo),
                 label_cell,
                 Cell::new(r.inputs.user_email.as_deref().unwrap_or("—")),
-                Cell::new(match (&r.inputs.head_author_name, &r.inputs.head_author_email) {
-                    (Some(n), Some(e)) => format!("{} <{}>", n, e),
-                    (Some(n), None) => n.clone(),
-                    (None, Some(e)) => format!("<{}>", e),
-                    (None, None) => "—".to_string(),
-                }),
+                Cell::new(
+                    match (&r.inputs.head_author_name, &r.inputs.head_author_email) {
+                        (Some(n), Some(e)) => format!("{} <{}>", n, e),
+                        (Some(n), None) => n.clone(),
+                        (None, Some(e)) => format!("<{}>", e),
+                        (None, None) => "—".to_string(),
+                    },
+                ),
                 Cell::new(r.inputs.origin_url.as_deref().unwrap_or("—")),
                 Cell::new(
                     r.override_owned

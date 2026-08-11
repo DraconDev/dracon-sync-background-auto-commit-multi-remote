@@ -431,7 +431,11 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
             }
         });
     if let Some(upstream) = upstream.filter(|s| !s.is_empty()) {
-        let state = if remote_tracking_ref_exists(repo, &upstream) { PublishState::Ok } else { PublishState::Gone };
+        let state = if remote_tracking_ref_exists(repo, &upstream) {
+            PublishState::Ok
+        } else {
+            PublishState::Gone
+        };
         return (upstream, state);
     }
 
@@ -469,7 +473,11 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
             let branch = merge.strip_prefix("refs/heads/").unwrap_or("");
             if crate::git::is_safe_branch_name(branch) {
                 let label = format!("{remote}/{branch}");
-                let state = if remote_tracking_ref_exists(repo, &label) { PublishState::Ok } else { PublishState::Gone };
+                let state = if remote_tracking_ref_exists(repo, &label) {
+                    PublishState::Ok
+                } else {
+                    PublishState::Gone
+                };
                 (label, state)
             } else {
                 ("-".to_string(), PublishState::Missing)
@@ -531,8 +539,7 @@ fn format_push_to_remotes_cell(
         // The cell can be "github,gitlab,codeberg" (22 chars) plus
         // padding. Without truncation, LowerBoundary makes the column
         // grow to fit, distorting the table.
-        Cell::new(truncate_unicode_width(&main, 22))
-            .fg(comfy_table::Color::Green)
+        Cell::new(truncate_unicode_width(&main, 22)).fg(comfy_table::Color::Green)
     } else {
         // Active remotes in green, excluded annotation in dim yellow
         // so the operator can see at a glance that the repo has been
@@ -556,8 +563,7 @@ fn format_push_to_remotes_cell(
         }
         // F30v2: truncate to fit the Absolute(32) PUSH-TO column
         // minus 2 padding = 30 cols content.
-        Cell::new(truncate_unicode_width(&cell_text, 30))
-            .fg(comfy_table::Color::Yellow)
+        Cell::new(truncate_unicode_width(&cell_text, 30)).fg(comfy_table::Color::Yellow)
     }
 }
 
@@ -609,8 +615,7 @@ pub(crate) fn report_effective_remotes(
     if too_big_for_github && !excluded.iter().any(|e| e == "github") {
         excluded.push("github".to_string());
     }
-    let filtered =
-        crate::git::multi_remote::filter_remotes_by_exclude(&policy.remotes, &excluded);
+    let filtered = crate::git::multi_remote::filter_remotes_by_exclude(&policy.remotes, &excluded);
     let push_to = filtered.iter().map(|r| r.name.clone()).collect();
     (push_to, excluded)
 }
@@ -857,20 +862,14 @@ fn github_token_paths(
     modern_dir: &std::path::Path,
     legacy_dir: &std::path::Path,
 ) -> [std::path::PathBuf; 2] {
-    [
-        modern_dir.join("github.env"),
-        legacy_dir.join("github.env"),
-    ]
+    [modern_dir.join("github.env"), legacy_dir.join("github.env")]
 }
 
 fn gitlab_token_paths(
     modern_dir: &std::path::Path,
     legacy_dir: &std::path::Path,
 ) -> [std::path::PathBuf; 2] {
-    [
-        modern_dir.join("gitlab.env"),
-        legacy_dir.join("gitlab.env"),
-    ]
+    [modern_dir.join("gitlab.env"), legacy_dir.join("gitlab.env")]
 }
 
 /// Check if EITHER of the two candidate token paths exists.
@@ -887,9 +886,7 @@ fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
     if remote.is_empty() || branch.is_empty() {
         return false;
     }
-    if !crate::git::is_safe_branch_name(remote)
-        || !crate::git::is_safe_branch_name(branch)
-    {
+    if !crate::git::is_safe_branch_name(remote) || !crate::git::is_safe_branch_name(branch) {
         return false;
     }
     let refspec = format!("refs/remotes/{remote}/{branch}");
@@ -1048,8 +1045,7 @@ async fn classify_dirty_entries(
 ) -> DirtyClassification {
     let run = |extra: &str| {
         let mut cmd = crate::git::git_cmd();
-        cmd.args(["status", "--porcelain", "-z"])
-            .current_dir(repo);
+        cmd.args(["status", "--porcelain", "-z"]).current_dir(repo);
         if !extra.is_empty() {
             cmd.arg(extra);
         }
@@ -1076,8 +1072,7 @@ async fn classify_dirty_entries(
     };
 
     let mut out = DirtyClassification::default();
-    let base_paths: std::collections::HashSet<&str> =
-        base.iter().map(|r| r.2.as_str()).collect();
+    let base_paths: std::collections::HashSet<&str> = base.iter().map(|r| r.2.as_str()).collect();
     for (_, _, path) in &plain {
         if !base_paths.contains(path.as_str()) && repo.join(path).join(".git").exists() {
             out.unchanged_gitlink += 1; // submodule worktree dirt, unchanged gitlink
@@ -1924,9 +1919,8 @@ pub(crate) fn repo_is_concern_with_push_failure(
     // unbacked-up on every remote — its content exists only on local
     // disk. Surface it as a concern so the operator sees the risk and
     // can commit + push it.
-    let has_content = status.untracked_files > 0
-        || status.modified_files > 0
-        || status.staged_files > 0;
+    let has_content =
+        status.untracked_files > 0 || status.modified_files > 0 || status.staged_files > 0;
     if has_content && status.last_commit_hash.is_none() {
         return true;
     }
@@ -1977,11 +1971,7 @@ pub(crate) fn verify_resolution_still_concern(
     has_upstream: bool,
     pack_too_large: bool,
 ) -> bool {
-    ahead > 0
-        || behind > 0
-        || !has_origin
-        || !has_upstream
-        || pack_too_large
+    ahead > 0 || behind > 0 || !has_origin || !has_upstream || pack_too_large
 }
 
 /// CHANGED 2026-07-28 (v0.113.7, follow-up): the auto-repair no-op
@@ -2137,7 +2127,10 @@ pub(crate) enum StateCause {
     /// the stable kebab-case classifier (e.g. `untrusted_origin`,
     /// `untrusted_author`); `detail` is the human-readable
     /// explanation (e.g. the actual bad origin URL).
-    Unowned { reason: String, detail: String },
+    Unowned {
+        reason: String,
+        detail: String,
+    },
 }
 
 impl StateCause {
@@ -2403,8 +2396,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         if concern {
             return "run repair-concerns --apply (set upstream)".to_string();
         }
-        return "no tracking upstream (daemon uses explicit refspecs; not a concern)"
-            .to_string();
+        return "no tracking upstream (daemon uses explicit refspecs; not a concern)".to_string();
     }
     if flags.iter().any(|f| f.starts_with("AHEAD:")) {
         if warn {
@@ -2843,15 +2835,20 @@ fn commit_counts(repo: &Path) -> [usize; 3] {
     // Single subprocess call per repo: get all commit timestamps from the last 24h,
     // then bucket in Rust. This is faster than 3 separate rev-list --count calls.
     let out = crate::git::git_cmd()
-        .args(["-C", &repo_str, "log", "--format=%ct", "--after=1 day ago", "HEAD"])
+        .args([
+            "-C",
+            &repo_str,
+            "log",
+            "--format=%ct",
+            "--after=1 day ago",
+            "HEAD",
+        ])
         .output();
     let timestamps: Vec<u64> = match out {
-        Ok(o) if o.status.success() => {
-            String::from_utf8_lossy(&o.stdout)
-                .lines()
-                .filter_map(|l| l.trim().parse::<u64>().ok())
-                .collect()
-        }
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .filter_map(|l| l.trim().parse::<u64>().ok())
+            .collect(),
         _ => return [0, 0, 0],
     };
     let now = std::time::SystemTime::now()
@@ -2932,7 +2929,10 @@ const LEGEND_LABEL_WIDTH: usize = 11;
 /// Kept separate from stdout emission so layout and Unicode-width tests
 /// can exercise the exact lines shown to operators.
 fn legend_display_lines(width: usize) -> Vec<String> {
-    let mut lines = vec![format!("── legend {}", "─".repeat(width.saturating_sub(10)))];
+    let mut lines = vec![format!(
+        "── legend {}",
+        "─".repeat(width.saturating_sub(10))
+    )];
     let text_width = width.saturating_sub(LEGEND_LABEL_WIDTH + 2);
     let continuation_indent = " ".repeat(LEGEND_LABEL_WIDTH + 2);
     for (label, text) in repos_legend_rows() {
@@ -3247,10 +3247,7 @@ fn load_repo_size_cache(path: &Path) -> std::collections::HashMap<String, Cached
     }
 }
 
-fn save_repo_size_cache(
-    path: &Path,
-    cache: &std::collections::HashMap<String, CachedRepoSize>,
-) {
+fn save_repo_size_cache(path: &Path, cache: &std::collections::HashMap<String, CachedRepoSize>) {
     if let Ok(s) = serde_json::to_string(cache) {
         // Best-effort: a failed cache write must never break the report.
         let _ = std::fs::write(path, s);
@@ -3331,9 +3328,7 @@ pub(crate) async fn run_repos_report(
     let cache_path = repo_size_cache_path(policy_path);
     let mut size_cache = load_repo_size_cache(&cache_path);
     let cache_lookup = std::sync::Arc::new(size_cache.clone());
-    let cache_record = std::sync::Arc::new(std::sync::Mutex::new(
-        std::collections::HashMap::new(),
-    ));
+    let cache_record = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
     let _rows: Vec<RepoReportRow> = Vec::new();
     // CHANGED 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
     // CONCERN #6): drop the initial `= 0usize`; the variable is
@@ -3341,7 +3336,6 @@ pub(crate) async fn run_repos_report(
     // (`init_status_failures.load(...)`), so the initial value is
     // never read. Removing it silences the `unused_assignments`
     // warning without changing behavior.
-    
 
     // Read the incident ledger once and build a per-repo map of "did the
 
@@ -4105,7 +4099,8 @@ pub(crate) async fn run_repos_report(
         size_cache.insert(k, v);
     }
     save_repo_size_cache(&cache_path, &size_cache);
-    let init_or_status_failures: usize = init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
+    let init_or_status_failures: usize =
+        init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
     let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
 
     match sort {
@@ -4268,7 +4263,8 @@ pub(crate) async fn run_repos_report(
         filter_note,
     );
     let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
-    let pad = pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(banner_plain.as_str()) + 1);
+    let pad =
+        pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(banner_plain.as_str()) + 1);
     println!("{banner_colored} {}", "─".repeat(pad));
     println!();
 
@@ -4334,16 +4330,44 @@ pub(crate) async fn run_repos_report(
             // described columns those tiers don't have. `--legend`
             // remains the on-demand form for every tier.
             print_repos_legend_footer();
-            print_repos_rich_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            print_repos_rich_table(
+                &rows,
+                &filter,
+                concern_count_all,
+                warn_count_all,
+                ok_count_all,
+                full_path,
+            );
         }
         LayoutTier::Vertical => {
-            print_repos_vertical(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            print_repos_vertical(
+                &rows,
+                &filter,
+                concern_count_all,
+                warn_count_all,
+                ok_count_all,
+                full_path,
+            );
         }
         LayoutTier::Compact => {
-            print_repos_compact_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            print_repos_compact_table(
+                &rows,
+                &filter,
+                concern_count_all,
+                warn_count_all,
+                ok_count_all,
+                full_path,
+            );
         }
         LayoutTier::Full => {
-            print_repos_full_table(&rows, &filter, concern_count_all, warn_count_all, ok_count_all, full_path);
+            print_repos_full_table(
+                &rows,
+                &filter,
+                concern_count_all,
+                warn_count_all,
+                ok_count_all,
+                full_path,
+            );
         }
     }
     // v0.113.12 (goal-list 2026-07-29): the legend prints UNDER the
@@ -4459,7 +4483,10 @@ fn print_repos_vertical(
         );
         // 2-space gutter aligned to status
         let gutter = "     ";
-        println!("{gutter}branch:    {}", colorize(&row.branch, branch_color_for(&row.branch)));
+        println!(
+            "{gutter}branch:    {}",
+            colorize(&row.branch, branch_color_for(&row.branch))
+        );
         println!(
             "{gutter}publish:   {}",
             colorize(
@@ -4469,14 +4496,42 @@ fn print_repos_vertical(
         );
         println!(
             "{gutter}changes:   {} mod, {} stg, {} ut",
-            colorize(&row.modified.to_string(), if row.modified > 0 { Color::Yellow } else { Color::White }),
-            colorize(&row.staged.to_string(), if row.staged > 0 { Color::Cyan } else { Color::White }),
+            colorize(
+                &row.modified.to_string(),
+                if row.modified > 0 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                }
+            ),
+            colorize(
+                &row.staged.to_string(),
+                if row.staged > 0 {
+                    Color::Cyan
+                } else {
+                    Color::White
+                }
+            ),
             row.untracked
         );
         println!(
             "{gutter}ahead/behind: {}/{}",
-            colorize(&row.ahead.to_string(), if row.ahead > 0 { Color::Yellow } else { Color::White }),
-            colorize(&row.behind.to_string(), if row.behind > 0 { Color::Red } else { Color::White })
+            colorize(
+                &row.ahead.to_string(),
+                if row.ahead > 0 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                }
+            ),
+            colorize(
+                &row.behind.to_string(),
+                if row.behind > 0 {
+                    Color::Red
+                } else {
+                    Color::White
+                }
+            )
         );
         println!("{gutter}push-to:   {push_to_text}");
         println!("{gutter}push:      {push_styled}");
@@ -4648,11 +4703,7 @@ pub(crate) async fn run_scan_bloat_report(
         );
     }
     println!("{}", "-".repeat(95));
-    println!(
-        "{:30} {:>10}",
-        "(TOTAL)",
-        human_bytes(total_bytes),
-    );
+    println!("{:30} {:>10}", "(TOTAL)", human_bytes(total_bytes),);
     println!();
     println!("💡 Each row suggests a pattern like `**/<dir>/**` that you can add");
     println!("   to `untracked_exclude_patterns` in `~/.dracon/utilities/sync/dracon-sync.toml`");
@@ -4698,17 +4749,16 @@ fn scan_one_repo_for_bloat(
         }
         let rel = trimmed.trim_end_matches('/');
         // Skip if already excluded.
-        if crate::exclude::matches_untracked_exclude(
-            repo,
-            Path::new(rel),
-            exclude_patterns,
-        ) {
+        if crate::exclude::matches_untracked_exclude(repo, Path::new(rel), exclude_patterns) {
             continue;
         }
         // Skip noisy paths the operator clearly knows about (the static list
         // covers them, but guard anyway in case the user removed the default).
-        if rel.starts_with("node_modules/") || rel.starts_with("target/") || rel.contains("/target/")
-            || rel.starts_with("dist/") || rel.starts_with("build/")
+        if rel.starts_with("node_modules/")
+            || rel.starts_with("target/")
+            || rel.contains("/target/")
+            || rel.starts_with("dist/")
+            || rel.starts_with("build/")
         {
             continue;
         }
@@ -4728,7 +4778,10 @@ fn scan_one_repo_for_bloat(
         entry.1 += count;
     }
 
-    by_leaf.into_iter().max_by_key(|(_, v)| v.0).map(|(leaf, (sz, cnt))| (leaf, sz, cnt))
+    by_leaf
+        .into_iter()
+        .max_by_key(|(_, v)| v.0)
+        .map(|(leaf, (sz, cnt))| (leaf, sz, cnt))
 }
 
 fn dir_size_bytes(p: &Path) -> std::io::Result<u64> {
@@ -4738,20 +4791,23 @@ fn dir_size_bytes(p: &Path) -> std::io::Result<u64> {
         return Ok(0);
     }
     let s = String::from_utf8_lossy(&out.stdout);
-    let n = s.split_whitespace().next().and_then(|t| t.parse::<u64>().ok());
+    let n = s
+        .split_whitespace()
+        .next()
+        .and_then(|t| t.parse::<u64>().ok());
     Ok(n.unwrap_or(0))
 }
 
 fn dir_file_count(p: &Path) -> std::io::Result<usize> {
     use std::process::Command;
-    let out = Command::new("find")
-        .arg(p)
-        .args(["-type", "f"])
-        .output()?;
+    let out = Command::new("find").arg(p).args(["-type", "f"]).output()?;
     if !out.status.success() {
         return Ok(0);
     }
-    Ok(String::from_utf8_lossy(&out.stdout).lines().filter(|l| !l.is_empty()).count())
+    Ok(String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| !l.is_empty())
+        .count())
 }
 
 fn suggested_pattern_for(leaf: &str) -> String {
@@ -4852,22 +4908,22 @@ fn print_repos_compact_table(
         // Absolute widths and apply `truncate_unicode_width(..., N-2)`
         // to the cell content before passing to comfy-table. Column
         // sum drops from 232 → 217, so the table now fits at 220+ cols.
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad, fits up to 99 repos)
-        ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
-        ColumnConstraint::Absolute(Width::Fixed(18)),    // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
-        ColumnConstraint::Absolute(Width::Fixed(14)),    // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 7 + 2 + 2 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(18)),    // PUBLISH (truncate to 16 cols; fits 'gitlab/main', 'github/main')
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // M (header 4 + 2 + 2 for digit)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // S (header 4 + 2 + 2 for digit)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // U (header 4 + 2 + 1 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 5 + 2 + 2 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 6 + 2 + 3 buffer)
-        ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
-        ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (truncate to 30 cols; was LowerBoundary(32) — same effect)
-        ColumnConstraint::Absolute(Width::Fixed(18)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
-        ColumnConstraint::Absolute(Width::Fixed(17)),    // STATE+ACT (truncate to 15)
-        ColumnConstraint::Absolute(Width::Fixed(26)),    // HINT (2026-07-19 bump 22→26; truncate to 24 to fit 'daemon handles after changes settle' = 33 → 'daemon handles after chan…')
+        ColumnConstraint::Absolute(Width::Fixed(4)), // # (header 1 + 1 pad, fits up to 99 repos)
+        ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
+        ColumnConstraint::Absolute(Width::Fixed(18)), // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
+        ColumnConstraint::Absolute(Width::Fixed(14)), // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // BRANCH (header 7 + 2 + 2 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(18)), // PUBLISH (truncate to 16 cols; fits 'gitlab/main', 'github/main')
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // M (header 4 + 2 + 2 for digit)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // S (header 4 + 2 + 2 for digit)
+        ColumnConstraint::Absolute(Width::Fixed(7)),  // U (header 4 + 2 + 1 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(9)),  // AHEAD (header 5 + 2 + 2 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // BEHIND (header 6 + 2 + 3 buffer)
+        ColumnConstraint::Absolute(Width::Fixed(13)), // PUSH (header 7 + 2 + 4 for '🟣 PENDING')
+        ColumnConstraint::Absolute(Width::Fixed(32)), // PUSH-TO (truncate to 30 cols; was LowerBoundary(32) — same effect)
+        ColumnConstraint::Absolute(Width::Fixed(18)), // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
+        ColumnConstraint::Absolute(Width::Fixed(17)), // STATE+ACT (truncate to 15)
+        ColumnConstraint::Absolute(Width::Fixed(26)), // HINT (2026-07-19 bump 22→26; truncate to 24 to fit 'daemon handles after changes settle' = 33 → 'daemon handles after chan…')
     ]);
 
     for (idx, row) in rows.iter().enumerate() {
@@ -4948,11 +5004,27 @@ fn print_repos_compact_table(
             Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(if row.modified > 0 { Color::Yellow } else { Color::White }),
-            Cell::new(row.staged).fg(if row.staged > 0 { Color::Cyan } else { Color::White }),
+            Cell::new(row.modified).fg(if row.modified > 0 {
+                Color::Yellow
+            } else {
+                Color::White
+            }),
+            Cell::new(row.staged).fg(if row.staged > 0 {
+                Color::Cyan
+            } else {
+                Color::White
+            }),
             Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
-            Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
+            Cell::new(row.ahead).fg(if row.ahead > 0 {
+                Color::Yellow
+            } else {
+                Color::White
+            }),
+            Cell::new(row.behind).fg(if row.behind > 0 {
+                Color::Red
+            } else {
+                Color::White
+            }),
             Cell::new(push_text).fg(push_color),
             format_push_to_remotes_cell(
                 &row.push_to_remotes,
@@ -5049,29 +5121,29 @@ fn print_repos_full_table(
     // in the cell content (not wrapped). Use Absolute(17) for LAST
     // COMMIT and Absolute(11) for AUTHOR.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(4)),     // # (header 1 + 1 pad = 4, fits up to 99 repos)
-        ColumnConstraint::Absolute(Width::Fixed(13)),    // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
-        ColumnConstraint::Absolute(Width::Fixed(19)),    // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols; long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
-        ColumnConstraint::Absolute(Width::Fixed(18)),    // ROLE (was LowerBoundary(18); F30: trim to 18; long paths → truncated via role_cell() truncation budget)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // BRANCH (header 9 + 2 pad = 11)
-        ColumnConstraint::Absolute(Width::Fixed(17)),    // PUBLISH (was LowerBoundary(17); truncate via publish_cell_label() budget 15 cols)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // MOD (header 6 + 2 pad = 8)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // STG (header 6 + 2 pad = 8)
-        ColumnConstraint::Absolute(Width::Fixed(7)),     // UT (header 5 + 2 pad = 7)
-        ColumnConstraint::Absolute(Width::Fixed(9)),     // AHEAD (header 7 + 2 pad = 9)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // BEHIND (header 9 + 2 pad = 11)
-        ColumnConstraint::Absolute(Width::Fixed(13)),    // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
-        ColumnConstraint::Absolute(Width::Fixed(32)),    // PUSH-TO (F30v2: Absolute — 30 cols content fits 'codeberg [excl:github,gitlab]' = 28 chars + 2 padding headroom)
-        ColumnConstraint::Absolute(Width::Fixed(17)),    // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // PUSHED (header 9 + 2 pad = 11)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // ACTIVITY (was LowerBoundary(11); F30: trim to 11; now Absolute to enforce truncation)
-        ColumnConstraint::Absolute(Width::Fixed(11)),    // AUTHOR (F30v2: Absolute — names can be long)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // 1h (header 6 + 2 pad = 8)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // 6h (header 6 + 2 pad = 8)
-        ColumnConstraint::Absolute(Width::Fixed(8)),     // 24h (header 7 + 2 pad - 1 for `24`)
-        ColumnConstraint::Absolute(Width::Fixed(15)),    // STATE (was LowerBoundary(15); now Absolute — content is always short, truncation budget 13)
-        ColumnConstraint::Absolute(Width::Fixed(15)),    // DAEMON (was LowerBoundary(15); now Absolute)
-        ColumnConstraint::Absolute(Width::Fixed(15)),    // HINT (was LowerBoundary(15); now Absolute — truncate via row loop budget)
+        ColumnConstraint::Absolute(Width::Fixed(4)), // # (header 1 + 1 pad = 4, fits up to 99 repos)
+        ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
+        ColumnConstraint::Absolute(Width::Fixed(19)), // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols; long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
+        ColumnConstraint::Absolute(Width::Fixed(18)), // ROLE (was LowerBoundary(18); F30: trim to 18; long paths → truncated via role_cell() truncation budget)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // BRANCH (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(17)), // PUBLISH (was LowerBoundary(17); truncate via publish_cell_label() budget 15 cols)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // MOD (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // STG (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(7)),  // UT (header 5 + 2 pad = 7)
+        ColumnConstraint::Absolute(Width::Fixed(9)),  // AHEAD (header 7 + 2 pad = 9)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // BEHIND (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(13)), // PUSH: '🟣 PENDING' = 10 + 2 + 1 headroom
+        ColumnConstraint::Absolute(Width::Fixed(32)), // PUSH-TO (F30v2: Absolute — 30 cols content fits 'codeberg [excl:github,gitlab]' = 28 chars + 2 padding headroom)
+        ColumnConstraint::Absolute(Width::Fixed(17)), // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // PUSHED (header 9 + 2 pad = 11)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // ACTIVITY (was LowerBoundary(11); F30: trim to 11; now Absolute to enforce truncation)
+        ColumnConstraint::Absolute(Width::Fixed(11)), // AUTHOR (F30v2: Absolute — names can be long)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // 1h (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // 6h (header 6 + 2 pad = 8)
+        ColumnConstraint::Absolute(Width::Fixed(8)),  // 24h (header 7 + 2 pad - 1 for `24`)
+        ColumnConstraint::Absolute(Width::Fixed(15)), // STATE (was LowerBoundary(15); now Absolute — content is always short, truncation budget 13)
+        ColumnConstraint::Absolute(Width::Fixed(15)), // DAEMON (was LowerBoundary(15); now Absolute)
+        ColumnConstraint::Absolute(Width::Fixed(15)), // HINT (was LowerBoundary(15); now Absolute — truncate via row loop budget)
     ]);
 
     // Classify each row's topology role (parent / submod / standalone).
@@ -5117,11 +5189,27 @@ fn print_repos_full_table(
             Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
-            Cell::new(row.modified).fg(if row.modified > 0 { Color::Yellow } else { Color::White }),
-            Cell::new(row.staged).fg(if row.staged > 0 { Color::Cyan } else { Color::White }),
+            Cell::new(row.modified).fg(if row.modified > 0 {
+                Color::Yellow
+            } else {
+                Color::White
+            }),
+            Cell::new(row.staged).fg(if row.staged > 0 {
+                Color::Cyan
+            } else {
+                Color::White
+            }),
             Cell::new(row.untracked),
-            Cell::new(row.ahead).fg(if row.ahead > 0 { Color::Yellow } else { Color::White }),
-            Cell::new(row.behind).fg(if row.behind > 0 { Color::Red } else { Color::White }),
+            Cell::new(row.ahead).fg(if row.ahead > 0 {
+                Color::Yellow
+            } else {
+                Color::White
+            }),
+            Cell::new(row.behind).fg(if row.behind > 0 {
+                Color::Red
+            } else {
+                Color::White
+            }),
             Cell::new(push_text).fg(push_color),
             format_push_to_remotes_cell(
                 &row.push_to_remotes,
@@ -5143,10 +5231,7 @@ fn print_repos_full_table(
             ))
             .fg(state_color_for(&row.state_cause)),
             Cell::new(truncate_unicode_width(
-                &format!(
-                    "{} {}",
-                    row.daemon_last_action_when, row.daemon_last_action
-                ),
+                &format!("{} {}", row.daemon_last_action_when, row.daemon_last_action),
                 13, // LowerBoundary(15) - 2 padding
             ))
             .fg(if row.daemon_last_result == "fail" {
@@ -5257,7 +5342,10 @@ fn repo_cell_content(
         Some(false) | None => "  ",
     };
     let badge = if is_nested { ">" } else { " " };
-    format!("{vis}{badge} {}", truncate_unicode_width(display, name_budget))
+    format!(
+        "{vis}{badge} {}",
+        truncate_unicode_width(display, name_budget)
+    )
 }
 
 // REMOVED 2026-07-29 (v0.113.19): `changes_cell_content` (the
@@ -5277,7 +5365,8 @@ mod v011318_tests {
         // column headers, REPO markers, REM cells) must measure 2
         // cells (Emoji_Presentation=Yes). ✏ (U+270F) measures 1 but
         // renders 2 — banned; see the 🗻 episode in v0.113.15.
-        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🐙", "🦊", "🗻", "🩹", "🔑"] {
+        for icon in ["📝", "📦", "🆕", "🚫", "🔒", "🐙", "🦊", "🗻", "🩹", "🔑"]
+        {
             assert_eq!(
                 UnicodeWidthStr::width(icon),
                 2,
@@ -5350,9 +5439,7 @@ fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
 fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> String {
     use unicode_width::UnicodeWidthStr;
     let mut out = text;
-    if row.missing_objects > 0
-        && UnicodeWidthStr::width(out.as_str()) + 2 <= budget
-    {
+    if row.missing_objects > 0 && UnicodeWidthStr::width(out.as_str()) + 2 <= budget {
         out.push('🩹');
     }
     let token_missing = row
@@ -5505,7 +5592,10 @@ fn size_cell_text(own: Option<u64>, modules: u64, pack_too_large: bool) -> (Stri
         return (label, color);
     }
     match own {
-        Some(b) => (format!("{}+{}", size_compact(b), size_compact(modules)), color),
+        Some(b) => (
+            format!("{}+{}", size_compact(b), size_compact(modules)),
+            color,
+        ),
         None => (label, color),
     }
 }
@@ -5722,8 +5812,8 @@ fn print_repos_summary(
     by_severity: bool,
 ) {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement,
-        Table, Width,
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
+        Width,
     };
     let _ = _filter;
 
@@ -5748,7 +5838,7 @@ fn print_repos_summary(
     const STATUS_COL: usize = 12;
     const REPO_COL: usize = 24;
     const BORDER_OVERHEAD: usize = 5; // box-drawing chars + leading separator
-    const CELL_PADDING: usize = 6;    // 3 padded cells × 2 chars each
+    const CELL_PADDING: usize = 6; // 3 padded cells × 2 chars each
     let what_col = width
         .saturating_sub(NUM_COL + STATUS_COL + REPO_COL + BORDER_OVERHEAD + CELL_PADDING)
         .max(20);
@@ -5847,8 +5937,8 @@ fn print_repos_rich_table(
     full_path: bool,
 ) {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement,
-        Table, Width,
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
+        Width,
     };
     let _ = _filter;
 
@@ -5994,7 +6084,11 @@ fn print_repos_rich_table(
         }
     }
 
-    let bold = |s: &str| Cell::new(s).fg(Color::White).add_attribute(comfy_table::Attribute::Bold);
+    let bold = |s: &str| {
+        Cell::new(s)
+            .fg(Color::White)
+            .add_attribute(comfy_table::Attribute::Bold)
+    };
     let header = vec![
         bold("#"),
         bold("STATUS"),
@@ -6030,7 +6124,9 @@ fn print_repos_rich_table(
     table
         .column_mut(3)
         .expect("ACTIVITY column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(ACTIVITY_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(
+            ACTIVITY_COL as u16,
+        )));
     table
         .column_mut(4)
         .expect("modified-count column")
@@ -6046,7 +6142,9 @@ fn print_repos_rich_table(
     table
         .column_mut(7)
         .expect("excluded-count column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(CHG_EXCL_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(
+            CHG_EXCL_COL as u16,
+        )));
     table
         .column_mut(8)
         .expect("A/B column")
@@ -6115,14 +6213,12 @@ fn print_repos_rich_table(
         // stale; publication/codeberg safety still uses the freshness-
         // checked helper and remains fail-closed.
         // The marker costs 3 cells ("X "), carved out of the truncate budget.
-        let visibility = crate::visibility::cached_repo_visibility_last_known(
-            std::path::Path::new(&row.repo),
-        );
+        let visibility =
+            crate::visibility::cached_repo_visibility_last_known(std::path::Path::new(&row.repo));
         // v0.113.21: `.git` as a FILE = nested submodule / linked
         // worktree checkout (gitdir pointer); a DIR = standalone.
         let is_nested = std::path::Path::new(&row.repo).join(".git").is_file();
-        let repo_short =
-            repo_cell_content(visibility, &repo_display, repo_budget, is_nested);
+        let repo_short = repo_cell_content(visibility, &repo_display, repo_budget, is_nested);
 
         // ACTIVITY (v0.113.17): the state label ONLY — the dirty
         // counts moved to their own CHANGES column (operator: "the
@@ -6201,8 +6297,11 @@ fn print_repos_rich_table(
         // cell is ✅ CLEAN, contradicting itself).
         // v0.113.20: superprojects show `own+mods` (submodule
         // gitdirs) in the SIZE cell.
-        let (size_text, size_color) =
-            size_cell_text(row.git_size_bytes, row.git_modules_bytes, row.pack_too_large);
+        let (size_text, size_color) = size_cell_text(
+            row.git_size_bytes,
+            row.git_modules_bytes,
+            row.pack_too_large,
+        );
 
         // ADDED 2026-07-28 (v0.113.8): TOUCHED column = last author + when.
         let touched = truncate_unicode_width(&touched_label(row), touched_budget);
@@ -6252,7 +6351,6 @@ impl RepoReportRowExt for RepoReportRow {
         }
     }
 }
-
 
 pub(crate) fn log_incident(
     policy_path: &Path,
@@ -6345,9 +6443,7 @@ pub(crate) fn decide_create_mirror(
         return CreateMirrorDecision::TransientHiccup;
     }
     match gone_secs {
-        Some(s) if s >= CREATE_MIRROR_GONE_THRESHOLD_SECS => {
-            CreateMirrorDecision::ReallyGone
-        }
+        Some(s) if s >= CREATE_MIRROR_GONE_THRESHOLD_SECS => CreateMirrorDecision::ReallyGone,
         // Either no failure observed yet (None — first
         // probe), or the elapsed window is shorter than the
         // threshold. Either way, do not create.
@@ -7074,7 +7170,10 @@ async fn handle_ahead(
                                     "rewrite_then_push",
                                     Some(bundle_for_log),
                                     "fail",
-                                    Some("rewrote history on a detached HEAD — push manually".to_string()),
+                                    Some(
+                                        "rewrote history on a detached HEAD — push manually"
+                                            .to_string(),
+                                    ),
                                 );
                             } else {
                                 match crate::git::force_push_after_rewrite(
@@ -7347,9 +7446,8 @@ async fn verify_resolution(
         // `verify_resolution_still_concern`), so a size-only concern
         // stays "still concerned" until the operator actually
         // shrinks the repo.
-        let pack_still = pack_too_large_forces_concern(
-            crate::git::github_pack_too_large(repo, None),
-        );
+        let pack_still =
+            pack_too_large_forces_concern(crate::git::github_pack_too_large(repo, None));
         let still_concern = verify_resolution_still_concern(
             next.ahead,
             next.behind,
@@ -7834,12 +7932,7 @@ pub(crate) async fn run_repair_warns(
             continue;
         }
         warns += 1;
-        let flags = repo_state_flags(
-            &effective_status,
-            has_origin,
-            has_upstream,
-            has_any_remote,
-        );
+        let flags = repo_state_flags(&effective_status, has_origin, has_upstream, has_any_remote);
         let reason = flags.join(",");
         out!(
             "\n🟡 {}  state={} modified={} staged={}",
@@ -8205,8 +8298,7 @@ pub(crate) async fn nested_repo_untracked_count(repo: &Path) -> usize {
 mod tests {
     use super::*;
     use crate::policy::{
-        default_auto_resolve_unmerged, default_push_debounce_secs,
-        default_untracked_warn_threshold,
+        default_auto_resolve_unmerged, default_push_debounce_secs, default_untracked_warn_threshold,
     };
     use crate::test_helpers::EnvRestorer;
     use dracon_git::types::RepoStatus;
@@ -8304,11 +8396,7 @@ mod tests {
         // Boundary: exactly 1 second under threshold is still
         // transient.
         assert_eq!(
-            decide_create_mirror(
-                false,
-                false,
-                Some(CREATE_MIRROR_GONE_THRESHOLD_SECS - 1)
-            ),
+            decide_create_mirror(false, false, Some(CREATE_MIRROR_GONE_THRESHOLD_SECS - 1)),
             CreateMirrorDecision::TransientHiccup
         );
     }
@@ -8333,8 +8421,7 @@ mod tests {
         // First call: no entry, inserts.
         record_origin_gone(&policy_path, &repo);
         let ledger_after_first =
-            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
-                .expect("read ledger");
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path)).expect("read ledger");
         let first_line = ledger_after_first
             .lines()
             .find(|l| l.starts_with(&repo.display().to_string()))
@@ -8351,8 +8438,7 @@ mod tests {
         // Second call: must NOT overwrite the original.
         record_origin_gone(&policy_path, &repo);
         let ledger_after_second =
-            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
-                .expect("read ledger");
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path)).expect("read ledger");
         let second_line = ledger_after_second
             .lines()
             .find(|l| l.starts_with(&repo.display().to_string()))
@@ -8364,12 +8450,14 @@ mod tests {
             .expect("ts field")
             .parse()
             .expect("parse ts");
-        assert_eq!(first_ts, second_ts, "ledger must preserve first-observed timestamp");
+        assert_eq!(
+            first_ts, second_ts,
+            "ledger must preserve first-observed timestamp"
+        );
         // clear_origin_gone should drop the entry entirely.
         clear_origin_gone(&policy_path, &repo);
         let ledger_after_clear =
-            std::fs::read_to_string(origin_gone_ledger_path(&policy_path))
-                .expect("read ledger");
+            std::fs::read_to_string(origin_gone_ledger_path(&policy_path)).expect("read ledger");
         assert!(
             !ledger_after_clear
                 .lines()
@@ -8878,8 +8966,7 @@ mod tests {
         let status = make_status(false, 5, 0);
         // STUCK_PUSH now requires an explicit recent push failure signal.
         // Without it, an AHEAD repo is just "has unpushed commits".
-        let flags =
-            repo_state_flags_with_push_failure(&status, true, true, true, true);
+        let flags = repo_state_flags_with_push_failure(&status, true, true, true, true);
         assert!(flags.contains(&"STUCK_PUSH".to_string()));
         let flags_no_failure = repo_state_flags(&status, true, true, true);
         assert!(!flags_no_failure.contains(&"STUCK_PUSH".to_string()));
@@ -8940,18 +9027,10 @@ mod tests {
         let mut status = make_status(false, 5, 0);
         status.last_commit_hash = Some("deadbeef".to_string());
         assert!(repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            true
+            &status, true, true, true, true
         ));
         assert!(!repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            false
+            &status, true, true, true, false
         ));
     }
 
@@ -8962,11 +9041,7 @@ mod tests {
         let mut status = make_status(false, 0, 3);
         status.last_commit_hash = Some("deadbeef".to_string());
         assert!(repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            false
+            &status, true, true, true, false
         ));
     }
 
@@ -8987,11 +9062,7 @@ mod tests {
     fn test_repo_is_concern_clean_healthy() {
         let status = make_status(true, 0, 0);
         assert!(!repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            false
+            &status, true, true, true, false
         ));
     }
 
@@ -9002,11 +9073,7 @@ mod tests {
         // SSH-migration leniency). Live case: opencode-plugins.
         let status = make_status(true, 0, 0);
         assert!(repo_is_concern_with_push_failure(
-            &status,
-            false,
-            false,
-            true,
-            false
+            &status, false, false, true, false
         ));
     }
 
@@ -9018,11 +9085,7 @@ mod tests {
         status.untracked_files = 6;
         status.last_commit_hash = None;
         assert!(repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            false
+            &status, true, true, true, false
         ));
     }
 
@@ -9034,11 +9097,7 @@ mod tests {
         status.untracked_files = 6;
         status.last_commit_hash = Some("abc123".to_string());
         assert!(!repo_is_concern_with_push_failure(
-            &status,
-            true,
-            true,
-            true,
-            false
+            &status, true, true, true, false
         ));
     }
 
@@ -9157,8 +9216,11 @@ mod tests {
             .current_dir(repo)
             .status()
             .unwrap();
-        std::fs::write(repo.join(".git/refs/heads/main"), "0000000000000000000000000000000000000000\n")
-            .unwrap();
+        std::fs::write(
+            repo.join(".git/refs/heads/main"),
+            "0000000000000000000000000000000000000000\n",
+        )
+        .unwrap();
         let probe = probe_history(repo);
         assert!(probe.failed);
         assert_eq!(probe.missing_objects, 0);
@@ -9313,7 +9375,10 @@ mod tests {
             parse_relative_minutes_to_u64("1 year ago"),
             Some(365 * 24 * 60)
         );
-        assert_eq!(parse_relative_minutes_to_u64("3 days ago"), Some(3 * 24 * 60));
+        assert_eq!(
+            parse_relative_minutes_to_u64("3 days ago"),
+            Some(3 * 24 * 60)
+        );
         assert_eq!(parse_relative_minutes_to_u64("-"), None);
         assert_eq!(parse_relative_minutes_to_u64("unknown"), None);
     }
@@ -9619,11 +9684,6 @@ mod tests {
         );
     }
 
-
-
-
-
-
     #[test]
     fn test_repo_is_warn_untracked_only_is_not_warn() {
         let mut status = RepoStatus::default();
@@ -9828,7 +9888,8 @@ mod tests {
             max_stage_file_bytes: 100 * 1024 * 1024,
             pull_op_timeout_secs: 30,
             push_op_timeout_secs: 300,
-            auto_gc_garbage_threshold_bytes: crate::policy::default_auto_gc_garbage_threshold_bytes(),
+            auto_gc_garbage_threshold_bytes: crate::policy::default_auto_gc_garbage_threshold_bytes(
+            ),
             auto_prune_stale_backup_branches: false,
             repo_sync_timeout_secs: 420,
             stage_op_timeout_secs: 60,
@@ -9980,12 +10041,20 @@ mod tests {
             last_push: "5m ago".to_string(),
             push_status: "OK".to_string(),
             push_error: String::new(),
-            push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            push_to_remotes: vec![
+                "codeberg".to_string(),
+                "github".to_string(),
+                "gitlab".to_string(),
+            ],
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
             git_modules_bytes: 0,
-            token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
+            token_health: TokenHealthSummary {
+                codeberg_present: true,
+                github_present: true,
+                gitlab_present: true,
+            },
             concern: false,
             warn: false,
             active: false,
@@ -10030,7 +10099,10 @@ mod tests {
             "truncated Gone should be ≤ 17 cols wide: {gone_result}"
         );
         // Ok: short enough to fit unchanged
-        assert_eq!(publish_cell_label("github/main", PublishState::Ok), "github/main");
+        assert_eq!(
+            publish_cell_label("github/main", PublishState::Ok),
+            "github/main"
+        );
     }
 
     #[test]
@@ -10157,10 +10229,7 @@ mod tests {
         assert!(what.contains("⏳ dirty"), "activity: {what}");
         assert!(what.contains("2 mod"), "modified count: {what}");
         assert!(what.contains("1 ut"), "untracked count: {what}");
-        assert!(
-            what.contains("daemon handles"),
-            "hint visible: {what}"
-        );
+        assert!(what.contains("daemon handles"), "hint visible: {what}");
         assert!(
             !what.contains("by DraconDev"),
             "author must be omitted from summary (v0.112.27 R2): {what}"
@@ -10216,10 +10285,7 @@ mod tests {
             what.contains("push: stuck"),
             "STUCK should surface as push: stuck: {what}"
         );
-        assert!(
-            what.contains("run repair-concerns"),
-            "hint visible: {what}"
-        );
+        assert!(what.contains("run repair-concerns"), "hint visible: {what}");
         assert!(
             !what.contains("by DraconDev"),
             "author must be omitted from summary (v0.112.27 R2): {what}"
@@ -10305,7 +10371,8 @@ mod tests {
         row.untracked = 0;
         row.ahead = 0;
         row.push_status = "OK".to_string();
-        row.hint = "daemon handles after changes settle; run sync-now --warns to force now".to_string();
+        row.hint =
+            "daemon handles after changes settle; run sync-now --warns to force now".to_string();
         row.last_author = "DraconDev".to_string();
         row.last_when = "5 minutes ago".to_string();
         let what = summary_what(&row, 80);
@@ -10408,7 +10475,12 @@ mod tests {
             .expect("git commit")
             .success());
         assert!(crate::git::git_cmd()
-            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .args([
+                "remote",
+                "add",
+                "github",
+                "git@github.com:DraconDev/test-repo.git"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
@@ -10479,12 +10551,20 @@ mod tests {
             commits_24h: 0,
             push_status: push_status.to_string(),
             push_error: String::new(),
-            push_to_remotes: vec!["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            push_to_remotes: vec![
+                "codeberg".to_string(),
+                "github".to_string(),
+                "gitlab".to_string(),
+            ],
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
             git_modules_bytes: 0,
-            token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
+            token_health: TokenHealthSummary {
+                codeberg_present: true,
+                github_present: true,
+                gitlab_present: true,
+            },
             concern: false,
             warn: false,
             active: false,
@@ -10603,13 +10683,8 @@ mod tests {
         // state. This is a higher-priority indicator than the
         // generic `pushing Xm` because the daemon has given up
         // auto-pushing — the operator needs to intervene.
-        let mut row = make_activity_row_with_state(
-            "10 minutes ago",
-            0,
-            0,
-            "PUSH_STUCK",
-            StateCause::Pushing,
-        );
+        let mut row =
+            make_activity_row_with_state("10 minutes ago", 0, 0, "PUSH_STUCK", StateCause::Pushing);
         row.ahead = 1;
         let label = activity_label(&row);
         assert!(
@@ -10655,7 +10730,8 @@ mod tests {
             )],
             two_min_ago,
         );
-        let result = load_in_flight_for_path("/home/dracon/Dev/this-is-a-fake-repo-for-staleness-test");
+        let result =
+            load_in_flight_for_path("/home/dracon/Dev/this-is-a-fake-repo-for-staleness-test");
         assert!(!result, "stale in_flight file should be treated as empty");
         // Cleanup
         let _ = std::fs::remove_file(crate::daemon::in_flight_path_for_test());
@@ -10677,7 +10753,8 @@ mod tests {
             )],
             now,
         );
-        let result = load_in_flight_for_path("/home/dracon/Dev/another-fake-repo-for-staleness-test");
+        let result =
+            load_in_flight_for_path("/home/dracon/Dev/another-fake-repo-for-staleness-test");
         assert!(result, "fresh in_flight file should be honoured");
         let _ = std::fs::remove_file(crate::daemon::in_flight_path_for_test());
     }
@@ -10699,7 +10776,10 @@ mod tests {
             ten_secs_ago,
         );
         let result = load_in_flight_for_path("/home/dracon/Dev/repo-with-10s-old-inflight");
-        assert!(!result, "10s-old in_flight file should be stale at 5s threshold");
+        assert!(
+            !result,
+            "10s-old in_flight file should be stale at 5s threshold"
+        );
         let _ = std::fs::remove_file(crate::daemon::in_flight_path_for_test());
     }
 
@@ -10725,13 +10805,7 @@ mod tests {
         );
         // Build a row whose repo path matches the in_flight file
         // but whose state is one of the clean states.
-        let mut row = make_activity_row_with_state(
-            "5 minutes ago",
-            0,
-            0,
-            "OK",
-            StateCause::Synced,
-        );
+        let mut row = make_activity_row_with_state("5 minutes ago", 0, 0, "OK", StateCause::Synced);
         row.repo = "/home/dracon/Dev/repo-clean-but-listed-as-inflight".to_string();
         let label = activity_label(&row);
         assert!(
@@ -11124,7 +11198,11 @@ mod tests {
             codeberg_skip_reason: None,
             git_size_bytes: Some(20_518_397_949),
             git_modules_bytes: 0,
-            token_health: TokenHealthSummary { codeberg_present: true, github_present: true, gitlab_present: true },
+            token_health: TokenHealthSummary {
+                codeberg_present: true,
+                github_present: true,
+                gitlab_present: true,
+            },
             concern: true,
             warn: false,
             active: false,
@@ -11344,7 +11422,10 @@ mod tests {
         // 👋 should NOT be present (it didn't fit in content_budget)
         assert!(!r.contains('👋'), "emoji should be dropped: {:?}", r);
         // Width should be at most 8 cols
-        let w: usize = r.chars().map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        let w: usize = r
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
         assert!(w <= 8, "result width {} > 8 for {:?}", w, r);
 
         // At width 10, content_budget=9. h(1)+e(1)+l(1)+l(1)+o(1)+space(1)+👋(2) = 8 fits.
@@ -11352,7 +11433,10 @@ mod tests {
         let r2 = truncate_unicode_width("hello 👋 world", 10);
         assert!(r2.ends_with('…'), "expected ellipsis, got: {:?}", r2);
         assert!(r2.contains('👋'), "emoji should be preserved: {:?}", r2);
-        let w2: usize = r2.chars().map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+        let w2: usize = r2
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
         assert!(w2 <= 10, "result width {} > 10 for {:?}", w2, r2);
     }
 
@@ -11453,11 +11537,19 @@ mod tests {
         let w = terminal_width();
         // 30 is outside (40..=1000), so falls through to next check
         // (terminal_size returns None in tests), so fallback Some(120) applies
-        assert_eq!(w, Some(120), "COLUMNS=30 (out of range) falls through to fallback 120");
+        assert_eq!(
+            w,
+            Some(120),
+            "COLUMNS=30 (out of range) falls through to fallback 120"
+        );
         // DRACON_SYNC_TERM_WIDTH still takes precedence
         std::env::set_var("DRACON_SYNC_TERM_WIDTH", "80");
         let w = terminal_width();
-        assert_eq!(w, Some(80), "DRACON_SYNC_TERM_WIDTH takes precedence over COLUMNS");
+        assert_eq!(
+            w,
+            Some(80),
+            "DRACON_SYNC_TERM_WIDTH takes precedence over COLUMNS"
+        );
         // Restore
         match prev_width {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
@@ -11487,13 +11579,22 @@ mod tests {
         std::env::remove_var("DRACON_SYNC_TERM_WIDTH");
         std::env::set_var("COLUMNS", "120"); // Force 120 explicitly via COLUMNS
         let w = terminal_width();
-        assert_eq!(w, Some(120), "fallback for non-TTY must be Some(120), got {:?}", w);
+        assert_eq!(
+            w,
+            Some(120),
+            "fallback for non-TTY must be Some(120), got {:?}",
+            w
+        );
         // CHANGED 2026-07-22 (v0.112.38): < 242 routes to Rich, not Vertical.
         // CHANGED 2026-07-28 (v0.113.8): 120 cols now routes to Compact (the
         // post-v0.113.8 Rich tier needs ≥165 cols minimum — added USED,
         // COMMITS, SIZE, TOUCHED columns grew the total width from ~120 to
         // ~165). The Compact tier handles 90-165 col terminals.
-        assert_eq!(choose_layout_tier(), LayoutTier::Compact, "120 cols must route to Compact");
+        assert_eq!(
+            choose_layout_tier(),
+            LayoutTier::Compact,
+            "120 cols must route to Compact"
+        );
         // Restore
         match prev_width {
             Some(v) => std::env::set_var("DRACON_SYNC_TERM_WIDTH", v),
@@ -11547,7 +11648,11 @@ mod tests {
         // PUSH_STUCK should render with stop icon, no plain "PUSH_STUCK" text
         let (text, _color) = push_cell_label("PUSH_STUCK", Some(173));
         assert_eq!(text, "🛑 STUCK");
-        assert!(!text.contains("PUSH_STUCK"), "must not show plain PUSH_STUCK text: {:?}", text);
+        assert!(
+            !text.contains("PUSH_STUCK"),
+            "must not show plain PUSH_STUCK text: {:?}",
+            text
+        );
     }
 
     #[test]
@@ -11570,7 +11675,16 @@ mod tests {
     #[test]
     fn test_repos_legend_covers_all_push_cell_labels() {
         // Collect every documented cell label.
-        let cell_label_statuses = ["OK", "INTENTIONAL", "PENDING", "PUSH_STUCK", "STUCK", "FAIL", "BROKEN", "BLOCKED"];
+        let cell_label_statuses = [
+            "OK",
+            "INTENTIONAL",
+            "PENDING",
+            "PUSH_STUCK",
+            "STUCK",
+            "FAIL",
+            "BROKEN",
+            "BLOCKED",
+        ];
         let cell_label_outputs: Vec<String> = cell_label_statuses
             .iter()
             .map(|s| push_cell_label(s, None).0.to_string())
@@ -11579,10 +11693,7 @@ mod tests {
         // concatenate the legend rows into a single haystack and search
         // for each needle (case-sensitive, since the labels are
         // deliberate).
-        let haystack: String = repos_legend_rows()
-            .iter()
-            .map(|(_, text)| *text)
-            .collect();
+        let haystack: String = repos_legend_rows().iter().map(|(_, text)| *text).collect();
         for label in &cell_label_outputs {
             assert!(
                 haystack.contains(label.as_str()),
@@ -11709,9 +11820,7 @@ mod tests {
         // If you change the table layout, update both at once.
         // 16 cols: #, STATUS, REPO, ROLE, BRANCH, PUBLISH, MOD, STG, UT,
         // AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT.
-        let minimums: [u16; 16] = [
-            4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 22,
-        ];
+        let minimums: [u16; 16] = [4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 22];
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
         let total = sum + borders;
@@ -11861,7 +11970,10 @@ mod tests {
     /// distributes surplus width to LowerBoundary columns.
     #[test]
     fn test_unowned_label_fits_activity_column() {
-        let label = format!("🚫 unowned: {}", truncate("HEAD author = Audit Bot <audit@noreply.example.com>", 20));
+        let label = format!(
+            "🚫 unowned: {}",
+            truncate("HEAD author = Audit Bot <audit@noreply.example.com>", 20)
+        );
         let width: usize = label
             .chars()
             .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
@@ -11943,7 +12055,6 @@ mod tests {
         }
     }
 
-
     /// Verify `size_label` renders adaptive units with color coding
     /// by the github pack-limit concern (NOT the raw gitdir size —
     /// see the deathrun contradiction the new signature prevents).
@@ -11991,7 +12102,10 @@ mod tests {
         );
         // junk-runner's case (gitdir 2 GiB, pushable > 2 GiB): red
         let (_, color_junk) = size_label(Some(2 * 1024 * 1024 * 1024), true);
-        assert!(matches!(color_junk, Color::Red), "junk-runner's case (gitdir ≥ 2 GiB, pack_too_large=true) should be Red");
+        assert!(
+            matches!(color_junk, Color::Red),
+            "junk-runner's case (gitdir ≥ 2 GiB, pack_too_large=true) should be Red"
+        );
         // 2-GiB gitdir WITHOUT pack_too_large = yellow (the
         // pre-fix code would've colored this red, falsely)
         let (_, color_2gib_no_concern) = size_label(Some(2 * 1024 * 1024 * 1024), false);
@@ -12001,7 +12115,10 @@ mod tests {
         );
         // 999 MiB is white (under the 1 GiB warning threshold)
         let (_, color_below_1gib) = size_label(Some(999 * 1024 * 1024), false);
-        assert!(matches!(color_below_1gib, Color::White), "999 MiB should be White");
+        assert!(
+            matches!(color_below_1gib, Color::White),
+            "999 MiB should be White"
+        );
     }
 
     /// Verify `touched_label` renders `<author> <when>` and handles the
@@ -12078,8 +12195,17 @@ mod tests {
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
         for col in [
-            "STATUS", "ACTIVITY", "CHANGES", "A/B", "PUSH", "REM", "REPO", "1H/6H/24H", "SIZE",
-            "TOUCHED", "excl",
+            "STATUS",
+            "ACTIVITY",
+            "CHANGES",
+            "A/B",
+            "PUSH",
+            "REM",
+            "REPO",
+            "1H/6H/24H",
+            "SIZE",
+            "TOUCHED",
+            "excl",
         ] {
             assert!(text.contains(col), "legend must explain column {col}");
         }
@@ -12179,8 +12305,22 @@ mod tests {
         // borders, NO separate padding term. The old test omitted
         // the CHANGES column AND added a bogus cell_padding term; the
         // two errors cancelled and it passed ≤165 by coincidence.
-        let fixed = NUM_COL + STATUS_COL + REPO_COL + ACTIVITY_COL + CHG_MOD_COL + CHG_STG_COL + CHG_UT_COL + CHG_EXCL_COL + AB_COL + PUSH_COL
-            + REM_COL + C1H_COL + C6H_COL + C24H_COL + SIZE_COL + TOUCHED_COL;
+        let fixed = NUM_COL
+            + STATUS_COL
+            + REPO_COL
+            + ACTIVITY_COL
+            + CHG_MOD_COL
+            + CHG_STG_COL
+            + CHG_UT_COL
+            + CHG_EXCL_COL
+            + AB_COL
+            + PUSH_COL
+            + REM_COL
+            + C1H_COL
+            + C6H_COL
+            + C24H_COL
+            + SIZE_COL
+            + TOUCHED_COL;
         let total = fixed + border_overhead;
         assert_eq!(
             total, 159,
@@ -12206,7 +12346,11 @@ mod tests {
     fn test_format_push_to_remotes_cell() {
         // Case 1: full set of remotes, no exclusions → comma list, no annotation
         let cell = format_push_to_remotes_cell(
-            &["codeberg".to_string(), "github".to_string(), "gitlab".to_string()],
+            &[
+                "codeberg".to_string(),
+                "github".to_string(),
+                "gitlab".to_string(),
+            ],
             &[],
             None,
         );
@@ -12226,11 +12370,8 @@ mod tests {
 
         // Case 4: no active remotes, only exclusions → still bracket annotation
         // (shouldn't happen in practice but guard against regression)
-        let cell = format_push_to_remotes_cell(
-            &[],
-            &["github".to_string(), "gitlab".to_string()],
-            None,
-        );
+        let cell =
+            format_push_to_remotes_cell(&[], &["github".to_string(), "gitlab".to_string()], None);
         assert_eq!(cell.content(), " [excl:github,gitlab]");
 
         // Case 5: the format must be symmetric with the text-mode renderer
@@ -12400,7 +12541,15 @@ mod size_cache_tests {
             .output()
             .unwrap();
         std::process::Command::new("git")
-            .args(["-c", "user.email=test@example.com", "-c", "user.name=test", "commit", "-m", "init"])
+            .args([
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "user.name=test",
+                "commit",
+                "-m",
+                "init",
+            ])
             .current_dir(&tmp)
             .output()
             .unwrap();
@@ -12421,7 +12570,10 @@ mod size_cache_tests {
         // A single text file is tiny (< 1 KiB), so the packed size
         // should be a small positive number. We don't assert exact
         // bytes (git's packing varies by version).
-        assert!(size > 0, "size-pack should be > 0 after `git gc`, got {size}");
+        assert!(
+            size > 0,
+            "size-pack should be > 0 after `git gc`, got {size}"
+        );
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
@@ -12445,7 +12597,15 @@ mod size_cache_tests {
             .output()
             .unwrap();
         std::process::Command::new("git")
-            .args(["-c", "user.email=test@example.com", "-c", "user.name=test", "commit", "-m", "init"])
+            .args([
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "user.name=test",
+                "commit",
+                "-m",
+                "init",
+            ])
             .current_dir(&tmp)
             .output()
             .unwrap();
@@ -12668,8 +12828,14 @@ mod codeberg_public_only_tests {
             ..RepoPolicyOverride::default()
         };
         let eff = effective_excluded_remotes(&policy, &override_, dir.path());
-        assert!(eff.iter().any(|r| r == "github"), "manual exclude must be preserved");
-        assert!(eff.iter().any(|r| r == "codeberg"), "policy skip must be added");
+        assert!(
+            eff.iter().any(|r| r == "github"),
+            "manual exclude must be preserved"
+        );
+        assert!(
+            eff.iter().any(|r| r == "codeberg"),
+            "policy skip must be added"
+        );
     }
 
     #[test]
@@ -12686,10 +12852,13 @@ mod codeberg_public_only_tests {
         };
         let eff = effective_excluded_remotes(&policy, &override_, dir.path());
         let count = eff.iter().filter(|r| *r == "codeberg").count();
-        assert_eq!(count, 1, "codeberg must appear at most once in exclude list, got {:?}", eff);
+        assert_eq!(
+            count, 1,
+            "codeberg must appear at most once in exclude list, got {:?}",
+            eff
+        );
     }
 }
-
 
 // ---------------------------------------------------------------------------
 // v0.113.13 (goal-list 2026-07-29): tests for the exclusion-aware dirty
@@ -12740,8 +12909,7 @@ mod v011313_tests {
         git(&repo, &["commit", "-q", "-m", "add jsonl"]);
         // Tracked modification matching auto_commit_exclude_patterns
         fs::write(repo.join("active.jsonl"), "{\"more\":true}").unwrap();
-        let cls =
-            classify_dirty_entries(&repo, &pats(&["active.jsonl"]), &[]).await;
+        let cls = classify_dirty_entries(&repo, &pats(&["active.jsonl"]), &[]).await;
         assert_eq!(cls.committable_modified, 0, "excluded mod must not count");
         assert_eq!(cls.committable_staged, 0);
         assert_eq!(cls.excluded, 1, "the excluded file must be counted");
@@ -12768,8 +12936,7 @@ mod v011313_tests {
         init_repo(&repo);
         fs::write(repo.join("new.txt"), "n").unwrap(); // committable untracked
         fs::write(repo.join("skip.log"), "l").unwrap(); // excluded untracked
-        let cls =
-            classify_dirty_entries(&repo, &[], &pats(&["*.log"])).await;
+        let cls = classify_dirty_entries(&repo, &[], &pats(&["*.log"])).await;
         assert_eq!(cls.committable_modified, 0, "untracked never drives dirty");
         assert_eq!(cls.committable_staged, 0);
         assert_eq!(cls.excluded, 1, "*.log untracked is excluded");
@@ -12794,7 +12961,10 @@ mod v011313_tests {
         );
         // v0.113.28: unchanged-gitlink dirt is mechanics, NOT an
         // exclusion — it no longer feeds the 🚫 column / `· N excl`.
-        assert_eq!(cls.excluded, 0, "unchanged-gitlink dirt is not an exclusion");
+        assert_eq!(
+            cls.excluded, 0,
+            "unchanged-gitlink dirt is not an exclusion"
+        );
         assert_eq!(cls.unchanged_gitlink, 1, "gitlink no-op counted separately");
 
         // Phase 2: commit inside the nested → gitlink SHA drifts.
@@ -12813,7 +12983,11 @@ mod v011313_tests {
         // "R  new\0old\0" + "?? new.txt\0" + " M mod.txt\0"
         let data = b"R  new.txt\0old.txt\0?? u.txt\0 M m.txt\0";
         let recs = parse_porcelain_z(data);
-        assert_eq!(recs.len(), 3, "rename source path must be consumed: {recs:?}");
+        assert_eq!(
+            recs.len(),
+            3,
+            "rename source path must be consumed: {recs:?}"
+        );
         assert_eq!(recs[0], (b'R', b' ', "new.txt".to_string()));
         assert_eq!(recs[1], (b'?', b'?', "u.txt".to_string()));
         assert_eq!(recs[2], (b' ', b'M', "m.txt".to_string()));
@@ -12864,13 +13038,19 @@ mod v011313_tests {
             pack_too_large: false,
         };
         let clean = activity_label(&mk(0));
-        assert!(!clean.contains("excl"), "no marker without excluded: {clean}");
+        assert!(
+            !clean.contains("excl"),
+            "no marker without excluded: {clean}"
+        );
         let marked = activity_label(&mk(2));
         assert!(
             marked.contains("· 2 excl"),
             "excluded dirt must surface as marker: {marked}"
         );
-        assert!(marked.contains("synced"), "excluded-only repo shows synced: {marked}");
+        assert!(
+            marked.contains("synced"),
+            "excluded-only repo shows synced: {marked}"
+        );
     }
 }
 
@@ -12926,7 +13106,10 @@ mod v011315_tests {
         assert_eq!(push_cell_with_age("✅ OK", "2 days ago"), "✅ OK 2d");
         assert_eq!(push_cell_with_age("✅ OK", ""), "✅ OK");
         assert_eq!(push_cell_with_age("✅ OK", "-"), "✅ OK");
-        assert_eq!(push_cell_with_age("🟣 PENDING", "5 minutes ago"), "🟣 PENDING");
+        assert_eq!(
+            push_cell_with_age("🟣 PENDING", "5 minutes ago"),
+            "🟣 PENDING"
+        );
         assert_eq!(push_cell_with_age("❌ FAIL", "5 minutes ago"), "❌ FAIL");
     }
 }
@@ -13006,7 +13189,17 @@ mod v011316_tests {
             assert!(out.status.success(), "git {:?} failed", args);
         };
         run(&["init", "-q", "-b", "main"]);
-        run(&["-c", "user.name=T", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]);
+        run(&[
+            "-c",
+            "user.name=T",
+            "-c",
+            "user.email=t@t",
+            "commit",
+            "-q",
+            "--allow-empty",
+            "-m",
+            "x",
+        ]);
         let sha = String::from_utf8(
             std::process::Command::new("git")
                 .args(["rev-parse", "HEAD"])
@@ -13082,7 +13275,12 @@ mod v011318b_tests {
 
     #[test]
     fn repo_cell_truncates_long_names_after_marker() {
-        let cell = repo_cell_content(Some(true), "pully-fully-pull-based-fleet-reconciler", 18, false);
+        let cell = repo_cell_content(
+            Some(true),
+            "pully-fully-pull-based-fleet-reconciler",
+            18,
+            false,
+        );
         assert!(
             UnicodeWidthStr::width(cell.as_str()) <= 18,
             "cell fits REPO budget: {cell} ({} cells)",
@@ -13227,7 +13425,10 @@ mod v011321_tests {
         assert!(UnicodeWidthStr::width(long.as_str()) <= 18);
         // names align across nested/standalone (fixed 4-cell prefix)
         let plain = repo_cell_content(Some(true), "dracon-sync", 18, false);
-        assert!(plain.starts_with("🔒  "), "standalone badge slot padded: {plain}");
+        assert!(
+            plain.starts_with("🔒  "),
+            "standalone badge slot padded: {plain}"
+        );
         assert_eq!(
             UnicodeWidthStr::width("🔒> ") as usize,
             UnicodeWidthStr::width("🔒  ") as usize,

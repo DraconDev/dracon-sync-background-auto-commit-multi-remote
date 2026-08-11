@@ -28,7 +28,9 @@ pub(crate) fn extract_version_from_json(content: &str, key: &str) -> Option<Stri
     // previous implementation matched the first `"` after `q1`,
     // which could be the `\"` escape and produce garbage.
     let v: serde_json::Value = serde_json::from_str(content).ok()?;
-    v.get(key).and_then(|val| val.as_str()).map(|s| s.to_string())
+    v.get(key)
+        .and_then(|val| val.as_str())
+        .map(|s| s.to_string())
 }
 
 #[cfg(test)]

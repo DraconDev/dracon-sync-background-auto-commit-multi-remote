@@ -378,9 +378,15 @@ mod tests {
         // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): `~/...` is a
         // documented legit source form (expand_tilde anchors it under
         // $HOME) and must NOT be rejected by the safety check.
-        assert!(crate::policy::is_safe_standard_file_path("~/templates/LICENSE"));
-        assert!(crate::policy::is_safe_standard_file_path("templates/LICENSE"));
-        assert!(crate::policy::is_safe_standard_file_path(".github/FUNDING.yml"));
+        assert!(crate::policy::is_safe_standard_file_path(
+            "~/templates/LICENSE"
+        ));
+        assert!(crate::policy::is_safe_standard_file_path(
+            "templates/LICENSE"
+        ));
+        assert!(crate::policy::is_safe_standard_file_path(
+            ".github/FUNDING.yml"
+        ));
         assert!(!crate::policy::is_safe_standard_file_path("/etc/passwd"));
         assert!(!crate::policy::is_safe_standard_file_path("../secret"));
         assert!(!crate::policy::is_safe_standard_file_path("a/../../b"));

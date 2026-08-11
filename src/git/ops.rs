@@ -81,8 +81,9 @@ pub(crate) fn is_git_push_progress_line(line: &str) -> bool {
                 \d+%?\s*\(\d+/\d+\),\s*\d+\.\d+\s+KiB\s*\|\s*\d+\.\d+\s+MiB/s |
                 (?:\d+ bytes|\d+\.\d+\s+\w+)\s*\|
             )
-            |^remote:\s+\S" // any 'remote: ...' line emitted by server-side hooks.
-        ).expect("static regex compiles")
+            |^remote:\s+\S", // any 'remote: ...' line emitted by server-side hooks.
+        )
+        .expect("static regex compiles")
     });
     re.is_match(line)
 }
@@ -511,9 +512,7 @@ mod tests {
         assert!(!is_git_push_progress_line(
             "error: cannot merge without a merge base (use --allow-unrelated-histories for a delta-branch merge strategy)"
         ));
-        assert!(!is_git_push_progress_line(
-            "[trace] 0 bytes allocated"
-        ));
+        assert!(!is_git_push_progress_line("[trace] 0 bytes allocated"));
         assert!(!is_git_push_progress_line(
             "fatal: protocol error: bad bandle 42"
         ));
@@ -521,16 +520,14 @@ mod tests {
         assert!(is_git_push_progress_line(
             "remote: Total 42 (delta 1), reused 0 (delta 0)"
         ));
-        assert!(is_git_push_progress_line(
-            "remote: Processing 1234"
-        ));
+        assert!(is_git_push_progress_line("remote: Processing 1234"));
     }
 
     #[cfg(unix)]
     #[tokio::test]
     async fn test_git_askpass_script_atomic_0o700_create_and_cleanup() {
-        use std::os::unix::fs::PermissionsExt;
         use super::{git_askpass_script, AskpassScript};
+        use std::os::unix::fs::PermissionsExt;
 
         // F41 regression: the file must be created with mode 0o700
         // atomically (no world-readable window) and cleaned up by
@@ -552,7 +549,10 @@ mod tests {
         let cleanup_path = path.clone();
         {
             let _guard = AskpassScript::new(cleanup_path);
-            assert!(tokio::fs::metadata(&path).await.is_ok(), "file exists in scope");
+            assert!(
+                tokio::fs::metadata(&path).await.is_ok(),
+                "file exists in scope"
+            );
         }
         // After drop, file should be gone.
         assert!(

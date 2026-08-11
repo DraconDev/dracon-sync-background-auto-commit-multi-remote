@@ -499,7 +499,11 @@ mod tests {
         let divergence = classify_push_failure(
             "! [rejected] HEAD -> main (non-fast-forward)\nerror: failed to push some refs",
         );
-        assert!(divergence.contains("history divergence"), "got: {}", divergence);
+        assert!(
+            divergence.contains("history divergence"),
+            "got: {}",
+            divergence
+        );
         // Policy rejection (protected branch).
         let policy_msg = classify_push_failure(
             "remote: error: GH006: Protected branch update failed for main.\n! [remote rejected] main -> main (protected branch hook declined)",
@@ -510,8 +514,7 @@ mod tests {
             policy_msg
         );
         // Pack too large (github GH001).
-        let pack_msg =
-            classify_push_failure("remote: error: GH001: Large files detected.");
+        let pack_msg = classify_push_failure("remote: error: GH001: Large files detected.");
         assert!(pack_msg.contains("pack exceeds"), "got: {}", pack_msg);
         // Transport: no rejection markers at all.
         let transport = classify_push_failure("Connection timed out");

@@ -168,13 +168,8 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
                 let name_matches = entry.name == my_basename;
 
                 // Fallback: path-tail equality (last `/`-segment).
-                let last_segment = entry
-                    .path
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or(&entry.path);
-                let path_tail_matches =
-                    !my_basename.is_empty() && last_segment == my_basename;
+                let last_segment = entry.path.rsplit('/').next().unwrap_or(&entry.path);
+                let path_tail_matches = !my_basename.is_empty() && last_segment == my_basename;
 
                 if full_path_matches || name_matches || path_tail_matches {
                     let parent_basename = other_path
@@ -194,9 +189,7 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
         }
 
         // 3. Priority: submod > parent > standalone.
-        let final_role = submod_role
-            .or(parent_role)
-            .unwrap_or(RoleKind::Standalone);
+        let final_role = submod_role.or(parent_role).unwrap_or(RoleKind::Standalone);
         results.push(final_role);
     }
 
@@ -360,8 +353,7 @@ mod tests {
 
         let row_parent =
             crate::report::RepoReportRow::for_tests(&parent_path.display().to_string());
-        let row_child =
-            crate::report::RepoReportRow::for_tests(&child_dir.display().to_string());
+        let row_child = crate::report::RepoReportRow::for_tests(&child_dir.display().to_string());
         let rows = vec![row_parent, row_child];
         let roles = classify_roles(&rows);
 
@@ -370,7 +362,10 @@ mod tests {
         assert_eq!(roles[0], RoleKind::Parent(1));
         // Child row → Submod role pointing at the parent.
         match &roles[1] {
-            RoleKind::Submod { parent_basename, sub_path } => {
+            RoleKind::Submod {
+                parent_basename,
+                sub_path,
+            } => {
                 assert_eq!(parent_basename, "myparent");
                 assert_eq!(sub_path, "sub/child");
             }
@@ -420,7 +415,10 @@ mod tests {
         assert_eq!(roles[0], RoleKind::Parent(1));
         // Middle: BOTH Parent AND Submod-of-grand → Submod wins.
         match &roles[1] {
-            RoleKind::Submod { parent_basename, sub_path } => {
+            RoleKind::Submod {
+                parent_basename,
+                sub_path,
+            } => {
                 assert_eq!(parent_basename, "grand");
                 assert_eq!(sub_path, "sub/middle");
             }
@@ -428,7 +426,10 @@ mod tests {
         }
         // Leaf: Submod-of-middle.
         match &roles[2] {
-            RoleKind::Submod { parent_basename, sub_path } => {
+            RoleKind::Submod {
+                parent_basename,
+                sub_path,
+            } => {
                 assert_eq!(parent_basename, "middle");
                 assert_eq!(sub_path, "leaf");
             }

@@ -297,16 +297,21 @@ pub(crate) fn rewrite_ahead_paths(
     // origin remote), and the upstream lease anchor for the
     // post-rewrite force push.
     let pre_head = git_rev_parse(repo, "HEAD").ok_or_else(|| {
-        anyhow::anyhow!("cannot resolve HEAD in {} — refusing rewrite", repo.display())
+        anyhow::anyhow!(
+            "cannot resolve HEAD in {} — refusing rewrite",
+            repo.display()
+        )
     })?;
     let origin_url = git_config_get(repo, "remote.origin.url");
-    let lease: Option<(String, String)> =
-        match (super::branch::current_branch(repo), git_rev_parse(repo, "@{u}")) {
-            (Some(branch), Some(upstream_sha)) => {
-                Some((format!("refs/heads/{}", branch), upstream_sha))
-            }
-            _ => None,
-        };
+    let lease: Option<(String, String)> = match (
+        super::branch::current_branch(repo),
+        git_rev_parse(repo, "@{u}"),
+    ) {
+        (Some(branch), Some(upstream_sha)) => {
+            Some((format!("refs/heads/{}", branch), upstream_sha))
+        }
+        _ => None,
+    };
 
     // Bundle backup (a FILE, not a ref) — immune to the rewrite.
     let bundle_name = format!(
@@ -492,7 +497,11 @@ fn git_rev_parse(repo: &Path, rev: &str) -> Option<String> {
         return None;
     }
     let sha = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if sha.is_empty() { None } else { Some(sha) }
+    if sha.is_empty() {
+        None
+    } else {
+        Some(sha)
+    }
 }
 
 /// ADDED 2026-07-26 (v0.113.3): `git config --get <key>` → value.
@@ -506,7 +515,11 @@ fn git_config_get(repo: &Path, key: &str) -> Option<String> {
         return None;
     }
     let value = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if value.is_empty() { None } else { Some(value) }
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
 }
 
 /// Restore paths from the index to the working tree.

@@ -26,22 +26,23 @@ macro_rules! veprintln {
 }
 
 use crate::exclude::{excluded_dir_names_set, has_sync_relevant_dirty_entries};
+use crate::git::list_submodules;
 use crate::git::{
     count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
-    discover_git_repos, git_diff_head_files,
-    has_both_main_and_master, has_origin_remote, has_tracking_upstream, is_repo_ready,
-    is_safe_branch_name, repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
+    discover_git_repos, git_diff_head_files, has_both_main_and_master, has_origin_remote,
+    has_tracking_upstream, is_repo_ready, is_safe_branch_name, repair_broken_tracking,
+    repo_diff_entries, run_git_with_timeout,
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
 use crate::sync::{sync_repo, sync_repo_with_ahead_since, SyncOutcome};
-use crate::git::list_submodules;
-
 
 /// Result of a single spawned `sync_repo` task: the per-repo counters
 /// (incremented during the sync) and the outcome the sync reported.
-pub(crate) type SyncTaskResult =
-    (HashMap<String, RemoteFailInfo>, Result<SyncOutcome, anyhow::Error>);
+pub(crate) type SyncTaskResult = (
+    HashMap<String, RemoteFailInfo>,
+    Result<SyncOutcome, anyhow::Error>,
+);
 
 /// Join handle for a spawned sync task, tagged with the repo path so
 /// the in-flight collector can route the result back to the right repo.
@@ -70,10 +71,7 @@ const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 /// must NOT be discarded. Extracted to a crate-internal helper
 /// for testability independent of the heavy concurrent
 /// reproduction the integration variant would require.
-pub(crate) fn should_discard_stale_detached_result(
-    marker: Option<&u64>,
-    result_gen: u64,
-) -> bool {
+pub(crate) fn should_discard_stale_detached_result(marker: Option<&u64>, result_gen: u64) -> bool {
     marker.map(|g| *g == result_gen).unwrap_or(false)
 }
 
@@ -176,8 +174,10 @@ pub(crate) fn apply_outcome(
                     late_tag
                 );
             }
-            stage_cooldowns
-                .insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
+            stage_cooldowns.insert(
+                repo.to_path_buf(),
+                Instant::now() + Duration::from_secs(300),
+            );
             ApplyOutcome::Success
         }
         Ok(SyncOutcome::Blocked) => {
@@ -188,8 +188,10 @@ pub(crate) fn apply_outcome(
                     late_tag
                 );
             }
-            stage_cooldowns
-                .insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(300));
+            stage_cooldowns.insert(
+                repo.to_path_buf(),
+                Instant::now() + Duration::from_secs(300),
+            );
             // ADDED 2026-07-22 (v0.112.37): sustained-block
             // tracking — matches both phases now.
             entry.blocked_since.get_or_insert(Instant::now());
@@ -203,8 +205,7 @@ pub(crate) fn apply_outcome(
                     late_tag
                 );
             }
-            stage_cooldowns
-                .insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
+            stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
             ApplyOutcome::BackstopSkipped
         }
         Ok(SyncOutcome::PushFailed) => {
@@ -239,11 +240,7 @@ pub(crate) fn apply_outcome(
                     &notify_key,
                     Duration::from_secs(1800),
                 ) {
-                    crate::report::send_sync_conflict_notification(
-                        repo,
-                        "Push Failed",
-                        &err_str,
-                    );
+                    crate::report::send_sync_conflict_notification(repo, "Push Failed", &err_str);
                 }
             }
             // ADDED 2026-07-22 (v0.112.37): no longer blocked.
@@ -256,10 +253,7 @@ pub(crate) fn apply_outcome(
 /// Count unpushed commits by comparing local HEAD to configured remote HEADs.
 /// This catches repos that have remotes but no upstream tracking branch and no
 /// remote-tracking refs yet (e.g. a repo that just received mirror remotes).
-pub(crate) fn count_unpushed_vs_configured_remotes(
-    repo: &Path,
-    remote_names: &[String],
-) -> u64 {
+pub(crate) fn count_unpushed_vs_configured_remotes(repo: &Path, remote_names: &[String]) -> u64 {
     if remote_names.is_empty() {
         return 0;
     }
@@ -292,7 +286,11 @@ pub(crate) fn count_unpushed_vs_configured_remotes(
             return 1;
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let Some(remote_hash) = stdout.lines().next().and_then(|line| line.split_whitespace().next()) else {
+        let Some(remote_hash) = stdout
+            .lines()
+            .next()
+            .and_then(|line| line.split_whitespace().next())
+        else {
             return 1;
         };
         if remote_hash != local_head {
@@ -306,9 +304,10 @@ pub(crate) fn count_unpushed_vs_configured_remotes(
 pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPolicy) -> bool {
     let has_any_remote = has_origin_remote(repo)
         || !policy.remotes.is_empty()
-            && policy.remotes.iter().any(|r| {
-                crate::git::multi_remote::get_remote_url(repo, &r.name).is_some()
-            });
+            && policy
+                .remotes
+                .iter()
+                .any(|r| crate::git::multi_remote::get_remote_url(repo, &r.name).is_some());
 
     // ADDED 2026-07-19 (goal `4555eaf6`): if the repo has mirror
     // remotes (github/gitlab/codeberg) but no `origin`, ensure
@@ -330,10 +329,7 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default();
-        eprintln!(
-            "🔧 {} configuring standard mirror remotes",
-            repo.display()
-        );
+        eprintln!("🔧 {} configuring standard mirror remotes", repo.display());
         // CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): honor
         // per-repo `exclude_remotes` so a repo can opt out of a
         // specific mirror at the very first auto-configure step.
@@ -819,12 +815,9 @@ mod tests {
             blocked_since: None,
             unowned_since: None,
         };
-        let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> =
-            HashMap::new();
-        let mut remote_notify_cooldowns: HashMap<String, std::time::Instant> =
-            HashMap::new();
-        let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> =
-            HashMap::new();
+        let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> = HashMap::new();
+        let mut remote_notify_cooldowns: HashMap<String, std::time::Instant> = HashMap::new();
+        let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
 
         // --- Synced -> ApplyOutcome::Success ---
         let outcome = apply_outcome(
@@ -970,7 +963,12 @@ mod tests {
             .expect("git init")
             .success());
         assert!(crate::git::git_cmd()
-            .args(["remote", "add", "origin", "git@github.com:Other/test-repo.git"])
+            .args([
+                "remote",
+                "add",
+                "origin",
+                "git@github.com:Other/test-repo.git"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
@@ -1042,7 +1040,12 @@ mod tests {
             .expect("git commit")
             .success());
         assert!(crate::git::git_cmd()
-            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .args([
+                "remote",
+                "add",
+                "github",
+                "git@github.com:DraconDev/test-repo.git"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add")
@@ -1166,7 +1169,9 @@ mod tests {
             .ok();
 
         let policy = crate::policy::test_sync_policy();
-        assert!(refresh_publish_upstream(&repo, &policy).await.expect("refresh upstream"));
+        assert!(refresh_publish_upstream(&repo, &policy)
+            .await
+            .expect("refresh upstream"));
         let upstream = crate::git::git_cmd()
             .args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
             .current_dir(&repo)
@@ -1218,13 +1223,23 @@ mod tests {
             .expect("git commit")
             .success());
         assert!(crate::git::git_cmd()
-            .args(["remote", "add", "origin", "https://github.com/DraconDev/test-repo.git"])
+            .args([
+                "remote",
+                "add",
+                "origin",
+                "https://github.com/DraconDev/test-repo.git"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add origin")
             .success());
         assert!(crate::git::git_cmd()
-            .args(["remote", "add", "github", "git@github.com:DraconDev/test-repo.git"])
+            .args([
+                "remote",
+                "add",
+                "github",
+                "git@github.com:DraconDev/test-repo.git"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git remote add github")
@@ -1244,7 +1259,9 @@ mod tests {
 
         let policy = crate::policy::test_sync_policy();
         // Should skip cleanly (return false) without attempting HTTPS fetch.
-        assert!(!refresh_publish_upstream(&repo, &policy).await.expect("skip origin"));
+        assert!(!refresh_publish_upstream(&repo, &policy)
+            .await
+            .expect("skip origin"));
     }
 
     #[test]
@@ -1303,7 +1320,13 @@ mod tests {
             "local HEAD should be unpushed before the first push"
         );
         assert!(crate::git::git_cmd()
-            .args(["push", "--no-verify", "-q", "github", "master:refs/heads/master"])
+            .args([
+                "push",
+                "--no-verify",
+                "-q",
+                "github",
+                "master:refs/heads/master"
+            ])
             .current_dir(&repo)
             .status()
             .expect("git push")
@@ -1324,7 +1347,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let json = serde_json::to_string(&entry).unwrap();
         assert!(json.contains("\"/test/repo\""));
@@ -1388,7 +1410,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let debug = format!("{:?}", entry);
         assert!(debug.contains("/test/repo"));
@@ -1404,7 +1425,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let cloned = entry.clone();
         assert_eq!(cloned.path, entry.path);
@@ -1420,7 +1440,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let entry2 = StuckRepoEntry {
             path: PathBuf::from("/test/repo"),
@@ -1429,7 +1448,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let entry3 = StuckRepoEntry {
             path: PathBuf::from("/other/repo"),
@@ -1438,7 +1456,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         assert_eq!(entry1.path, entry2.path);
         assert_ne!(entry1.path, entry3.path);
@@ -1454,7 +1471,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         assert_eq!(entry.path, path);
         assert_eq!(entry.path.to_string_lossy(), "/home/user/code/my-project");
@@ -1469,7 +1485,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-            
         };
         let new = StuckRepoEntry {
             path: PathBuf::from("/new"),
@@ -1478,7 +1493,6 @@ mod tests {
             last_error: String::new(),
             last_error_at: 0,
             last_retry_at: 0,
-
         };
         assert!(old.stuck_since < new.stuck_since);
     }
@@ -1490,7 +1504,11 @@ mod tests {
     /// Use a unique fake repo path so tests don't interfere with
     /// each other or with real daemon state.
     fn make_test_repo_path(name: &str) -> std::path::PathBuf {
-        std::path::PathBuf::from(format!("/tmp/dracon-sync-test-{}-{}", name, std::process::id()))
+        std::path::PathBuf::from(format!(
+            "/tmp/dracon-sync-test-{}-{}",
+            name,
+            std::process::id()
+        ))
     }
 
     #[test]
@@ -1545,7 +1563,10 @@ mod tests {
 
         // Now record success
         record_push_success(&repo);
-        assert!(get_stuck_push_info(&repo).is_none(), "success should clear the entry");
+        assert!(
+            get_stuck_push_info(&repo).is_none(),
+            "success should clear the entry"
+        );
     }
 
     #[test]
@@ -1581,7 +1602,6 @@ mod tests {
         // Cleanup
         let _ = crate::daemon::unstuck_repo(&repo);
     }
-
 
     #[test]
     fn test_record_push_failure_returns_repo_state() {
@@ -2067,508 +2087,484 @@ fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         .collect()
 }
 
-    // ── Tests for the new settling_max_delay_secs + DirtyMaxAgeAction + ownership ──
+// ── Tests for the new settling_max_delay_secs + DirtyMaxAgeAction + ownership ──
 
-    /// Verify the new policy fields default to safe values. A
-    /// regression here would mean a new release accidentally
-    /// changed the default for `auto_skip_unowned` (which MUST
-    /// stay `true` for safety) or `settling_max_delay_secs` (which
-    /// is the user-visible "auto-commit delay" knob).
-    #[test]
-    fn test_settling_max_delay_default_is_60() {
-        use crate::policy::{
-            default_dirty_max_age_action, default_min_commit_interval_secs,
-            default_settling_max_delay_secs,
-        };
-        assert_eq!(default_settling_max_delay_secs(), 60);
-        assert_eq!(default_min_commit_interval_secs(), 5);
-        assert_eq!(default_dirty_max_age_action(), crate::policy::DirtyMaxAgeAction::Commit);
-    }
+/// Verify the new policy fields default to safe values. A
+/// regression here would mean a new release accidentally
+/// changed the default for `auto_skip_unowned` (which MUST
+/// stay `true` for safety) or `settling_max_delay_secs` (which
+/// is the user-visible "auto-commit delay" knob).
+#[test]
+fn test_settling_max_delay_default_is_60() {
+    use crate::policy::{
+        default_dirty_max_age_action, default_min_commit_interval_secs,
+        default_settling_max_delay_secs,
+    };
+    assert_eq!(default_settling_max_delay_secs(), 60);
+    assert_eq!(default_min_commit_interval_secs(), 5);
+    assert_eq!(
+        default_dirty_max_age_action(),
+        crate::policy::DirtyMaxAgeAction::Commit
+    );
+}
 
-    // ── stale-dirty pile-up alert (v0.113.42) ──
+// ── stale-dirty pile-up alert (v0.113.42) ──
 
-    /// The pile-up alert must only fire when the OLDEST committable
-    /// change is older than the threshold, and the per-repo cooldown
-    /// must throttle re-alerts. Threshold 0 disables the alert.
-    #[test]
-    fn test_stale_dirty_alert_due_throttle_and_disable() {
-        use crate::daemon::stale_dirty_alert_due;
-        let mut cooldowns = HashMap::new();
-        let repo = PathBuf::from("/tmp/test-repo");
-        // Below threshold → never fires.
-        assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns));
-        // Over threshold → fires.
-        assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns));
-        // Re-alert within the 30-min cooldown → throttled.
-        assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns));
-        // Disabled (0) → never, even far over the threshold.
-        let mut c2 = HashMap::new();
-        assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2));
-        // Different repo → independent cooldown.
-        let repo2 = PathBuf::from("/tmp/other-repo");
-        assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns));
-    }
+/// The pile-up alert must only fire when the OLDEST committable
+/// change is older than the threshold, and the per-repo cooldown
+/// must throttle re-alerts. Threshold 0 disables the alert.
+#[test]
+fn test_stale_dirty_alert_due_throttle_and_disable() {
+    use crate::daemon::stale_dirty_alert_due;
+    let mut cooldowns = HashMap::new();
+    let repo = PathBuf::from("/tmp/test-repo");
+    // Below threshold → never fires.
+    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns));
+    // Over threshold → fires.
+    assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns));
+    // Re-alert within the 30-min cooldown → throttled.
+    assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns));
+    // Disabled (0) → never, even far over the threshold.
+    let mut c2 = HashMap::new();
+    assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2));
+    // Different repo → independent cooldown.
+    let repo2 = PathBuf::from("/tmp/other-repo");
+    assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns));
+}
 
-    /// The age computation must be mtime-based (oldest file wins),
-    /// skip `Deleted` entries (no worktree mtime) and skip oversized
-    /// files (never staged, so they must not trigger pile-up alerts).
-    #[test]
-    fn test_oldest_dirty_change_secs_core_mtime_based() {
-        use crate::daemon::oldest_dirty_change_secs_core;
-        use dracon_git::types::{DiffFile, FileStatus};
-        use std::fs::File;
-        use std::time::{Duration as StdDuration, SystemTime};
-        let dir = std::env::temp_dir().join(format!(
-            "dracon-sync-stale-dirty-test-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let old_path = dir.join("old.txt");
-        let new_path = dir.join("new.txt");
-        std::fs::write(&old_path, b"old").unwrap();
-        std::fs::write(&new_path, b"new").unwrap();
-        // old.txt's mtime sits 120s in the past; new.txt stays "now".
-        let past = SystemTime::now() - StdDuration::from_secs(120);
-        File::options()
-            .write(true)
-            .open(&old_path)
-            .unwrap()
-            .set_modified(past)
-            .unwrap();
-        let entries = vec![
-            DiffFile::new(PathBuf::from("old.txt"), FileStatus::Modified),
-            DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
-        ];
-        let names =
-            crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-        let age = oldest_dirty_change_secs_core(
+/// The age computation must be mtime-based (oldest file wins),
+/// skip `Deleted` entries (no worktree mtime) and skip oversized
+/// files (never staged, so they must not trigger pile-up alerts).
+#[test]
+fn test_oldest_dirty_change_secs_core_mtime_based() {
+    use crate::daemon::oldest_dirty_change_secs_core;
+    use dracon_git::types::{DiffFile, FileStatus};
+    use std::fs::File;
+    use std::time::{Duration as StdDuration, SystemTime};
+    let dir = std::env::temp_dir().join(format!(
+        "dracon-sync-stale-dirty-test-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let old_path = dir.join("old.txt");
+    let new_path = dir.join("new.txt");
+    std::fs::write(&old_path, b"old").unwrap();
+    std::fs::write(&new_path, b"new").unwrap();
+    // old.txt's mtime sits 120s in the past; new.txt stays "now".
+    let past = SystemTime::now() - StdDuration::from_secs(120);
+    File::options()
+        .write(true)
+        .open(&old_path)
+        .unwrap()
+        .set_modified(past)
+        .unwrap();
+    let entries = vec![
+        DiffFile::new(PathBuf::from("old.txt"), FileStatus::Modified),
+        DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
+    ];
+    let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
+    let age = oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    // The oldest file (old.txt) drives the age; tolerate skew.
+    assert!(age >= 110 && age <= 130, "expected ~120s, got {age}");
+    // Deletions have no mtime → no age → None (caller stays silent).
+    let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
+    assert_eq!(
+        oldest_dirty_change_secs_core(&dir, &del, &names, &[], 100_000_000, &[]),
+        None
+    );
+    // Oversized files are never staged → excluded from aging.
+    let big = vec![DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added)];
+    assert_eq!(
+        oldest_dirty_change_secs_core(&dir, &big, &names, &[], 1, &[]),
+        None
+    );
+    // Excluded patterns → not committable → no age.
+    assert_eq!(
+        oldest_dirty_change_secs_core(
             &dir,
             &entries,
             &names,
             &[],
             100_000_000,
-            &[],
-        )
-        .unwrap();
-        // The oldest file (old.txt) drives the age; tolerate skew.
-        assert!(age >= 110 && age <= 130, "expected ~120s, got {age}");
-        // Deletions have no mtime → no age → None (caller stays silent).
-        let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
-        assert_eq!(
-            oldest_dirty_change_secs_core(&dir, &del, &names, &[], 100_000_000, &[]),
-            None
-        );
-        // Oversized files are never staged → excluded from aging.
-        let big = vec![DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added)];
-        assert_eq!(
-            oldest_dirty_change_secs_core(&dir, &big, &names, &[], 1, &[]),
-            None
-        );
-        // Excluded patterns → not committable → no age.
-        assert_eq!(
-            oldest_dirty_change_secs_core(
-                &dir,
-                &entries,
-                &names,
-                &[],
-                100_000_000,
-                &["*.txt".to_string()],
-            ),
-            None
-        );
-        let _ = std::fs::remove_dir_all(&dir);
-    }
+            &["*.txt".to_string()],
+        ),
+        None
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
 
-    /// Submodule entries must be aged by the parent's last gitlink
-    /// update, not by the submodule DIRECTORY's mtime (which only
-    /// moves on file create/delete inside, so it fabricates huge
-    /// ages for healthy, actively-committing submodules). v0.113.45.
-    #[test]
-    fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
-        use crate::daemon::oldest_dirty_change_secs_core;
-        use dracon_git::types::{DiffFile, FileStatus};
-        use std::time::{Duration as StdDuration, SystemTime};
-        let td = tempfile::tempdir().unwrap();
-        let parent = td.path().join("parent");
-        std::fs::create_dir_all(&parent).unwrap();
-        let git_c = |repo: &std::path::Path, args: &[&str]| {
-            std::process::Command::new("git")
-                .arg("-C")
-                .arg(repo)
-                .args(args)
-                .output()
-                .unwrap()
-        };
-        let init_repo = |repo: &std::path::Path| {
-            git_c(repo, &["init", "-q", "-b", "main"]);
-            git_c(repo, &["config", "user.email", "t@t"]);
-            git_c(repo, &["config", "user.name", "t"]);
-            // Global warden hooks reject non-hardened temp repos.
-            git_c(repo, &["config", "core.hooksPath", "/dev/null"]);
-        };
-        init_repo(&parent);
-
-        // Real nested submodule.
-        let sub = parent.join("sub");
-        std::fs::create_dir_all(&sub).unwrap();
-        std::fs::write(sub.join("f.txt"), b"x").unwrap();
-        init_repo(&sub);
-        git_c(&sub, &["add", "."]);
-        git_c(&sub, &["commit", "-q", "-m", "init"]);
-
-        // Register the gitlink in the parent with a BACKDATED commit:
-        // the parent last absorbed submodule work 300s ago.
-        git_c(&parent, &["add", "sub"]);
-        let past_secs = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .saturating_sub(300);
+/// Submodule entries must be aged by the parent's last gitlink
+/// update, not by the submodule DIRECTORY's mtime (which only
+/// moves on file create/delete inside, so it fabricates huge
+/// ages for healthy, actively-committing submodules). v0.113.45.
+#[test]
+fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
+    use crate::daemon::oldest_dirty_change_secs_core;
+    use dracon_git::types::{DiffFile, FileStatus};
+    use std::time::{Duration as StdDuration, SystemTime};
+    let td = tempfile::tempdir().unwrap();
+    let parent = td.path().join("parent");
+    std::fs::create_dir_all(&parent).unwrap();
+    let git_c = |repo: &std::path::Path, args: &[&str]| {
         std::process::Command::new("git")
             .arg("-C")
-            .arg(&parent)
-            .env("GIT_COMMITTER_DATE", format!("@{past_secs}"))
-            .args(["commit", "-q", "-m", "register sub"])
+            .arg(repo)
+            .args(args)
             .output()
-            .unwrap();
-
-        // Sanity: the submodule dir mtime is NOW (just created) — any
-        // dir-mtime-based aging would report ~0s. Only the gitlink
-        // absorption age (300s) is meaningful.
-        let dir_age = SystemTime::now()
-            .duration_since(
-                std::fs::metadata(&sub).unwrap().modified().unwrap(),
-            )
             .unwrap()
-            .as_secs();
-        assert!(dir_age < 30, "test precondition: dir mtime must be fresh");
+    };
+    let init_repo = |repo: &std::path::Path| {
+        git_c(repo, &["init", "-q", "-b", "main"]);
+        git_c(repo, &["config", "user.email", "t@t"]);
+        git_c(repo, &["config", "user.name", "t"]);
+        // Global warden hooks reject non-hardened temp repos.
+        git_c(repo, &["config", "core.hooksPath", "/dev/null"]);
+    };
+    init_repo(&parent);
 
-        // Make the submodule advance past the parent's gitlink — the
-        // committable state the alert exists for. (A synced gitlink
-        // is correctly filtered as not-committable by
-        // `should_stage_entry`.)
-        std::fs::write(sub.join("g.txt"), b"y").unwrap();
-        git_c(&sub, &["add", "."]);
-        git_c(&sub, &["commit", "-q", "-m", "advance"]);
+    // Real nested submodule.
+    let sub = parent.join("sub");
+    std::fs::create_dir_all(&sub).unwrap();
+    std::fs::write(sub.join("f.txt"), b"x").unwrap();
+    init_repo(&sub);
+    git_c(&sub, &["add", "."]);
+    git_c(&sub, &["commit", "-q", "-m", "init"]);
 
-        let entries =
-            vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
-        let names =
-            crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-        let age = oldest_dirty_change_secs_core(
-            &parent,
-            &entries,
-            &names,
-            &[],
-            100_000_000,
-            &[],
-        )
+    // Register the gitlink in the parent with a BACKDATED commit:
+    // the parent last absorbed submodule work 300s ago.
+    git_c(&parent, &["add", "sub"]);
+    let past_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        .saturating_sub(300);
+    std::process::Command::new("git")
+        .arg("-C")
+        .arg(&parent)
+        .env("GIT_COMMITTER_DATE", format!("@{past_secs}"))
+        .args(["commit", "-q", "-m", "register sub"])
+        .output()
         .unwrap();
-        assert!(
-            age >= 260 && age <= 340,
-            "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
-        );
+
+    // Sanity: the submodule dir mtime is NOW (just created) — any
+    // dir-mtime-based aging would report ~0s. Only the gitlink
+    // absorption age (300s) is meaningful.
+    let dir_age = SystemTime::now()
+        .duration_since(std::fs::metadata(&sub).unwrap().modified().unwrap())
+        .unwrap()
+        .as_secs();
+    assert!(dir_age < 30, "test precondition: dir mtime must be fresh");
+
+    // Make the submodule advance past the parent's gitlink — the
+    // committable state the alert exists for. (A synced gitlink
+    // is correctly filtered as not-committable by
+    // `should_stage_entry`.)
+    std::fs::write(sub.join("g.txt"), b"y").unwrap();
+    git_c(&sub, &["add", "."]);
+    git_c(&sub, &["commit", "-q", "-m", "advance"]);
+
+    let entries = vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
+    let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
+    let age =
+        oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    assert!(
+        age >= 260 && age <= 340,
+        "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
+    );
+}
+
+/// The policy knob must default to 600 and round-trip through
+/// TOML on both the global policy and the per-repo override.
+#[test]
+fn test_stale_dirty_alert_policy_default_and_serde() {
+    use crate::policy::{RepoPolicyOverride, SyncPolicy};
+    assert_eq!(crate::policy::default_stale_dirty_alert_secs(), 600);
+    assert_eq!(
+        crate::policy::test_sync_policy().stale_dirty_alert_secs,
+        600
+    );
+    let parsed: SyncPolicy = toml::from_str("stale_dirty_alert_secs = 120\n").unwrap();
+    assert_eq!(parsed.stale_dirty_alert_secs, 120);
+    let disabled: SyncPolicy = toml::from_str("stale_dirty_alert_secs = 0\n").unwrap();
+    assert_eq!(disabled.stale_dirty_alert_secs, 0);
+    let over: RepoPolicyOverride = toml::from_str("stale_dirty_alert_secs = 900\n").unwrap();
+    assert_eq!(over.stale_dirty_alert_secs, Some(900));
+}
+
+/// Verify `auto_skip_unowned` defaults to `true` (safety
+/// first). A regression here would silently disable the
+/// ownership safety guard rail.
+#[test]
+fn test_auto_skip_unowned_default_is_true() {
+    use crate::policy::default_true;
+    assert!(default_true());
+}
+
+// ---- sustained_threshold_met (v0.112.37) ----
+
+/// The sustained-state notification thresholds (ahead/behind/
+/// blocked/unowned) must fire only after the threshold elapses,
+/// and never when the timestamp is unset.
+#[test]
+fn test_sustained_threshold_met() {
+    let now = Instant::now();
+    let threshold = Duration::from_secs(1800);
+    // Unset → never fires.
+    assert!(!sustained_threshold_met(None, now, threshold));
+    // Just set → not yet.
+    assert!(!sustained_threshold_met(Some(now), now, threshold));
+    // Before threshold → no.
+    assert!(!sustained_threshold_met(
+        Some(now - Duration::from_secs(60)),
+        now,
+        threshold
+    ));
+    // At/over threshold → fires.
+    assert!(sustained_threshold_met(
+        Some(now - Duration::from_secs(1800)),
+        now,
+        threshold
+    ));
+    assert!(sustained_threshold_met(
+        Some(now - Duration::from_secs(7200)),
+        now,
+        threshold
+    ));
+}
+
+// ---- ownership_needs_redetect TTL (v0.112.31, audit H1/F0.2) ----
+
+/// The ownership verdict must (a) compute when never classified,
+/// (b) stay STICKY when Owned (a transient git error must not
+/// flip a good repo into skip mode), (c) re-detect an
+/// Unowned/Unknown verdict after the TTL (the regression: pre-fix
+/// the verdict was cached forever and operator remediation was
+/// invisible until restart/SIGHUP).
+#[test]
+fn test_ownership_needs_redetect_ttl() {
+    use crate::ownership::OwnershipReport;
+    let ttl = Duration::from_secs(600);
+    let now = Instant::now();
+
+    // (a) never classified → detect.
+    assert!(ownership_needs_redetect(&None, None, now, ttl));
+
+    // (b) Owned verdict → sticky forever, even past TTL.
+    let owned = Some(OwnershipReport::Owned {
+        reason: "trusted_email".to_string(),
+    });
+    assert!(!ownership_needs_redetect(&owned, None, now, ttl));
+    assert!(!ownership_needs_redetect(
+        &owned,
+        Some(now - Duration::from_secs(86_400)),
+        now,
+        ttl
+    ));
+
+    // (c) Unowned verdict: fresh → keep cached; past TTL → re-detect.
+    let unowned = Some(OwnershipReport::Unowned {
+        reason: "untrusted_email".to_string(),
+        detail: "x".to_string(),
+    });
+    assert!(!ownership_needs_redetect(
+        &unowned,
+        Some(now - Duration::from_secs(60)),
+        now,
+        ttl
+    ));
+    assert!(ownership_needs_redetect(
+        &unowned,
+        Some(now - Duration::from_secs(601)),
+        now,
+        ttl
+    ));
+    // Unowned with missing timestamp → detect (defensive).
+    assert!(ownership_needs_redetect(&unowned, None, now, ttl));
+
+    // Unknown verdict follows the same TTL path.
+    let unknown = Some(OwnershipReport::Unknown {
+        detail: "no signals".to_string(),
+    });
+    assert!(ownership_needs_redetect(
+        &unknown,
+        Some(now - Duration::from_secs(601)),
+        now,
+        ttl
+    ));
+}
+
+// ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
+
+#[cfg(test)]
+fn stuck_entry(
+    failures: u32,
+    stuck_since: u64,
+    last_error_at: u64,
+    last_retry_at: u64,
+) -> StuckRepoEntry {
+    StuckRepoEntry {
+        path: std::path::PathBuf::from("/tmp/test-repo"),
+        stuck_since,
+        consecutive_failures: failures,
+        last_error: "boom".to_string(),
+        last_error_at,
+        last_retry_at,
     }
+}
 
-    /// The policy knob must default to 600 and round-trip through
-    /// TOML on both the global policy and the per-repo override.
-    #[test]
-    fn test_stale_dirty_alert_policy_default_and_serde() {
-        use crate::policy::{RepoPolicyOverride, SyncPolicy};
-        assert_eq!(crate::policy::default_stale_dirty_alert_secs(), 600);
-        assert_eq!(crate::policy::test_sync_policy().stale_dirty_alert_secs, 600);
-        let parsed: SyncPolicy =
-            toml::from_str("stale_dirty_alert_secs = 120\n").unwrap();
-        assert_eq!(parsed.stale_dirty_alert_secs, 120);
-        let disabled: SyncPolicy =
-            toml::from_str("stale_dirty_alert_secs = 0\n").unwrap();
-        assert_eq!(disabled.stale_dirty_alert_secs, 0);
-        let over: RepoPolicyOverride =
-            toml::from_str("stale_dirty_alert_secs = 900\n").unwrap();
-        assert_eq!(over.stale_dirty_alert_secs, Some(900));
-    }
+#[test]
+fn test_stuck_decision_backoff_inside_window() {
+    let info = stuck_entry(2, 1000, 1900, 0);
+    // now = 2000, last activity 1900 → 100s < 300s backoff
+    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Backoff);
+}
 
-    /// Verify `auto_skip_unowned` defaults to `true` (safety
-    /// first). A regression here would silently disable the
-    /// ownership safety guard rail.
-    #[test]
-    fn test_auto_skip_unowned_default_is_true() {
-        use crate::policy::default_true;
-        assert!(default_true());
-    }
+#[test]
+fn test_stuck_decision_retry_after_window() {
+    let info = stuck_entry(2, 1000, 1500, 0);
+    // 500s since last failure → retry
+    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Retry);
+}
 
-    // ---- sustained_threshold_met (v0.112.37) ----
+#[test]
+fn test_stuck_decision_retry_respects_last_retry_stamp() {
+    // A retry was attempted recently (last_retry_at = 1950) —
+    // even though the last FAILURE is old, the backoff runs from
+    // the attempt so a non-push failure doesn't spin every cycle.
+    let info = stuck_entry(2, 1000, 1500, 1950);
+    assert_eq!(stuck_decision(&info, 2000, 5, 300), StuckDecision::Backoff);
+    assert_eq!(stuck_decision(&info, 2300, 5, 300), StuckDecision::Retry);
+}
 
-    /// The sustained-state notification thresholds (ahead/behind/
-    /// blocked/unowned) must fire only after the threshold elapses,
-    /// and never when the timestamp is unset.
-    #[test]
-    fn test_sustained_threshold_met() {
-        let now = Instant::now();
-        let threshold = Duration::from_secs(1800);
-        // Unset → never fires.
-        assert!(!sustained_threshold_met(None, now, threshold));
-        // Just set → not yet.
-        assert!(!sustained_threshold_met(Some(now), now, threshold));
-        // Before threshold → no.
-        assert!(!sustained_threshold_met(
-            Some(now - Duration::from_secs(60)),
-            now,
-            threshold
-        ));
-        // At/over threshold → fires.
-        assert!(sustained_threshold_met(
-            Some(now - Duration::from_secs(1800)),
-            now,
-            threshold
-        ));
-        assert!(sustained_threshold_met(
-            Some(now - Duration::from_secs(7200)),
-            now,
-            threshold
-        ));
-    }
+#[test]
+fn test_stuck_decision_exhausted_at_budget() {
+    // Regression: pre-fix, the retry path deleted the entry and
+    // the budget reset to 1 every 5 minutes, so Exhausted could
+    // never fire. Now consecutive_failures accumulates.
+    let info = stuck_entry(5, 1000, 1999, 0);
+    assert_eq!(
+        stuck_decision(&info, 2000, 5, 300),
+        StuckDecision::Exhausted,
+        "consecutive_failures >= push_max_retries must stop auto-push"
+    );
+    // Exhausted wins even inside the backoff window.
+    let info2 = stuck_entry(6, 1000, 1999, 1999);
+    assert_eq!(
+        stuck_decision(&info2, 2000, 5, 300),
+        StuckDecision::Exhausted
+    );
+    // Just below budget → normal retry flow.
+    let info3 = stuck_entry(4, 1000, 1500, 0);
+    assert_eq!(stuck_decision(&info3, 2000, 5, 300), StuckDecision::Retry);
+}
 
-    // ---- ownership_needs_redetect TTL (v0.112.31, audit H1/F0.2) ----
+#[test]
+fn test_record_push_failure_accumulates_across_calls() {
+    // Regression for the budget-reset defect: consecutive
+    // failures must ACCUMULATE (the old loop deleted the entry
+    // before each retry, so record_push_failure re-created it
+    // with consecutive_failures = 1 every 5 minutes).
+    let state_dir = tempfile::tempdir().unwrap();
+    let _guard = crate::test_helpers::EnvRestorer::new(
+        "DRACON_SYNC_STATE_DIR",
+        state_dir.path().to_string_lossy().as_ref(),
+    );
+    let repo = std::path::Path::new("/tmp/h5-accum-test-repo");
+    record_push_failure(repo, "fail 1");
+    record_push_failure(repo, "fail 2");
+    record_push_failure(repo, "fail 3");
+    let repos = load_stuck_push_repos();
+    let entry = repos.get(repo).expect("entry must exist");
+    assert_eq!(entry.consecutive_failures, 3);
+    assert_eq!(entry.last_error, "fail 3");
+    assert!(entry.last_error_at > 0);
+    // Success clears the entry.
+    record_push_success(repo);
+    assert!(!load_stuck_push_repos().contains_key(repo));
+}
 
-    /// The ownership verdict must (a) compute when never classified,
-    /// (b) stay STICKY when Owned (a transient git error must not
-    /// flip a good repo into skip mode), (c) re-detect an
-    /// Unowned/Unknown verdict after the TTL (the regression: pre-fix
-    /// the verdict was cached forever and operator remediation was
-    /// invisible until restart/SIGHUP).
-    #[test]
-    fn test_ownership_needs_redetect_ttl() {
-        use crate::ownership::OwnershipReport;
-        let ttl = Duration::from_secs(600);
-        let now = Instant::now();
+/// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): the notification
+/// throttle must (a) allow the FIRST notification, (b) suppress
+/// repeats inside the cooldown, and (c) RE-FIRE after the
+/// deadline. The previous `Entry::Vacant` pattern never expired —
+/// (c) is the regression this guards.
+#[test]
+fn test_notify_throttled_fires_then_suppresses_then_refires() {
+    let mut map: HashMap<String, Instant> = HashMap::new();
+    let cooldown = Duration::from_secs(1800);
 
-        // (a) never classified → detect.
-        assert!(ownership_needs_redetect(&None, None, now, ttl));
+    // (a) first call fires.
+    assert!(notify_throttled(&mut map, "k1", cooldown));
+    // (b) immediate repeat is suppressed.
+    assert!(!notify_throttled(&mut map, "k1", cooldown));
+    assert!(!notify_throttled(&mut map, "k1", cooldown));
+    // Different key still fires.
+    assert!(notify_throttled(&mut map, "k2", cooldown));
 
-        // (b) Owned verdict → sticky forever, even past TTL.
-        let owned = Some(OwnershipReport::Owned {
-            reason: "trusted_email".to_string(),
-        });
-        assert!(!ownership_needs_redetect(&owned, None, now, ttl));
-        assert!(!ownership_needs_redetect(
-            &owned,
-            Some(now - Duration::from_secs(86_400)),
-            now,
-            ttl
-        ));
+    // (c) after the deadline, the notification re-fires.
+    // Simulate an expired entry by backdating it.
+    map.insert("k1".to_string(), Instant::now() - Duration::from_secs(1));
+    assert!(
+        notify_throttled(&mut map, "k1", cooldown),
+        "expired cooldown must re-fire (regression: old Entry::Vacant pattern fired once ever)"
+    );
+    // And the re-fire re-arms the cooldown.
+    assert!(!notify_throttled(&mut map, "k1", cooldown));
+}
 
-        // (c) Unowned verdict: fresh → keep cached; past TTL → re-detect.
-        let unowned = Some(OwnershipReport::Unowned {
-            reason: "untrusted_email".to_string(),
-            detail: "x".to_string(),
-        });
-        assert!(!ownership_needs_redetect(
-            &unowned,
-            Some(now - Duration::from_secs(60)),
-            now,
-            ttl
-        ));
-        assert!(ownership_needs_redetect(
-            &unowned,
-            Some(now - Duration::from_secs(601)),
-            now,
-            ttl
-        ));
-        // Unowned with missing timestamp → detect (defensive).
-        assert!(ownership_needs_redetect(&unowned, None, now, ttl));
-
-        // Unknown verdict follows the same TTL path.
-        let unknown = Some(OwnershipReport::Unknown {
-            detail: "no signals".to_string(),
-        });
-        assert!(ownership_needs_redetect(
-            &unknown,
-            Some(now - Duration::from_secs(601)),
-            now,
-            ttl
-        ));
-    }
-
-    // ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
-
-    #[cfg(test)]
-    fn stuck_entry(failures: u32, stuck_since: u64, last_error_at: u64, last_retry_at: u64) -> StuckRepoEntry {
-        StuckRepoEntry {
-            path: std::path::PathBuf::from("/tmp/test-repo"),
-            stuck_since,
-            consecutive_failures: failures,
-            last_error: "boom".to_string(),
-            last_error_at,
-            last_retry_at,
+/// Verify the ownership detection works end-to-end on a real
+/// test repo with an untrusted email.
+#[test]
+fn test_ownership_detection_end_to_end() {
+    use crate::ownership::{detect_ownership, OwnershipReport, TrustedSet};
+    use crate::test_helpers::create_test_repo;
+    let repo = create_test_repo();
+    let trusted = TrustedSet {
+        emails: vec!["dracsharp@gmail.com".to_string()],
+        authors: vec!["DraconDev".to_string()],
+        remote_hosts: vec!["github.com/DraconDev".to_string()],
+    };
+    // Override the trusted list to one the actual email
+    // is NOT in → expect Unowned with reason
+    // `untrusted_email`.
+    let mut untrusted = trusted.clone();
+    untrusted.emails = vec!["definitely-not-our-email@void".to_string()];
+    let report = detect_ownership(&repo, &untrusted, None);
+    match report {
+        OwnershipReport::Unowned { reason, .. } => {
+            assert_eq!(reason, "untrusted_email");
         }
+        other => panic!("expected Unowned, got {:?}", other),
     }
+    // With the right trusted list, the override path
+    // always returns Owned.
+    let owned_report = detect_ownership(&repo, &trusted, Some(true));
+    assert!(matches!(owned_report, OwnershipReport::Owned { .. }));
+}
 
-    #[test]
-    fn test_stuck_decision_backoff_inside_window() {
-        let info = stuck_entry(2, 1000, 1900, 0);
-        // now = 2000, last activity 1900 → 100s < 300s backoff
-        assert_eq!(
-            stuck_decision(&info, 2000, 5, 300),
-            StuckDecision::Backoff
-        );
-    }
-
-    #[test]
-    fn test_stuck_decision_retry_after_window() {
-        let info = stuck_entry(2, 1000, 1500, 0);
-        // 500s since last failure → retry
-        assert_eq!(
-            stuck_decision(&info, 2000, 5, 300),
-            StuckDecision::Retry
-        );
-    }
-
-    #[test]
-    fn test_stuck_decision_retry_respects_last_retry_stamp() {
-        // A retry was attempted recently (last_retry_at = 1950) —
-        // even though the last FAILURE is old, the backoff runs from
-        // the attempt so a non-push failure doesn't spin every cycle.
-        let info = stuck_entry(2, 1000, 1500, 1950);
-        assert_eq!(
-            stuck_decision(&info, 2000, 5, 300),
-            StuckDecision::Backoff
-        );
-        assert_eq!(
-            stuck_decision(&info, 2300, 5, 300),
-            StuckDecision::Retry
-        );
-    }
-
-    #[test]
-    fn test_stuck_decision_exhausted_at_budget() {
-        // Regression: pre-fix, the retry path deleted the entry and
-        // the budget reset to 1 every 5 minutes, so Exhausted could
-        // never fire. Now consecutive_failures accumulates.
-        let info = stuck_entry(5, 1000, 1999, 0);
-        assert_eq!(
-            stuck_decision(&info, 2000, 5, 300),
-            StuckDecision::Exhausted,
-            "consecutive_failures >= push_max_retries must stop auto-push"
-        );
-        // Exhausted wins even inside the backoff window.
-        let info2 = stuck_entry(6, 1000, 1999, 1999);
-        assert_eq!(stuck_decision(&info2, 2000, 5, 300), StuckDecision::Exhausted);
-        // Just below budget → normal retry flow.
-        let info3 = stuck_entry(4, 1000, 1500, 0);
-        assert_eq!(stuck_decision(&info3, 2000, 5, 300), StuckDecision::Retry);
-    }
-
-    #[test]
-    fn test_record_push_failure_accumulates_across_calls() {
-        // Regression for the budget-reset defect: consecutive
-        // failures must ACCUMULATE (the old loop deleted the entry
-        // before each retry, so record_push_failure re-created it
-        // with consecutive_failures = 1 every 5 minutes).
-        let state_dir = tempfile::tempdir().unwrap();
-        let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR",
-            state_dir.path().to_string_lossy().as_ref(),
-        );
-        let repo = std::path::Path::new("/tmp/h5-accum-test-repo");
-        record_push_failure(repo, "fail 1");
-        record_push_failure(repo, "fail 2");
-        record_push_failure(repo, "fail 3");
-        let repos = load_stuck_push_repos();
-        let entry = repos.get(repo).expect("entry must exist");
-        assert_eq!(entry.consecutive_failures, 3);
-        assert_eq!(entry.last_error, "fail 3");
-        assert!(entry.last_error_at > 0);
-        // Success clears the entry.
-        record_push_success(repo);
-        assert!(!load_stuck_push_repos().contains_key(repo));
-    }
-
-    /// ADDED 2026-07-21 (v0.112.31, audit H4/F1.1): the notification
-    /// throttle must (a) allow the FIRST notification, (b) suppress
-    /// repeats inside the cooldown, and (c) RE-FIRE after the
-    /// deadline. The previous `Entry::Vacant` pattern never expired —
-    /// (c) is the regression this guards.
-    #[test]
-    fn test_notify_throttled_fires_then_suppresses_then_refires() {
-        let mut map: HashMap<String, Instant> = HashMap::new();
-        let cooldown = Duration::from_secs(1800);
-
-        // (a) first call fires.
-        assert!(notify_throttled(&mut map, "k1", cooldown));
-        // (b) immediate repeat is suppressed.
-        assert!(!notify_throttled(&mut map, "k1", cooldown));
-        assert!(!notify_throttled(&mut map, "k1", cooldown));
-        // Different key still fires.
-        assert!(notify_throttled(&mut map, "k2", cooldown));
-
-        // (c) after the deadline, the notification re-fires.
-        // Simulate an expired entry by backdating it.
-        map.insert(
-            "k1".to_string(),
-            Instant::now() - Duration::from_secs(1),
-        );
-        assert!(
-            notify_throttled(&mut map, "k1", cooldown),
-            "expired cooldown must re-fire (regression: old Entry::Vacant pattern fired once ever)"
-        );
-        // And the re-fire re-arms the cooldown.
-        assert!(!notify_throttled(&mut map, "k1", cooldown));
-    }
-
-    /// Verify the ownership detection works end-to-end on a real
-    /// test repo with an untrusted email.
-    #[test]
-    fn test_ownership_detection_end_to_end() {
-        use crate::ownership::{detect_ownership, OwnershipReport, TrustedSet};
-        use crate::test_helpers::create_test_repo;
-        let repo = create_test_repo();
-        let trusted = TrustedSet {
-            emails: vec!["dracsharp@gmail.com".to_string()],
-            authors: vec!["DraconDev".to_string()],
-            remote_hosts: vec!["github.com/DraconDev".to_string()],
-        };
-        // Override the trusted list to one the actual email
-        // is NOT in → expect Unowned with reason
-        // `untrusted_email`.
-        let mut untrusted = trusted.clone();
-        untrusted.emails = vec!["definitely-not-our-email@void".to_string()];
-        let report = detect_ownership(&repo, &untrusted, None);
-        match report {
-            OwnershipReport::Unowned { reason, .. } => {
-                assert_eq!(reason, "untrusted_email");
-            }
-            other => panic!("expected Unowned, got {:?}", other),
+/// Verify the per-repo override `auto_skip_unowned = false`
+/// forces Unowned even on a fully-trusted repo.
+#[test]
+fn test_ownership_per_repo_override_forces_unowned() {
+    use crate::ownership::{detect_ownership, OwnershipReport, TrustedSet};
+    use crate::test_helpers::create_test_repo;
+    let repo = create_test_repo();
+    let trusted = TrustedSet {
+        emails: vec!["dracsharp@gmail.com".to_string()],
+        authors: vec!["DraconDev".to_string()],
+        remote_hosts: vec!["github.com/DraconDev".to_string()],
+    };
+    // With `owned = false` override on a fully-trusted
+    // repo, the result is Unowned with reason `override`.
+    let report = detect_ownership(&repo, &trusted, Some(false));
+    match report {
+        OwnershipReport::Unowned { reason, .. } => {
+            assert_eq!(reason, "override");
         }
-        // With the right trusted list, the override path
-        // always returns Owned.
-        let owned_report = detect_ownership(&repo, &trusted, Some(true));
-        assert!(matches!(owned_report, OwnershipReport::Owned { .. }));
+        other => panic!("expected Unowned, got {:?}", other),
     }
-
-    /// Verify the per-repo override `auto_skip_unowned = false`
-    /// forces Unowned even on a fully-trusted repo.
-    #[test]
-    fn test_ownership_per_repo_override_forces_unowned() {
-        use crate::ownership::{detect_ownership, OwnershipReport, TrustedSet};
-        use crate::test_helpers::create_test_repo;
-        let repo = create_test_repo();
-        let trusted = TrustedSet {
-            emails: vec!["dracsharp@gmail.com".to_string()],
-            authors: vec!["DraconDev".to_string()],
-            remote_hosts: vec!["github.com/DraconDev".to_string()],
-        };
-        // With `owned = false` override on a fully-trusted
-        // repo, the result is Unowned with reason `override`.
-        let report = detect_ownership(&repo, &trusted, Some(false));
-        match report {
-            OwnershipReport::Unowned { reason, .. } => {
-                assert_eq!(reason, "override");
-            }
-            other => panic!("expected Unowned, got {:?}", other),
-        }
-    }
+}
 
 fn save_stuck_push_repos(repos: &HashMap<PathBuf, StuckRepoEntry>) {
     let path = stuck_repos_path();
@@ -2641,14 +2637,16 @@ pub(crate) fn record_push_success(repo: &Path) {
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
-    let entry = repos.entry(repo.to_path_buf()).or_insert_with(|| StuckRepoEntry {
-        path: repo.to_path_buf(),
-        stuck_since: now,
-        consecutive_failures: 0,
-        last_error: String::new(),
-        last_error_at: 0,
-        last_retry_at: 0,
-    });
+    let entry = repos
+        .entry(repo.to_path_buf())
+        .or_insert_with(|| StuckRepoEntry {
+            path: repo.to_path_buf(),
+            stuck_since: now,
+            consecutive_failures: 0,
+            last_error: String::new(),
+            last_error_at: 0,
+            last_retry_at: 0,
+        });
     entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
     // CHANGED 2026-08-11 (audit LOW): redact embedded URL credentials
     // before the error lands in the ledger — a push_url with userinfo
@@ -2760,10 +2758,7 @@ fn oldest_dirty_change_secs_core(
 ) -> Option<u64> {
     let mut oldest: Option<std::time::SystemTime> = None;
     for entry in entries {
-        if matches!(
-            entry.status,
-            dracon_git::types::FileStatus::Deleted
-        ) {
+        if matches!(entry.status, dracon_git::types::FileStatus::Deleted) {
             // Deletions have no worktree mtime — nothing to age.
             continue;
         }
@@ -2820,8 +2815,7 @@ fn oldest_dirty_change_secs_core(
                 .and_then(|o| {
                     let s = String::from_utf8_lossy(&o.stdout);
                     let secs: u64 = s.trim().parse().ok()?;
-                    std::time::UNIX_EPOCH
-                        .checked_add(std::time::Duration::from_secs(secs))
+                    std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
                 })
                 .unwrap_or(modified)
         } else {
@@ -3186,8 +3180,7 @@ pub(crate) async fn materialize_pending_submodules(
                 // the daemon can push from there. Fall through
                 // to the multi-remote configure step but using
                 // the nested path as the target.
-                let repo_override =
-                    crate::policy::load_repo_override(&nested_submodule_path);
+                let repo_override = crate::policy::load_repo_override(&nested_submodule_path);
                 let mut combined_exclude = repo_override.exclude_remotes.clone();
                 // ADDED 2026-07-17 (goal `codeberg-public-only`):
                 // same gate as the standalone path above. Nested
@@ -3232,7 +3225,6 @@ pub(crate) async fn materialize_pending_submodules(
     }
 }
 
-
 /// Returns true if the worktree at `path` is checked out on a real
 /// branch (e.g. `main`), not in detached HEAD state. Used by
 /// `materialize_pending_submodules` to decide whether the nested
@@ -3263,8 +3255,7 @@ fn is_on_main_branch(path: &Path) -> bool {
             return false;
         };
         let gitdir_rel = rest.trim();
-        let base_canon =
-            std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let base_canon = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         let resolved = base_canon.join(gitdir_rel);
         let Ok(canon_resolved) = std::fs::canonicalize(&resolved) else {
             return false;
@@ -3330,7 +3321,10 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
             | Ok(SyncOutcome::BackstopSkipped) => {}
             // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
             Ok(SyncOutcome::FilterOnly) => {
-                println!("🧹 {} filter-only dirty (nothing real to commit)", repo.display());
+                println!(
+                    "🧹 {} filter-only dirty (nothing real to commit)",
+                    repo.display()
+                );
             }
             Err(e) => {
                 eprintln!("⚠️ sync failed for {}: {}", repo.display(), e);
@@ -3852,17 +3846,16 @@ pub(crate) async fn run_daemon(
                     .is_some_and(|until| now < *until);
                 if any_remote_configured && !auto_create_cooled {
                     auto_create_cooldowns.insert(repo.clone(), now + Duration::from_secs(300));
-                    let repo_override_for_create =
-                        crate::policy::load_repo_override(&repo);
+                    let repo_override_for_create = crate::policy::load_repo_override(&repo);
                     let create_results = crate::git::multi_remote::push_mirror_remotes_create_only(
                         &repo,
                         &policy.remotes,
                         true, // mirror the same `private = true` default
-                              // as `sync.rs:1489` (push_mirror_remotes caller).
-                              // Per-repo visibility overrides via
-                              // `make-public` / `make-private` already exist;
-                              // for the auto-create-on-discovery flow we
-                              // default to private.
+                        // as `sync.rs:1489` (push_mirror_remotes caller).
+                        // Per-repo visibility overrides via
+                        // `make-public` / `make-private` already exist;
+                        // for the auto-create-on-discovery flow we
+                        // default to private.
                         &repo_override_for_create.exclude_remotes,
                         repo_override_for_create.auto_create_on_codeberg,
                         policy.sync_visibility_interval_hours,
@@ -3894,11 +3887,7 @@ pub(crate) async fn run_daemon(
                                 );
                             }
                         } else if debug_enabled() {
-                            eprintln!(
-                                "🆕 {} auto-created on {}",
-                                repo.display(),
-                                name
-                            );
+                            eprintln!("🆕 {} auto-created on {}", repo.display(), name);
                         }
                     }
                     // Public-only Codeberg is dynamic: an unknown/private
@@ -3906,16 +3895,12 @@ pub(crate) async fn run_daemon(
                     // refresh. Do not mark the repo terminally confirmed
                     // while a missing Codeberg mirror is still eligible for
                     // a future public auto-provisioning decision.
-                    let repo_override_for_visibility =
-                        crate::policy::load_repo_override(&repo);
+                    let repo_override_for_visibility = crate::policy::load_repo_override(&repo);
                     let codeberg_public_only = repo_override_for_visibility
                         .codeberg_public_only
                         .unwrap_or(policy.codeberg_public_only);
                     let codeberg_configured = policy.remotes.iter().any(|r| {
-                        matches!(
-                            r.effective_auth_type(),
-                            crate::policy::AuthType::Codeberg
-                        )
+                        matches!(r.effective_auth_type(), crate::policy::AuthType::Codeberg)
                     });
                     let codeberg_waiting_for_visibility = codeberg_configured
                         && codeberg_public_only
@@ -4040,20 +4025,23 @@ pub(crate) async fn run_daemon(
             let effective_auto_skip_unowned = repo_override
                 .auto_skip_unowned
                 .unwrap_or(policy.auto_skip_unowned);
-            let entry_for_ownership = activity.entry(repo.clone()).or_insert_with(|| RepoActivity {
-                fingerprint: String::new(),
-                changed_at: now,
-                dirty_since: None,
-                ahead_since: None,
-                behind_since: None,
-                mirror_consecutive_fails: HashMap::new(),
-                failure_count: 0,
-                remote_failures: HashMap::new(),
-                ownership: None,
-                ownership_at: None,
-                blocked_since: None,
-                unowned_since: None,
-            });
+            let entry_for_ownership =
+                activity
+                    .entry(repo.clone())
+                    .or_insert_with(|| RepoActivity {
+                        fingerprint: String::new(),
+                        changed_at: now,
+                        dirty_since: None,
+                        ahead_since: None,
+                        behind_since: None,
+                        mirror_consecutive_fails: HashMap::new(),
+                        failure_count: 0,
+                        remote_failures: HashMap::new(),
+                        ownership: None,
+                        ownership_at: None,
+                        blocked_since: None,
+                        unowned_since: None,
+                    });
             // CHANGED 2026-07-21 (v0.112.31, audit H1/F0.2):
             // re-detect on TTL while the verdict is negative
             // (Unowned/Unknown) so operator remediation is picked
@@ -4083,18 +4071,13 @@ pub(crate) async fn run_daemon(
                         repo_override.owned,
                     )
                 } else {
-                    crate::ownership::detect_ownership(
-                        &repo,
-                        &trusted,
-                        repo_override.owned,
-                    )
+                    crate::ownership::detect_ownership(&repo, &trusted, repo_override.owned)
                 };
                 // Surface remediation: a repo that WAS classified
                 // Unowned/Unknown and now classifies as Owned gets a
                 // recovery line (and ledger alert) so the operator
                 // sees the fix took effect without a restart.
-                if was_negative
-                    && matches!(report, crate::ownership::OwnershipReport::Owned { .. })
+                if was_negative && matches!(report, crate::ownership::OwnershipReport::Owned { .. })
                 {
                     eprintln!(
                         "✅ {} ownership restored (remediation detected) — resuming sync",
@@ -4239,8 +4222,7 @@ pub(crate) async fn run_daemon(
                         continue;
                     }
                     StuckDecision::Retry => {
-                        let stuck_age_secs =
-                            timestamp_secs().saturating_sub(info.stuck_since);
+                        let stuck_age_secs = timestamp_secs().saturating_sub(info.stuck_since);
                         eprintln!(
                             "🔄 {} was stuck ({} consecutive failures), retrying push after {}s",
                             repo.display(),
@@ -4419,7 +4401,11 @@ pub(crate) async fn run_daemon(
                                 .insert(repo.clone(), now + Duration::from_secs(300));
                             count_unpushed_vs_configured_remotes(
                                 &repo,
-                                &policy.remotes.iter().map(|r| r.name.clone()).collect::<Vec<_>>(),
+                                &policy
+                                    .remotes
+                                    .iter()
+                                    .map(|r| r.name.clone())
+                                    .collect::<Vec<_>>(),
                             )
                         }
                     }
@@ -4547,8 +4533,7 @@ pub(crate) async fn run_daemon(
                     // Per-repo auto-commit excludes EXTEND the global
                     // list (AGENTS.md commit policy) — mirror the merge
                     // so per-repo-excluded files never trigger the alert.
-                    let mut effective_excludes =
-                        policy.auto_commit_exclude_patterns.clone();
+                    let mut effective_excludes = policy.auto_commit_exclude_patterns.clone();
                     if let Some(extra) = &repo_override.auto_commit_exclude_patterns {
                         effective_excludes.extend(extra.iter().cloned());
                     }
@@ -4649,9 +4634,10 @@ pub(crate) async fn run_daemon(
             // continuous editing (e.g. a build process) still gets
             // committed at a steady cadence.
             const MAX_DIRTY_DELAY: Duration = Duration::from_secs(5);
-            let enough_time = entry.dirty_since.is_some_and(|since| {
-                now.duration_since(since) >= MAX_DIRTY_DELAY
-            }) || now.duration_since(entry.changed_at) >= inactivity_delay;
+            let enough_time = entry
+                .dirty_since
+                .is_some_and(|since| now.duration_since(since) >= MAX_DIRTY_DELAY)
+                || now.duration_since(entry.changed_at) >= inactivity_delay;
 
             if !enough_time {
                 continue;
@@ -4704,7 +4690,10 @@ pub(crate) async fn run_daemon(
                         );
                     }
                 } else if debug_enabled() {
-                    eprintln!("🔄 {} re-probing after max-failures backoff", repo.display());
+                    eprintln!(
+                        "🔄 {} re-probing after max-failures backoff",
+                        repo.display()
+                    );
                 }
                 // One probe: drop the count just below the gate. A
                 // failure in the apply phase bumps it back to
@@ -4791,7 +4780,10 @@ pub(crate) async fn run_daemon(
                 // generation is captured in the `SyncTrioJoin` tuple
                 // and compared against the wedged-generation marker
                 // at apply time (see `should_discard_stale_detached_result`).
-                let gen = *dispatch_gen.entry(repo_path.clone()).and_modify(|g| *g += 1).or_insert(0);
+                let gen = *dispatch_gen
+                    .entry(repo_path.clone())
+                    .and_modify(|g| *g += 1)
+                    .or_insert(0);
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
@@ -5001,10 +4993,7 @@ pub(crate) async fn run_daemon(
                     // enough to discard; a fresher result from a
                     // re-dispatched task falls through to the apply
                     // phase below.
-                    if should_discard_stale_detached_result(
-                        detached_discard.get(&repo),
-                        gen,
-                    ) {
+                    if should_discard_stale_detached_result(detached_discard.get(&repo), gen) {
                         detached_discard.remove(&repo);
                         if debug_enabled() {
                             eprintln!(
@@ -5053,8 +5042,7 @@ pub(crate) async fn run_daemon(
                                 max_fail_cooldowns.remove(&repo);
                                 activity.remove(&repo);
                             }
-                            ApplyOutcome::Blocked
-                            | ApplyOutcome::BackstopSkipped => {
+                            ApplyOutcome::Blocked | ApplyOutcome::BackstopSkipped => {
                                 // Keep the activity entry; no
                                 // failure_count increment (matches
                                 // the pre-helper behavior).
@@ -5095,7 +5083,9 @@ pub(crate) async fn run_daemon(
                     detached_syncs.push(handle);
                 }
                 for repo in &dispatched_this_cycle {
-                    detached_since.entry(repo.clone()).or_insert_with(Instant::now);
+                    detached_since
+                        .entry(repo.clone())
+                        .or_insert_with(Instant::now);
                 }
             }
 
@@ -5149,7 +5139,7 @@ pub(crate) async fn run_daemon(
         const STUCK_AHEAD_THRESHOLD: Duration = Duration::from_secs(600); // 10 min
         const STUCK_BEHIND_THRESHOLD: Duration = Duration::from_secs(1800); // 30 min
         const MIRROR_DEGRADED_THRESHOLD: usize = 3; // 3 consecutive fails
-        // ADDED 2026-07-22 (v0.112.37): sustained needs-human states.
+                                                    // ADDED 2026-07-22 (v0.112.37): sustained needs-human states.
         const BLOCKED_NOTIFY_THRESHOLD: Duration = Duration::from_secs(1800); // 30 min
         const UNOWNED_NOTIFY_THRESHOLD: Duration = Duration::from_secs(900); // 15 min
 
@@ -5171,7 +5161,8 @@ pub(crate) async fn run_daemon(
             }
 
             // Repo stuck behind (unpulled upstream changes)
-            if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD) {
+            if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD)
+            {
                 let notify_key = format!("stuck-behind-{}", repo.display());
                 if notify_throttled(
                     &mut remote_notify_cooldowns,
@@ -5219,7 +5210,11 @@ pub(crate) async fn run_daemon(
             // ownership guard, or another needs-human guard) for
             // >30 min. The darklord M10 block sat for ~a day with
             // zero desktop notifications.
-            if sustained_threshold_met(entry.blocked_since, notification_now, BLOCKED_NOTIFY_THRESHOLD) {
+            if sustained_threshold_met(
+                entry.blocked_since,
+                notification_now,
+                BLOCKED_NOTIFY_THRESHOLD,
+            ) {
                 let notify_key = format!("blocked-{}", repo.display());
                 if notify_throttled(
                     &mut remote_notify_cooldowns,
@@ -5238,7 +5233,11 @@ pub(crate) async fn run_daemon(
             // Unowned-skipped for >15 min. The F0.2 incident
             // (daemon's own source repo unowned for 25 minutes) had
             // no operator signal beyond the journal.
-            if sustained_threshold_met(entry.unowned_since, notification_now, UNOWNED_NOTIFY_THRESHOLD) {
+            if sustained_threshold_met(
+                entry.unowned_since,
+                notification_now,
+                UNOWNED_NOTIFY_THRESHOLD,
+            ) {
                 let notify_key = format!("unowned-{}", repo.display());
                 if notify_throttled(
                     &mut remote_notify_cooldowns,
@@ -5272,8 +5271,7 @@ pub(crate) async fn run_daemon(
             let sweep_interval = policy.sync_visibility_interval_hours;
             tokio::task::spawn_blocking(move || {
                 for repo in &sweep_repos {
-                    let origin_raw =
-                        crate::git::multi_remote::get_remote_url(repo, "origin");
+                    let origin_raw = crate::git::multi_remote::get_remote_url(repo, "origin");
                     let vis_url = origin_raw
                         .as_ref()
                         .filter(|u| crate::visibility::parse_github_owner_repo(u).is_some())
@@ -5330,10 +5328,7 @@ mod submodule_materialize_tests {
     /// fragile name parsing: the real operator config uses
     /// `web-games-polis` with path `web/games/wip/polis`, and
     /// the worktree name is the path's basename.
-    fn build_fixture_with_submodules(
-        tmp: &Path,
-        sub_specs: &[(&str, &str, &str)],
-    ) -> PathBuf {
+    fn build_fixture_with_submodules(tmp: &Path, sub_specs: &[(&str, &str, &str)]) -> PathBuf {
         let parent = tmp.join("dracon-platform");
         std::fs::create_dir_all(&parent).unwrap();
         let run = |args: &[&str]| {
@@ -5344,14 +5339,18 @@ mod submodule_materialize_tests {
                 .unwrap()
         };
         assert!(run(&["init", "-q"]).status.success());
-        assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+        assert!(run(&["config", "user.email", "test@example.com"])
+            .status
+            .success());
         assert!(run(&["config", "user.name", "Test"]).status.success());
         assert!(run(&["config", "commit.gpgsign", "false"]).status.success());
         assert!(run(&["config", "tag.gpgsign", "false"]).status.success());
         // Disable hooks so globally-installed warden hooks don't reject
         // commits in temp test repos that lack `.gitattributes` with
         // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
-        assert!(run(&["config", "core.hooksPath", "/dev/null"]).status.success());
+        assert!(run(&["config", "core.hooksPath", "/dev/null"])
+            .status
+            .success());
         std::fs::write(parent.join("README.md"), b"# p\n").unwrap();
         assert!(run(&["add", "README.md"]).status.success());
         assert!(run(&["commit", "-q", "-m", "init"]).status.success());
@@ -5368,14 +5367,22 @@ mod submodule_materialize_tests {
                     .unwrap()
             };
             assert!(run_sub(&["init", "-q"]).status.success());
-            assert!(run_sub(&["config", "user.email", "test@example.com"]).status.success());
+            assert!(run_sub(&["config", "user.email", "test@example.com"])
+                .status
+                .success());
             assert!(run_sub(&["config", "user.name", "Test"]).status.success());
-            assert!(run_sub(&["config", "commit.gpgsign", "false"]).status.success());
-            assert!(run_sub(&["config", "tag.gpgsign", "false"]).status.success());
+            assert!(run_sub(&["config", "commit.gpgsign", "false"])
+                .status
+                .success());
+            assert!(run_sub(&["config", "tag.gpgsign", "false"])
+                .status
+                .success());
             // Disable hooks so globally-installed warden hooks don't reject
             // commits in temp test repos that lack `.gitattributes` with
             // `filter=dracon`. See AUDIT-3-UTILITIES-2026-07-10.md CONCERN #4.
-            assert!(run_sub(&["config", "core.hooksPath", "/dev/null"]).status.success());
+            assert!(run_sub(&["config", "core.hooksPath", "/dev/null"])
+                .status
+                .success());
             std::fs::write(sub_gitdir.join("README.md"), b"# sub\n").unwrap();
             assert!(run_sub(&["add", "README.md"]).status.success());
             assert!(run_sub(&["commit", "-q", "-m", "init"]).status.success());
@@ -5527,7 +5534,12 @@ mod submodule_materialize_tests {
             flag2.store(true, std::sync::atomic::Ordering::SeqCst);
         });
         let start = Instant::now();
-        sleep_responsive(&notify, || flag.load(std::sync::atomic::Ordering::SeqCst), Duration::from_secs(5)).await;
+        sleep_responsive(
+            &notify,
+            || flag.load(std::sync::atomic::Ordering::SeqCst),
+            Duration::from_secs(5),
+        )
+        .await;
         flipper.await.unwrap();
         assert!(
             start.elapsed() < Duration::from_secs(2),
@@ -5556,4 +5568,3 @@ mod submodule_materialize_tests {
         );
     }
 }
-

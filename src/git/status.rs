@@ -236,11 +236,7 @@ pub(crate) fn is_stable_empty_repo(repo: &Path) -> bool {
     let pack_dir = dot_git.join("objects").join("pack");
     if let Ok(entries) = std::fs::read_dir(&pack_dir) {
         for entry in entries.flatten() {
-            if entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("tmp_pack_")
-            {
+            if entry.file_name().to_string_lossy().starts_with("tmp_pack_") {
                 return false;
             }
         }
