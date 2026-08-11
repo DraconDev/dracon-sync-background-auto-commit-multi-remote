@@ -423,6 +423,7 @@ mod tests {
             ("scratch/notes.md", true),
             ("deep/dir/scratch/notes.md", true),
             ("scratch/other.md", false),
+            ("deep/dir/scratch/notes.md/extra", false),
             ("notes.md", false),
             ("unscratched/notes.md", false),
         ];
@@ -501,6 +502,7 @@ mod tests {
         let cases = [
             ("web/test-results/slice13.png", true),
             ("a/web/test-results/slice13.png", true),
+            ("web/test-results/slice13.png/extra", false),
             ("web/test-results/notes.md", false),
         ];
         for (p, want) in cases {
@@ -1064,6 +1066,22 @@ fn rel_contains_segment_seq(rel: &str, needle: &str) -> bool {
     })
 }
 
+// Segment-wise glob match for a suffix that must reach the end of `rel`.
+// This is the `**/A/B` form: `**` may consume leading segments, but the
+// explicit tail is anchored at the path end unless the pattern itself ends
+// in `/**`.
+fn rel_ends_with_segment_seq(rel: &str, needle: &str) -> bool {
+    let rel_segs: Vec<&str> = rel.split('/').collect();
+    let needle_segs: Vec<&str> = needle.split('/').collect();
+    if needle_segs.is_empty() || rel_segs.len() < needle_segs.len() {
+        return false;
+    }
+    rel_segs[rel_segs.len() - needle_segs.len()..]
+        .iter()
+        .zip(needle_segs.iter())
+        .all(|(r, n)| matches_file_pattern(r, n))
+}
+
 // Segment-wise glob match for full relative-path patterns WITHOUT `**` (e.g. `reports/kdp-live-*.md`).
 //
 // ADDED 2026-07-21 (v0.112.33, audit M28/F3.12). These patterns
@@ -1192,7 +1210,7 @@ pub(crate) fn matches_untracked_exclude(
         // silently.
         if let Some(tail) = pattern.strip_prefix("**/") {
             if tail.contains('/') && !tail.ends_with("/**") {
-                if rel_contains_segment_seq(&rel, tail) {
+                if rel_ends_with_segment_seq(&rel, tail) {
                     return true;
                 }
                 continue;
