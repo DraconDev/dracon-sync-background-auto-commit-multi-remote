@@ -244,9 +244,10 @@ fi
 if [[ "$current" == "$VERSION" ]]; then
     ok "  $CRATE_TOML already at $VERSION"
 else
-    if [[ $DRY_RUN -eq 0 ]]; then
-        sed -i "0,/^version[[:space:]]*=/{s/^version[[:space:]]*=.*$/version = \"${VERSION}\"/}" "$CRATE_TOML"
-    fi
+    # A dry-run is a local preview: write the target manifest version so any
+    # subsequent cargo publish --dry-run validation sees the release being
+    # previewed, not the old version.
+    sed -i "0,/^version[[:space:]]*=/{s/^version[[:space:]]*=.*$/version = \"${VERSION}\"/}" "$CRATE_TOML"
     ok "  $CRATE_TOML: $current → $VERSION"
 fi
 
