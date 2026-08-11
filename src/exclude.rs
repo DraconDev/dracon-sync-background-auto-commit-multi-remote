@@ -412,6 +412,112 @@ mod tests {
     }
 
     #[test]
+    fn test_matches_untracked_exclude_multi_segment_tail() {
+        // `**/scratch/notes.md` — FIXED 2026-08-12 (audit MEDIUM):
+        // pre-fix this shape fell through every branch (single-segment
+        // tail branch requires no `/`; `/**` branch requires the
+        // trailing `/**`), so the operator-excluded file was
+        // auto-committed silently.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let patterns = vec!["**/scratch/notes.md".to_string()];
+        let cases = [
+            ("scratch/notes.md", true),
+            ("deep/dir/scratch/notes.md", true),
+            ("scratch/other.md", false),
+            ("notes.md", false),
+            ("unscratched/notes.md", false),
+        ];
+        for (p, want) in cases {
+            let path = repo.join(p);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"x").unwrap();
+            assert_eq!(
+                matches_untracked_exclude(repo, &path, &patterns),
+                want,
+                "**/scratch/notes.md vs {p}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_matches_untracked_exclude_mid_glob() {
+        // `web/**/test-results` — FIXED 2026-08-12 (audit MEDIUM):
+        // pre-fix the mid-glob shape fell through every branch and
+        // never matched.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let patterns = vec!["web/**/test-results".to_string()];
+        let cases = [
+            ("web/test-results", true), // `**` consumes zero segments
+            ("web/x/test-results", true),
+            ("web/x/y/test-results", true),
+            ("web/test-results/x", false), // tail anchored: must be final
+            ("src/web/a/test-results", false), // head anchored at start
+            ("web/test-results/x/test-results", true),
+        ];
+        for (p, want) in cases {
+            let path = repo.join(p);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"x").unwrap();
+            assert_eq!(
+                matches_untracked_exclude(repo, &path, &patterns),
+                want,
+                "web/**/test-results vs {p}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_matches_untracked_exclude_mid_glob_double() {
+        // `a/**/b/**/c` with two mid-globs: backtracking must find
+        // the middle segment.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let patterns = vec!["a/**/b/**/c".to_string()];
+        let cases = [
+            ("a/b/c", true),
+            ("a/x/b/y/c", true),
+            ("a/x/y/c", false), // no `b` segment
+            ("x/a/b/c", false), // head anchored
+        ];
+        for (p, want) in cases {
+            let path = repo.join(p);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"x").unwrap();
+            assert_eq!(
+                matches_untracked_exclude(repo, &path, &patterns),
+                want,
+                "a/**/b/**/c vs {p}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_matches_untracked_exclude_tail_with_glob() {
+        // `**/web/test-results/*.png`: multi-segment tail whose LAST
+        // segment is a glob.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let patterns = vec!["**/web/test-results/*.png".to_string()];
+        let cases = [
+            ("web/test-results/slice13.png", true),
+            ("a/web/test-results/slice13.png", true),
+            ("web/test-results/notes.md", false),
+        ];
+        for (p, want) in cases {
+            let path = repo.join(p);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"x").unwrap();
+            assert_eq!(
+                matches_untracked_exclude(repo, &path, &patterns),
+                want,
+                "**/web/test-results/*.png vs {p}"
+            );
+        }
+    }
+
+    #[test]
     fn test_should_stage_entry_tracked_modified_no_match() {
         // A tracked, modified file that does NOT match the pattern
         // should still be staged.
@@ -978,6 +1084,29 @@ fn rel_matches_glob_path(rel: &str, pattern: &str) -> bool {
         .all(|(r, p)| matches_file_pattern(r, p))
 }
 
+/// Segment-wise glob match with mid-glob `**` (`a/**/b`): the head
+/// and tail are anchored at the start/end of the relative path and
+/// `**` consumes zero or more FULL segments in between. Handles
+/// multiple `**` (`a/**/b/**/c`) via backtracking.
+///
+/// ADDED 2026-08-12 (audit MEDIUM): the pre-fix matcher had no
+/// branch for mid-glob `**` shapes — `a/**/b` fell through every
+/// branch and never matched, so operator-excluded files were
+/// auto-committed silently.
+fn rel_matches_doublestar(rel: &str, pattern: &str) -> bool {
+    let rel_segs: Vec<&str> = rel.split('/').collect();
+    let pat_segs: Vec<&str> = pattern.split('/').collect();
+    fn go(rel: &[&str], pat: &[&str]) -> bool {
+        match pat {
+            [] => rel.is_empty(),
+            [p, rest @ ..] if *p == "**" => (0..=rel.len()).any(|k| go(&rel[k..], rest)),
+            [p, rest @ ..] if rel.is_empty() => false,
+            [p, rest @ ..] => matches_file_pattern(rel[0], p) && go(&rel[1..], rest),
+        }
+    }
+    go(&rel_segs, &pat_segs)
+}
+
 pub(crate) fn matches_untracked_exclude(
     repo: &Path,
     file_path: &Path,
@@ -1053,6 +1182,32 @@ pub(crate) fn matches_untracked_exclude(
             .and_then(|p| p.strip_suffix("/**"))
         {
             if rel_contains_segment_seq(&rel, mid) {
+                return true;
+            }
+            continue;
+        }
+        // `**/A/B` — multi-segment tail with NO trailing `/**`
+        // (e.g. `**/scratch/notes.md`, `**/web/test-results/*.png`).
+        // FIXED 2026-08-12 (audit MEDIUM): pre-fix this shape fell
+        // through EVERY branch (the single-segment tail branch
+        // requires no `/`, the `/**` branch requires the trailing
+        // `/**`), so operator-excluded files were auto-committed
+        // silently.
+        if let Some(tail) = pattern.strip_prefix("**/") {
+            if tail.contains('/') && !tail.ends_with("/**") {
+                if rel_contains_segment_seq(&rel, tail) {
+                    return true;
+                }
+                continue;
+            }
+        }
+        // Mid-glob `a/**/b` (e.g. `web/**/test-results`): `**`
+        // consumes zero or more FULL segments between the anchored
+        // head and tail. FIXED 2026-08-12 (audit MEDIUM): pre-fix
+        // this shape also fell through every branch and never
+        // matched.
+        if pattern.contains("/**/") {
+            if rel_matches_doublestar(&rel, pattern) {
                 return true;
             }
             continue;
