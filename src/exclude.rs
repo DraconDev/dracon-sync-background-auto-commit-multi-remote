@@ -418,8 +418,6 @@ mod tests {
         // tail branch requires no `/`; `/**` branch requires the
         // trailing `/**`), so the operator-excluded file was
         // auto-committed silently.
-        let tmp = tempfile::tempdir().unwrap();
-        let repo = tmp.path();
         let patterns = vec!["**/scratch/notes.md".to_string()];
         let cases = [
             ("scratch/notes.md", true),
@@ -429,6 +427,8 @@ mod tests {
             ("unscratched/notes.md", false),
         ];
         for (p, want) in cases {
+            let tmp = tempfile::tempdir().unwrap();
+            let repo = tmp.path();
             let path = repo.join(p);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, b"x").unwrap();
@@ -445,8 +445,6 @@ mod tests {
         // `web/**/test-results` — FIXED 2026-08-12 (audit MEDIUM):
         // pre-fix the mid-glob shape fell through every branch and
         // never matched.
-        let tmp = tempfile::tempdir().unwrap();
-        let repo = tmp.path();
         let patterns = vec!["web/**/test-results".to_string()];
         let cases = [
             ("web/test-results", true), // `**` consumes zero segments
@@ -457,6 +455,8 @@ mod tests {
             ("web/test-results/x/test-results", true),
         ];
         for (p, want) in cases {
+            let tmp = tempfile::tempdir().unwrap();
+            let repo = tmp.path();
             let path = repo.join(p);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, b"x").unwrap();
@@ -472,8 +472,6 @@ mod tests {
     fn test_matches_untracked_exclude_mid_glob_double() {
         // `a/**/b/**/c` with two mid-globs: backtracking must find
         // the middle segment.
-        let tmp = tempfile::tempdir().unwrap();
-        let repo = tmp.path();
         let patterns = vec!["a/**/b/**/c".to_string()];
         let cases = [
             ("a/b/c", true),
@@ -482,6 +480,8 @@ mod tests {
             ("x/a/b/c", false), // head anchored
         ];
         for (p, want) in cases {
+            let tmp = tempfile::tempdir().unwrap();
+            let repo = tmp.path();
             let path = repo.join(p);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, b"x").unwrap();
@@ -497,8 +497,6 @@ mod tests {
     fn test_matches_untracked_exclude_tail_with_glob() {
         // `**/web/test-results/*.png`: multi-segment tail whose LAST
         // segment is a glob.
-        let tmp = tempfile::tempdir().unwrap();
-        let repo = tmp.path();
         let patterns = vec!["**/web/test-results/*.png".to_string()];
         let cases = [
             ("web/test-results/slice13.png", true),
@@ -506,6 +504,8 @@ mod tests {
             ("web/test-results/notes.md", false),
         ];
         for (p, want) in cases {
+            let tmp = tempfile::tempdir().unwrap();
+            let repo = tmp.path();
             let path = repo.join(p);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, b"x").unwrap();
