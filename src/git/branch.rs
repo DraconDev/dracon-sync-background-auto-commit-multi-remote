@@ -18,6 +18,10 @@ fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
         .current_dir(repo)
         .env("GIT_SSH_COMMAND", ssh_hardening)
         .env("GIT_TERMINAL_PROMPT", "0")
+        // Warden's global pre-push hook rejects branch deletion by default.
+        // These fixed main/master cleanup operations are the daemon's
+        // deliberate, narrow exception, matching the stale-branch janitor.
+        .env("DRACON_ALLOW_REWRITE", "1")
         .stdout(std::process::Stdio::null())
         .status()
         .with_context(|| format!("failed to delete {remote}/{branch}"))?;

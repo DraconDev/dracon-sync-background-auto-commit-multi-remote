@@ -4439,7 +4439,17 @@ pub(crate) async fn run_daemon(
                 // Remote issues but clean — check for dirty files that
                 // has_sync_relevant_dirty_entries would detect (untracked in excluded
                 // dirs, oversized files, etc.) before committing to dirty state.
-                let entries = repo_diff_entries(&repo).await.unwrap_or_default();
+                let entries = match repo_diff_entries(&repo).await {
+                    Ok(entries) => entries,
+                    Err(e) => {
+                        eprintln!(
+                            "⚠️ {} diff inspection failed; leaving activity state unchanged: {}",
+                            repo.display(),
+                            e
+                        );
+                        continue;
+                    }
+                };
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
@@ -4454,12 +4464,32 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let raw_entries = repo_diff_entries(&repo).await.unwrap_or_default();
+                let raw_entries = match repo_diff_entries(&repo).await {
+                    Ok(entries) => entries,
+                    Err(e) => {
+                        eprintln!(
+                            "⚠️ {} diff inspection failed; skipping sync classification: {}",
+                            repo.display(),
+                            e
+                        );
+                        continue;
+                    }
+                };
                 // Filter out entries that only differ due to clean/smudge filters.
                 // `git status` shows filter-processed files as modified, but `git diff HEAD`
                 // correctly applies the clean filter and shows no diff for such files.
                 // Note: untracked files don't appear in `git diff HEAD`, so they always pass.
-                let diff_head_files = git_diff_head_files(&repo).await.unwrap_or_default();
+                let diff_head_files = match git_diff_head_files(&repo).await {
+                    Ok(files) => files,
+                    Err(e) => {
+                        eprintln!(
+                            "⚠️ {} filter-aware diff failed; skipping sync classification: {}",
+                            repo.display(),
+                            e
+                        );
+                        continue;
+                    }
+                };
                 let filtered: Vec<_> = if diff_head_files.is_empty() && !raw_entries.is_empty() {
                     // git diff HEAD returned nothing. Only clear if ALL entries are Modified
                     // (filter-only). Untracked/Added files don't appear in git diff HEAD.

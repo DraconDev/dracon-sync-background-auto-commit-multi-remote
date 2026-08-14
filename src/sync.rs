@@ -28,6 +28,25 @@ use crate::visibility::{
     sync_mirror_visibility,
 };
 
+static STALE_UPSTREAM_REFRESH_AT: std::sync::OnceLock<
+    std::sync::Mutex<HashMap<std::path::PathBuf, std::time::Instant>>,
+> = std::sync::OnceLock::new();
+const STALE_UPSTREAM_REFRESH_COOLDOWN: Duration = Duration::from_secs(300);
+
+fn stale_upstream_refresh_allowed(repo: &Path, now: std::time::Instant) -> bool {
+    let attempts = STALE_UPSTREAM_REFRESH_AT
+        .get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+    let mut attempts = attempts.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    if attempts
+        .get(repo)
+        .is_some_and(|last| now.saturating_duration_since(*last) < STALE_UPSTREAM_REFRESH_COOLDOWN)
+    {
+        return false;
+    }
+    attempts.insert(repo.to_path_buf(), now);
+    true
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SyncOutcome {
     Synced,
@@ -756,7 +775,7 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
         // but finds `entries` empty, skips `stage_commit_and_push`, and
         // returns `Synced` without ever committing the untracked file.
         if entries.is_empty() {
-            let ut = untracked_entries(repo).await.unwrap_or_default();
+            let ut = untracked_entries(repo).await?;
             if !ut.is_empty() {
                 status.is_clean = false;
                 entries = ut;
@@ -3611,7 +3630,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
 
     // Untracked enumeration respects .gitignore (including the
     // warden-managed secrets block) via --exclude-standard.
-    let untracked = untracked_entries(repo).await.unwrap_or_default();
+    let untracked = untracked_entries(repo).await?;
     let auto_commit_exclude = repo_override
         .auto_commit_exclude_patterns
         .as_deref()
@@ -4373,6 +4392,16 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
     let head_sha = output(&["rev-parse", "HEAD"]);
     if upstream_sha.is_some() && upstream_sha == head_sha {
         return; // converged — the common case, zero network cost
+    }
+    // A successful named-mirror push can leave the configured upstream
+    // tracking ref stale. If the fetch cannot repair it (dead origin,
+    // credentials, or a transient network failure), the next successful
+    // push would otherwise launch the same 30-second fetch every cycle.
+    // Keep the fast local convergence check above, but rate-limit repeated
+    // refresh attempts per repo so a broken upstream cannot dominate the
+    // daemon's push budget.
+    if !stale_upstream_refresh_allowed(repo, std::time::Instant::now()) {
+        return;
     }
     let _ = super::git::run_git_with_timeout_env_progress(
         repo,
@@ -7410,6 +7439,20 @@ push_url = "{}"
         // short-circuit (the audit's exact bug case — injected
         // gitlinks must not be silently dropped).
         assert!(!should_short_circuit_filter_only(true, true));
+    }
+
+    #[test]
+    fn test_stale_upstream_refresh_cooldown_is_per_repo() {
+        let first_repo = std::path::PathBuf::from("/tmp/stale-upstream-cooldown-a");
+        let second_repo = std::path::PathBuf::from("/tmp/stale-upstream-cooldown-b");
+        let now = std::time::Instant::now();
+        assert!(stale_upstream_refresh_allowed(&first_repo, now));
+        assert!(!stale_upstream_refresh_allowed(&first_repo, now + Duration::from_secs(1)));
+        assert!(stale_upstream_refresh_allowed(&second_repo, now + Duration::from_secs(1)));
+        assert!(stale_upstream_refresh_allowed(
+            &first_repo,
+            now + STALE_UPSTREAM_REFRESH_COOLDOWN + Duration::from_secs(1)
+        ));
     }
 
     fn git_cmd(repo: &Path, args: &[&str]) -> std::process::Output {

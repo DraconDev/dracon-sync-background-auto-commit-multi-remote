@@ -3845,6 +3845,18 @@ exit 0
             !local_branches.contains("master"),
             "master local branch should be deleted"
         );
+        let remote_branches = String::from_utf8_lossy(
+            &test_git_cmd()
+                .args(["--git-dir", bare.to_str().unwrap(), "branch", "--list"])
+                .output()
+                .expect("git branch --list on bare remote")
+                .stdout,
+        )
+        .to_string();
+        assert!(
+            !remote_branches.contains("master"),
+            "master remote branch should be deleted"
+        );
     }
     #[tokio::test]
     async fn test_rename_master_to_main_renames_and_deletes_remote_master() {

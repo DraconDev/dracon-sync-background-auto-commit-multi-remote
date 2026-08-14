@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ASCII case-insensitive, so custom policies no longer need duplicate
   entries for `DraconDev` versus `dracondev` URL forms.
 
+- **Stale upstream refreshes are rate-limited** (audit M5, 2026-08-14): when
+  a mirror push succeeded but a dead or unavailable upstream tracking ref
+  stayed stale, the daemon could repeat a 30-second fetch every cycle. Each
+  repo now gets at most one refresh attempt per five minutes until its local
+  tracking ref converges.
+
 - **Stale test comment in `test_terminal_width_fallback_is_compact`
   rewritten** (audit LOW, 2026-08-11): the comment described the
   removed Vertical (< 220) / Compact (220-299) bands; the tier layout

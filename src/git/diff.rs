@@ -215,6 +215,13 @@ pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
         .stderr(std::process::Stdio::null())
         .output()
         .await?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "git ls-files --others --exclude-standard failed in {}: exit {}",
+            repo.display(),
+            output.status
+        ));
+    }
     let stdout = String::from_utf8_lossy(&output.stdout);
     Ok(stdout
         .split('\0')
@@ -259,7 +266,7 @@ pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     if !diff.is_empty() {
         // Only return diff entries if there are actual changes.
         // Also include any untracked files that may exist alongside mods.
-        let untracked = untracked_entries(repo).await.unwrap_or_default();
+        let untracked = untracked_entries(repo).await?;
         if untracked.is_empty() {
             return Ok(diff);
         }
@@ -269,7 +276,7 @@ pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     }
     // cli_diff_entries returned empty. Check for untracked files or
     // staged-only changes.
-    let untracked = untracked_entries(repo).await.unwrap_or_default();
+    let untracked = untracked_entries(repo).await?;
     if !untracked.is_empty() {
         return Ok(untracked);
     }
@@ -409,5 +416,14 @@ mod f33_tests {
     fn parse_name_status_empty_line_returns_none() {
         assert!(parse_name_status_line("").is_none());
         assert!(parse_name_status_line("\tfoo").is_none());
+    }
+
+    #[tokio::test]
+    async fn untracked_entries_propagates_git_failure() {
+        let tmp = tempfile::tempdir().unwrap();
+        let error = super::untracked_entries(tmp.path())
+            .await
+            .expect_err("a non-repository must not look clean");
+        assert!(error.to_string().contains("git ls-files"));
     }
 }

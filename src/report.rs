@@ -7896,7 +7896,13 @@ pub(crate) async fn run_repair_warns(
                 continue;
             }
         };
-        let entries = repo_diff_entries(&repo).await.unwrap_or_default();
+        let entries = match repo_diff_entries(&repo).await {
+            Ok(entries) => entries,
+            Err(e) => {
+                eprintln!("⚠️ {} diff inspection failed: {}", repo.display(), e);
+                continue;
+            }
+        };
         let effective_dirty = has_sync_relevant_dirty_entries(
             &repo,
             &entries,
