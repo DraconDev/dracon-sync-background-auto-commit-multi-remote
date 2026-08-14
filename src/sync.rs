@@ -3909,8 +3909,15 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // the same CLI fallback for the backstop decision as well.
     let initial_ahead = if initial_status.ahead > 0 {
         initial_status.ahead as u64
-    } else {
+    } else if super::git::current_branch(repo).is_none() {
+        // Only use the CLI fallback for detached HEADs.  For an attached
+        // mirror-only repo with no remote-tracking ref, count_ahead_commits
+        // conservatively treats the whole local history as unpushed; that
+        // would re-open the mirror push gate even when the mirror is already
+        // current (and would arm the backstop on a healthy repo).
         count_ahead_commits(repo).await.unwrap_or(0)
+    } else {
+        0
     };
 
     let repo_override = load_repo_override(repo);
@@ -4391,8 +4398,15 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // before deciding whether there is anything to push.
     let ahead = if current_status.ahead > 0 {
         current_status.ahead as u64
-    } else {
+    } else if super::git::current_branch(ctx.repo).is_none() {
+        // dracon-git's detached-HEAD fallback is needed only when the
+        // checkout has no branch.  On an attached mirror-only checkout,
+        // count_ahead_commits may have to fall back to the whole local
+        // history when no tracking ref exists, which is not proof that a
+        // configured mirror is stale and would cause unwanted pushes.
         count_ahead_commits(ctx.repo).await.unwrap_or(0)
+    } else {
+        0
     };
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
     // CHANGED 2026-07-21 (v0.112.30): when the upstream is configured
