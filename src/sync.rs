@@ -4343,9 +4343,11 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
         }
         Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
     };
-    let Some(branch) = super::git::current_branch(repo) else {
-        return;
-    };
+    // A detached worktree has no symbolic branch to report, but the push
+    // path uses `main` as its explicit destination in that state. Refresh
+    // that same tracking ref after a successful push so the next cycle does
+    // not repeatedly rediscover the already-pushed commit.
+    let branch = super::git::current_branch(repo).unwrap_or_else(|| "main".to_string());
     let Some(remote) =
         output(&["config", &format!("branch.{}.remote", branch)]).filter(|s| !s.is_empty())
     else {
@@ -6746,9 +6748,8 @@ push_url = "{}"
     /// attached and detached worktrees.
     ///
     /// Scoped test: detached HEAD + ahead commit + call the bare push
-    /// path directly. The full `sync_repo` path goes through libgit2
-    /// `get_status` which under-reports ahead=0 on a detached HEAD —
-    /// separate issue. This regression isolates the refspec fix.
+    /// path directly. The full `sync_repo` regression below covers the
+    /// separate libgit2 ahead-count issue.
     #[tokio::test]
     async fn test_push_succeeds_with_detached_head() {
         let tmp = tempfile::tempdir().unwrap();
@@ -6877,6 +6878,155 @@ push_url = "{}"
             String::from_utf8_lossy(&head_sha.stdout).trim(),
             String::from_utf8_lossy(&origin_sha.stdout).trim(),
             "ahead commit must land on origin even with a detached HEAD"
+        );
+    }
+
+    /// REGRESSION (2026-08-14): the full sync path must not trust libgit2's
+    /// ahead=0 result for a detached HEAD. Before the CLI fallback in
+    /// `handle_ahead_push`, `sync_repo` returned `NothingToDo` and left the
+    /// commit only in the local detached worktree even though the daemon had
+    /// dispatched the repository as pending work.
+    #[tokio::test]
+    async fn test_sync_repo_pushes_detached_head_ahead_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "main"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (key, value) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", key, value])
+                .status()
+                .unwrap();
+        }
+
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "origin",
+                &origin_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "push",
+                "-q",
+                "-u",
+                "origin",
+                "main",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "ahead",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "checkout",
+                "--detach",
+                "HEAD",
+            ])
+            .status()
+            .unwrap();
+
+        let policy: SyncPolicy = toml::from_str(
+            r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+standard_files_auto = false
+push_retries = 1
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#,
+        )
+        .unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo should succeed: {:?}", result);
+
+        let local_head = String::from_utf8_lossy(
+            &crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        let remote_head = String::from_utf8_lossy(
+            &crate::git::git_cmd()
+                .args([
+                    "--git-dir",
+                    &origin_bare.to_string_lossy(),
+                    "rev-parse",
+                    "refs/heads/main",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        assert_eq!(local_head, remote_head, "detached HEAD commit must be pushed");
+
+        let tracking_head = String::from_utf8_lossy(
+            &crate::git::git_cmd()
+                .args([
+                    "-C",
+                    &repo.to_string_lossy(),
+                    "rev-parse",
+                    "refs/remotes/origin/main",
+                ])
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        assert_eq!(
+            local_head, tracking_head,
+            "successful detached push should refresh origin/main tracking"
         );
     }
 
