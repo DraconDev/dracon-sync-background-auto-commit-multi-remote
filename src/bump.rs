@@ -88,13 +88,13 @@ version = "1.2.3""#;
 
     #[test]
     fn test_extract_version_from_cargo_with_inline_comment() {
-        let content = "[package]\nversion = "1.2.3" # release\n";
+        let content = "[package]\nversion = \"1.2.3\" # release\n";
         assert_eq!(
             extract_version_from_cargo(content),
             Some("1.2.3".to_string())
         );
 
-        let not_a_version = "[package]\nversioned = "9.9.9"\n";
+        let not_a_version = "[package]\nversioned = \"9.9.9\"\n";
         assert_eq!(extract_version_from_cargo(not_a_version), None);
     }
 

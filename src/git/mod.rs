@@ -489,7 +489,7 @@ fn pushed_branch_pushable_bytes(repo: &std::path::Path) -> u64 {
 
 /// Collect the SHAs of every object reachable from `branch` minus the
 /// `excludes` tips (`git rev-list --objects <branch> --not <tip>...`), one
-/// 40-hex SHA per line. `None` on git error.
+/// full object ID per line. `None` on git error.
 fn branch_object_shas(repo: &std::path::Path, branch: &str, excludes: &[String]) -> Option<String> {
     let mut args: Vec<&str> = vec!["rev-list", "--objects", branch];
     for tip in excludes {

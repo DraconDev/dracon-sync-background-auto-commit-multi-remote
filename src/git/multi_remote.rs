@@ -762,11 +762,9 @@ pub(crate) async fn push_to_all_remotes(
     let mut sorted = remotes.to_vec();
     sorted.sort_by_key(|r| r.priority);
 
-    // CHANGED 2026-06-20: sequential → parallel. Pushing to all remotes
-    // in parallel cuts push time from O(N) to O(1) for N remotes.
-    // With 4 remotes (origin, github, codeberg, gitlab), this is a
-    // 4x speedup on the push phase. Results are returned in the same
-    // order as `sorted` so callers can rely on the ordering.
+    // Pushing to all remotes in parallel cuts push time from O(N) to O(1)
+    // for N remotes. Results are returned in the same order as `sorted` so
+    // callers can rely on the configured priority ordering.
     let mut futures = Vec::with_capacity(sorted.len());
     for remote in sorted.iter() {
         let repo = repo.to_path_buf();
