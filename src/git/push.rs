@@ -240,7 +240,7 @@ pub(crate) async fn push_with_retries(
                     // one); pull the explicit branch instead. (2) No
                     // `--no-edit`: git opens $EDITOR for the merge
                     // commit when stdin is a tty (`dracon-sync once` /
-                    // `repair-concerns --apply` from a terminal could
+                    // `dracon-sync repair concerns --apply` from a terminal could
                     // hang inside vim). (3) On conflict the pull left
                     // the repo in MERGING state (which the pre-v0.113.2
                     // conflict check couldn't even detect for nested

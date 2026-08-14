@@ -571,7 +571,7 @@ pub(crate) struct StuckRepoEntry {
     /// Number of consecutive push failures. Reset to 0 on
     /// successful push. Used to detect when the retry budget
     /// is exhausted and the daemon should stop auto-pushing
-    /// (the operator can then intervene via `repair-concerns`).
+    /// (the operator can then intervene via `dracon-sync repair concerns`).
     /// Defaults to 0 for entries written before this field
     /// was added.
     #[serde(default)]
@@ -666,7 +666,8 @@ pub(crate) enum StuckDecision {
     /// every cycle.
     Retry,
     /// `consecutive_failures >= push_max_retries` — stop auto-pushing
-    /// until the operator intervenes (`unstuck` / `repair-concerns`).
+    /// until the operator intervenes (`dracon-sync repair stuck-unstuck` /
+    /// `dracon-sync repair concerns`).
     /// This is the enforcement the pre-fix code never had
     /// (`push_max_retries` was report-display-only).
     Exhausted,
@@ -3817,7 +3818,7 @@ pub(crate) async fn run_daemon(
             // mirror remotes" on first detection, then `is_repo_ready`
             // returns false for an empty repo, and the daemon `continue`s
             // forever — never creating the github/gitlab repos. The user
-            // sees a persistent "❌ CONCERN · run repair-concerns --apply
+            // sees a persistent "❌ CONCERN · run dracon-sync repair concerns --apply
             // (set upstream)" until they make their first commit, at
             // which point the daemon finally tries to push (and the
             // missing github repo means it fails with "Repository not
@@ -4204,7 +4205,7 @@ pub(crate) async fn run_daemon(
                             Duration::from_secs(1800),
                         ) {
                             eprintln!(
-                                "🛑 {} push stuck ({} consecutive failures ≥ budget {}) — auto-push paused; fix the cause, then run `dracon-sync unstuck {}` or `repair-concerns --apply`",
+                                "🛑 {} push stuck ({} consecutive failures ≥ budget {}) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck {}` or `dracon-sync repair concerns --apply`",
                                 repo.display(),
                                 info.consecutive_failures,
                                 policy.push_max_retries,
@@ -4214,7 +4215,7 @@ pub(crate) async fn run_daemon(
                                 &repo,
                                 "Push Stuck (budget exhausted)",
                                 &format!(
-                                    "{} consecutive push failures — auto-push paused; run `dracon-sync unstuck` after fixing",
+                                    "{} consecutive push failures — auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
                                     info.consecutive_failures
                                 ),
                             );
@@ -4844,7 +4845,7 @@ pub(crate) async fn run_daemon(
             // the original serial loop: it covers the common case
             // (success/failure, activity removal, failure counting) but
             // defers the deeply-nested stuck-ahead/behind/mirror
-            // notifications, repair-warns triage, and the post-sync
+            // notifications, `repair warns` triage, and the post-sync
             // re-fetch to a follow-up. This keeps the diff focused on
             // the parallelization win.
             // Apply-phase deadline: stop awaiting in_flight after

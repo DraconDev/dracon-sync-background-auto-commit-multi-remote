@@ -1791,7 +1791,7 @@ pub(crate) fn repo_state_flags_with_push_failure(
     // has an `origin` remote. Previously the `has_origin &&` guard
     // meant that a repo with only non-origin remotes (e.g. the SSH
     // multi-mirror repos) silently swallowed the missing-upstream
-    // signal, falling through to the generic "run repair-concerns"
+    // signal, falling through to the generic "run dracon-sync repair concerns"
     // hint instead of the more useful "set upstream" hint. The
     // concern predicate ([`repo_is_concern_with_push_failure`]) still
     // gates on `!has_upstream` independently, so the row remains a
@@ -2378,7 +2378,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         return "no commits yet — make first commit to enable push".to_string();
     }
     if flags.iter().any(|f| f == "NO_UPSTREAM") {
-        // CHANGED 2026-06-20: the original hint "run repair-concerns
+        // CHANGED 2026-06-20: the original hint "run dracon-sync repair concerns
         // --apply (set upstream)" was misleading for SSH multi-mirror
         // repos that have no `origin` remote. `repair concerns --apply`
         // would try `git push -u origin HEAD` and fail because there is
@@ -2394,7 +2394,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         //     only, since the daemon is already pushing successfully
         //     via explicit refspecs.
         if concern {
-            return "run repair-concerns --apply (set upstream)".to_string();
+            return "run dracon-sync repair concerns --apply (set upstream)".to_string();
         }
         return "no tracking upstream (daemon uses explicit refspecs; not a concern)".to_string();
     }
@@ -2402,10 +2402,10 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         if warn {
             return "daemon will push after changes settle".to_string();
         }
-        return "run repair-concerns --apply (push or rewrite)".to_string();
+        return "run dracon-sync repair concerns --apply (push or rewrite)".to_string();
     }
     if flags.iter().any(|f| f.starts_with("BEHIND:")) {
-        return "run repair-concerns --apply (pull/merge)".to_string();
+        return "run dracon-sync repair concerns --apply (pull/merge)".to_string();
     }
     if flags.iter().any(|f| f == "PACK_SIZE_WARNING") {
         // CHANGED 2026-07-28 (v0.113.7): the daemon's push path now
@@ -2422,7 +2422,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
             .to_string();
     }
     if concern {
-        return "run repair-concerns --apply".to_string();
+        return "run dracon-sync repair concerns --apply".to_string();
     }
     "healthy".to_string()
 }
@@ -3779,7 +3779,7 @@ pub(crate) async fn run_repos_report(
                     info.last_error.clone()
                 };
                 format!(
-                    "🛑 push-stuck ({} failures): {} — run repair-concerns --apply",
+                    "🛑 push-stuck ({} failures): {} — run dracon-sync repair concerns --apply",
                     info.consecutive_failures, trimmed
                 )
             };
@@ -9350,7 +9350,10 @@ mod tests {
         // because the daemon is already pushing successfully via
         // explicit refspecs and the auto-repair path would fail.
         let hint = repo_hint(&["NO_UPSTREAM".into()], false, true);
-        assert_eq!(hint, "run repair-concerns --apply (set upstream)");
+        assert_eq!(
+            hint,
+            "run dracon-sync repair concerns --apply (set upstream)"
+        );
         let hint = repo_hint(&["NO_UPSTREAM".into()], false, false);
         assert_eq!(
             hint,
@@ -9405,7 +9408,10 @@ mod tests {
     #[test]
     fn test_repo_hint_ahead_concern() {
         let hint = repo_hint(&["AHEAD:3".into()], false, false);
-        assert_eq!(hint, "run repair-concerns --apply (push or rewrite)");
+        assert_eq!(
+            hint,
+            "run dracon-sync repair concerns --apply (push or rewrite)"
+        );
     }
 
     #[test]
@@ -9417,7 +9423,7 @@ mod tests {
     #[test]
     fn test_repo_hint_behind() {
         let hint = repo_hint(&["BEHIND:2".into()], false, false);
-        assert_eq!(hint, "run repair-concerns --apply (pull/merge)");
+        assert_eq!(hint, "run dracon-sync repair concerns --apply (pull/merge)");
     }
 
     // -------------------------------------------------------------------
@@ -9807,7 +9813,7 @@ mod tests {
     /// or `NO_UPSTREAM`. The hint for this state is
     /// "no commits yet — make first commit to enable push" so the
     /// operator knows the right action (make a commit, NOT run
-    /// `repair-concerns --apply` which would fail with "src
+    /// `dracon-sync repair concerns --apply` which would fail with "src
     /// refspec HEAD does not match any").
     #[test]
     fn test_repo_state_flags_empty_repo() {
@@ -9864,7 +9870,7 @@ mod tests {
     #[test]
     fn test_repo_hint_concern() {
         let hint = repo_hint(&["DIRTY".into()], false, true);
-        assert_eq!(hint, "run repair-concerns --apply");
+        assert_eq!(hint, "run dracon-sync repair concerns --apply");
     }
 
     #[test]
@@ -10384,14 +10390,17 @@ mod tests {
         row.untracked = 0;
         row.ahead = 0;
         row.push_status = "STUCK".to_string();
-        row.hint = "run repair-concerns --apply".to_string();
+        row.hint = "run dracon-sync repair concerns --apply".to_string();
         row.last_author = "DraconDev".to_string();
         let what = summary_what(&row, 200);
         assert!(
             what.contains("push: stuck"),
             "STUCK should surface as push: stuck: {what}"
         );
-        assert!(what.contains("run repair-concerns"), "hint visible: {what}");
+        assert!(
+            what.contains("run dracon-sync repair concerns"),
+            "hint visible: {what}"
+        );
         assert!(
             !what.contains("by DraconDev"),
             "author must be omitted from summary (v0.112.27 R2): {what}"
@@ -11312,7 +11321,7 @@ mod tests {
             concern: true,
             warn: false,
             active: false,
-            hint: "run repair-concerns --apply (push or rewrite)".to_string(),
+            hint: "run dracon-sync repair concerns --apply (push or rewrite)".to_string(),
             state_cause: StateCause::Failed,
             state_cause_label: "failed".to_string(),
             daemon_last_action_unix: 0,
