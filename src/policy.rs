@@ -503,7 +503,9 @@ pub(crate) struct SyncPolicy {
     /// When a repo has more untracked files than this limit, the daemon
     /// commits them in multiple smaller batches (each ≤ this size) to
     /// avoid lock contention and large commit overhead.
-    /// Default: 100 (matches goal mqli43u6-tg3lcf requirement of 50-100).
+    /// Default: 100000. The large default keeps high-volume test/audit
+    /// batches in one commit; operators can lower it when smaller batches
+    /// are preferable.
     #[serde(default = "default_max_stage_batch_files")]
     pub(crate) max_stage_batch_files: usize,
 

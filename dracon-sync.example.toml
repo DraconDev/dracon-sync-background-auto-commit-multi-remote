@@ -147,6 +147,10 @@ backup_dir = "/home/dracon/dracon/backups"
 # Roots recursively patrolled for .git repositories to sync.
 watch_roots = ["/home/dracon/Dev"]
 
+# Repositories to leave out of discovery/sync by name. Keep empty unless a
+# repo has an explicit operational reason to be managed elsewhere.
+exclude_repos = []
+
 # Exclude heavy/generated trees from repo discovery and auto-staging.
 exclude_dir_names = [
     "target",
@@ -234,6 +238,19 @@ untracked_exclude_patterns = [
 # 50 MiB. Now matches the code default of 100 MiB so the
 # example is self-consistent with the daemon.
 max_stage_file_bytes = 104857600
+
+# Maximum number of files in one auto-commit batch. The high default keeps
+# normal audit/test bursts together; lower it if a repo needs smaller commits.
+max_stage_batch_files = 100000
+
+# Alert when a repo has at least this many unpushed commits. This is a
+# diagnostic threshold; it does not itself stop syncing.
+alert_unpushed_threshold = 10
+
+# When enabled, newly-created GitHub repositories are private. The account
+# is used for GitHub auto-create operations.
+auto_github_private = false
+auto_github_private_account = "DraconDev"
 
 # =============================================================================
 #  SECTION 5: SAFETY
