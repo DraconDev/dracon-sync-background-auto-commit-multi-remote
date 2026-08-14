@@ -1402,7 +1402,7 @@ pub(crate) fn shared_submodule_canonical_head_sha(repo: &Path, path: &Path) -> O
     let main_ref = shared_gitdir.join("refs/heads/main");
     let content = std::fs::read_to_string(&main_ref).ok()?;
     let sha = content.trim();
-    if !sha.is_empty() && sha.len() == 40 {
+    if crate::git::is_valid_object_id(sha) {
         Some(sha.to_string())
     } else {
         None

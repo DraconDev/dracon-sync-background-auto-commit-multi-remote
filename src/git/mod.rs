@@ -14,6 +14,15 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
     crate::policy::tokio_git_command()
 }
 
+/// Return whether `value` is a full Git object ID. Git repositories may use
+/// either SHA-1 (40 hex characters) or SHA-256 (64 hex characters); keeping
+/// this check centralized prevents the SHA-256 form from silently bypassing
+/// safety guards that inspect refs and object lists.
+pub(crate) fn is_valid_object_id(value: &str) -> bool {
+    (value.len() == 40 || value.len() == 64)
+        && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 /// GitHub's incoming-pack hard limit (2 GiB). A push whose pack exceeds this
 /// is rejected by the forge.
 const GITHUB_PACK_LIMIT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
@@ -244,10 +253,9 @@ fn resolve_commondir_direct(gitdir: &std::path::Path) -> std::path::PathBuf {
 
 /// Resolve a ref from loose files, then packed-refs. No git subprocess.
 fn resolve_ref_direct(gitdir: &std::path::Path, refname: &str) -> Option<String> {
-    let is_sha = |s: &str| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit());
     if let Ok(s) = std::fs::read_to_string(gitdir.join(refname)) {
         let t = s.trim();
-        if is_sha(t) {
+        if is_valid_object_id(t) {
             return Some(t.to_string());
         }
     }
@@ -257,7 +265,7 @@ fn resolve_ref_direct(gitdir: &std::path::Path, refname: &str) -> Option<String>
                 continue;
             }
             if let Some((sha, name)) = line.split_once(' ') {
-                if name == refname && is_sha(sha) {
+                if name == refname && is_valid_object_id(sha) {
                     return Some(sha.to_string());
                 }
             }
@@ -369,7 +377,7 @@ fn github_delta_excludes(repo: &std::path::Path, remote: &str, branch: &str) -> 
     let refname = format!("refs/remotes/{}/{}", remote, branch);
     let tip = git_capture_stdout(repo, &["rev-parse", "--verify", "--quiet", &refname])
         .map(|s| s.trim().to_string())
-        .filter(|t| t.len() == 40 && t.bytes().all(|b| b.is_ascii_hexdigit()));
+        .filter(|t| is_valid_object_id(t));
     match tip {
         // Trust the tracking ref only when its tip is an ancestor of the
         // branch; a non-ancestor tip (rewound/recreated remote + stale
@@ -489,11 +497,11 @@ fn branch_object_shas(repo: &std::path::Path, branch: &str, excludes: &[String])
         args.push(tip.as_str());
     }
     let objects = git_capture_stdout(repo, &args)?;
-    // Collect object SHAs (first whitespace-delimited token per line).
+    // Collect object IDs (first whitespace-delimited token per line).
     let mut shas = String::new();
     for line in objects.lines() {
         if let Some(sha) = line.split_whitespace().next() {
-            if sha.len() == 40 {
+            if is_valid_object_id(sha) {
                 shas.push_str(sha);
                 shas.push('\n');
             }
@@ -558,12 +566,12 @@ fn blob_size_sum(repo: &std::path::Path, shas: &str) -> Option<u64> {
                     // Format from `cat-file --batch-check='%(objecttype)
                     // %(objectsize)'`: either `<type> <size>` (no SHA echoed)
                     // or `<sha> <type> <size>` (SHA echoed). Skip a leading
-                    // 40-hex SHA if present, then read type and size.
+                    // full object ID if present, then read type and size.
                     let parts: Vec<&str> = trimmed.split_whitespace().collect();
                     let mut i = 0;
                     if parts
                         .first()
-                        .is_some_and(|p| p.len() == 40 && p.bytes().all(|b| b.is_ascii_hexdigit()))
+                        .is_some_and(|p| is_valid_object_id(p))
                     {
                         i += 1;
                     }
@@ -4478,7 +4486,7 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
             let tref = format!("refs/remotes/{}/{}", r, name);
             let tip = git_capture_stdout(repo, &["rev-parse", "--verify", "--quiet", &tref])
                 .map(|s| s.trim().to_string())
-                .filter(|t| t.len() == 40);
+                .filter(|t| is_valid_object_id(t));
             remote_tips.insert((r.clone(), name.clone()), tip);
         }
     }
