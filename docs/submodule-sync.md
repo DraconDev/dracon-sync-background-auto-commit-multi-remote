@@ -1,4 +1,9 @@
-# Submodule sync with `dracon-sync`
+# Submodule sync with `dracon-sync` (historical runbook)
+
+> Status (2026-08-15): this document records the pre-2026-07-02 standalone
+> submodule layout and its manual recovery paths. The current daemon stages
+> changed gitlinks (`stage_gitlink_updates`), and the parent utility workspace
+> is a separate meta-only arrangement documented in the root `AGENTS.md`.
 
 > Status (2026-06-30): the daemon syncs each subrepo correctly on its
 > own (per-repo commit + push to its own remotes) but does **not** yet
