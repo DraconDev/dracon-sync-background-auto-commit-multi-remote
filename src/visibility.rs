@@ -1750,12 +1750,17 @@ mod tests {
         let path = visibility_cache_path(repo_path);
         std::fs::create_dir_all(visibility_cache_dir()).unwrap();
 
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         // Legacy format
-        std::fs::write(&path, "999999999999999").unwrap();
+        std::fs::write(&path, now.to_string()).unwrap();
         assert!(is_visibility_cache_fresh(repo_path, 24));
 
         // New format
-        std::fs::write(&path, "visibility=private\n999999999999999").unwrap();
+        std::fs::write(&path, format!("visibility=private\n{now}")).unwrap();
         assert!(is_visibility_cache_fresh(repo_path, 24));
 
         let _ = std::fs::remove_file(&path);

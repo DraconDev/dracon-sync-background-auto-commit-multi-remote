@@ -1142,6 +1142,14 @@ mod tests {
                 > fallback_status_rank(&FileStatus::Unknown)
         );
     }
+
+    #[test]
+    fn test_valid_object_id_accepts_sha1_and_sha256_only() {
+        assert!(is_valid_object_id(&"a".repeat(40)));
+        assert!(is_valid_object_id(&"b".repeat(64)));
+        assert!(!is_valid_object_id(&"c".repeat(39)));
+        assert!(!is_valid_object_id(&format!("{}g", "d".repeat(39))));
+    }
     #[test]
     fn test_parse_name_status_line_valid_lines() {
         assert_eq!(
