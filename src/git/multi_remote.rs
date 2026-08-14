@@ -573,6 +573,13 @@ pub(crate) async fn push_to_named_remote(
     let branch = current_branch(repo)
         .filter(|b| b != "HEAD")
         .unwrap_or_else(|| "main".to_string());
+    if !is_safe_branch_name(&branch) {
+        return Err(anyhow::anyhow!(
+            "unsafe current branch '{}' in {}",
+            branch,
+            repo.display()
+        ));
+    }
     let refspec = format!("HEAD:refs/heads/{}", branch);
     let ssh_hardening = git_ssh_hardening();
 
@@ -742,21 +749,10 @@ pub(crate) async fn diagnose_divergence(
 
 /// Push to all remotes in priority order.
 ///
-/// SEQUENTIAL (not concurrent) as of goal `87c1bf4d` (2026-06-16).
-/// The previous concurrent implementation via `tokio::spawn` had
-/// a race condition: when one remote (gitlab, codeberg) was
-/// slower on the network than another (origin, github), a
-/// subsequent fast-forward could land on the fast remote but be
-/// rejected by the slow remote (which was still at an older tip).
-/// After `push_max_retries` consecutive failures, the daemon
-/// marked the repo PUSH_STUCK.
-///
-/// Sequential push trades ~3-6s of total wall-clock latency per
-/// commit (4 remotes × ~1.5s each, instead of 1.5s in parallel)
-/// for ELIMINATION of the race. The user-visible cadence is
-/// similar because the daemon's apply phase deadline
-/// (`pulse_interval_secs * 2` = 2s) was already causing trailing-
-/// drain events on every commit when concurrent pushes took >2s.
+/// Pushes run concurrently so one slow forge does not delay every other
+/// mirror. Each result retains its configured remote name even if a task is
+/// cancelled or panics; reporting an anonymous `unknown` remote made failure
+/// ledgers and operator diagnostics needlessly ambiguous.
 pub(crate) async fn push_to_all_remotes(
     repo: &Path,
     remotes: &[RemoteConfig],
@@ -775,19 +771,19 @@ pub(crate) async fn push_to_all_remotes(
     for remote in sorted.iter() {
         let repo = repo.to_path_buf();
         let name = remote.name.clone();
+        let result_name = name.clone();
         let force_push = remote.force_push_when_behind;
-        futures.push(tokio::spawn(async move {
+        futures.push((result_name, tokio::spawn(async move {
             let result =
                 push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
             (name, result)
-        }));
+        })));
     }
     let mut results = Vec::with_capacity(futures.len());
-    for f in futures {
+    for (name, f) in futures {
         match f.await {
-            Ok((name, result)) => results.push((name, result)),
+            Ok((_task_name, result)) => results.push((name, result)),
             Err(e) => {
-                let name = String::from("unknown");
                 results.push((name, Err(anyhow::anyhow!("join error: {}", e))));
             }
         }

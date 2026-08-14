@@ -17,23 +17,26 @@ use tokio::sync::mpsc;
 /// F47 (2026-07-19): the previous 200ms SIGTERM→SIGKILL gap was
 /// tight for processes that need cleanup time (large git filter-repo
 /// unpacking, etc.). Now: SIGTERM, wait 2s for graceful cleanup, then
-/// SIGKILL. Also: if `kill` is not on PATH (sandboxed envs), fall
-/// back to `nix-kill-process-group` crate (TODO) — for now, the
-/// spawn-failure is silently dropped but a future enhancement can
-/// surface it.
+/// SIGKILL. The wait is asynchronous so a timed-out Git operation does
+/// not block a Tokio worker thread while its process group exits.
 #[cfg(unix)]
-fn kill_process_group(pid: u32) {
+async fn kill_process_group(pid: u32) {
     let pid_s = format!("-{pid}");
     // Use `setsid` + `kill` shell-out to send signals to the
     // process group created by `process_group(0)` in
     // `configure_git_process_group`. The shell-out form is
     // portable across glibc/musl/distros; libc::killpg would
     // require a new direct dependency.
-    let term_ok = std::process::Command::new("kill")
-        .args(["-TERM", pid_s.as_str()])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
+    let term_pid = pid_s.clone();
+    let term_ok = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("kill")
+            .args(["-TERM", term_pid.as_str()])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    })
+    .await
+    .unwrap_or(false);
     if !term_ok {
         eprintln!(
             "⚠️ kill_process_group: SIGTERM to pgid {} failed (kill missing or no perm)",
@@ -41,14 +44,17 @@ fn kill_process_group(pid: u32) {
         );
         return;
     }
-    std::thread::sleep(Duration::from_secs(2));
-    let _ = std::process::Command::new("kill")
-        .args(["-KILL", pid_s.as_str()])
-        .output();
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let _ = tokio::task::spawn_blocking(move || {
+        let _ = std::process::Command::new("kill")
+            .args(["-KILL", pid_s.as_str()])
+            .output();
+    })
+    .await;
 }
 
 #[cfg(not(unix))]
-fn kill_process_group(_pid: u32) {}
+async fn kill_process_group(_pid: u32) {}
 
 #[cfg(unix)]
 fn configure_git_process_group(cmd: &mut TokioCommand) {
@@ -129,6 +135,8 @@ where
     let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<Instant>();
     let stderr_task = tokio::spawn(async move {
         let mut stderr_output = String::new();
+        let mut stderr_truncated = false;
+        const MAX_STDERR_BYTES: usize = 1024 * 1024;
         if let Some(mut stderr) = stderr_handle {
             let mut lines = BufReader::new(&mut stderr).lines();
             loop {
@@ -144,10 +152,22 @@ where
                                 let _ = progress_tx.send(Instant::now());
                             }
                         }
-                        if !stderr_output.is_empty() {
-                            stderr_output.push('\n');
+                        if stderr_output.len() < MAX_STDERR_BYTES {
+                            if !stderr_output.is_empty() {
+                                stderr_output.push('\n');
+                            }
+                            let remaining = MAX_STDERR_BYTES.saturating_sub(stderr_output.len());
+                            let mut end = remaining.min(line.len());
+                            while end > 0 && !line.is_char_boundary(end) {
+                                end -= 1;
+                            }
+                            stderr_output.push_str(&line[..end]);
+                            if end < line.len() {
+                                stderr_truncated = true;
+                            }
+                        } else {
+                            stderr_truncated = true;
                         }
-                        stderr_output.push_str(&line);
                     }
                     Ok(None) => break,
                     Err(e) => {
@@ -160,6 +180,9 @@ where
                     }
                 }
             }
+        }
+        if stderr_truncated {
+            stderr_output.push_str("\n<stderr truncated at 1 MiB>");
         }
         stderr_output
     });
@@ -186,7 +209,7 @@ where
         let remaining = deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
             if let Some(pid) = pid {
-                kill_process_group(pid);
+                kill_process_group(pid).await;
             }
             let _ = child.start_kill();
             let _ = child.wait().await;

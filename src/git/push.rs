@@ -33,6 +33,7 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("GITLAB_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
+                    let _askpass_guard = super::AskpassScript::new(askpass.clone());
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
                         &["push", "--no-verify", &https, refspec],
@@ -44,7 +45,6 @@ pub(crate) async fn push_https_fallback(
                         ],
                     )
                     .await;
-                    let _ = tokio::fs::remove_file(&askpass).await;
                     if result.is_ok() {
                         return Ok(());
                     }
@@ -60,6 +60,7 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("CODEBERG_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
+                    let _askpass_guard = super::AskpassScript::new(askpass.clone());
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
                         &["push", "--no-verify", &https, refspec],
@@ -71,7 +72,6 @@ pub(crate) async fn push_https_fallback(
                         ],
                     )
                     .await;
-                    let _ = tokio::fs::remove_file(&askpass).await;
                     if result.is_ok() {
                         return Ok(());
                     }
@@ -111,7 +111,16 @@ pub(crate) async fn push_with_transport_fallbacks(
     // pointed at by HEAD to `refs/heads/<branch>`. The detached
     // fallback to `main` is preserved as a last resort.
     let ssh_refspec = match crate::git::branch::current_branch(repo) {
-        Some(branch) => format!("HEAD:refs/heads/{branch}"),
+        Some(branch) if super::is_safe_branch_name(&branch) => {
+            format!("HEAD:refs/heads/{branch}")
+        }
+        Some(branch) => {
+            return Err(anyhow::anyhow!(
+                "unsafe current branch '{}' in {}",
+                branch,
+                repo.display()
+            ));
+        }
         None => "HEAD:refs/heads/main".to_string(),
     };
     match super::run_git_with_timeout_env_progress(
@@ -177,7 +186,16 @@ pub(crate) async fn push_with_retries(
         // when a branch is known. Bare `HEAD` fails with the same refspec
         // error on a detached worktree.
         let ssh_refspec = match crate::git::branch::current_branch(repo) {
-            Some(branch) => format!("HEAD:refs/heads/{branch}"),
+            Some(branch) if super::is_safe_branch_name(&branch) => {
+                format!("HEAD:refs/heads/{branch}")
+            }
+            Some(branch) => {
+                return Err(anyhow::anyhow!(
+                    "unsafe current branch '{}' in {}",
+                    branch,
+                    repo.display()
+                ));
+            }
             None => "HEAD:refs/heads/main".to_string(),
         };
         match super::run_git_with_timeout_env_progress(
@@ -404,6 +422,9 @@ pub(crate) async fn force_push_after_rewrite(
     lease: &Option<(String, String)>,
     timeout_secs: u64,
 ) -> Result<()> {
+    if !super::is_safe_branch_name(branch) {
+        return Err(anyhow::anyhow!("unsafe branch name '{}'", branch));
+    }
     let lease_flag = match lease {
         Some((reference, expect)) => format!("--force-with-lease={}:{}", reference, expect),
         None => {
