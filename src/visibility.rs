@@ -123,7 +123,7 @@ fn is_visibility_cache_fresh(repo_path: &Path, interval_hours: u64) -> bool {
         .unwrap_or_default()
         .as_secs();
     let interval_secs = interval_hours.saturating_mul(3600);
-    now.saturating_sub(ts) < interval_secs
+    ts <= now && now - ts < interval_secs
 }
 
 /// Write the current visibility state AND timestamp to the cache.
@@ -198,7 +198,7 @@ pub(crate) fn cached_repo_visibility(repo_path: &Path, interval_hours: u64) -> O
     // `interval_hours` — the SAME policy value the sweep uses
     // (`is_visibility_cache_fresh`), never a separately hardcoded constant.
     let interval_secs = interval_hours.saturating_mul(3600);
-    if now.saturating_sub(ts) >= interval_secs {
+    if ts > now || now - ts >= interval_secs {
         return None;
     }
     Some(private)
@@ -1269,6 +1269,22 @@ mod tests {
         assert!(is_visibility_cache_fresh(repo_path, 24));
         // Cleanup
         let _ = std::fs::remove_file(visibility_cache_path(repo_path));
+    }
+
+    #[test]
+    fn test_visibility_cache_in_the_future_is_not_fresh() {
+        let repo_path = Path::new("/tmp/test_cache_future");
+        let path = visibility_cache_path(repo_path);
+        let future = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .saturating_add(24 * 3600);
+        std::fs::create_dir_all(visibility_cache_dir()).unwrap();
+        std::fs::write(&path, format!("visibility=public\n{future}")).unwrap();
+        assert!(!is_visibility_cache_fresh(repo_path, 24));
+        assert_eq!(cached_repo_visibility(repo_path, 24), None);
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

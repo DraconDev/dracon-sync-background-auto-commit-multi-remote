@@ -6,19 +6,38 @@ pub(crate) fn extract_version_from_cargo(content: &str) -> Option<String> {
             section = trimmed.trim_matches(&['[', ']'][..]).trim().to_string();
         }
         if section == "package" || section == "workspace.package" {
-            if let Some(rest) = trimmed.strip_prefix("version") {
-                let rest = rest.trim_start().trim_start_matches('=').trim();
-                // F43 (2026-07-18): allow a trailing `;` (legal TOML
-                // for `version = "1.0.0";`). Strip the trailing `;`
-                // before the closing `"` check.
-                let rest = rest.strip_suffix(';').unwrap_or(rest);
-                if let Some(v) = rest.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
-                    return Some(v.to_string());
-                }
+            let Some(rest) = trimmed.strip_prefix("version") else {
+                continue;
+            };
+            // Do not let a key such as versioned masquerade as the package
+            // version field.
+            if rest
+                .chars()
+                .next()
+                .is_some_and(|ch| !ch.is_whitespace() && ch != '=')
+            {
+                continue;
+            }
+            if let Some(value) = parse_cargo_string_value(rest) {
+                return Some(value);
             }
         }
     }
     None
+}
+
+fn parse_cargo_string_value(rest: &str) -> Option<String> {
+    let rest = rest.trim_start().strip_prefix('=')?.trim_start();
+    let inner = rest.strip_prefix('"')?;
+    let end = inner.find('"')?;
+    let value = &inner[..end];
+    let trailing = inner[end + 1..].trim();
+    let trailing_ok = trailing.is_empty()
+        || trailing.starts_with('#')
+        || trailing.strip_prefix(';').is_some_and(|after_semicolon| {
+            after_semicolon.trim().is_empty() || after_semicolon.trim_start().starts_with('#')
+        });
+    trailing_ok.then(|| value.to_string())
 }
 
 pub(crate) fn extract_version_from_json(content: &str, key: &str) -> Option<String> {
@@ -65,6 +84,18 @@ version = "1.2.3""#;
             extract_version_from_cargo(content2),
             Some("0.9.0".to_string())
         );
+    }
+
+    #[test]
+    fn test_extract_version_from_cargo_with_inline_comment() {
+        let content = "[package]\nversion = "1.2.3" # release\n";
+        assert_eq!(
+            extract_version_from_cargo(content),
+            Some("1.2.3".to_string())
+        );
+
+        let not_a_version = "[package]\nversioned = "9.9.9"\n";
+        assert_eq!(extract_version_from_cargo(not_a_version), None);
     }
 
     #[test]

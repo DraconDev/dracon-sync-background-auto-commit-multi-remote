@@ -322,14 +322,7 @@ async fn get_bump_info(repo: &Path) -> Option<(String, String, String)> {
             }
             let content = String::from_utf8_lossy(&output.stdout);
             if let Some(v) = match *file {
-                "Cargo.toml" => content
-                    .lines()
-                    .map(|l| l.trim())
-                    .find(|l| l.starts_with("version") && !l.starts_with("version_prefix"))
-                    .and_then(|l| l.split('=').nth(1))
-                    .map(|v| v.trim().trim_matches('"').trim())
-                    .filter(|v| !v.is_empty() && !v.starts_with("workspace"))
-                    .map(|v| v.to_string()),
+                "Cargo.toml" => crate::bump::extract_version_from_cargo(&content),
                 "package.json" => content
                     .lines()
                     .map(|l| l.trim())
