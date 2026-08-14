@@ -2,10 +2,9 @@
 
 Background, auto-commit, multi-remote — invisible git sync for developer workspaces.
 
-This repository is the **canonical "main"** for `dracon-sync` on GitHub,
-GitLab, and Codeberg. It contains the actual source code (mirrored from the
-[`DraconDev/dracon-utilities`](https://github.com/DraconDev/dracon-utilities)
-monorepo), the `Cargo.toml`, tests, examples, and the per-utility README.
+This repository is the **canonical standalone source** for `dracon-sync` on
+GitHub, GitLab, and Codeberg. It contains the source code, `Cargo.toml`, tests,
+examples, and release metadata.
 You can build and install this utility directly from this repo.
 
 ## Quick start (standalone build)
@@ -14,11 +13,6 @@ You can build and install this utility directly from this repo.
 # Clone this repo
 git clone https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote.git
 cd dracon-sync-background-auto-commit-multi-remote
-
-# Clone required siblings (path-dep layout)
-git clone https://github.com/DraconDev/dracon-libs.git ../dracon-libs
-
-
 
 # Build
 cargo build --release
@@ -31,8 +25,8 @@ sudo cp target/release/dracon-sync /usr/local/bin/
 
 - `src/` — utility source code
 - `tests/` — integration tests (if present)
-- `Cargo.toml` — standalone build manifest with path-dep siblings
-- `README.md` — this file (the per-utility README from the monorepo is at `monorepo-README.md`)
+- `Cargo.toml` — standalone build manifest with registry dependencies
+- `README.md` — this utility's user guide
 - `BLUEPRINT.md` — design notes
 - `dracon-sync.example.toml` — example config
 - `dracon-sync.service` — systemd user-service unit
@@ -43,10 +37,10 @@ sudo cp target/release/dracon-sync /usr/local/bin/
 
 | Boundary | Decision |
 |----------|----------|
-| Source code | Mirrored from `dracon-utilities/dracon-sync` via `scripts/regenerate_facade_repos.py` on every monorepo commit |
-| Source of truth | `dracon-utilities` monorepo (the auto-sync is one-way) |
-| Feature surface | This repo (canonical main for `dracon-sync`) |
-| Shared libraries | Sibling `dracon-libs` workspace (`../dracon-libs`) |
+| Source code | This repository's `main` branch |
+| Source of truth | This standalone repository |
+| Workspace integration | Included by the `dracon-utilities` meta workspace when checked out under `dracon-sync/` |
+| Shared libraries | Published `dracon-git` crate from crates.io |
 | Operational policy | `~/.dracon/utilities/` TOML files |
 
 ## Why this name?
@@ -70,12 +64,9 @@ Watches configured repositories, waits for changes to settle (fingerprint stabil
 
 ## Maintenance
 
-When the monorepo changes the utility source code, README, or example config,
-the monorepo's `post-commit` hook calls `scripts/regenerate_facade_repos.py`
-which mirrors the changes to this repo. The `dracon-sync` daemon picks up
-the local change in `/home/dracon/Dev/facade-repos/dracon-sync-background-auto-commit-multi-remote` and
-auto-pushes to the 3 remotes (github, gitlab, codeberg). No manual
-`--apply` or `--push-all-remotes` invocation is needed in the normal flow.
+Changes are made in this standalone repository. The `dracon-sync` daemon
+watches it and pushes configured remotes; the parent meta workspace does not
+mirror source files into it.
 
 ## License
 
