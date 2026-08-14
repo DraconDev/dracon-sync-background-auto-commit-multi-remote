@@ -71,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo now gets at most one refresh attempt per five minutes until its local
   tracking ref converges.
 
+- **Git diff/untracked inspection failures now fail closed** (audit LOW,
+  2026-08-14): `git ls-files` failures were previously read as an empty
+  untracked set, and report/daemon callers could then classify a repository as
+  clean. The command status is checked and affected sync/report passes now
+  leave the repository state untouched while surfacing the inspection error.
+
 - **Stale test comment in `test_terminal_width_fallback_is_compact`
   rewritten** (audit LOW, 2026-08-11): the comment described the
   removed Vertical (< 220) / Compact (220-299) bands; the tier layout
