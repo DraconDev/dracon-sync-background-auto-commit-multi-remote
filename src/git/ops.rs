@@ -7,6 +7,16 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
 use tokio::sync::mpsc;
 
+/// Progress output extends the idle timeout, but it must not keep a network
+/// operation alive forever when a remote emits an endless stream of plausible
+/// progress lines. Four idle windows is generous for large pushes while still
+/// giving the daemon a deterministic upper bound.
+const PROGRESS_TIMEOUT_MULTIPLIER: u64 = 4;
+
+fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
+    idle_timeout_secs.saturating_mul(PROGRESS_TIMEOUT_MULTIPLIER)
+}
+
 /// Kill a git child process group using TERM then KILL.
 ///
 /// Git push/pull spawn helper processes (ssh, remote-https, pack-objects).
@@ -187,7 +197,10 @@ where
         stderr_output
     });
 
-    let mut deadline = Instant::now() + Duration::from_secs(timeout_secs);
+    let started_at = Instant::now();
+    let hard_deadline =
+        started_at + Duration::from_secs(progress_hard_timeout_secs(timeout_secs));
+    let mut deadline = started_at + Duration::from_secs(timeout_secs);
     // F49 (2026-07-19): the previous 250ms poll was longer than
     // needed for try_wait accuracy; reduce to 100ms. The progress
     // wakeup is already event-driven via progress_rx in the
@@ -206,7 +219,8 @@ where
             return child_status_result(status, label, workdir, stderr_output);
         }
 
-        let remaining = deadline.saturating_duration_since(Instant::now());
+        let effective_deadline = std::cmp::min(deadline, hard_deadline);
+        let remaining = effective_deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
             if let Some(pid) = pid {
                 kill_process_group(pid).await;
@@ -215,16 +229,21 @@ where
             let _ = child.wait().await;
             let _ = stderr_task.await;
             return Err(anyhow::anyhow!(
-                "{} timeout in {} after {}s",
+                "{} timeout in {} after {}s idle ({}s hard cap)",
                 label,
                 workdir.display(),
                 timeout_secs
+                ,
+                progress_hard_timeout_secs(timeout_secs)
             ));
         }
 
         tokio::select! {
             Some(_) = progress_rx.recv() => {
-                deadline = Instant::now() + Duration::from_secs(timeout_secs);
+                deadline = std::cmp::min(
+                    Instant::now() + Duration::from_secs(timeout_secs),
+                    hard_deadline,
+                );
             }
             _ = tokio::time::sleep(remaining.min(poll_interval)) => {}
         }
@@ -541,6 +560,13 @@ mod tests {
             "remote: Total 42 (delta 1), reused 0 (delta 0)"
         ));
         assert!(is_git_push_progress_line("remote: Processing 1234"));
+    }
+
+    #[test]
+    fn progress_timeout_has_a_bounded_hard_ceiling() {
+        assert_eq!(super::progress_hard_timeout_secs(0), 0);
+        assert_eq!(super::progress_hard_timeout_secs(60), 240);
+        assert_eq!(super::progress_hard_timeout_secs(u64::MAX), u64::MAX);
     }
 
     #[cfg(unix)]
