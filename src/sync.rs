@@ -754,9 +754,8 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
             // Recalculate staged_files from actual staged paths when using
             // fallback CLI entries, since the libgit2 count may be stale
             // (libgit2 returned 0 entries but CLI found changes).
-            if let Ok(staged) = crate::git::staged_paths(repo).await {
-                status.staged_files = staged.len();
-            }
+            let staged = crate::git::staged_paths(repo).await?;
+            status.staged_files = staged.len();
             entries = fallback_entries;
             if debug_enabled() {
                 eprintln!(
@@ -4226,7 +4225,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             if policy.auto_stage_untracked {
                 std::collections::HashSet::new()
             } else {
-                crate::git::tracked_paths(repo).await.unwrap_or_default()
+                crate::git::tracked_paths(repo).await?
             };
         let (to_stage, to_restore): (Vec<_>, Vec<_>) = entries
             .into_iter()

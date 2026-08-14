@@ -131,7 +131,33 @@ fn parse_name_status_z(stdout: &[u8]) -> Vec<(PathBuf, FileStatus)> {
                     entries.push((to_path(new), FileStatus::Renamed));
                 }
             }
-            _ => {}
+            // Copy records have the same two-path shape as renames. The
+            // daemon only needs the destination path, and treating it as a
+            // rename keeps that path in the staging pipeline. Most
+            // importantly, consume both paths so the next status record is
+            // not mistaken for a filename.
+            'C' => {
+                let old = iter.next();
+                let new = iter.next();
+                if let (Some(_old), Some(new)) = (old, new) {
+                    entries.push((to_path(new), FileStatus::Renamed));
+                }
+            }
+            // Unmerged records carry one path. They are actionable tracked
+            // paths, so retain them as Modified rather than silently
+            // dropping them. Consuming the path also prevents parser
+            // desynchronization when a later record follows a conflict.
+            'U' => {
+                if let Some(p) = iter.next() {
+                    entries.push((to_path(p), FileStatus::Modified));
+                }
+            }
+            // Unknown statuses still have the normal one-path record shape
+            // in git's name-status output. Consume it, but do not invent a
+            // staging status for the caller.
+            _ => {
+                let _ = iter.next();
+            }
         }
     }
     entries
@@ -294,6 +320,13 @@ pub(crate) async fn staged_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
         .stderr(std::process::Stdio::null())
         .output()
         .await?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "git diff --cached --name-only failed in {}: exit {}",
+            repo.display(),
+            output.status
+        ));
+    }
     let stdout = String::from_utf8_lossy(&output.stdout);
     Ok(stdout
         .split('\0')
@@ -313,6 +346,13 @@ pub(crate) async fn tracked_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
         .stderr(std::process::Stdio::null())
         .output()
         .await?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "git ls-files failed in {}: exit {}",
+            repo.display(),
+            output.status
+        ));
+    }
     let stdout = String::from_utf8_lossy(&output.stdout);
     Ok(stdout
         .split('\0')
@@ -358,6 +398,23 @@ mod f33_tests {
         assert_eq!(
             entries,
             vec![(PathBuf::from("new name.txt"), FileStatus::Renamed)]
+        );
+    }
+
+    #[test]
+    fn test_parse_name_status_z_consumes_copy_and_unmerged_records() {
+        let mut out: Vec<u8> = Vec::new();
+        out.extend_from_slice(b"C100\0old name.txt\0copied name.txt\0");
+        out.extend_from_slice(b"U\0conflicted name.txt\0");
+        out.extend_from_slice(b"M\0after-conflict.txt\0");
+        let entries = parse_name_status_z(&out);
+        assert_eq!(
+            entries,
+            vec![
+                (PathBuf::from("copied name.txt"), FileStatus::Renamed),
+                (PathBuf::from("conflicted name.txt"), FileStatus::Modified),
+                (PathBuf::from("after-conflict.txt"), FileStatus::Modified),
+            ]
         );
     }
 
@@ -425,5 +482,19 @@ mod f33_tests {
             .await
             .expect_err("a non-repository must not look clean");
         assert!(error.to_string().contains("git ls-files"));
+    }
+
+    #[tokio::test]
+    async fn staged_and_tracked_paths_propagate_git_failure() {
+        let tmp = tempfile::tempdir().unwrap();
+        let staged_error = super::staged_paths(tmp.path())
+            .await
+            .expect_err("a non-repository must not look unstaged");
+        assert!(staged_error.to_string().contains("git diff --cached"));
+
+        let tracked_error = super::tracked_paths(tmp.path())
+            .await
+            .expect_err("a non-repository must not look untracked");
+        assert!(tracked_error.to_string().contains("git ls-files"));
     }
 }

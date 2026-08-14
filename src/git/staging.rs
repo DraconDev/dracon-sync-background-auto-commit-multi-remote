@@ -175,20 +175,7 @@ pub(crate) async fn detect_large_blobs_ahead(
             let stdout = String::from_utf8_lossy(&output.stdout);
             let mut out: Vec<(u64, String)> = stdout
                 .lines()
-                .filter_map(|line| {
-                    let mut parts = line.split_whitespace();
-                    let _oid = parts.next()?;
-                    let obj_type = parts.next()?;
-                    let size_str = parts.next()?;
-                    let path = parts.next()?;
-                    if obj_type == "blob" {
-                        let size = size_str.parse::<u64>().ok()?;
-                        if size > min_bytes {
-                            return Some((size, path.to_string()));
-                        }
-                    }
-                    None
-                })
+                .filter_map(|line| parse_large_blob_record(line, min_bytes))
                 .collect();
             out.sort_by_key(|a| a.0);
             Ok(out)
@@ -197,6 +184,23 @@ pub(crate) async fn detect_large_blobs_ahead(
     .await
     .with_context(|| format!("timed out in detect_large_blobs_ahead for {}", display))?
     .with_context(|| format!("detect_large_blobs_ahead timed out (>60s) for {}", display))?
+}
+
+/// Parse one `cat-file --batch-check` record while preserving spaces in the
+/// path returned via `%(rest)`. Splitting all fields on whitespace truncated
+/// `models/my large.bin` to `models/my`, which could hide a large blob from
+/// the rewrite guard.
+fn parse_large_blob_record(line: &str, min_bytes: u64) -> Option<(u64, String)> {
+    let mut fields = line.splitn(4, ' ');
+    let _oid = fields.next()?;
+    let obj_type = fields.next()?;
+    let size_str = fields.next()?;
+    let path = fields.next()?.to_string();
+    if obj_type != "blob" || path.is_empty() {
+        return None;
+    }
+    let size = size_str.parse::<u64>().ok()?;
+    (size > min_bytes).then_some((size, path))
 }
 
 /// Get the top-level directory name from a path.
@@ -588,6 +592,21 @@ fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -
 mod tests {
     use super::*;
     use crate::test_helpers::create_test_repo;
+
+    #[test]
+    fn large_blob_record_preserves_spaces_in_path() {
+        assert_eq!(
+            parse_large_blob_record(
+                "0123456789abcdef blob 123456 models/my large model.onnx",
+                100_000
+            ),
+            Some((123456, "models/my large model.onnx".to_string()))
+        );
+        assert_eq!(
+            parse_large_blob_record("0123456789abcdef blob 99 models/small.bin", 100),
+            None
+        );
+    }
 
     /// F31 (2026-07-19): `rewrite_ahead_paths` must delete the backup
     /// branch when the rewrite was a no-op (HEAD tree == backup tree).
