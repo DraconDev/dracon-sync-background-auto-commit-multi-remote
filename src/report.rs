@@ -6578,7 +6578,86 @@ fn origin_gone_ledger_path(policy_path: &Path) -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("origin-gone-ledger.tsv"))
 }
 
+static ORIGIN_GONE_LEDGER_LOCK: std::sync::OnceLock<std::sync::Mutex<()>> =
+    std::sync::OnceLock::new();
+
+fn origin_gone_ledger_lock() -> &'static std::sync::Mutex<()> {
+    ORIGIN_GONE_LEDGER_LOCK.get_or_init(|| std::sync::Mutex::new(()))
+}
+
+/// Rewrite the small origin-gone ledger through a same-directory temporary
+/// file and rename. A direct truncate/write left readers able to observe an
+/// empty or partial ledger, and a crash during the write could lose every
+/// repo's retry timestamp.
+fn write_origin_gone_ledger(path: &Path, lines: &[String]) -> bool {
+    if let Some(parent) = path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!(
+                "⚠️ failed to create origin-gone ledger directory {}: {}",
+                parent.display(),
+                e
+            );
+            return false;
+        }
+    }
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("origin-gone-ledger.tsv");
+    let tmp = path.with_file_name(format!(
+        ".{file_name}.tmp-{}-{}",
+        std::process::id(),
+        crate::policy::timestamp_secs()
+    ));
+    let mut file = match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)
+    {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!(
+                "⚠️ failed to create origin-gone ledger temp file {}: {}",
+                tmp.display(),
+                e
+            );
+            return false;
+        }
+    };
+    let content = if lines.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n", lines.join("\n"))
+    };
+    if let Err(e) = file
+        .write_all(content.as_bytes())
+        .and_then(|_| file.sync_all())
+    {
+        eprintln!(
+            "⚠️ failed to write origin-gone ledger temp file {}: {}",
+            tmp.display(),
+            e
+        );
+        let _ = std::fs::remove_file(&tmp);
+        return false;
+    }
+    drop(file);
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        eprintln!(
+            "⚠️ failed to atomically replace origin-gone ledger {}: {}",
+            path.display(),
+            e
+        );
+        let _ = std::fs::remove_file(&tmp);
+        return false;
+    }
+    true
+}
+
 fn origin_gone_secs(policy_path: &Path, repo: &Path) -> Option<u64> {
+    let _lock = origin_gone_ledger_lock()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let path = origin_gone_ledger_path(policy_path);
     let content = std::fs::read_to_string(&path).ok()?;
     let now = std::time::SystemTime::now()
@@ -6603,6 +6682,9 @@ fn origin_gone_secs(policy_path: &Path, repo: &Path) -> Option<u64> {
 }
 
 fn record_origin_gone(policy_path: &Path, repo: &Path) {
+    let _lock = origin_gone_ledger_lock()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let path = origin_gone_ledger_path(policy_path);
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -6645,21 +6727,13 @@ fn record_origin_gone(policy_path: &Path, repo: &Path) {
         return;
     }
     existing.push(format!("{}\t{}", repo_str, secs));
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&path)
-    {
-        let _ = f.write_all(existing.join("\n").as_bytes());
-        let _ = f.write_all(b"\n");
-    }
+    let _ = write_origin_gone_ledger(&path, &existing);
 }
 
 fn clear_origin_gone(policy_path: &Path, repo: &Path) {
+    let _lock = origin_gone_ledger_lock()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let path = origin_gone_ledger_path(policy_path);
     let repo_str = repo.display().to_string();
     let mut kept: Vec<String> = Vec::new();
@@ -6681,20 +6755,7 @@ fn clear_origin_gone(policy_path: &Path, repo: &Path) {
     if !removed {
         return;
     }
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&path)
-    {
-        let _ = f.write_all(kept.join("\n").as_bytes());
-        if !kept.is_empty() {
-            let _ = f.write_all(b"\n");
-        }
-    }
+    let _ = write_origin_gone_ledger(&path, &kept);
 }
 
 async fn handle_no_origin(

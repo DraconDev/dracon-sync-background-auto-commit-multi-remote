@@ -459,15 +459,12 @@ pub(crate) struct AskpassScript {
     path: PathBuf,
 }
 
-#[cfg(unix)]
 impl AskpassScript {
-    #[allow(dead_code)] // Available for callers that drop the path; current call sites use async unlink explicitly.
     pub(crate) fn new(path: PathBuf) -> Self {
         Self { path }
     }
 }
 
-#[cfg(unix)]
 impl Drop for AskpassScript {
     fn drop(&mut self) {
         // Best-effort synchronous unlink. Ignore errors (ENOENT,

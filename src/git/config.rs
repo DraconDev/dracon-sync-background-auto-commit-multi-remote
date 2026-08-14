@@ -8,10 +8,20 @@ use std::path::PathBuf;
 /// in daemon context where they would block or fail silently.
 pub(crate) fn git_ssh_hardening() -> String {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
+    let ssh_config = format!("{home}/.dracon/secrets/ssh/config");
     // Unset SSH_ASKPASS so NixOS's ksshaskpass doesn't interfere with git SSH auth
     format!(
-        "env -u SSH_ASKPASS ssh -o BatchMode=yes -F {home}/.dracon/secrets/ssh/config -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=5 -o ServerAliveCountMax=2"
+        "env -u SSH_ASKPASS ssh -o BatchMode=yes -F {} -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=5 -o ServerAliveCountMax=2",
+        shell_quote(&ssh_config)
     )
+}
+
+/// Quote one value for the POSIX shell used to interpret GIT_SSH_COMMAND.
+/// HOME is operator-controlled and may contain spaces or shell metacharacters;
+/// leaving the SSH config path unquoted makes those paths unusable and can
+/// turn a configuration value into shell syntax.
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
 /// Lock for serializing tests that modify PATH.
@@ -37,4 +47,17 @@ pub(crate) fn real_git_path() -> PathBuf {
             PathBuf::from("git")
         })
         .clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shell_quote;
+
+    #[test]
+    fn shell_quote_handles_spaces_and_single_quotes() {
+        assert_eq!(
+            shell_quote("/tmp/operator's ssh config"),
+            "'/tmp/operator'\"'\"'s ssh config'"
+        );
+    }
 }
