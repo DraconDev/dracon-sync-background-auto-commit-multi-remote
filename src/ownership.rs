@@ -383,7 +383,11 @@ fn is_trusted_origin(url: &str, trusted_hosts: &[String]) -> bool {
         };
         let th = &h[..slash];
         let to = &h[slash + 1..];
-        th == host && to == owner
+        // DNS hostnames are case-insensitive, and forge namespaces are
+        // case-insensitive for the supported remotes. Keep the tuple-atomic
+        // comparison that prevents host/owner substring bypasses, but do not
+        // turn harmless URL casing differences into a false unowned result.
+        th.eq_ignore_ascii_case(host) && to.eq_ignore_ascii_case(owner)
     })
 }
 
@@ -942,6 +946,12 @@ mod tests {
         // Unrelated repo with same host but different owner
         assert!(!is_trusted_origin(
             "ssh://git@github.com/attacker/repo.git",
+            &hosts
+        ));
+        // Hostnames and forge namespaces are case-insensitive. A policy
+        // should not need duplicate entries just for URL casing.
+        assert!(is_trusted_origin(
+            "git@GITHUB.COM:dracONdev/repo.git",
             &hosts
         ));
     }

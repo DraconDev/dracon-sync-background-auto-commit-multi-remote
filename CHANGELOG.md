@@ -45,6 +45,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   check now runs during previews, and the regression fixture covers the clean
   path.
 
+- **Mirror pushes now receive the scaled timeout** (audit M6, 2026-08-14):
+  large ahead backlogs already extended the origin push timeout, but mirror
+  pushes still used the unscaled base and could time out during the same
+  transfer. All configured remotes now share the calculated timeout.
+
+- **Filter-aware diff failures no longer look like FilterOnly** (audit M12,
+  2026-08-14): a transient failure from `git diff HEAD` was converted to an
+  empty set, which could suppress a real commit and install a cooldown. The
+  error now propagates and is covered by an unborn-HEAD regression test.
+
 - **Stale test comment in `test_terminal_width_fallback_is_compact`
   rewritten** (audit LOW, 2026-08-11): the comment described the
   removed Vertical (< 220) / Compact (220-299) bands; the tier layout

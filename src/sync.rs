@@ -693,9 +693,11 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
     let mut filter_only_cleared = false;
 
     {
-        let diff_output = crate::git::git_diff_head_files(repo)
-            .await
-            .unwrap_or_default();
+        // A failed filter-aware diff is not evidence that the working tree
+        // is clean. Propagating the error keeps a transient git failure from
+        // being misclassified as FilterOnly (which would suppress the
+        // commit and install a cooldown with no actionable error).
+        let diff_output = crate::git::git_diff_head_files(repo).await?;
         if diff_output.is_empty() && !entries.is_empty() {
             let has_non_modified = entries
                 .iter()
@@ -1858,7 +1860,7 @@ async fn push_background(
         let push_results = push_mirror_remotes(
             repo,
             &policy.remotes,
-            policy.push_op_timeout_secs,
+            scaled_timeout,
             policy.push_retries,
             private,
             &combined_exclude,
@@ -8100,6 +8102,29 @@ auto_bump_versions = false
         .trim()
         .to_string();
         assert_eq!(again, head);
+    }
+
+    #[tokio::test]
+    async fn test_compute_diff_entries_propagates_filter_diff_failure() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("unborn-diff-repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        git_cmd(&repo, &["init", "-q", "-b", "main"]);
+        git_cmd(&repo, &["config", "user.email", "test@test.local"]);
+        git_cmd(&repo, &["config", "user.name", "test"]);
+        std::fs::write(repo.join("staged.txt"), "staged\n").unwrap();
+        git_cmd(&repo, &["add", "staged.txt"]);
+
+        let svc = GitService::new(&repo).unwrap();
+        let result = compute_diff_entries(&svc, &repo).await;
+        assert!(result.is_err(), "an unborn HEAD must not become FilterOnly");
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("git diff HEAD"),
+            "the filter-aware diff failure should remain visible"
+        );
     }
 
     #[tokio::test]
