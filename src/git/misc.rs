@@ -57,6 +57,14 @@ pub(crate) fn detect_orphan_origin(repo: &Path) -> Option<(String, String)> {
         {
             let prefix = &current[..current.len() - path_part.len()];
             let canonical_repo = &repo_part[..dash];
+            // Auto-create may append `-N` when a canonical repo name
+            // collides. Only repair that shape when the checkout itself is
+            // named after the unsuffixed canonical repo. A legitimate repo
+            // called `project-3` must never be rewritten to `project`.
+            let local_repo = repo.file_name()?.to_string_lossy();
+            if local_repo != canonical_repo {
+                return None;
+            }
             let canonical = format!("{}{}{}", prefix, canonical_repo, suffix);
             return Some((current, canonical));
         }

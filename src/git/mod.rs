@@ -3602,10 +3602,11 @@ exit 0
     #[test]
     fn test_detect_orphan_origin_detects_single_digit_suffix() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
-        let repo = tmp.path();
+        let repo = tmp.path().join("dracon-demons");
+        std::fs::create_dir_all(&repo).unwrap();
         test_git_cmd()
             .args(["init", "-q"])
-            .current_dir(repo)
+            .current_dir(&repo)
             .status()
             .expect("git init");
         test_git_cmd()
@@ -3615,10 +3616,10 @@ exit 0
                 "origin",
                 "git@github.com:DraconDev/dracon-demons-9.git",
             ])
-            .current_dir(repo)
+            .current_dir(&repo)
             .status()
             .expect("git remote add");
-        let result = detect_orphan_origin(repo);
+        let result = detect_orphan_origin(&repo);
         assert!(result.is_some(), "should detect -9 suffix");
         let (current, canonical) = result.unwrap();
         assert_eq!(current, "git@github.com:DraconDev/dracon-demons-9.git");
@@ -3672,6 +3673,32 @@ exit 0
         assert!(
             result.is_none(),
             "should NOT detect -v2 as orphan (not pure digits)"
+        );
+    }
+
+    #[test]
+    fn test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffix() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("project-3");
+        std::fs::create_dir_all(&repo).unwrap();
+        test_git_cmd()
+            .args(["init", "-q"])
+            .current_dir(&repo)
+            .status()
+            .expect("git init");
+        test_git_cmd()
+            .args([
+                "remote",
+                "add",
+                "origin",
+                "git@github.com:DraconDev/project-3.git",
+            ])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add");
+        assert!(
+            detect_orphan_origin(&repo).is_none(),
+            "a checkout named project-3 must not be rewritten to project"
         );
     }
     #[test]

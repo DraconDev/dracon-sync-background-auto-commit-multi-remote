@@ -152,7 +152,8 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
         // the full relative-path equality check first; falls back to
         // basename only as a last resort (kept for backwards-compat
         // with submod entries that use a bare `name` field).
-        let mut submod_role: Option<RoleKind> = None;
+        let mut full_path_role: Option<RoleKind> = None;
+        let mut fallback_role: Option<RoleKind> = None;
         for (j, other_row) in rows.iter().enumerate() {
             if i == j {
                 continue;
@@ -171,22 +172,30 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
                 let last_segment = entry.path.rsplit('/').next().unwrap_or(&entry.path);
                 let path_tail_matches = !my_basename.is_empty() && last_segment == my_basename;
 
-                if full_path_matches || name_matches || path_tail_matches {
-                    let parent_basename = other_path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| other_row.repo_path().to_string());
-                    submod_role = Some(RoleKind::Submod {
+                let parent_basename = other_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| other_row.repo_path().to_string());
+                let role = RoleKind::Submod {
                         parent_basename,
                         sub_path: entry.path.clone(),
-                    });
+                    };
+                if full_path_matches {
+                    // Keep scanning parents only until an exact path is
+                    // found; an earlier basename fallback must not shadow
+                    // the actual nested checkout.
+                    full_path_role = Some(role);
                     break;
+                } else if fallback_role.is_none() && (name_matches || path_tail_matches) {
+                    fallback_role = Some(role);
                 }
             }
-            if submod_role.is_some() {
+            if full_path_role.is_some() {
                 break;
             }
         }
+
+        let submod_role = full_path_role.or(fallback_role);
 
         // 3. Priority: submod > parent > standalone.
         let final_role = submod_role.or(parent_role).unwrap_or(RoleKind::Standalone);
