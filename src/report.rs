@@ -3121,40 +3121,53 @@ fn run_git_bounded(
     stdin_data: &[u8],
     timeout: std::time::Duration,
 ) -> Option<Vec<u8>> {
-    // Write stdout to a temp file (NOT a pipe) so a large output
-    // (cat-file --batch-check on 100k+ objects, ~MBs) can't
-    // pipe-deadlock the child before the deadline.
-    let tmp = std::env::temp_dir().join(format!(
-        "dracon-probe-{}-{}.txt",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0)
-    ));
-    let out_file = std::fs::File::create(&tmp).ok()?;
-    let mut child = crate::policy::std_git_command()
-        .args(args)
-        .current_dir(repo)
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::from(out_file))
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .ok()?;
     struct TmpCleanup(std::path::PathBuf);
     impl Drop for TmpCleanup {
         fn drop(&mut self) {
             let _ = std::fs::remove_file(&self.0);
         }
     }
-    let _guard = TmpCleanup(tmp.clone());
-    if let Some(mut stdin) = child.stdin.take() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let base = format!("dracon-probe-{}-{nonce}", std::process::id());
+    let tmp = std::env::temp_dir().join(format!("{base}.out"));
+    let input_tmp = std::env::temp_dir().join(format!("{base}.in"));
+    let _out_guard = TmpCleanup(tmp.clone());
+    let _input_guard = TmpCleanup(input_tmp.clone());
+
+    // Feed stdin from a regular file rather than a pipe. A large object list
+    // can otherwise block the parent in write_all before the deadline loop
+    // starts, defeating the bound and leaving the probe stuck indefinitely.
+    let mut input_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&input_tmp)
+        .ok()?;
+    {
         use std::io::Write;
-        if stdin.write_all(stdin_data).is_err() {
-            let _ = child.kill();
-            return None;
-        }
+        input_file.write_all(stdin_data).ok()?;
     }
+    drop(input_file);
+    let input_file = std::fs::File::open(&input_tmp).ok()?;
+
+    // Write stdout to a temp file (NOT a pipe) so a large output
+    // (cat-file --batch-check on 100k+ objects, ~MBs) cannot
+    // pipe-deadlock the child before the deadline.
+    let out_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)
+        .ok()?;
+    let mut child = crate::policy::std_git_command()
+        .args(args)
+        .current_dir(repo)
+        .stdin(std::process::Stdio::from(input_file))
+        .stdout(std::process::Stdio::from(out_file))
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
     let deadline = std::time::Instant::now() + timeout;
     loop {
         match child.try_wait() {
@@ -3167,12 +3180,14 @@ fn run_git_bounded(
             Ok(None) => {
                 if std::time::Instant::now() >= deadline {
                     let _ = child.kill();
+                    let _ = child.wait();
                     return None;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(25));
             }
             Err(_) => {
                 let _ = child.kill();
+                let _ = child.wait();
                 return None;
             }
         }
@@ -9230,6 +9245,24 @@ mod tests {
         let probe = probe_history(repo);
         assert!(probe.failed);
         assert_eq!(probe.missing_objects, 0);
+    }
+
+    #[test]
+    fn run_git_bounded_feeds_large_stdin_without_pipe_block() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = vec![b'x'; 256 * 1024];
+        let output = run_git_bounded(
+            &["hash-object", "--stdin"],
+            dir.path(),
+            &input,
+            std::time::Duration::from_secs(5),
+        )
+        .expect("hash-object probe should complete");
+        let hash = String::from_utf8_lossy(&output);
+        assert!(
+            hash.trim().len() == 40 || hash.trim().len() == 64,
+            "unexpected object id from bounded probe: {hash:?}"
+        );
     }
 
     #[test]
