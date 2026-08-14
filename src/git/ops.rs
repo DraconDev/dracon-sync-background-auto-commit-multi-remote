@@ -198,8 +198,7 @@ where
     });
 
     let started_at = Instant::now();
-    let hard_deadline =
-        started_at + Duration::from_secs(progress_hard_timeout_secs(timeout_secs));
+    let hard_deadline = started_at + Duration::from_secs(progress_hard_timeout_secs(timeout_secs));
     let mut deadline = started_at + Duration::from_secs(timeout_secs);
     // F49 (2026-07-19): the previous 250ms poll was longer than
     // needed for try_wait accuracy; reduce to 100ms. The progress
@@ -232,8 +231,7 @@ where
                 "{} timeout in {} after {}s idle ({}s hard cap)",
                 label,
                 workdir.display(),
-                timeout_secs
-                ,
+                timeout_secs,
                 progress_hard_timeout_secs(timeout_secs)
             ));
         }
