@@ -121,6 +121,14 @@ run() {
     "$@"
 }
 
+run_local() {
+    # Commands using this helper are local validation steps. They are safe
+    # during --dry-run and must still execute so a preview exercises the
+    # package and dependency-resolution checks it claims to run.
+    printf '   $ %s\n' "$*"
+    "$@"
+}
+
 require_clean_tree() {
     if ! git diff --quiet HEAD 2>/dev/null || \
        [[ -n "$(git status --porcelain)" ]]; then
@@ -306,7 +314,14 @@ fi
 
 # ----- step 5: cargo publish --dry-run (sanity) ---------------------------
 log "step 5/${TOTAL_STEPS}: cargo publish --dry-run (sanity check)"
-run cargo publish -p "$CRATE_NAME" --dry-run --allow-dirty
+# `cargo publish --dry-run` changes no registry state, but it does build the
+# exact package directory consumed by the artifact fixture below. Do not send
+# it through `run`: skipping this command made a clean --dry-run fail later
+# because target/package/<crate>-<version> did not exist.
+if ! run_local cargo publish -p "$CRATE_NAME" --dry-run --allow-dirty; then
+    die_pub "cargo publish --dry-run failed; fix and re-run"
+fi
+ok "  dry-run package clean"
 
 # ----- step 6: cargo publish for real -------------------------------------
 log "step 6/${TOTAL_STEPS}: cargo publish -p $CRATE_NAME"

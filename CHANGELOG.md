@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release previews now execute the local package dry-run** (audit follow-up,
+  2026-08-14): `scripts/release.sh --dry-run` previously skipped
+  `cargo publish --dry-run`, then failed on a clean checkout because the
+  packaged artifact directory did not exist. The local, non-publishing package
+  check now runs during previews, and the regression fixture covers the clean
+  path.
+
 - **Stale test comment in `test_terminal_width_fallback_is_compact`
   rewritten** (audit LOW, 2026-08-11): the comment described the
   removed Vertical (< 220) / Compact (220-299) bands; the tier layout

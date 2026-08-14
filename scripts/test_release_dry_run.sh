@@ -7,7 +7,7 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/dracon-sync-release-dry-run-XXXXXX")
 trap 'rm -rf "$work"' EXIT
 repo="$work/repo"
 mkdir -p "$repo/scripts" "$work/bin" "$work/home/.cargo" \
-    "$repo/target/package/dracon-sync-0.1.1"
+    "$repo/target"
 
 git init -q -b main "$repo"
 git -C "$repo" config core.hooksPath /dev/null
@@ -21,6 +21,8 @@ chmod +x "$repo/scripts"/*.sh
 cat > "$repo/.gitignore" <<'EOF'
 target/
 .publish-version
+.publish-dry-run
+.publish-real
 EOF
 cat > "$repo/Cargo.toml" <<'EOF'
 [package]
@@ -60,7 +62,13 @@ case "${1:-}" in
         printf '{"workspace_root":"%s"}\n' "$root"
         ;;
     publish)
-        awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$root/Cargo.toml" > "$root/.publish-version"
+        version=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$root/Cargo.toml")
+        if [[ " $* " == *" --dry-run "* ]]; then
+            mkdir -p "$root/target/package/dracon-sync-$version"
+            touch "$root/.publish-dry-run"
+        else
+            touch "$root/.publish-real"
+        fi
         ;;
     *)
         echo "unexpected cargo invocation: $*" >&2
@@ -83,7 +91,8 @@ DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     >"$work/dry-run.out" 2>"$work/dry-run.err"
 grep -F 'Cargo.toml: 0.1.0 → 0.1.1' "$work/dry-run.out" >/dev/null
 test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.1
-test ! -e "$repo/.publish-version"
+test -e "$repo/.publish-dry-run"
+test ! -e "$repo/.publish-real"
 test -z "$(git -C "$repo" tag --list)"
 
 git -C "$repo" diff --quiet -- Cargo.lock
