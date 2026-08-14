@@ -305,21 +305,38 @@ pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
     }
 }
 
+/// Return the known mirror tracking refs for the current branch, followed by
+/// the legacy `main` refs when the checkout is on another branch. Older
+/// clones can retain a `main` tracking ref after a branch rename, while
+/// feature/master checkouts should still be evaluated against their own
+/// branch first.
+fn known_mirror_tracking_refs(repo: &Path) -> Vec<String> {
+    let branch = crate::git::current_branch(repo)
+        .filter(|branch| branch != "HEAD" && crate::git::is_safe_branch_name(branch))
+        .unwrap_or_else(|| "main".to_string());
+    let mut branches = vec![branch.clone()];
+    if branch != "main" {
+        branches.push("main".to_string());
+    }
+    ["github", "gitlab", "codeberg"]
+        .into_iter()
+        .flat_map(|remote| {
+            branches
+                .iter()
+                .map(move |branch| format!("refs/remotes/{remote}/{branch}"))
+        })
+        .collect()
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H7/F1.4): whether ANY known
-/// mirror remote-tracking ref exists locally
-/// (`refs/remotes/{github,gitlab,codeberg}/main`). Local-only check.
+/// mirror remote-tracking ref exists locally. Local-only check.
 /// Distinguishes "count is 0 because synced with a mirror" from
 /// "count is 0 because nothing was ever pushed from this clone" —
 /// `count_unpushed_vs_mirrors` returns 0 for both.
 pub(crate) fn any_mirror_tracking_ref_exists(repo: &Path) -> bool {
-    const KNOWN_MIRROR_REFS: [&str; 3] = [
-        "refs/remotes/github/main",
-        "refs/remotes/gitlab/main",
-        "refs/remotes/codeberg/main",
-    ];
-    KNOWN_MIRROR_REFS.iter().any(|r| {
+    known_mirror_tracking_refs(repo).iter().any(|r| {
         crate::policy::std_git_command()
-            .args(["rev-parse", "--verify", "-q", r])
+            .args(["rev-parse", "--verify", "-q", r.as_str()])
             .current_dir(repo)
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -332,17 +349,11 @@ pub(crate) fn any_mirror_tracking_ref_exists(repo: &Path) -> bool {
 /// Count unpushed commits against the first available mirror tracking ref.
 /// For repos without an upstream tracking branch (mirror-only repos like
 /// `.dracon`), `git status` reports `ahead = 0` even when there ARE local
-/// commits that haven't been pushed to any remote. This function checks
-/// against known mirror tracking refs (`remotes/github/main`,
-/// `remotes/gitlab/main`, `remotes/codeberg/main`) to find the actual
-/// unpushed count.
+/// commits that haven't been pushed to any remote. This function checks the
+/// current branch (and a legacy `main` ref when applicable) to find the
+/// actual unpushed count.
 pub(crate) fn count_unpushed_vs_mirrors(repo: &Path) -> u64 {
-    let known_mirror_refs = [
-        "refs/remotes/github/main",
-        "refs/remotes/gitlab/main",
-        "refs/remotes/codeberg/main",
-    ];
-    for mirror_ref in &known_mirror_refs {
+    for mirror_ref in known_mirror_tracking_refs(repo) {
         let output = crate::policy::std_git_command()
             .args(["rev-list", "--count", &format!("{}..HEAD", mirror_ref)])
             .current_dir(repo)
@@ -365,15 +376,10 @@ pub(crate) fn count_unpushed_vs_mirrors(repo: &Path) -> u64 {
 /// excludes divergent/ahead mirrors: those require reconciliation and must
 /// not cause the daemon to retry a push on every clean cycle.
 pub(crate) fn count_pushable_unpushed_vs_mirrors(repo: &Path) -> u64 {
-    let known_mirror_refs = [
-        "refs/remotes/github/main",
-        "refs/remotes/gitlab/main",
-        "refs/remotes/codeberg/main",
-    ];
     let mut max_count = 0;
-    for mirror_ref in &known_mirror_refs {
+    for mirror_ref in known_mirror_tracking_refs(repo) {
         let ancestor = crate::policy::std_git_command()
-            .args(["merge-base", "--is-ancestor", mirror_ref, "HEAD"])
+            .args(["merge-base", "--is-ancestor", &mirror_ref, "HEAD"])
             .current_dir(repo)
             .output();
         if !ancestor.is_ok_and(|output| output.status.success()) {
@@ -693,6 +699,31 @@ mod tests {
             .unwrap();
         assert!(status.success());
         assert!(any_mirror_tracking_ref_exists(&repo));
+    }
+
+    #[test]
+    fn test_mirror_tracking_helpers_follow_non_main_branch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        commit_file(&repo, "a.txt", "init");
+        let status = crate::policy::std_git_command()
+            .args(["checkout", "-q", "-b", "feature/audit"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let status = crate::policy::std_git_command()
+            .args(["update-ref", "refs/remotes/gitlab/feature/audit", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(any_mirror_tracking_ref_exists(&repo));
+
+        commit_file(&repo, "b.txt", "local ahead");
+        assert_eq!(count_unpushed_vs_mirrors(&repo), 1);
+        assert_eq!(count_pushable_unpushed_vs_mirrors(&repo), 1);
     }
 
     #[test]

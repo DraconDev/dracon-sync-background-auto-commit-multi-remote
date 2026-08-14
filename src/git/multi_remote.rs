@@ -105,20 +105,30 @@ pub(crate) fn filter_remotes_by_exclude(
 }
 
 /// ADDED 2026-07-21 (v0.112.30): whether the repo has ever been pushed
-/// to codeberg — i.e. a local `refs/remotes/codeberg/main` tracking
-/// ref exists. Local-only check (no network). Used to distinguish
+/// to codeberg — i.e. a local tracking ref for the current branch (or
+/// the legacy `main` branch) exists. Local-only check (no network). Used to distinguish
 /// "pre-v0.112.28 repo with a live codeberg mirror" (keep pushing)
 /// from "new repo under the codeberg-quota posture" (skip codeberg
 /// entirely).
 pub(crate) fn has_codeberg_tracking_ref(repo: &Path) -> bool {
-    std_git_command()
-        .args(["rev-parse", "--verify", "-q", "refs/remotes/codeberg/main"])
-        .current_dir(repo)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+    let branch = crate::git::current_branch(repo)
+        .filter(|branch| branch != "HEAD" && crate::git::is_safe_branch_name(branch))
+        .unwrap_or_else(|| "main".to_string());
+    let mut branches = vec![branch.clone()];
+    if branch != "main" {
+        branches.push("main".to_string());
+    }
+    branches.into_iter().any(|branch| {
+        let reference = format!("refs/remotes/codeberg/{branch}");
+        std_git_command()
+            .args(["rev-parse", "--verify", "-q", &reference])
+            .current_dir(repo)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    })
 }
 
 /// ADDED 2026-07-21 (v0.112.30): pure decision — should codeberg be
@@ -1393,6 +1403,53 @@ mod tests {
             .status()
             .unwrap();
         assert!(status.success());
+        assert!(has_codeberg_tracking_ref(&repo));
+    }
+
+    #[test]
+    fn test_has_codeberg_tracking_ref_follows_non_main_branch() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let status = std_git_command()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            let status = std_git_command()
+                .args(["config", k, v])
+                .current_dir(&repo)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+        std::fs::write(repo.join("a.txt"), "x\n").unwrap();
+        assert!(std_git_command()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        assert!(std_git_command()
+            .args(["commit", "--no-verify", "-q", "-m", "i"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        assert!(std_git_command()
+            .args(["checkout", "-q", "-b", "feature/audit"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        assert!(std_git_command()
+            .args(["update-ref", "refs/remotes/codeberg/feature/audit", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
         assert!(has_codeberg_tracking_ref(&repo));
     }
 
