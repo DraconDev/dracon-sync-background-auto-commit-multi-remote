@@ -177,9 +177,9 @@ pub(crate) fn classify_roles(rows: &[crate::report::RepoReportRow]) -> Vec<RoleK
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| other_row.repo_path().to_string());
                 let role = RoleKind::Submod {
-                        parent_basename,
-                        sub_path: entry.path.clone(),
-                    };
+                    parent_basename,
+                    sub_path: entry.path.clone(),
+                };
                 if full_path_matches {
                     // Keep scanning parents only until an exact path is
                     // found; an earlier basename fallback must not shadow
@@ -487,6 +487,53 @@ mod tests {
             "expected submod, got {:?}",
             roles[2]
         );
+    }
+
+    #[test]
+    fn full_path_match_beats_earlier_basename_fallback() {
+        let dir = tempdir().unwrap();
+        let fallback_parent = dir.path().join("fallback-parent");
+        let actual_parent = dir.path().join("actual-parent");
+        let target = actual_parent.join("nested/target");
+        for path in [&fallback_parent, &actual_parent, &target] {
+            fs::create_dir_all(path).unwrap();
+        }
+        let fallback_head = init_repo(&fallback_parent);
+        let actual_head = init_repo(&actual_parent);
+        init_repo(&target);
+
+        // The first parent has only a basename match for `target`; the
+        // second parent contains the actual checkout and therefore has the
+        // authoritative full-path match.
+        fs::write(
+            fallback_parent.join(".gitmodules"),
+            "[submodule \"target\"]\n\tpath = other/target\n\turl = example:target.git\n",
+        )
+        .unwrap();
+        stage_gitlink(&fallback_parent, "other/target", &fallback_head);
+        fs::write(
+            actual_parent.join(".gitmodules"),
+            "[submodule \"target\"]\n\tpath = nested/target\n\turl = example:target.git\n",
+        )
+        .unwrap();
+        stage_gitlink(&actual_parent, "nested/target", &actual_head);
+
+        let rows = vec![
+            crate::report::RepoReportRow::for_tests(&fallback_parent.display().to_string()),
+            crate::report::RepoReportRow::for_tests(&actual_parent.display().to_string()),
+            crate::report::RepoReportRow::for_tests(&target.display().to_string()),
+        ];
+        let roles = classify_roles(&rows);
+        match &roles[2] {
+            RoleKind::Submod {
+                parent_basename,
+                sub_path,
+            } => {
+                assert_eq!(parent_basename, "actual-parent");
+                assert_eq!(sub_path, "nested/target");
+            }
+            other => panic!("expected exact-path submod, got {:?}", other),
+        }
     }
 
     /// Goal `4555eaf6` (2026-07-19): the ROLE column should render

@@ -34,9 +34,10 @@ static STALE_UPSTREAM_REFRESH_AT: std::sync::OnceLock<
 const STALE_UPSTREAM_REFRESH_COOLDOWN: Duration = Duration::from_secs(300);
 
 fn stale_upstream_refresh_allowed(repo: &Path, now: std::time::Instant) -> bool {
-    let attempts = STALE_UPSTREAM_REFRESH_AT
-        .get_or_init(|| std::sync::Mutex::new(HashMap::new()));
-    let mut attempts = attempts.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let attempts = STALE_UPSTREAM_REFRESH_AT.get_or_init(|| std::sync::Mutex::new(HashMap::new()));
+    let mut attempts = attempts
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     if attempts
         .get(repo)
         .is_some_and(|last| now.saturating_duration_since(*last) < STALE_UPSTREAM_REFRESH_COOLDOWN)
@@ -7439,8 +7440,14 @@ push_url = "{}"
         let second_repo = std::path::PathBuf::from("/tmp/stale-upstream-cooldown-b");
         let now = std::time::Instant::now();
         assert!(stale_upstream_refresh_allowed(&first_repo, now));
-        assert!(!stale_upstream_refresh_allowed(&first_repo, now + Duration::from_secs(1)));
-        assert!(stale_upstream_refresh_allowed(&second_repo, now + Duration::from_secs(1)));
+        assert!(!stale_upstream_refresh_allowed(
+            &first_repo,
+            now + Duration::from_secs(1)
+        ));
+        assert!(stale_upstream_refresh_allowed(
+            &second_repo,
+            now + Duration::from_secs(1)
+        ));
         assert!(stale_upstream_refresh_allowed(
             &first_repo,
             now + STALE_UPSTREAM_REFRESH_COOLDOWN + Duration::from_secs(1)

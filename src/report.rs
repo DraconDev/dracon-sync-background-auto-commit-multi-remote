@@ -6609,11 +6609,7 @@ fn write_origin_gone_ledger(path: &Path, lines: &[String]) -> bool {
         std::process::id(),
         crate::policy::timestamp_secs()
     ));
-    let mut file = match OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&tmp)
-    {
+    let mut file = match OpenOptions::new().write(true).create_new(true).open(&tmp) {
         Ok(file) => file,
         Err(e) => {
             eprintln!(

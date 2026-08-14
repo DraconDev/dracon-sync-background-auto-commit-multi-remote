@@ -19,8 +19,7 @@ pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
 /// this check centralized prevents the SHA-256 form from silently bypassing
 /// safety guards that inspect refs and object lists.
 pub(crate) fn is_valid_object_id(value: &str) -> bool {
-    (value.len() == 40 || value.len() == 64)
-        && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    (value.len() == 40 || value.len() == 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 /// GitHub's incoming-pack hard limit (2 GiB). A push whose pack exceeds this
@@ -569,10 +568,7 @@ fn blob_size_sum(repo: &std::path::Path, shas: &str) -> Option<u64> {
                     // full object ID if present, then read type and size.
                     let parts: Vec<&str> = trimmed.split_whitespace().collect();
                     let mut i = 0;
-                    if parts
-                        .first()
-                        .is_some_and(|p| is_valid_object_id(p))
-                    {
+                    if parts.first().is_some_and(|p| is_valid_object_id(p)) {
                         i += 1;
                     }
                     let ty = parts.get(i);

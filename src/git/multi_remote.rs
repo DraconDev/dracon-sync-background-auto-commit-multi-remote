@@ -781,11 +781,14 @@ pub(crate) async fn push_to_all_remotes(
         let name = remote.name.clone();
         let result_name = name.clone();
         let force_push = remote.force_push_when_behind;
-        futures.push((result_name, tokio::spawn(async move {
-            let result =
-                push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
-            (name, result)
-        })));
+        futures.push((
+            result_name,
+            tokio::spawn(async move {
+                let result =
+                    push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
+                (name, result)
+            }),
+        ));
     }
     let mut results = Vec::with_capacity(futures.len());
     for (name, f) in futures {
@@ -1080,6 +1083,13 @@ pub(crate) async fn auto_create_all_remotes(
                 private
             };
             let result = auto_create_repo(remote, &resolved_name, create_private).await;
+            if result.is_ok() {
+                if let Some(repo) = repo {
+                    exists_cache()
+                        .lock()
+                        .insert((repo.to_path_buf(), remote.name.clone()));
+                }
+            }
             results.push((remote.name.clone(), result));
         }
     }
@@ -1130,7 +1140,6 @@ pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
     lower.contains("repository not found")
         || lower.contains("could not be found")
         || lower.contains("does not exist")
-        || lower.contains("not found")
         || lower.contains("push to create is not enabled")
         || lower.contains("cannot find repository")
         || lower.contains("404")
@@ -1238,6 +1247,9 @@ mod tests {
         assert!(!ls_remote_indicates_missing("Connection reset by peer"));
         assert!(!ls_remote_indicates_missing(
             "Temporary failure in name resolution"
+        ));
+        assert!(!ls_remote_indicates_missing(
+            "remote: not found while checking permissions"
         ));
     }
 
