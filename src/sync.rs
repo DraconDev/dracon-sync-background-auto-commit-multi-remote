@@ -3903,6 +3903,15 @@ pub(crate) async fn sync_repo_with_ahead_since(
     let has_origin = ensure_origin_remote(repo, policy);
     let has_upstream = has_tracking_upstream(repo);
     let initial_status = svc.get_status().await?;
+    // dracon-git reports ahead=0 for a detached HEAD because libgit2 cannot
+    // resolve a branch upstream in that state. The push path deliberately
+    // targets the conventional `main` branch for detached worktrees, so use
+    // the same CLI fallback for the backstop decision as well.
+    let initial_ahead = if initial_status.ahead > 0 {
+        initial_status.ahead as u64
+    } else {
+        count_ahead_commits(repo).await.unwrap_or(0)
+    };
 
     let repo_override = load_repo_override(repo);
     let auto_bump_versions = repo_override
@@ -3957,14 +3966,14 @@ pub(crate) async fn sync_repo_with_ahead_since(
     let backstop_active = is_backstop_active(
         ahead_since,
         std::time::Instant::now(),
-        initial_status.ahead,
+        initial_ahead.min(usize::MAX as u64) as usize,
         policy.auto_commit_backstop_threshold,
         policy.auto_commit_backstop_min_age_secs,
     );
     if backstop_active {
         eprintln!(
             "⏸️  daemon backstop: {} unpushed commits pending push >{}s, skipping auto-commit for {}",
-            initial_status.ahead,
+            initial_ahead,
             policy.auto_commit_backstop_min_age_secs,
             repo.display(),
         );
@@ -4374,6 +4383,15 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
 /// read as success in the daemon's apply phase.
 async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<bool> {
     let current_status = svc.get_status().await?;
+    // dracon-git's libgit2 status cannot associate a detached HEAD with an
+    // upstream, so it reports ahead=0 even when HEAD is one or more commits
+    // beyond origin/main. Reuse the CLI-based count used for timeout scaling
+    // before deciding whether there is anything to push.
+    let ahead = if current_status.ahead > 0 {
+        current_status.ahead as u64
+    } else {
+        count_ahead_commits(ctx.repo).await.unwrap_or(0)
+    };
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
     // CHANGED 2026-07-21 (v0.112.30): when the upstream is configured
     // (e.g. by `configure_publish_upstream_if_missing`) but the
@@ -4408,7 +4426,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // CHANGED 2026-07-27 (v0.113.5, audit M3): removed the
     // `|| !branch_has_upstream` clause; the gate is now
     // `ahead > 0 || upstream_ref_missing`.
-    let should_push = current_status.ahead > 0 || upstream_ref_missing;
+    let should_push = ahead > 0 || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
         // Push synchronously so mirror failures are tracked in
         // `ctx.remote_failures`. Previously this used `tokio::spawn`

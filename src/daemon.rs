@@ -2140,7 +2140,7 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
     use std::fs::File;
-    use std::time::{Duration as StdDuration, SystemTime};
+    use std::time::SystemTime;
     let dir = std::env::temp_dir().join(format!(
         "dracon-sync-stale-dirty-test-{}",
         std::process::id()

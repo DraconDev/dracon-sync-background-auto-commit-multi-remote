@@ -75,7 +75,8 @@ auto_rewrite_large_blobs = false
 # repo_sync_timeout_secs is retained for status/compatibility; per-operation
 # timeouts now enforce push/pull safety.
 pull_op_timeout_secs = 30
-push_op_timeout_secs = 60
+# Code default: 300 seconds. Increase this for unusually large pushes.
+push_op_timeout_secs = 300
 # When a repo's dangling-object garbage (interrupted-push tmp_pack_* debris,
 # visible via `git count-objects -v` as size-garbage) exceeds this many bytes,
 # the daemon runs `git gc --prune=now` automatically (v0.113.0). Default:

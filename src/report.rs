@@ -9806,6 +9806,13 @@ mod tests {
 
     static LEDGER_ENV_GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+    // Environment variables are process-global. These tests change values
+    // consulted by report formatting, so they must not run concurrently with
+    // one another. Without this guard, a layout test can replace
+    // DRACON_SYNC_TERM_WIDTH while the COLUMNS fallback test is between its
+    // assertions, making the full suite intermittently fail.
+    static REPORT_ENV_GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     struct VarGuard {
         var: String,
         original: Option<String>,
@@ -9962,6 +9969,9 @@ mod tests {
 
     #[test]
     fn test_ansi_colors() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // Force color on for this test (NO_COLOR may be set in the env).
         let saved = std::env::var_os("NO_COLOR");
         // SAFETY: this is a single-threaded test that owns the NO_COLOR slot.
@@ -11452,6 +11462,9 @@ mod tests {
 
     #[test]
     fn test_choose_layout_tier_vertical() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // Use env var to control width
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
         // CHANGED 2026-07-22 (v0.112.38): the < 242 default is now
@@ -11480,6 +11493,9 @@ mod tests {
 
     #[test]
     fn test_choose_layout_tier_compact() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let prev = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
         // v0.113.26: Compact is ONLY the < 165 fallback now; the
         // 242-299 band is Rich (was Compact before v0.113.26).
@@ -11500,6 +11516,9 @@ mod tests {
 
     #[test]
     fn test_choose_layout_tier_full() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // v0.113.26: Full is NEVER auto-picked (the ≥315 band was
         // removed) — wide terminals get Rich. Full remains an opt-in
         // via `--layout full` only.
@@ -11521,6 +11540,9 @@ mod tests {
 
     #[test]
     fn test_terminal_width_columns_env_var() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // COLUMNS env var (ncurses convention) should be respected as a fallback
         // when DRACON_SYNC_TERM_WIDTH is unset.
         let prev_width = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
@@ -11563,6 +11585,9 @@ mod tests {
 
     #[test]
     fn test_terminal_width_fallback_is_compact() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // When neither env var is set and terminal_size fails (test env / pipe),
         // the fallback must be 120 (Compact-friendly), NOT 300 (Full-only).
         // CHANGED 2026-08-11 (audit LOW, report.rs:11460-11462): the
@@ -11608,6 +11633,9 @@ mod tests {
 
     #[test]
     fn test_choose_layout_tier_fallback_no_env_no_tty_yields_compact_or_smaller() {
+        let _env_guard = REPORT_ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // When no env vars are set and terminal_size returns None, the dispatcher's
         // fallback (Some(120)) must never route to Full (which requires 300+ cols).
         let prev_width = std::env::var("DRACON_SYNC_TERM_WIDTH").ok();
