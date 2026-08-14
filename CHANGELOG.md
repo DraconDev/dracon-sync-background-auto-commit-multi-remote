@@ -55,6 +55,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   empty set, which could suppress a real commit and install a cooldown. The
   error now propagates and is covered by an unborn-HEAD regression test.
 
+- **Branch-cleanup pushes now use hardened non-interactive SSH** (audit M8,
+  2026-08-14): remote deletion during main/master consolidation and stale
+  branch pruning now disables prompts, applies the daemon SSH policy, and
+  reports non-zero exits instead of silently treating them as success.
+
+- **Trusted forge URLs now tolerate harmless casing differences** (audit M11,
+  2026-08-14): host and namespace comparisons remain tuple-atomic but are
+  ASCII case-insensitive, so custom policies no longer need duplicate
+  entries for `DraconDev` versus `dracondev` URL forms.
+
 - **Stale test comment in `test_terminal_width_fallback_is_compact`
   rewritten** (audit LOW, 2026-08-11): the comment described the
   removed Vertical (< 220) / Compact (220-299) bands; the tier layout

@@ -7024,7 +7024,10 @@ trusted_authors = ["test"]
         )
         .trim()
         .to_string();
-        assert_eq!(local_head, remote_head, "detached HEAD commit must be pushed");
+        assert_eq!(
+            local_head, remote_head,
+            "detached HEAD commit must be pushed"
+        );
 
         let tracking_head = String::from_utf8_lossy(
             &crate::git::git_cmd()
@@ -8117,14 +8120,13 @@ auto_bump_versions = false
 
         let svc = GitService::new(&repo).unwrap();
         let result = compute_diff_entries(&svc, &repo).await;
-        assert!(result.is_err(), "an unborn HEAD must not become FilterOnly");
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("git diff HEAD"),
-            "the filter-aware diff failure should remain visible"
-        );
+        match result {
+            Ok(_) => panic!("an unborn HEAD must not become FilterOnly"),
+            Err(error) => assert!(
+                error.to_string().contains("git diff HEAD"),
+                "the filter-aware diff failure should remain visible"
+            ),
+        }
     }
 
     #[tokio::test]

@@ -3,7 +3,33 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-use super::{has_origin_remote, has_tracking_upstream, is_safe_branch_name};
+use super::{git_ssh_hardening, has_origin_remote, has_tracking_upstream, is_safe_branch_name};
+
+/// Delete a remote branch with the same non-interactive SSH policy used by
+/// normal daemon pushes. Branch cleanup is best-effort at its call sites, but
+/// a failed exit status must remain visible instead of looking successful.
+fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
+    if !is_safe_branch_name(branch) {
+        return Err(anyhow::anyhow!("branch name '{}' is unsafe", branch));
+    }
+    let ssh_hardening = git_ssh_hardening();
+    let status = crate::policy::std_git_command()
+        .args(["push", remote, "--delete", branch])
+        .current_dir(repo)
+        .env("GIT_SSH_COMMAND", ssh_hardening)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .stdout(std::process::Stdio::null())
+        .status()
+        .with_context(|| format!("failed to delete {remote}/{branch}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "remote branch deletion exited with {}",
+            status
+        ))
+    }
+}
 
 /// Get the current branch name from HEAD ref or git CLI.
 pub(crate) fn current_branch(repo: &Path) -> Option<String> {
@@ -153,13 +179,7 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
     {
         eprintln!("⚠️ failed to delete local master branch: {}", e);
     }
-    if let Err(e) = std_git_command()
-        .args(["push", "origin", "--delete", "master"])
-        .current_dir(repo)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-    {
+    if let Err(e) = delete_remote_branch(repo, "origin", "master") {
         eprintln!("⚠️ failed to delete remote master branch: {}", e);
     }
     if has_origin_remote(repo) && !has_tracking_upstream(repo) {
@@ -192,13 +212,7 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
         if let Err(e) = super::push_with_retries(repo, 60, 3, "rename-master-to-main").await {
             eprintln!("⚠️ failed to push main to origin: {}", e);
         }
-        if let Err(e) = std_git_command()
-            .args(["push", "origin", "--delete", "master"])
-            .current_dir(repo)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-        {
+        if let Err(e) = delete_remote_branch(repo, "origin", "master") {
             eprintln!("⚠️ failed to delete remote master: {}", e);
         }
     }
@@ -234,15 +248,12 @@ pub(crate) async fn prune_other_default_branch(repo: &Path) {
     }
     if repo_has_origin {
         let other_c = other_str.clone();
-        if let Err(e) = tokio::task::spawn_blocking(move || {
-            std_git_command()
-                .args(["push", "origin", "--delete", &other_c])
-                .current_dir(&repo_c)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-        })
-        .await
+        if let Err(e) =
+            tokio::task::spawn_blocking(move || delete_remote_branch(&repo_c, "origin", &other_c))
+                .await
+                .unwrap_or_else(|e| {
+                    Err(anyhow::anyhow!("remote branch deletion task failed: {}", e))
+                })
         {
             eprintln!("⚠️ failed to delete remote {} branch: {}", other_str, e);
         }
