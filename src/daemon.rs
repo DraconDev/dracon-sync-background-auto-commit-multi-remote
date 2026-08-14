@@ -2202,7 +2202,7 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
 fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
-    use std::time::{Duration, SystemTime};
+    use std::time::SystemTime;
     let td = tempfile::tempdir().unwrap();
     let parent = td.path().join("parent");
     std::fs::create_dir_all(&parent).unwrap();
