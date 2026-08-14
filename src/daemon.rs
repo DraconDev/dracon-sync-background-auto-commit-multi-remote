@@ -2140,7 +2140,7 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
     use std::fs::File;
-    use std::time::SystemTime;
+    use std::time::{Duration as StdDuration, SystemTime};
     let dir = std::env::temp_dir().join(format!(
         "dracon-sync-stale-dirty-test-{}",
         std::process::id()
@@ -2202,7 +2202,7 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
 fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
-    use std::time::{Duration as StdDuration, SystemTime};
+    use std::time::{Duration, SystemTime};
     let td = tempfile::tempdir().unwrap();
     let parent = td.path().join("parent");
     std::fs::create_dir_all(&parent).unwrap();
