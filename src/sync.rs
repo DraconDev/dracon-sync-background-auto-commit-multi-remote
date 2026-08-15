@@ -274,6 +274,28 @@ fn notify_webhook_failure(webhook_url: &str, repo: &Path, remote: &str, error: &
     });
 }
 
+/// Send the configured push webhook only after the persisted retry budget is
+/// exhausted. Individual push attempts are still logged and recorded in the
+/// stuck ledger, but transient forge/network failures should not page the
+/// operator or trigger an external failure workflow.
+fn notify_webhook_persistent_push_failure(
+    policy: &SyncPolicy,
+    repo: &Path,
+    remote: &str,
+    error: &str,
+) {
+    let Some(url) = policy.webhook_url.as_deref() else {
+        return;
+    };
+    let Some(info) = crate::daemon::get_stuck_push_info(repo) else {
+        return;
+    };
+    if crate::daemon::push_failure_is_persistent(info.consecutive_failures, policy.push_max_retries)
+    {
+        notify_webhook_failure(url, repo, remote, error);
+    }
+}
+
 async fn get_bump_info(repo: &Path) -> Option<(String, String, String)> {
     let new_ver = crate::release::detect_project_version(repo)?.0;
 
@@ -1885,9 +1907,6 @@ async fn push_background(
             for (name, result) in &push_results {
                 if let Err(e) = result {
                     log_warn!("push to {} failed for {}: {}", name, repo.display(), e);
-                    if let Some(ref url) = policy.webhook_url {
-                        notify_webhook_failure(url, repo, name, &e.to_string());
-                    }
                     if let Some(rf) = remote_failures.as_deref_mut() {
                         let fail = rf.entry(name.clone()).or_default();
                         fail.consecutive += 1;
@@ -3529,15 +3548,19 @@ async fn stage_commit_and_push(
                         names, cause
                     ),
                 );
+                notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
                 push_failed = true;
             }
             Err(e) => {
+                let error = crate::ownership::redact_url_credentials(&e.to_string());
                 eprintln!(
                     "⚠️ push error for {}: {}",
                     repo.display(),
-                    crate::ownership::redact_url_credentials(&e.to_string())
+                    error
                 );
-                crate::daemon::record_push_failure(repo, &e.to_string());
+                crate::daemon::record_push_failure(repo, &error);
+                let cause = crate::git::classify_push_failure(&error);
+                notify_webhook_persistent_push_failure(policy, repo, "origin/mirrors", cause);
                 push_failed = true;
             }
         }
@@ -4496,10 +4519,15 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     ctx.repo.display(),
                     names
                 );
+                let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
                 crate::daemon::record_push_failure(
                     ctx.repo,
-                    &format!("git push returned non-zero (remotes: {})", names),
+                    &format!(
+                        "git push returned non-zero (remotes: {}) — {}",
+                        names, cause
+                    ),
                 );
+                notify_webhook_persistent_push_failure(ctx.policy, ctx.repo, &names, &cause);
                 // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3):
                 // propagate the failure so the caller returns
                 // `SyncOutcome::PushFailed` instead of `NothingToDo`
@@ -4507,12 +4535,20 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 return Ok(false);
             }
             Err(e) => {
+                let error = crate::ownership::redact_url_credentials(&e.to_string());
                 eprintln!(
                     "⚠️ push error for {}: {}",
                     ctx.repo.display(),
-                    crate::ownership::redact_url_credentials(&e.to_string())
+                    error
                 );
-                crate::daemon::record_push_failure(ctx.repo, &e.to_string());
+                crate::daemon::record_push_failure(ctx.repo, &error);
+                let cause = crate::git::classify_push_failure(&error);
+                notify_webhook_persistent_push_failure(
+                    ctx.policy,
+                    ctx.repo,
+                    "origin/mirrors",
+                    cause,
+                );
                 return Ok(false);
             }
         }

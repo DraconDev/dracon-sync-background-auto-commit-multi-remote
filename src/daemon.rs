@@ -126,7 +126,6 @@ pub(crate) fn apply_outcome(
     remote_failures: HashMap<String, RemoteFailInfo>,
     entry: &mut RepoActivity,
     stage_cooldowns: &mut HashMap<PathBuf, Instant>,
-    remote_notify_cooldowns: &mut HashMap<String, Instant>,
     stuck_push_repos: &mut HashMap<PathBuf, StuckRepoEntry>,
     is_late: bool,
 ) -> ApplyOutcome {
@@ -214,35 +213,19 @@ pub(crate) fn apply_outcome(
                 repo.display(),
                 late_tag
             );
-            let notify_key = format!("pushfail-{}", repo.display());
-            if notify_throttled(
-                remote_notify_cooldowns,
-                &notify_key,
-                Duration::from_secs(1800),
-            ) {
-                crate::report::send_sync_conflict_notification(
-                    repo,
-                    "Push Failed",
-                    "commit landed locally but the push failed; see daemon log",
-                );
-            }
+            // A single failed push is transient by default. It remains
+            // visible in the journal, incident ledger, and stuck-push
+            // ledger; user-facing notification is deferred until the
+            // persistent/stuck state machine says the failure survived
+            // the retry budget.
             // ADDED 2026-07-22 (v0.112.37): no longer blocked.
             entry.blocked_since = None;
             ApplyOutcome::Failure
         }
         Err(e) => {
             eprintln!("⚠️ sync failed{} for {}: {}", late_tag, repo.display(), e);
-            let err_str = e.to_string();
-            if err_str.contains("push") || err_str.contains("remote") {
-                let notify_key = format!("pushfail-{}", repo.display());
-                if notify_throttled(
-                    remote_notify_cooldowns,
-                    &notify_key,
-                    Duration::from_secs(1800),
-                ) {
-                    crate::report::send_sync_conflict_notification(repo, "Push Failed", &err_str);
-                }
-            }
+            // As above, retain the detailed failure in the journal/ledger
+            // and let sustained-state handling decide when to notify.
             // ADDED 2026-07-22 (v0.112.37): no longer blocked.
             entry.blocked_since = None;
             ApplyOutcome::Failure
@@ -673,6 +656,15 @@ pub(crate) enum StuckDecision {
     Exhausted,
 }
 
+/// Whether a push failure has persisted long enough to warrant a
+/// user-facing failure notification. A failed attempt is intentionally not
+/// enough: transient forge/network errors are expected to recover through
+/// the retry path. `max_retries = 0` means "never give up" and therefore
+/// has no budget-exhaustion notification boundary.
+pub(crate) fn push_failure_is_persistent(consecutive_failures: u32, max_retries: u32) -> bool {
+    max_retries > 0 && consecutive_failures >= max_retries
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): pure decision —
 /// extracted so the stuck-push state machine is unit-testable without
 /// spinning up the daemon loop.
@@ -682,7 +674,7 @@ pub(crate) fn stuck_decision(
     max_retries: u32,
     backoff_secs: u64,
 ) -> StuckDecision {
-    if info.consecutive_failures >= max_retries {
+    if push_failure_is_persistent(info.consecutive_failures, max_retries) {
         return StuckDecision::Exhausted;
     }
     let last_activity = info
@@ -817,7 +809,6 @@ mod tests {
             unowned_since: None,
         };
         let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> = HashMap::new();
-        let mut remote_notify_cooldowns: HashMap<String, std::time::Instant> = HashMap::new();
         let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
 
         // --- Synced -> ApplyOutcome::Success ---
@@ -827,7 +818,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -844,7 +834,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             true, // is_late=true exercises the trailing-drain log suffix
         );
@@ -857,7 +846,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -871,7 +859,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -885,7 +872,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -899,7 +885,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -4211,12 +4196,17 @@ pub(crate) async fn run_daemon(
                                 policy.push_max_retries,
                                 repo.file_name().unwrap_or_default().to_string_lossy(),
                             );
+                            let cause = if info.last_error.is_empty() {
+                                "failure cause unavailable"
+                            } else {
+                                crate::git::classify_push_failure(&info.last_error)
+                            };
                             crate::report::send_sync_conflict_notification(
                                 &repo,
                                 "Push Stuck (budget exhausted)",
                                 &format!(
-                                    "{} consecutive push failures — auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
-                                    info.consecutive_failures
+                                    "{} consecutive push failures — {}; auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
+                                    info.consecutive_failures, cause
                                 ),
                             );
                         }
@@ -4236,14 +4226,20 @@ pub(crate) async fn run_daemon(
                             &notify_key,
                             Duration::from_secs(1800),
                         ) {
+                            let cause = if info.last_error.is_empty() {
+                                "failure cause unavailable"
+                            } else {
+                                crate::git::classify_push_failure(&info.last_error)
+                            };
                             crate::report::record_sync_alert(
                                 &repo,
                                 "Stuck Push Retry",
                                 &format!(
-                                    "retrying after {}s; stuck since unix {}; {} consecutive failures",
+                                    "retrying after {}s; stuck since unix {}; {} consecutive failures; {}",
                                     stuck_age_secs,
                                     info.stuck_since,
-                                    info.consecutive_failures
+                                    info.consecutive_failures,
+                                    cause
                                 ),
                             );
                         }
@@ -4899,7 +4895,6 @@ pub(crate) async fn run_daemon(
                     remote_failures,
                     entry,
                     &mut stage_cooldowns,
-                    &mut remote_notify_cooldowns,
                     &mut stuck_push_repos,
                     false,
                 );
@@ -5058,7 +5053,6 @@ pub(crate) async fn run_daemon(
                             remote_failures,
                             entry,
                             &mut stage_cooldowns,
-                            &mut remote_notify_cooldowns,
                             &mut stuck_push_repos,
                             true,
                         );
