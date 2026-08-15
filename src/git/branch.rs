@@ -5,6 +5,13 @@ use std::path::{Path, PathBuf};
 
 use super::{git_ssh_hardening, has_origin_remote, has_tracking_upstream, is_safe_branch_name};
 
+/// Git reports an already-absent remote branch as a failed push, but branch
+/// cleanup is intentionally idempotent. Treat only that precise response as
+/// success; authentication, protection, and transport failures remain errors.
+fn remote_branch_already_absent(stderr: &str) -> bool {
+    stderr.contains("remote ref does not exist")
+}
+
 /// Delete a remote branch with the same non-interactive SSH policy used by
 /// normal daemon pushes. Branch cleanup is best-effort at its call sites, but
 /// a failed exit status must remain visible instead of looking successful.
@@ -13,7 +20,7 @@ fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
         return Err(anyhow::anyhow!("branch name '{}' is unsafe", branch));
     }
     let ssh_hardening = git_ssh_hardening();
-    let status = crate::policy::std_git_command()
+    let output = crate::policy::std_git_command()
         .args(["push", remote, "--delete", branch])
         .current_dir(repo)
         .env("GIT_SSH_COMMAND", ssh_hardening)
@@ -23,14 +30,17 @@ fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
         // deliberate, narrow exception, matching the stale-branch janitor.
         .env("DRACON_ALLOW_REWRITE", "1")
         .stdout(std::process::Stdio::null())
-        .status()
+        .output()
         .with_context(|| format!("failed to delete {remote}/{branch}"))?;
-    if status.success() {
+    if output.status.success()
+        || remote_branch_already_absent(&String::from_utf8_lossy(&output.stderr))
+    {
         Ok(())
     } else {
         Err(anyhow::anyhow!(
-            "remote branch deletion exited with {}",
-            status
+            "remote branch deletion exited with {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
         ))
     }
 }
@@ -388,6 +398,16 @@ pub(crate) fn repair_broken_tracking(repos: &[PathBuf]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_remote_branch_deletion_is_idempotent() {
+        assert!(remote_branch_already_absent(
+            "error: unable to delete 'master': remote ref does not exist\n"
+        ));
+        assert!(!remote_branch_already_absent(
+            "remote: permission denied\nerror: failed to push some refs\n"
+        ));
+    }
 
     #[test]
     fn test_old_tracking_from_status_line_parses_real_ref() {
