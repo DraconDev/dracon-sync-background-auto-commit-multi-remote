@@ -3553,11 +3553,7 @@ async fn stage_commit_and_push(
             }
             Err(e) => {
                 let error = crate::ownership::redact_url_credentials(&e.to_string());
-                eprintln!(
-                    "⚠️ push error for {}: {}",
-                    repo.display(),
-                    error
-                );
+                eprintln!("⚠️ push error for {}: {}", repo.display(), error);
                 crate::daemon::record_push_failure(repo, &error);
                 let cause = crate::git::classify_push_failure(&error);
                 notify_webhook_persistent_push_failure(policy, repo, "origin/mirrors", cause);
@@ -4536,11 +4532,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             }
             Err(e) => {
                 let error = crate::ownership::redact_url_credentials(&e.to_string());
-                eprintln!(
-                    "⚠️ push error for {}: {}",
-                    ctx.repo.display(),
-                    error
-                );
+                eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
                 crate::daemon::record_push_failure(ctx.repo, &error);
                 let cause = crate::git::classify_push_failure(&error);
                 notify_webhook_persistent_push_failure(

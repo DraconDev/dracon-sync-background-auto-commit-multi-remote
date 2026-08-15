@@ -776,7 +776,7 @@ mod tests {
         // Build a minimal fixture for the helper:
         //   - empty RepoActivity
         //   - empty stuck_push_repos
-        //   - empty stage_cooldowns / remote_notify_cooldowns
+        //   - empty stage_cooldowns
         // Then drive each SyncOutcome through `apply_outcome`
         // with `is_late=false` and verify:
         //   1. The returned `ApplyOutcome` matches the
@@ -899,7 +899,6 @@ mod tests {
             HashMap::new(),
             &mut entry,
             &mut stage_cooldowns,
-            &mut remote_notify_cooldowns,
             &mut stuck_push_repos,
             false,
         );
@@ -2443,6 +2442,17 @@ fn test_stuck_decision_exhausted_at_budget() {
     // Just below budget → normal retry flow.
     let info3 = stuck_entry(4, 1000, 1500, 0);
     assert_eq!(stuck_decision(&info3, 2000, 5, 300), StuckDecision::Retry);
+}
+
+#[test]
+fn test_push_failure_notification_requires_persistent_budget_exhaustion() {
+    assert!(!push_failure_is_persistent(1, 5));
+    assert!(!push_failure_is_persistent(4, 5));
+    assert!(push_failure_is_persistent(5, 5));
+    assert!(push_failure_is_persistent(6, 5));
+    // A zero budget means "never give up", so there is no exhaustion-based
+    // notification boundary; sustained-state checks still provide visibility.
+    assert!(!push_failure_is_persistent(100, 0));
 }
 
 #[test]

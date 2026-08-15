@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Transient push failures no longer page the operator** (operator request,
+  2026-08-15): a single failed push remains visible in the journal and
+  incident/stuck ledgers, but the critical desktop alert and configured push
+  webhook now wait until the persisted `push_max_retries` budget is exhausted
+  (or another sustained-state threshold is reached). Persistent alerts include
+  the classified cause, so a transient GitLab/network blip does not look like
+  a repository incident while the actionable stuck state remains visible.
+
 - **Release dry-runs now bump `Cargo.toml` before validation** (audit LOW,
   2026-08-11): `scripts/release.sh --dry-run` now writes the requested
   manifest version instead of reporting a preview while leaving the old
