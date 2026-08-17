@@ -5314,7 +5314,7 @@ fn state_color_for(cause: &StateCause) -> Color {
 /// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
 /// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
 /// ADDED 2026-07-29 (v0.113.15): map a configured push-remote name to
-/// its rich-table icon. Width-2 emoji only (see REM_COL comment).
+/// its rich-table icon. Width-2 emoji only (see REM-column sizing).
 /// Unknown remote names return None and render as their first two
 /// letters so an unfamiliar topology is still visible, never dropped.
 pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
@@ -5391,6 +5391,26 @@ mod v011318_tests {
     }
 
     #[test]
+    fn dynamic_rem_column_covers_rendered_remote_labels() {
+        let known = [
+            "github".to_string(),
+            "gitlab".to_string(),
+            "codeberg".to_string(),
+        ];
+        assert_eq!(rem_column_width(&known), 8);
+
+        let extended = [
+            "github".to_string(),
+            "gitlab".to_string(),
+            "codeberg".to_string(),
+            "backup".to_string(),
+        ];
+        let content = rem_cell_content(&extended);
+        assert!(rem_column_width(&extended) >= UnicodeWidthStr::width(content.as_str()) + 2);
+        assert!(rem_column_width(&extended) > 8);
+    }
+
+    #[test]
     fn three_digit_change_counts_fit_column_budget() {
         // v0.113.19: per-class columns have a 3-cell content budget
         // (width 5 − 2 padding) — junk-runner's 282-modified churn
@@ -5439,6 +5459,17 @@ fn rem_cell_content(push_to: &[String]) -> String {
         s.push('—');
     }
     s
+}
+
+/// Compute an absolute REM-column width from the actual rendered cell.
+/// `comfy-table`'s fixed width includes two padding cells. Keep the old
+/// eight-column floor for the normal three-forge topology, but grow safely
+/// when an operator has more active remotes or an unfamiliar remote label.
+fn rem_column_width(push_to: &[String]) -> usize {
+    const REM_MIN_COL: usize = 8;
+    unicode_width::UnicodeWidthStr::width(rem_cell_content(push_to).as_str())
+        .saturating_add(2)
+        .max(REM_MIN_COL)
 }
 
 /// ADDED 2026-07-29 (v0.113.15): append the last-push age to a
@@ -5968,11 +5999,19 @@ fn print_repos_rich_table(
         presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
         Width,
     };
+    use unicode_width::UnicodeWidthStr;
     let _ = _filter;
 
     // Sort by severity (concern → warn → active → clean), stable.
     let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
     indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
+
+    const REM_MIN_COL: usize = 8;
+    let rem_col = indexed
+        .iter()
+        .map(|(_, row)| rem_column_width(&row.push_to_remotes))
+        .max()
+        .unwrap_or(REM_MIN_COL);
 
     let width = terminal_width().unwrap_or(120) as usize;
     const NUM_COL: usize = 4;
@@ -5999,7 +6038,7 @@ fn print_repos_rich_table(
             + CHG_EXCL_COL
             + AB_COL
             + PUSH_COL
-            + REM_COL
+            + rem_col
             + C1H_COL
             + C6H_COL
             + C24H_COL
@@ -6039,13 +6078,10 @@ fn print_repos_rich_table(
     // per ACTIVE push remote (🐙 github · 🦊 gitlab · 🗻 codeberg).
     // v0.113.17: excluded remotes are NOT rendered (operator: showing
     // all three for every repo read as "all repos have all remotes").
-    // Worst case 3 remotes × 2 cells = 6 content + 2 padding = 8
-    // (Absolute width INCLUDES padding — v0.113.15 dev-test caught
-    // the third icon being truncated at REM_COL=6). NOTE: codeberg is
-    // 🗻 (U+1F5FB, Emoji_Presentation=Yes → width-2 in
-    // unicode-width), NOT ⛰/🏔 (U+26F0/U+1F3D4 measure width-1 in
-    // unicode-width but render 2 — would break the table math).
-    const REM_COL: usize = 8;
+    // Absolute widths include padding, so the minimum is 8 (three known
+    // icons plus two padding cells). `rem_col` is derived from the actual
+    // rendered cells so future or operator-named remotes do not wrap or get
+    // silently clipped.
     // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
     // and the single COMMITS column was split into three separate
@@ -6085,7 +6121,7 @@ fn print_repos_rich_table(
         + CHG_EXCL_COL
         + AB_COL
         + PUSH_COL
-        + REM_COL
+        + rem_col
         + C1H_COL
         + C6H_COL
         + C24H_COL
@@ -6189,7 +6225,7 @@ fn print_repos_rich_table(
     table
         .column_mut(10)
         .expect("REM column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REM_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(rem_col as u16)));
     table
         .column_mut(11)
         .expect("1H column")

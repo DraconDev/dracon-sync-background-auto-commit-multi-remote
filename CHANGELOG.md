@@ -18,7 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Rich `repos` tables no longer wrap four- or five-digit pulse counts**:
   the 1H/6H/24H columns now reserve five content cells, so a busy
-  repository with counts such as `1020` stays on one visual row.
+  repository with counts such as `1020` stays on one visual row. The REM
+  column also grows from the rendered active-remote labels instead of
+  clipping an unfamiliar or expanded mirror topology.
 
 ## [0.113.51] - 2026-08-15
 
