@@ -1664,6 +1664,19 @@ async fn run_release_pipeline_if_bumped(repo: &Path, policy: &SyncPolicy, versio
     }
 }
 
+fn is_github_repository_url(url: &str) -> bool {
+    crate::git::canonical_repository_url(url)
+        .map(|canonical| canonical.starts_with("github.com/"))
+        .unwrap_or(false)
+}
+
+fn github_mirror_matches_origin(origin_url: Option<&str>, github_url: Option<&str>) -> bool {
+    match (origin_url, github_url) {
+        (Some(origin), Some(github)) => crate::git::same_repository_url(origin, github),
+        _ => false,
+    }
+}
+
 /// Push to origin + all mirror remotes. Returns true if all succeeded.
 ///
 /// Updates `remote_failures` (if Some) to track consecutive failures per
@@ -1718,28 +1731,29 @@ async fn push_background(
         .map(|rf| rf.get("github").map(|f| f.consecutive > 0).unwrap_or(false))
         .unwrap_or(false);
 
-    // Detect whether `origin` points at github. This matters for the
-    // mirror-path github-exclusion logic below: if `origin` IS github,
-    // github is already pushed by the `push_with_retries` block above and
-    // must be excluded from the mirror path (to avoid the
-    // `auto_create_all_remotes` stall that motivated the original
-    // exclusion). If `origin` is NOT github (e.g. the 10 nested game
-    // submodules of `dracon-platform` where `.gitmodules` lists codeberg
-    // first and git picked that as `origin`), github MUST be pushed via
-    // the mirror path or it never reaches the forge.
-    // FIXED 2026-07-09 (goal fb8ddd6b — repo-discovery audit): the
-    // previous logic unconditionally excluded github from the mirror
-    // path, assuming `origin` = github for every repo. That assumption
-    // is violated for any repo cloned from a non-github-first
-    // `.gitmodules` (or with `origin` reassigned post-clone). The fix:
-    // only exclude github from the mirror path when `origin` is github.
-    let origin_is_github = if has_origin {
+    // Detect whether `origin` is hosted on GitHub for the pack-limit guard,
+    // and separately whether it is the SAME repository as the named
+    // `github` mirror. Host-only comparison is wrong: doomtap had
+    // `origin = github.com/DraconDev/ultratap` while its named mirror was
+    // `github.com/DraconDev/doomtap`; treating both as the same remote
+    // silently skipped the real GitHub mirror.
+    //
+    // FIXED 2026-08-17 (v0.113.52): compare transport-neutral canonical
+    // repository URLs before excluding the named mirror. SSH/HTTPS forms,
+    // credentials, casing, and a trailing `.git` are normalized by the
+    // helper, while distinct repositories on the same forge remain distinct.
+    let origin_url = if has_origin {
         crate::git::multi_remote::get_remote_url(repo, "origin")
-            .map(|u| u.contains("github.com"))
-            .unwrap_or(false)
     } else {
-        false
+        None
     };
+    let origin_is_github = origin_url
+        .as_deref()
+        .map(is_github_repository_url)
+        .unwrap_or(false);
+    let github_mirror_url = crate::git::multi_remote::get_remote_url(repo, "github");
+    let github_mirror_is_origin =
+        github_mirror_matches_origin(origin_url.as_deref(), github_mirror_url.as_deref());
 
     // Push to origin (if the repo has one — mirror-only repos like .dracon
     // skip this and go straight to mirror remotes).
@@ -1848,7 +1862,7 @@ async fn push_background(
         // violation the 2026-07-09 audit (goal fb8ddd6b) surfaced. The
         // 2 GiB pack limit is still enforced by the `too_big_for_github`
         // skip above regardless of which path pushes github.
-        if origin_is_github && !combined_exclude.iter().any(|e| e == "github") {
+        if github_mirror_is_origin && !combined_exclude.iter().any(|e| e == "github") {
             combined_exclude.push("github".to_string());
         }
         if too_big_for_github {
@@ -4584,6 +4598,22 @@ mod tests {
             sanitize_task_name("Added .dracon/ and .pub to NOISE_PATTERNS in bump.rs"),
             "Added .dracon/ and"
         );
+    }
+
+    #[test]
+    fn github_mirror_comparison_uses_repository_identity_not_host_only() {
+        let origin = Some("git@github.com:DraconDev/ultratap.git");
+        let distinct_github = Some("https://github.com/DraconDev/doomtap.git");
+        assert!(is_github_repository_url(origin.unwrap()));
+        assert!(!github_mirror_matches_origin(origin, distinct_github));
+    }
+
+    #[test]
+    fn github_mirror_comparison_accepts_transport_variants() {
+        let origin = Some("git@github.com:DraconDev/fleetmaster.git");
+        let same_github = Some("https://github.com/DraconDev/fleetmaster/");
+        assert!(github_mirror_matches_origin(origin, same_github));
+        assert!(!github_mirror_matches_origin(origin, None));
     }
 
     #[test]

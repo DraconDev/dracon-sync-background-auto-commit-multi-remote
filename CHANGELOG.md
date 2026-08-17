@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Rich `repos` tables no longer wrap four- or five-digit pulse counts**:
+  the 1H/6H/24H columns now reserve five content cells, so a busy
+  repository with counts such as `1020` stays on one visual row.
+
 ## [0.113.51] - 2026-08-15
 
 ### Changed

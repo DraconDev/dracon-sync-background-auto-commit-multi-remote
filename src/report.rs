@@ -5399,6 +5399,19 @@ mod v011318_tests {
         assert_eq!(truncated, "282");
         assert_eq!(UnicodeWidthStr::width(truncated.as_str()), 3);
     }
+
+    #[test]
+    fn five_digit_commit_pulse_counts_fit_column_budget() {
+        // v0.113.52: pulse columns have five content cells (width 7 −
+        // 2 padding). The observed 1020 commits/24h must stay on one
+        // visual row instead of wrapping at the old width 5.
+        for value in ["1020", "99999"] {
+            assert!(
+                UnicodeWidthStr::width(value) <= 5,
+                "pulse count {value:?} exceeds the five-cell content budget"
+            );
+        }
+    }
 }
 
 /// ADDED 2026-07-29 (v0.113.15): compose the REM cell. CHANGED
@@ -6037,12 +6050,17 @@ fn print_repos_rich_table(
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
     // and the single COMMITS column was split into three separate
     // 1H / 6H / 24H columns (operator: "the commits per time can have
-    // columns too, now they are just dumped together"). Each fits a
-    // 3-digit value + 2 padding; the freed 21 cols (USED 9 + COMMITS
-    // 12) fund the 15 (3×5) with 6 cols of headroom returned.
-    const C1H_COL: usize = 5;
-    const C6H_COL: usize = 5;
-    const C24H_COL: usize = 5;
+    // columns too, now they are just dumped together").
+    //
+    // FIXED 2026-08-17 (v0.113.52): pulse counts are not bounded to
+    // three digits. A busy fleet can exceed 999 commits in 24h; with
+    // width 5 comfy-table wrapped `1020` onto a second row and broke
+    // the whole table. Width 7 gives each cell five content columns
+    // (plus two padding), enough for normal five-digit counts while
+    // keeping the rich tier at its measured 165-column floor.
+    const C1H_COL: usize = 7;
+    const C6H_COL: usize = 7;
+    const C24H_COL: usize = 7;
     // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
     // = 10; absolute 10 fits the largest realistic value.
     // v0.113.20: 10 → 11 so the superproject `own+mods` form
@@ -12425,10 +12443,11 @@ mod tests {
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
         const REM_COL: usize = 8;
-        // v0.113.13: USED dropped, COMMITS split into 1H/6H/24H (5 each).
-        const C1H_COL: usize = 5;
-        const C6H_COL: usize = 5;
-        const C24H_COL: usize = 5;
+        // v0.113.52: pulse columns widened to five content cells
+        // so four- and five-digit counts never wrap a table row.
+        const C1H_COL: usize = 7;
+        const C6H_COL: usize = 7;
+        const C24H_COL: usize = 7;
         const SIZE_COL: usize = 11;
         const TOUCHED_COL: usize = 15;
         let num_cols = 16;
@@ -12456,8 +12475,8 @@ mod tests {
             + TOUCHED_COL;
         let total = fixed + border_overhead;
         assert_eq!(
-            total, 159,
-            "rich table total width drifted from the measured 159 — re-check the 165-col rich-tier floor"
+            total, 165,
+            "rich table total width drifted from the measured 165 — re-check the 165-col rich-tier floor"
         );
         assert!(
             total <= 165,
