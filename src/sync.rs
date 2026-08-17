@@ -812,20 +812,26 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
     })
 }
 
-/// Return true when a relative path contains a symlink component.
+/// Return true when a relative path has a symlink ancestor.
 ///
 /// Git can stage a symlink itself, but `git add` rejects a path below a
 /// symlink (`pathspec ... is beyond a symbolic link`). Status APIs can still
 /// report such descendants when a malformed or self-referential link appears
-/// during a directory walk. Detecting the component before expansion keeps one
-/// bad path from aborting the entire batch.
-fn path_contains_symlink_component(repo: &Path, relative: &Path) -> bool {
+/// during a directory walk. Detecting only ancestors before expansion keeps
+/// one bad path from aborting the entire batch without dropping valid symlink
+/// files from the commit-all staging policy.
+fn path_has_symlink_ancestor(repo: &Path, relative: &Path) -> bool {
     let mut current = repo.to_path_buf();
-    for component in relative.components() {
+    let mut components = relative.components().peekable();
+    while let Some(component) = components.next() {
         match component {
             std::path::Component::Normal(part) => current.push(part),
             std::path::Component::CurDir => continue,
             _ => return false,
+        }
+        // The final component is the symlink itself, not a path below it.
+        if components.peek().is_none() {
+            break;
         }
         match std::fs::symlink_metadata(&current) {
             Ok(metadata) if metadata.file_type().is_symlink() => return true,
@@ -909,7 +915,7 @@ async fn stage_existing_files_filtered(
     let input: Vec<String> = existing.to_vec();
     let mut expanded: Vec<String> = Vec::with_capacity(input.len() * 2);
     for p in input {
-        if path_contains_symlink_component(repo, Path::new(&p)) {
+        if path_has_symlink_ancestor(repo, Path::new(&p)) {
             if debug_enabled() {
                 eprintln!(
                     "🐛 {} skipping staging path below a symlink: {}",
@@ -920,7 +926,17 @@ async fn stage_existing_files_filtered(
             continue;
         }
         let full = repo.join(&p);
-        if !full.exists() {
+        if !full.exists() && !std::fs::symlink_metadata(&full).is_ok() {
+            continue;
+        }
+        // A symlink that is itself the reported path is safe to stage as a
+        // link; only descendants below a symlink are rejected above. Do not
+        // follow a directory link into its target during expansion.
+        if std::fs::symlink_metadata(&full)
+            .map(|metadata| metadata.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            expanded.push(p);
             continue;
         }
         if full.is_file() {
