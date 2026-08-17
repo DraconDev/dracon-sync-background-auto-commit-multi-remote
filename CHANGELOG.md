@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repository with counts such as `1020` stays on one visual row. The REM
   column also grows from the rendered active-remote labels instead of
   clipping an unfamiliar or expanded mirror topology.
+- **A malformed symlink descendant no longer wedges staging**: paths below
+  symlink components are discarded before the batch reaches `git add`, while
+  unrelated real files continue through the same commit.
 
 ## [0.113.51] - 2026-08-15
 

@@ -812,6 +812,31 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
     })
 }
 
+/// Return true when a relative path contains a symlink component.
+///
+/// Git can stage a symlink itself, but `git add` rejects a path below a
+/// symlink (`pathspec ... is beyond a symbolic link`). Status APIs can still
+/// report such descendants when a malformed or self-referential link appears
+/// during a directory walk. Detecting the component before expansion keeps one
+/// bad path from aborting the entire batch.
+fn path_contains_symlink_component(repo: &Path, relative: &Path) -> bool {
+    let mut current = repo.to_path_buf();
+    for component in relative.components() {
+        match component {
+            std::path::Component::Normal(part) => current.push(part),
+            std::path::Component::CurDir => continue,
+            _ => return false,
+        }
+        match std::fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => return true,
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(_) => return false,
+        }
+    }
+    false
+}
+
 /// CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): the old signature
 /// is preserved as a #[cfg(test)] wrapper (all remaining callers are
 /// tests). Production call sites MUST use
@@ -884,6 +909,16 @@ async fn stage_existing_files_filtered(
     let input: Vec<String> = existing.to_vec();
     let mut expanded: Vec<String> = Vec::with_capacity(input.len() * 2);
     for p in input {
+        if path_contains_symlink_component(repo, Path::new(&p)) {
+            if debug_enabled() {
+                eprintln!(
+                    "🐛 {} skipping staging path below a symlink: {}",
+                    repo.display(),
+                    p
+                );
+            }
+            continue;
+        }
         let full = repo.join(&p);
         if !full.exists() {
             continue;
@@ -9112,6 +9147,47 @@ trusted_authors = ["test"]
             !staged.contains("vite.config.ts.timestamp"),
             "phantom should not be staged, got: {}",
             staged
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_stage_existing_files_skips_symlink_descendants() {
+        // A malformed link can make a status path resolve on disk while
+        // `git add` rejects the descendant as "beyond a symbolic link".
+        // The real file must still stage successfully.
+        let repo = crate::test_helpers::create_test_repo();
+        std::fs::write(repo.join("real.txt"), "real\n").unwrap();
+        let target = repo.join("target");
+        std::fs::create_dir(&target).unwrap();
+        std::fs::write(target.join("inside.txt"), "inside\n").unwrap();
+        std::os::unix::fs::symlink(&target, repo.join("bad-link")).unwrap();
+
+        let paths = vec!["real.txt".to_string(), "bad-link/inside.txt".to_string()];
+        let result = stage_existing_files(&repo, &paths, false, 30, &BTreeSet::new()).await;
+        assert!(
+            result.is_ok(),
+            "a symlink descendant must not abort the staging batch: {result:?}"
+        );
+
+        let output = crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "diff",
+                "--cached",
+                "--name-only",
+            ])
+            .output()
+            .unwrap();
+        let staged = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            staged.contains("real.txt"),
+            "real file was not staged: {staged}"
+        );
+        assert!(
+            !staged.contains("bad-link"),
+            "path below symlink must be skipped: {staged}"
         );
     }
 
