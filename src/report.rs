@@ -5999,7 +5999,6 @@ fn print_repos_rich_table(
         presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
         Width,
     };
-    use unicode_width::UnicodeWidthStr;
     let _ = _filter;
 
     // Sort by severity (concern → warn → active → clean), stable.
