@@ -307,8 +307,9 @@ fn shorten_when(s: &str) -> String {
 ///
 ///   - "now"        : daemon has an in-flight task for this repo
 ///     (currently being processed)
-///   - "pushing Xm" : push_status=PENDING, push has been in
-///     progress for X minutes
+///   - "waiting Xm" : push_status=PENDING, but no fresh in-flight
+///     marker exists; the commit is queued for a retry or remote
+///     confirmation rather than being shown as actively pushing
 ///   - "dirty Xm"    : dirty tracked work exists, last commit
 ///     was X minutes ago
 ///   - "synced Xm"  : clean, in sync, recent commit (within 1h)
@@ -354,9 +355,11 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         }
     }
 
-    // 2. push_status PENDING = "pushing Xm (N ahead)" so the operator
-    // can tell at a glance whether the push is stuck because there's a
-    // large backlog (high ahead count) vs. some other transient reason.
+    // 2. PENDING without a fresh in-flight marker is a queued/retry
+    // state, not proof that a git push process is currently running.
+    // The report command can observe the daemon between cycles, after a
+    // transient network failure, or while the remote-tracking ref catches
+    // up. Show that distinction directly instead of claiming "pushing".
     if row.push_status == "PENDING" {
         let duration = last_when_mins
             .map(|m| format!(" {}m", m))
@@ -366,7 +369,7 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         } else {
             String::new()
         };
-        return format!("🟣 pushing{}{}", duration, ahead_suffix);
+        return format!("🟡 waiting{}{}", duration, ahead_suffix);
     }
 
     // 2b. push_status PUSH_STUCK = retry budget exhausted, the
@@ -2996,7 +2999,10 @@ const LEGEND_MIN_WIDTH: usize = 120;
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
         ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
-        ("ACTIVITY", "⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold"),
+        (
+            "ACTIVITY",
+            "🔄 now · 🟡 waiting · ⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold",
+        ),
         ("", ""),
         ("REPO", "🔒 private (last known) · public/unknown · > submodule · name⚡branch"),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
@@ -10749,28 +10755,29 @@ mod tests {
     }
 
     #[test]
-    fn test_activity_label_push_pending() {
-        // Push PENDING with 1-minute-old last commit → "pushing 1m".
+    fn test_activity_label_push_pending_is_waiting_without_inflight_marker() {
+        // PENDING alone is not proof that a git process is running. A
+        // one-minute-old pending row without a fresh in-flight marker must
+        // say "waiting", so a retry/backoff cannot look like an active push.
         let row = make_activity_row("1 minutes ago", 0, 0, "PENDING");
         let label = activity_label(&row);
         assert!(
-            label.contains("pushing"),
-            "expected 'pushing' in label, got: {}",
+            label.contains("waiting") && !label.contains("pushing"),
+            "expected 'waiting' rather than 'pushing', got: {}",
             label
         );
     }
 
     #[test]
     fn test_activity_label_push_pending_includes_ahead_count() {
-        // Push PENDING with ahead=28 → "pushing Xm (28 ahead)" so the
-        // operator can tell at a glance that this stall is caused by
-        // a large backlog, not a transient network blip.
+        // PENDING with ahead=28 → "waiting Xm (28 ahead)". The operator
+        // can distinguish queued work from a live push process at a glance.
         let mut row = make_activity_row("4 minutes ago", 0, 0, "PENDING");
         row.ahead = 28;
         let label = activity_label(&row);
         assert!(
-            label.contains("pushing") && label.contains("28 ahead"),
-            "expected 'pushing' and '28 ahead' in label, got: {}",
+            label.contains("waiting") && !label.contains("pushing") && label.contains("28 ahead"),
+            "expected 'waiting' and '28 ahead' in label, got: {}",
             label
         );
     }

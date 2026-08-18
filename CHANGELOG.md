@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A malformed symlink descendant no longer wedges staging**: paths below
   symlink components are discarded before the batch reaches `git add`, while
   unrelated real files continue through the same commit.
+- **Pending pushes are visually distinguished from live pushes**: when the
+  report has no fresh in-flight marker, ACTIVITY shows `🟡 waiting` rather
+  than claiming `🟣 pushing`; this makes retry/backoff and stale tracking
+  states visible without implying an active Git process.
 
 ## [0.113.51] - 2026-08-15
 
