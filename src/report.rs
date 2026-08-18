@@ -307,8 +307,9 @@ fn shorten_when(s: &str) -> String {
 ///
 ///   - "now"        : daemon has an in-flight task for this repo
 ///     (currently being processed)
-///   - "pushing Xm" : push_status=PENDING, push has been in
-///     progress for X minutes
+///   - "waiting Xm" : push_status=PENDING, but no fresh in-flight
+///     marker exists; the commit is queued for a retry or remote
+///     confirmation rather than being shown as actively pushing
 ///   - "dirty Xm"    : dirty tracked work exists, last commit
 ///     was X minutes ago
 ///   - "synced Xm"  : clean, in sync, recent commit (within 1h)
@@ -354,9 +355,11 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         }
     }
 
-    // 2. push_status PENDING = "pushing Xm (N ahead)" so the operator
-    // can tell at a glance whether the push is stuck because there's a
-    // large backlog (high ahead count) vs. some other transient reason.
+    // 2. PENDING without a fresh in-flight marker is a queued/retry
+    // state, not proof that a git push process is currently running.
+    // The report command can observe the daemon between cycles, after a
+    // transient network failure, or while the remote-tracking ref catches
+    // up. Show that distinction directly instead of claiming "pushing".
     if row.push_status == "PENDING" {
         let duration = last_when_mins
             .map(|m| format!(" {}m", m))
@@ -366,7 +369,7 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         } else {
             String::new()
         };
-        return format!("🟣 pushing{}{}", duration, ahead_suffix);
+        return format!("🟡 waiting{}{}", duration, ahead_suffix);
     }
 
     // 2b. push_status PUSH_STUCK = retry budget exhausted, the
@@ -2996,7 +2999,10 @@ const LEGEND_MIN_WIDTH: usize = 120;
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
         ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
-        ("ACTIVITY", "⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold"),
+        (
+            "ACTIVITY",
+            "🔄 now · 🟡 waiting · ⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold",
+        ),
         ("", ""),
         ("REPO", "🔒 private (last known) · public/unknown · > submodule · name⚡branch"),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
@@ -5314,7 +5320,7 @@ fn state_color_for(cause: &StateCause) -> Color {
 /// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
 /// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
 /// ADDED 2026-07-29 (v0.113.15): map a configured push-remote name to
-/// its rich-table icon. Width-2 emoji only (see REM_COL comment).
+/// its rich-table icon. Width-2 emoji only (see REM-column sizing).
 /// Unknown remote names return None and render as their first two
 /// letters so an unfamiliar topology is still visible, never dropped.
 pub(crate) fn remote_icon(name: &str) -> Option<&'static str> {
@@ -5391,6 +5397,26 @@ mod v011318_tests {
     }
 
     #[test]
+    fn dynamic_rem_column_covers_rendered_remote_labels() {
+        let known = [
+            "github".to_string(),
+            "gitlab".to_string(),
+            "codeberg".to_string(),
+        ];
+        assert_eq!(rem_column_width(&known), 8);
+
+        let extended = [
+            "github".to_string(),
+            "gitlab".to_string(),
+            "codeberg".to_string(),
+            "backup".to_string(),
+        ];
+        let content = rem_cell_content(&extended);
+        assert!(rem_column_width(&extended) >= UnicodeWidthStr::width(content.as_str()) + 2);
+        assert!(rem_column_width(&extended) > 8);
+    }
+
+    #[test]
     fn three_digit_change_counts_fit_column_budget() {
         // v0.113.19: per-class columns have a 3-cell content budget
         // (width 5 − 2 padding) — junk-runner's 282-modified churn
@@ -5398,6 +5424,19 @@ mod v011318_tests {
         let truncated = truncate_unicode_width("282", 3);
         assert_eq!(truncated, "282");
         assert_eq!(UnicodeWidthStr::width(truncated.as_str()), 3);
+    }
+
+    #[test]
+    fn five_digit_commit_pulse_counts_fit_column_budget() {
+        // v0.113.52: pulse columns have five content cells (width 7 −
+        // 2 padding). The observed 1020 commits/24h must stay on one
+        // visual row instead of wrapping at the old width 5.
+        for value in ["1020", "99999"] {
+            assert!(
+                UnicodeWidthStr::width(value) <= 5,
+                "pulse count {value:?} exceeds the five-cell content budget"
+            );
+        }
     }
 }
 
@@ -5426,6 +5465,17 @@ fn rem_cell_content(push_to: &[String]) -> String {
         s.push('—');
     }
     s
+}
+
+/// Compute an absolute REM-column width from the actual rendered cell.
+/// `comfy-table`'s fixed width includes two padding cells. Keep the old
+/// eight-column floor for the normal three-forge topology, but grow safely
+/// when an operator has more active remotes or an unfamiliar remote label.
+fn rem_column_width(push_to: &[String]) -> usize {
+    const REM_MIN_COL: usize = 8;
+    unicode_width::UnicodeWidthStr::width(rem_cell_content(push_to).as_str())
+        .saturating_add(2)
+        .max(REM_MIN_COL)
 }
 
 /// ADDED 2026-07-29 (v0.113.15): append the last-push age to a
@@ -5961,6 +6011,13 @@ fn print_repos_rich_table(
     let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
     indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
 
+    const REM_MIN_COL: usize = 8;
+    let rem_col = indexed
+        .iter()
+        .map(|(_, row)| rem_column_width(&row.push_to_remotes))
+        .max()
+        .unwrap_or(REM_MIN_COL);
+
     let width = terminal_width().unwrap_or(120) as usize;
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
@@ -5986,7 +6043,7 @@ fn print_repos_rich_table(
             + CHG_EXCL_COL
             + AB_COL
             + PUSH_COL
-            + REM_COL
+            + rem_col
             + C1H_COL
             + C6H_COL
             + C24H_COL
@@ -6026,23 +6083,25 @@ fn print_repos_rich_table(
     // per ACTIVE push remote (🐙 github · 🦊 gitlab · 🗻 codeberg).
     // v0.113.17: excluded remotes are NOT rendered (operator: showing
     // all three for every repo read as "all repos have all remotes").
-    // Worst case 3 remotes × 2 cells = 6 content + 2 padding = 8
-    // (Absolute width INCLUDES padding — v0.113.15 dev-test caught
-    // the third icon being truncated at REM_COL=6). NOTE: codeberg is
-    // 🗻 (U+1F5FB, Emoji_Presentation=Yes → width-2 in
-    // unicode-width), NOT ⛰/🏔 (U+26F0/U+1F3D4 measure width-1 in
-    // unicode-width but render 2 — would break the table math).
-    const REM_COL: usize = 8;
+    // Absolute widths include padding, so the minimum is 8 (three known
+    // icons plus two padding cells). `rem_col` is derived from the actual
+    // rendered cells so future or operator-named remotes do not wrap or get
+    // silently clipped.
     // CHANGED 2026-07-29 (v0.113.13): USED column DROPPED (operator
     // feedback: it duplicated ACTIVITY's dirty/synced/idle/cold tier)
     // and the single COMMITS column was split into three separate
     // 1H / 6H / 24H columns (operator: "the commits per time can have
-    // columns too, now they are just dumped together"). Each fits a
-    // 3-digit value + 2 padding; the freed 21 cols (USED 9 + COMMITS
-    // 12) fund the 15 (3×5) with 6 cols of headroom returned.
-    const C1H_COL: usize = 5;
-    const C6H_COL: usize = 5;
-    const C24H_COL: usize = 5;
+    // columns too, now they are just dumped together").
+    //
+    // FIXED 2026-08-17 (v0.113.52): pulse counts are not bounded to
+    // three digits. A busy fleet can exceed 999 commits in 24h; with
+    // width 5 comfy-table wrapped `1020` onto a second row and broke
+    // the whole table. Width 7 gives each cell five content columns
+    // (plus two padding), enough for normal five-digit counts while
+    // keeping the rich tier at its measured 165-column floor.
+    const C1H_COL: usize = 7;
+    const C6H_COL: usize = 7;
+    const C24H_COL: usize = 7;
     // SIZE column: `3.79 GiB` (worst-case label) = 8 chars + 2 padding
     // = 10; absolute 10 fits the largest realistic value.
     // v0.113.20: 10 → 11 so the superproject `own+mods` form
@@ -6067,7 +6126,7 @@ fn print_repos_rich_table(
         + CHG_EXCL_COL
         + AB_COL
         + PUSH_COL
-        + REM_COL
+        + rem_col
         + C1H_COL
         + C6H_COL
         + C24H_COL
@@ -6171,7 +6230,7 @@ fn print_repos_rich_table(
     table
         .column_mut(10)
         .expect("REM column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(REM_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(rem_col as u16)));
     table
         .column_mut(11)
         .expect("1H column")
@@ -10696,28 +10755,29 @@ mod tests {
     }
 
     #[test]
-    fn test_activity_label_push_pending() {
-        // Push PENDING with 1-minute-old last commit → "pushing 1m".
+    fn test_activity_label_push_pending_is_waiting_without_inflight_marker() {
+        // PENDING alone is not proof that a git process is running. A
+        // one-minute-old pending row without a fresh in-flight marker must
+        // say "waiting", so a retry/backoff cannot look like an active push.
         let row = make_activity_row("1 minutes ago", 0, 0, "PENDING");
         let label = activity_label(&row);
         assert!(
-            label.contains("pushing"),
-            "expected 'pushing' in label, got: {}",
+            label.contains("waiting") && !label.contains("pushing"),
+            "expected 'waiting' rather than 'pushing', got: {}",
             label
         );
     }
 
     #[test]
     fn test_activity_label_push_pending_includes_ahead_count() {
-        // Push PENDING with ahead=28 → "pushing Xm (28 ahead)" so the
-        // operator can tell at a glance that this stall is caused by
-        // a large backlog, not a transient network blip.
+        // PENDING with ahead=28 → "waiting Xm (28 ahead)". The operator
+        // can distinguish queued work from a live push process at a glance.
         let mut row = make_activity_row("4 minutes ago", 0, 0, "PENDING");
         row.ahead = 28;
         let label = activity_label(&row);
         assert!(
-            label.contains("pushing") && label.contains("28 ahead"),
-            "expected 'pushing' and '28 ahead' in label, got: {}",
+            label.contains("waiting") && !label.contains("pushing") && label.contains("28 ahead"),
+            "expected 'waiting' and '28 ahead' in label, got: {}",
             label
         );
     }
@@ -12425,10 +12485,11 @@ mod tests {
         const AB_COL: usize = 9;
         const PUSH_COL: usize = 12;
         const REM_COL: usize = 8;
-        // v0.113.13: USED dropped, COMMITS split into 1H/6H/24H (5 each).
-        const C1H_COL: usize = 5;
-        const C6H_COL: usize = 5;
-        const C24H_COL: usize = 5;
+        // v0.113.52: pulse columns widened to five content cells
+        // so four- and five-digit counts never wrap a table row.
+        const C1H_COL: usize = 7;
+        const C6H_COL: usize = 7;
+        const C24H_COL: usize = 7;
         const SIZE_COL: usize = 11;
         const TOUCHED_COL: usize = 15;
         let num_cols = 16;
@@ -12456,8 +12517,8 @@ mod tests {
             + TOUCHED_COL;
         let total = fixed + border_overhead;
         assert_eq!(
-            total, 159,
-            "rich table total width drifted from the measured 159 — re-check the 165-col rich-tier floor"
+            total, 165,
+            "rich table total width drifted from the measured 165 — re-check the 165-col rich-tier floor"
         );
         assert!(
             total <= 165,

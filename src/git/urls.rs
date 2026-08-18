@@ -71,3 +71,109 @@ pub(crate) fn codeberg_https_url(origin: &str) -> Option<String> {
     }
     None
 }
+
+/// Return a transport-neutral repository identity for a Git remote URL.
+///
+/// Git permits the same repository to be written as scp-style SSH,
+/// `ssh://`, or HTTPS, with optional credentials, a trailing slash, and a
+/// `.git` suffix. Remote *host* checks alone are not sufficient: an
+/// `origin` pointing at `github.com/DraconDev/ultratap` must not suppress a
+/// distinct `github` mirror pointing at `github.com/DraconDev/doomtap`.
+///
+/// The result intentionally contains the host and normalized path, but not
+/// the transport scheme, so SSH and HTTPS forms compare equal. This helper is
+/// for bookkeeping decisions, not URL fetching or authorization.
+pub(crate) fn canonical_repository_url(raw: &str) -> Option<String> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+
+    let (scheme, authority, path) = if let Some(rest) = raw.strip_prefix("git@") {
+        let (authority, path) = rest.split_once(':')?;
+        ("ssh", authority, path)
+    } else {
+        let (scheme, rest) = raw.split_once("://")?;
+        let (authority, path) = rest.split_once('/')?;
+        (scheme, authority, path)
+    };
+
+    let authority = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
+    let authority = authority.trim().trim_end_matches('/');
+    if authority.is_empty() {
+        return None;
+    }
+
+    let host = authority
+        .trim_end_matches(if scheme.eq_ignore_ascii_case("ssh") {
+            ":22"
+        } else if scheme.eq_ignore_ascii_case("https") {
+            ":443"
+        } else if scheme.eq_ignore_ascii_case("http") {
+            ":80"
+        } else {
+            "\0"
+        })
+        .to_ascii_lowercase();
+    let path = path
+        .split(['?', '#'])
+        .next()
+        .unwrap_or_default()
+        .trim_matches('/')
+        .split('/')
+        .filter(|component| !component.is_empty())
+        .collect::<Vec<_>>();
+    if host.is_empty() || path.is_empty() {
+        return None;
+    }
+
+    let mut path = path.join("/").to_ascii_lowercase();
+    while path.ends_with(".git") {
+        path.truncate(path.len() - 4);
+    }
+    if path.is_empty() {
+        return None;
+    }
+
+    Some(format!("{host}/{path}"))
+}
+
+/// Compare two Git remote URLs by repository identity, ignoring transport
+/// syntax, credentials, a trailing slash, and the conventional `.git`
+/// suffix.
+pub(crate) fn same_repository_url(left: &str, right: &str) -> bool {
+    matches!(
+        (canonical_repository_url(left), canonical_repository_url(right)),
+        (Some(left), Some(right)) if left == right
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{canonical_repository_url, same_repository_url};
+
+    #[test]
+    fn canonical_repository_url_normalizes_transport_and_suffix() {
+        let ssh = "git@github.com:DraconDev/fleetmaster.git";
+        let https = "https://token:secret@GITHUB.com/DraconDev/fleetmaster/";
+        assert_eq!(
+            canonical_repository_url(ssh),
+            Some("github.com/dracondev/fleetmaster".to_string())
+        );
+        assert!(same_repository_url(ssh, https));
+    }
+
+    #[test]
+    fn canonical_repository_url_keeps_distinct_repositories_distinct() {
+        assert!(!same_repository_url(
+            "git@github.com:DraconDev/ultratap.git",
+            "git@github.com:DraconDev/doomtap.git"
+        ));
+        assert!(!same_repository_url(
+            "git@gitlab.com:DraconDev/fleetmaster.git",
+            "git@github.com:DraconDev/fleetmaster.git"
+        ));
+    }
+}
