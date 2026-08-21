@@ -101,27 +101,34 @@ pub(crate) fn canonical_repository_url(raw: &str) -> Option<String> {
         let (authority, path) = rest.split_once('/')?;
         (scheme, authority, path)
     } else {
-        // scp-style syntax: [user@]host:path. A leading bracketed host is
-        // taken literally up to `]` so IPv6 colons never participate in the
-        // split (audit M1: `git@[2001:db8::1]:org/repo.git` previously split
-        // at the first inner colon and produced garbage). Any `user@`
-        // prefix is stripped, not just the literal `git@` (audit M1:
-        // `deploy@github.com:org/repo.git` previously fell through and
-        // returned None, silently dropping GitHub classification and pack-
-        // guard behavior for that remote).
-        let (authority, path) = if raw.starts_with('[') {
-            let close = raw.find(']')?;
-            let rest = &raw[close + 1..];
-            (&raw[1..close], rest.strip_prefix(':')?)
+        // scp-style syntax: [user@]host:path. An optional `user@` prefix is
+        // stripped first (any username, not just `git@`; audit M1:
+        // `deploy@github.com:org/repo.git` previously returned None,
+        // silently dropping GitHub classification and pack-guard behavior
+        // for that remote). A leading bracketed host is then taken
+        // literally up to `]` so IPv6 colons never participate in the split
+        // (audit M1: `git@[2001:db8::1]:org/repo.git` previously split at
+        // the first inner colon and produced garbage).
+        let stripped = if let Some(at) = raw.find('@') {
+            let first_colon = raw.find(':').unwrap_or(usize::MAX);
+            let open_bracket = raw.find('[').unwrap_or(usize::MAX);
+            if at < first_colon && at <= open_bracket {
+                &raw[at + 1..]
+            } else {
+                raw
+            }
         } else {
-            let colon = raw.find(':')?;
-            let user_and_host = &raw[..colon];
-            (
-                user_and_host
-                    .rsplit_once('@')
-                    .map_or(user_and_host, |(_, host)| host),
-                &raw[colon + 1..],
-            )
+            raw
+        };
+        let (authority, path) = if stripped.starts_with('[') {
+            let close = stripped.find(']')?;
+            let rest = &stripped[close + 1..];
+            // Keep the brackets so the result matches the ssh:// URL form,
+            // whose authority also retains them ([2001:db8::1]).
+            (&stripped[..=close], rest.strip_prefix(':')?)
+        } else {
+            let colon = stripped.find(':')?;
+            (&stripped[..colon], &stripped[colon + 1..])
         };
         ("ssh", authority, path)
     };
