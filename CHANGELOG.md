@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **`canonical_repository_url` now parses all scp-style remote forms**
+  (audit M1, 2026-08-21): the scp branch previously split at the first
+  colon — garbage for bracketed IPv6 hosts (`git@[2001:db8::1]:org/
+  repo.git`) — and recognized only the literal `git@` prefix, so other
+  usernames (`deploy@…`) returned `None` and silently lost mirror-dedup
+  and GitHub pack-guard classification. Bracket-aware host extraction and
+  general user@ stripping fix both; documented remaining alias
+  limitations (ssh.github.com / www.github.com / non-default ports stay
+  distinct). Also fixes six pre-existing Rust-1.97 clippy warnings in
+  tests so the crate passes clippy `-D warnings`.
+
 ## [0.113.52] - 2026-08-21
 
 ### Fixed
