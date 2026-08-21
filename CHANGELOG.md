@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.52] - 2026-08-21
 
 ### Fixed
 
+- **A named `github` mirror is no longer skipped when `origin` points at a DIFFERENT GitHub repository**: mirror exclusion previously compared hosts only, so doomtap (`origin = github.com/DraconDev/ultratap`, mirror = `github.com/DraconDev/doomtap`) silently never reached its real GitHub mirror. Remote comparison now uses a transport-neutral canonical repository identity (SSH/HTTPS, credentials, casing, `.git`, and default ports normalized) via the new `canonical_repository_url` helper (`src/git/urls.rs`).
 - **Rich `repos` tables no longer wrap four- or five-digit pulse counts**:
   the 1H/6H/24H columns now reserve five content cells, so a busy
   repository with counts such as `1020` stays on one visual row. The REM
