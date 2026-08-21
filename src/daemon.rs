@@ -3019,6 +3019,36 @@ pub(crate) fn is_repo_stuck(repo: &Path) -> bool {
 /// Run startup cleanup: prune stale state from previous runs.
 /// Called by both `run_once` (for one-shot sync) and `run_daemon` (on startup).
 /// Returns the number of stale index.lock files removed.
+/// Watched-repo-vanished ledger update (disappearance doc G2, added
+/// 2026-08-21). Called once per discovery pass with the fresh repo set:
+/// refreshes last-seen stamps for existing paths, stamps first-vanished
+/// on paths that dropped out of discovery, and logs each NEWLY vanished
+/// path exactly once per disappearance episode (the persistent CONCERN
+/// surfacing lives in `run_repair_concerns`).
+pub(crate) fn note_discovered_repos(policy_path: &Path, repos: &BTreeSet<PathBuf>) {
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let ledger_path = crate::vanished::seen_ledger_path(policy_path);
+    let mut ledger = crate::vanished::load_seen_ledger(&ledger_path);
+    let current: std::collections::HashSet<String> =
+        repos.iter().map(|p| p.display().to_string()).collect();
+    let newly_vanished: Vec<String> = ledger
+        .iter()
+        .filter(|(path, entry)| entry.first_vanished_secs.is_none() && !current.contains(*path))
+        .map(|(path, _)| path.clone())
+        .collect();
+    crate::vanished::update_seen_ledger(&mut ledger, &repos.iter().cloned().collect::<Vec<_>>(), now_secs);
+    for path in &newly_vanished {
+        eprintln!(
+            "🛑 watched repo path VANISHED: {} — no longer discovered under any watch root; restore or re-clone it. Persistently surfaced by `dracon-sync repair concerns` until it returns.",
+            path
+        );
+    }
+    crate::vanished::save_seen_ledger(&ledger_path, &ledger);
+}
+
 pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf>, u64) {
     eprintln!("🧹 startup: running cleanup...");
     let policy = match SyncPolicy::load(policy_path) {
@@ -3059,6 +3089,8 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
     if let Err(e) = crate::visibility::prune_stale_visibility_cache(&repo_set) {
         eprintln!("⚠️ startup: visibility cache cleanup failed: {}", e);
     }
+
+    note_discovered_repos(policy_path, &repo_set);
 
     // Repair broken upstream tracking references (e.g. origin/master: gone)
     let discovered_refs: Vec<PathBuf> = repo_set.iter().cloned().collect();
@@ -3687,6 +3719,7 @@ pub(crate) async fn run_daemon(
             &policy.exclude_repos,
             Some(&policy.system_repo),
         );
+        note_discovered_repos(policy_path, &repos);
         // Submodule materialize pass: for each discovered parent
         // repo, materialize any declared submodules as standalone
         // worktrees under the watch root (e.g.

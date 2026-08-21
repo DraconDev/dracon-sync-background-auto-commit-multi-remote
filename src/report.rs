@@ -7678,6 +7678,31 @@ pub(crate) async fn run_repair_concerns(
     let blob_threshold = push_large_blob_threshold_bytes(&policy);
 
     let mut concerns = 0usize;
+
+    // Watched-repo-vanished concerns (disappearance doc G2, added
+    // 2026-08-21): a previously-synced watch path that no longer exists
+    // is invisible to the disk discovery above — nothing on disk
+    // represents it. The seen-ledger remembers; surface each entry whose
+    // path is genuinely absent as a persistent CONCERN. It clears
+    // automatically once the path exists again (the daemon's next ledger
+    // update removes the vanished stamp).
+    let vanished_now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let seen_ledger = crate::vanished::load_seen_ledger(&crate::vanished::seen_ledger_path(
+        policy_path,
+    ));
+    for v in crate::vanished::detect_vanished_repos(&seen_ledger, vanished_now) {
+        if std::path::Path::new(&v.path).exists() {
+            continue;
+        }
+        concerns += 1;
+        out!(
+            "❌ CONCERN {}: watched repo path VANISHED (last synced epoch {}, missing since epoch {}) — restore or re-clone the checkout; the concern clears automatically when the path returns. See docs/design/utilities-checkout-disappearance-2026-08-21.md",
+            v.path, v.last_seen_secs, v.first_vanished_secs
+        );
+    }
     let mut state = RepairState {
         attempted_ops: 0,
         succeeded_ops: 0,

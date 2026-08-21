@@ -20,6 +20,7 @@ mod secrets;
 mod standard_files;
 mod sync;
 mod test_helpers;
+mod vanished;
 mod visibility;
 
 /// Render a boolean as a compact on/off string for tables and flags rows.
