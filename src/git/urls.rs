@@ -83,19 +83,47 @@ pub(crate) fn codeberg_https_url(origin: &str) -> Option<String> {
 /// The result intentionally contains the host and normalized path, but not
 /// the transport scheme, so SSH and HTTPS forms compare equal. This helper is
 /// for bookkeeping decisions, not URL fetching or authorization.
+///
+/// Known accepted limitations (documented 2026-08-21, audit M1): alias
+/// spellings that differ textually are NOT unified — `ssh.github.com:443`
+/// / port-2222 endpoints, `www.github.com`, and non-default ports compare
+/// distinct from their canonical hosts. Consequence beyond mirror-dedup:
+/// such an origin also misses GitHub-specific classification downstream.
+/// Unifying these would need per-forge alias tables; deferred as LOW.
 pub(crate) fn canonical_repository_url(raw: &str) -> Option<String> {
     let raw = raw.trim();
     if raw.is_empty() {
         return None;
     }
 
-    let (scheme, authority, path) = if let Some(rest) = raw.strip_prefix("git@") {
-        let (authority, path) = rest.split_once(':')?;
-        ("ssh", authority, path)
-    } else {
+    let (scheme, authority, path) = if raw.contains("://") {
         let (scheme, rest) = raw.split_once("://")?;
         let (authority, path) = rest.split_once('/')?;
         (scheme, authority, path)
+    } else {
+        // scp-style syntax: [user@]host:path. A leading bracketed host is
+        // taken literally up to `]` so IPv6 colons never participate in the
+        // split (audit M1: `git@[2001:db8::1]:org/repo.git` previously split
+        // at the first inner colon and produced garbage). Any `user@`
+        // prefix is stripped, not just the literal `git@` (audit M1:
+        // `deploy@github.com:org/repo.git` previously fell through and
+        // returned None, silently dropping GitHub classification and pack-
+        // guard behavior for that remote).
+        let (authority, path) = if raw.starts_with('[') {
+            let close = raw.find(']')?;
+            let rest = &raw[close + 1..];
+            (&raw[1..close], rest.strip_prefix(':')?)
+        } else {
+            let colon = raw.find(':')?;
+            let user_and_host = &raw[..colon];
+            (
+                user_and_host
+                    .rsplit_once('@')
+                    .map_or(user_and_host, |(_, host)| host),
+                &raw[colon + 1..],
+            )
+        };
+        ("ssh", authority, path)
     };
 
     let authority = authority
@@ -175,5 +203,41 @@ mod tests {
             "git@gitlab.com:DraconDev/fleetmaster.git",
             "git@github.com:DraconDev/fleetmaster.git"
         ));
+    }
+
+    #[test]
+    fn canonical_repository_url_parses_scp_style_ipv6_literal() {
+        // Audit M1: the scp branch previously split at the first inner
+        // colon, producing host "[2001" and path "db8::1]:org/repo".
+        let canonical = canonical_repository_url("git@[2001:db8::1]:org/repo.git");
+        assert_eq!(canonical, Some("[2001:db8::1]/org/repo".to_string()));
+        // The ssh:// URL form of the same host must dedup with the scp form.
+        assert!(same_repository_url(
+            "git@[2001:db8::1]:org/repo.git",
+            "ssh://git@[2001:db8::1]/org/repo.git"
+        ));
+        // Bracketed host without the mandatory trailing colon is invalid.
+        assert_eq!(canonical_repository_url("git@[2001:db8::1]/org/repo.git"), None);
+    }
+
+    #[test]
+    fn canonical_repository_url_accepts_any_scp_username() {
+        // Audit M1: only the literal "git@" prefix was recognized; other
+        // usernames (deploy keys, uppercase spellings) fell through to None,
+        // silently disabling mirror-dedup and GitHub classification.
+        for user in ["deploy", "GIT", "obama"] {
+            let url = format!("{user}@github.com:org/repo.git");
+            assert_eq!(
+                canonical_repository_url(&url),
+                Some("github.com/org/repo".to_string()),
+                "scp username {user:?} must parse"
+            );
+            assert!(same_repository_url(&url, "https://github.com/org/repo.git"));
+        }
+        // User-less scp form still works.
+        assert_eq!(
+            canonical_repository_url("github.com:org/repo.git"),
+            Some("github.com/org/repo".to_string())
+        );
     }
 }
