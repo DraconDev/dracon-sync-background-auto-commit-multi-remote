@@ -134,3 +134,135 @@ pub(crate) fn detect_vanished_repos(ledger: &SeenLedger, now_secs: u64) -> Vec<V
     vanished.sort_by(|a, b| a.path.cmp(&b.path));
     vanished
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn secs(offset: u64) -> u64 {
+        1_700_000_000 + offset
+    }
+
+    #[test]
+    fn mark_seen_adds_and_clears_vanished_stamp() {
+        let mut ledger = SeenLedger::new();
+        let path = Path::new("/tmp/dracon-vanished-test/r");
+        mark_seen(&mut ledger, path, secs(0));
+        let entry = ledger.get("/tmp/dracon-vanished-test/r").unwrap();
+        assert_eq!(entry.last_seen_secs, secs(0));
+        assert_eq!(entry.first_vanished_secs, None);
+
+        // Re-mark after a vanish clears the stamp.
+        ledger.get_mut("/tmp/dracon-vanished-test/r").unwrap().first_vanished_secs = Some(secs(5));
+        mark_seen(&mut ledger, path, secs(10));
+        let entry = ledger.get("/tmp/dracon-vanished-test/r").unwrap();
+        assert_eq!(entry.last_seen_secs, secs(10));
+        assert_eq!(entry.first_vanished_secs, None);
+    }
+
+    #[test]
+    fn update_stamps_newly_absent_and_clears_returned() {
+        let mut ledger = SeenLedger::new();
+        mark_seen(&mut ledger, Path::new("/w/alpha"), secs(0));
+        mark_seen(&mut ledger, Path::new("/w/beta"), secs(0));
+
+        // Cycle 1: alpha gone.
+        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/beta")], secs(60));
+        assert_eq!(
+            ledger["/w/alpha"].first_vanished_secs,
+            Some(secs(60)),
+            "absent path must be stamped exactly once"
+        );
+        assert_eq!(ledger["/w/beta"].first_vanished_secs, None);
+
+        // Cycle 2: alpha still gone — the stamp must NOT advance.
+        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/beta")], secs(120));
+        assert_eq!(ledger["/w/alpha"].first_vanished_secs, Some(secs(60)));
+        assert_eq!(ledger["/w/beta"].last_seen_secs, secs(120));
+
+        // Cycle 3: alpha returns — vanished marker cleared.
+        update_seen_ledger(
+            &mut ledger,
+            &[PathBuf::from("/w/alpha"), PathBuf::from("/w/beta")],
+            secs(180),
+        );
+        assert_eq!(ledger["/w/alpha"].first_vanished_secs, None);
+        assert_eq!(ledger["/w/alpha"].last_seen_secs, secs(180));
+    }
+
+    #[test]
+    fn detect_reports_only_unexpired_vanished_entries() {
+        let mut ledger = SeenLedger::new();
+        ledger.insert(
+            "/w/gone".to_string(),
+            SeenRepo {
+                last_seen_secs: secs(0),
+                first_vanished_secs: Some(secs(100)),
+            },
+        );
+        ledger.insert(
+            "/w/healthy".to_string(),
+            SeenRepo {
+                last_seen_secs: secs(50),
+                first_vanished_secs: None,
+            },
+        );
+        // Expired entry (older than the TTL) must not be reported.
+        ledger.insert(
+            "/w/ancient".to_string(),
+            SeenRepo {
+                last_seen_secs: secs(0),
+                first_vanished_secs: Some(secs(1) + VANISHED_ENTRY_TTL_SECS - 1 - secs(1)),
+            },
+        );
+
+        let detected = detect_vanished_repos(&ledger, secs(200));
+        let paths: Vec<&str> = detected.iter().map(|v| v.path.as_str()).collect();
+        assert_eq!(paths, vec!["/w/gone"], "only unexpired vanished entries");
+        assert_eq!(detected[0].first_vanished_secs, secs(100));
+
+        // At TTL expiry it drops out.
+        assert!(detect_vanished_repos(&ledger, secs(100) + VANISHED_ENTRY_TTL_SECS).is_empty());
+    }
+
+    #[test]
+    fn detect_is_sorted_by_path_for_deterministic_reports() {
+        let mut ledger = SeenLedger::new();
+        for name in ["zeta", "alpha", "mid"] {
+            ledger.insert(
+                format!("/w/{name}"),
+                SeenRepo {
+                    last_seen_secs: secs(0),
+                    first_vanished_secs: Some(secs(10)),
+                },
+            );
+        }
+        let detected = detect_vanished_repos(&ledger, secs(20));
+        let paths: Vec<&str> = detected.iter().map(|v| v.path.as_str()).collect();
+        assert_eq!(paths, vec!["/w/alpha", "/w/mid", "/w/zeta"]);
+    }
+
+    #[test]
+    fn ledger_roundtrips_through_json() {
+        let dir = std::env::temp_dir().join("dracon-vanished-ledger-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(SEEN_LEDGER_FILE);
+        let mut ledger = SeenLedger::new();
+        mark_seen(&mut ledger, Path::new("/w/present"), secs(7));
+        ledger.insert(
+            "/w/gone".to_string(),
+            SeenRepo {
+                last_seen_secs: secs(3),
+                first_vanished_secs: Some(secs(9)),
+            },
+        );
+        save_seen_ledger(&path, &ledger);
+        let loaded = load_seen_ledger(&path);
+        assert_eq!(loaded, ledger);
+        // Legacy/empty file loads as an empty ledger, never panics.
+        std::fs::write(&path, "not json at all").unwrap();
+        assert!(load_seen_ledger(&path).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

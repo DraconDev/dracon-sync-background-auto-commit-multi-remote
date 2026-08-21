@@ -3025,7 +3025,7 @@ pub(crate) fn is_repo_stuck(repo: &Path) -> bool {
 /// on paths that dropped out of discovery, and logs each NEWLY vanished
 /// path exactly once per disappearance episode (the persistent CONCERN
 /// surfacing lives in `run_repair_concerns`).
-pub(crate) fn note_discovered_repos(policy_path: &Path, repos: &BTreeSet<PathBuf>) {
+pub(crate) fn note_discovered_repos(policy_path: &Path, repos: &[PathBuf]) {
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -3039,7 +3039,7 @@ pub(crate) fn note_discovered_repos(policy_path: &Path, repos: &BTreeSet<PathBuf
         .filter(|(path, entry)| entry.first_vanished_secs.is_none() && !current.contains(*path))
         .map(|(path, _)| path.clone())
         .collect();
-    crate::vanished::update_seen_ledger(&mut ledger, &repos.iter().cloned().collect::<Vec<_>>(), now_secs);
+    crate::vanished::update_seen_ledger(&mut ledger, repos, now_secs);
     for path in &newly_vanished {
         eprintln!(
             "🛑 watched repo path VANISHED: {} — no longer discovered under any watch root; restore or re-clone it. Persistently surfaced by `dracon-sync repair concerns` until it returns.",
@@ -3090,7 +3090,10 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
         eprintln!("⚠️ startup: visibility cache cleanup failed: {}", e);
     }
 
-    note_discovered_repos(policy_path, &repo_set);
+    note_discovered_repos(
+        policy_path,
+        &repo_set.iter().cloned().collect::<Vec<_>>(),
+    );
 
     // Repair broken upstream tracking references (e.g. origin/master: gone)
     let discovered_refs: Vec<PathBuf> = repo_set.iter().cloned().collect();
@@ -3719,7 +3722,7 @@ pub(crate) async fn run_daemon(
             &policy.exclude_repos,
             Some(&policy.system_repo),
         );
-        note_discovered_repos(policy_path, &repos);
+        note_discovered_repos(&policy_path, &repos);
         // Submodule materialize pass: for each discovered parent
         // repo, materialize any declared submodules as standalone
         // worktrees under the watch root (e.g.
