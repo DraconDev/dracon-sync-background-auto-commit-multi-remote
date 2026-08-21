@@ -9,6 +9,7 @@
 .env.prod filter=dracon diff=dracon merge=dracon
 .env.production filter=dracon diff=dracon merge=dracon
 .env.turso filter=dracon diff=dracon merge=dracon
+affiliate/.env.credentials.md filter=dracon diff=dracon merge=dracon
 config/licenses.json filter=dracon diff=dracon merge=dracon
 config/licenses.test.json filter=dracon diff=dracon merge=dracon
 config/services.json filter=dracon diff=dracon merge=dracon
