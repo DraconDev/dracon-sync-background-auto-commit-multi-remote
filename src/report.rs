@@ -13461,7 +13461,7 @@ mod v011318b_tests {
         assert_eq!(pub_cell, "    dracon-sync", "{pub_cell}");
         assert!(unk_cell.starts_with("    mystery"), "{unk_cell:?}");
         assert_eq!(
-            UnicodeWidthStr::width("🔒  ") as usize,
+            UnicodeWidthStr::width("🔒  "),
             UnicodeWidthStr::width("    "),
             "icon prefix and pad must be the same width"
         );
@@ -13624,8 +13624,8 @@ mod v011321_tests {
             "standalone badge slot padded: {plain}"
         );
         assert_eq!(
-            UnicodeWidthStr::width("🔒> ") as usize,
-            UnicodeWidthStr::width("🔒  ") as usize,
+            UnicodeWidthStr::width("🔒> "),
+            UnicodeWidthStr::width("🔒  "),
             "badge and pad slot must be the same width"
         );
     }

@@ -2151,7 +2151,7 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
     let age = oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
     // The oldest file (old.txt) drives the age; tolerate skew.
-    assert!(age >= 110 && age <= 130, "expected ~120s, got {age}");
+    assert!((110..=130).contains(&age), "expected ~120s, got {age}");
     // Deletions have no mtime → no age → None (caller stays silent).
     let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
     assert_eq!(
@@ -2254,7 +2254,7 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
     let age =
         oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[]).unwrap();
     assert!(
-        age >= 260 && age <= 340,
+        (260..=340).contains(&age),
         "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
     );
 }

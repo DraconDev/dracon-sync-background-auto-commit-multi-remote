@@ -4655,7 +4655,7 @@ mod tests {
     fn github_mirror_comparison_uses_repository_identity_not_host_only() {
         let origin = Some("git@github.com:DraconDev/ultratap.git");
         let distinct_github = Some("https://github.com/DraconDev/doomtap.git");
-        assert!(is_github_repository_url(origin.unwrap()));
+        assert!(is_github_repository_url(origin.expect("origin present in test")));
         assert!(!github_mirror_matches_origin(origin, distinct_github));
     }
 
