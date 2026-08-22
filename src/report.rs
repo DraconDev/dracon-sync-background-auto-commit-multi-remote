@@ -9440,6 +9440,55 @@ mod tests {
     }
 
     #[test]
+    fn compute_cold_size_entry_populates_cache_record() {
+        // CHANGED 2026-08-22: the cold-path probes were extracted into
+        // compute_cold_size_entry so they can run on spawn_blocking;
+        // this pins its contract: returns the measured size + healthy
+        // probe AND writes a fully-populated cache entry.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t.local"],
+            vec!["config", "user.name", "t"],
+        ] {
+            std::process::Command::new("git")
+                .args(&args)
+                .current_dir(repo)
+                .status()
+                .unwrap();
+        }
+        std::fs::write(repo.join("file.txt"), "hello").unwrap();
+        for args in [
+            vec!["add", "file.txt"],
+            vec!["commit", "-q", "-m", "init"],
+        ] {
+            std::process::Command::new("git")
+                .args(&args)
+                .current_dir(repo)
+                .status()
+                .unwrap();
+        }
+
+        let record = std::sync::Mutex::new(std::collections::HashMap::new());
+        let key = repo.to_string_lossy().to_string();
+        let now = 1_800_000_000u64;
+        let (size, _modules, _pack, history) =
+            compute_cold_size_entry(repo, &record, &key, 42, now);
+
+        assert!(size.is_some(), "healthy repo must yield a size");
+        assert!(!history.failed);
+        assert_eq!(history.missing_objects, 0);
+
+        let entry = record.lock().unwrap().get(&key).cloned().unwrap();
+        assert_eq!(entry.git_size_bytes, size.unwrap_or(0));
+        assert_eq!(entry.missing_objects, Some(0));
+        assert_eq!(entry.history_probe_failed, Some(false));
+        assert_eq!(entry.cached_at_secs, Some(now));
+        assert_eq!(entry.gitdir_sig, 42);
+    }
+
+    #[test]
     fn run_git_bounded_feeds_large_stdin_without_pipe_block() {
         let dir = tempfile::tempdir().unwrap();
         let input = vec![b'x'; 256 * 1024];
