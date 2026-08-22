@@ -3213,8 +3213,20 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
     // Bound BOTH subprocess steps so one huge repo cannot stall the whole
     // `repos` render. A failed/invalid HEAD is reported as `failed`, not
     // silently converted to zero.
-    const BOUND: std::time::Duration = std::time::Duration::from_secs(4);
-    let Some(list) = run_git_bounded(&["rev-list", "--objects", "HEAD"], repo, &[], BOUND) else {
+    // CHANGED 2026-08-22 (ai-auto-writer false-BROKEN): bound raised 4s ->
+    // 10s AND each step retries once. The probes are disk-bound over
+    // ~100k-object packfiles; when every repo probes at once (cold size
+    // cache after TTL expiry), a 4s single-shot deadline killed healthy
+    // probes and rendered PUSH 🩹 BROKEN for repos whose fsck/push were
+    // perfectly fine. A timeout is NOT evidence of damage — retry once
+    // (page cache warm by then) before reporting failed. Still bounded:
+    // worst case 4 attempts × 10s, on the blocking pool, not workers.
+    const BOUND: std::time::Duration = std::time::Duration::from_secs(10);
+    let bounded_with_retry = |args: &[&str], stdin_data: &[u8]| -> Option<Vec<u8>> {
+        run_git_bounded(args, repo, stdin_data, BOUND)
+            .or_else(|| run_git_bounded(args, repo, stdin_data, BOUND))
+    };
+    let Some(list) = bounded_with_retry(&["rev-list", "--objects", "HEAD"], &[]) else {
         return HistoryProbe {
             missing_objects: 0,
             failed: true,
@@ -3232,11 +3244,9 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
         stripped.extend_from_slice(sha);
         stripped.push(b'\n');
     }
-    let Some(out) = run_git_bounded(
+    let Some(out) = bounded_with_retry(
         &["cat-file", "--batch-check=%(objecttype) %(objectname)"],
-        repo,
         &stripped,
-        BOUND,
     ) else {
         return HistoryProbe {
             missing_objects: 0,
