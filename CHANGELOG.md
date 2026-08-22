@@ -12,7 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > under the `dracon-sync` heading. From 0.112.12 onward, this CHANGELOG
 > is the canonical record.
 
-## [Unreleased]
+## [0.113.53] - 2026-08-22
+
+### Added
+
+- **Persistent watched-repo-vanished concern** (disappearance doc G2):
+  a previously-synced watch path that disappears from discovery is now
+  remembered in `repos-seen-ledger.json`, logged once per episode by the
+  daemon, and surfaced as a persistent `❌ CONCERN` row by
+  `dracon-sync repair concerns` until the path returns (entries
+  auto-expire after 90 days). Previously a deleted checkout simply
+  stopped being discovered — invisible until commit streams went
+  missing, which is exactly how all three utility checkouts stayed gone
+  for two days on 2026-08-19..21.
 
 ### Fixed
 
@@ -26,6 +38,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   limitations (ssh.github.com / www.github.com / non-default ports stay
   distinct). Also fixes six pre-existing Rust-1.97 clippy warnings in
   tests so the crate passes clippy `-D warnings`.
+- **Cold `repos` render no longer serializes** (operator report:
+  36–50s renders): the cold-path size/history probes ran inline in
+  async tasks with no await point, degrading `buffer_unordered(16)` to
+  near-sequential execution. Probes moved to `spawn_blocking`
+  (`compute_cold_size_entry`); measured 42s → 13.7s cold, warm path
+  unchanged.
+- **History-probe timeout no longer renders healthy repos BROKEN**:
+  during a full-fleet cold render, ai-auto-writer's ~99k-object probe
+  blew the hard 4s single-shot deadline and was flagged 🩹 BROKEN while
+  fsck/push were perfectly fine. Bound raised to 10s AND each step
+  retries once before reporting failure — a timeout is not evidence of
+  damage. Genuinely invalid HEADs still surface as failed after retries
+  (regression-tested).
 
 ## [0.113.52] - 2026-08-21
 
