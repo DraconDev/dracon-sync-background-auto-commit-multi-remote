@@ -3252,6 +3252,43 @@ pub(crate) fn probe_history(repo: &Path) -> HistoryProbe {
     }
 }
 
+/// CHANGED 2026-08-22 (operator report: "repos was slow"): the cold-path
+/// compute (git size + modules size + github pack guard + broken-history
+/// probe) as ONE synchronous unit, suitable for `spawn_blocking`. All four
+/// probes are blocking subprocess calls; bundling them keeps them on a
+/// dedicated blocking thread instead of stalling an async worker (see the
+/// call site for the measured 36-50s cold-render regression).
+fn compute_cold_size_entry(
+    repo: &Path,
+    cache_record: &std::sync::Mutex<std::collections::HashMap<String, CachedRepoSize>>,
+    cache_key: &str,
+    gitdir_sig: u64,
+    now_secs: u64,
+) -> (Option<u64>, u64, (bool, u64), HistoryProbe) {
+    let size = measure_git_size_bytes(repo);
+    let modules = measure_modules_size_bytes(repo);
+    let pack = crate::git::github_pack_too_large(repo, size);
+    // Probe broken-history alongside the size measure.
+    let history = probe_history(repo);
+    cache_record.lock().unwrap().insert(
+        cache_key.to_string(),
+        CachedRepoSize {
+            git_size_bytes: size.unwrap_or(0),
+            pack_too_large: pack.0,
+            pack_pushable_bytes: pack.1,
+            gitdir_sig,
+            missing_objects: Some(history.missing_objects),
+            history_probe_failed: Some(history.failed),
+            // ADDED 2026-07-24 (v0.112.40): record the
+            // wall-clock write time so the TTL check can
+            // honor fresh entries across daemon activity.
+            cached_at_secs: Some(now_secs),
+            git_modules_bytes: modules,
+        },
+    );
+    (size, modules, pack, history)
+}
+
 /// Cache file lives next to the policy toml (a config dir, never a watched
 /// git repo, so it is never auto-committed by the daemon).
 fn repo_size_cache_path(policy_path: &Path) -> PathBuf {
@@ -3526,27 +3563,41 @@ pub(crate) async fn run_repos_report(
                 )
             }
             _ => {
-                let size = measure_git_size_bytes(&repo);
-                let modules = measure_modules_size_bytes(&repo);
-                let pack = crate::git::github_pack_too_large(&repo, size);
-                // Probe broken-history alongside the size measure.
-                let history = probe_history(&repo);
-                cache_record.lock().unwrap().insert(
-                    cache_key.clone(),
-                    CachedRepoSize {
-                        git_size_bytes: size.unwrap_or(0),
-                        pack_too_large: pack.0,
-                        pack_pushable_bytes: pack.1,
-                        gitdir_sig,
-                        missing_objects: Some(history.missing_objects),
-                        history_probe_failed: Some(history.failed),
-                        // ADDED 2026-07-24 (v0.112.40): record the
-                        // wall-clock write time so the TTL check can
-                        // honor fresh entries across daemon activity.
-                        cached_at_secs: Some(now_secs),
-                        git_modules_bytes: modules,
-                    },
-                );
+                // CHANGED 2026-08-22 (operator report: "repos was slow"):
+                // run the expensive cold-path probes on the blocking
+                // thread pool. measure_git_size_bytes + probe_history are
+                // fully synchronous subprocess calls (~2-3s per multi-GiB
+                // repo, page-cache cold) with NO await point between them,
+                // so inlining them here blocked a tokio worker for their
+                // whole duration — buffer_unordered(16) degraded to near-
+                // sequential execution and a cold render took 36-50s wall
+                // (sequential probe sum measured at 32s across 27 repos).
+                // spawn_blocking lets all 16+ probes actually overlap;
+                // cold render drops to ~max(per-repo) instead of sum.
+                let (size, modules, pack, history) = {
+                    let cache_record = std::sync::Arc::clone(&cache_record);
+                    let repo = repo.clone();
+                    let cache_key = cache_key.clone();
+                    tokio::task::spawn_blocking(move || {
+                        compute_cold_size_entry(
+                            &repo,
+                            &cache_record,
+                            &cache_key,
+                            gitdir_sig,
+                            now_secs,
+                        )
+                    })
+                    .await
+                    .unwrap_or((
+                        None,
+                        0u64,
+                        (false, 0u64),
+                        HistoryProbe {
+                            missing_objects: 0,
+                            failed: true,
+                        },
+                    ))
+                };
                 (size, modules, pack, history.missing_objects, history.failed)
             }
         };
