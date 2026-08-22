@@ -9450,6 +9450,29 @@ mod tests {
     }
 
     #[test]
+    fn probe_history_retry_still_reports_genuinely_invalid_head_as_failed() {
+        // CHANGED 2026-08-22: each probe step now retries once before
+        // declaring failure (timeout ≠ broken history). This pins the
+        // other half of the contract: a GENUINELY invalid HEAD must
+        // still surface as failed after both attempts — the retry must
+        // never mask real damage.
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::process::Command::new("git")
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(repo)
+            .status()
+            .unwrap();
+        std::fs::write(
+            repo.join(".git/refs/heads/main"),
+            "0000000000000000000000000000000000000000\n",
+        )
+        .unwrap();
+        let probe = probe_history(repo);
+        assert!(probe.failed, "invalid HEAD after retries must stay failed");
+    }
+
+    #[test]
     fn compute_cold_size_entry_populates_cache_record() {
         // CHANGED 2026-08-22: the cold-path probes were extracted into
         // compute_cold_size_entry so they can run on spawn_blocking;
