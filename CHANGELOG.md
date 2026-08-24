@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > under the `dracon-sync` heading. From 0.112.12 onward, this CHANGELOG
 > is the canonical record.
 
+## [0.113.54] - 2026-08-24
+
+### Fixed
+
+- **Freeze TTL tightened 24h → 1h + freeze watchdog (2026-08-24)**: a manual
+  `dracon-sync pause` at 17:26 left the fleet frozen for 3.5 h (14 repos
+  `🟣 PENDING`, 2 `🟡 WARN`). The hard TTL was 24 h so nothing would have
+  auto-cleared until the next day. Now: daemon hard-clears stale markers
+  at 1 h, a new `dracon-freeze-watchdog` timer (every 2 m) warns at 10 m
+  and auto-clears at 30 m, and `AGENTS.md`/docs are updated to steer
+  operators toward `dracon-sync maintenance -- <cmd>` (always resumes).
+  Also fixes `github_pack_tests` for the monorepo layout (crate dir has
+  no `.git` of its own — tests now walk up to the enclosing git
+  top-level, so `small_repo_is_not_too_big_for_github` no longer
+  spuriously reports size 0).
+
 ## [0.113.53] - 2026-08-22
 
 ### Added
