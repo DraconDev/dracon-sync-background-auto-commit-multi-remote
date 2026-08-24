@@ -1853,12 +1853,15 @@ pub(crate) fn freeze_marker_paths(_policy_path: &Path) -> Vec<PathBuf> {
     paths
 }
 
-/// Default freeze-marker TTL: 24 hours. Markers older than this are auto-cleared
+/// Default freeze-marker TTL: 1 hour. Markers older than this are auto-cleared
 /// and a warning is logged to prevent indefinite pause from a forgotten `pause`.
 ///
-/// The 2026-06-04 incident (1h23m of stale freeze, 3 CONCERN repos) is the
-/// motivating example. See `.dracon/project-state.md` for details.
-pub(crate) const FREEZE_MARKER_TTL_SECS: u64 = 24 * 60 * 60;
+/// CHANGED 2026-08-24: 24h → 1h. The 2026-08-24 incident froze the fleet for
+/// 3.5h (pause at 17:26, 14 repos PENDING) — 24h was far too forgiving.
+/// A 1h hard TTL plus the new freeze-watchdog (warn at 10m, auto-clear at
+/// 30m) bounds forgotten pauses to minutes. The 2026-06-04 incident (1h23m
+/// stale freeze, 3 CONCERN repos) is the original motivating example.
+pub(crate) const FREEZE_MARKER_TTL_SECS: u64 = 60 * 60;
 
 /// If a freeze marker exists but is older than `FREEZE_MARKER_TTL_SECS`,
 /// auto-clear it and log a warning. Returns `Some(reason)` if sync should
