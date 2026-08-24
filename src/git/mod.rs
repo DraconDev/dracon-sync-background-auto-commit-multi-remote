@@ -606,14 +606,26 @@ mod github_pack_tests {
     // The daemon crate's own checkout is a real, warden-configured git repo,
     // so we can exercise the size-guard helpers against it without spinning
     // up a fresh fixture repo (which the warden git filter blocks in this
-    // environment).
-    fn daemon_repo() -> &'static std::path::Path {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+    // environment). In the monorepo layout the crate dir has no .git of its
+    // own, so walk up to the enclosing git top-level.
+    fn daemon_repo() -> std::path::PathBuf {
+        let mut p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        loop {
+            if p.join(".git").exists() {
+                return p;
+            }
+            if let Some(parent) = p.parent() {
+                p = parent.to_path_buf();
+            } else {
+                return std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            }
+        }
     }
 
     #[test]
     fn small_repo_is_not_too_big_for_github() {
         let repo = daemon_repo();
+        let repo = repo.as_path();
         let (too_big, size) = github_pack_too_large(repo, None);
         assert!(!too_big, "a small repo must never be skipped for github");
         assert!(
@@ -642,6 +654,7 @@ mod github_pack_tests {
     #[test]
     fn pushed_branch_size_is_reported_for_small_repo() {
         let repo = daemon_repo();
+        let repo = repo.as_path();
         let bytes = pushed_branch_pushable_bytes(repo);
         assert!(
             bytes > 0 && bytes != u64::MAX,
