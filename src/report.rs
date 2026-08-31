@@ -3365,6 +3365,7 @@ pub(crate) async fn run_repos_report(
     layout_override: Option<&str>,
     summary: bool,
     summary_by_severity: bool,
+    deep: bool,
     repo_detail: Option<&str>,
 ) -> Result<()> {
     // `--legend` prints the column legend and exits. The default report stays
@@ -3544,13 +3545,50 @@ pub(crate) async fn run_repos_report(
                 .map(|t| now_secs.saturating_sub(t) < REPO_SIZE_CACHE_TTL_SECS)
                 .unwrap_or(false)
         };
+        let cached_entry = cache_lookup.get(&cache_key);
+        let cache_entry_is_complete_and_fresh = cached_entry
+            .map(|c| {
+                cached_entry_is_fresh(c)
+                    && c.missing_objects.is_some()
+                    && c.history_probe_failed.is_some()
+            })
+            .unwrap_or(false);
+        let mut report_checks_deferred = false;
         let (
             git_size_bytes,
             git_modules_bytes,
             pack_too_large,
             missing_objects,
             history_probe_failed,
-        ) = match cache_lookup.get(&cache_key) {
+        ) = if cache_entry_is_complete_and_fresh {
+            let c = cached_entry.expect("fresh cache entry must be present");
+            (
+                Some(c.git_size_bytes),
+                c.git_modules_bytes,
+                (c.pack_too_large, c.pack_pushable_bytes),
+                c.missing_objects.unwrap_or(0),
+                c.history_probe_failed.unwrap_or(false),
+            )
+        } else if !deep {
+            // Interactive reports must not launch a multi-GiB
+            // `pack-objects` job merely to populate one display cell. Keep
+            // showing every repository, using the last-known probe values
+            // when available; `repos --deep` is the explicit full-refresh
+            // path. Probe values are intentionally not persisted from this
+            // fallback, so a deep run still knows it needs to refresh stale
+            // data.
+            report_checks_deferred = true;
+            match cached_entry {
+                Some(c) => (
+                    Some(c.git_size_bytes),
+                    c.git_modules_bytes,
+                    (c.pack_too_large, c.pack_pushable_bytes),
+                    c.missing_objects.unwrap_or(0),
+                    c.history_probe_failed.unwrap_or(false),
+                ),
+                None => (None, 0, (false, 0), 0, false),
+            }
+        } else {
             // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
             // freshness check. If the entry was written within
             // REPO_SIZE_CACHE_TTL_SECS, we honor it regardless of
@@ -3559,56 +3597,45 @@ pub(crate) async fn run_repos_report(
             // The sig check is retained as a secondary guard for
             // entries that have no cached_at_secs (pre-v0.112.40
             // cache files).
-            Some(c)
-                if cached_entry_is_fresh(c)
-                    && c.missing_objects.is_some()
-                    && c.history_probe_failed.is_some() =>
             {
                 (
-                    Some(c.git_size_bytes),
-                    c.git_modules_bytes,
-                    (c.pack_too_large, c.pack_pushable_bytes),
-                    c.missing_objects.unwrap_or(0),
-                    c.history_probe_failed.unwrap_or(false),
+                    // CHANGED 2026-08-22 (operator report: "repos was slow"):
+                    // run the expensive cold-path probes on the blocking
+                    // thread pool. measure_git_size_bytes + probe_history are
+                    // fully synchronous subprocess calls (~2-3s per multi-GiB
+                    // repo, page-cache cold) with NO await point between them,
+                    // so inlining them here blocked a tokio worker for their
+                    // whole duration — buffer_unordered(16) degraded to near-
+                    // sequential execution and a cold render took 36-50s wall
+                    // (sequential probe sum measured at 32s across 27 repos).
+                    // spawn_blocking lets all 16+ probes actually overlap;
+                    // cold render drops to ~max(per-repo) instead of sum.
+                    let (size, modules, pack, history) = {
+                        let cache_record = std::sync::Arc::clone(&cache_record);
+                        let repo = repo.clone();
+                        let cache_key = cache_key.clone();
+                        tokio::task::spawn_blocking(move || {
+                            compute_cold_size_entry(
+                                &repo,
+                                &cache_record,
+                                &cache_key,
+                                gitdir_sig,
+                                now_secs,
+                            )
+                        })
+                        .await
+                        .unwrap_or((
+                            None,
+                            0u64,
+                            (false, 0u64),
+                            HistoryProbe {
+                                missing_objects: 0,
+                                failed: true,
+                            },
+                        ))
+                    };
+                    (size, modules, pack, history.missing_objects, history.failed)
                 )
-            }
-            _ => {
-                // CHANGED 2026-08-22 (operator report: "repos was slow"):
-                // run the expensive cold-path probes on the blocking
-                // thread pool. measure_git_size_bytes + probe_history are
-                // fully synchronous subprocess calls (~2-3s per multi-GiB
-                // repo, page-cache cold) with NO await point between them,
-                // so inlining them here blocked a tokio worker for their
-                // whole duration — buffer_unordered(16) degraded to near-
-                // sequential execution and a cold render took 36-50s wall
-                // (sequential probe sum measured at 32s across 27 repos).
-                // spawn_blocking lets all 16+ probes actually overlap;
-                // cold render drops to ~max(per-repo) instead of sum.
-                let (size, modules, pack, history) = {
-                    let cache_record = std::sync::Arc::clone(&cache_record);
-                    let repo = repo.clone();
-                    let cache_key = cache_key.clone();
-                    tokio::task::spawn_blocking(move || {
-                        compute_cold_size_entry(
-                            &repo,
-                            &cache_record,
-                            &cache_key,
-                            gitdir_sig,
-                            now_secs,
-                        )
-                    })
-                    .await
-                    .unwrap_or((
-                        None,
-                        0u64,
-                        (false, 0u64),
-                        HistoryProbe {
-                            missing_objects: 0,
-                            failed: true,
-                        },
-                    ))
-                };
-                (size, modules, pack, history.missing_objects, history.failed)
             }
         };
         let history_broken = history_probe_failed || missing_objects > 0;
@@ -3684,6 +3711,10 @@ pub(crate) async fn run_repos_report(
         );
         if repo_override.intentional_no_upstream {
             flags = apply_intentional_no_upstream(flags);
+        }
+
+        if report_checks_deferred {
+            flags.push("REPORT_CHECKS_DEFERRED".to_string());
         }
 
         // ── Pack size warning (2 GB = github's hard limit) ─────────
@@ -3816,7 +3847,7 @@ pub(crate) async fn run_repos_report(
             _ => None,
         };
 
-        let hint = if let Some(h) = unowned_hint {
+        let mut hint = if let Some(h) = unowned_hint {
             h
         } else if history_broken {
             // An invalid HEAD/ref can make libgit2 report every file as
@@ -3854,6 +3885,9 @@ pub(crate) async fn run_repos_report(
         } else {
             repo_hint(&flags, warn, concern)
         };
+        if report_checks_deferred && !history_broken && !pack_too_large.0 {
+            hint.push_str("; deep pack/history checks deferred — use repos --deep");
+        }
 
         // Calculate push status from flags. Ownership rejection is a
         // deliberate block, not an in-flight push; do not infer PENDING

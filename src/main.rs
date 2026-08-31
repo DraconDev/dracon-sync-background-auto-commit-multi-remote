@@ -173,6 +173,11 @@ enum Command {
         /// most common summary use case.
         #[arg(long)]
         summary_by_severity: bool,
+        /// Run the expensive pack-size and broken-history probes before
+        /// rendering. The default report remains fast and uses cached probe
+        /// results; use this flag when a full refresh is specifically needed.
+        #[arg(long)]
+        deep: bool,
     },
     /// Check daemon health (policy valid, daemon responsive, repos healthy).
     Health {
@@ -1047,6 +1052,7 @@ async fn main() -> Result<()> {
             layout,
             summary,
             summary_by_severity,
+            deep,
         } => {
             let filter = if only_concern {
                 RepoFilter::Concern
@@ -1066,6 +1072,7 @@ async fn main() -> Result<()> {
                 layout.as_deref(),
                 summary,
                 summary_by_severity,
+                deep,
                 repo_name.as_deref(),
             )
             .await?;
