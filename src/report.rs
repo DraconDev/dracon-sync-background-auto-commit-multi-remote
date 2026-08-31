@@ -3597,46 +3597,42 @@ pub(crate) async fn run_repos_report(
             // The sig check is retained as a secondary guard for
             // entries that have no cached_at_secs (pre-v0.112.40
             // cache files).
-            {
-                (
-                    // CHANGED 2026-08-22 (operator report: "repos was slow"):
-                    // run the expensive cold-path probes on the blocking
-                    // thread pool. measure_git_size_bytes + probe_history are
-                    // fully synchronous subprocess calls (~2-3s per multi-GiB
-                    // repo, page-cache cold) with NO await point between them,
-                    // so inlining them here blocked a tokio worker for their
-                    // whole duration — buffer_unordered(16) degraded to near-
-                    // sequential execution and a cold render took 36-50s wall
-                    // (sequential probe sum measured at 32s across 27 repos).
-                    // spawn_blocking lets all 16+ probes actually overlap;
-                    // cold render drops to ~max(per-repo) instead of sum.
-                    let (size, modules, pack, history) = {
-                        let cache_record = std::sync::Arc::clone(&cache_record);
-                        let repo = repo.clone();
-                        let cache_key = cache_key.clone();
-                        tokio::task::spawn_blocking(move || {
-                            compute_cold_size_entry(
-                                &repo,
-                                &cache_record,
-                                &cache_key,
-                                gitdir_sig,
-                                now_secs,
-                            )
-                        })
-                        .await
-                        .unwrap_or((
-                            None,
-                            0u64,
-                            (false, 0u64),
-                            HistoryProbe {
-                                missing_objects: 0,
-                                failed: true,
-                            },
-                        ))
-                    };
-                    (size, modules, pack, history.missing_objects, history.failed)
-                )
-            }
+            // CHANGED 2026-08-22 (operator report: "repos was slow"):
+            // run the expensive cold-path probes on the blocking
+            // thread pool. measure_git_size_bytes + probe_history are
+            // fully synchronous subprocess calls (~2-3s per multi-GiB
+            // repo, page-cache cold) with NO await point between them,
+            // so inlining them here blocked a tokio worker for their
+            // whole duration — buffer_unordered(16) degraded to near-
+            // sequential execution and a cold render took 36-50s wall
+            // (sequential probe sum measured at 32s across 27 repos).
+            // spawn_blocking lets all 16+ probes actually overlap;
+            // cold render drops to ~max(per-repo) instead of sum.
+            let (size, modules, pack, history) = {
+                let cache_record = std::sync::Arc::clone(&cache_record);
+                let repo = repo.clone();
+                let cache_key = cache_key.clone();
+                tokio::task::spawn_blocking(move || {
+                    compute_cold_size_entry(
+                        &repo,
+                        &cache_record,
+                        &cache_key,
+                        gitdir_sig,
+                        now_secs,
+                    )
+                })
+                .await
+                .unwrap_or((
+                    None,
+                    0u64,
+                    (false, 0u64),
+                    HistoryProbe {
+                        missing_objects: 0,
+                        failed: true,
+                    },
+                ))
+            };
+            (size, modules, pack, history.missing_objects, history.failed)
         };
         let history_broken = history_probe_failed || missing_objects > 0;
 

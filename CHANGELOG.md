@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > under the `dracon-sync` heading. From 0.112.12 onward, this CHANGELOG
 > is the canonical record.
 
+## [Unreleased]
+
+### Fixed
+
+- **Fast default `repos` report**: the interactive report now continues to
+  render every discovered repository without launching the multi-GiB GitHub
+  pack-size/history probes when their cache is cold. Use `dracon-sync repos
+  --deep` for an explicit full refresh; daemon push-time pack enforcement is
+  unchanged.
+
 ## [0.113.54] - 2026-08-24
 
 ### Fixed
