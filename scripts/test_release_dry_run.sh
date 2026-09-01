@@ -119,7 +119,7 @@ DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     timeout 120 "$repo/dracon-sync/scripts/release.sh" --abort \
     >"$work/abort.out" 2>"$work/abort.err"
 test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/dracon-sync/Cargo.toml")" = 0.1.0
-test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.lock")" = 0.1.0
+test "$(awk -F'"' '/^name = "dracon-sync"$/{getline; print $2; exit}' "$repo/Cargo.lock")" = 0.1.0
 test ! -e "$repo/dracon-sync/release-notes-v0.1.1.md"
 test -z "$(git -C "$repo" status --porcelain)"
 
