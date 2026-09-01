@@ -2,6 +2,8 @@
 
 Background, auto-commit, multi-remote — invisible git sync for developer workspaces.
 
+![`dracon-sync status` output](docs/status-output.png)
+
 This repository is the **canonical standalone source** for `dracon-sync` on
 GitHub, GitLab, and Codeberg. It contains the source code, `Cargo.toml`, tests,
 examples, and release metadata.
