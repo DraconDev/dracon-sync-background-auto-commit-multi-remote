@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > under the `dracon-sync` heading. From 0.112.12 onward, this CHANGELOG
 > is the canonical record.
 
-## [Unreleased]
+## [0.113.55] - 2026-09-01
 
 ### Fixed
 
@@ -1871,8 +1871,6 @@ The `dracon-sync repos` output renders a 22-column v1 Full table (~620 chars wid
 **3 new tests** (890 total, up from 887): `test_terminal_width_columns_env_var`, `test_terminal_width_fallback_is_compact`, `test_choose_layout_tier_fallback_no_env_no_tty_yields_compact_or_smaller`. Updated existing tier tests to match the new threshold (`< 220` → Vertical, `220-299` → Compact, `≥ 300` → Full). `cargo build --release --locked`, `cargo test --workspace --locked`, `cargo clippy --workspace --locked --all-targets -- -D warnings`, `cargo deny check` all clean.
 
 **Design doc:** `docs/design/repos-table-fix-2026-07-18.md` — root cause, threshold rationale, before/after pty captures at 80/120/220/300/400 cols.
-
-## [Unreleased]
 
 ### v0.112.20 — 2026-07-18 — `dracon-git` v94.7.1 patch (libgit2 ssh-agent fix)
 
