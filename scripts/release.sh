@@ -53,8 +53,19 @@
 set -euo pipefail
 
 # ----- paths ---------------------------------------------------------------
+# FIXED 2026-09-01 (post-monorepo conversion 2026-08-22): the previous
+# `REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"` walked
+# up to the monorepo root and `cd`-ed there, so `Cargo.toml` resolved
+# to the workspace `[workspace]` manifest (no `version` line) and step
+# 2 failed with "no version found in Cargo.toml". The release script
+# operates on a single utility crate, so anchor on the crate's own
+# gitdir instead: BASH_SOURCE[0] is `dracon-sync/scripts/release.sh`,
+# so dirname's parent is the crate dir, which is also the standalone
+# repo's git toplevel (each utility was converted via subtree merge
+# onto its own nested gitdir).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+CRATE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$CRATE_DIR"
 cd "$REPO_ROOT"
 
 # ----- defaults ------------------------------------------------------------
