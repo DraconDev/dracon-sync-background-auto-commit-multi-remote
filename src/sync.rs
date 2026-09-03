@@ -4971,6 +4971,410 @@ mod tests {
         assert!(msg.starts_with("MERGE: | "));
     }
 
+    // --- commit-message index general improvements (2026-09-03) ---
+    // Design: docs/design/commit-message-index-general-2026-09-03.md §3A–3D.
+    // No new config; message-only changes (staging/push untouched).
+
+    /// Fresh repo for message tests: main branch, local test identity,
+    /// warden global hooks neutralized (temp repos lack filter config).
+    /// NOTE: identity is repo-local inside a tempdir — never touches the
+    /// operator's real config (same convention as exclude.rs gitlink tests).
+    fn init_msg_repo(repo: &Path) {
+        let rs = repo.to_string_lossy().into_owned();
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&rs)
+            .status()
+            .unwrap();
+        for (k, v) in [
+            ("user.email", "t@t"),
+            ("user.name", "t"),
+            ("core.hooksPath", "/dev/null"),
+        ] {
+            crate::git::git_cmd()
+                .args(["-C", rs.as_str(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+    }
+
+    fn write_repo_file(repo: &Path, rel: &str, content: &[u8]) {
+        let full = repo.join(rel);
+        std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+        std::fs::write(&full, content).unwrap();
+    }
+
+    fn stage_paths(repo: &Path, paths: &[&str]) {
+        let rs = repo.to_string_lossy().into_owned();
+        let mut cmd = crate::git::git_cmd();
+        cmd.args(["-C", rs.as_str(), "add", "--"]);
+        for p in paths {
+            cmd.arg(p);
+        }
+        cmd.status().unwrap();
+    }
+
+    #[test]
+    fn test_lcp_scope_cases() {
+        // Shared subtree → deepest common dir.
+        assert_eq!(
+            longest_common_dir_prefix(&[
+                "web/games/wip/polis/src/main.ts".to_string(),
+                "web/games/wip/polis/src/lib/x.ts".to_string(),
+            ]),
+            Some("web/games/wip/polis/src".to_string())
+        );
+        // Spanning top dirs → None (caller falls back to legacy list).
+        assert_eq!(
+            longest_common_dir_prefix(&[
+                "dracon-sync/src/a.rs".to_string(),
+                "dracon-warden/src/b.rs".to_string(),
+            ]),
+            None
+        );
+        // Bare root files → None (empty-scope rendering).
+        assert_eq!(
+            longest_common_dir_prefix(&["LICENSE".to_string(), "README.md".to_string()]),
+            None
+        );
+        // Mixed root + subdir → None.
+        assert_eq!(
+            longest_common_dir_prefix(&["LICENSE".to_string(), "src/a.rs".to_string()]),
+            None
+        );
+        // 4-component cap.
+        assert_eq!(
+            longest_common_dir_prefix(&[
+                "a/b/c/d/e/f1.ts".to_string(),
+                "a/b/c/d/e/f2.ts".to_string(),
+            ]),
+            Some("a/b/c/d".to_string())
+        );
+        // Single deep path → its parent.
+        assert_eq!(
+            longest_common_dir_prefix(&["a/b/c/main.ts".to_string()]),
+            Some("a/b/c".to_string())
+        );
+        assert_eq!(longest_common_dir_prefix(&[]), None);
+    }
+
+    #[test]
+    fn test_file_extension_cases() {
+        assert_eq!(file_extension("src/main.ts"), Some("ts".to_string()));
+        assert_eq!(file_extension("FOO.SVELTE"), Some("svelte".to_string()));
+        assert_eq!(file_extension("a.test.ts"), Some("ts".to_string()));
+        assert_eq!(file_extension("web/games/wip/polis"), None);
+        assert_eq!(file_extension("LICENSE"), None);
+        assert_eq!(file_extension(".gitignore"), None);
+        assert_eq!(file_extension("dir/.env"), None);
+        assert_eq!(file_extension("trailing."), None);
+    }
+
+    #[test]
+    fn test_extension_histogram_top3_order() {
+        let paths = vec![
+            "a/BB.ts".to_string(),
+            "b/bb.TS".to_string(),
+            "c/cc.ts".to_string(),
+            "d/x.svelte".to_string(),
+            "e/y.svelte".to_string(),
+            "f/z.json".to_string(),
+            "LICENSE".to_string(),
+            "web/games/wip/polis".to_string(),
+            ".gitignore".to_string(),
+        ];
+        assert_eq!(
+            extension_histogram(&paths),
+            vec![
+                ("ts".to_string(), 3),
+                ("svelte".to_string(), 2),
+                ("json".to_string(), 1),
+            ]
+        );
+        // Count tie → alphabetical (deterministic EXT: order).
+        assert_eq!(
+            extension_histogram(&["a/b.rs".to_string(), "c/d.go".to_string()]),
+            vec![("go".to_string(), 1), ("rs".to_string(), 1)]
+        );
+        assert!(extension_histogram(&["LICENSE".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn test_doc_lock_predicates() {
+        assert!(is_doc_file("docs/guide.MD"));
+        assert!(is_doc_file("a/b/c.rst"));
+        assert!(is_doc_file("notes.txt"));
+        assert!(!is_doc_file("src/main.rs"));
+        assert!(!is_doc_file("web/games/wip/polis"));
+        assert!(is_lock_file("Cargo.lock"));
+        assert!(is_lock_file("sub/dir/bun.lock"));
+        assert!(is_lock_file("package-lock.json"));
+        assert!(is_lock_file("go.sum"));
+        assert!(is_lock_file("custom.lock"));
+        // Negatives: docs are not locks, manifests are not locks.
+        assert!(!is_lock_file("changelog.md"));
+        assert!(!is_lock_file("Cargo.toml"));
+    }
+
+    #[test]
+    fn test_safety_metric_predicate() {
+        for t in ["BIN:2", "ENV:", "TESTONLY:a", "DOCSONLY:a", "LOCK", "REN:3"] {
+            assert!(is_safety_metric(t), "{t} should survive truncation");
+        }
+        for t in [
+            "TEST:5",
+            "NEW:a",
+            "DEL:b",
+            "DEPS:x",
+            "MERGE:",
+            "TAG:v1",
+            "GOAL:complete",
+            "PAUSE:x",
+            "TOKENS:1K",
+            "TIME:3m",
+            "EVIDENCE:x",
+            "SKIPPED:x",
+        ] {
+            assert!(!is_safety_metric(t), "{t} should trim under budget");
+        }
+    }
+
+    #[test]
+    fn test_scope_single_file_full_path_drops_bracket() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "web/games/wip/polis/src/main.ts", b"console.log(1);\n");
+        stage_paths(repo, &["web/games/wip/polis/src/main.ts"]);
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.starts_with("1 file(s) in web/games/wip/polis/src/main.ts DELTA:+1/-0"),
+            "single file should scope to its full path, got: {msg}"
+        );
+        assert!(
+            !msg.contains('['),
+            "bracket duplicates the scope for single files, got: {msg}"
+        );
+        assert!(msg.contains("EXT:ts"), "got: {msg}");
+    }
+
+    #[test]
+    fn test_scope_shared_subtree_keeps_bracket() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "web/games/wip/polis/src/a.ts", b"a\n");
+        write_repo_file(repo, "web/games/wip/polis/src/b.ts", b"b\n");
+        stage_paths(
+            repo,
+            &[
+                "web/games/wip/polis/src/a.ts",
+                "web/games/wip/polis/src/b.ts",
+            ],
+        );
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.starts_with("2 file(s) in web/games/wip/polis/src ["),
+            "shared subtree should scope deep with bracket, got: {msg}"
+        );
+        assert!(msg.contains("EXT:ts"), "got: {msg}");
+    }
+
+    #[test]
+    fn test_scope_fallback_spanning_crates_backcompat() {
+        // Multi-crate shape must stay byte-identical to the legacy format:
+        // top-3 first components + full-path bracket.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "dracon-sync/src/a.rs", b"a\n");
+        write_repo_file(repo, "dracon-warden/src/b.rs", b"b\n");
+        stage_paths(repo, &["dracon-sync/src/a.rs", "dracon-warden/src/b.rs"]);
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.starts_with("2 file(s) in dracon-sync,dracon-warden ["),
+            "spanning crates must keep legacy scope, got: {msg}"
+        );
+        assert!(msg.contains("dracon-sync/src/a.rs"), "got: {msg}");
+        assert!(msg.contains("dracon-warden/src/b.rs"), "got: {msg}");
+        assert!(msg.contains("DELTA:+2/-0"), "got: {msg}");
+        assert!(msg.contains("EXT:rs"), "got: {msg}");
+    }
+
+    #[test]
+    fn test_scope_root_files_backcompat() {
+        // Bare root files keep today's empty-scope rendering.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "LICENSE", b"mit\n");
+        write_repo_file(repo, "README.md", b"hi\n");
+        stage_paths(repo, &["LICENSE", "README.md"]);
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.starts_with("2 file(s) [LICENSE, README.md] DELTA:+2/-0"),
+            "root files must keep empty scope, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_docsonly_mirror_and_negative() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "docs/a.md", b"# a\n");
+        write_repo_file(repo, "docs/B.MD", b"# b\n");
+        stage_paths(repo, &["docs/a.md", "docs/B.MD"]);
+        let msg = compute_blast_radius(repo);
+        assert!(msg.contains("DOCSONLY:"), "got: {msg}");
+        assert!(!msg.contains("TESTONLY:"), "got: {msg}");
+        // Mixed docs + code → token gone.
+        write_repo_file(repo, "src/main.rs", b"fn main() {}\n");
+        stage_paths(repo, &["src/main.rs"]);
+        let msg2 = compute_blast_radius(repo);
+        assert!(!msg2.contains("DOCSONLY:"), "got: {msg2}");
+    }
+
+    #[test]
+    fn test_lock_token_and_negative() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "Cargo.lock", b"# lock\n");
+        stage_paths(repo, &["Cargo.lock"]);
+        let msg = compute_blast_radius(repo);
+        assert!(msg.contains("LOCK"), "lockfile-only change needs LOCK, got: {msg}");
+        assert!(!msg.contains("DEPS:"), "no manifest changed, got: {msg}");
+
+        let tmp2 = tempfile::tempdir().unwrap();
+        let repo2 = tmp2.path();
+        init_msg_repo(repo2);
+        write_repo_file(repo2, "changelog.md", b"# log\n");
+        stage_paths(repo2, &["changelog.md"]);
+        let msg2 = compute_blast_radius(repo2);
+        assert!(!msg2.contains("LOCK"), "changelog.md is not a lockfile, got: {msg2}");
+    }
+
+    #[test]
+    fn test_rename_token_excludes_new_del() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        write_repo_file(repo, "old/path.txt", b"same\n");
+        stage_paths(repo, &["old/path.txt"]);
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "-qm", "init"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "mv",
+                "old/path.txt",
+                "new/path.txt",
+            ])
+            .status()
+            .unwrap();
+        let msg = compute_blast_radius(repo);
+        assert!(msg.contains("REN:1"), "move should surface REN:1, got: {msg}");
+        assert!(!msg.contains("NEW:"), "move is not new, got: {msg}");
+        assert!(!msg.contains("DEL:"), "move is not deleted, got: {msg}");
+    }
+
+    #[test]
+    fn test_ext_excludes_gitlink_paths() {
+        // Submodule named WITH a dot: without the gitlink filter its fake
+        // extension would pollute EXT:. `git add <path>` of a nested repo
+        // registers a gitlink (same convention as exclude.rs tests).
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("parent");
+        std::fs::create_dir_all(&repo).unwrap();
+        init_msg_repo(&repo);
+        let sub = repo.join("sub.mod");
+        std::fs::create_dir_all(&sub).unwrap();
+        init_msg_repo(&sub);
+        write_repo_file(&sub, "foo.txt", b"hi\n");
+        stage_paths(&sub, &["foo.txt"]);
+        crate::git::git_cmd()
+            .args(["-C", &sub.to_string_lossy(), "commit", "-qm", "init"])
+            .status()
+            .unwrap();
+        stage_paths(&repo, &["sub.mod"]);
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "commit", "-qm", "register"])
+            .status()
+            .unwrap();
+        // Advance the submodule, stage the pointer bump + a real file.
+        write_repo_file(&sub, "foo.txt", b"hi v2\n");
+        stage_paths(&sub, &["foo.txt"]);
+        crate::git::git_cmd()
+            .args(["-C", &sub.to_string_lossy(), "commit", "-qm", "v2"])
+            .status()
+            .unwrap();
+        write_repo_file(&repo, "app/main.ts", b"x\n");
+        stage_paths(&repo, &["sub.mod", "app/main.ts"]);
+        let msg = compute_blast_radius(&repo);
+        assert!(msg.contains("EXT:ts"), "got: {msg}");
+        assert!(
+            !msg.contains("mod"),
+            "gitlink path must not feed EXT:, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_budget_caps_pathological_subject() {
+        // Long intent + deep paths + binary: budget drops the bracket, then
+        // trims non-safety metrics, while intent/scope/DELTA/safety survive.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        init_msg_repo(repo);
+        let mut notes = String::from("# notes\n");
+        for i in 0..6 {
+            notes.push_str(&format!(
+                "- [x] Fix parser edge case handling number {i} thoroughly\n"
+            ));
+        }
+        write_repo_file(
+            repo,
+            "web/games/wip/polis/src/lib/notes.md",
+            notes.as_bytes(),
+        );
+        for f in ["one", "two", "three", "four"] {
+            write_repo_file(
+                repo,
+                &format!("web/games/wip/polis/src/lib/{f}.ts"),
+                b"a\nb\nc\n",
+            );
+        }
+        write_repo_file(
+            repo,
+            "web/games/wip/polis/src/lib/logo.png",
+            b"\x89PNG\r\n\x1a\n\x00\x01binary\x00data",
+        );
+        stage_paths(
+            repo,
+            &[
+                "web/games/wip/polis/src/lib/notes.md",
+                "web/games/wip/polis/src/lib/one.ts",
+                "web/games/wip/polis/src/lib/two.ts",
+                "web/games/wip/polis/src/lib/three.ts",
+                "web/games/wip/polis/src/lib/four.ts",
+                "web/games/wip/polis/src/lib/logo.png",
+            ],
+        );
+        let msg = compute_blast_radius(repo);
+        assert!(
+            msg.chars().count() <= COMMIT_SUBJECT_BUDGET,
+            "subject must fit budget, got {} chars: {msg}",
+            msg.chars().count()
+        );
+        assert!(msg.contains("CLOSED:"), "intent must survive, got: {msg}");
+        assert!(msg.contains("DELTA:"), "delta must survive, got: {msg}");
+        assert!(msg.contains("BIN:1"), "safety must survive, got: {msg}");
+        assert!(!msg.contains(" ["), "bracket drops first, got: {msg}");
+    }
+
     #[test]
     fn test_goal_metrics_multibyte_utf8_no_panic() {
         // Regression (audit HIGH, 2026-08-09): the goal-metrics
