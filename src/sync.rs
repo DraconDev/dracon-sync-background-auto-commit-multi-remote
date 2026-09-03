@@ -2573,15 +2573,29 @@ fn parse_go_dep(line: &str) -> Option<String> {
 /// Extract newly added and deleted files from the staged diff.
 ///
 /// Returns (new_files, deleted_files) as vectors of file paths.
-fn extract_new_deleted_files(repo: &Path) -> (Vec<String>, Vec<String>) {
-    let output =
-        match run_git_capture_output(repo, &["diff", "--cached", "--name-status"], "name-status") {
-            Ok(o) => o,
-            Err(_) => return (Vec::new(), Vec::new()),
-        };
+/// Extract newly added, deleted, and renamed files from the staged diff.
+///
+/// Runs `git diff --cached --name-status -M` (rename detection ON) and
+/// returns `(new_files, deleted_files, rename_count)`. Renamed paths are
+/// counted and excluded from the new/deleted lists: a move is neither.
+///
+/// `-M` is scoped to THIS metadata path only. The staging call sites
+/// intentionally keep plain `--name-status`: 3-column `R100 old new`
+/// lines would disturb `git_name_status_entries` parsing and staging
+/// semantics (see design `commit-message-index-general-2026-09-03.md` §3C).
+fn extract_new_deleted_files(repo: &Path) -> (Vec<String>, Vec<String>, usize) {
+    let output = match run_git_capture_output(
+        repo,
+        &["diff", "--cached", "--name-status", "-M"],
+        "name-status",
+    ) {
+        Ok(o) => o,
+        Err(_) => return (Vec::new(), Vec::new(), 0),
+    };
 
     let mut new_files = Vec::new();
     let mut deleted_files = Vec::new();
+    let mut renames = 0usize;
 
     for line in output.lines() {
         let parts: Vec<&str> = line.split('\t').collect();
@@ -2589,6 +2603,16 @@ fn extract_new_deleted_files(repo: &Path) -> (Vec<String>, Vec<String>) {
             continue;
         }
         let status = parts[0];
+
+        // Rename entries look like `R100\t<old>\t<new>` — count the move
+        // and skip both sides so a refactor never reads as mass NEW+DEL.
+        if status.starts_with('R') {
+            if parts.len() >= 3 {
+                renames += 1;
+            }
+            continue;
+        }
+
         let path = parts[1];
 
         // Only track source files, not lock files or generated files
@@ -2605,11 +2629,11 @@ fn extract_new_deleted_files(repo: &Path) -> (Vec<String>, Vec<String>) {
         match status {
             "A" => new_files.push(path.to_string()),
             "D" => deleted_files.push(path.to_string()),
-            _ => {} // Modified, renamed, etc.
+            _ => {} // Modified, etc. (renames handled above)
         }
     }
 
-    (new_files, deleted_files)
+    (new_files, deleted_files, renames)
 }
 
 /// Check if a file path looks like a test file.
@@ -2644,6 +2668,174 @@ fn is_test_file(path: &str) -> bool {
     }
 
     false
+}
+
+/// Budget for the commit subject line (chars, unicode-safe).
+///
+/// Covers today's ~p90 (220 chars on dracon-platform, n=2000); only the
+/// unbounded tail is touched. See design
+/// `commit-message-index-general-2026-09-03.md` §3D.
+const COMMIT_SUBJECT_BUDGET: usize = 240;
+
+/// Longest common directory prefix of staged paths, capped at 4 components.
+///
+/// Pure path math on the already-fetched staged list: no git, no IO,
+/// harness-blind. Compares parent directories (root-level files contribute
+/// an empty component list). Returns None when paths share no directory —
+/// multi-crate commits fall back to the top-3 first-component list — or
+/// when every path is a bare root-level filename.
+fn longest_common_dir_prefix(paths: &[String]) -> Option<String> {
+    let mut prefix: Option<Vec<&str>> = None;
+    for p in paths {
+        let parent: Vec<&str> = match p.rfind('/') {
+            Some(idx) => p[..idx].split('/').collect(),
+            None => Vec::new(),
+        };
+        prefix = Some(match prefix {
+            None => parent,
+            Some(cur) => cur
+                .iter()
+                .zip(parent.iter())
+                .take_while(|(a, b)| a == b)
+                .map(|(a, _)| *a)
+                .collect(),
+        });
+    }
+    let mut comps = prefix.unwrap_or_default();
+    if comps.is_empty() {
+        return None;
+    }
+    comps.truncate(4);
+    Some(comps.join("/"))
+}
+
+/// Lowercase file extension of a staged path, if it has one.
+///
+/// Returns None for extensionless entries (submodule-gitlink pointers,
+/// LICENSE, Makefile) and for dotfiles without a real suffix
+/// (`.gitignore`, `.env`). Multi-dot names use the final suffix
+/// (`a.test.ts` → `ts`).
+fn file_extension(path: &str) -> Option<String> {
+    let base = path.rsplit('/').next().unwrap_or(path);
+    let dot = base.rfind('.')?;
+    if dot == 0 {
+        return None;
+    }
+    let ext = base[dot + 1..].to_ascii_lowercase();
+    if ext.is_empty() {
+        return None;
+    }
+    Some(ext)
+}
+
+/// Extension histogram over staged paths: `(ext, count)` sorted by count
+/// desc, extension asc — deterministic order for the `EXT:` token.
+/// Callers filter out gitlink pointers first (see `tracked_gitlink_set`).
+fn extension_histogram(paths: &[String]) -> Vec<(String, usize)> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for p in paths {
+        if let Some(ext) = file_extension(p) {
+            *counts.entry(ext).or_insert(0) += 1;
+        }
+    }
+    let mut hist: Vec<(String, usize)> = counts.into_iter().collect();
+    hist.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    hist
+}
+
+/// Doc-file predicate for the `DOCSONLY:` token (mirror of `is_test_file`).
+fn is_doc_file(path: &str) -> bool {
+    matches!(
+        file_extension(path).as_deref(),
+        Some("md" | "mdx" | "markdown" | "rst" | "txt" | "adoc")
+    )
+}
+
+/// Lockfile predicate for the `LOCK` token: well-known lockfile basenames
+/// or any `*.lock`. Matched on the lowercased basename, so `changelog.md`
+/// and friends never match.
+fn is_lock_file(path: &str) -> bool {
+    let base = path
+        .rsplit('/')
+        .next()
+        .unwrap_or(path)
+        .to_ascii_lowercase();
+    if base.ends_with(".lock") {
+        return true;
+    }
+    matches!(
+        base.as_str(),
+        "package-lock.json"
+            | "bun.lock"
+            | "pnpm-lock.yaml"
+            | "poetry.lock"
+            | "go.sum"
+            | "gemfile.lock"
+    )
+}
+
+/// Batch gitlink check: which candidates are tracked submodule pointers.
+///
+/// One `git ls-tree HEAD` call instead of per-path `is_gitlink` probes so
+/// the commit path stays at a bounded number of git spawns. Returns the
+/// subset of candidates recorded as `160000` (gitlink) entries in HEAD.
+/// Empty — not an error — when HEAD is missing (fresh repo, nothing
+/// committed yet) or the call fails: tokens degrade gracefully.
+fn tracked_gitlink_set(repo: &Path, candidates: &[String]) -> BTreeSet<String> {
+    let mut set = BTreeSet::new();
+    if candidates.is_empty() {
+        return set;
+    }
+    let mut args: Vec<&str> = vec!["ls-tree", "HEAD", "--"];
+    args.extend(candidates.iter().map(|s| s.as_str()));
+    let Ok(output) = run_git_capture_output(repo, &args, "ls-tree-gitlinks") else {
+        return set;
+    };
+    for line in output.lines() {
+        // Format: "160000 commit <sha>\t<path>"
+        if let Some(rest) = line.strip_prefix("160000 ") {
+            if let Some(tab) = rest.find('\t') {
+                set.insert(rest[tab + 1..].to_string());
+            }
+        }
+    }
+    set
+}
+
+/// Abbreviate staged paths for list tokens: parent/basename, first `take`,
+/// `+Nmore` suffix. Same shape as the historical NEW:/DEL:/TESTONLY: lists.
+fn abbreviate_paths(paths: &[String], take: usize) -> String {
+    let display: Vec<String> = paths
+        .iter()
+        .take(take)
+        .map(|p| {
+            let parts: Vec<&str> = p.split('/').collect();
+            if parts.len() > 2 {
+                parts[parts.len() - 2..].join("/")
+            } else {
+                p.clone()
+            }
+        })
+        .collect();
+    let suffix = if paths.len() > take {
+        format!("+{}more", paths.len() - take)
+    } else {
+        String::new()
+    };
+    format!("{}{}", display.join(","), suffix)
+}
+
+/// Safety metrics survive subject-budget truncation; every other metric
+/// token trims right-to-left. Kept: blob/size/secrets-adjacent signals
+/// (`BIN:`, `ENV:`) and the hard-to-recover state tokens (`TESTONLY:`,
+/// `DOCSONLY:`, `LOCK`, `REN:`).
+fn is_safety_metric(token: &str) -> bool {
+    token == "LOCK"
+        || token.starts_with("BIN:")
+        || token.starts_with("ENV:")
+        || token.starts_with("TESTONLY:")
+        || token.starts_with("DOCSONLY:")
+        || token.starts_with("REN:")
 }
 
 /// Get the tag pointing to the current HEAD commit.
@@ -2761,6 +2953,7 @@ fn compute_blast_radius(repo: &Path) -> String {
     let mut file_changes: Vec<(i64, String)> = Vec::new();
     let mut test_lines = 0i64;
     let mut binary_count = 0usize;
+    let mut binary_paths: Vec<String> = Vec::new();
 
     for line in output.lines() {
         let parts: Vec<&str> = line.split('\t').collect();
@@ -2775,6 +2968,7 @@ fn compute_blast_radius(repo: &Path) -> String {
         if a == "-" || r == "-" {
             binary_count += 1;
             files += 1;
+            binary_paths.push(path.to_string());
             // Still track the directory
             if let Some(first_component) = path.split('/').next() {
                 if !first_component.is_empty() && first_component != "." {
@@ -2865,8 +3059,28 @@ fn compute_blast_radius(repo: &Path) -> String {
         }
     };
 
-    // 2. File count and dirs
-    let dirs_str = if dirs.is_empty() {
+    // Staged path universe for scope + file-signal tokens (text + binary).
+    let mut staged_paths: Vec<String> =
+        file_changes.iter().map(|(_, p)| p.clone()).collect();
+    staged_paths.extend(binary_paths.iter().cloned());
+
+    // 2. Scope: deepest common directory prefix (LCP, cap 4). A single
+    // staged file scopes to its own full path — the bracket would duplicate
+    // it exactly, so it is dropped below. Commits spanning top-level dirs,
+    // or bare root-level files, fall back to today's top-3 first-component
+    // list (byte-identical for multi-crate repos).
+    let mut drop_bracket = false;
+    let dirs_str = if staged_paths.len() == 1 {
+        match staged_paths[0].rfind('/') {
+            Some(_) => {
+                drop_bracket = true;
+                format!(" in {}", staged_paths[0])
+            }
+            None => String::new(),
+        }
+    } else if let Some(lcp) = longest_common_dir_prefix(&staged_paths) {
+        format!(" in {}", lcp)
+    } else if dirs.is_empty() {
         String::new()
     } else {
         format!(
@@ -2875,15 +3089,33 @@ fn compute_blast_radius(repo: &Path) -> String {
         )
     };
 
-    // 3. Top changed files
-    let files_str = if top_files.is_empty() {
+    // 3. Top changed files (recoverable via `git show --name-only`;
+    // first to go under the subject budget, and dropped outright for
+    // single-file commits where it duplicates the scope).
+    let files_str = if top_files.is_empty() || drop_bracket {
         String::new()
     } else {
         format!(" [{}]", top_files.join(", "))
     };
 
-    // 4. Metrics suffix
+    // 4. Metrics suffix (fixed token order — grep-stable).
     let mut metrics = Vec::new();
+    // EXT: file-signal histogram (which toolchain/tests matter). Gitlink
+    // pointers and extensionless entries carry no extension signal.
+    {
+        let candidates: Vec<String> =
+            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        let gitlinks = tracked_gitlink_set(repo, &candidates);
+        let ext_paths: Vec<String> = candidates
+            .into_iter()
+            .filter(|p| !gitlinks.contains(p))
+            .collect();
+        let hist = extension_histogram(&ext_paths);
+        if !hist.is_empty() {
+            let top: Vec<String> = hist.iter().take(3).map(|(e, _)| e.clone()).collect();
+            metrics.push(format!("EXT:{}", top.join(",")));
+        }
+    }
     if test_lines > 0 {
         metrics.push(format!("TEST:{}", test_lines));
     }
@@ -2891,8 +3123,8 @@ fn compute_blast_radius(repo: &Path) -> String {
         metrics.push(format!("BIN:{}", binary_count));
     }
 
-    // 5. New/deleted files
-    let (new_files, deleted_files) = extract_new_deleted_files(repo);
+    // 5. New/deleted/renamed files
+    let (new_files, deleted_files, rename_count) = extract_new_deleted_files(repo);
     if !new_files.is_empty() {
         // Show top 10 new files (searchable), abbreviate nested paths
         let display: Vec<String> = new_files
