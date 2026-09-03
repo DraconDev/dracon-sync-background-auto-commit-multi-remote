@@ -5274,6 +5274,8 @@ mod tests {
         write_repo_file(repo, "old/path.txt", b"same\n");
         stage_paths(repo, &["old/path.txt"]);
         git_run(repo, &["commit", "-qm", "init"]);
+        // git mv does not create the destination dir — make it first.
+        std::fs::create_dir_all(repo.join("new")).unwrap();
         git_run(repo, &["mv", "old/path.txt", "new/path.txt"]);
         let msg = compute_blast_radius(repo);
         assert!(msg.contains("REN:1"), "move should surface REN:1, got: {msg}");
@@ -5305,11 +5307,12 @@ mod tests {
         write_repo_file(&repo, "app/main.ts", b"x\n");
         stage_paths(&repo, &["sub.mod", "app/main.ts"]);
         let msg = compute_blast_radius(&repo);
-        assert!(msg.contains("EXT:ts"), "got: {msg}");
-        assert!(
-            !msg.contains("mod"),
-            "gitlink path must not feed EXT:, got: {msg}"
-        );
+        // EXT: must be exactly `ts` — the gitlink's fake `mod` suffix is
+        // filtered via the batched ls-tree check. (The `sub.mod` path itself
+        // still appears in the file bracket — that is pre-existing
+        // name-status behavior, not the EXT: signal.)
+        assert!(msg.contains("EXT:ts "), "EXT: should be exactly ts, got: {msg}");
+        assert!(!msg.contains("EXT:ts,"), "gitlink must not feed EXT:, got: {msg}");
     }
 
     #[test]
