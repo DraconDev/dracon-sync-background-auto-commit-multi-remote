@@ -5390,6 +5390,13 @@ mod tests {
         // pauseReason: emoji + 22 CJK chars = ~70 bytes (> 50);
         // evidence/skipReason use emoji (4 bytes each) to exceed the
         // 40-byte thresholds.
+        // NOTE (2026-09-03, subject budget): the fixture filename is short
+        // (`g.md`, not a timestamped goal name) so the full subject — with
+        // EXT:/NEW:/DOCSONLY: plus every goal token — fits the 240-char
+        // budget and the presence asserts below stay meaningful. With a
+        // realistic 31-char goal filename the budget would trim EVIDENCE:/
+        // SKIPPED: (droppable count metrics by design §3D); that trimming
+        // is covered by test_budget_caps_pathological_subject instead.
         let goal = r#"{"status":"paused","pauseReason":"🔑 密钥轮换完成所有远程仓库已同步最新密钥并验证推送","taskList":{"tasks":[
         {"id":"t1","status":"complete","evidence":"🔑🔑🔑🔑🔑🔑🔑🔑🔑🔑🔑 evidence with emoji"},
         {"id":"t2","status":"skipped","skipReason":"🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒 skip reason with emoji"}
@@ -5398,14 +5405,9 @@ mod tests {
 # Goal title
 - [x] task one
 "#;
-        std::fs::write(goals_dir.join("20260809183644-td98a6.md"), goal).unwrap();
+        std::fs::write(goals_dir.join("g.md"), goal).unwrap();
         crate::git::git_cmd()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "add",
-                ".pi/goals/20260809183644-td98a6.md",
-            ])
+            .args(["-C", &repo.to_string_lossy(), "add", ".pi/goals/g.md"])
             .status()
             .unwrap();
 
