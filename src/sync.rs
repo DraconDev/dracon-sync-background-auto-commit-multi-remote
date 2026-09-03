@@ -5014,15 +5014,26 @@ mod tests {
         cmd.status().unwrap();
     }
 
+    fn git_run(repo: &Path, args: &[&str]) {
+        let rs = repo.to_string_lossy().into_owned();
+        let mut cmd = crate::git::git_cmd();
+        cmd.arg("-C").arg(rs.as_str());
+        for a in args {
+            cmd.arg(a);
+        }
+        cmd.status().unwrap();
+    }
+
     #[test]
     fn test_lcp_scope_cases() {
-        // Shared subtree → deepest common dir.
+        // Shared subtree → deepest common dir (cap 4: the true common
+        // prefix here is 5 deep, so it truncates to web/games/wip/polis).
         assert_eq!(
             longest_common_dir_prefix(&[
                 "web/games/wip/polis/src/main.ts".to_string(),
                 "web/games/wip/polis/src/lib/x.ts".to_string(),
             ]),
-            Some("web/games/wip/polis/src".to_string())
+            Some("web/games/wip/polis".to_string())
         );
         // Spanning top dirs → None (caller falls back to legacy list).
         assert_eq!(
@@ -5174,7 +5185,7 @@ mod tests {
         );
         let msg = compute_blast_radius(repo);
         assert!(
-            msg.starts_with("2 file(s) in web/games/wip/polis/src ["),
+            msg.starts_with("2 file(s) in web/games/wip/polis ["),
             "shared subtree should scope deep with bracket, got: {msg}"
         );
         assert!(msg.contains("EXT:ts"), "got: {msg}");
@@ -5262,20 +5273,8 @@ mod tests {
         init_msg_repo(repo);
         write_repo_file(repo, "old/path.txt", b"same\n");
         stage_paths(repo, &["old/path.txt"]);
-        crate::git::git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "commit", "-qm", "init"])
-            .status()
-            .unwrap();
-        crate::git::git_cmd()
-            .args([
-                "-C",
-                &repo.to_string_lossy(),
-                "mv",
-                "old/path.txt",
-                "new/path.txt",
-            ])
-            .status()
-            .unwrap();
+        git_run(repo, &["commit", "-qm", "init"]);
+        git_run(repo, &["mv", "old/path.txt", "new/path.txt"]);
         let msg = compute_blast_radius(repo);
         assert!(msg.contains("REN:1"), "move should surface REN:1, got: {msg}");
         assert!(!msg.contains("NEW:"), "move is not new, got: {msg}");
@@ -5296,22 +5295,13 @@ mod tests {
         init_msg_repo(&sub);
         write_repo_file(&sub, "foo.txt", b"hi\n");
         stage_paths(&sub, &["foo.txt"]);
-        crate::git::git_cmd()
-            .args(["-C", &sub.to_string_lossy(), "commit", "-qm", "init"])
-            .status()
-            .unwrap();
+        git_run(&sub, &["commit", "-qm", "init"]);
         stage_paths(&repo, &["sub.mod"]);
-        crate::git::git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "commit", "-qm", "register"])
-            .status()
-            .unwrap();
+        git_run(&repo, &["commit", "-qm", "register"]);
         // Advance the submodule, stage the pointer bump + a real file.
         write_repo_file(&sub, "foo.txt", b"hi v2\n");
         stage_paths(&sub, &["foo.txt"]);
-        crate::git::git_cmd()
-            .args(["-C", &sub.to_string_lossy(), "commit", "-qm", "v2"])
-            .status()
-            .unwrap();
+        git_run(&sub, &["commit", "-qm", "v2"]);
         write_repo_file(&repo, "app/main.ts", b"x\n");
         stage_paths(&repo, &["sub.mod", "app/main.ts"]);
         let msg = compute_blast_radius(&repo);
