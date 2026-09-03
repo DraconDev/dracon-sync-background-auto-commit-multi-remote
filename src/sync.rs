@@ -2570,9 +2570,6 @@ fn parse_go_dep(line: &str) -> Option<String> {
     None
 }
 
-/// Extract newly added and deleted files from the staged diff.
-///
-/// Returns (new_files, deleted_files) as vectors of file paths.
 /// Extract newly added, deleted, and renamed files from the staged diff.
 ///
 /// Runs `git diff --cached --name-status -M` (rename detection ON) and
@@ -2910,7 +2907,7 @@ fn has_env_changes(repo: &Path) -> bool {
 ///
 /// Returns a structured message with task state + blast radius.
 ///
-/// Format: `[INTENT | ]N file(s)[ in SCOPE][ [top-files]] DELTA:+A/-R [METRICS]`
+/// Format: `[INTENT | ]N file(s)[ in SCOPE][ [top-files]] DELTA:+A/-B [METRICS]`
 ///
 /// INTENT (from markdown diff):
 /// - `CLOSED: task1, task2` — tasks marked `[x]`
