@@ -2910,21 +2910,37 @@ fn has_env_changes(repo: &Path) -> bool {
 ///
 /// Returns a structured message with task state + blast radius.
 ///
-/// Format: `\[INTENT\] | FILES:N DIRS:X DELTA:+A/-B [TEST:T] [BIN:B]`
+/// Format: `[INTENT | ]N file(s)[ in SCOPE][ [top-files]] DELTA:+A/-R [METRICS]`
 ///
 /// INTENT (from markdown diff):
-/// - `CLOSED: task1, task2` — tasks marked `\[x\]`
-/// - `WIP: task1` — tasks marked `\[~\]`
+/// - `CLOSED: task1, task2` — tasks marked `[x]`
+/// - `WIP: task1` — tasks marked `[~]`
 /// - Omitted if no task transitions found
+///
+/// SCOPE (deepest common directory prefix, cap 4; single file scopes to
+/// its own path; multi-crate commits fall back to top-3 first components):
+/// - `in web/games/wip/polis` — every staged file under that subtree
+/// - `in dracon-sync,dracon-warden` — spanning top dirs (legacy shape)
+/// - Omitted for bare root-level files
 ///
 /// BLAST RADIUS (from git diff --numstat):
 /// - FILES:N — total files changed
-/// - DIRS:X,Y — top-level directories touched
 /// - DELTA:+A/-B — lines added/removed
 ///
-/// METRICS (also from diff):
+/// METRICS (also from diff, fixed order — grep-stable):
+/// - EXT:e1,e2 — top-3 file extensions (gitlinks + extensionless excluded)
 /// - TEST:T — lines changed in test files
 /// - BIN:B — binary files changed (context window warning)
+/// - NEW:/DEL: — added/removed paths (abbreviated, cap 10)
+/// - REN:n — renames detected via `name-status -M` (metadata path only)
+/// - DEPS: — manifest dependency changes
+/// - TESTONLY:/DOCSONLY: — every staged file is a test / doc file
+/// - LOCK — lockfile-only change (manifest-less dependency bump)
+/// - ENV: — env/secret-adjacent files touched
+///
+/// Whole subject capped at 240 chars (COMMIT_SUBJECT_BUDGET): the
+/// [top-files] bracket drops first, then non-safety metrics trim
+/// right-to-left. Intent, scope, DELTA, and safety metrics always survive.
 ///
 /// # Why mechanical messages?
 ///
