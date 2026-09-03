@@ -3315,16 +3315,41 @@ fn compute_blast_radius(repo: &Path) -> String {
         }
     }
 
-    let metrics_str = if metrics.is_empty() {
-        String::new()
-    } else {
-        format!(" | {}", metrics.join(" "))
+    // 12. Subject budget (COMMIT_SUBJECT_BUDGET chars, unicode-safe): cut
+    // at token boundaries, never mid-token. Drop order: the [top-files]
+    // bracket first (recoverable via `git show --name-only`; the count in
+    // `N file(s)` survives), then non-safety metrics right-to-left. Intent,
+    // scope, DELTA, and safety metrics (BIN/ENV/TESTONLY/DOCSONLY/LOCK/REN)
+    // always survive.
+    let mut kept_metrics = metrics;
+    let mut kept_bracket = files_str;
+    let render = |bracket: &str, mets: &[String]| -> String {
+        let metrics_str = if mets.is_empty() {
+            String::new()
+        } else {
+            format!(" | {}", mets.join(" "))
+        };
+        format!(
+            "{}{} file(s){}{} DELTA:+{}/-{}{}",
+            intent_prefix, files, dirs_str, bracket, added, removed, metrics_str
+        )
     };
-
-    format!(
-        "{}{} file(s){}{} DELTA:+{}/-{}{}",
-        intent_prefix, files, dirs_str, files_str, added, removed, metrics_str
-    )
+    let mut subject = render(&kept_bracket, &kept_metrics);
+    if subject.chars().count() > COMMIT_SUBJECT_BUDGET {
+        kept_bracket = String::new();
+        subject = render(&kept_bracket, &kept_metrics);
+    }
+    while subject.chars().count() > COMMIT_SUBJECT_BUDGET {
+        let pos = kept_metrics.iter().rposition(|m| !is_safety_metric(m));
+        match pos {
+            Some(i) => {
+                kept_metrics.remove(i);
+                subject = render(&kept_bracket, &kept_metrics);
+            }
+            None => break,
+        }
+    }
+    subject
 }
 
 /// Detect unmerged entries in the git index and, if `auto_resolve_unmerged`
