@@ -3166,6 +3166,10 @@ fn compute_blast_radius(repo: &Path) -> String {
         };
         metrics.push(format!("DEL:{}{}", display.join(","), suffix));
     }
+    // Renames are neither new nor deleted (see extract_new_deleted_files).
+    if rename_count > 0 {
+        metrics.push(format!("REN:{}", rename_count));
+    }
 
     // 6. Dependency changes
     if let Some(dep_info) = detect_dependency_changes(repo) {
@@ -3187,24 +3191,29 @@ fn compute_blast_radius(repo: &Path) -> String {
 
     // 9. Test-only detection — if ALL changed files are test files
     if !file_changes.is_empty() && file_changes.iter().all(|(_, path)| is_test_file(path)) {
-        let test_files: Vec<String> = file_changes
-            .iter()
-            .take(5)
-            .map(|(_, p)| {
-                let parts: Vec<&str> = p.split('/').collect();
-                if parts.len() > 2 {
-                    parts[parts.len() - 2..].join("/")
-                } else {
-                    p.clone()
-                }
-            })
-            .collect();
-        let suffix = if file_changes.len() > 5 {
-            format!("+{}more", file_changes.len() - 5)
-        } else {
-            String::new()
-        };
-        metrics.push(format!("TESTONLY:{}{}", test_files.join(","), suffix));
+        let test_paths: Vec<String> =
+            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        metrics.push(format!("TESTONLY:{}", abbreviate_paths(&test_paths, 5)));
+    }
+
+    // 9b. Doc-only detection — mirror of TESTONLY above (same abbreviation
+    // shape). Binary files are never docs, so any binary vetoes the token.
+    if binary_count == 0
+        && !file_changes.is_empty()
+        && file_changes.iter().all(|(_, path)| is_doc_file(path))
+    {
+        let doc_paths: Vec<String> =
+            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        metrics.push(format!("DOCSONLY:{}", abbreviate_paths(&doc_paths, 5)));
+    }
+
+    // 9c. Lockfile-only change — dependency bumps with no manifest edit are
+    // otherwise silent (detect_dependency_changes only parses manifests).
+    if binary_count == 0
+        && !file_changes.is_empty()
+        && file_changes.iter().all(|(_, path)| is_lock_file(path))
+    {
+        metrics.push("LOCK".to_string());
     }
 
     // 10. Env file detection — if any env files changed
