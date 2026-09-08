@@ -4,10 +4,11 @@ Background, auto-commit, multi-remote — invisible git sync for developer works
 
 ![`dracon-sync status` output](docs/status-output.png)
 
-This repository is the **canonical standalone source** for `dracon-sync` on
-GitHub, GitLab, and Codeberg. It contains the source code, `Cargo.toml`, tests,
-examples, and release metadata.
-You can build and install this utility directly from this repo.
+This page is the standalone guide for `dracon-sync` (also rendered on
+crates.io). The canonical source is the `dracon-sync/` directory of the
+[`dracon-utilities`](https://github.com/DraconDev/dracon-utilities) monorepo
+on `main`; the standalone GitHub/GitLab/Codeberg repos are frozen mirrors.
+You can build and install this utility directly from either checkout.
 
 ## Quick start (standalone build)
 
@@ -16,22 +17,27 @@ You can build and install this utility directly from this repo.
 git clone https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote.git
 cd dracon-sync-background-auto-commit-multi-remote
 
-# Build
-cargo build --release
+# Build (locked: workspace discipline requires --locked)
+cargo build --release --locked -p dracon-sync
 
-# Install (binary lands in target/release/)
-sudo cp target/release/dracon-sync /usr/local/bin/
+# Install where the shipped service unit looks (dracon-sync.service
+# runs %h/.local/bin/dracon-sync); or run ./install.sh at the
+# monorepo root to install all three utilities plus services and hooks.
+install -d "$HOME/.local/bin"
+install -m 0755 target/release/dracon-sync "$HOME/.local/bin/dracon-sync"
 ```
 
 ## What is in this repo
 
 - `src/` — utility source code
-- `tests/` — integration tests (if present)
+- `tests/` — integration tests
 - `Cargo.toml` — standalone build manifest with registry dependencies
 - `README.md` — this utility's user guide
 - `BLUEPRINT.md` — design notes
 - `dracon-sync.example.toml` — example config
+- `ai.example.toml`, `providers.example.json` — AI/credential config templates
 - `dracon-sync.service` — systemd user-service unit
+- `scripts/` — release + install-verification tooling
 - `LICENSE`, `SECURITY.md`, `.gitignore`, `.github/` — repo metadata
 - `docs/SOURCE_OF_TRUTH.md` — architecture + invariants
 
@@ -39,8 +45,8 @@ sudo cp target/release/dracon-sync /usr/local/bin/
 
 | Boundary | Decision |
 |----------|----------|
-| Source code | This repository's `main` branch |
-| Source of truth | This standalone repository |
+| Source code | The `dracon-sync/` directory of the `dracon-utilities` monorepo (`main` branch) |
+| Source of truth | The `dracon-utilities` monorepo; the standalone repos are frozen mirrors |
 | Workspace integration | Included by the `dracon-utilities` meta workspace when checked out under `dracon-sync/` |
 | Shared libraries | Published `dracon-git` crate from crates.io |
 | Operational policy | `~/.dracon/utilities/` TOML files |
@@ -60,15 +66,20 @@ Watches configured repositories, waits for changes to settle (fingerprint stabil
 ## Runtime
 
 - Binary: `dracon-sync`
-- Service: dracon-sync.service
-- Example policy: `dracon-sync/dracon-sync.example.toml`
-- Common commands: `dracon-sync status · dracon-sync repos · dracon-sync health · dracon-sync daemon`
+- Service: dracon-sync.service (`systemctl --user enable --now dracon-sync.service`;
+  never `systemctl stop` it — use `dracon-sync maintenance -- <cmd>` for git surgery)
+- Example policy: `dracon-sync.example.toml` in this repo
+  (`dracon-sync/dracon-sync.example.toml` from the `dracon-utilities` monorepo root);
+  the live config lives at `~/.dracon/utilities/sync/dracon-sync.toml`
+  (`dracon-sync config edit` / `dracon-sync config validate`)
+- Common commands: `dracon-sync status · dracon-sync repos · dracon-sync health · dracon-sync daemon`;
+  also `sync-now`, `pause`/`resume`/`maintenance`, `once`, `config`, `repair`,
+  `ownership`, `scan-bloat` — full list at `dracon-sync --help`
 
 ## Maintenance
 
-Changes are made in this standalone repository. The `dracon-sync` daemon
-watches it and pushes configured remotes; the parent meta workspace does not
-mirror source files into it.
+Changes are made in the `dracon-utilities` monorepo (`dracon-sync/` on `main`).
+The standalone repos are frozen mirrors of that tree.
 
 ## License
 
