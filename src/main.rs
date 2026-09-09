@@ -2144,7 +2144,7 @@ standard_files = [{ source = "templates/LICENSE", target = ".", overwrite = true
         )
         .unwrap();
 
-        cmd_scaffold(&policy_path, Some(repo_dir.clone()), vec![], false, false)
+        super::cmd_scaffold(&policy_path, Some(repo_dir.clone()), vec![], false, false)
             .await
             .unwrap();
 
