@@ -1795,7 +1795,6 @@ async fn cmd_scaffold(
     overwrite: bool,
     dry_run: bool,
 ) -> Result<()> {
-    use anyhow::Context;
     use comfy_table::{presets::UTF8_FULL_CONDENSED, Cell, Color, ContentArrangement, Table};
     let policy = SyncPolicy::load(policy_path)?;
 
@@ -1902,28 +1901,23 @@ async fn cmd_scaffold(
                 continue;
             }
 
-            if target_path.exists() && (overwrite || cfg.overwrite) {
-                if target_path.is_dir() {
-                    std::fs::remove_dir_all(&target_path)
-                        .with_context(|| format!("failed to remove {}", cfg.target))?;
-                } else {
-                    std::fs::remove_file(&target_path)
-                        .with_context(|| format!("failed to remove {}", cfg.target))?;
-                }
-            }
-
-            if let Some(parent) = target_path.parent() {
-                std::fs::create_dir_all(parent)
-                    .with_context(|| format!("failed to create {}", parent.display()))?;
-            }
-
-            match std::fs::copy(&source_path, &target_path) {
-                Ok(_) => {
+            match standard_files::copy_standard_file_within_repo(
+                repo_path,
+                &cfg.target,
+                &source_path,
+                overwrite || cfg.overwrite,
+            ) {
+                Ok(true) => {
                     results.push((repo_name.clone(), cfg.target.clone(), "copied".to_string()));
                     total_copied += 1;
                 }
-                Err(e) => {
-                    results.push((repo_name.clone(), cfg.target.clone(), format!("error: {e}")));
+                Ok(false) => {}
+                Err(error) => {
+                    results.push((
+                        repo_name.clone(),
+                        cfg.target.clone(),
+                        format!("error: {error}"),
+                    ));
                 }
             }
         }
