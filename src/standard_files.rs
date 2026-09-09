@@ -317,7 +317,7 @@ mod secure_target {
     ) -> Result<bool> {
         let components = target_components(target)?;
         let root = open_repository(repo)?;
-        let source_file = File::open(source)
+        let mut source_file = File::open(source)
             .with_context(|| format!("failed to open standard-file source {}", source.display()))?;
         let (filename, parents) = components
             .split_last()
@@ -335,7 +335,7 @@ mod secure_target {
                     // Remove only the link itself. This is safe even if a
                     // concurrent actor inserted a link to an external path.
                     unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0).with_context(|| {
-                        format!("failed to remove existing standard-file link '{}',", target)
+                        format!("failed to remove existing standard-file link '{}'", target)
                     })?;
                 }
                 EntryKind::Directory => {
@@ -371,7 +371,7 @@ mod secure_target {
             }
         };
 
-        if let Err(error) = std::io::copy(&mut &source_file, &mut output) {
+        if let Err(error) = std::io::copy(&mut source_file, &mut output) {
             // Best effort cleanup is descriptor-relative and cannot follow a
             // replacement symlink. The original copy error remains primary.
             let _ = unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0);
