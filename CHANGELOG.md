@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Startup index-lock cleanup fails closed on `fuser` errors (audit F53,
+  2026-09-09)**: an unavailable or failing `fuser` result is no longer
+  interpreted as proof that a lock is stale. Startup now retains the lock
+  unless `fuser` explicitly reports no users, preventing unsafe concurrent
+  Git index writes.
 - **Origin URLs fully redacted in logs/reports (audit D7, 2026-09-09,
   operator-approved)**: `redact_origin_credentials` kept bare `user@`
   because a bare username is indistinguishable from a token — and

@@ -75,6 +75,32 @@ pub(crate) fn should_discard_stale_detached_result(marker: Option<&u64>, result_
     marker.map(|g| *g == result_gen).unwrap_or(false)
 }
 
+/// Interpret `fuser`'s result for an index lock. `fuser` exits 1 with no
+/// diagnostic when no process uses the path; every other non-zero result is
+/// an inability to establish that the lock is stale and must fail closed.
+fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> Result<bool> {
+    match exit_code {
+        Some(0) => Ok(true),
+        Some(1) if stderr.is_empty() => Ok(false),
+        Some(code) => {
+            let detail = String::from_utf8_lossy(stderr).trim().to_string();
+            if detail.is_empty() {
+                anyhow::bail!("fuser exited with status {code}");
+            }
+            anyhow::bail!("fuser exited with status {code}: {detail}");
+        }
+        None => anyhow::bail!("fuser terminated without an exit status"),
+    }
+}
+
+fn fuser_lock_is_in_use(lock: &Path) -> Result<bool> {
+    let output = std::process::Command::new("fuser")
+        .arg(lock)
+        .output()
+        .context("failed to execute fuser")?;
+    classify_fuser_status(output.status.code(), &output.stderr)
+}
+
 /// ADDED 2026-07-27 (v0.113.5, audit M4): the canonical
 /// classification of a `sync_repo` result against the activity
 /// entry. Both the main apply phase and the trailing-drain path
@@ -904,6 +930,20 @@ mod tests {
         );
         assert_eq!(outcome, ApplyOutcome::Failure);
         assert!(entry.blocked_since.is_none());
+    }
+
+    #[test]
+    fn test_fuser_failure_is_not_treated_as_unused() {
+        assert!(classify_fuser_status(Some(0), b"").unwrap());
+        assert!(!classify_fuser_status(Some(1), b"").unwrap());
+
+        // Exit codes other than fuser's documented "no users" result,
+        // diagnostics accompanying that result, and a signalled process are
+        // all verification failures. The cleanup caller removes a lock only
+        // for Ok(false), so each case is fail-closed.
+        assert!(classify_fuser_status(Some(1), b"permission denied").is_err());
+        assert!(classify_fuser_status(Some(2), b"").is_err());
+        assert!(classify_fuser_status(None, b"").is_err());
     }
 
     #[test]
@@ -3113,7 +3153,9 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
     }
 
     // Remove stale .git/index.lock files from crashed git processes.
-    // A lock file with no holding process prevents all git operations.
+    // A lock file with no holding process prevents all git operations, but an
+    // unavailable or failing fuser must never be treated as proof that it is
+    // stale: retaining the lock is safer than risking concurrent index writes.
     let mut locks_removed = 0u64;
     for repo in &repo_set {
         let lock = repo.join(".git/index.lock");
@@ -3122,16 +3164,26 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
                 "🧹 startup: found index.lock in {} (checking fuser...)",
                 repo.display()
             );
-            let in_use = std::process::Command::new("fuser")
-                .arg(&lock)
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false);
-            if !in_use {
-                if let Err(e) = std::fs::remove_file(&lock) {
-                    eprintln!("⚠️ startup: failed to remove {}: {}", lock.display(), e);
-                } else {
-                    locks_removed += 1;
+            match fuser_lock_is_in_use(&lock) {
+                Ok(false) => {
+                    if let Err(e) = std::fs::remove_file(&lock) {
+                        eprintln!("⚠️ startup: failed to remove {}: {}", lock.display(), e);
+                    } else {
+                        locks_removed += 1;
+                    }
+                }
+                Ok(true) => {
+                    eprintln!(
+                        "⏳ startup: retaining {} because fuser reports it is in use",
+                        lock.display()
+                    );
+                }
+                Err(e) => {
+                    eprintln!(
+                        "⚠️ startup: retaining {} because fuser could not verify it is stale: {}",
+                        lock.display(),
+                        e
+                    );
                 }
             }
         }
