@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::ops::{Deref, DerefMut};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command as StdCommand;
 use std::sync::Mutex;
 use tokio::process::Command as TokioCommand;
@@ -107,16 +107,33 @@ impl StandardFileConfig {
 /// is absolute-after-expansion and is now rejected like any other
 /// absolute path; templates must live under the sync base dir and be
 /// referenced by relative path.
+///
+/// CHANGED 2026-09-09 (audit F55): empty paths and paths made only of
+/// `.` components (`.`, `./`, `././`, …) resolve to the base directory.
+/// They are rejected so overwrite operations cannot recursively remove
+/// the checkout before a file copy fails.
 pub(crate) fn is_safe_standard_file_path(raw: &str) -> bool {
-    if raw == "~" || raw.starts_with("~/") {
+    if raw.is_empty() || raw == "~" || raw.starts_with("~/") {
         return false;
     }
-    let p = std::path::Path::new(raw);
+    let p = Path::new(raw);
     if p.is_absolute() {
         return false;
     }
-    !p.components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
+
+    // Require at least one actual path component. A path containing only
+    // CurDir components resolves to the base directory itself.
+    let mut has_normal_component = false;
+    for component in p.components() {
+        match component {
+            Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
+                return false;
+            }
+            Component::CurDir => {}
+            Component::Normal(_) => has_normal_component = true,
+        }
+    }
+    has_normal_component
 }
 
 fn expand_tilde(path: &str) -> PathBuf {
