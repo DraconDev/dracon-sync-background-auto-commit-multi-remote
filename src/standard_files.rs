@@ -35,12 +35,14 @@ pub(crate) fn ensure_standard_files(
         // (`~/.ssh/id_rsa`, `../../etc/passwd`) into every watched
         // repo, auto-committed + auto-pushed to public forges. F28:
         // `~/...` counts as unsafe (tilde is absolute-after-expansion
-        // and resolves outside the sync base). Skip + warn instead.
+        // and resolves outside the sync base). Empty and root-equivalent
+        // paths are unsafe too: with overwrite enabled, they could resolve
+        // to `repo` and recursively delete the checkout. Skip + warn instead.
         if !crate::policy::is_safe_standard_file_path(&cfg.source)
             || !crate::policy::is_safe_standard_file_path(&cfg.target)
         {
             eprintln!(
-                "⚠️ standard file '{}' (source '{}') rejected: paths must be relative to the sync base dir (no absolute, '~/...', or '..') — skipping",
+                "⚠️ standard file '{}' (source '{}') rejected: paths must be non-empty relative paths below the base dir (no absolute, '~/...', '..', or root-equivalent paths) — skipping",
                 cfg.target,
                 cfg.source
             );
@@ -394,6 +396,52 @@ mod tests {
         assert!(!crate::policy::is_safe_standard_file_path("/etc/passwd"));
         assert!(!crate::policy::is_safe_standard_file_path("../secret"));
         assert!(!crate::policy::is_safe_standard_file_path("a/../../b"));
+        assert!(!crate::policy::is_safe_standard_file_path(""));
+        assert!(!crate::policy::is_safe_standard_file_path("."));
+        assert!(!crate::policy::is_safe_standard_file_path("./"));
+        assert!(!crate::policy::is_safe_standard_file_path("././"));
+    }
+
+    #[test]
+    fn test_root_equivalent_target_cannot_delete_repo_on_overwrite() {
+        for target in [".", "", "./", "././"] {
+            let dir = TempDir::new().unwrap();
+            let repo_dir = dir.path().join("repo");
+            std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+            std::fs::write(repo_dir.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+            let template_dir = dir.path().join("templates");
+            std::fs::create_dir(&template_dir).unwrap();
+            std::fs::write(template_dir.join("LICENSE"), "AGPL").unwrap();
+
+            let policy = make_policy(vec![StandardFileConfig {
+                source: "templates/LICENSE".to_string(),
+                target: target.to_string(),
+                overwrite: true,
+            }]);
+            let repo_override = make_override(vec![]);
+
+            let result = ensure_standard_files(
+                &repo_dir,
+                &policy,
+                &repo_override,
+                Some(dir.path()),
+                false,
+            )
+            .unwrap();
+
+            assert!(
+                result.is_empty(),
+                "unsafe target {target:?} must not be copied"
+            );
+            assert!(
+                repo_dir.is_dir(),
+                "unsafe target {target:?} must not remove repository"
+            );
+            assert!(
+                repo_dir.join(".git/HEAD").is_file(),
+                "unsafe target {target:?} must preserve checkout metadata"
+            );
+        }
     }
 
     #[test]
