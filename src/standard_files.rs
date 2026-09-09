@@ -42,7 +42,7 @@ pub(crate) fn ensure_standard_files(
             || !crate::policy::is_safe_standard_file_path(&cfg.target)
         {
             eprintln!(
-                "⚠️ standard file '{}' (source '{}') rejected: paths must be non-empty relative paths below the base dir (no absolute, '~/...', '..', or root-equivalent paths) — skipping",
+                "⚠️ standard file '{}' (source '{}') rejected: paths must be non-empty relative paths below the base dir (no absolute, '~'-prefixed, '..', or root-equivalent paths) — skipping",
                 cfg.target,
                 cfg.source
             );
@@ -387,6 +387,7 @@ mod tests {
             "~/templates/LICENSE"
         ));
         assert!(!crate::policy::is_safe_standard_file_path("~"));
+        assert!(!crate::policy::is_safe_standard_file_path("~templates/LICENSE"));
         assert!(crate::policy::is_safe_standard_file_path(
             "templates/LICENSE"
         ));

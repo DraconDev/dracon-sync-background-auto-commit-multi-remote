@@ -113,7 +113,7 @@ impl StandardFileConfig {
 /// They are rejected so overwrite operations cannot recursively remove
 /// the checkout before a file copy fails.
 pub(crate) fn is_safe_standard_file_path(raw: &str) -> bool {
-    if raw.is_empty() || raw == "~" || raw.starts_with("~/") {
+    if raw.is_empty() || raw.starts_with('~') {
         return false;
     }
     let p = Path::new(raw);
@@ -1667,7 +1667,7 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
             result.error(format!(
                 "standard_files[{}].source '{}' is not a safe relative path \
                  (must be relative to the sync base dir: no absolute paths, \
-                 no '~/...' tilde paths, no '..', or a root-equivalent path)",
+                 no '~'-prefixed paths, no '..', or a root-equivalent path)",
                 idx, source_str
             ));
         }
