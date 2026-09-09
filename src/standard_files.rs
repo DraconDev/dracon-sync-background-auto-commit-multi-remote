@@ -2,6 +2,59 @@ use crate::policy::{RepoPolicyOverride, SyncPolicy};
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
+/// Resolve a standard-file target against the canonical repository root.
+///
+/// Lexical checks prevent `..` and absolute paths, but they do not account
+/// for a checkout-controlled symlink such as `.github -> /tmp/out`. Probe
+/// the target or its nearest existing ancestor with `canonicalize` before
+/// any existence check, directory creation, overwrite, or copy. A target
+/// is accepted only when that resolved path remains below the repository.
+pub(crate) fn resolve_standard_file_target(repo: &Path, target: &str) -> Result<PathBuf> {
+    if !crate::policy::is_safe_standard_file_path(target) {
+        anyhow::bail!("target path '{}' is not a safe relative path", target);
+    }
+
+    let repo_root = std::fs::canonicalize(repo)
+        .with_context(|| format!("failed to resolve repository {}", repo.display()))?;
+    let target_path = repo_root.join(target);
+
+    // `canonicalize` requires the complete path to exist. Walk upward until
+    // we find an existing entry, retaining symlinks (including dangling
+    // ones) via symlink_metadata so they cannot be bypassed as "missing".
+    let mut probe = target_path.clone();
+    loop {
+        match std::fs::symlink_metadata(&probe) {
+            Ok(_) => break,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                if !probe.pop() {
+                    anyhow::bail!(
+                        "target path '{}' has no existing repository ancestor",
+                        target
+                    );
+                }
+            }
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!("failed to inspect standard-file target '{}'", target)
+                });
+            }
+        }
+    }
+
+    let resolved_probe = std::fs::canonicalize(&probe)
+        .with_context(|| format!("failed to resolve standard-file target '{}'", target))?;
+    if !resolved_probe.starts_with(&repo_root) {
+        anyhow::bail!(
+            "standard-file target '{}' resolves outside repository ({} -> {})",
+            target,
+            probe.display(),
+            resolved_probe.display()
+        );
+    }
+
+    Ok(target_path)
+}
+
 pub(crate) fn ensure_standard_files(
     repo: &Path,
     policy: &SyncPolicy,
@@ -49,7 +102,16 @@ pub(crate) fn ensure_standard_files(
             continue;
         }
 
-        let target_path = repo.join(&cfg.target);
+        let target_path = match resolve_standard_file_target(repo, &cfg.target) {
+            Ok(path) => path,
+            Err(error) => {
+                eprintln!(
+                    "⚠️ standard file '{}' rejected: {} — skipping",
+                    cfg.target, error
+                );
+                continue;
+            }
+        };
 
         if target_path.exists() && !cfg.overwrite {
             continue;
