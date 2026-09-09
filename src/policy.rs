@@ -1643,17 +1643,19 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
             result.error(format!("standard_files[{}].target is empty", idx));
             continue;
         }
+        // Keep the point-of-use safety predicate aligned with the daemon
+        // path below. In particular, `.`/`./` and empty paths resolve to
+        // the repository root when joined and must never reach overwrite.
+        if !is_safe_standard_file_path(target_str) {
+            result.error(format!(
+                "standard_files[{}].target '{}' is not a relative path inside the repo \\
+                 (must name a non-root path and must not be empty, absolute, contain '..', \\
+                 or contain a Windows drive prefix)",
+                idx, target_str
+            ));
+        }
         let target_path = std::path::Path::new(target_str);
-        let abs = target_path.is_absolute();
-        let has_parent = target_path
-            .components()
-            .any(|c| matches!(c, std::path::Component::ParentDir));
-        let has_root = target_path
-            .components()
-            .any(|c| matches!(c, std::path::Component::RootDir));
-        let has_prefix = target_path
-            .components()
-            .any(|c| matches!(c, std::path::Component::Prefix(_)));
+
         if abs || has_parent || has_root || has_prefix {
             result.error(format!(
                 "standard_files[{}].target '{}' is not a relative path inside the repo \
