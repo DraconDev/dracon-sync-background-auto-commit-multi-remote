@@ -113,7 +113,9 @@ mod secure_target {
     }
 
     fn open_repository(repo: &Path) -> Result<File> {
-        let repo_name = CString::new(repo.as_os_str().as_bytes())
+        let repo_root = std::fs::canonicalize(repo)
+            .with_context(|| format!("failed to resolve repository {}", repo.display()))?;
+        let repo_name = CString::new(repo_root.as_os_str().as_bytes())
             .map_err(|_| anyhow!("repository path contains an embedded NUL"))?;
         let fd = unsafe {
             libc::open(
@@ -394,16 +396,15 @@ pub(crate) fn copy_standard_file_within_repo(
     // Keep the canonical preflight as the clear, user-facing rejection path.
     // Unix mutation below repeats the path decomposition using directory
     // descriptors so a later ancestor replacement cannot redirect I/O.
-    let target_path = resolve_standard_file_target(repo, target)?;
-
     #[cfg(unix)]
     {
-        let _ = target_path;
+        resolve_standard_file_target(repo, target)?;
         secure_target::copy(repo, target, source, overwrite)
     }
 
     #[cfg(not(unix))]
     {
+        let target_path = resolve_standard_file_target(repo, target)?;
         if target_path.exists() && !overwrite {
             return Ok(false);
         }
