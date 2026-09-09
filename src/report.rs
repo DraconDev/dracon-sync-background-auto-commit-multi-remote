@@ -720,6 +720,24 @@ fn resolve_git_dir(repo: &std::path::Path) -> Option<std::path::PathBuf> {
     Some(git_dir)
 }
 
+/// Resolve the shared gitdir used by a linked worktree. Git stores a
+/// worktree-specific gitdir at `<common>/worktrees/<name>` and places a
+/// `commondir` file there containing the path back to `<common>`. Plain
+/// repositories and submodule gitdirs have no such file and use themselves
+/// as their common gitdir.
+fn resolve_common_git_dir(git_dir: &std::path::Path) -> std::path::PathBuf {
+    let Ok(content) = std::fs::read_to_string(git_dir.join("commondir")) else {
+        return git_dir.to_path_buf();
+    };
+    let common = std::path::Path::new(content.trim());
+    let common = if common.is_absolute() {
+        common.to_path_buf()
+    } else {
+        git_dir.join(common)
+    };
+    common.canonicalize().unwrap_or(common)
+}
+
 /// ADDED 2026-07-30 (v0.113.20): combined size of a superproject's
 /// `<gitdir>/modules/` dir (the submodule gitdirs). 0 when absent.
 /// The operator wants BOTH numbers for superprojects — own pack AND
@@ -6686,26 +6704,44 @@ async fn probe_any_remote_reachable(repo: &Path) -> bool {
 /// `refs/remotes/<name>/*` entries (packed or loose). If yes,
 /// the operator has used a forge with this repo before; a
 /// current "no origin" must be transient, not a fork trigger.
+///
+/// Linked worktrees keep their remote-tracking refs in the shared
+/// gitdir named by the worktree gitdir's `commondir` file. Check
+/// both the resolved checkout gitdir and that common gitdir so a
+/// previously-pushed worktree cannot be mistaken for a never-pushed
+/// repository.
 fn ever_pushed(repo: &Path) -> bool {
-    // Packed refs: cheap to read; covers the common case.
-    let packed = repo.join(".git").join("packed-refs");
-    if let Ok(content) = std::fs::read_to_string(&packed) {
-        for line in content.lines() {
-            if line.starts_with('#') || line.is_empty() {
-                continue;
-            }
-            if line.contains(" refs/remotes/") {
-                return true;
+    let Some(git_dir) = resolve_git_dir(repo) else {
+        return false;
+    };
+    let common_git_dir = resolve_common_git_dir(&git_dir);
+    let git_dirs = if common_git_dir == git_dir {
+        vec![git_dir]
+    } else {
+        vec![git_dir, common_git_dir]
+    };
+
+    for git_dir in git_dirs {
+        // Packed refs: cheap to read; covers the common case.
+        let packed = git_dir.join("packed-refs");
+        if let Ok(content) = std::fs::read_to_string(&packed) {
+            for line in content.lines() {
+                if line.starts_with('#') || line.is_empty() {
+                    continue;
+                }
+                if line.contains(" refs/remotes/") {
+                    return true;
+                }
             }
         }
-    }
-    // Loose refs: walk the directory. Bounded by refs/remotes/.
-    let remotes_dir = repo.join(".git").join("refs").join("remotes");
-    if remotes_dir.is_dir() {
-        if let Ok(rd) = std::fs::read_dir(&remotes_dir) {
-            for entry in rd.flatten() {
-                if entry.path().is_dir() {
-                    return true;
+        // Loose refs: walk the directory. Bounded by refs/remotes/.
+        let remotes_dir = git_dir.join("refs").join("remotes");
+        if remotes_dir.is_dir() {
+            if let Ok(rd) = std::fs::read_dir(&remotes_dir) {
+                for entry in rd.flatten() {
+                    if entry.path().is_dir() {
+                        return true;
+                    }
                 }
             }
         }
