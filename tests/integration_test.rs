@@ -6,8 +6,18 @@ use std::path::PathBuf;
 
 /// Helper to run a git command.
 fn git_cmd(repo: &PathBuf, args: &[&str]) -> std::process::Output {
-    let git_bin = std::env::var("DRACON_SYNC_GIT_BIN")
-        .unwrap_or_else(|_| "/run/current-system/sw/bin/git".to_string());
+    // CHANGED 2026-09-09 (audit F35): the old default was the NixOS-only
+    // `/run/current-system/sw/bin/git` with `.unwrap()` on spawn, so a
+    // non-NixOS `cargo test` without DRACON_SYNC_GIT_BIN panicked.
+    // Fall back through PATH (`git`) when the NixOS path is absent.
+    let git_bin = std::env::var("DRACON_SYNC_GIT_BIN").unwrap_or_else(|_| {
+        let nixos_git = "/run/current-system/sw/bin/git";
+        if std::path::Path::new(nixos_git).exists() {
+            nixos_git.to_string()
+        } else {
+            "git".to_string()
+        }
+    });
     std::process::Command::new(&git_bin)
         .arg("-C")
         .arg(repo)

@@ -3723,15 +3723,13 @@ pub(crate) async fn run_daemon(
             Some(&policy.system_repo),
         );
         note_discovered_repos(&policy_path, &repos);
-        // Submodule materialize pass: for each discovered parent
-        // repo, materialize any declared submodules as standalone
-        // worktrees under the watch root (e.g.
-        // /home/dracon/Dev/polis/ from dracon-platform). This is
-        // idempotent — once a worktree exists at the target path,
-        // subsequent calls are no-ops. Failures are logged but do
-        // NOT abort the daemon cycle (the operator may need to
-        // run `git submodule update --init` manually for submodules
-        // whose `.git/modules/<name>` is missing).
+        // Submodule pass: configure multi-remote push for
+        // nested-on-`main` submodules. CHANGED 2026-09-09 (audit F33):
+        // the old comment described the pre-730eaf2a design (materialize
+        // declared submodules as standalone worktrees under the watch
+        // root) — that path was removed 2026-07-08 and the function is
+        // now remote-config-only; it NEVER creates a worktree. Failures
+        // are logged but do NOT abort the daemon cycle.
         //
         // ADDED 2026-06-30, goal `mr10pdzr-i495vy`.
         materialize_pending_submodules(&repos, &roots, &policy).await;

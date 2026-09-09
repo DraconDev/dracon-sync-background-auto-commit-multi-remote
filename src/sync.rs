@@ -217,7 +217,12 @@ pub(crate) fn scale_push_timeout(base: u64, ahead: u64) -> u64 {
     } else {
         6
     };
-    (base * multiplier).min(600u64.max(base * 6))
+    // CHANGED 2026-09-09 (audit F32): saturating arithmetic — `base * 6`
+    // overflowed (debug panic / release wrap) on absurd configured bases.
+    // The `.min(cap)` is unreachable by construction (cap >= base*6 >=
+    // value for every tier) and stays only as the stated worst-case bound.
+    let cap = 600u64.max(base.saturating_mul(6));
+    base.saturating_mul(multiplier).min(cap)
 }
 
 impl SyncOutcome {
@@ -9612,6 +9617,15 @@ trusted_authors = ["test"]
     fn test_scale_push_timeout_zero_base_stays_zero() {
         // Edge case: zero base timeout stays zero
         assert_eq!(scale_push_timeout(0, 28), 0);
+    }
+
+    #[test]
+    fn test_scale_push_timeout_absurd_base_saturates() {
+        // ADDED 2026-09-09 (audit F32): `base * 6` overflowed on
+        // absurd configured bases (debug panic). Must saturate, never
+        // wrap or panic — and never return less than a sane bound.
+        assert_eq!(scale_push_timeout(u64::MAX, 100), u64::MAX);
+        assert_eq!(scale_push_timeout(u64::MAX, 0), u64::MAX);
     }
 
     // ============================================================

@@ -47,12 +47,15 @@ async fn kill_process_group(pid: u32) {
     })
     .await
     .unwrap_or(false);
+    // CHANGED 2026-09-09 (audit F34): a failed SIGTERM used to return
+    // early, so SIGKILL was never attempted and a runaway git (e.g.
+    // filter-repo holding repo locks) survived. Attempt the KILL
+    // regardless — on an already-dead group it fails harmlessly.
     if !term_ok {
         eprintln!(
-            "⚠️ kill_process_group: SIGTERM to pgid {} failed (kill missing or no perm)",
+            "⚠️ kill_process_group: SIGTERM to pgid {} failed (kill missing, no perm, or already dead) — still attempting SIGKILL",
             pid
         );
-        return;
     }
     tokio::time::sleep(Duration::from_secs(2)).await;
     let _ = tokio::task::spawn_blocking(move || {
