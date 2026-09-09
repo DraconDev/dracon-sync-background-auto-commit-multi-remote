@@ -457,16 +457,24 @@ pub struct TrustedSet {
     pub remote_hosts: Vec<String>,
 }
 
-/// Strip `user:password@` from URLs to keep credentials out of
+/// Strip ALL `userinfo@` from URLs to keep credentials out of
 /// operator logs and JSON reports. F54 (2026-07-18).
 ///
-///   in:  "https://user:secret@github.com/DraconDev/repo.git"
-///   out: "https://user@github.com/DraconDev/repo.git"
+/// CHANGED 2026-09-09 (audit D7, operator-approved): previously only
+/// the `:password` half was stripped and the username kept. But
+/// token-as-username remotes (`https://TOKEN@github.com/...`, the
+/// standard GitHub PAT form) are indistinguishable from real
+/// usernames, so live tokens passed through into terminal output and
+/// JSON reports. All userinfo is now dropped:
 ///
-/// URLs without credentials pass through unchanged. `user@host`
-/// (no password) is preserved verbatim. Tokens at random positions
-/// (e.g. inside a path or querystring) are not handled here — that's
-/// the caller's responsibility.
+///   in:  "https://user:secret@github.com/DraconDev/repo.git"
+///   out: "https://github.com/DraconDev/repo.git"
+///   in:  "https://ghp_TOKEN@github.com/DraconDev/repo.git"
+///   out: "https://github.com/DraconDev/repo.git"
+///
+/// URLs without credentials pass through unchanged. Tokens at random
+/// positions (e.g. inside a path or querystring) are not handled
+/// here — that's the caller's responsibility.
 fn redact_origin_credentials(url: &str) -> String {
     let Some(scheme_end) = url.find("://") else {
         return url.to_string();
@@ -479,18 +487,12 @@ fn redact_origin_credentials(url: &str) -> String {
     let Some(at_in_authority) = authority.rfind('@') else {
         return url.to_string();
     };
-    let auth_userinfo = &authority[..at_in_authority];
     let host_part = &authority[at_in_authority + 1..]; // after the '@'
-                                                       // auth_userinfo is either "user" or "user:password".
-                                                       // Keep the user, drop the password if any.
-    let user_only = match auth_userinfo.find(':') {
-        Some(colon) => &auth_userinfo[..colon],
-        None => auth_userinfo,
-    };
+    // D7: drop the ENTIRE userinfo (`user` and `user:password` alike)
+    // — a bare username may be a token.
     format!(
-        "{prefix}{user}@{host}{tail}",
+        "{prefix}{host}{tail}",
         prefix = &url[..scheme_end + 3],
-        user = user_only,
         host = host_part,
         tail = tail,
     )
@@ -508,8 +510,8 @@ fn redact_origin_credentials(url: &str) -> String {
 /// Text without any `://` passes through byte-identical (this covers
 /// the fleet's ssh URLs like `git@codeberg.org:...`, which carry no
 /// scheme and no credential material). URL tokens keep their
-/// surrounding quotes/brackets/punctuation; only the userinfo
-/// password is stripped (same semantics as `redact_origin_credentials`).
+/// surrounding quotes/brackets/punctuation; the entire userinfo is
+/// stripped (same semantics as `redact_origin_credentials`).
 pub(crate) fn redact_url_credentials(text: &str) -> String {
     if !text.contains("://") {
         return text.to_string();
@@ -1016,12 +1018,17 @@ mod tests {
         // F54: password-bearing URLs must have the password stripped.
         assert_eq!(
             redact_origin_credentials("https://user:secret@github.com/DraconDev/repo.git"),
-            "https://user@github.com/DraconDev/repo.git"
+            "https://github.com/DraconDev/repo.git"
         );
-        // user@ without password is preserved.
+        // D7 (2026-09-09): bare user@ is stripped too — a bare
+        // "username" may be a token (the GitHub PAT form).
         assert_eq!(
             redact_origin_credentials("https://user@github.com/DraconDev/repo.git"),
-            "https://user@github.com/DraconDev/repo.git"
+            "https://github.com/DraconDev/repo.git"
+        );
+        assert_eq!(
+            redact_origin_credentials("https://ghp_TOKEN123@github.com/DraconDev/repo.git"),
+            "https://github.com/DraconDev/repo.git"
         );
         // No credentials → unchanged.
         assert_eq!(
@@ -1031,7 +1038,7 @@ mod tests {
         // ssh:// form.
         assert_eq!(
             redact_origin_credentials("ssh://git:token@gitlab.com/owner/repo.git"),
-            "ssh://git@gitlab.com/owner/repo.git"
+            "ssh://gitlab.com/owner/repo.git"
         );
         // scp-like form has no scheme → pass through.
         assert_eq!(
@@ -1042,7 +1049,7 @@ mod tests {
         // rfind()-bounded to the last one BEFORE the first `/`).
         assert_eq!(
             redact_origin_credentials("https://user:secret@gitlab.com/owner/u@v.git"),
-            "https://user@gitlab.com/owner/u@v.git"
+            "https://gitlab.com/owner/u@v.git"
         );
     }
 
@@ -1050,42 +1057,43 @@ mod tests {
     fn test_redact_url_credentials_in_text() {
         // Audit LOW 2026-08-11: free-text error strings with embedded
         // credential URLs must be redacted before hitting the ledger
-        // or the terminal. Only the userinfo password is stripped;
-        // surrounding quotes and punctuation are preserved.
+        // or the terminal. D7 (2026-09-09): the ENTIRE userinfo is
+        // stripped; surrounding quotes and punctuation are preserved.
         assert_eq!(
             redact_url_credentials(
                 "fatal: unable to access 'https://user:secret@github.com/a/b.git/': connection refused"
             ),
-            "fatal: unable to access 'https://user@github.com/a/b.git/': connection refused"
+            "fatal: unable to access 'https://github.com/a/b.git/': connection refused"
         );
         // Multiple URLs in one message, each redacted.
         assert_eq!(
             redact_url_credentials(
                 "remote error: https://u1:p1@h1/x.git and https://u2:p2@h2/y.git"
             ),
-            "remote error: https://u1@h1/x.git and https://u2@h2/y.git"
+            "remote error: https://h1/x.git and https://h2/y.git"
         );
         // ssh:// scheme with token-as-password.
         assert_eq!(
             redact_url_credentials("push error: ssh://git:token@gitlab.com/o/r.git"),
-            "push error: ssh://git@gitlab.com/o/r.git"
+            "push error: ssh://gitlab.com/o/r.git"
         );
         // URL wrapped in parens + trailing punctuation of the sentence.
         assert_eq!(
             redact_url_credentials("(https://user:pass@host/x.git)"),
-            "(https://user@host/x.git)"
+            "(https://host/x.git)"
         );
         // URL without userinfo passes through unchanged (this still
         // contains `://`, so it exercises the scan path).
         let no_creds =
             "fatal: could not read Username for 'https://github.com': terminal prompts disabled";
         assert_eq!(redact_url_credentials(no_creds), no_creds);
-        // `user@host` without a password is preserved verbatim.
+        // D7 (2026-09-09): `user@host` without a password is stripped
+        // too — the bare "user" may be a token.
         assert_eq!(
             redact_url_credentials(
                 "fatal: 'https://user@github.com/x.git' is not a git repository"
             ),
-            "fatal: 'https://user@github.com/x.git' is not a git repository"
+            "fatal: 'https://github.com/x.git' is not a git repository"
         );
         // Non-URL error text without `://` is unchanged.
         let plain = "permission denied (publickey)";
