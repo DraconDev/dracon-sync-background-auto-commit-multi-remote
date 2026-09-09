@@ -1755,6 +1755,27 @@ exit 1
             .unwrap();
     }
 
+    /// Create a Git wrapper that delegates normally but fails a targeted
+    /// origin-setup command with a nonzero status.
+    fn fake_git_failing_origin_setup(tmp: &tempfile::TempDir, condition: &str) -> std::path::PathBuf {
+        fn shell_quote(value: &str) -> String {
+            format!("'{}'", value.replace('\'', "'\\''"))
+        }
+
+        let fake_git = tmp.path().join("fake-git");
+        let real_git = shell_quote(&crate::policy::git_binary().to_string_lossy());
+        let script = format!(
+            "#!/bin/sh\nif {condition}; then\n    echo 'simulated origin setup failure' >&2\n    exit 43\nfi\nexec {real_git} \"$@\"\n"
+        );
+        std::fs::write(&fake_git, script).expect("write fake git");
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .expect("chmod fake git");
+        fake_git
+    }
+
     /// Goal `4555eaf6`: a fresh repo with no `origin` should get
     /// `origin = github URL` after `configure_all_remotes` runs.
     /// The github remote is also added (the existing behavior),
@@ -1790,6 +1811,77 @@ exit 1
         assert_eq!(
             String::from_utf8_lossy(&branch_remote.stdout).trim(),
             "origin"
+        );
+    }
+
+    #[test]
+    fn test_ensure_origin_reports_nonzero_remote_add() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("my-repo");
+        init_bare_repo(&repo);
+        let fake_git = fake_git_failing_origin_setup(
+            &tmp,
+            r#"[ "$1" = "remote" ] && [ "$2" = "add" ] && [ "$3" = "origin" ]"#,
+        );
+        let _git_guard = EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().expect("fake git path"),
+        );
+
+        let error = ensure_origin_for_vscode(&repo, &[make_remote("github", 1)])
+            .expect_err("nonzero git remote add must be returned as an error");
+        assert!(
+            error.to_string().contains("remote add origin"),
+            "error should identify the failed origin command: {error:#}"
+        );
+        assert!(
+            get_remote_url(&repo, "origin").is_none(),
+            "a failed remote add must not create origin"
+        );
+        let branch_remote = std_git_command()
+            .args(["config", "--get", "branch.main.remote"])
+            .current_dir(&repo)
+            .output()
+            .expect("query branch remote");
+        assert!(
+            !branch_remote.status.success(),
+            "origin setup must not configure a branch after remote add fails"
+        );
+    }
+
+    #[test]
+    fn test_ensure_origin_reports_nonzero_branch_config() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("my-repo");
+        init_bare_repo(&repo);
+        let fake_git = fake_git_failing_origin_setup(
+            &tmp,
+            r#"[ "$1" = "config" ] && [ "$2" = "branch.main.remote" ]"#,
+        );
+        let _git_guard = EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().expect("fake git path"),
+        );
+
+        let error = ensure_origin_for_vscode(&repo, &[make_remote("github", 1)])
+            .expect_err("nonzero branch config must be returned as an error");
+        assert!(
+            error.to_string().contains("branch.main.remote"),
+            "error should identify the failed config key: {error:#}"
+        );
+        assert_eq!(
+            get_remote_url(&repo, "origin"),
+            Some("git@invalid.example.com:github.git".to_string()),
+            "origin should remain configured even when branch setup fails"
+        );
+        let branch_remote = std_git_command()
+            .args(["config", "--get", "branch.main.remote"])
+            .current_dir(&repo)
+            .output()
+            .expect("query branch remote");
+        assert!(
+            !branch_remote.status.success(),
+            "a failed branch config must not be reported as configured"
         );
     }
 
