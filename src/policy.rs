@@ -96,10 +96,21 @@ impl StandardFileConfig {
 /// "~/.ssh/id_rsa"` passed validation because raw `~/...` is not
 /// `Path::is_absolute`, then `expand_tilde` resolved it outside the
 /// sync base, and the copied file was auto-committed + auto-pushed
-/// to public forges). Rule: no raw-absolute paths (tilde `~/` is
-/// fine — `expand_tilde` anchors it under $HOME) and no `..`
-/// components anywhere.
+/// to public forges). Rule: no raw-absolute paths, no `~`-prefixed
+/// paths, and no `..` components anywhere.
+///
+/// CHANGED 2026-09-09 (audit F28): `~/...` was previously allowed on
+/// the theory that `expand_tilde` anchoring under $HOME made it safe —
+/// but that still resolves OUTSIDE the sync base, so `source =
+/// "~/.ssh/id_rsa"` (the exact attack quoted above) passed the
+/// check and exfiltrated a HOME key into every watched repo. Tilde
+/// is absolute-after-expansion and is now rejected like any other
+/// absolute path; templates must live under the sync base dir and be
+/// referenced by relative path.
 pub(crate) fn is_safe_standard_file_path(raw: &str) -> bool {
+    if raw == "~" || raw.starts_with("~/") {
+        return false;
+    }
     let p = std::path::Path::new(raw);
     if p.is_absolute() {
         return false;
@@ -1611,8 +1622,8 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
         if !is_safe_standard_file_path(source_str) {
             result.error(format!(
                 "standard_files[{}].source '{}' is not a safe relative path \
-                 (must not be absolute or contain '..'; '~/...' is allowed and \
-                 resolves under the operator's home)",
+                 (must be relative to the sync base dir: no absolute paths, \
+                 no '~/...' tilde paths, no '..')",
                 idx, source_str
             ));
         }
