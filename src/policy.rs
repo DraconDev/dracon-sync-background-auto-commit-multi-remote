@@ -1654,15 +1654,7 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
                 idx, target_str
             ));
         }
-        let target_path = std::path::Path::new(target_str);
 
-        if abs || has_parent || has_root || has_prefix {
-            result.error(format!(
-                "standard_files[{}].target '{}' is not a relative path inside the repo \
-                 (must not be absolute, contain '..', or contain a Windows drive prefix)",
-                idx, target_str
-            ));
-        }
         // CHANGED 2026-07-26 (v0.113.4, audit SYNC-H5): source
         // validation was absolute-only — `..` escapes (and the
         // tilde-expansion bypass of the absolute check) were missed,

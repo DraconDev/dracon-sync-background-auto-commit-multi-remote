@@ -1849,6 +1849,21 @@ async fn cmd_scaffold(
                 continue;
             }
 
+            // `cmd_scaffold` is a direct CLI path and does not run
+            // `validate_config`. Enforce the same source/target safety rule
+            // before resolving the target or applying overwrite, especially
+            // because `.`/empty paths resolve to `repo_path` itself.
+            if !policy::is_safe_standard_file_path(&cfg.source)
+                || !policy::is_safe_standard_file_path(&cfg.target)
+            {
+                results.push((
+                    repo_name.clone(),
+                    cfg.target.clone(),
+                    "unsafe path".to_string(),
+                ));
+                continue;
+            }
+
             let target_path = repo_path.join(&cfg.target);
             if target_path.exists() && !overwrite && !cfg.overwrite {
                 continue;
@@ -1921,6 +1936,7 @@ async fn cmd_scaffold(
             "copied" => ("\u{2705} copied", Color::Green),
             "would copy" => ("\u{1f4dd} would copy", Color::Yellow),
             "template missing" => ("\u{274c} template missing", Color::Red),
+            "unsafe path" => ("\u{274c} unsafe path", Color::Red),
             s if s.starts_with("error:") => ("\u{274c} error", Color::Red),
             _ => (status.as_str(), Color::White),
         };
