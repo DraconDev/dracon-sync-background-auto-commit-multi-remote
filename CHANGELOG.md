@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Origin URLs fully redacted in logs/reports (audit D7, 2026-09-09,
+  operator-approved)**: `redact_origin_credentials` kept bare `user@`
+  because a bare username is indistinguishable from a token — and
+  token-as-username remotes (`https://TOKEN@github.com/...`, the
+  standard PAT form) are exactly that. All userinfo is now stripped
+  (`https://host/...`), in both the `repos` detail strings and the
+  free-text push-error scrubber.
 - **Tilde `standard_files` sources rejected (audit F28, 2026-09-09)**:
   `is_safe_standard_file_path` allowed `source = "~/..."`, treating it
   as repo-relative while `ensure_standard_files` resolves it against

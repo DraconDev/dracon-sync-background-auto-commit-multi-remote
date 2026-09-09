@@ -1573,14 +1573,21 @@ mod tests {
             "fatal: unable to access 'https://user:sup3rsecret@github.com/a/b.git/': connection refused",
         );
         let info = get_stuck_push_info(&repo).expect("entry should exist");
+        // D7 (2026-09-09): the ENTIRE userinfo is stripped — a bare
+        // "user" may be a token.
         assert!(
-            info.last_error.contains("https://user@github.com/a/b.git/"),
+            info.last_error.contains("https://github.com/a/b.git/"),
             "ledger must store the redacted URL, got: {}",
             info.last_error
         );
         assert!(
             !info.last_error.contains("sup3rsecret"),
             "ledger must NOT contain the password, got: {}",
+            info.last_error
+        );
+        assert!(
+            !info.last_error.contains("user@github.com"),
+            "ledger must NOT contain the userinfo either (D7), got: {}",
             info.last_error
         );
 
