@@ -2124,6 +2124,41 @@ remotes = []
         tmp
     }
 
+    #[tokio::test]
+    async fn test_scaffold_rejects_root_target_without_deleting_repo() {
+        let dir = TempDir::new().unwrap();
+        let repo_dir = dir.path().join("repo");
+        std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+        std::fs::write(repo_dir.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        let template_dir = dir.path().join("templates");
+        std::fs::create_dir(&template_dir).unwrap();
+        std::fs::write(template_dir.join("LICENSE"), "AGPL").unwrap();
+        let policy_path = dir.path().join("policy.toml");
+        std::fs::write(
+            &policy_path,
+            r#"
+auto_github_private = false
+remotes = []
+standard_files = [{ source = "templates/LICENSE", target = ".", overwrite = true }]
+"#,
+        )
+        .unwrap();
+
+        cmd_scaffold(&policy_path, Some(repo_dir.clone()), vec![], false, false)
+            .await
+            .unwrap();
+
+        assert!(repo_dir.is_dir(), "scaffold must not remove repository root");
+        assert!(
+            repo_dir.join(".git/HEAD").is_file(),
+            "scaffold must preserve checkout metadata"
+        );
+        assert!(
+            !repo_dir.join("LICENSE").exists(),
+            "rejected root target must not create a replacement file"
+        );
+    }
+
     #[test]
     fn test_freeze_reason_none_when_no_marker() {
         let tmp = TempDir::new().unwrap();

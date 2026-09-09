@@ -1632,11 +1632,12 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
         }
     }
 
-    // F40 (2026-07-18): standard_files[].target must be a relative
-    // path with no `..` segments. Otherwise `repo.join(target)` either
-    // replaces the base entirely (absolute path) or escapes the repo
-    // (parent traversal). A config typo would be a write-anywhere
-    // primitive under the daemon's UID.
+    // F40 (2026-07-18): standard_files[].target must be a safe relative
+    // path with no `..` segments and must name something below the repo
+    // root. Otherwise `repo.join(target)` can replace the base, escape the
+    // repo, or resolve to the repo itself. A config typo would be a
+    // write-anywhere primitive under the daemon's UID; with overwrite=true,
+    // a root-equivalent target could recursively remove the checkout.
     for (idx, sf) in policy.standard_files.iter().enumerate() {
         let target_str = sf.target.as_str();
         if target_str.is_empty() {
@@ -1666,7 +1667,7 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
             result.error(format!(
                 "standard_files[{}].source '{}' is not a safe relative path \
                  (must be relative to the sync base dir: no absolute paths, \
-                 no '~/...' tilde paths, no '..')",
+                 no '~/...' tilde paths, no '..', or a root-equivalent path)",
                 idx, source_str
             ));
         }
@@ -3305,6 +3306,52 @@ standard_files = [{{ source = "templates/LICENSE", target = {bad_target}, overwr
                 result.errors
             );
         }
+    }
+
+    #[test]
+    fn test_validate_config_rejects_root_equivalent_standard_file_targets() {
+        for target in [".", "./", "././"] {
+            let tmp = tempfile::TempDir::new().unwrap();
+            let content = format!(
+                r#"
+auto_github_private = false
+watch_roots = ["/tmp"]
+remotes = []
+standard_files = [{{ source = "templates/LICENSE", target = "{target}", overwrite = true }}]
+"#
+            );
+            std::fs::write(tmp.path().join("policy.toml"), content).unwrap();
+            let result = validate_config(tmp.path().join("policy.toml").as_path());
+            assert!(
+                !result.is_valid(),
+                "root-equivalent target {target:?} must be rejected, got {:?}",
+                result.errors
+            );
+            assert!(
+                result
+                    .errors
+                    .iter()
+                    .any(|e| e.contains("not a relative path")),
+                "target {target:?} error message missing, got {:?}",
+                result.errors
+            );
+        }
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        let content = r#"
+auto_github_private = false
+watch_roots = ["/tmp"]
+remotes = []
+standard_files = [{ source = "templates/LICENSE", target = "", overwrite = true }]
+"#;
+        std::fs::write(tmp.path().join("policy.toml"), content).unwrap();
+        let result = validate_config(tmp.path().join("policy.toml").as_path());
+        assert!(!result.is_valid(), "empty target must be rejected");
+        assert!(
+            result.errors.iter().any(|e| e.contains("target is empty")),
+            "empty target error message missing, got {:?}",
+            result.errors
+        );
     }
 
     #[test]
