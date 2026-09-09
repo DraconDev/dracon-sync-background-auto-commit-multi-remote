@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Publish-upstream setup verifies Git exit status (audit F57, 2026-09-09)**:
+  daemon and VS Code origin bootstrap now surface nonzero `git config` and
+  remote-add results instead of claiming the upstream was configured.
 - **`ever_pushed` resolves worktree and submodule gitdirs (audit F54,
   2026-09-09)**: concern repair now checks remote-tracking refs from the
   checkout's resolved gitdir and a linked worktree's shared `commondir`,
