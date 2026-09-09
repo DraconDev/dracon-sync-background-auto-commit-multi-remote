@@ -8746,6 +8746,16 @@ mod tests {
         .unwrap();
 
         assert!(ever_pushed(&repo));
+
+        // Remote-tracking refs may be packed after Git maintenance; the
+        // shared gitdir must remain visible through that representation too.
+        std::fs::remove_dir_all(common_git_dir.join("refs")).unwrap();
+        std::fs::write(
+            common_git_dir.join("packed-refs"),
+            "deadbeef refs/remotes/origin/main\n",
+        )
+        .unwrap();
+        assert!(ever_pushed(&repo));
         assert_eq!(
             decide_create_mirror(
                 false,
