@@ -28,17 +28,19 @@ pub(crate) fn ensure_standard_files(
             continue;
         }
 
-        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): point-of-use
-        // enforcement — the daemon's execution path never calls
-        // `validate_config`, so an unsafe source/target here would
-        // copy ANY readable file (`~/.ssh/id_rsa`, `../../etc/passwd`)
-        // into every watched repo, auto-committed + auto-pushed to
-        // public forges. Skip + warn instead.
+        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5; tightened
+        // 2026-09-09, audit F28): point-of-use enforcement — the
+        // daemon's execution path never calls `validate_config`, so an
+        // unsafe source/target here would copy ANY readable file
+        // (`~/.ssh/id_rsa`, `../../etc/passwd`) into every watched
+        // repo, auto-committed + auto-pushed to public forges. F28:
+        // `~/...` counts as unsafe (tilde is absolute-after-expansion
+        // and resolves outside the sync base). Skip + warn instead.
         if !crate::policy::is_safe_standard_file_path(&cfg.source)
             || !crate::policy::is_safe_standard_file_path(&cfg.target)
         {
             eprintln!(
-                "⚠️ standard file '{}' (source '{}') rejected: paths must not be absolute or contain '..' — skipping",
+                "⚠️ standard file '{}' (source '{}') rejected: paths must be relative to the sync base dir (no absolute, '~/...', or '..') — skipping",
                 cfg.target,
                 cfg.source
             );
@@ -374,13 +376,15 @@ mod tests {
     }
 
     #[test]
-    fn test_tilde_source_still_allowed() {
-        // ADDED 2026-07-26 (v0.113.4, audit SYNC-H5): `~/...` is a
-        // documented legit source form (expand_tilde anchors it under
-        // $HOME) and must NOT be rejected by the safety check.
-        assert!(crate::policy::is_safe_standard_file_path(
+    fn test_tilde_source_rejected() {
+        // CHANGED 2026-09-09 (audit F28): `~/...` was blessed by
+        // SYNC-H5 but resolves outside the sync base, so `~/.ssh/id_rsa`
+        // exfiltrated HOME keys into watched repos. Tilde sources are
+        // now rejected; templates must be relative to the sync base.
+        assert!(!crate::policy::is_safe_standard_file_path(
             "~/templates/LICENSE"
         ));
+        assert!(!crate::policy::is_safe_standard_file_path("~"));
         assert!(crate::policy::is_safe_standard_file_path(
             "templates/LICENSE"
         ));

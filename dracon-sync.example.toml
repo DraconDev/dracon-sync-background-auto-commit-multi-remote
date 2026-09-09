@@ -475,10 +475,11 @@ auto_create = false
 # Per-repo opt-out (via .dracon/dracon-sync.toml in repo root):
 #   skip_standard_files = ["LICENSE", ".github/FUNDING.yml"]
 #
-# Template path resolution:
-#   - Absolute paths: used as-is
-#   - ~/ paths: expanded to home directory
+# Template path resolution (tightened 2026-09-09, audit F28: `~/...` and
+# absolute sources are rejected — tilde resolves outside the sync base, so
+# source="~/.ssh/id_rsa" exfiltrated HOME keys into watched repos):
 #   - Relative paths: resolved relative to sync config dir (~/.dracon/utilities/sync/)
+#   - Absolute and ~/ paths: REJECTED at validation and at point of use
 #
 # If a template file is missing, a warning is printed but sync continues.
 #
