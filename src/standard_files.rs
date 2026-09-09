@@ -275,9 +275,7 @@ mod secure_target {
             }
         };
         let close_result = unsafe { libc::closedir(directory_stream) };
-        if let Err(error) = scan_result {
-            return Err(error);
-        }
+        scan_result?;
         if close_result < 0 {
             return Err(io::Error::last_os_error());
         }
