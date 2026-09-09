@@ -8746,6 +8746,15 @@ mod tests {
         .unwrap();
 
         assert!(ever_pushed(&repo));
+        assert_eq!(
+            decide_create_mirror(
+                false,
+                ever_pushed(&repo),
+                Some(CREATE_MIRROR_GONE_THRESHOLD_SECS),
+            ),
+            CreateMirrorDecision::TransientHiccup,
+            "a linked worktree with remote refs must not trigger mirror creation"
+        );
     }
 
     #[test]
