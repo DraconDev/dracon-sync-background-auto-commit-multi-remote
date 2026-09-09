@@ -94,7 +94,11 @@ fn classify_fuser_status(exit_code: Option<i32>, stderr: &[u8]) -> Result<bool> 
 }
 
 fn fuser_lock_is_in_use(lock: &Path) -> Result<bool> {
-    let output = std::process::Command::new("fuser")
+    fuser_lock_is_in_use_with_command("fuser", lock)
+}
+
+fn fuser_lock_is_in_use_with_command(command: &str, lock: &Path) -> Result<bool> {
+    let output = std::process::Command::new(command)
         .arg(lock)
         .output()
         .context("failed to execute fuser")?;
@@ -944,6 +948,24 @@ mod tests {
         assert!(classify_fuser_status(Some(1), b"permission denied").is_err());
         assert!(classify_fuser_status(Some(2), b"").is_err());
         assert!(classify_fuser_status(None, b"").is_err());
+    }
+
+    #[test]
+    fn test_unavailable_fuser_cannot_remove_index_lock() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let lock = temp.path().join("index.lock");
+        std::fs::write(&lock, b"active").unwrap();
+
+        let result = fuser_lock_is_in_use_with_command(
+            "/definitely/missing/dracon-sync-fuser-test",
+            &lock,
+        );
+        assert!(result.is_err());
+        assert!(
+            !matches!(result, Ok(false)),
+            "startup cleanup must remove locks only after an explicit no-users result"
+        );
+        assert!(lock.exists(), "an unavailable fuser must leave the lock intact");
     }
 
     #[test]
