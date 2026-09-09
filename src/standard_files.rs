@@ -921,6 +921,49 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_directory_target_cannot_delete_external_directory() {
+        use std::os::unix::fs::symlink;
+
+        let dir = TempDir::new().unwrap();
+        let repo_dir = dir.path().join("repo");
+        std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+        let external_dir = dir.path().join("outside");
+        std::fs::create_dir(&external_dir).unwrap();
+        std::fs::write(external_dir.join("keep.txt"), "keep me").unwrap();
+        symlink(&external_dir, repo_dir.join(".github")).unwrap();
+
+        let template_dir = dir.path().join("templates");
+        std::fs::create_dir(&template_dir).unwrap();
+        std::fs::write(template_dir.join("FUNDING.yml"), "repo content").unwrap();
+        let policy = make_policy(vec![StandardFileConfig {
+            source: "templates/FUNDING.yml".to_string(),
+            target: ".github".to_string(),
+            overwrite: true,
+        }]);
+
+        let copied = ensure_standard_files(
+            &repo_dir,
+            &policy,
+            &make_override(vec![]),
+            Some(dir.path()),
+            false,
+        )
+        .unwrap();
+
+        assert!(copied.is_empty(), "symlink escape must not delete or copy");
+        assert!(external_dir.is_dir(), "external directory must remain");
+        assert_eq!(
+            std::fs::read_to_string(external_dir.join("keep.txt")).unwrap(),
+            "keep me"
+        );
+        assert!(std::fs::symlink_metadata(repo_dir.join(".github"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
+    }
+
     #[test]
     fn test_funding_yml_in_dot_github_subdir() {
         // GitHub discovers FUNDING.yml at .github/FUNDING.yml. The standard

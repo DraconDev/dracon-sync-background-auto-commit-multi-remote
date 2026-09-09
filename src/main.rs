@@ -2219,6 +2219,50 @@ standard_files = [{{ source = "templates/FUNDING.yml", target = ".github/FUNDING
         }
     }
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_scaffold_does_not_delete_symlinked_external_directory() {
+        use std::os::unix::fs::symlink;
+
+        let dir = TempDir::new().unwrap();
+        let repo_dir = dir.path().join("repo");
+        std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+        std::fs::write(repo_dir.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        let external_dir = dir.path().join("outside");
+        std::fs::create_dir(&external_dir).unwrap();
+        std::fs::write(external_dir.join("keep.txt"), "keep me").unwrap();
+        symlink(&external_dir, repo_dir.join(".github")).unwrap();
+
+        let template_dir = dir.path().join("templates");
+        std::fs::create_dir(&template_dir).unwrap();
+        std::fs::write(template_dir.join("FUNDING.yml"), "repo content").unwrap();
+        let policy_path = dir.path().join("policy.toml");
+        std::fs::write(
+            &policy_path,
+            r#"
+auto_github_private = false
+remotes = []
+standard_files = [{ source = "templates/FUNDING.yml", target = ".github", overwrite = true }]
+"#,
+        )
+        .unwrap();
+
+        super::cmd_scaffold(&policy_path, Some(repo_dir.clone()), vec![], false, false)
+            .await
+            .unwrap();
+
+        assert!(repo_dir.join(".git/HEAD").is_file());
+        assert!(external_dir.is_dir(), "scaffold must not delete external dirs");
+        assert_eq!(
+            std::fs::read_to_string(external_dir.join("keep.txt")).unwrap(),
+            "keep me"
+        );
+        assert!(std::fs::symlink_metadata(repo_dir.join(".github"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
+    }
+
     #[test]
     fn test_freeze_reason_none_when_no_marker() {
         let tmp = TempDir::new().unwrap();
