@@ -250,10 +250,14 @@ mod secure_target {
                 continue;
             }
 
-            let Some(metadata) = stat_at(directory_fd, child_name)? else {
-                // The entry may have vanished concurrently; there is nothing
-                // left for this operation to remove.
-                continue;
+            let metadata = match stat_at(directory_fd, child_name) {
+                Ok(Some(metadata)) => metadata,
+                Ok(None) => {
+                    // The entry may have vanished concurrently; there is
+                    // nothing left for this operation to remove.
+                    continue;
+                }
+                Err(error) => break Err(error),
             };
             match entry_kind(&metadata) {
                 EntryKind::Directory => {
