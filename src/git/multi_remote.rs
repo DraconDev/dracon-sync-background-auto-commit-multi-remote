@@ -287,12 +287,34 @@ pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig])
         return;
     };
     let url = github.resolve_push_url(repo_name);
-    if let Err(e) = std_git_command()
+    let output = match std_git_command()
         .args(["remote", "add", "origin", &url])
         .current_dir(repo)
-        .status()
+        .output()
+        .with_context(|| format!("failed to run git remote add origin in {}", repo.display()))
     {
-        eprintln!("⚠️ failed to add origin for {}: {}", repo.display(), e);
+        Ok(output) => output,
+        Err(error) => {
+            eprintln!("⚠️ failed to add origin for {}: {}", repo.display(), error);
+            return;
+        }
+    };
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        if detail.is_empty() {
+            eprintln!(
+                "⚠️ failed to add origin for {}: git remote add exited with {}",
+                repo.display(),
+                output.status
+            );
+        } else {
+            eprintln!(
+                "⚠️ failed to add origin for {}: git remote add exited with {}: {}",
+                repo.display(),
+                output.status,
+                detail
+            );
+        }
         return;
     }
     // Also set branch.<name>.remote = origin if a default branch
@@ -307,10 +329,14 @@ pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig])
         if output.status.success() {
             let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !branch.is_empty() && crate::git::is_safe_branch_name(&branch) {
-                let _ = std_git_command()
-                    .args(["config", &format!("branch.{branch}.remote"), "origin"])
-                    .current_dir(repo)
-                    .status();
+                let key = format!("branch.{branch}.remote");
+                if let Err(error) = crate::git::set_git_config(repo, &key, "origin") {
+                    eprintln!(
+                        "⚠️ failed to configure {key} for {}: {}",
+                        repo.display(),
+                        error
+                    );
+                }
             }
         }
     }

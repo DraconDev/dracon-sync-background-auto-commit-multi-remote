@@ -448,15 +448,9 @@ pub(crate) fn configure_publish_upstream_if_missing(
     };
     let remote_key = format!("branch.{branch}.remote");
     let merge_key = format!("branch.{branch}.merge");
-    crate::policy::std_git_command()
-        .args(["config", &remote_key, &remote])
-        .current_dir(repo)
-        .status()
+    crate::git::set_git_config(repo, &remote_key, &remote)
         .with_context(|| format!("failed to set {remote_key} in {}", repo.display()))?;
-    crate::policy::std_git_command()
-        .args(["config", &merge_key, &format!("refs/heads/{branch}")])
-        .current_dir(repo)
-        .status()
+    crate::git::set_git_config(repo, &merge_key, &format!("refs/heads/{branch}"))
         .with_context(|| format!("failed to set {merge_key} in {}", repo.display()))?;
     eprintln!(
         "🔧 {} configured publish upstream for {branch} on {remote}",

@@ -10,6 +10,42 @@ pub(crate) fn git_cmd() -> crate::policy::GitCommand {
     crate::policy::std_git_command()
 }
 
+/// Set a local Git config value and reject commands that exit nonzero.
+///
+/// `Command::status` only reports whether Git could be spawned; the returned
+/// `ExitStatus` must also be checked so unwritable gitdirs and malformed
+/// configuration do not look like successful setup.
+pub(crate) fn set_git_config(repo: &std::path::Path, key: &str, value: &str) -> anyhow::Result<()> {
+    let output = crate::policy::std_git_command()
+        .args(["config", key, value])
+        .current_dir(repo)
+        .output()
+        .map_err(|error| {
+            anyhow::anyhow!(
+                "failed to run git config {key} in {}: {error}",
+                repo.display()
+            )
+        })?;
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if detail.is_empty() {
+        Err(anyhow::anyhow!(
+            "git config {key} in {} exited with {}",
+            repo.display(),
+            output.status
+        ))
+    } else {
+        Err(anyhow::anyhow!(
+            "git config {key} in {} exited with {}: {detail}",
+            repo.display(),
+            output.status
+        ))
+    }
+}
+
 pub(crate) fn tokio_git_cmd() -> crate::policy::TokioGitCommand {
     crate::policy::tokio_git_command()
 }
