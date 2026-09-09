@@ -55,6 +55,377 @@ pub(crate) fn resolve_standard_file_target(repo: &Path, target: &str) -> Result<
     Ok(target_path)
 }
 
+#[cfg(unix)]
+mod secure_target {
+    use anyhow::{anyhow, Context, Result};
+    use std::ffi::{CStr, CString, OsStr};
+    use std::fs::File;
+    use std::io;
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+    use std::path::{Component, Path};
+
+    enum EntryKind {
+        Directory,
+        Symlink,
+        Other,
+    }
+
+    fn component_name(component: &OsStr) -> Result<CString> {
+        CString::new(component.as_bytes()).map_err(|_| {
+            anyhow!(
+                "standard-file target component {:?} contains an embedded NUL",
+                component
+            )
+        })
+    }
+
+    fn target_components(target: &str) -> Result<Vec<CString>> {
+        let mut components = Vec::new();
+        for component in Path::new(target).components() {
+            match component {
+                Component::Normal(name) => components.push(component_name(name)?),
+                Component::CurDir => {}
+                _ => anyhow::bail!("target path '{}' is not a safe relative path", target),
+            }
+        }
+        if components.is_empty() {
+            anyhow::bail!("target path '{}' has no file component", target);
+        }
+        Ok(components)
+    }
+
+    fn open_directory_at(parent: RawFd, name: &CStr) -> io::Result<File> {
+        let fd = unsafe {
+            libc::openat(
+                parent,
+                name.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                0,
+            )
+        };
+        if fd < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            // SAFETY: openat returned a valid owned descriptor.
+            Ok(unsafe { File::from_raw_fd(fd) })
+        }
+    }
+
+    fn open_repository(repo: &Path) -> Result<File> {
+        let repo_name = CString::new(repo.as_os_str().as_bytes())
+            .map_err(|_| anyhow!("repository path contains an embedded NUL"))?;
+        let fd = unsafe {
+            libc::open(
+                repo_name.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error()).with_context(|| {
+                format!("failed to open repository directory {}", repo.display())
+            });
+        }
+        // SAFETY: open returned a valid owned descriptor.
+        Ok(unsafe { File::from_raw_fd(fd) })
+    }
+
+    fn make_directory_at(parent: RawFd, name: &CStr) -> io::Result<()> {
+        let result = unsafe { libc::mkdirat(parent, name.as_ptr(), 0o755) };
+        if result < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn open_or_create_parent(root: File, components: &[CString]) -> io::Result<File> {
+        let mut current = root;
+        for component in components {
+            match open_directory_at(current.as_raw_fd(), component.as_c_str()) {
+                Ok(next) => current = next,
+                Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {
+                    match make_directory_at(current.as_raw_fd(), component.as_c_str()) {
+                        Ok(()) => {}
+                        Err(mkdir_error)
+                            if mkdir_error.raw_os_error() == Some(libc::EEXIST) => {}
+                        Err(mkdir_error) => return Err(mkdir_error),
+                    }
+                    // Re-open with O_NOFOLLOW. If a concurrent actor replaced
+                    // the new directory with a symlink, this fails closed.
+                    current = open_directory_at(current.as_raw_fd(), component.as_c_str())?;
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(current)
+    }
+
+    fn stat_at(parent: RawFd, name: &CStr) -> io::Result<Option<libc::stat>> {
+        let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+        let result = unsafe {
+            libc::fstatat(
+                parent,
+                name.as_ptr(),
+                metadata.as_mut_ptr(),
+                libc::AT_SYMLINK_NOFOLLOW,
+            )
+        };
+        if result < 0 {
+            let error = io::Error::last_os_error();
+            if error.raw_os_error() == Some(libc::ENOENT) {
+                Ok(None)
+            } else {
+                Err(error)
+            }
+        } else {
+            // SAFETY: fstatat initialized metadata when it returned success.
+            Ok(Some(unsafe { metadata.assume_init() }))
+        }
+    }
+
+    fn entry_kind(metadata: &libc::stat) -> EntryKind {
+        let mode = metadata.st_mode as libc::mode_t;
+        if mode & libc::S_IFMT == libc::S_IFDIR {
+            EntryKind::Directory
+        } else if mode & libc::S_IFMT == libc::S_IFLNK {
+            EntryKind::Symlink
+        } else {
+            EntryKind::Other
+        }
+    }
+
+    fn unlink_at(parent: RawFd, name: &CStr, flags: libc::c_int) -> io::Result<()> {
+        let result = unsafe { libc::unlinkat(parent, name.as_ptr(), flags) };
+        if result < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn clear_errno() {
+        // SAFETY: __errno_location returns this thread's errno slot.
+        unsafe {
+            *libc::__errno_location() = 0;
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn clear_errno() {}
+
+    fn remove_directory_at(parent: RawFd, name: &CStr) -> io::Result<()> {
+        let directory = open_directory_at(parent, name)?;
+        let directory_fd = directory.as_raw_fd();
+        let raw_directory_fd = directory.into_raw_fd();
+        let directory_stream = unsafe { libc::fdopendir(raw_directory_fd) };
+        if directory_stream.is_null() {
+            let error = io::Error::last_os_error();
+            // fdopendir did not take ownership when it failed.
+            unsafe {
+                libc::close(raw_directory_fd);
+            }
+            return Err(error);
+        }
+
+        let scan_result = loop {
+            clear_errno();
+            let entry = unsafe { libc::readdir(directory_stream) };
+            if entry.is_null() {
+                #[cfg(target_os = "linux")]
+                {
+                    let error = io::Error::last_os_error();
+                    if error.raw_os_error().unwrap_or(0) != 0 {
+                        break Err(error);
+                    }
+                }
+                break Ok(());
+            }
+
+            // SAFETY: readdir returns a pointer to a valid dirent until the
+            // next readdir call, and d_name is NUL-terminated by the API.
+            let child_name = unsafe { CStr::from_ptr((*entry).d_name.as_ptr()) };
+            if child_name.to_bytes() == b"." || child_name.to_bytes() == b".." {
+                continue;
+            }
+
+            let Some(metadata) = stat_at(directory_fd, child_name)? else {
+                // The entry may have vanished concurrently; there is nothing
+                // left for this operation to remove.
+                continue;
+            };
+            match entry_kind(&metadata) {
+                EntryKind::Directory => {
+                    match remove_directory_at(directory_fd, child_name) {
+                        Ok(()) => {}
+                        Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {}
+                        Err(error) => break Err(error),
+                    }
+                }
+                // unlinkat never follows a symlink, so a symlink child is
+                // removed as an entry rather than traversed.
+                EntryKind::Symlink | EntryKind::Other => {
+                    match unlink_at(directory_fd, child_name, 0) {
+                        Ok(()) => {}
+                        Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {}
+                        Err(error) => break Err(error),
+                    }
+                }
+            }
+        };
+        let close_result = unsafe { libc::closedir(directory_stream) };
+        if let Err(error) = scan_result {
+            return Err(error);
+        }
+        if close_result < 0 {
+            return Err(io::Error::last_os_error());
+        }
+
+        // The directory was opened with O_NOFOLLOW and all descendants were
+        // removed through its descriptor. AT_REMOVEDIR removes only this
+        // directory entry and never follows a symlink.
+        unlink_at(parent, name, libc::AT_REMOVEDIR)
+    }
+
+    fn create_file_at(parent: RawFd, name: &CStr) -> io::Result<File> {
+        let fd = unsafe {
+            libc::openat(
+                parent,
+                name.as_ptr(),
+                libc::O_WRONLY
+                    | libc::O_CREAT
+                    | libc::O_EXCL
+                    | libc::O_NOFOLLOW
+                    | libc::O_CLOEXEC,
+                0o666,
+            )
+        };
+        if fd < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            // SAFETY: openat returned a valid owned descriptor.
+            Ok(unsafe { File::from_raw_fd(fd) })
+        }
+    }
+
+    pub(super) fn copy(
+        repo: &Path,
+        target: &str,
+        source: &Path,
+        overwrite: bool,
+    ) -> Result<bool> {
+        let components = target_components(target)?;
+        let root = open_repository(repo)?;
+        let source_file = File::open(source)
+            .with_context(|| format!("failed to open standard-file source {}", source.display()))?;
+        let (filename, parents) = components
+            .split_last()
+            .expect("target_components always returns a filename");
+        let parent = open_or_create_parent(root, parents).with_context(|| {
+            format!("failed to open standard-file target parent for '{}'", target)
+        })?;
+
+        if let Some(metadata) = stat_at(parent.as_raw_fd(), filename.as_c_str())? {
+            match entry_kind(&metadata) {
+                EntryKind::Symlink => {
+                    if !overwrite {
+                        return Ok(false);
+                    }
+                    // Remove only the link itself. This is safe even if a
+                    // concurrent actor inserted a link to an external path.
+                    unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0).with_context(|| {
+                        format!("failed to remove existing standard-file link '{}',", target)
+                    })?;
+                }
+                EntryKind::Directory => {
+                    if !overwrite {
+                        return Ok(false);
+                    }
+                    remove_directory_at(parent.as_raw_fd(), filename.as_c_str()).with_context(
+                        || format!("failed to remove existing directory {}", target),
+                    )?;
+                }
+                EntryKind::Other => {
+                    if !overwrite {
+                        return Ok(false);
+                    }
+                    unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0).with_context(|| {
+                        format!("failed to remove existing standard file {}", target)
+                    })?;
+                }
+            }
+        }
+
+        let mut output = match create_file_at(parent.as_raw_fd(), filename.as_c_str()) {
+            Ok(file) => file,
+            Err(error) if error.raw_os_error() == Some(libc::EEXIST) && !overwrite => {
+                // A target appeared after the no-overwrite check. Do not
+                // follow it; report that the caller should treat it as done.
+                return Ok(false);
+            }
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!("failed to create standard-file target {}", target)
+                });
+            }
+        };
+
+        if let Err(error) = std::io::copy(&mut &source_file, &mut output) {
+            // Best effort cleanup is descriptor-relative and cannot follow a
+            // replacement symlink. The original copy error remains primary.
+            let _ = unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0);
+            return Err(error).with_context(|| {
+                format!("failed to copy standard-file source to {}", target)
+            });
+        }
+        Ok(true)
+    }
+}
+
+pub(crate) fn copy_standard_file_within_repo(
+    repo: &Path,
+    target: &str,
+    source: &Path,
+    overwrite: bool,
+) -> Result<bool> {
+    // Keep the canonical preflight as the clear, user-facing rejection path.
+    // Unix mutation below repeats the path decomposition using directory
+    // descriptors so a later ancestor replacement cannot redirect I/O.
+    let target_path = resolve_standard_file_target(repo, target)?;
+
+    #[cfg(unix)]
+    {
+        let _ = target_path;
+        secure_target::copy(repo, target, source, overwrite)
+    }
+
+    #[cfg(not(unix))]
+    {
+        if target_path.exists() && !overwrite {
+            return Ok(false);
+        }
+        if target_path.exists() && overwrite {
+            if target_path.is_dir() {
+                std::fs::remove_dir_all(&target_path).with_context(|| {
+                    format!("failed to remove existing directory {}", target)
+                })?;
+            } else {
+                std::fs::remove_file(&target_path)
+                    .with_context(|| format!("failed to remove existing {}", target))?;
+            }
+        }
+        if let Some(parent) = target_path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create directory {}", parent.display()))?;
+        }
+        std::fs::copy(source, &target_path).with_context(|| {
+            format!("failed to copy {} to {}", source.display(), target)
+        })?;
+        Ok(true)
+    }
+}
+
 pub(crate) fn ensure_standard_files(
     repo: &Path,
     policy: &SyncPolicy,
