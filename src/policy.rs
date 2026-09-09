@@ -932,6 +932,21 @@ pub(crate) struct RepoPolicyOverride {
     /// policy.
     #[serde(default)]
     pub(crate) auto_skip_unowned: Option<bool>,
+    /// Per-repo opt-out for concern auto-repair. Some(false)
+    /// excludes this repo from `run_repair_concerns` (including the
+    /// filter-repo large-blob rewrite + leased force-push) while
+    /// leaving every other repo on the global setting. None inherits
+    /// the global `policy.auto_repair_concerns`. Set in
+    /// `<repo>/.dracon/dracon-sync.toml`.
+    ///
+    /// Use case: operator-owned repos where history is sacred
+    /// (kiki-sassy / one-mil-girls style) — the documented promise
+    /// in AGENTS.md that was silently unimplemented until audit F29
+    /// (2026-09-09): the knob sat in OVERRIDE_COVERAGE_GLOBAL_ONLY
+    /// with no override-struct half, so the setting parsed into thin
+    /// air. Merged via `repo_auto_repair_enabled`.
+    #[serde(default)]
+    pub(crate) auto_repair_concerns: Option<bool>,
     /// Per-repo override for `settling_max_delay_secs`. None
     /// inherits the global value. See
     /// [`SyncPolicy::settling_max_delay_secs`].
@@ -1026,6 +1041,23 @@ pub(crate) fn load_repo_override(repo: &Path) -> RepoPolicyOverride {
         eprintln!("⚠️ failed to parse repo override {}: {}", path.display(), e);
         RepoPolicyOverride::default()
     })
+}
+
+/// ADDED 2026-09-09 (audit F29): merge the global concern-repair
+/// switch with the per-repo opt-out (house pattern:
+/// `repo_override.field.unwrap_or(policy.field)`). `Some(false)` in
+/// `<repo>/.dracon/dracon-sync.toml` disables auto-repair for that
+/// repo even when the global policy has it on; `None` inherits.
+/// A global `false` stays off everywhere (no per-repo opt-IN —
+/// repair is destructive, so the safe direction wins).
+pub(crate) fn repo_auto_repair_enabled(
+    policy: &SyncPolicy,
+    repo_override: &RepoPolicyOverride,
+) -> bool {
+    match repo_override.auto_repair_concerns {
+        Some(false) => false,
+        _ => policy.auto_repair_concerns,
+    }
 }
 
 pub(crate) fn default_exclude_dir_names() -> Vec<String> {
@@ -2079,7 +2111,6 @@ mod tests {
         "auto_prune_stale_backup_branches",
         "auto_pull",
         "auto_push",
-        "auto_repair_concerns",
         "auto_repair_warns",
         "auto_resolve_unmerged",
         "auto_rewrite_large_blobs",
@@ -2218,6 +2249,47 @@ mod tests {
         // Absent file → None → global policy governs.
         let dir2 = tempfile::tempdir().unwrap();
         assert_eq!(load_repo_override(dir2.path()).build_artifact_cleanup, None);
+    }
+
+    /// ADDED 2026-09-09 (audit F29): the AGENTS.md-documented
+    /// per-repo `auto_repair_concerns = false` opt-out must parse
+    /// AND govern — before this fix the knob was GLOBAL_ONLY with no
+    /// override-struct half, so the setting parsed into thin air and
+    /// sacred-history repos were rewritten anyway.
+    #[test]
+    fn test_repo_override_auto_repair_concerns_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "auto_repair_concerns = false\n",
+        )
+        .unwrap();
+        let o = load_repo_override(repo);
+        assert_eq!(o.auto_repair_concerns, Some(false));
+        let dir2 = tempfile::tempdir().unwrap();
+        assert_eq!(load_repo_override(dir2.path()).auto_repair_concerns, None);
+    }
+
+    /// ADDED 2026-09-09 (audit F29): merge semantics — per-repo
+    /// `Some(false)` wins over a global `true`; `None` inherits;
+    /// a global `false` stays off (no per-repo opt-in to a
+    /// destructive path).
+    #[test]
+    fn test_repo_auto_repair_enabled_merge() {
+        let mut global_on: SyncPolicy = toml::from_str("").expect("parse empty");
+        assert!(global_on.auto_repair_concerns);
+        let mut opt_out = RepoPolicyOverride::default();
+        opt_out.auto_repair_concerns = Some(false);
+        assert!(!repo_auto_repair_enabled(&global_on, &opt_out));
+        let inherit = RepoPolicyOverride::default();
+        assert!(repo_auto_repair_enabled(&global_on, &inherit));
+        global_on.auto_repair_concerns = false;
+        let mut opt_in = RepoPolicyOverride::default();
+        opt_in.auto_repair_concerns = Some(true);
+        assert!(!repo_auto_repair_enabled(&global_on, &opt_in));
+        assert!(!repo_auto_repair_enabled(&global_on, &inherit));
     }
 
     /// ADDED 2026-07-21 (v0.112.33, audit M22/F3.4):

@@ -43,8 +43,9 @@ fn pause_marker_path(home: &Path) -> PathBuf {
 /// command's exit code (127 spawn failure, 128 signal-kill).
 fn run_maintenance(home: &Path, policy_path: &Path, command: &[String]) -> i32 {
     let marker = pause_marker_path(home);
-    // freeze_reason() also auto-clears stale (>24h TTL) markers, so a
-    // forgotten freeze is treated as "not paused" and replaced fresh.
+    // freeze_reason() also auto-clears stale markers (FREEZE_MARKER_TTL_SECS,
+    // 1h since 2026-08-24), so a forgotten freeze is treated as "not
+    // paused" and replaced fresh.
     let was_frozen = freeze_reason(policy_path).is_some();
     if !was_frozen {
         if let Err(e) = std::fs::write(
@@ -910,13 +911,30 @@ async fn main() -> Result<()> {
             }
         }
         Command::Resume => {
-            if let Some(home) = dirs::home_dir() {
-                let marker = home.join(".dracon").join("dracon-sync.freeze");
-                if marker.exists() {
-                    std::fs::remove_file(&marker)?;
-                    println!("▶️  Sync resumed (freeze marker removed)");
+            // CHANGED 2026-09-09 (audit F30): `freeze_reason` honors
+            // TWO marker paths plus DRACON_SYNC_FREEZE, but resume
+            // removed only the canonical one — frozen via
+            // `~/.dracon/freeze/dracon-sync` reported "not paused"
+            // while staying frozen. Clear every marker path; an env
+            // freeze cannot be cleared from here, so say so.
+            if dirs::home_dir().is_some() {
+                let markers = crate::policy::freeze_marker_paths(&policy_path);
+                let mut removed = 0u32;
+                for marker in &markers {
+                    if marker.exists() {
+                        std::fs::remove_file(marker)?;
+                        removed += 1;
+                    }
+                }
+                if removed > 0 {
+                    println!("▶️  Sync resumed ({} freeze marker(s) removed)", removed);
                 } else {
                     println!("ℹ️  No freeze marker found — sync was not paused");
+                }
+                if crate::policy::env_freeze_enabled() {
+                    println!(
+                        "⚠️  DRACON_SYNC_FREEZE is set — sync stays frozen until it is unset"
+                    );
                 }
             } else {
                 anyhow::bail!("cannot determine home directory");

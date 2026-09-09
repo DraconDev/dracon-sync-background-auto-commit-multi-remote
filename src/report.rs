@@ -7837,6 +7837,20 @@ pub(crate) async fn run_repair_concerns(
             );
             continue;
         }
+        // ADDED 2026-09-09 (audit F29): honor the per-repo
+        // `auto_repair_concerns = false` opt-out (AGENTS.md promise).
+        // Skips every repair op for this repo — including the
+        // filter-repo large-blob rewrite below. Explicit single-repo
+        // targeting (`only_repo`) bypasses, like intentional_no_upstream.
+        if !crate::policy::repo_auto_repair_enabled(&policy, &repo_override)
+            && only_repo.is_none()
+        {
+            out!(
+                "ℹ️  {}  skipped: auto_repair_concerns=false set in .dracon/dracon-sync.toml",
+                repo.display()
+            );
+            continue;
+        }
 
         state.has_origin = has_origin_remote(&repo);
         state.has_upstream = has_tracking_upstream(&repo);
