@@ -2172,6 +2172,59 @@ standard_files = [{ source = "templates/LICENSE", target = ".", overwrite = true
         );
     }
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_scaffold_rejects_symlink_directory_escape() {
+        use std::os::unix::fs::symlink;
+
+        for (overwrite, existing_external_file) in [(false, false), (true, true)] {
+            let dir = TempDir::new().unwrap();
+            let repo_dir = dir.path().join("repo");
+            std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+            std::fs::write(repo_dir.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+            let external_dir = dir.path().join("outside");
+            std::fs::create_dir(&external_dir).unwrap();
+            let external_file = external_dir.join("FUNDING.yml");
+            if existing_external_file {
+                std::fs::write(&external_file, "outside content").unwrap();
+            }
+            symlink(&external_dir, repo_dir.join(".github")).unwrap();
+
+            let template_dir = dir.path().join("templates");
+            std::fs::create_dir(&template_dir).unwrap();
+            std::fs::write(template_dir.join("FUNDING.yml"), "repo content").unwrap();
+            let policy_path = dir.path().join("policy.toml");
+            std::fs::write(
+                &policy_path,
+                format!(
+                    r#"
+auto_github_private = false
+remotes = []
+standard_files = [{{ source = "templates/FUNDING.yml", target = ".github/FUNDING.yml", overwrite = {overwrite} }}]
+"#
+                ),
+            )
+            .unwrap();
+
+            super::cmd_scaffold(&policy_path, Some(repo_dir.clone()), vec![], false, false)
+                .await
+                .unwrap();
+
+            assert!(repo_dir.join(".git/HEAD").is_file());
+            if existing_external_file {
+                assert_eq!(
+                    std::fs::read_to_string(external_file).unwrap(),
+                    "outside content"
+                );
+            } else {
+                assert!(
+                    !external_file.exists(),
+                    "scaffold must not write through a symlinked directory"
+                );
+            }
+        }
+    }
+
     #[test]
     fn test_freeze_reason_none_when_no_marker() {
         let tmp = TempDir::new().unwrap();
