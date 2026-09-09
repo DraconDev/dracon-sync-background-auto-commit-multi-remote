@@ -335,7 +335,14 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
     // repo has no mirrors at all (truly bare), we fall through to
     // the existing configure-mirrors-if-missing path below.
     if has_any_remote && !has_origin_remote(repo) {
-        crate::git::multi_remote::ensure_origin_for_vscode(repo, &policy.remotes);
+        if let Err(error) = crate::git::multi_remote::ensure_origin_for_vscode(repo, &policy.remotes)
+        {
+            eprintln!(
+                "⚠️ failed to configure origin for {}: {}",
+                repo.display(),
+                error
+            );
+        }
     }
     if !has_any_remote && !policy.remotes.is_empty() {
         let repo_name = repo

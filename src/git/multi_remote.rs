@@ -266,7 +266,13 @@ pub(crate) fn configure_all_remotes(
 
     // ADDED 2026-07-19: ensure origin points at the github mirror
     // when no origin is configured. See doc-comment above.
-    ensure_origin_for_vscode(repo, &filtered);
+    if let Err(error) = ensure_origin_for_vscode(repo, &filtered) {
+        eprintln!(
+            "⚠️ failed to configure origin for {}: {}",
+            repo.display(),
+            error
+        );
+    }
 }
 
 /// ADDED 2026-07-19 (goal `4555eaf6`): if the repo has no
@@ -276,46 +282,40 @@ pub(crate) fn configure_all_remotes(
 /// and produces a sane `PUBLISH` cell in the `repos` table.
 ///
 /// Never overwrites an existing origin (operator override wins).
-pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig]) {
+pub(crate) fn ensure_origin_for_vscode(
+    repo: &Path,
+    configured: &[RemoteConfig],
+) -> Result<()> {
     if crate::git::status::has_origin_remote(repo) {
-        return;
+        return Ok(());
     }
     let Some(github) = configured.iter().find(|r| r.name == "github") else {
-        return;
+        return Ok(());
     };
     let Some(repo_name) = repo.file_name().and_then(|n| n.to_str()) else {
-        return;
+        return Ok(());
     };
     let url = github.resolve_push_url(repo_name);
-    let output = match std_git_command()
+    let output = std_git_command()
         .args(["remote", "add", "origin", &url])
         .current_dir(repo)
         .output()
-        .with_context(|| format!("failed to run git remote add origin in {}", repo.display()))
-    {
-        Ok(output) => output,
-        Err(error) => {
-            eprintln!("⚠️ failed to add origin for {}: {}", repo.display(), error);
-            return;
-        }
-    };
+        .with_context(|| format!("failed to run git remote add origin in {}", repo.display()))?;
     if !output.status.success() {
         let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
         if detail.is_empty() {
-            eprintln!(
-                "⚠️ failed to add origin for {}: git remote add exited with {}",
+            anyhow::bail!(
+                "git remote add origin in {} exited with {}",
                 repo.display(),
                 output.status
             );
-        } else {
-            eprintln!(
-                "⚠️ failed to add origin for {}: git remote add exited with {}: {}",
-                repo.display(),
-                output.status,
-                detail
-            );
         }
-        return;
+        anyhow::bail!(
+            "git remote add origin in {} exited with {}: {}",
+            repo.display(),
+            output.status,
+            detail
+        );
     }
     // Also set branch.<name>.remote = origin if a default branch
     // exists and its remote config is unset. This is what makes
@@ -330,16 +330,12 @@ pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig])
             let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !branch.is_empty() && crate::git::is_safe_branch_name(&branch) {
                 let key = format!("branch.{branch}.remote");
-                if let Err(error) = crate::git::set_git_config(repo, &key, "origin") {
-                    eprintln!(
-                        "⚠️ failed to configure {key} for {}: {}",
-                        repo.display(),
-                        error
-                    );
-                }
+                crate::git::set_git_config(repo, &key, "origin")
+                    .with_context(|| format!("failed to set {key} in {}", repo.display()))?;
             }
         }
     }
+    Ok(())
 }
 
 /// Push to all mirror remotes, auto-creating repos if configured.
