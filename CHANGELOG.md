@@ -12,6 +12,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > under the `dracon-sync` heading. From 0.112.12 onward, this CHANGELOG
 > is the canonical record.
 
+## [Unreleased]
+
+### Fixed
+
+- **Tilde `standard_files` sources rejected (audit F28, 2026-09-09)**:
+  `is_safe_standard_file_path` allowed `source = "~/..."`, treating it
+  as repo-relative while `ensure_standard_files` resolves it against
+  `$HOME` — a path-escape letting a repo config read/write outside the
+  repo. Tilde-prefixed sources are now refused at validation and at
+  point of use.
+- **Per-repo `auto_repair_concerns = false` honored (audit F29,
+  2026-09-09)**: the knob was `SyncPolicy`-global-only, so the per-repo
+  opt-out parsed but silently did nothing. It is now a real
+  `RepoPolicyOverride` resolved at the repair call site.
+- **`resume` clears all freeze markers (audit F30, 2026-09-09)**:
+  `pause` writes every path in `freeze_marker_paths()` but `resume`
+  removed only the first, leaving stale freezes behind. Resume now
+  clears all of them and warns if `DRACON_SYNC_FREEZE` is set.
+- Plus audit LOWs F31–F35 (2026-09-09): corrected the `run_maintenance`
+  TTL comment (24h → 1h), `scale_push_timeout` saturates instead of
+  overflowing `u64::MAX`, stale worktree comment fixed, SIGKILL is now
+  attempted even if SIGTERM fails, and the integration-test `git` helper
+  falls back to `PATH` when the NixOS store path is absent.
+
 ## [0.113.55] - 2026-09-01
 
 ### Fixed
