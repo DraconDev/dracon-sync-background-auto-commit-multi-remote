@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`ever_pushed` resolves worktree and submodule gitdirs (audit F54,
+  2026-09-09)**: concern repair now checks remote-tracking refs from the
+  checkout's resolved gitdir and a linked worktree's shared `commondir`,
+  preventing a previously-pushed checkout from triggering mirror creation.
 - **Startup index-lock cleanup fails closed on `fuser` errors (audit F53,
   2026-09-09)**: an unavailable or failing `fuser` result is no longer
   interpreted as proof that a lock is stale. Startup now retains the lock

@@ -8715,6 +8715,40 @@ mod tests {
     /// in production (the unit tests for the decision helper
     /// still passed because they feed synthetic inputs).
     #[test]
+    fn ever_pushed_reads_resolved_nested_gitdir() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("nested");
+        let git_dir = tmp.path().join("modules").join("nested");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(git_dir.join("refs/remotes/origin")).unwrap();
+        std::fs::write(repo.join(".git"), format!("gitdir: {}\n", git_dir.display())).unwrap();
+        std::fs::write(git_dir.join("refs/remotes/origin/main"), "deadbeef\n").unwrap();
+
+        assert!(ever_pushed(&repo));
+    }
+
+    #[test]
+    fn ever_pushed_reads_linked_worktree_common_gitdir() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("worktree");
+        let common_git_dir = tmp.path().join("main.git");
+        let worktree_git_dir = common_git_dir.join("worktrees").join("feature");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::create_dir_all(&worktree_git_dir).unwrap();
+        std::fs::create_dir_all(common_git_dir.join("refs/remotes/origin")).unwrap();
+        std::fs::write(repo.join(".git"), format!("gitdir: {}\n", worktree_git_dir.display()))
+            .unwrap();
+        std::fs::write(worktree_git_dir.join("commondir"), "../..\n").unwrap();
+        std::fs::write(
+            common_git_dir.join("refs/remotes/origin/main"),
+            "deadbeef\n",
+        )
+        .unwrap();
+
+        assert!(ever_pushed(&repo));
+    }
+
+    #[test]
     fn concerns_ledger_insert_if_absent() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let policy_path = tmp.path().join("policy.toml");
