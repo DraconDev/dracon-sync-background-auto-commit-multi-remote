@@ -745,6 +745,75 @@ mod tests {
         .to_string()
     }
 
+    /// Create a small Git wrapper that delegates normally but simulates a
+    /// nonzero `git config <key>` exit. This exercises the command's exit
+    /// status rather than only its ability to spawn.
+    fn fake_git_failing_config(tmp: &tempfile::TempDir, key: &str) -> PathBuf {
+        fn shell_quote(value: &str) -> String {
+            format!("'{}'", value.replace('\'', "'\\''"))
+        }
+
+        let fake_git = tmp.path().join("fake-git");
+        let real_git = shell_quote(&crate::policy::git_binary().to_string_lossy());
+        let script = format!(
+            "#!/bin/sh\nif [ \"$1\" = \"config\" ] && [ \"$2\" = \"{key}\" ]; then\n    echo 'simulated git config failure' >&2\n    exit 42\nfi\nexec {real_git} \"$@\"\n"
+        );
+        std::fs::write(&fake_git, script).expect("write fake git");
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .expect("chmod fake git");
+        fake_git
+    }
+
+    fn init_publish_upstream_repo(tmp: &tempfile::TempDir) -> PathBuf {
+        let repo = tmp.path().join("test-repo");
+        assert!(crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success());
+        std::fs::write(repo.join("README.md"), "initial").expect("write file");
+        assert!(crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args([
+                "remote",
+                "add",
+                "github",
+                "git@github.com:DraconDev/test-repo.git"
+            ])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success());
+        repo
+    }
+
     /// ADDED 2026-07-27 (v0.113.5, audit M1): the discard
     /// decision in the trailing-drain path is per-(repo, generation),
     /// not per-repo. A result with `gen == marker[repo]` is
@@ -1107,6 +1176,63 @@ mod tests {
             "refs/heads/main"
         );
         assert!(!configure_publish_upstream_if_missing(&repo, &policy).expect("already configured"));
+    }
+
+    #[test]
+    fn test_configure_publish_upstream_reports_nonzero_remote_config() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = init_publish_upstream_repo(&tmp);
+        let fake_git = fake_git_failing_config(&tmp, "branch.main.remote");
+        let _git_guard = crate::test_helpers::GitBinRestorer::new(
+            fake_git.to_str().expect("fake git path"),
+        );
+
+        let error = configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
+            .expect_err("nonzero git config must be returned as an error");
+        assert!(
+            error.to_string().contains("branch.main.remote"),
+            "error should identify the failed config key: {error:#}"
+        );
+        let remote = crate::git::git_cmd()
+            .args(["config", "--get", "branch.main.remote"])
+            .current_dir(&repo)
+            .output()
+            .expect("query remote config");
+        assert!(
+            !remote.status.success(),
+            "a failed config command must not be reported as configured"
+        );
+    }
+
+    #[test]
+    fn test_configure_publish_upstream_reports_nonzero_merge_config() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = init_publish_upstream_repo(&tmp);
+        let fake_git = fake_git_failing_config(&tmp, "branch.main.merge");
+        let _git_guard = crate::test_helpers::GitBinRestorer::new(
+            fake_git.to_str().expect("fake git path"),
+        );
+
+        let error = configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
+            .expect_err("nonzero git config must be returned as an error");
+        assert!(
+            error.to_string().contains("branch.main.merge"),
+            "error should identify the failed config key: {error:#}"
+        );
+        assert_eq!(
+            git_config_value(&repo, "branch.main.remote"),
+            "github",
+            "the first config should remain visible when the second config fails"
+        );
+        let merge = crate::git::git_cmd()
+            .args(["config", "--get", "branch.main.merge"])
+            .current_dir(&repo)
+            .output()
+            .expect("query merge config");
+        assert!(
+            !merge.status.success(),
+            "a failed merge config command must not be reported as configured"
+        );
     }
 
     #[test]
