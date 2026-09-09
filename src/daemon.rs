@@ -335,7 +335,8 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
     // repo has no mirrors at all (truly bare), we fall through to
     // the existing configure-mirrors-if-missing path below.
     if has_any_remote && !has_origin_remote(repo) {
-        if let Err(error) = crate::git::multi_remote::ensure_origin_for_vscode(repo, &policy.remotes)
+        if let Err(error) =
+            crate::git::multi_remote::ensure_origin_for_vscode(repo, &policy.remotes)
         {
             eprintln!(
                 "⚠️ failed to configure origin for {}: {}",
@@ -1183,12 +1184,12 @@ mod tests {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = init_publish_upstream_repo(&tmp);
         let fake_git = fake_git_failing_config(&tmp, "branch.main.remote");
-        let _git_guard = crate::test_helpers::GitBinRestorer::new(
-            fake_git.to_str().expect("fake git path"),
-        );
+        let _git_guard =
+            crate::test_helpers::GitBinRestorer::new(fake_git.to_str().expect("fake git path"));
 
-        let error = configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
-            .expect_err("nonzero git config must be returned as an error");
+        let error =
+            configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
+                .expect_err("nonzero git config must be returned as an error");
         assert!(
             error.to_string().contains("branch.main.remote"),
             "error should identify the failed config key: {error:#}"
@@ -1209,12 +1210,12 @@ mod tests {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let repo = init_publish_upstream_repo(&tmp);
         let fake_git = fake_git_failing_config(&tmp, "branch.main.merge");
-        let _git_guard = crate::test_helpers::GitBinRestorer::new(
-            fake_git.to_str().expect("fake git path"),
-        );
+        let _git_guard =
+            crate::test_helpers::GitBinRestorer::new(fake_git.to_str().expect("fake git path"));
 
-        let error = configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
-            .expect_err("nonzero git config must be returned as an error");
+        let error =
+            configure_publish_upstream_if_missing(&repo, &crate::policy::test_sync_policy())
+                .expect_err("nonzero git config must be returned as an error");
         assert!(
             error.to_string().contains("branch.main.merge"),
             "error should identify the failed config key: {error:#}"

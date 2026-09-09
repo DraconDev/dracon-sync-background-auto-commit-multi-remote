@@ -282,10 +282,7 @@ pub(crate) fn configure_all_remotes(
 /// and produces a sane `PUBLISH` cell in the `repos` table.
 ///
 /// Never overwrites an existing origin (operator override wins).
-pub(crate) fn ensure_origin_for_vscode(
-    repo: &Path,
-    configured: &[RemoteConfig],
-) -> Result<()> {
+pub(crate) fn ensure_origin_for_vscode(repo: &Path, configured: &[RemoteConfig]) -> Result<()> {
     if crate::git::status::has_origin_remote(repo) {
         return Ok(());
     }
@@ -1757,7 +1754,10 @@ exit 1
 
     /// Create a Git wrapper that delegates normally but fails a targeted
     /// origin-setup command with a nonzero status.
-    fn fake_git_failing_origin_setup(tmp: &tempfile::TempDir, condition: &str) -> std::path::PathBuf {
+    fn fake_git_failing_origin_setup(
+        tmp: &tempfile::TempDir,
+        condition: &str,
+    ) -> std::path::PathBuf {
         fn shell_quote(value: &str) -> String {
             format!("'{}'", value.replace('\'', "'\\''"))
         }
