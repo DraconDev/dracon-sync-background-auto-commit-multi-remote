@@ -507,6 +507,65 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_directory_target_cannot_write_or_delete_external() {
+        use std::os::unix::fs::symlink;
+
+        for (overwrite, existing_external_file) in [(false, false), (true, true)] {
+            let dir = TempDir::new().unwrap();
+            let repo_dir = dir.path().join("repo");
+            std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
+            let external_dir = dir.path().join("outside");
+            std::fs::create_dir(&external_dir).unwrap();
+            let external_file = external_dir.join("FUNDING.yml");
+            if existing_external_file {
+                std::fs::write(&external_file, "outside content").unwrap();
+            }
+            symlink(&external_dir, repo_dir.join(".github")).unwrap();
+
+            let template_dir = dir.path().join("templates");
+            std::fs::create_dir(&template_dir).unwrap();
+            std::fs::write(template_dir.join("FUNDING.yml"), "repo content").unwrap();
+
+            let policy = make_policy(vec![StandardFileConfig {
+                source: "templates/FUNDING.yml".to_string(),
+                target: ".github/FUNDING.yml".to_string(),
+                overwrite,
+            }]);
+            let repo_override = make_override(vec![]);
+            let copied = ensure_standard_files(
+                &repo_dir,
+                &policy,
+                &repo_override,
+                Some(dir.path()),
+                false,
+            )
+            .unwrap();
+
+            assert!(copied.is_empty(), "symlink escape must not copy");
+            assert!(repo_dir.join(".git").is_dir());
+            assert!(
+                std::fs::symlink_metadata(repo_dir.join(".github"))
+                    .unwrap()
+                    .file_type()
+                    .is_symlink(),
+                "the checkout symlink must remain untouched"
+            );
+            if existing_external_file {
+                assert_eq!(
+                    std::fs::read_to_string(external_file).unwrap(),
+                    "outside content"
+                );
+            } else {
+                assert!(
+                    !external_file.exists(),
+                    "rejected target must not write outside the repository"
+                );
+            }
+        }
+    }
+
     #[test]
     fn test_funding_yml_in_dot_github_subdir() {
         // GitHub discovers FUNDING.yml at .github/FUNDING.yml. The standard

@@ -1864,7 +1864,20 @@ async fn cmd_scaffold(
                 continue;
             }
 
-            let target_path = repo_path.join(&cfg.target);
+            let target_path = match standard_files::resolve_standard_file_target(
+                repo_path,
+                &cfg.target,
+            ) {
+                Ok(path) => path,
+                Err(_) => {
+                    results.push((
+                        repo_name.clone(),
+                        cfg.target.clone(),
+                        "unsafe path".to_string(),
+                    ));
+                    continue;
+                }
+            };
             if target_path.exists() && !overwrite && !cfg.overwrite {
                 continue;
             }
