@@ -31,8 +31,7 @@ use crate::git::{
     count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
     discover_git_repos, git_diff_head_files, has_both_main_and_master, has_origin_remote,
     has_tracking_upstream, index_lock_path, is_repo_ready, is_safe_branch_name,
-    repair_broken_tracking,
-    repo_diff_entries, run_git_with_timeout,
+    repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
@@ -1104,7 +1103,10 @@ mod tests {
         let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
 
         assert_eq!(removed, 1);
-        assert!(!real_lock.exists(), "resolved worktree lock must be removed");
+        assert!(
+            !real_lock.exists(),
+            "resolved worktree lock must be removed"
+        );
         assert!(
             !checkout.join(".git/index.lock").exists(),
             "cleanup must not treat the .git pointer file as a directory"
@@ -1129,7 +1131,10 @@ mod tests {
         let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
 
         assert_eq!(removed, 1);
-        assert!(!real_lock.exists(), "resolved submodule lock must be removed");
+        assert!(
+            !real_lock.exists(),
+            "resolved submodule lock must be removed"
+        );
         assert!(
             !checkout.join(".git/index.lock").exists(),
             "cleanup must not treat the .git pointer file as a directory"
