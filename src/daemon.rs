@@ -1082,6 +1082,60 @@ mod tests {
         assert!(lock.exists(), "an unavailable fuser must leave the lock intact");
     }
 
+    /// Startup cleanup must remove a stale lock from the per-worktree gitdir,
+    /// not look below the checkout's `.git` pointer file.
+    #[test]
+    fn test_startup_lock_cleanup_resolves_linked_worktree_gitdir() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let primary_gitdir = temp.path().join("primary").join(".git");
+        let checkout = temp.path().join("linked");
+        let worktree_gitdir = primary_gitdir.join("worktrees").join("linked");
+        std::fs::create_dir_all(&worktree_gitdir).unwrap();
+        std::fs::create_dir_all(&checkout).unwrap();
+        std::fs::write(
+            checkout.join(".git"),
+            format!("gitdir: {}\n", worktree_gitdir.display()),
+        )
+        .unwrap();
+        let real_lock = worktree_gitdir.join("index.lock");
+        std::fs::write(&real_lock, b"stale").unwrap();
+        let repo_set = [checkout.clone()].into_iter().collect::<BTreeSet<_>>();
+
+        let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
+
+        assert_eq!(removed, 1);
+        assert!(!real_lock.exists(), "resolved worktree lock must be removed");
+        assert!(
+            !checkout.join(".git/index.lock").exists(),
+            "cleanup must not treat the .git pointer file as a directory"
+        );
+    }
+
+    /// The same startup path must work for a nested submodule whose `.git`
+    /// pointer resolves into the parent's `.git/modules` directory.
+    #[test]
+    fn test_startup_lock_cleanup_resolves_nested_submodule_gitdir() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let parent = temp.path().join("parent");
+        let checkout = parent.join("sub");
+        let submodule_gitdir = parent.join(".git").join("modules").join("sub");
+        std::fs::create_dir_all(&submodule_gitdir).unwrap();
+        std::fs::create_dir_all(&checkout).unwrap();
+        std::fs::write(checkout.join(".git"), "gitdir: ../.git/modules/sub\n").unwrap();
+        let real_lock = submodule_gitdir.join("index.lock");
+        std::fs::write(&real_lock, b"stale").unwrap();
+        let repo_set = [checkout.clone()].into_iter().collect::<BTreeSet<_>>();
+
+        let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
+
+        assert_eq!(removed, 1);
+        assert!(!real_lock.exists(), "resolved submodule lock must be removed");
+        assert!(
+            !checkout.join(".git/index.lock").exists(),
+            "cleanup must not treat the .git pointer file as a directory"
+        );
+    }
+
     #[test]
     fn test_configure_standard_remotes_if_missing_adds_remotes() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
