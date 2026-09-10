@@ -30,7 +30,8 @@ use crate::git::list_submodules;
 use crate::git::{
     count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
     discover_git_repos, git_diff_head_files, has_both_main_and_master, has_origin_remote,
-    has_tracking_upstream, is_repo_ready, is_safe_branch_name, repair_broken_tracking,
+    has_tracking_upstream, index_lock_path, is_repo_ready, is_safe_branch_name,
+    repair_broken_tracking,
     repo_diff_entries, run_git_with_timeout,
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
@@ -3302,13 +3303,15 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
         );
     }
 
-    // Remove stale .git/index.lock files from crashed git processes.
+    // Remove stale index.lock files from crashed git processes. Resolve the
+    // checkout's actual gitdir so linked worktrees and nested submodules are
+    // checked at the same path used by Git and `IndexLock::acquire`.
     // A lock file with no holding process prevents all git operations, but an
     // unavailable or failing fuser must never be treated as proof that it is
     // stale: retaining the lock is safer than risking concurrent index writes.
     let mut locks_removed = 0u64;
     for repo in &repo_set {
-        let lock = repo.join(".git/index.lock");
+        let lock = index_lock_path(repo);
         if lock.exists() {
             eprintln!(
                 "🧹 startup: found index.lock in {} (checking fuser...)",
@@ -4236,11 +4239,13 @@ pub(crate) async fn run_daemon(
                 );
             }
             // Skip repos mid-checkout (clone's checkout phase holds index.lock).
-            // Without this guard, the daemon can interfere with git checkout by
-            // creating files (standard_files, project-state.md, etc.) that later
-            // cause "Untracked working tree file would be overwritten by merge"
-            // errors when git's own checkout tries to write them.
-            let lock = repo.join(".git").join("index.lock");
+            // Resolve the actual gitdir for linked worktrees and nested
+            // submodules; without this guard, the daemon can interfere with
+            // git checkout by creating files (standard_files,
+            // project-state.md, etc.) that later cause "Untracked working tree
+            // file would be overwritten by merge" errors when git's own
+            // checkout tries to write them.
+            let lock = index_lock_path(&repo);
             if lock.exists() {
                 if debug_enabled() {
                     eprintln!(

@@ -23,6 +23,18 @@ pub(crate) struct IndexLock {
     held: bool,
 }
 
+/// Return the index-lock path Git uses for a checkout.
+///
+/// A normal checkout stores the lock below `<repo>/.git`, while a linked
+/// worktree or nested submodule exposes `.git` as a pointer file. Resolving
+/// the pointer here keeps startup cleanup and `IndexLock` on the same path
+/// instead of letting one caller inspect a non-existent `<repo>/.git/index.lock`.
+pub(crate) fn index_lock_path(repo: &Path) -> PathBuf {
+    crate::git::path_gitdir(repo)
+        .map(|gitdir| gitdir.join("index.lock"))
+        .unwrap_or_else(|| repo.join(".git").join("index.lock"))
+}
+
 impl IndexLock {
     /// Try to acquire `.git/index.lock` for a repo.
     /// Returns Ok(lock) if acquired, Err if another process holds it.
@@ -38,9 +50,7 @@ impl IndexLock {
         // debug message). For a submodule the lock belongs at
         // `<parent>/.git/modules/<name>/index.lock` — where git
         // itself takes it.
-        let path = crate::git::path_gitdir(repo)
-            .map(|gitdir| gitdir.join("index.lock"))
-            .unwrap_or_else(|| repo.join(".git").join("index.lock"));
+        let path = index_lock_path(repo);
         match std::fs::OpenOptions::new()
             .write(true)
             .create_new(true) // O_EXCL — fails if file exists
@@ -656,6 +666,11 @@ mod tests {
         // `.git` FILE with a relative gitdir pointer (submodule layout).
         std::fs::write(nested.join(".git"), "gitdir: ../.git/modules/sub\n").unwrap();
 
+        assert_eq!(
+            index_lock_path(&nested),
+            real_gitdir.join("index.lock"),
+            "startup cleanup and IndexLock must resolve the same submodule lock path"
+        );
         let lock = IndexLock::acquire(&nested).expect("acquire must succeed");
         assert!(
             real_gitdir.join("index.lock").exists(),
@@ -669,6 +684,30 @@ mod tests {
         assert!(
             !real_gitdir.join("index.lock").exists(),
             "lock must be released on drop"
+        );
+    }
+
+    /// A linked worktree's `.git` file points to a per-worktree gitdir
+    /// below the primary checkout's `worktrees/` directory. Startup cleanup
+    /// must inspect that resolved directory, where Git creates the index lock.
+    #[test]
+    fn test_index_lock_path_resolves_linked_worktree_gitdir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let primary_gitdir = tmp.path().join("primary").join(".git");
+        let worktree = tmp.path().join("linked");
+        let worktree_gitdir = primary_gitdir.join("worktrees").join("linked");
+        std::fs::create_dir_all(&worktree_gitdir).unwrap();
+        std::fs::create_dir_all(&worktree).unwrap();
+        std::fs::write(
+            worktree.join(".git"),
+            format!("gitdir: {}\n", worktree_gitdir.display()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            index_lock_path(&worktree),
+            worktree_gitdir.join("index.lock"),
+            "linked worktree lock must be resolved below its per-worktree gitdir"
         );
     }
 
