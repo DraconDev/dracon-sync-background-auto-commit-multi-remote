@@ -106,6 +106,48 @@ fn fuser_lock_is_in_use_with_command(command: &str, lock: &Path) -> Result<bool>
     classify_fuser_status(output.status.code(), &output.stderr)
 }
 
+/// Remove stale index locks from the discovered checkouts. The checker is
+/// injected so the path-resolution behavior can be tested without relying on
+/// the host's `fuser` binary.
+fn remove_stale_index_locks<F>(repo_set: &BTreeSet<PathBuf>, fuser_check: F) -> u64
+where
+    F: Fn(&Path) -> Result<bool>,
+{
+    let mut locks_removed = 0u64;
+    for repo in repo_set {
+        let lock = index_lock_path(repo);
+        if lock.exists() {
+            eprintln!(
+                "🧹 startup: found index.lock in {} (checking fuser...)",
+                repo.display()
+            );
+            match fuser_check(&lock) {
+                Ok(false) => {
+                    if let Err(e) = std::fs::remove_file(&lock) {
+                        eprintln!("⚠️ startup: failed to remove {}: {}", lock.display(), e);
+                    } else {
+                        locks_removed += 1;
+                    }
+                }
+                Ok(true) => {
+                    eprintln!(
+                        "⏳ startup: retaining {} because fuser reports it is in use",
+                        lock.display()
+                    );
+                }
+                Err(e) => {
+                    eprintln!(
+                        "⚠️ startup: retaining {} because fuser could not verify it is stale: {}",
+                        lock.display(),
+                        e
+                    );
+                }
+            }
+        }
+    }
+    locks_removed
+}
+
 /// ADDED 2026-07-27 (v0.113.5, audit M4): the canonical
 /// classification of a `sync_repo` result against the activity
 /// entry. Both the main apply phase and the trailing-drain path
@@ -3309,38 +3351,7 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
     // A lock file with no holding process prevents all git operations, but an
     // unavailable or failing fuser must never be treated as proof that it is
     // stale: retaining the lock is safer than risking concurrent index writes.
-    let mut locks_removed = 0u64;
-    for repo in &repo_set {
-        let lock = index_lock_path(repo);
-        if lock.exists() {
-            eprintln!(
-                "🧹 startup: found index.lock in {} (checking fuser...)",
-                repo.display()
-            );
-            match fuser_lock_is_in_use(&lock) {
-                Ok(false) => {
-                    if let Err(e) = std::fs::remove_file(&lock) {
-                        eprintln!("⚠️ startup: failed to remove {}: {}", lock.display(), e);
-                    } else {
-                        locks_removed += 1;
-                    }
-                }
-                Ok(true) => {
-                    eprintln!(
-                        "⏳ startup: retaining {} because fuser reports it is in use",
-                        lock.display()
-                    );
-                }
-                Err(e) => {
-                    eprintln!(
-                        "⚠️ startup: retaining {} because fuser could not verify it is stale: {}",
-                        lock.display(),
-                        e
-                    );
-                }
-            }
-        }
-    }
+    let locks_removed = remove_stale_index_locks(&repo_set, fuser_lock_is_in_use);
     if locks_removed > 0 {
         eprintln!(
             "🧹 startup: removed {} stale .git/index.lock files",
