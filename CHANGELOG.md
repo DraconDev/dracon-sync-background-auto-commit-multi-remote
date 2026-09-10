@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Startup index-lock cleanup resolves checkout gitdirs (audit F52,
+  2026-09-10)**: stale-lock cleanup and the mid-checkout guard now inspect
+  the resolved gitdir used by Git, including linked worktrees and nested
+  submodules, instead of assuming `repo/.git` is a directory.
 - **Publish-upstream setup verifies Git exit status (audit F57, 2026-09-09)**:
   daemon and VS Code origin bootstrap now surface nonzero `git config` and
   remote-add results instead of claiming the upstream was configured.
