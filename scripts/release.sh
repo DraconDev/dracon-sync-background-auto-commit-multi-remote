@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # scripts/release.sh — cut a dracon-sync release end-to-end.
 #
-# This command releases the dracon-sync package from the dracon-utilities
-# monorepo: it updates the utility's Cargo.toml/CHANGELOG/release notes,
-# the monorepo lockfile, crates.io, the monorepo tag, and its GitHub release.
+# This command releases the dracon-sync package from this repo: it updates
+# Cargo.toml/CHANGELOG/release notes, the standalone Cargo.lock, crates.io,
+# the dracon-sync-vX.Y.Z tag, and its GitHub release.
 #
 # Hard rules baked into this script:
 #   - The git tag is created only AFTER successful crates.io publish.
 #     The tag is the contract that "this version is on crates.io".
-#   - The parent monorepo working tree must be clean before starting. Run
+#   - The repo working tree must be clean before starting. Run
 #     this through `dracon-sync maintenance -- ...` to avoid daemon races.
 #   - Every step is idempotent: re-running with the same version is a no-op
 #     or a clear "already done" message.
@@ -64,6 +64,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CRATE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 CRATE_REL="${CRATE_DIR#"$REPO_ROOT"/}"
+# STANDALONE 2026-09-11 (nested-repo layout): the crate directory can
+# BE the git top-level now. Release surfaces are then repo-root-relative.
+if [[ "$CRATE_DIR" == "$REPO_ROOT" ]]; then CRATE_REL=""; fi
+# Repo-root-relative prefix for release surfaces ("" in standalone mode).
+RELPFX="${CRATE_REL:+$CRATE_REL/}"
 cd "$REPO_ROOT"
 
 CRATE_TOML="$CRATE_DIR/Cargo.toml"
@@ -105,7 +110,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-TAG="v${VERSION}"
+TAG="${CRATE_NAME}-v${VERSION}"
 TOTAL_STEPS=8
 
 # ----- colors (only on a tty) ---------------------------------------------
@@ -164,17 +169,17 @@ require_credentials() {
 
 is_release_surface() {
     local path=$1
-    [[ "$path" == "$CRATE_REL/Cargo.toml" ||
-       "$path" == "$CRATE_REL/CHANGELOG.md" ||
+    [[ "$path" == "${RELPFX}Cargo.toml" ||
+       "$path" == "${RELPFX}CHANGELOG.md" ||
        "$path" == "Cargo.lock" ||
-       "$path" == "$CRATE_REL"/release-notes-v*.md ]]
+       "$path" == "${RELPFX}"release-notes-v*.md ]]
 }
 
 release_note_files() {
     # The parent .gitignore intentionally ignores the utility directory, so
     # include ignored-but-untracked release notes when handling --abort.
     git ls-files --others --ignored --exclude-standard -- \
-        "$CRATE_REL/release-notes-v*.md" 2>/dev/null || true
+        "${RELPFX}release-notes-v*.md" 2>/dev/null || true
 }
 
 confirm_remote_mutation() {
@@ -305,7 +310,7 @@ run_gate cargo clippy --workspace --locked -- -D warnings
 ok "  all gates passed"
 
 # ----- step 2: bump Cargo.toml version ------------------------------------
-log "step 2/${TOTAL_STEPS}: bumping ${CRATE_REL}/Cargo.toml to ${VERSION}"
+log "step 2/${TOTAL_STEPS}: bumping ${RELPFX}Cargo.toml to ${VERSION}"
 current=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$CRATE_TOML" 2>/dev/null || true)
 if [[ -z "$current" ]]; then
     die_pre "no version found in $CRATE_TOML"
@@ -322,7 +327,7 @@ fi
 refresh_workspace_lock
 
 # ----- step 3: close CHANGELOG [Unreleased] -------------------------------
-log "step 3/${TOTAL_STEPS}: closing ${CRATE_REL}/CHANGELOG.md [Unreleased] → [${VERSION}]"
+log "step 3/${TOTAL_STEPS}: closing ${RELPFX}CHANGELOG.md [Unreleased] → [${VERSION}]"
 DATE=$(date -u +%Y-%m-%d)
 # v0.113.11: extracted + idempotent (a re-run on an already-closed
 # version leaves the file byte-identical — the v0.113.10 re-run duplicated
@@ -331,8 +336,8 @@ python3 "$SCRIPT_DIR/close-changelog.py" "$CHANGELOG" "$VERSION" "$DATE"
 ok "  $CHANGELOG: [Unreleased] closed as [${VERSION}] - ${DATE} (or already closed)"
 
 # ----- step 4: create release-notes file ----------------------------------
-log "step 4/${TOTAL_STEPS}: creating ${CRATE_REL}/release-notes-v${VERSION}.md"
-NOTES_REL="$CRATE_REL/release-notes-v${VERSION}.md"
+log "step 4/${TOTAL_STEPS}: creating ${RELPFX}release-notes-v${VERSION}.md"
+NOTES_REL="${RELPFX}release-notes-v${VERSION}.md"
 NOTES="$REPO_ROOT/$NOTES_REL"
 if [[ -f "$NOTES" ]]; then
     ok "  $NOTES_REL already exists"
@@ -426,7 +431,7 @@ fi
 log "step 8/${TOTAL_STEPS}: commit + tag + push + gh release"
 # The utility directory is parent-gitignored by design; force staging is
 # scoped to the exact release surfaces and never uses `git add .`.
-run git add -f -- "$CRATE_REL/Cargo.toml" "$CRATE_REL/CHANGELOG.md" "$NOTES_REL" "Cargo.lock"
+run git add -f -- "${RELPFX}Cargo.toml" "${RELPFX}CHANGELOG.md" "$NOTES_REL" "Cargo.lock"
 # Idempotent re-run path: skip the commit when there is nothing to commit.
 if [[ $DRY_RUN -eq 1 ]]; then
     run git -c user.email=dracsharp@gmail.com -c user.name=DraconDev \
@@ -453,7 +458,7 @@ run git push "$REMOTE" main "$TAG"
 if [[ $DRY_RUN -eq 1 ]]; then
     run gh release create "$TAG" \
         --target main \
-        --title "v${VERSION}" \
+        --title "${CRATE_NAME} v${VERSION}" \
         --notes-file "$NOTES"
 else
     if gh release view "$TAG" >/dev/null 2>&1; then
@@ -462,7 +467,7 @@ else
         printf '   $ gh release create %s\n' "$TAG"
         gh release create "$TAG" \
             --target main \
-            --title "v${VERSION}" \
+            --title "${CRATE_NAME} v${VERSION}" \
             --notes-file "$NOTES"
     fi
 fi
@@ -493,10 +498,10 @@ ok "═════════════════════════�
 
 warn ""
 warn "after 'cargo install dracon-sync --version ${VERSION}', run the fixture check:"
-warn "    ${CRATE_REL}/scripts/verify-install.sh"
+warn "    ${RELPFX}scripts/verify-install.sh"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     echo ""
     warn "This was a --dry-run. Local files were modified but no remote state was changed."
-    warn "Run '${CRATE_REL}/scripts/release.sh --abort' to revert, or '${CRATE_REL}/scripts/release.sh ${VERSION} --yes' to execute for real."
+    warn "Run '${RELPFX}scripts/release.sh --abort' to revert, or '${RELPFX}scripts/release.sh ${VERSION} --yes' to execute for real."
 fi
