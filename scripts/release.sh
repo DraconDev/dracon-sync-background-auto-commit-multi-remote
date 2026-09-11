@@ -243,7 +243,12 @@ if [[ $ABORT -eq 1 ]]; then
     while IFS= read -r f; do
         [[ -z "$f" ]] && continue
         abort_untracked+=("$f")
-    done < <(release_note_files)
+    # STANDALONE 2026-09-11: release notes are tracked release artifacts, not
+    # ignored files, so cover non-ignored untracked notes too (ignored-only
+    # came free in the monorepo via the parent's utility-dir ignore rule).
+    done < <({ release_note_files
+        git ls-files --others --exclude-standard -- "${RELPFX}release-notes-v*.md" 2>/dev/null || true
+    } | sort -u)
     if [[ ${#abort_tracked[@]} -gt 0 || ${#abort_untracked[@]} -gt 0 ]]; then
         set +e
         if [[ ${#abort_tracked[@]} -gt 0 ]]; then
@@ -493,7 +498,10 @@ ok ""
 ok "════════════════════════════════════════════"
 ok "✓ dracon-sync v${VERSION} released"
 ok "  crates.io:  https://crates.io/crates/dracon-sync"
-ok "  github:     https://github.com/DraconDev/dracon-utilities/releases/tag/${TAG}"
+GH_PATH="$(git config --get "remote.${REMOTE}.url" 2>/dev/null || true)"
+GH_PATH="${GH_PATH%.git}"; GH_PATH="${GH_PATH##*github.com[:/]}"
+[[ -n "$GH_PATH" ]] || GH_PATH="DraconDev/dracon-utilities"
+ok "  github:     https://github.com/${GH_PATH}/releases/tag/${TAG}"
 ok "════════════════════════════════════════════"
 
 warn ""
