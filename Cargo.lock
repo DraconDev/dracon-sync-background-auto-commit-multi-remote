@@ -521,7 +521,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-sync"
-version = "0.113.51"
+version = "0.113.55"
 dependencies = [
  "anyhow",
  "clap",
@@ -529,6 +529,7 @@ dependencies = [
  "dirs",
  "dracon-git",
  "futures",
+ "libc",
  "notify-rust",
  "parking_lot",
  "proptest",
