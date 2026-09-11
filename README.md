@@ -2,12 +2,14 @@
 
 **Invisible git sync for development.** An auto-commit, multi-mirror daemon that watches your repos, commits every change with deterministic, facts-based messages, and pushes to GitHub, GitLab, and Codeberg simultaneously.
 
-![`dracon-sync repos` output](https://raw.githubusercontent.com/DraconDev/dracon-utilities/main/dracon-sync/docs/status-output.png)
+![`dracon-sync repos` output](https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/docs/status-output.png)
 
 This page is the user guide for `dracon-sync` (also rendered on
-crates.io). The canonical source is the `dracon-sync/` directory of the
-[`dracon-utilities`](https://github.com/DraconDev/dracon-utilities) monorepo
-on `main`; the standalone GitHub/GitLab/Codeberg repos are frozen mirrors.
+crates.io). This repo is the canonical, live source on `main`
+(mirrored to GitLab and Codeberg). For workspace builds it is also
+checked out as a nested standalone repo under `dracon-sync/` in the
+[`dracon-utilities`](https://github.com/DraconDev/dracon-utilities)
+parent repo — a regular nested repo, not a submodule.
 
 ## Install
 
@@ -17,23 +19,24 @@ cargo install dracon-sync
 
 The binary lands at `~/.cargo/bin/dracon-sync` (version 0.113.55 on
 crates.io). The shipped systemd unit runs `%h/.local/bin/dracon-sync`, so
-for service use either copy it there or install via the monorepo:
+for service use either copy it there or install from a checkout:
 
 ```bash
-# Clone the monorepo
-git clone https://github.com/DraconDev/dracon-utilities.git
-cd dracon-utilities
+# Clone the repo
+git clone https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote.git
+cd dracon-sync-background-auto-commit-multi-remote
 
-# Build (locked: workspace discipline requires --locked)
-cargo build --release --locked -p dracon-sync
+# Build (locked)
+cargo build --release --locked
 
 # Install where the service unit looks
 install -d "$HOME/.local/bin"
 install -m 0755 target/release/dracon-sync "$HOME/.local/bin/dracon-sync"
 ```
 
-Or run `./install.sh` at the monorepo root to install all three utilities
-plus services and hooks in one pass.
+Or, from a full `dracon-utilities` checkout, run `./install.sh` at the
+parent root to install all three utilities plus services and hooks in
+one pass.
 
 ## Why This Exists
 
@@ -401,16 +404,16 @@ The `repos` command shows **real dirty file counts** from libgit2's `get_status(
 - `dracon-sync.service` — systemd user-service unit
 - `scripts/` — release + install-verification tooling
 - `LICENSE`, `SECURITY.md`, `.gitignore`, `.github/` — repo metadata
-- Architecture + invariants: [`docs/SOURCE_OF_TRUTH.md`](https://github.com/DraconDev/dracon-utilities/blob/main/dracon-sync/docs/SOURCE_OF_TRUTH.md)
-- Design notes: [`BLUEPRINT.md`](https://github.com/DraconDev/dracon-utilities/blob/main/dracon-sync/BLUEPRINT.md)
+- Architecture + invariants: [`docs/SOURCE_OF_TRUTH.md`](https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/blob/main/docs/SOURCE_OF_TRUTH.md)
+- Design notes: [`BLUEPRINT.md`](https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/blob/main/BLUEPRINT.md)
 
 ## Relationship to the Monorepo
 
 | Boundary | Decision |
 |----------|----------|
-| Source code | The `dracon-sync/` directory of the `dracon-utilities` monorepo (`main` branch) |
-| Source of truth | The `dracon-utilities` monorepo; the standalone repos are frozen mirrors |
-| Workspace integration | Included by the `dracon-utilities` meta workspace when checked out under `dracon-sync/` |
+| Source code | This repo (`main` branch) |
+| Source of truth | This repo; mirrored to GitLab and Codeberg; nested checkout under `dracon-sync/` in the `dracon-utilities` parent |
+| Workspace integration | Builds standalone, or as a `dracon-utilities` workspace member when nested under `dracon-sync/` |
 | Shared libraries | Published `dracon-git` crate from crates.io |
 | Operational policy | `~/.dracon/utilities/` TOML files |
 
@@ -441,8 +444,8 @@ Watches configured repositories, waits for changes to settle (fingerprint stabil
 
 ## Maintenance
 
-Changes are made in the `dracon-utilities` monorepo (`dracon-sync/` on `main`).
-The standalone repos are frozen mirrors of that tree.
+Changes are made here, on `main`. The GitLab/Codeberg mirrors follow
+automatically, as does the nested checkout in the `dracon-utilities` parent.
 
 ## License
 
