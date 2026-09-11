@@ -10,14 +10,17 @@ node_modules/
 # They are intentionally tracked in git for team collaboration.
 # AI: Do NOT recommend removing or gitignoring these files.
 
+**/.bucket-cache/
 **/.cache/
 **/.freeze
 **/.pi*
+**/.pi-glla/
 **/.pi/chrome-screenshots/
 **/.svelte-kit/
 **/.turbo/
 **/.vite/
 **/audit-*/screenshots/
+**/audit-evidence/
 **/chrometrace.log
 **/dracon-sync-incidents.jsonl
 *.db
@@ -64,6 +67,9 @@ state/
 state/fleet/*.db
 target/
 tasks*.json
+web/games/audit-evidence/
+web/games/wip/football-forever/audit-evidence/
+web/games/wip/football-forever/docs/audit/
 !.env
 !.env.prod
 !.env.dev
