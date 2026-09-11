@@ -2,7 +2,7 @@
 
 **Invisible git sync for development.** An auto-commit, multi-mirror daemon that watches your repos, commits every change with deterministic, facts-based messages, and pushes to GitHub, GitLab, and Codeberg simultaneously.
 
-![`dracon-sync status` output](https://raw.githubusercontent.com/DraconDev/dracon-utilities/main/dracon-sync/docs/status-output.png)
+![`dracon-sync repos` output](https://raw.githubusercontent.com/DraconDev/dracon-utilities/main/dracon-sync/docs/status-output.png)
 
 This page is the user guide for `dracon-sync` (also rendered on
 crates.io). The canonical source is the `dracon-sync/` directory of the
