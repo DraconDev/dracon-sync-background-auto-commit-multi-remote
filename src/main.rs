@@ -95,7 +95,7 @@ use policy::freeze_reason;
 use policy::{resolve_policy_path, timestamp_secs, SyncPolicy};
 use report::{
     push_large_blob_threshold_bytes, run_repair_concerns, run_repair_warns, run_repos_report,
-    run_scan_bloat_report, ConcernRepairFilter, RepoFilter,
+    run_scan_bloat_report, terminal_width, ConcernRepairFilter, RepoFilter,
 };
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
@@ -702,7 +702,16 @@ async fn main() -> Result<()> {
 
                 let mut table = Table::new();
                 table.load_preset(UTF8_FULL_CONDENSED);
-                table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+                // Content-sized like the health table: DynamicFullWidth
+                // stretches the KEY column across wide terminals, landing
+                // the mid-separator mid-screen. Cap at terminal width so
+                // narrow terminals wrap instead of overflowing.
+                table.set_content_arrangement(ContentArrangement::Dynamic);
+                if let Some(w) = terminal_width() {
+                    if (40..=2000).contains(&w) {
+                        table.set_width(w);
+                    }
+                }
                 table.set_header(vec![Cell::new("KEY"), Cell::new("VALUE")]);
 
                 // Policy path
