@@ -872,6 +872,133 @@ async fn stage_existing_files(
     .await
 }
 
+/// How long `maybe_auto_harden_with_warden` waits for one
+/// `dracon-warden once <repo>` run before giving up fail-open.
+/// Single-repo harden passes are local file + git-config writes;
+/// 120s is generous without letting a wedged warden stall a cycle.
+const WARDEN_HARDEN_TIMEOUT_SECS: u64 = 120;
+/// How long a failed harden attempt suppresses retries for the same
+/// repo (fail-open must not fork-bomb a broken warden every cycle).
+const WARDEN_HARDEN_RETRY_SECS: u64 = 1800;
+
+/// Per-process warden-harden state: repo path -> (hardened, last
+/// attempt). Hardened repos never re-check; failed attempts retry
+/// after [`WARDEN_HARDEN_RETRY_SECS`]. Guarded by a plain mutex —
+/// critical sections never `.await`.
+static WARDEN_HARDEN_STATE: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (bool, std::time::Instant)>>,
+> = std::sync::OnceLock::new();
+
+/// Pure probe: does this repo already carry warden hardening? True
+/// when the local git config has the clean filter (written by
+/// `dracon-warden once`), which is what makes the encryption filter
+/// actually run at `git add` time. Extracted for unit tests.
+pub(crate) fn repo_has_warden_filter(repo: &Path) -> bool {
+    std::process::Command::new("git")
+        .args(["config", "--local", "--get", "filter.dracon.clean"])
+        .current_dir(repo)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// ADDED 2026-09-15 (warden-showcase probe): sync-hook auto-harden.
+/// The probe proved a brand-new repo's secrets reach remotes in
+/// plaintext ~1 minute after creation because hardening was a manual
+/// `dracon-warden once` pass while sync commits on a ~1s pulse. The
+/// operator chose a sync hook over a timer: hardening must be in
+/// place BEFORE the first auto-stage, and only a pre-stage hook can
+/// guarantee that ordering.
+///
+/// Called at the top of [`stage_existing_files_filtered`] (the single
+/// choke point every auto-stage flows through) when there is actually
+/// something to stage. No-op when disabled via
+/// `auto_harden_with_warden`, in dry-run mode, without policy context
+/// (unit-test callers), or when the repo is already hardened.
+/// Fail-open by design: a missing/broken warden binary logs one
+/// warning per retry window and staging proceeds — a broken warden
+/// must never wedge the sync loop (the leak window stays open, but
+/// sync stays alive; the next process restart or retry window
+/// re-attempts).
+async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run: bool) {
+    if dry_run || !policy.auto_harden_with_warden {
+        return;
+    }
+    let key = repo.to_path_buf();
+    {
+        let state = WARDEN_HARDEN_STATE
+            .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+            .lock()
+            .expect("warden harden state poisoned");
+        if let Some((hardened, _)) = state.get(&key) {
+            if *hardened {
+                return;
+            }
+        }
+        if let Some((_, last)) = state.get(&key) {
+            if last.elapsed().as_secs() < WARDEN_HARDEN_RETRY_SECS {
+                return;
+            }
+        }
+    }
+    if repo_has_warden_filter(repo) {
+        WARDEN_HARDEN_STATE
+            .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+            .lock()
+            .expect("warden harden state poisoned")
+            .insert(key, (true, std::time::Instant::now()));
+        return;
+    }
+    // Mark the attempt BEFORE spawning so concurrent sync tasks for
+    // the same repo cannot fork duplicate harden passes.
+    WARDEN_HARDEN_STATE
+        .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+        .lock()
+        .expect("warden harden state poisoned")
+        .insert(key.clone(), (false, std::time::Instant::now()));
+    let run = tokio::process::Command::new("dracon-warden")
+        .args(["once", &key.to_string_lossy()])
+        .kill_on_drop(true)
+        .output();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(WARDEN_HARDEN_TIMEOUT_SECS),
+        run,
+    )
+    .await
+    {
+        Ok(Ok(out)) if out.status.success() => {
+            WARDEN_HARDEN_STATE
+                .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+                .lock()
+                .expect("warden harden state poisoned")
+                .insert(key.clone(), (true, std::time::Instant::now()));
+            eprintln!("🛡️ {} auto-hardened with warden before staging", repo.display());
+        }
+        Ok(Ok(out)) => {
+            let err = String::from_utf8_lossy(&out.stderr);
+            eprintln!(
+                "⚠️ warden auto-harden failed for {} (staging proceeds unhardened): {}",
+                repo.display(),
+                err.lines().next().unwrap_or("unknown error")
+            );
+        }
+        Ok(Err(e)) => {
+            eprintln!(
+                "⚠️ warden auto-harden could not run for {} (staging proceeds unhardened; is dracon-warden on PATH?): {}",
+                repo.display(),
+                e
+            );
+        }
+        Err(_) => {
+            eprintln!(
+                "⚠️ warden auto-harden timed out after {}s for {} (staging proceeds unhardened)",
+                WARDEN_HARDEN_TIMEOUT_SECS,
+                repo.display()
+            );
+        }
+    }
+}
+
 /// Stage existing files, recursing into untracked directories.
 ///
 /// `filter`: when `Some((policy, auto_commit_exclude_patterns))`,
@@ -896,6 +1023,13 @@ async fn stage_existing_files_filtered(
 ) -> Result<()> {
     if existing.is_empty() {
         return Ok(());
+    }
+    // ADDED 2026-09-15 (warden-showcase probe): auto-harden hook. This
+    // is the single choke point every auto-stage flows through, so the
+    // encryption filter is guaranteed active at `git add` time — before
+    // the first commit, not whenever a human runs `dracon-warden once`.
+    if let Some((stage_policy, _)) = filter {
+        maybe_auto_harden_with_warden(repo, stage_policy, dry_run).await;
     }
     // Filter out paths that no longer exist on disk. Build tools like vite
     // create timestamp-suffixed temp files (e.g.

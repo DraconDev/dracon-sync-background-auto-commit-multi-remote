@@ -454,6 +454,19 @@ pub(crate) struct SyncPolicy {
     /// - Generic: `VERSION`
     #[serde(default = "default_true")]
     pub(crate) auto_bump_versions: bool,
+    /// If true, the daemon runs `dracon-warden once <repo>` on a repo
+    /// that lacks warden hardening (no local `filter.dracon.clean`)
+    /// before the first auto-stage, so the encryption filter is active
+    /// at `git add` time. Closes the new-repo race the 2026-09-15
+    /// warden-showcase probe exposed: sync committed plaintext secrets
+    /// ~1 minute after repo creation while hardening was still manual.
+    /// Fail-open (warn + continue staging) so a broken warden binary
+    /// can never wedge the sync loop; attempted once per repo per
+    /// process lifetime (30-min retry). Global-only: a per-repo opt-out
+    /// would silently recreate the leak window for exactly the repos
+    /// most likely to hold secrets.
+    #[serde(default = "default_true")]
+    pub(crate) auto_harden_with_warden: bool,
     #[serde(default = "default_true")]
     pub(crate) auto_pull: bool,
     #[serde(default = "default_true")]
@@ -2120,6 +2133,7 @@ mod tests {
         "auto_gc_garbage_threshold_bytes",
         "auto_github_private",
         "auto_github_private_account",
+        "auto_harden_with_warden",
         "auto_prune_stale_backup_branches",
         "auto_pull",
         "auto_push",
