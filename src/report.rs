@@ -10326,6 +10326,7 @@ mod tests {
             inactivity_push_delay_secs: 5,
             auto_commit: true,
             auto_bump_versions: true,
+            auto_harden_with_warden: true,
             auto_pull: true,
             auto_push: true,
             backup_policy: String::new(),
