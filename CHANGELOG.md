@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Sync-hook warden auto-harden closes the new-repo plaintext race
+  (warden-showcase probe, 2026-09-15)**: new `auto_harden_with_warden`
+  knob (default true, global-only by design) runs
+  `dracon-warden once <repo>` inside `stage_existing_files_filtered` —
+  the single choke point every auto-stage flows through — before the
+  first auto-stage of any repo lacking the local `filter.dracon.clean`
+  config. The probe proved a recreated showcase repo's secrets reached
+  remotes in plaintext ~1 minute after creation because hardening was a
+  manual pass while sync commits on a ~1s pulse. Fail-open (warn +
+  continue staging, one attempt per repo per process lifetime with a
+  30-minute retry) so a broken warden binary can never wedge the sync
+  loop; skipped in dry-run mode.
 - **Startup index-lock cleanup resolves checkout gitdirs (audit F52,
   2026-09-10)**: stale-lock cleanup and the mid-checkout guard now inspect
   the resolved gitdir used by Git, including linked worktrees and nested
