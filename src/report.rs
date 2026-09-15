@@ -7817,9 +7817,8 @@ pub(crate) async fn run_repair_concerns(
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let seen_ledger = crate::vanished::load_seen_ledger(&crate::vanished::seen_ledger_path(
-        policy_path,
-    ));
+    let seen_ledger =
+        crate::vanished::load_seen_ledger(&crate::vanished::seen_ledger_path(policy_path));
     for v in crate::vanished::detect_vanished_repos(&seen_ledger, vanished_now) {
         if std::path::Path::new(&v.path).exists() {
             continue;
@@ -7878,8 +7877,7 @@ pub(crate) async fn run_repair_concerns(
         // Skips every repair op for this repo — including the
         // filter-repo large-blob rewrite below. Explicit single-repo
         // targeting (`only_repo`) bypasses, like intentional_no_upstream.
-        if !crate::policy::repo_auto_repair_enabled(&policy, &repo_override)
-            && only_repo.is_none()
+        if !crate::policy::repo_auto_repair_enabled(&policy, &repo_override) && only_repo.is_none()
         {
             out!(
                 "ℹ️  {}  skipped: auto_repair_concerns=false set in .dracon/dracon-sync.toml",
@@ -8721,7 +8719,11 @@ mod tests {
         let git_dir = tmp.path().join("modules").join("nested");
         std::fs::create_dir_all(&repo).unwrap();
         std::fs::create_dir_all(git_dir.join("refs/remotes/origin")).unwrap();
-        std::fs::write(repo.join(".git"), format!("gitdir: {}\n", git_dir.display())).unwrap();
+        std::fs::write(
+            repo.join(".git"),
+            format!("gitdir: {}\n", git_dir.display()),
+        )
+        .unwrap();
         std::fs::write(git_dir.join("refs/remotes/origin/main"), "deadbeef\n").unwrap();
 
         assert!(ever_pushed(&repo));
@@ -8736,8 +8738,11 @@ mod tests {
         std::fs::create_dir_all(&repo).unwrap();
         std::fs::create_dir_all(&worktree_git_dir).unwrap();
         std::fs::create_dir_all(common_git_dir.join("refs/remotes/origin")).unwrap();
-        std::fs::write(repo.join(".git"), format!("gitdir: {}\n", worktree_git_dir.display()))
-            .unwrap();
+        std::fs::write(
+            repo.join(".git"),
+            format!("gitdir: {}\n", worktree_git_dir.display()),
+        )
+        .unwrap();
         std::fs::write(worktree_git_dir.join("commondir"), "../..\n").unwrap();
         std::fs::write(
             common_git_dir.join("refs/remotes/origin/main"),
@@ -9625,10 +9630,7 @@ mod tests {
                 .unwrap();
         }
         std::fs::write(repo.join("file.txt"), "hello").unwrap();
-        for args in [
-            vec!["add", "file.txt"],
-            vec!["commit", "-q", "-m", "init"],
-        ] {
+        for args in [vec!["add", "file.txt"], vec!["commit", "-q", "-m", "init"]] {
             std::process::Command::new("git")
                 .args(&args)
                 .current_dir(repo)

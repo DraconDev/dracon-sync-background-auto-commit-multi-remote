@@ -941,9 +941,7 @@ async fn main() -> Result<()> {
                     println!("ℹ️  No freeze marker found — sync was not paused");
                 }
                 if crate::policy::env_freeze_enabled() {
-                    println!(
-                        "⚠️  DRACON_SYNC_FREEZE is set — sync stays frozen until it is unset"
-                    );
+                    println!("⚠️  DRACON_SYNC_FREEZE is set — sync stays frozen until it is unset");
                 }
             } else {
                 anyhow::bail!("cannot determine home directory");
@@ -1872,20 +1870,18 @@ async fn cmd_scaffold(
                 continue;
             }
 
-            let target_path = match standard_files::resolve_standard_file_target(
-                repo_path,
-                &cfg.target,
-            ) {
-                Ok(path) => path,
-                Err(_) => {
-                    results.push((
-                        repo_name.clone(),
-                        cfg.target.clone(),
-                        "unsafe path".to_string(),
-                    ));
-                    continue;
-                }
-            };
+            let target_path =
+                match standard_files::resolve_standard_file_target(repo_path, &cfg.target) {
+                    Ok(path) => path,
+                    Err(_) => {
+                        results.push((
+                            repo_name.clone(),
+                            cfg.target.clone(),
+                            "unsafe path".to_string(),
+                        ));
+                        continue;
+                    }
+                };
             if target_path.exists() && !overwrite && !cfg.overwrite {
                 continue;
             }
@@ -2164,7 +2160,10 @@ standard_files = [{ source = "templates/LICENSE", target = ".", overwrite = true
             .await
             .unwrap();
 
-        assert!(repo_dir.is_dir(), "scaffold must not remove repository root");
+        assert!(
+            repo_dir.is_dir(),
+            "scaffold must not remove repository root"
+        );
         assert!(
             repo_dir.join(".git/HEAD").is_file(),
             "scaffold must preserve checkout metadata"
@@ -2261,7 +2260,10 @@ standard_files = [{ source = "templates/FUNDING.yml", target = ".github", overwr
             .unwrap();
 
         assert!(repo_dir.join(".git/HEAD").is_file());
-        assert!(external_dir.is_dir(), "scaffold must not delete external dirs");
+        assert!(
+            external_dir.is_dir(),
+            "scaffold must not delete external dirs"
+        );
         assert_eq!(
             std::fs::read_to_string(external_dir.join("keep.txt")).unwrap(),
             "keep me"

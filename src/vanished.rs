@@ -153,7 +153,10 @@ mod tests {
         assert_eq!(entry.first_vanished_secs, None);
 
         // Re-mark after a vanish clears the stamp.
-        ledger.get_mut("/tmp/dracon-vanished-test/r").unwrap().first_vanished_secs = Some(secs(5));
+        ledger
+            .get_mut("/tmp/dracon-vanished-test/r")
+            .unwrap()
+            .first_vanished_secs = Some(secs(5));
         mark_seen(&mut ledger, path, secs(10));
         let entry = ledger.get("/tmp/dracon-vanished-test/r").unwrap();
         assert_eq!(entry.last_seen_secs, secs(10));

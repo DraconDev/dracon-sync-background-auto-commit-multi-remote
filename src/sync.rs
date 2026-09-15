@@ -972,7 +972,10 @@ async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run
                 .lock()
                 .expect("warden harden state poisoned")
                 .insert(key.clone(), (true, std::time::Instant::now()));
-            eprintln!("🛡️ {} auto-hardened with warden before staging", repo.display());
+            eprintln!(
+                "🛡️ {} auto-hardened with warden before staging",
+                repo.display()
+            );
         }
         Ok(Ok(out)) => {
             let err = String::from_utf8_lossy(&out.stderr);
@@ -2891,11 +2894,7 @@ fn is_doc_file(path: &str) -> bool {
 /// or any `*.lock`. Matched on the lowercased basename, so `changelog.md`
 /// and friends never match.
 fn is_lock_file(path: &str) -> bool {
-    let base = path
-        .rsplit('/')
-        .next()
-        .unwrap_or(path)
-        .to_ascii_lowercase();
+    let base = path.rsplit('/').next().unwrap_or(path).to_ascii_lowercase();
     if base.ends_with(".lock") {
         return true;
     }
@@ -3212,8 +3211,7 @@ fn compute_blast_radius(repo: &Path) -> String {
     };
 
     // Staged path universe for scope + file-signal tokens (text + binary).
-    let mut staged_paths: Vec<String> =
-        file_changes.iter().map(|(_, p)| p.clone()).collect();
+    let mut staged_paths: Vec<String> = file_changes.iter().map(|(_, p)| p.clone()).collect();
     staged_paths.extend(binary_paths.iter().cloned());
 
     // 2. Scope: deepest common directory prefix (LCP, cap 4). A single
@@ -3255,8 +3253,7 @@ fn compute_blast_radius(repo: &Path) -> String {
     // EXT: file-signal histogram (which toolchain/tests matter). Gitlink
     // pointers and extensionless entries carry no extension signal.
     {
-        let candidates: Vec<String> =
-            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        let candidates: Vec<String> = file_changes.iter().map(|(_, p)| p.clone()).collect();
         let gitlinks = tracked_gitlink_set(repo, &candidates);
         let ext_paths: Vec<String> = candidates
             .into_iter()
@@ -3343,8 +3340,7 @@ fn compute_blast_radius(repo: &Path) -> String {
 
     // 9. Test-only detection — if ALL changed files are test files
     if !file_changes.is_empty() && file_changes.iter().all(|(_, path)| is_test_file(path)) {
-        let test_paths: Vec<String> =
-            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        let test_paths: Vec<String> = file_changes.iter().map(|(_, p)| p.clone()).collect();
         metrics.push(format!("TESTONLY:{}", abbreviate_paths(&test_paths, 5)));
     }
 
@@ -3354,8 +3350,7 @@ fn compute_blast_radius(repo: &Path) -> String {
         && !file_changes.is_empty()
         && file_changes.iter().all(|(_, path)| is_doc_file(path))
     {
-        let doc_paths: Vec<String> =
-            file_changes.iter().map(|(_, p)| p.clone()).collect();
+        let doc_paths: Vec<String> = file_changes.iter().map(|(_, p)| p.clone()).collect();
         metrics.push(format!("DOCSONLY:{}", abbreviate_paths(&doc_paths, 5)));
     }
 
@@ -5291,7 +5286,11 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
         init_msg_repo(repo);
-        write_repo_file(repo, "web/games/wip/polis/src/main.ts", b"console.log(1);\n");
+        write_repo_file(
+            repo,
+            "web/games/wip/polis/src/main.ts",
+            b"console.log(1);\n",
+        );
         stage_paths(repo, &["web/games/wip/polis/src/main.ts"]);
         let msg = compute_blast_radius(repo);
         assert!(
@@ -5390,7 +5389,10 @@ mod tests {
         write_repo_file(repo, "Cargo.lock", b"# lock\n");
         stage_paths(repo, &["Cargo.lock"]);
         let msg = compute_blast_radius(repo);
-        assert!(msg.contains("LOCK"), "lockfile-only change needs LOCK, got: {msg}");
+        assert!(
+            msg.contains("LOCK"),
+            "lockfile-only change needs LOCK, got: {msg}"
+        );
         assert!(!msg.contains("DEPS:"), "no manifest changed, got: {msg}");
 
         let tmp2 = tempfile::tempdir().unwrap();
@@ -5399,7 +5401,10 @@ mod tests {
         write_repo_file(repo2, "changelog.md", b"# log\n");
         stage_paths(repo2, &["changelog.md"]);
         let msg2 = compute_blast_radius(repo2);
-        assert!(!msg2.contains("LOCK"), "changelog.md is not a lockfile, got: {msg2}");
+        assert!(
+            !msg2.contains("LOCK"),
+            "changelog.md is not a lockfile, got: {msg2}"
+        );
     }
 
     #[test]
@@ -5414,7 +5419,10 @@ mod tests {
         std::fs::create_dir_all(repo.join("new")).unwrap();
         git_run(repo, &["mv", "old/path.txt", "new/path.txt"]);
         let msg = compute_blast_radius(repo);
-        assert!(msg.contains("REN:1"), "move should surface REN:1, got: {msg}");
+        assert!(
+            msg.contains("REN:1"),
+            "move should surface REN:1, got: {msg}"
+        );
         assert!(!msg.contains("NEW:"), "move is not new, got: {msg}");
         assert!(!msg.contains("DEL:"), "move is not deleted, got: {msg}");
     }
@@ -5447,8 +5455,14 @@ mod tests {
         // filtered via the batched ls-tree check. (The `sub.mod` path itself
         // still appears in the file bracket — that is pre-existing
         // name-status behavior, not the EXT: signal.)
-        assert!(msg.contains("EXT:ts "), "EXT: should be exactly ts, got: {msg}");
-        assert!(!msg.contains("EXT:ts,"), "gitlink must not feed EXT:, got: {msg}");
+        assert!(
+            msg.contains("EXT:ts "),
+            "EXT: should be exactly ts, got: {msg}"
+        );
+        assert!(
+            !msg.contains("EXT:ts,"),
+            "gitlink must not feed EXT:, got: {msg}"
+        );
     }
 
     #[test]
@@ -6739,13 +6753,159 @@ trusted_authors = ["test"]
         init_empty_repo(&repo);
         std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
 
-        let policy = bootstrap_test_policy("");
+        // NOTE 2026-09-15 (warden auto-harden): this test pins the exact
+        // bootstrap commit count, so the hook is off — hardening files
+        // (.gitattributes/.gitignore) are out of scope here. See
+        // test_warden_auto_harden_* for hook coverage.
+        let policy = bootstrap_test_policy("auto_harden_with_warden = false");
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(result.is_ok(), "sync_repo failed: {:?}", result);
         assert_eq!(
             head_commit_count(&repo),
             1,
             "sync_repo must bootstrap the root commit"
+        );
+    }
+
+    /// ADDED 2026-09-15 (warden-showcase probe): the hardening probe
+    /// reads the local git config the same way `dracon-warden once`
+    /// writes it.
+    #[test]
+    fn test_repo_has_warden_filter_probe() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        assert!(
+            !repo_has_warden_filter(&repo),
+            "fresh repo must probe as unhardened"
+        );
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "--local",
+                "filter.dracon.clean",
+                "fake-clean %f",
+            ])
+            .status()
+            .unwrap();
+        assert!(
+            repo_has_warden_filter(&repo),
+            "repo with local filter.dracon.clean must probe as hardened"
+        );
+    }
+
+    /// Install a fake `dracon-warden` first on PATH that logs its argv
+    /// and emulates `once <repo>` by writing the filter config.
+    /// Returns the guards (must be held) and the log path.
+    fn install_fake_warden(
+        tmp: &tempfile::TempDir,
+    ) -> (
+        crate::test_helpers::EnvRestorer,
+        crate::test_helpers::EnvRestorer,
+        std::path::PathBuf,
+    ) {
+        let bindir = tmp.path().join("bin");
+        std::fs::create_dir(&bindir).unwrap();
+        let log = tmp.path().join("warden.log");
+        let script = bindir.join("dracon-warden");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\necho \"$@\" >> \"$WARDEN_FAKE_LOG\"\n\
+if [ \"$1\" = \"once\" ] && [ -n \"$2\" ]; then\n\
+  git -C \"$2\" config --local filter.dracon.clean \"fake-clean %f\"\nfi\n",
+        )
+        .unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let new_path = format!(
+            "{}:{}",
+            bindir.display(),
+            std::env::var("PATH").unwrap_or_default()
+        );
+        let path_guard = crate::test_helpers::EnvRestorer::new("PATH", &new_path);
+        let log_guard =
+            crate::test_helpers::EnvRestorer::new("WARDEN_FAKE_LOG", &log.to_string_lossy());
+        (path_guard, log_guard, log)
+    }
+
+    /// ADDED 2026-09-15: the knob gates the fork — disabled means the
+    /// warden binary is never executed even for an unhardened repo.
+    #[tokio::test]
+    async fn test_warden_auto_harden_disabled_never_forks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (_pg, _lg, log) = install_fake_warden(&tmp);
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        let policy = bootstrap_test_policy("auto_harden_with_warden = false");
+        maybe_auto_harden_with_warden(&repo, &policy, false).await;
+        assert!(!log.exists(), "disabled hook must never fork dracon-warden");
+        assert!(
+            !repo_has_warden_filter(&repo),
+            "disabled hook must leave the repo unhardened"
+        );
+    }
+
+    /// ADDED 2026-09-15: dry-run mode never hardens (preview must not
+    /// mutate repos).
+    #[tokio::test]
+    async fn test_warden_auto_harden_skips_dry_run() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (_pg, _lg, log) = install_fake_warden(&tmp);
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        let policy = bootstrap_test_policy("");
+        maybe_auto_harden_with_warden(&repo, &policy, true).await;
+        assert!(!log.exists(), "dry-run must never fork dracon-warden");
+        assert!(
+            !repo_has_warden_filter(&repo),
+            "dry-run must leave the repo unhardened"
+        );
+    }
+
+    /// ADDED 2026-09-15: an unhardened repo gets exactly one harden
+    /// attempt — success is cached so the second staging does not
+    /// re-fork. Uses the default-true knob (field omitted from TOML)
+    /// to pin the fail-closed default end to end.
+    #[tokio::test]
+    async fn test_warden_auto_harden_hardens_once() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (_pg, _lg, log) = install_fake_warden(&tmp);
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        assert!(
+            bootstrap_test_policy("").auto_harden_with_warden,
+            "knob must default true when omitted"
+        );
+        let policy = bootstrap_test_policy("");
+        maybe_auto_harden_with_warden(&repo, &policy, false).await;
+        let first = std::fs::read_to_string(&log).expect("fake warden must have run");
+        assert_eq!(
+            first.lines().count(),
+            1,
+            "exactly one harden attempt, got: {}",
+            first
+        );
+        assert!(
+            first.contains("once"),
+            "harden must invoke `dracon-warden once <repo>`, got: {}",
+            first
+        );
+        assert!(
+            repo_has_warden_filter(&repo),
+            "repo must probe hardened after the hook"
+        );
+        maybe_auto_harden_with_warden(&repo, &policy, false).await;
+        let second = std::fs::read_to_string(&log).expect("log must persist");
+        assert_eq!(
+            second.lines().count(),
+            1,
+            "hardened repos must not re-fork, got: {}",
+            second
         );
     }
 

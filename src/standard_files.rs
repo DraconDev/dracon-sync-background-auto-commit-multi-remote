@@ -149,8 +149,7 @@ mod secure_target {
                 Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {
                     match make_directory_at(current.as_raw_fd(), component.as_c_str()) {
                         Ok(()) => {}
-                        Err(mkdir_error)
-                            if mkdir_error.raw_os_error() == Some(libc::EEXIST) => {}
+                        Err(mkdir_error) if mkdir_error.raw_os_error() == Some(libc::EEXIST) => {}
                         Err(mkdir_error) => return Err(mkdir_error),
                     }
                     // Re-open with O_NOFOLLOW. If a concurrent actor replaced
@@ -262,13 +261,11 @@ mod secure_target {
                 Err(error) => break Err(error),
             };
             match entry_kind(&metadata) {
-                EntryKind::Directory => {
-                    match remove_directory_at(directory_fd, child_name) {
-                        Ok(()) => {}
-                        Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {}
-                        Err(error) => break Err(error),
-                    }
-                }
+                EntryKind::Directory => match remove_directory_at(directory_fd, child_name) {
+                    Ok(()) => {}
+                    Err(error) if error.raw_os_error() == Some(libc::ENOENT) => {}
+                    Err(error) => break Err(error),
+                },
                 // unlinkat never follows a symlink, so a symlink child is
                 // removed as an entry rather than traversed.
                 EntryKind::Symlink | EntryKind::Other => {
@@ -297,11 +294,7 @@ mod secure_target {
             libc::openat(
                 parent,
                 name.as_ptr(),
-                libc::O_WRONLY
-                    | libc::O_CREAT
-                    | libc::O_EXCL
-                    | libc::O_NOFOLLOW
-                    | libc::O_CLOEXEC,
+                libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
                 0o666,
             )
         };
@@ -313,12 +306,7 @@ mod secure_target {
         }
     }
 
-    pub(super) fn copy(
-        repo: &Path,
-        target: &str,
-        source: &Path,
-        overwrite: bool,
-    ) -> Result<bool> {
+    pub(super) fn copy(repo: &Path, target: &str, source: &Path, overwrite: bool) -> Result<bool> {
         let components = target_components(target)?;
         let root = open_repository(repo)?;
         let mut source_file = File::open(source)
@@ -327,7 +315,10 @@ mod secure_target {
             .split_last()
             .expect("target_components always returns a filename");
         let parent = open_or_create_parent(root, parents).with_context(|| {
-            format!("failed to open standard-file target parent for '{}'", target)
+            format!(
+                "failed to open standard-file target parent for '{}'",
+                target
+            )
         })?;
 
         if let Some(metadata) = stat_at(parent.as_raw_fd(), filename.as_c_str())? {
@@ -369,9 +360,8 @@ mod secure_target {
                 return Ok(false);
             }
             Err(error) => {
-                return Err(error).with_context(|| {
-                    format!("failed to create standard-file target {}", target)
-                });
+                return Err(error)
+                    .with_context(|| format!("failed to create standard-file target {}", target));
             }
         };
 
@@ -379,9 +369,8 @@ mod secure_target {
             // Best effort cleanup is descriptor-relative and cannot follow a
             // replacement symlink. The original copy error remains primary.
             let _ = unlink_at(parent.as_raw_fd(), filename.as_c_str(), 0);
-            return Err(error).with_context(|| {
-                format!("failed to copy standard-file source to {}", target)
-            });
+            return Err(error)
+                .with_context(|| format!("failed to copy standard-file source to {}", target));
         }
         Ok(true)
     }
@@ -410,9 +399,8 @@ pub(crate) fn copy_standard_file_within_repo(
         }
         if target_path.exists() && overwrite {
             if target_path.is_dir() {
-                std::fs::remove_dir_all(&target_path).with_context(|| {
-                    format!("failed to remove existing directory {}", target)
-                })?;
+                std::fs::remove_dir_all(&target_path)
+                    .with_context(|| format!("failed to remove existing directory {}", target))?;
             } else {
                 std::fs::remove_file(&target_path)
                     .with_context(|| format!("failed to remove existing {}", target))?;
@@ -422,9 +410,8 @@ pub(crate) fn copy_standard_file_within_repo(
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create directory {}", parent.display()))?;
         }
-        std::fs::copy(source, &target_path).with_context(|| {
-            format!("failed to copy {} to {}", source.display(), target)
-        })?;
+        std::fs::copy(source, &target_path)
+            .with_context(|| format!("failed to copy {} to {}", source.display(), target))?;
         Ok(true)
     }
 }
@@ -809,7 +796,9 @@ mod tests {
             "~/templates/LICENSE"
         ));
         assert!(!crate::policy::is_safe_standard_file_path("~"));
-        assert!(!crate::policy::is_safe_standard_file_path("~templates/LICENSE"));
+        assert!(!crate::policy::is_safe_standard_file_path(
+            "~templates/LICENSE"
+        ));
         assert!(crate::policy::is_safe_standard_file_path(
             "templates/LICENSE"
         ));
@@ -843,14 +832,9 @@ mod tests {
             }]);
             let repo_override = make_override(vec![]);
 
-            let result = ensure_standard_files(
-                &repo_dir,
-                &policy,
-                &repo_override,
-                Some(dir.path()),
-                false,
-            )
-            .unwrap();
+            let result =
+                ensure_standard_files(&repo_dir, &policy, &repo_override, Some(dir.path()), false)
+                    .unwrap();
 
             assert!(
                 result.is_empty(),
@@ -894,14 +878,9 @@ mod tests {
                 overwrite,
             }]);
             let repo_override = make_override(vec![]);
-            let copied = ensure_standard_files(
-                &repo_dir,
-                &policy,
-                &repo_override,
-                Some(dir.path()),
-                false,
-            )
-            .unwrap();
+            let copied =
+                ensure_standard_files(&repo_dir, &policy, &repo_override, Some(dir.path()), false)
+                    .unwrap();
 
             assert!(copied.is_empty(), "symlink escape must not copy");
             assert!(repo_dir.join(".git").is_dir());

@@ -488,8 +488,8 @@ fn redact_origin_credentials(url: &str) -> String {
         return url.to_string();
     };
     let host_part = &authority[at_in_authority + 1..]; // after the '@'
-    // D7: drop the ENTIRE userinfo (`user` and `user:password` alike)
-    // — a bare username may be a token.
+                                                       // D7: drop the ENTIRE userinfo (`user` and `user:password` alike)
+                                                       // — a bare username may be a token.
     format!(
         "{prefix}{host}{tail}",
         prefix = &url[..scheme_end + 3],

@@ -2742,6 +2742,19 @@ auto_bump_versions = false
         assert!(policy.push_op_timeout_secs >= 10);
     }
 
+    #[test]
+    fn test_auto_harden_with_warden_defaults_true() {
+        // ADDED 2026-09-15 (warden-showcase probe): the hook must be on
+        // for default configs — a missing-field TOML (all existing
+        // fleet configs) deserializes via default_true. The value is
+        // also pinned in dracon-sync.example.toml.
+        let policy: SyncPolicy = toml::from_str("").expect("empty TOML parses");
+        assert!(
+            policy.auto_harden_with_warden,
+            "auto_harden_with_warden must default true (fail-closed posture)"
+        );
+    }
+
     fn test_sync_policy() -> SyncPolicy {
         super::test_sync_policy()
     }

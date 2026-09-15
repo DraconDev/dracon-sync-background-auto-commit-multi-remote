@@ -224,7 +224,10 @@ mod tests {
             "ssh://git@[2001:db8::1]/org/repo.git"
         ));
         // Bracketed host without the mandatory trailing colon is invalid.
-        assert_eq!(canonical_repository_url("git@[2001:db8::1]/org/repo.git"), None);
+        assert_eq!(
+            canonical_repository_url("git@[2001:db8::1]/org/repo.git"),
+            None
+        );
     }
 
     #[test]

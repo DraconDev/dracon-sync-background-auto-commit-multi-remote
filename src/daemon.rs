@@ -1069,16 +1069,17 @@ mod tests {
         let lock = temp.path().join("index.lock");
         std::fs::write(&lock, b"active").unwrap();
 
-        let result = fuser_lock_is_in_use_with_command(
-            "/definitely/missing/dracon-sync-fuser-test",
-            &lock,
-        );
+        let result =
+            fuser_lock_is_in_use_with_command("/definitely/missing/dracon-sync-fuser-test", &lock);
         assert!(result.is_err());
         assert!(
             !matches!(result, Ok(false)),
             "startup cleanup must remove locks only after an explicit no-users result"
         );
-        assert!(lock.exists(), "an unavailable fuser must leave the lock intact");
+        assert!(
+            lock.exists(),
+            "an unavailable fuser must leave the lock intact"
+        );
     }
 
     /// Startup cleanup must remove a stale lock from the per-worktree gitdir,
@@ -3389,10 +3390,7 @@ pub(crate) async fn run_startup_cleanup(policy_path: &Path) -> (BTreeSet<PathBuf
         eprintln!("⚠️ startup: visibility cache cleanup failed: {}", e);
     }
 
-    note_discovered_repos(
-        policy_path,
-        &repo_set.iter().cloned().collect::<Vec<_>>(),
-    );
+    note_discovered_repos(policy_path, &repo_set.iter().cloned().collect::<Vec<_>>());
 
     // Repair broken upstream tracking references (e.g. origin/master: gone)
     let discovered_refs: Vec<PathBuf> = repo_set.iter().cloned().collect();

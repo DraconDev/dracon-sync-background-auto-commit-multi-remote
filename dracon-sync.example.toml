@@ -53,6 +53,16 @@ auto_commit = true
 # - Generic: VERSION
 auto_bump_versions = true
 
+# [auto_harden_with_warden] - Run `dracon-warden once <repo>` before the
+# first auto-stage of a repo that lacks warden hardening (no local
+# filter.dracon.clean), so the encryption filter is active at `git add`
+# time. Closes the new-repo race where plaintext secrets reach remotes
+# ~1 minute after repo creation (warden-showcase probe, 2026-09-15).
+# Fail-open (warn + continue) so a broken warden never wedges sync.
+# Global-only by design: no per-repo opt-out (it would recreate the
+# leak window for exactly the repos most likely to hold secrets).
+auto_harden_with_warden = true
+
 # [auto_pull]   - Pull remote changes before committing (uses merge, not rebase).
 auto_pull = true
 
