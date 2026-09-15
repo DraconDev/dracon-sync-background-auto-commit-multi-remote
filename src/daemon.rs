@@ -3789,10 +3789,13 @@ pub(crate) async fn run_daemon(
     // was nothing to create). Terminal state for the auto-create-on-
     // discovery block: confirmed repos skip the per-cycle `git remote`
     // subprocess AND the per-300s `ls-remote` hum for the rest of the
-    // daemon session. In-memory only (session-long) — SIGHUP/restart
-    // re-verifies, which is the desired remediation path if a forge
-    // repo is deleted out-of-band.
-    let mut forge_confirmed: HashSet<PathBuf> = HashSet::new();
+    // daemon session. In-memory only (session-long).
+    // CHANGED 2026-09-15 (forge-eviction fix): the set moved to
+    // `crate::git::multi_remote` (shared `forge_confirmed_*` helpers)
+    // so the push-failure path can evict it. A forge repo deleted
+    // out-of-band is now re-probed and auto-recreated WITHOUT a
+    // restart (previously SIGHUP/restart was the only remediation).
+    // (no local set here anymore — see multi_remote.rs)
     // ADDED 2026-07-21 (v0.112.33, audit M4/F1.6): per-repo backoff
     // for the MAX_FAILURES gate. The pre-fix gate abandoned repos
     // FOREVER after 5 failures (no re-probe, no notification). Now
@@ -3953,7 +3956,7 @@ pub(crate) async fn run_daemon(
                     auto_create_cooldowns.clear();
                     ls_remote_cooldowns.clear();
                     pending_repos.clear();
-                    forge_confirmed.clear();
+                    crate::git::multi_remote::forge_confirmed_clear();
                     max_fail_cooldowns.clear();
                     // NOTE (v0.112.33, audit M7/F1.13): the stuck-push
                     // ledger needs no explicit reload here — the H5
@@ -4031,7 +4034,7 @@ pub(crate) async fn run_daemon(
         empty_bootstrap_cooldowns.retain(|repo, _| repo_set.contains(repo));
         auto_create_cooldowns.retain(|repo, _| repo_set.contains(repo));
         ls_remote_cooldowns.retain(|repo, _| repo_set.contains(repo));
-        forge_confirmed.retain(|repo| repo_set.contains(repo));
+        crate::git::multi_remote::forge_confirmed_prune_alive(&repo_set);
         max_fail_cooldowns.retain(|repo, _| repo_set.contains(repo));
         // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
         // stuck-push ledger from disk EVERY cycle instead of using
@@ -4141,7 +4144,9 @@ pub(crate) async fn run_daemon(
             // not match any". The first push waits until the operator
             // makes their first commit, at which point the regular
             // `is_repo_ready` path runs.
-            if !policy.remotes.is_empty() && !forge_confirmed.contains(&repo) {
+            if !policy.remotes.is_empty()
+                && !crate::git::multi_remote::forge_confirmed_contains(&repo)
+            {
                 let any_remote_configured =
                     !crate::git::multi_remote::list_remotes(&repo).is_empty();
                 // CHANGED 2026-07-21 (v0.112.30): throttle the
@@ -4230,7 +4235,7 @@ pub(crate) async fn run_daemon(
                         }
                     }
                     if all_ok {
-                        forge_confirmed.insert(repo.clone());
+                        crate::git::multi_remote::forge_confirmed_insert(&repo);
                     }
                 }
             }

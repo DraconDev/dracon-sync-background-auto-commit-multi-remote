@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Push failure with repository-not-found evicts stale forge state
+  (forge-eviction fix, 2026-09-15)**: the session `EXISTS_CACHE` and the
+  confirmed set (moved from a daemon-local to shared
+  `forge_confirmed_*` helpers in `multi_remote.rs` so the push path can
+  reach them) are now evicted when a push fails with not-found phrasing.
+  Previously a forge repo deleted out-of-band after confirmation stayed
+  "confirmed" for the whole session — every push failed `Repository not
+  found` and auto-create never re-fired until SIGHUP/restart. Now one
+  loud failure is followed by re-probe (`Missing`) and auto-recreate on
+  the next cycle. The classifier explicitly does NOT fire on GH013
+  secret-scanning blocks or divergence/transport errors.
+
 ## [0.113.56] - 2026-09-15
 
 ### Fixed

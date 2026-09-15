@@ -592,7 +592,45 @@ pub(crate) fn remove_stale_remotes(
 }
 
 /// Push to a named remote with SSH hardening, HTTPS fallback, and retries.
+/// Push to one named remote, evicting stale forge-existence state when
+/// the forge proves the repo is gone.
+///
+/// ADDED 2026-09-15 (forge-eviction fix): the inner push has many `return
+/// Err` exits; this wrapper is the single choke point, so EVERY failure
+/// shape (rejected, diverged, transport, not-found) passes through it.
+/// When the error carries repository-not-found phrasing, the session
+/// caches (`EXISTS_CACHE` + the confirmed set) are evicted: they describe
+/// a forge state that no longer holds, and keeping them meant "push fails
+/// `Repository not found` forever, never recreated" for out-of-band
+/// deletions. Eviction is always safe — worst case the next probe
+/// re-confirms existence with one `ls-remote`. The error itself is
+/// returned unchanged, so the loud push-failure operator signal is
+/// preserved (exactly one failure precedes the self-heal).
 pub(crate) async fn push_to_named_remote(
+    repo: &Path,
+    remote_name: &str,
+    timeout_secs: u64,
+    retries: u32,
+    force_when_behind: bool,
+) -> Result<()> {
+    let result =
+        push_to_named_remote_inner(repo, remote_name, timeout_secs, retries, force_when_behind)
+            .await;
+    if let Err(e) = &result {
+        if push_err_indicates_repo_missing(e) {
+            evict_forge_existence(repo, remote_name);
+            forge_confirmed_evict_repo(repo);
+            eprintln!(
+                "🔄 {} forge repo missing on {} (out-of-band deletion?) — forge state evicted, will re-probe and auto-recreate",
+                repo.display(),
+                remote_name
+            );
+        }
+    }
+    result
+}
+
+async fn push_to_named_remote_inner(
     repo: &Path,
     remote_name: &str,
     timeout_secs: u64,
@@ -1137,9 +1175,77 @@ pub(crate) enum RemoteExistence {
 /// cache of (repo, remote) pairs confirmed to exist. A repo, once
 /// created/existing, is almost never deleted; the cache eliminates
 /// the per-push SSH `ls-remote` round-trip for every healthy repo.
-/// In-memory only: a forge repo deleted out-of-band is re-probed on
-/// daemon restart (and the push fails loudly in the meantime, which
-/// is the correct operator signal).
+/// Session-confirmed forge state: repos whose every auto-create-enabled
+/// remote has answered `remote_repo_exists == true` (or had nothing to
+/// create). Confirmed repos skip the per-cycle `git remote` subprocess AND
+/// the per-300s `ls-remote` hum for the rest of the daemon session.
+///
+/// MOVED 2026-09-15 (forge-eviction fix) from a daemon-local set so the
+/// push-failure path in this module can evict it: a forge repo deleted
+/// out-of-band used to stay "confirmed" forever within a session (pushes
+/// failing `Repository not found` on every cycle, never recreated).
+/// In-memory only (session-long) — SIGHUP/restart re-verifies.
+static FORGE_CONFIRMED: std::sync::OnceLock<
+    parking_lot::Mutex<std::collections::HashSet<std::path::PathBuf>>,
+> = std::sync::OnceLock::new();
+
+fn forge_confirmed_set(
+) -> &'static parking_lot::Mutex<std::collections::HashSet<std::path::PathBuf>> {
+    FORGE_CONFIRMED.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
+}
+
+pub(crate) fn forge_confirmed_contains(repo: &Path) -> bool {
+    forge_confirmed_set().lock().contains(repo)
+}
+
+pub(crate) fn forge_confirmed_insert(repo: &Path) {
+    forge_confirmed_set().lock().insert(repo.to_path_buf());
+}
+
+/// Drop a repo from the confirmed set (the all-remotes-exist verdict no
+/// longer holds). The next discovery cycle re-probes and recreates what
+/// is missing.
+pub(crate) fn forge_confirmed_evict_repo(repo: &Path) {
+    forge_confirmed_set().lock().remove(repo);
+}
+
+pub(crate) fn forge_confirmed_clear() {
+    forge_confirmed_set().lock().clear();
+}
+
+pub(crate) fn forge_confirmed_prune_alive(
+    alive: &std::collections::BTreeSet<std::path::PathBuf>,
+) {
+    forge_confirmed_set()
+        .lock()
+        .retain(|repo| alive.contains(repo));
+}
+
+/// Evict one (repo, remote) pair from the existence cache — the forge
+/// answered definitively that it is gone (or a push proved it).
+/// The next probe re-runs `ls-remote` instead of trusting the session
+/// verdict. Never panics on absent keys.
+pub(crate) fn evict_forge_existence(repo: &Path, remote_name: &str) {
+    exists_cache()
+        .lock()
+        .remove(&(repo.to_path_buf(), remote_name.to_string()));
+}
+
+/// Pure classifier: does this push error mean the forge-side repo is
+/// gone (as opposed to rejected/diverged/transport)? Shares the
+/// `ls-remote` phrasing table — push transports echo the same
+/// forge-side messages ("ERROR: Repository not found.", ...).
+/// Extracted for unit tests.
+pub(crate) fn push_err_indicates_repo_missing(err: &anyhow::Error) -> bool {
+    ls_remote_indicates_missing(&err.to_string())
+}
+
+/// In-memory only. CHANGED 2026-09-15 (forge-eviction fix): a forge repo
+/// deleted out-of-band is healed WITHOUT a restart — the push-failure
+/// path evicts both this cache and the confirmed set (see
+/// `push_to_named_remote`), so the next cycle re-probes (`Missing`) and
+/// auto-recreates. Previously the push failed loudly on every cycle until
+/// SIGHUP/restart; now one loud failure is followed by self-healing.
 static EXISTS_CACHE: std::sync::OnceLock<
     parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>>,
 > = std::sync::OnceLock::new();
@@ -1270,6 +1376,76 @@ mod tests {
         assert!(!ls_remote_indicates_missing(
             "remote: not found while checking permissions"
         ));
+    }
+
+    /// ADDED 2026-09-15 (forge-eviction fix): the push-error classifier
+    /// must fire on real not-found push output and — critically — must
+    /// NOT fire on the GH013 secret-scanning block (the dracon-warden
+    /// 0.113.7 case): evicting there would be harmless but wrong, and
+    /// the loud stuck state is the wanted signal until the operator
+    /// allowlists.
+    #[test]
+    fn test_push_err_indicates_repo_missing() {
+        // Real not-found push output (github SSH).
+        assert!(push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "git push failed with status exit status: 128: ERROR: Repository not found.\n \
+             fatal: Could not read from remote repository."
+        )));
+        // Secret-scanning block: push declined, repo EXISTS. No evict.
+        assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "GH013: Repository rule violations found for refs/heads/main.\n \
+             Push cannot contain secrets (push declined due to repository rule violations)"
+        )));
+        // Divergence / rejection: repo exists. No evict.
+        assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "! [rejected] main -> main (non-fast-forward)"
+        )));
+        assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "! [remote rejected] main -> main (protected branch hook declined)"
+        )));
+        // Transport failure: Unknown, not Missing. No evict.
+        assert!(!push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "ssh: connect to host github.com port 22: Connection timed out"
+        )));
+    }
+
+    /// ADDED 2026-09-15 (forge-eviction fix): the shared confirmed-set
+    /// helpers cycle correctly (insert → contains → evict → absent →
+    /// clear/prune). Uses a unique fake path; the set is process-global
+    /// but tests run `--test-threads=1`.
+    #[test]
+    fn test_forge_confirmed_helpers_cycle() {
+        let repo = std::path::PathBuf::from("/fake/forge-eviction-cycle");
+        forge_confirmed_evict_repo(&repo);
+        assert!(!forge_confirmed_contains(&repo));
+        forge_confirmed_insert(&repo);
+        assert!(forge_confirmed_contains(&repo));
+        forge_confirmed_evict_repo(&repo);
+        assert!(
+            !forge_confirmed_contains(&repo),
+            "evicted repo must not read as confirmed"
+        );
+        // clear + prune_alive.
+        forge_confirmed_insert(&repo);
+        let other = std::path::PathBuf::from("/fake/forge-eviction-other");
+        forge_confirmed_insert(&other);
+        let mut alive = std::collections::BTreeSet::new();
+        alive.insert(other.clone());
+        forge_confirmed_prune_alive(&alive);
+        assert!(!forge_confirmed_contains(&repo));
+        assert!(forge_confirmed_contains(&other));
+        forge_confirmed_clear();
+        assert!(!forge_confirmed_contains(&other));
+    }
+
+    /// ADDED 2026-09-15: evicting an absent (repo, remote) pair is a
+    /// no-op, never a panic (eviction races re-probes by design).
+    #[test]
+    fn test_evict_forge_existence_absent_key() {
+        evict_forge_existence(
+            std::path::Path::new("/fake/forge-eviction-absent"),
+            "github",
+        );
     }
 
     // ---- codeberg_push_excluded / has_codeberg_tracking_ref (v0.112.30) ----
