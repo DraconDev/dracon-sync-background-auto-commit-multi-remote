@@ -1213,9 +1213,7 @@ pub(crate) fn forge_confirmed_clear() {
     forge_confirmed_set().lock().clear();
 }
 
-pub(crate) fn forge_confirmed_prune_alive(
-    alive: &std::collections::BTreeSet<std::path::PathBuf>,
-) {
+pub(crate) fn forge_confirmed_prune_alive(alive: &std::collections::BTreeSet<std::path::PathBuf>) {
     forge_confirmed_set()
         .lock()
         .retain(|repo| alive.contains(repo));
