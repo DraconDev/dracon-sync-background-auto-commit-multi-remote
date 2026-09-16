@@ -27,7 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   found` and auto-create never re-fired until SIGHUP/restart. Now one
   loud failure is followed by re-probe (`Missing`) and auto-recreate on
   the next cycle. The classifier explicitly does NOT fire on GH013
-  secret-scanning blocks or divergence/transport errors.
+  secret-scanning blocks or divergence/transport errors. Follow-up
+  2026-09-16: GitLab's purge-locked deletion phrasing ("You are not
+  allowed to push code to this project") also evicts — observed live on
+  a `glab repo delete`d repo whose push failure otherwise matched
+  nothing and reproduced the forever-failure loop.
 
 ## [0.113.56] - 2026-09-15
 

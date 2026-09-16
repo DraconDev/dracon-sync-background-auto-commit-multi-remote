@@ -1257,6 +1257,12 @@ fn exists_cache(
 /// not-found phrasings per forge:
 /// - GitHub: "ERROR: Repository not found."
 /// - GitLab: "The project you were looking for could not be found"
+/// - GitLab (deleted, purge-locked path): pushes are rejected with
+///   "You are not allowed to push code to this project" — observed live
+///   2026-09-16 on a `glab repo delete`d repo. Treated as missing: eviction
+///   only forces a re-probe, and a genuine permission loss re-confirms via
+///   ls-remote (or fails the create loudly with "path taken"), so this
+///   cannot mask a real auth problem.
 /// - Codeberg/Forgejo: "repository does not exist" / 404
 pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
     let lower = stderr.to_ascii_lowercase();
@@ -1265,6 +1271,7 @@ pub(crate) fn ls_remote_indicates_missing(stderr: &str) -> bool {
         || lower.contains("does not exist")
         || lower.contains("push to create is not enabled")
         || lower.contains("cannot find repository")
+        || lower.contains("not allowed to push code to this project")
         || lower.contains("404")
 }
 
@@ -1387,6 +1394,13 @@ mod tests {
         // Real not-found push output (github SSH).
         assert!(push_err_indicates_repo_missing(&anyhow::anyhow!(
             "git push failed with status exit status: 128: ERROR: Repository not found.\n \
+             fatal: Could not read from remote repository."
+        )));
+        // Real purge-locked push output (gitlab SSH, observed 2026-09-16
+        // after `glab repo delete`): permission phrasing, repo gone. Evict.
+        assert!(push_err_indicates_repo_missing(&anyhow::anyhow!(
+            "git push-to-gitlab failed with status exit status: 128: remote: ERROR: You are \
+             not allowed to push code to this project.\n \
              fatal: Could not read from remote repository."
         )));
         // Secret-scanning block: push declined, repo EXISTS. No evict.
