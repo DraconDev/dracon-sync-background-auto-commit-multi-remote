@@ -1422,6 +1422,44 @@ mod tests {
     use crate::policy::RemoteConfig;
     use crate::test_helpers::EnvRestorer;
 
+    /// 2026-09-17 (sync-convergence goal): the durable companion to
+    /// EXISTS_CACHE must round-trip — a confirmed pair survives a
+    /// "restart" (fresh in-memory cache, same state dir), and an
+    /// evicted pair is gone from disk (out-of-band deletion self-heal
+    /// keeps exactly one loud push failure before re-probe).
+    #[test]
+    fn test_persistent_forge_exists_roundtrip_and_eviction() {
+        let state = tempfile::tempdir().expect("state dir");
+        let _state_guard =
+            EnvRestorer::new("DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap());
+        let repo = tempfile::tempdir().unwrap().keep();
+        {
+            exists_cache().lock().clear();
+            confirm_forge_exists(&repo, "origin");
+        }
+        let path = persistent_exists_path();
+        assert!(path.exists(), "confirmation must be persisted");
+        assert!(load_persistent_entries(&path).contains(&(repo.clone(), "origin".to_string())));
+        // Eviction removes the durable entry (self-heal contract).
+        evict_forge_existence(&repo, "origin");
+        assert!(
+            !load_persistent_entries(&path).contains(&(repo, "origin")),
+            "evicted pair must not survive on disk"
+        );
+    }
+
+    /// 2026-09-17 (sync-convergence goal): eviction with no persisted
+    /// file must not create an empty state file as a side effect.
+    #[test]
+    fn test_evict_without_persisted_file_writes_nothing() {
+        let state = tempfile::tempdir().unwrap();
+        let _state_guard =
+            EnvRestorer::new("DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap());
+        let repo = tempfile::tempdir().unwrap().keep();
+        evict_forge_existence(&repo, "origin");
+        assert!(!persistent_exists_path().exists());
+    }
+
     /// Helper: build a minimal RemoteConfig for testing.
     /// `name` and `priority` are the only fields that affect the sort.
     fn make_remote(name: &str, priority: u32) -> RemoteConfig {
