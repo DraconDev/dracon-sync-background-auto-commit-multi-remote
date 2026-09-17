@@ -6141,13 +6141,12 @@ pub(crate) async fn run_daemon(
                     match result {
                         Ok((rf, r)) => (repo_path, gen, rf, r),
                         Err(e) => {
+                            // Preserve the JoinError type so a shutdown/wedge
+                            // cancellation stays distinguishable from a real
+                            // sync failure (see push_error_is_cancellation).
                             eprintln!("⚠️ join error for sync task: {}", e);
-                            (
-                                repo_path,
-                                gen,
-                                HashMap::new(),
-                                Err(anyhow::anyhow!("join error: {}", e)),
-                            )
+                            let error = anyhow::Error::new(e).context("join error");
+                            (repo_path, gen, HashMap::new(), Err(error))
                         }
                     }
                 }));
