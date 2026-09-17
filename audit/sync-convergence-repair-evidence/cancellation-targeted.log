@@ -1,0 +1,41 @@
+2026-09-17T19:57:27+01:00
+527b3ea7db076fdee03b56b67cbe61e364d23905
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-f4943e618e838bf0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-b3b53017058fedd7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1054 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-3967f75cc8231982)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-f4943e618e838bf0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-b3b53017058fedd7)
+
+running 1 test
+test daemon::tests::wedge_cancellation_waits_for_worker_teardown_before_redispatch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1053 filtered out; finished in 0.01s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-3967f75cc8231982)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+

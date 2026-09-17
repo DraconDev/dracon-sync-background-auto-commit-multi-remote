@@ -1,0 +1,254 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-f4943e618e838bf0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-b3b53017058fedd7)
+
+running 1054 tests
+test bump::tests::test_extract_version_from_cargo_ignorefile ... ok
+test bump::tests::test_extract_version_from_cargo_no_version ... ok
+test bump::tests::test_extract_version_from_cargo_package ... ok
+test bump::tests::test_extract_version_from_cargo_with_inline_comment ... ok
+test bump::tests::test_extract_version_from_cargo_with_trailing_semicolon ... ok
+test bump::tests::test_extract_version_from_cargo_workspace_package ... ok
+test bump::tests::test_extract_version_from_json ... ok
+test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
+test bump::tests::test_extract_version_from_json_multiple_keys ... ok
+test bump::tests::test_extract_version_from_json_not_found ... ok
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 6528239] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpgCbQHh/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 59cbc8f] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpgCbQHh/remote.git
+   6528239..59cbc8f  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) dc26e50] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpjMioWd/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main f9243d0] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) c4faf4f] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::daemon_tests::test_is_repo_ready_nonexistent_path ... ok
+test daemon::daemon_tests::test_is_repo_stuck_false ... ok
+test daemon::daemon_tests::test_list_stuck_repos_empty ... ok
+test daemon::daemon_tests::test_load_stuck_push_repos_nonexistent ... ok
+test daemon::daemon_tests::test_no_redispatch_invariant ... ok
+test daemon::daemon_tests::test_policy_clone_at_repo_iteration ... ok
+test daemon::daemon_tests::test_sem_max_concurrent_sync_default_is_four ... ok
+test daemon::daemon_tests::test_skips_nonexistent_repo ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format_full ... ok
+test daemon::daemon_tests::test_stuck_repos_path_home ... ok
+test daemon::daemon_tests::test_trailing_drain_clears_stuck_in_flight ... ok
+test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... ok
+test daemon::test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age ... ok
+test daemon::test_ownership_detection_end_to_end ... ok
+test daemon::test_ownership_needs_redetect_ttl ... ok
+test daemon::test_ownership_per_repo_override_forces_unowned ... ok
+test daemon::test_push_failure_notification_requires_persistent_budget_exhaustion ... ok
+test daemon::test_record_push_failure_accumulates_across_calls ... ok
+test daemon::test_settling_max_delay_default_is_60 ... ok
+test daemon::test_stale_dirty_alert_due_throttle_and_disable ... ok
+test daemon::test_stale_dirty_alert_policy_default_and_serde ... ok
+test daemon::test_stuck_decision_backoff_inside_window ... ok
+test daemon::test_stuck_decision_exhausted_at_budget ... ok
+test daemon::test_stuck_decision_retry_after_window ... ok
+test daemon::test_stuck_decision_retry_respects_last_retry_stamp ... ok
+test daemon::test_sustained_threshold_met ... ok
+test daemon::tests::classifier_completed_during_scan_is_available_at_repo_boundary ... ok
+test daemon::tests::eligibility_uses_dispatch_clock_and_bounds_continuous_work ... ok
+test daemon::tests::needs_classification_dirty_repo_with_ahead_override_classifies ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::pending_result_collection_does_not_block_next_repo ... ok
+test daemon::tests::pre_start_dirty_activity_reaches_exact_quiet_boundary_once ... ok
+test daemon::tests::pulse_accounts_for_scan_work_and_overruns ... ok
+test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... ok
+test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
+test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+branch 'main' set up to track 'origin/main'.
+ok
+test daemon::tests::stalled_worker_retains_exclusive_dispatch_ownership_across_cycles ... ok
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_standard_remotes_if_missing_adds_remotes ... ok
+test daemon::tests::test_configure_standard_remotes_if_missing_preserves_existing_remote ... ok
+test daemon::tests::test_count_unpushed_vs_configured_remotes_detects_new_remote_head ... ok
+test daemon::tests::test_fuser_failure_is_not_treated_as_unused ... ok
+test daemon::tests::test_m1_discard_matches_only_corresponding_generation ... ok
+test daemon::tests::test_m4_helper_structurally_unified ... ok
+test daemon::tests::test_record_push_failure_increments_counter ... ok
+test daemon::tests::test_record_push_failure_redacts_url_credentials ... ok
+test daemon::tests::test_record_push_failure_returns_repo_state ... ok
+test daemon::tests::test_record_push_success_clears_entry ... ok
+test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+To /tmp/.tmpEqMTPB/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'github/main'.
+ok
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 7c41e77] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_stage_cooldown_remaining_missing_is_none ... ok
+test daemon::tests::test_stage_cooldown_remaining_removes_expired_and_keeps_active ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_linked_worktree_gitdir ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_nested_submodule_gitdir ... ok
+test daemon::tests::test_stuck_repo_entry_clone ... ok
+test daemon::tests::test_stuck_repo_entry_debug ... ok
+test daemon::tests::test_stuck_repo_entry_deserialization ... ok
+test daemon::tests::test_stuck_repo_entry_equality ... ok
+test daemon::tests::test_stuck_repo_entry_path_stored_correctly ... ok
+test daemon::tests::test_stuck_repo_entry_serialization ... ok
+test daemon::tests::test_stuck_repo_entry_timestamp_ordering ... ok
+test daemon::tests::test_stuck_repo_expiry_constant ... ok
+test daemon::tests::test_stuck_repo_expiry_not_zero ... ok
+test daemon::tests::test_stuck_repo_expiry_one_day ... ok
+test daemon::tests::test_unavailable_fuser_cannot_remove_index_lock ... ok
+test daemon::tests::wedge_cancellation_waits_for_worker_teardown_before_redispatch ... ok
+test exclude::m28_tests::test_basename_patterns_still_work ... ok
+test exclude::m28_tests::test_glob_dir_prefix_forms ... ok
+test exclude::m28_tests::test_single_slash_relative_patterns_no_longer_dead ... ok
+test exclude::m28_tests::test_trailing_starstar_name_forms ... ok
+test exclude::tests::test_append_to_gitignore_creates_new_file ... ok
+test exclude::tests::test_append_to_gitignore_deduplicates ... ok
+test exclude::tests::test_append_to_gitignore_empty_patterns ... ok
+test exclude::tests::test_can_restore_entry_added ... ok
+test exclude::tests::test_can_restore_entry_deleted ... ok
+test exclude::tests::test_can_restore_entry_modified ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_empty ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_excluded_dir_ignored ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_modified ... ok
+test exclude::tests::test_is_excluded_change_path_simple ... ok
+test exclude::tests::test_is_excluded_dir_name_case_insensitive_matching ... ok
+test exclude::tests::test_is_excluded_dir_name_empty_excluded_set ... ok
+test exclude::tests::test_is_excluded_dir_name_exact ... ok
+test exclude::tests::test_is_excluded_dir_name_pattern ... ok
+test exclude::tests::test_is_excluded_dir_name_star_prefix ... ok
+test exclude::tests::test_is_excluded_dir_name_trailing_hyphen ... ok
+test exclude::tests::test_is_excluded_file_empty_path ... ok
+test exclude::tests::test_is_excluded_file_no_match ... ok
+test exclude::tests::test_is_excluded_file_pattern_matching ... ok
+test exclude::tests::test_is_excluded_file_simple ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_missing_path ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_regular_file ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_untracked_dir_with_dotgit ... ok
+test exclude::tests::test_is_gitlink_returns_true_for_tracked_gitlink ... ok
+test exclude::tests::test_is_gitlink_unchanged_false_when_shared_main_ahead_of_parent ... ok
+test exclude::tests::test_is_large_untracked_added_file ... ok
+test exclude::tests::test_is_large_untracked_modified_file ... ok
+test exclude::tests::test_is_large_untracked_nonexistent_file ... ok
+test exclude::tests::test_matches_file_pattern_exact ... ok
+test exclude::tests::test_matches_file_pattern_exact_match ... ok
+test exclude::tests::test_matches_file_pattern_extension ... ok
+test exclude::tests::test_matches_file_pattern_extension_wildcard ... ok
+test exclude::tests::test_matches_file_pattern_glob ... ok
+test exclude::tests::test_matches_file_pattern_middle_wildcard ... ok
+test exclude::tests::test_matches_file_pattern_prefix ... ok
+test exclude::tests::test_matches_file_pattern_prefix_wildcard ... ok
+test exclude::tests::test_matches_untracked_exclude_mid_glob ... ok
+test exclude::tests::test_matches_untracked_exclude_mid_glob_double ... ok
+test exclude::tests::test_matches_untracked_exclude_multi_segment_tail ... ok
+test exclude::tests::test_matches_untracked_exclude_tail_with_glob ... ok
+test exclude::tests::test_normalized_dir_name_various ... ok
+test exclude::tests::test_remove_tracked_excluded_paths_none_found ... ok
+test exclude::tests::test_should_stage_entry_empty_patterns_list ... ok
+test exclude::tests::test_should_stage_entry_tracked_modified_excluded_by_pattern ... ok
+test exclude::tests::test_should_stage_entry_tracked_modified_no_match ... ok
+test exclude::tests::test_stale_gitlink_paths_returns_stale_path ... ok
+test exclude::tests::test_stale_gitlink_paths_skips_when_no_submodules ... ok
+test git::auto_gc_tests::test_maybe_auto_gc_disabled_and_below_threshold ... ok
+test git::branch::tests::missing_remote_branch_deletion_is_idempotent ... ok
+test git::branch::tests::test_current_branch_rejects_git_cli_head_string ... ok
+test git::branch::tests::test_old_tracking_from_status_line_handles_missing_marker ... ok
+test git::branch::tests::test_old_tracking_from_status_line_parses_real_ref ... ok
+test git::branch::tests::test_old_tracking_from_status_line_rejects_empty_ref ... ok
+test git::branch::tests::test_repair_broken_tracking_repairs_checked_out_branch ... branch 'main' set up to track 'origin/main'.
+ok
+test git::config::tests::shell_quote_handles_spaces_and_single_quotes ... ok
+test git::diff::f33_tests::classification_applies_filter_once_and_preserves_refusals ... ok
+test git::diff::f33_tests::classification_cancellation_terminates_git_process_group ... ok
+test git::diff::f33_tests::classification_preserves_unborn_untracked_files ... ok
+test git::diff::f33_tests::parse_name_status_basic_statuses ... ok
+test git::diff::f33_tests::parse_name_status_empty_line_returns_none ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_empty_paths_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_non_digit_suffix_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_score ... ok
+test git::diff::f33_tests::parse_name_status_rename_without_score_rejected ... ok
+test git::diff::f33_tests::parse_name_status_unknown_status_returns_none ... ok
+test git::diff::f33_tests::staged_and_tracked_paths_propagate_git_failure ... ok
+test git::diff::f33_tests::test_parse_name_status_z_consumes_copy_and_unmerged_records ... ok
+test git::diff::f33_tests::test_parse_name_status_z_non_ascii_and_basic ... ok
+test git::diff::f33_tests::test_parse_name_status_z_rename ... ok
+test git::diff::f33_tests::untracked_entries_propagates_git_failure ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_counts_nested_repo_dirs ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_counts_submodule_dot_git_file ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_handles_trailing_slash ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_keeps_plain_untracked_dirs ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_zero_when_no_entries ... ok
+test git::discovery::nested_repo_tests::is_nested_repo_path_rejects_unsafe_paths ... ok
+test git::discovery::safe_path_tests::test_is_safe_git_path_rejects_parent_dir_at_any_depth ... ok
+test git::discovery::submodule_tests::discover_git_repos_dedups_standalone_with_nested_submodule ... ok
+test git::discovery::submodule_tests::discover_git_repos_exclude_repos_suppresses_submodule_fallback_candidate ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_no_submodule_candidates_when_no_gitmodules ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_submodule_candidates ... ok
+test git::discovery::submodule_tests::list_submodules_handles_broken_gitmodules ... ok
+test git::discovery::submodule_tests::list_submodules_ignores_unknown_sections ... ok
+test git::discovery::submodule_tests::list_submodules_parses_gitmodules_with_index_shas ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_sha_when_not_in_index ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_when_no_gitmodules ... ok
+test git::github_pack_tests::cache_hit_performs_no_remeasurement ... ok
+test git::github_pack_tests::cache_hit_survives_packed_refs ... ok
+test git::github_pack_tests::compressible_over_limit_clears_via_compressed_second_chance ... ok
+test git::github_pack_tests::delta_is_empty_when_github_already_has_the_branch ... ok
+test git::github_pack_tests::detached_head_is_not_cached ... ok
+test git::github_pack_tests::different_limit_remeasures ... ok
+test git::github_pack_tests::incompressible_over_limit_stays_flagged ... ok
+test git::github_pack_tests::missing_tracking_ref_measures_whole_branch ... ok
+test git::github_pack_tests::moved_branch_tip_remeasures ... ok
+test git::github_pack_tests::moved_tracking_tip_remeasures ... ok
+test git::github_pack_tests::multiple_github_remotes_take_the_worst_case ... ok
+test git::github_pack_tests::no_github_remote_measures_whole_branch ... ok
+test git::github_pack_tests::non_ancestor_tracking_tip_is_not_trusted ... ok
+test git::github_pack_tests::precomputed_large_size_falls_back_when_branch_unmeasurable ... ok
+test git::github_pack_tests::precomputed_small_size_short_circuits_without_git ... ok
+test git::github_pack_tests::pushed_branch_size_is_reported_for_small_repo ... ok
+test git::github_pack_tests::small_repo_is_not_too_big_for_github ... ok
+test git::janitor_tests::aborts_when_bundle_fails ... 
