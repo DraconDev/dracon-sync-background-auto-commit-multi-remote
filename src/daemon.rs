@@ -4868,9 +4868,9 @@ pub(crate) async fn run_daemon(
         // established clean state (those already proved nothing to do in a
         // prior cycle; unknown ones might be eligible now).
         repos.sort_by_key(|repo| {
-            let established = activity.get(repo).is_some_and(|entry| {
-                entry.dirty_since.is_none() && !entry.fingerprint.is_empty()
-            });
+            let established = activity
+                .get(repo)
+                .is_some_and(|entry| entry.dirty_since.is_none() && !entry.fingerprint.is_empty());
             // stable sort keeps discovery order within each tier
             u8::from(established)
         });
