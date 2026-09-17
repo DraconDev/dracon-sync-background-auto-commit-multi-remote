@@ -188,3 +188,29 @@
    Compiling zvariant_derive v5.14.0
    Compiling tokio-util v0.7.19
    Compiling tower v0.5.3
+   Compiling icu_properties v2.2.0
+   Compiling icu_normalizer v2.2.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling futures-executor v0.3.33
+   Compiling rand_xorshift v0.4.0
+   Compiling unarray v0.1.4
+   Compiling futures v0.3.33
+   Compiling proptest v1.11.0
+   Compiling h2 v0.4.16
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling toml v0.8.23
+   Compiling zvariant v5.14.0
+   Compiling tower-http v0.6.11
+   Compiling zbus_names v4.3.4
+   Compiling hyper v1.11.0
+   Compiling zbus_macros v5.19.0
+   Compiling hyper-util v0.1.20
+   Compiling hyper-tls v0.6.0
+   Compiling reqwest v0.12.28
+   Compiling git2 v0.21.0
+   Compiling zbus v5.19.0
+   Compiling dracon-git v94.7.2
+   Compiling notify-rust v4.18.0
+   Compiling dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
