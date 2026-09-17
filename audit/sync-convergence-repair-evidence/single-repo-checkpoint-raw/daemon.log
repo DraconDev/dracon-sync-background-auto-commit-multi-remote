@@ -1,0 +1,55 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789680662174
+scheduler: status repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=233 repo_ms=233 dirty=false daemon_ms=267
+scheduler: cycle_complete elapsed_ms=421
+scheduler: pulse_start unix_ms=1789680663184
+scheduler: status repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=163 repo_ms=163 dirty=false daemon_ms=1208
+scheduler: cycle_complete elapsed_ms=436
+scheduler: pulse_start unix_ms=1789680664187
+scheduler: status repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=269 repo_ms=268 dirty=true daemon_ms=2316
+scheduler: classification_spawn repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=499 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=499
+classification: phase=filter-aware-diff repo=/tmp/sync-cadence-i6vr8rny/watch/sample elapsed_ms=40 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-cadence-i6vr8rny/watch/sample elapsed_ms=39 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-cadence-i6vr8rny/watch/sample ms=82 ok=true
+scheduler: pulse_start unix_ms=1789680665190
+scheduler: status repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=277 repo_ms=276 dirty=true daemon_ms=3327
+scheduler: quiet_clock_assignment discovery_ms=3597 evidence_unix_ns=Some(1789680664123043568) anchor_ms=1982
+scheduler: eligibility repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=546 observed_quiet_ms=1614 eligible=false daemon_ms=3597 anchor_daemon_ms=1982
+scheduler: file_mtime repo=/tmp/sync-cadence-i6vr8rny/watch/sample path="sample.txt" unix_ns=Some(1789680664123043568)
+scheduler: cycle_complete elapsed_ms=546
+scheduler: pulse_start unix_ms=1789680666141
+scheduler: deadline_first_order n=1 due=["/tmp/sync-cadence-i6vr8rny/watch/sample"]
+scheduler: status repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=238 repo_ms=238 dirty=true daemon_ms=4239
+scheduler: eligibility repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=495 observed_quiet_ms=2513 eligible=true daemon_ms=4496 anchor_daemon_ms=1982
+scheduler: file_mtime repo=/tmp/sync-cadence-i6vr8rny/watch/sample path="sample.txt" unix_ns=Some(1789680664123043568)
+scheduler: dispatch repo=/tmp/sync-cadence-i6vr8rny/watch/sample cycle_ms=495 inspection_ms=495 daemon_ms=4496 unix_ms=1789680666636
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=495
+scheduler: task_start repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680666637
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_origin elapsed_ms=47
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_status elapsed_ms=47
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=after_status elapsed_ms=54
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_pull elapsed_ms=54
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_clean elapsed_ms=54
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_diff elapsed_ms=141
+🐛 /tmp/sync-cadence-i6vr8rny/watch/sample status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=after_diff elapsed_ms=225
+🐛 /tmp/sync-cadence-i6vr8rny/watch/sample to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-cadence-i6vr8rny/watch/sample thread=ThreadId(7) unix_ms=1789680666862
+scheduler: stage_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=untracked elapsed_ms=4
+scheduler: stage_files_enter repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680666924
+scheduler: stage_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-cadence-i6vr8rny/watch/sample phase=partition elapsed_ms=26
+scheduler: add_spawn repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680666950
+scheduler: add_spawned repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680666963 pid=Some(718778)
+scheduler: add_done repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680667064 ok=true
+scheduler: pulse_start unix_ms=1789680667809
+scheduler: cycle_complete elapsed_ms=0
+scheduler: commit_done repo=/tmp/sync-cadence-i6vr8rny/watch/sample unix_ms=1789680667814
+📝 committed 1 file(s) in /tmp/sync-cadence-i6vr8rny/watch/sample
+sync: received SIGTERM, shutting down gracefully...
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-cadence-i6vr8rny/watch/sample thread=ThreadId(5) unix_ms=1789680668810 ok=true
