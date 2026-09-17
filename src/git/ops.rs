@@ -133,6 +133,25 @@ fn child_status_result(
     }
 }
 
+/// Owns only a child group created by configure_git_process_group. Disarm
+/// immediately after reaping its leader to avoid signalling a reused PID.
+struct GroupKillGuard(Option<u32>);
+impl Drop for GroupKillGuard {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        if let Some(pid) = self.0 {
+            // SAFETY: a positive child PID is also its explicitly-created PGID.
+            let result = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
+            if result != 0 {
+                let error = std::io::Error::last_os_error();
+                if error.raw_os_error() != Some(libc::ESRCH) {
+                    eprintln!("git: failed to kill process group {pid}: {error}");
+                }
+            }
+        }
+    }
+}
+
 async fn run_child_inner<F>(
     mut child: tokio::process::Child,
     workdir: &Path,
@@ -360,23 +379,6 @@ pub(crate) async fn run_git_captured_output(
     // the owned group; no shell-outs, sleeps or detached capture tasks.
     // Keep the leader unreaped while draining pipes, so its PID cannot be
     // reused before a cancellation signal. Disarm immediately after wait.
-    struct GroupKillGuard(Option<u32>);
-    impl Drop for GroupKillGuard {
-        fn drop(&mut self) {
-            #[cfg(unix)]
-            if let Some(pid) = self.0 {
-                // SAFETY: spawn_git_command_cancellable put this positive
-                // child PID in its own group; negative PID targets only it.
-                let result = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
-                if result != 0 {
-                    let error = std::io::Error::last_os_error();
-                    if error.raw_os_error() != Some(libc::ESRCH) {
-                        eprintln!("git capture: failed to kill process group {pid}: {error}");
-                    }
-                }
-            }
-        }
-    }
     let mut group_guard = GroupKillGuard(child.id());
     const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
     let label = format!("git {}", op_label);
