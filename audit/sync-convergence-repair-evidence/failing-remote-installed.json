@@ -1,0 +1,131 @@
+{
+  "root": "/tmp/sync-fairness-njxcvxzu",
+  "scope": "fairness: continuous edits, slow push, pre-start change",
+  "slow_required_filter": false,
+  "failing_remote": true,
+  "converged": true,
+  "commit_observed_seconds": {
+    "b2": 4.108083083992824,
+    "b": 4.401607079082169,
+    "c": 4.618781935074367,
+    "a": 8.870466609019786
+  },
+  "remote_observed_seconds": {
+    "b2": 4.615645990008488,
+    "b": 4.695718953036703,
+    "c": 7.78749224904459,
+    "a": 9.188380039995536
+  },
+  "a_commits": 1,
+  "dispatch": {
+    "a": {
+      "add_rel": 8.120527166989632,
+      "push_rel": 9.084917247993872
+    },
+    "b": {
+      "add_rel": 3.6140815290855244,
+      "push_rel": 4.589841220062226
+    },
+    "b2": {
+      "add_rel": 3.254151631030254,
+      "push_rel": 4.471871140995063
+    },
+    "c": {
+      "add_rel": 3.7456065750448033,
+      "push_rel": 4.714908697060309
+    },
+    "f-failing": {
+      "add_rel": 2.436617929022759,
+      "push_rel": 3.350695732049644
+    }
+  },
+  "edit_seconds": {
+    "b": 1.0019437490263954,
+    "c": 1.2022262020036578,
+    "a_started": 1.2025228620041162
+  },
+  "commit_command_end_seconds": {},
+  "edit_to_add_seconds": {
+    "b": 2.612137780059129,
+    "c": 2.5433803730411455
+  },
+  "queue_delay_ms": {
+    "a": -2100,
+    "b": 146,
+    "b2": 3,
+    "c": -55,
+    "f-failing": 4
+  },
+  "commit_done_unix_ms": {
+    "/tmp/sync-fairness-njxcvxzu/watch/f-failing": 1789671405968,
+    "/tmp/sync-fairness-njxcvxzu/watch/b2": 1789671406834,
+    "/tmp/sync-fairness-njxcvxzu/watch/b": 1789671407212,
+    "/tmp/sync-fairness-njxcvxzu/watch/c": 1789671407350,
+    "/tmp/sync-fairness-njxcvxzu/watch/a": 1789671411646
+  },
+  "failing_push_events": [
+    {
+      "t": 797317.450742116,
+      "args": [
+        "push",
+        "origin",
+        "--delete",
+        "master"
+      ],
+      "cwd": "/tmp/sync-fairness-njxcvxzu/watch/f-failing",
+      "pid": 2621937,
+      "phase": "start"
+    },
+    {
+      "t": 797317.469779361,
+      "args": [
+        "push",
+        "origin",
+        "--delete",
+        "master"
+      ],
+      "cwd": "/tmp/sync-fairness-njxcvxzu/watch/f-failing",
+      "pid": 2621937,
+      "phase": "end",
+      "returncode": 1
+    },
+    {
+      "t": 797317.595211267,
+      "args": [
+        "push",
+        "--no-verify",
+        "origin",
+        "HEAD:refs/heads/main"
+      ],
+      "cwd": "/tmp/sync-fairness-njxcvxzu/watch/f-failing",
+      "pid": 2622022,
+      "phase": "start"
+    },
+    {
+      "t": 797322.601802508,
+      "args": [
+        "push",
+        "--no-verify",
+        "origin",
+        "HEAD:refs/heads/main"
+      ],
+      "cwd": "/tmp/sync-fairness-njxcvxzu/watch/f-failing",
+      "pid": 2622022,
+      "phase": "end",
+      "returncode": 1
+    }
+  ],
+  "checks": {
+    "b_staging_at_quiet_plus_one_pulse": true,
+    "c_staging_at_quiet_plus_one_pulse": true,
+    "slow_push_execution_measured_separately": true,
+    "b_push_within_one_pulse_of_observed_commit": true,
+    "b_push_within_one_pulse_of_commit_done": true,
+    "continuous_work_reaches_remote_within_10s": true,
+    "pre_start_change_stages_within_3s": false,
+    "failing_remote_attempt_observed": true,
+    "healthy_staging_during_failing_push": false,
+    "failed_remote_does_not_claim_convergence": true
+  },
+  "passed": false
+}

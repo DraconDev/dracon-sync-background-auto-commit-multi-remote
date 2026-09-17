@@ -178,6 +178,7 @@ def main():
                         observed[name] = time.monotonic()
             failure_observed = not failing_remote or any(
                 row.get('returncode') == 1 and row['cwd'] == str(repos['f-failing'])
+                and row['args'][:1] == ['push'] and '--delete' not in row['args']
                 for row in (json.loads(line) for line in events.read_text().splitlines()))
             if len(seen) == len(healthy_names) and failure_observed:
                 break
@@ -325,7 +326,8 @@ def main():
             checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
         if failing_remote:
             failures = [row for row in rows if row['cwd'] == str(repos['f-failing'])
-                        and row['args'][:1] == ['push'] and row.get('returncode') == 1]
+                        and row['args'][:1] == ['push'] and '--delete' not in row['args']
+                        and row.get('returncode') == 1]
             failed_start = first('f-failing', 'push')
             checks['failing_remote_attempt_observed'] = bool(failures)
             checks['healthy_staging_during_failing_push'] = (
