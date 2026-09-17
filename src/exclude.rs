@@ -1238,12 +1238,10 @@ pub(crate) fn matches_untracked_exclude(
 /// from "directory exists on disk with a `.git/` inside" (which can
 /// also be an untracked sibling subrepo with no gitlink).
 ///
-/// Used by `stage_commit_and_push` in `sync.rs` to partition
-/// `to_stage` into gitlink-pointer updates (handled by
-/// `stage_gitlink_updates` via `git add <path>`) vs regular
-/// files (handled by `stage_existing_files` via `git add -A`).
-/// NOTE: this spawns one `git ls-tree` per call — batch callers
-/// must use `sync::tracked_gitlink_set` (one call for N candidates).
+/// Used by unit tests to classify a single path. Production callers
+/// must use `sync::tracked_gitlink_set`, which resolves N candidates
+/// with ONE `git ls-tree` call instead of one subprocess per path.
+#[cfg(test)]
 pub(crate) fn is_gitlink(repo: &Path, path: &Path) -> bool {
     let output = crate::git::git_cmd()
         .current_dir(repo)
