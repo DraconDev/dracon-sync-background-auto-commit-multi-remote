@@ -835,7 +835,11 @@ pub(crate) async fn push_to_all_remotes(
     use futures::FutureExt;
     futures::future::join_all(sorted.iter().map(|remote| async move {
         let result = std::panic::AssertUnwindSafe(push_to_named_remote(
-            repo, &remote.name, timeout_secs, retries, remote.force_push_when_behind,
+            repo,
+            &remote.name,
+            timeout_secs,
+            retries,
+            remote.force_push_when_behind,
         ))
         .catch_unwind()
         .await
@@ -1823,7 +1827,9 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         let tmp = tempfile::tempdir().unwrap();
         let script = tmp.path().join("fake-git");
-        std::fs::write(&script, r#"#!/bin/sh
+        std::fs::write(
+            &script,
+            r#"#!/bin/sh
 if [ "$1" = push ]; then
     echo $$ > leader.pid
     sleep 30 &
@@ -1832,7 +1838,9 @@ if [ "$1" = push ]; then
     exit 0
 fi
 exit 1
-"#).unwrap();
+"#,
+        )
+        .unwrap();
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
         let _env = EnvRestorer::new("DRACON_SYNC_GIT_BIN", script.to_str().unwrap());
         let repo = tmp.path().to_path_buf();
@@ -1846,29 +1854,43 @@ exit 1
                     std::fs::read_to_string(repo.join("leader.pid")),
                     std::fs::read_to_string(repo.join("helper.pid")),
                 ) {
-                    if let (Ok(leader), Ok(helper)) = (leader.trim().parse::<i32>(), helper.trim().parse::<i32>()) {
+                    if let (Ok(leader), Ok(helper)) =
+                        (leader.trim().parse::<i32>(), helper.trim().parse::<i32>())
+                    {
                         break (leader, helper);
                     }
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
-        }).await;
+        })
+        .await;
         worker.abort();
         assert!(worker.await.unwrap_err().is_cancelled());
         let (leader, helper) = ready.expect("fixture push must start before cancellation");
         let alive = |pid| {
             std::fs::read_to_string(format!("/proc/{pid}/stat"))
-                .ok().is_some_and(|stat| stat.rsplit_once(") ").is_some_and(|(_, rest)| !rest.starts_with('Z')))
+                .ok()
+                .is_some_and(|stat| {
+                    stat.rsplit_once(") ")
+                        .is_some_and(|(_, rest)| !rest.starts_with('Z'))
+                })
         };
         let stopped = tokio::time::timeout(std::time::Duration::from_secs(1), async {
             while alive(leader) || alive(helper) {
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
-        }).await.is_ok();
+        })
+        .await
+        .is_ok();
         // Always clean up the isolated fixture before asserting the regression.
         // SAFETY: this is the process group ID written by our fixture child.
-        unsafe { libc::kill(-leader, libc::SIGKILL); }
-        assert!(stopped, "parent joined but mirror push or helper still runs");
+        unsafe {
+            libc::kill(-leader, libc::SIGKILL);
+        }
+        assert!(
+            stopped,
+            "parent joined but mirror push or helper still runs"
+        );
     }
 
     /// Test: empty remotes list returns empty Vec.
