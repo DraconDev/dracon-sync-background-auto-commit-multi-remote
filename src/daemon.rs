@@ -2394,97 +2394,63 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn aborted_push_task_join_error_does_not_reach_stuck_ledger() {
-        // End-to-end incident chain (2026-09-17): tokio abort during
-        // shutdown → JoinError → `push_to_all_remotes`'s wrapper string
-        // → RemoteFailInfo.last_error → the Ok(false) aggregation arm.
-        // The aggregated transport-failure line must not be produced
-        // from a purely cancelled attempt.
-        use crate::git::multi_remote::push_to_all_remotes;
+    async fn push_aggregation_cancellation_does_not_arm_backoff() {
         let state = tempfile::tempdir().unwrap();
         let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR",
-            state.path().to_str().unwrap(),
+            "DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap(),
         );
         let repo = PathBuf::from("fixture/abort-mid-push");
-        let remote = crate::policy::RemoteConfig {
-            name: "origin".into(),
-            push_url: "git@invalid.example.com:fixture.git".into(),
-            auto_create: false,
-            auto_create_account: String::new(),
-            auth_type: crate::policy::AuthType::GitHub,
-            priority: 0,
-            api_endpoint: None,
-            auto_create_token_var: None,
-            repo_name_map: std::collections::HashMap::new(),
-            force_push_when_behind: false,
-        };
-        // The real wrapper spawns a push task per remote; abort it the
-        // way daemon shutdown does and collect the wrapped error.
-        let (name, result) = {
-            let handle = tokio::spawn({
-                let repo = repo.clone();
-                let remote = remote.clone();
-                async move { push_to_all_remotes(&repo, &[remote], 5, 0).await }
-            });
-            handle.abort();
-            let joined = handle.await;
-            assert!(joined.unwrap_err().is_cancelled());
-            // Reproduce the wrapper's per-remote join-error shape from
-            // the real JoinError display (same code path as
-            // push_to_all_remotes' Err(e) arm).
-            (
-                "origin".to_string(),
-                "join error: task was cancelled".to_string(),
-            )
-        };
-        assert!(push_error_is_cancellation(&result));
-        // Flow it through RemoteFailInfo exactly as push_background's
-        // Ok(false) aggregation does, then verify nothing persisted.
-        let mut remote_failures = HashMap::new();
-        remote_failures.insert(
-            name,
-            crate::daemon::RemoteFailInfo {
-                consecutive: 1,
-                last_error: result,
-            },
+        let handle = tokio::spawn(std::future::pending::<()>());
+        handle.abort();
+        let joined = handle.await.unwrap_err();
+        assert!(joined.is_cancelled());
+        let error = anyhow::Error::new(joined).context("join error");
+        let mut failures = HashMap::new();
+        let result = crate::sync::aggregate_push_results(
+            &repo, vec![("origin".into(), Err(error))], false, Some(&mut failures),
         );
-        let all_cancelled = !remote_failures.is_empty()
-            && remote_failures
-                .values()
-                .all(|f| push_error_is_cancellation(&f.last_error));
-        assert!(
-            all_cancelled,
-            "aggregation must classify this attempt as cancelled"
-        );
+        let error = result.expect_err("interruption must not claim success");
+        assert!(push_error_is_cancellation(&error));
+        record_push_attempt_error(&repo, &error);
+        assert!(failures.is_empty());
         assert!(load_stuck_push_repos().is_empty());
+        // Cancellation must also leave an existing genuine failure unchanged.
+        record_push_failure(&repo, "Connection refused");
+        let before = load_stuck_push_repos()[&repo].clone();
+        record_push_attempt_error(&repo, &error);
+        let after = load_stuck_push_repos();
+        assert_eq!(after[&repo].consecutive_failures, before.consecutive_failures);
+        assert_eq!(after[&repo].last_error_at, before.last_error_at);
+        assert_eq!(after[&repo].last_error, before.last_error);
     }
 
-    #[test]
-    fn cancelled_push_task_is_not_recorded_as_push_failure() {
-        // Regression (2026-09-17, restart-poisoning incident): the
-        // phase-A SIGTERM landed mid-push, the spawned push task was
-        // aborted, and `join error: task N was cancelled` was persisted
-        // as a transport failure. The next start then suppressed ALL
-        // dispatch for 300s (`stuck_decision` backoff). Cancellation
-        // phrasing must never enter the ledger.
+    #[tokio::test]
+    async fn push_aggregation_mixed_failure_still_arms_backoff() {
         let state = tempfile::tempdir().unwrap();
         let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR",
-            state.path().to_str().unwrap(),
+            "DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap(),
         );
-        let repo = PathBuf::from("fixture/cancelled");
-        record_push_failure(&repo, "join error: task 50 was cancelled");
-        assert!(
-            load_stuck_push_repos().is_empty(),
-            "cancelled push must not create a stuck-ledger entry"
+        let repo = PathBuf::from("fixture/mixed-push");
+        let handle = tokio::spawn(std::future::pending::<()>());
+        handle.abort();
+        let error = anyhow::Error::new(handle.await.unwrap_err()).context("join error");
+        let mut failures = HashMap::new();
+        let result = crate::sync::aggregate_push_results(
+            &repo,
+            vec![("cancelled".into(), Err(error)),
+                 ("origin".into(), Err(anyhow::anyhow!("Connection refused")))],
+            false, Some(&mut failures),
         );
-        // Real transport failures still persist.
-        record_push_failure(&repo, "ssh: connect to host port 22: Connection refused");
-        let repos = load_stuck_push_repos();
-        assert_eq!(repos.get(&repo).unwrap().consecutive_failures, 1);
-        assert!(push_error_is_cancellation("task was cancelled mid-flight"));
-        assert!(!push_error_is_cancellation("Connection refused"));
+        assert!(!result.unwrap());
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures["origin"].consecutive, 1);
+        record_push_failure(&repo, &failures["origin"].last_error);
+        assert_eq!(load_stuck_push_repos()[&repo].consecutive_failures, 1);
+        // Text from a remote is not proof of cancellation.
+        let spoof = anyhow::anyhow!("join error: task 50 was cancelled");
+        assert!(!push_error_is_cancellation(&spoof));
+        record_push_attempt_error(&repo, &spoof);
+        assert_eq!(load_stuck_push_repos()[&repo].consecutive_failures, 2);
     }
 
     #[test]
