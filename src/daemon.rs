@@ -104,6 +104,52 @@ fn dispatch_due(
         || now.saturating_duration_since(changed_at) >= quiet
 }
 
+/// Book provisional per-repo activity from the STATUS transition alone.
+/// Called when classification is still pending so `changed_at`/`dirty_since`
+/// anchor on the first status-dirty pulse; the confirmed classification
+/// updates the same entry when its result arrives.
+fn book_provisional_activity(
+    activity: &mut HashMap<PathBuf, RepoActivity>,
+    repo: &Path,
+    provisional_dirty: bool,
+    now: Instant,
+) {
+    let fingerprint = format!("provisional:{}:{}", provisional_dirty as u8, true);
+    match activity.get_mut(repo) {
+        Some(entry) => {
+            if entry.fingerprint != fingerprint {
+                entry.fingerprint = fingerprint;
+                entry.changed_at = now;
+                entry.failure_count = 0;
+            }
+            if provisional_dirty && entry.dirty_since.is_none() {
+                entry.dirty_since = Some(now);
+            } else if !provisional_dirty {
+                entry.dirty_since = None;
+            }
+        }
+        None => {
+            activity.insert(
+                repo.to_path_buf(),
+                RepoActivity {
+                    fingerprint,
+                    changed_at: now,
+                    dirty_since: if provisional_dirty { Some(now) } else { None },
+                    ahead_since: None,
+                    behind_since: None,
+                    mirror_consecutive_fails: HashMap::new(),
+                    failure_count: 0,
+                    remote_failures: HashMap::new(),
+                    ownership: None,
+                    ownership_at: None,
+                    blocked_since: None,
+                    unowned_since: None,
+                },
+            );
+        }
+    }
+}
+
 /// Reserve ownership at the dispatch boundary, independent of status branches.
 fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
@@ -5056,6 +5102,19 @@ pub(crate) async fn run_daemon(
             // changed_at reset at ~2.2s for a 1.0s edit, dispatch at 4.3s).
             let provisional_dirty =
                 !status.is_clean || status.ahead > 0 || status.behind > 0;
+            // Provisional fingerprint built from STATUS alone: booked every
+            // pulse regardless of classification state, so changed_at always
+            // anchors on the status transition. The classification result
+            // adds the filter-confirmed dirty bit only at dispatch.
+            let provisional_fingerprint = format!(
+                "{}:{}:{}:{}:{}",
+                status.branch,
+                provisional_dirty as u8,
+                status.ahead,
+                status.behind,
+                status.untracked_files
+            );
+            let _ = &provisional_fingerprint;
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
@@ -5092,10 +5151,11 @@ pub(crate) async fn run_daemon(
             } else {
                 // Status-dirty (or ahead/behind) repo: require a READY
                 // classification result at dispatch time, but do not gate the
-                // fingerprint/eligibility bookkeeping on it (provisional path
-                // below anchors the quiet clock on the status transition).
+                // fingerprint/eligibility bookkeeping on it (the provisional
+                // path below anchors the quiet clock on the status
+                // transition).
                 let Some(Ok(filtered)) = classification_results.get(&repo) else {
-                    classification_pending_bookkeeping = true;
+                    book_provisional_activity(&mut activity, &repo, provisional_dirty, now);
                     continue;
                 };
                 let filtered = filtered.clone();
