@@ -76,100 +76,10 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
     jobs.next().now_or_never().flatten()
 }
 
-/// Bounded consecutive-failure budget for per-repo dirty classification.
-/// Module-level so both the helper and the daemon loop agree; mirrors the
-/// MAX_FAILURES escalation style used for sync attempts.
-const CLASSIFICATION_MAX_FAILURES: usize = 3;
-/// After the failure budget is exhausted, the repo backs off this long and
-/// then gets one fresh probe (a failure re-arms; a success clears).
-const CLASSIFICATION_BACKOFF: Duration = Duration::from_secs(900);
 /// Hard wall-clock cap for one classification job (filter-aware diff +
 /// untracked listing). Matches the prior inline git_diff_head_files cap.
 const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// What the scheduler should do with per-repo dirty classification for
-/// this pulse.
-enum ClassificationStep {
-    /// A ready result exists; staging decisions may proceed.
-    Ready(Vec<dracon_git::types::DiffFile>),
-    /// No result yet and none is running: spawn a job this pulse.
-    Spawn,
-    /// A job is in flight or the failure backoff is active: skip the
-    /// repo this pulse without touching its activity state.
-    Skip,
-}
-
-/// Consume a ready classification result, or decide the next step.
-/// A pending job always wins (never duplicated). A failed classification
-/// is fail-closed: it never becomes "clean", is counted, and after
-/// `CLASSIFICATION_MAX_FAILURES` consecutive failures the repo backs off
-/// for 15 minutes with one fresh probe afterwards (bounded, visible,
-/// never a silent permanent skip).
-fn consume_classification(
-    repo: &Path,
-    ready: Option<Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
-    results: &mut HashMap<
-        PathBuf,
-        Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
-    >,
-    pending: &HashSet<PathBuf>,
-    failures: &mut HashMap<PathBuf, usize>,
-    cooldowns: &mut HashMap<PathBuf, Instant>,
-    now: Instant,
-) -> ClassificationStep {
-    if let Some(outcome) = ready {
-        return match outcome {
-            // KEEP the Ok result in the map: eligibility (quiet window) may
-            // not be satisfied this pulse, and discarding here would force a
-            // full re-spawn + filter re-run next pulse (observed 2026-09-17:
-            // staging at 4.0s after dirty instead of ≤3s). The result is
-            // consumed (removed) by the branch that dispatches, or when the
-            // repo reports clean again.
-            Ok(entries) => {
-                failures.remove(repo);
-                results.insert(repo.to_path_buf(), Ok(entries.clone()));
-                ClassificationStep::Ready(entries)
-            }
-            Err(e) => {
-                results.remove(repo);
-                let count = failures
-                    .entry(repo.to_path_buf())
-                    .and_modify(|count| *count += 1)
-                    .or_insert(1);
-                if *count >= CLASSIFICATION_MAX_FAILURES {
-                    cooldowns.insert(repo.to_path_buf(), now + CLASSIFICATION_BACKOFF);
-                    eprintln!(
-                        "⚠️ {} classification failed {}×; backing off 15 min (will re-probe): {}",
-                        repo.display(),
-                        count,
-                        e
-                    );
-                } else {
-                    eprintln!(
-                        "⚠️ {} classification failed (attempt {}/{}) — skipping sync classification: {}",
-                        repo.display(),
-                        count,
-                        CLASSIFICATION_MAX_FAILURES,
-                        e
-                    );
-                }
-                ClassificationStep::Skip
-            }
-        };
-    }
-    if pending.contains(repo) {
-        return ClassificationStep::Skip;
-    }
-    if let Some(until) = cooldowns.get(repo) {
-        if now < *until {
-            return ClassificationStep::Skip;
-        }
-        // Cooldown expired: allow one fresh probe.
-        cooldowns.remove(repo);
-        failures.remove(repo);
-    }
-    ClassificationStep::Spawn
-}
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
 /// Collect completed work without cancelling or dropping pending jobs.
@@ -5058,7 +4968,6 @@ pub(crate) async fn run_daemon(
             // of eligibility, consume a ready result only when the quiet window
             // has also elapsed — the quiet window and the classification job
             // run in PARALLEL, never one gating the other.
-            let status_dirty = !status.is_clean;
             if !status.is_clean && status.ahead == 0 && status.behind == 0 {
                 if let Some(outcome) = classification_results.remove(&repo) {
                     // Only empty results can go stale: a status-dirty repo whose
