@@ -117,8 +117,45 @@ classification completed in 3ms, but the first cycle's serial repo inspections
 ran 2.4–3.5s each; dispatch waited until 16:44:37. See
 `/tmp/sync62-window-journal.log` (initial pulse 16:43:06, classification
 16:43:43, dispatch unix_ms=1789659877581). This is NOT filter execution or
-remote transfer latency. Trace the startup inspection/maintenance work and
-remove it from the scheduling critical path before claiming full acceptance.
+remote transfer latency.
+
+### Startup forge-probing fix (post-0.113.62, awaiting release)
+
+Root cause demonstrated: `push_mirror_remotes_create_only` runs inside the
+serial repo scan; its `remote_repo_exists` pays one `ls-remote` per configured
+remote with only an IN-MEMORY session cache, so every daemon restart re-pays
+the full SSH probing bill before first dispatch (live: 32 repos, ~90s at
+16:43–16:44). Fix: confirmed `(repo, remote)` pairs persist to
+`$DRACON_SYNC_STATE_DIR/forge-exists-cache.json` (atomic tmp+rename),
+hydrated once per process; `evict_forge_existence` removes the durable entry
+too, preserving the 2026-09-15 out-of-band-deletion self-heal (exactly one
+loud push failure before re-probe); eviction without a persisted file writes
+nothing.
+
+Isolated restart-latency harness `/tmp/restart_latency.py`
+(3 fixtures, 1.5s simulated `ls-remote`, phase A requires a DAEMON-made
+commit+push so the cache is genuinely warm):
+
+- Fail-before (pre-fix binary snapshot `/tmp/dracon-sync-pre-forge`, commit
+  `1a78bfa`'s parent content): first dispatch **6.063s** after first pulse,
+  `passed=false` (`/tmp/sync63-restart-before.json`).
+- Pass-after (working tree with the fix): **2.108s**, within 2s quiet + one
+  1s pulse, zero fresh `ls-remote` in phase B (`/tmp/sync63-restart-after.json`).
+- An earlier harness draft reported 7.519s/5.404s for BOTH binaries; its
+  phase-A predicate accepted the pre-seeded remote tip, never warming the
+  cache. Both values are invalid as before/after evidence; the corrected
+  harness above supersedes them.
+
+Unit coverage: `test_persistent_forge_exists_roundtrip_and_eviction`
+(confirmed pair survives a fresh-cache "restart" from the state file;
+eviction removes the durable entry) and
+`test_evict_without_persisted_file_writes_nothing` (no synthetic empty state
+file as an eviction side effect). Gates on HEAD `1a78bfa`:
+`timeout 400 cargo test -p dracon-sync --locked` 1049 unit + 10 integration,
+0 failed (`/tmp/sync63-suite3.log`); clippy `--all-targets -D warnings` clean
+(`/tmp/sync63-clippy2.log`); fmt clean with timestamped attestation
+(`/tmp/sync63-fmt-attested2.log`). Not yet released/installed; the running
+0.113.62 daemon still pays the restart tax until the next deploy.
 
 Source/trace correlation: `src/daemon.rs` calls
 `push_mirror_remotes_create_only(...).await` before readiness/status inside
