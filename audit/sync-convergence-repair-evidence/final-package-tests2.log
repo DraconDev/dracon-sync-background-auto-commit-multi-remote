@@ -308,4 +308,63 @@ test git::push::tests::test_is_push_rejected_still_works ... ok
 test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
 test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
 test git::staging::tests::test_build_filter_branch_args_shape ... ok
-test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... 
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at 331e53c init
+
+New history written in 0.05 seconds...
+Completely finished after 0.11 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsParsed 1 commitsHEAD is now at 0279826 c1
+
+New history written in 0.54 seconds...
+Completely finished after 0.74 seconds.
+ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_ref_exists ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) cf361fd] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpUTuZ5y/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main e60ad67] main commit
+To /tmp/.tmpUTuZ5y/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Deleted branch master (was cf361fd).
+ok
+test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
+test git::tests::test_create_repo_on_codeberg_success_201 ... 
