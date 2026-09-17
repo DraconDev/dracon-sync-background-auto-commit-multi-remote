@@ -1,0 +1,13 @@
+{
+  "root": "/tmp/sync-cadence-6n9nsv6r",
+  "binary": "/home/dracon/Dev/dracon-utilities/target/debug/dracon-sync",
+  "scope": "plain-file scheduler, local bare remote",
+  "file_count": 100,
+  "write_finished_monotonic": 798419.680035013,
+  "change_monotonic": 798419.456897773,
+  "dispatch_seconds": {},
+  "commit_seconds": null,
+  "remote_seconds": null,
+  "passed": false,
+  "commit_timestamp_note": "polled HEAD observation; up to polling interval late"
+}

@@ -1243,11 +1243,21 @@ pub(crate) fn matches_untracked_exclude(
 /// `stage_gitlink_updates` via `git add <path>`) vs regular
 /// files (handled by `stage_existing_files` via `git add -A`).
 pub(crate) fn is_gitlink(repo: &Path, path: &Path) -> bool {
+    let started = std::time::Instant::now();
     let output = crate::git::git_cmd()
         .current_dir(repo)
         .args(["ls-tree", "HEAD", "--"])
         .arg(path)
         .output();
+    if crate::policy::debug_enabled() {
+        eprintln!(
+            "scheduler: gitlink_probe repo={} path={:?} process_elapsed_us={} ok={}",
+            repo.display(),
+            path,
+            started.elapsed().as_micros(),
+            output.as_ref().is_ok_and(|out| out.status.success())
+        );
+    }
     let Ok(out) = output else { return false };
     let stdout = String::from_utf8_lossy(&out.stdout);
     // Format: "160000 commit <sha>\t<path>"

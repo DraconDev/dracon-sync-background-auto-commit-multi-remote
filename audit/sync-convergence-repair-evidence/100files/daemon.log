@@ -1,0 +1,46 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789672506432
+scheduler: status repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=604 repo_ms=552 dirty=false daemon_ms=842
+scheduler: cycle_complete elapsed_ms=2275
+scheduler: pulse_start unix_ms=1789672508707
+scheduler: status repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=948 repo_ms=901 dirty=true daemon_ms=3462
+scheduler: classification_spawn repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=2214 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=2217
+scheduler: pulse_start unix_ms=1789672510925
+scheduler: deadline_first_order n=1 due=["/tmp/sync-cadence-6n9nsv6r/watch/sample"]
+classification: phase=filter-aware-diff repo=/tmp/sync-cadence-6n9nsv6r/watch/sample elapsed_ms=500 outcome=success
+scheduler: status repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=507 repo_ms=499 dirty=true daemon_ms=5238
+classification: phase=untracked-discovery repo=/tmp/sync-cadence-6n9nsv6r/watch/sample elapsed_ms=83 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-cadence-6n9nsv6r/watch/sample ms=583 ok=true
+scheduler: quiet_clock_assignment discovery_ms=5651 evidence_unix_ns=Some(1789672508211755120) anchor_ms=2017
+scheduler: eligibility repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=920 observed_quiet_ms=3633 eligible=true daemon_ms=5651 anchor_daemon_ms=2017
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="sample.txt" unix_ns=Some(1789672508211755120)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-0.txt" unix_ns=Some(1789672508031961289)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-1.txt" unix_ns=Some(1789672508032070294)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-10.txt" unix_ns=Some(1789672508041319310)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-11.txt" unix_ns=Some(1789672508041360518)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-12.txt" unix_ns=Some(1789672508041402938)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-13.txt" unix_ns=Some(1789672508041446671)
+scheduler: file_mtime repo=/tmp/sync-cadence-6n9nsv6r/watch/sample path="fixture-14.txt" unix_ns=Some(1789672508041490003)
+scheduler: dispatch repo=/tmp/sync-cadence-6n9nsv6r/watch/sample cycle_ms=920 inspection_ms=913 daemon_ms=5652 unix_ms=1789672511846
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=921
+scheduler: task_start repo=/tmp/sync-cadence-6n9nsv6r/watch/sample unix_ms=1789672511865
+scheduler: pulse_start unix_ms=1789672511927
+scheduler: cycle_complete elapsed_ms=8
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_origin elapsed_ms=248
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_status elapsed_ms=249
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=after_status elapsed_ms=268
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_pull elapsed_ms=268
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_clean elapsed_ms=268
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_diff elapsed_ms=630
+🐛 /tmp/sync-cadence-6n9nsv6r/watch/sample status: clean=false modified=1 staged=0 entries(libgit2)=100
+scheduler: worker_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=after_diff elapsed_ms=1015
+🐛 /tmp/sync-cadence-6n9nsv6r/watch/sample to_stage=100 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-cadence-6n9nsv6r/watch/sample thread=ThreadId(2) unix_ms=1789672512944
+scheduler: stage_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=unmerged elapsed_ms=41
+scheduler: stage_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=untracked elapsed_ms=63
+scheduler: stage_files_enter repo=/tmp/sync-cadence-6n9nsv6r/watch/sample unix_ms=1789672528964
+scheduler: stage_prepare repo=/tmp/sync-cadence-6n9nsv6r/watch/sample phase=before_partition elapsed_ms=62
+sync: received SIGTERM, shutting down gracefully...
