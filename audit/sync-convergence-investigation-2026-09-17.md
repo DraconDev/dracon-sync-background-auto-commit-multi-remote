@@ -1,6 +1,29 @@
 # Sync convergence investigation — 0.113.62 deployed
 
-## Final checkpoint — 2026-09-17, ~17:05 BST (post-deployment verification)
+## Post-deployment checkpoint — 2026-09-17 (acceptance still under review)
+
+### Evidence correction during independent-review preparation
+
+The round-3 **12.6s** value below is withdrawn as end-to-end latency: that
+poller started at 16:50:00, AFTER the 16:49:54 append and 16:49:56 commit.
+It measures time to an observation, not write-to-commit or write-to-push.
+Likewise round-4's `30.0` stamps are taken BEFORE its Git/network reads;
+they establish first-poll convergence, not a strict ≤30s completion bound.
+The round-4 append at 16:51:15 and commit at 16:51:19 are independent
+wall-clock evidence; the observer cannot separate queue, commit and transfer.
+Strict isolated harness results remain separate evidence, not proof of live
+fleet cadence. A 64s initial probe delay still needs phase attribution.
+
+Hegemon's concrete blocker is NOT merely its backlog or active edits:
+`/tmp/sync62-window-journal.log` records origin non-fast-forward rejection at
+16:52:24, failed auto-pull with `index.lock` at 16:52:25, and failed origin
+push at 16:52:34. The final inventory reports AHEAD:6731, BEHIND:4391 and
+STUCK_PULL, with 1390 staged and 1 modified path. Those counts do not prove
+1391 independently active edits. Its `state_cause=pushing` despite a failed
+push needs truthfulness review. No repair/rewrite is authorized by this report.
+
+The earlier final-checkpoint wording below is retained with this correction;
+it is not an assertion that the complete verification contract is satisfied.
 
 Deployed chain: 0.113.61 → **0.113.62** (release script via
 `dracon-sync maintenance`, all four workspace gates inside the script, crates.io
@@ -18,9 +41,9 @@ restarted as PID 3560717 at 16:43:06 BST, verified through
 | --- | --- | --- |
 | ai-auto-writer | 30s classification timeouts under `CPUQuota=15%` (49.2s under quota vs 13.0s unthrottled, systemd-run probe) + cancellation process-group leak | Quota 15%→100% (14:22) + cancellation fix (0.113.60). Live: classification succeeded 13.6s; backlog drained 472→0; final inventory CLEAN, push OK, synced. |
 | polis | Wedge shape 1 (dirty + ahead override never classified) + shape 2 (clean + ahead=12 unreachable dispatch). | Shape-1 fix (0.113.61) + shape-2 fix/retained-empty-result (0.113.62). Live: committed 4+1 files, synced; final inventory CLEAN OK. |
-| dracon-sync (self) | Same two wedge shapes (dirty+ahead=3, later clean+ahead=6 vs stale gitlab mirror). | Both fixes above; probe round 2 committed `3b77000` + round 3 `bc41119` committed and pushed to BOTH remotes; round-3 direct poller measured commit+push+gitlab+github at **12.6s**. |
+| dracon-sync (self) | Same two wedge shapes (dirty+ahead=3, later clean+ahead=6 vs stale gitlab mirror). | Both fixes above; probe round 2 committed `3b77000` + round 3 `bc41119` committed and pushed to BOTH remotes; round-3 direct poller observed matching tips after its own start; its **12.6s** value is not end-to-end latency (see correction). |
 | junk-runner, freeport | Prior 0.113.59 fixes + current scheduler fixes. | Final inventory: CLEAN, OK, synced, no backlog. |
-| hegemon | NOT a scheduler defect: 6731 genuinely unpushed commits + 1391 dirty files (an agent loop actively writing), PENDING with a visible reason. | Left visible/truthful; repair is the operator's documented `repair concerns` path (out of scope here). |
+| hegemon | Origin non-fast-forward rejection; auto-pull hit index.lock. Inventory: 6731 ahead, 4391 behind, STUCK_PULL, 1390 staged + 1 modified. | Journal 16:52:24–16:52:37 establishes failed push/retry, not successful convergence. History reconciliation is outside scope; stale `pushing` label remains under review. |
 
 ### Strict timing acceptance (0.113.62 release build)
 
