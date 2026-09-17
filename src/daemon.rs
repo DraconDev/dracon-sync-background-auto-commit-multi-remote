@@ -5054,48 +5054,67 @@ pub(crate) async fn run_daemon(
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Only do detailed diff analysis when the repo actually has changes.
             // Classification (filter-aware diff + untracked listing) runs as a
-            // per-repo background job: consume a ready result, spawn one if
-            // none is pending, or skip this pulse — a slow/failing required
-            // clean filter in one repo never delays another repo's pulse.
-            let classification = consume_classification(
-                &repo,
-                classification_results.remove(&repo),
-                &mut classification_results,
-                &classification_pending,
-                &mut classification_failures,
-                &mut classification_cooldowns,
-                now,
-            );
-            // Spawn any needed classification job IMMEDIATELY, before the
-            // branch match below: both branches `continue` on non-Ready
-            // results, and a spawn placed after them would never run
-            // (self-deadlock observed 2026-09-17).
-            if matches!(classification, ClassificationStep::Spawn) {
-                let repo_for_job = repo.clone();
-                classification_pending.insert(repo.clone());
-                classification_jobs.push(tokio::task::spawn(async move {
-                    let started = Instant::now();
-                    let outcome = tokio::time::timeout(
-                        CLASSIFICATION_TIMEOUT,
-                        repo_diff_entries(&repo_for_job),
-                    )
-                    .await
-                    .unwrap_or_else(|_| {
-                        Err(anyhow::anyhow!(
-                            "dirty classification timed out after {}s",
-                            CLASSIFICATION_TIMEOUT.as_secs()
-                        ))
-                    });
-                    if std::env::var("DRACON_SYNC_DEBUG").is_ok_and(|v| v == "1") {
+            // per-repo background job: spawn for any status-dirty repo regardless
+            // of eligibility, consume a ready result only when the quiet window
+            // has also elapsed — the quiet window and the classification job
+            // run in PARALLEL, never one gating the other.
+            let status_dirty = !status.is_clean;
+            if !status.is_clean && status.ahead == 0 && status.behind == 0 {
+                if let Some(outcome) = classification_results.remove(&repo) {
+                    // Only empty results can go stale: a status-dirty repo whose
+                    // filter-aware diff came back empty either has filter-only
+                    // noise (harmless) or a genuinely clean index snapshot taken
+                    // before the edit. Either way, drop it; the job re-spawns
+                    // next pulse unless the status reports clean first.
+                    if outcome.is_ok()
+                        && outcome.as_ref().unwrap().is_empty()
+                        && !classification_pending.contains(&repo)
+                    {
+                        classification_cooldowns
+                            .insert(repo.clone(), now + Duration::from_millis(500));
+                    }
+                    if let Err(e) = outcome {
+                        classification_failures
+                            .entry(repo.clone())
+                            .and_modify(|c| *c += 1)
+                            .or_insert(1);
                         eprintln!(
-                            "scheduler: classification_job_done repo={} ms={} ok={}",
-                            repo_for_job.display(),
-                            started.elapsed().as_millis(),
-                            outcome.is_ok()
+                            "⚠️ {} classification failed: {}",
+                            repo.display(),
+                            e
                         );
                     }
-                    (repo_for_job, outcome)
-                }));
+                }
+                if !classification_pending.contains(&repo)
+                    && !classification_cooldowns.get(&repo).is_some_and(|until| now < *until)
+                {
+                    classification_cooldowns.remove(&repo);
+                    classification_pending.insert(repo.clone());
+                    let repo_for_job = repo.clone();
+                    classification_jobs.push(tokio::task::spawn(async move {
+                        let started = Instant::now();
+                        let outcome = tokio::time::timeout(
+                            CLASSIFICATION_TIMEOUT,
+                            repo_diff_entries(&repo_for_job),
+                        )
+                        .await
+                        .unwrap_or_else(|_| {
+                            Err(anyhow::anyhow!(
+                                "dirty classification timed out after {}s",
+                                CLASSIFICATION_TIMEOUT.as_secs()
+                            ))
+                        });
+                        if debug_enabled() {
+                            eprintln!(
+                                "scheduler: classification_job_done repo={} ms={} ok={}",
+                                repo_for_job.display(),
+                                started.elapsed().as_millis(),
+                                outcome.is_ok()
+                            );
+                        }
+                        (repo_for_job, outcome)
+                    }));
+                }
             }
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
@@ -5107,13 +5126,12 @@ pub(crate) async fn run_daemon(
                     activity.remove(&repo);
                     continue;
                 }
-                // Remote issues but clean — classification detects dirty files
-                // (untracked in excluded dirs, oversized files, etc.) before
-                // committing to dirty state.
-                let ClassificationStep::Ready(entries) = &classification else {
+                // Remote issues but clean — a pending/absent classification
+                // keeps the repo skipped this pulse (fail-closed, no state
+                // mutation); a ready result decides.
+                let Some(Ok(entries)) = classification_results.remove(&repo) else {
                     continue;
                 };
-                let entries = entries.clone();
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
@@ -5128,10 +5146,9 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let ClassificationStep::Ready(filtered) = &classification else {
+                let Some(Ok(filtered)) = classification_results.remove(&repo) else {
                     continue;
                 };
-                let filtered = filtered.clone();
                 // repo_diff_entries already applies the clean filter through
                 // `git diff --name-status HEAD` and includes untracked files.
                 // Repeating a name-only HEAD diff doubles filter execution and
