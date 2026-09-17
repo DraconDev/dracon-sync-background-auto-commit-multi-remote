@@ -852,7 +852,9 @@ pub(crate) async fn push_to_all_remotes(
         match f.await {
             Ok((_task_name, result)) => results.push((name, result)),
             Err(e) => {
-                results.push((name, Err(anyhow::anyhow!("join error: {}", e))));
+                // Preserve JoinError's type: cancellation is an interrupted
+                // attempt, not a transport failure that should arm backoff.
+                results.push((name, Err(anyhow::Error::new(e).context("join error"))));
             }
         }
     }
