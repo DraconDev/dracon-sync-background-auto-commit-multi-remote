@@ -146,6 +146,12 @@ fn dispatch_due(
         || now.saturating_duration_since(changed_at) >= quiet
 }
 
+/// Rank a repository before performing serial status/maintenance inspection.
+fn scan_priority(due: bool, classification_ready: bool, established: bool) -> u8 {
+    let _ = classification_ready;
+    if due { 0 } else if established { 2 } else { 1 }
+}
+
 /// Reconcile filesystem evidence with a monotonic quiet clock. A repeated
 /// snapshot retains its anchor, including unknown/future timestamps; it must
 /// not postpone eligibility forever just because wall time is suspect.
@@ -1249,6 +1255,38 @@ mod tests {
         );
         assert_eq!(activity[&repo].changed_at, later);
         assert_eq!(activity[&repo].dirty_since, Some(start));
+    }
+
+    #[test]
+    fn ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget() {
+        // Restart: r3's classifier finished last cycle, but its provisional
+        // STATUS anchor (1.2s) is newer than filesystem quiet evidence (0s).
+        // At the 2s pulse it is not yet in `due`. Discovery-order inspection
+        // of two unknown peers costs 600ms each; that must not delay r3.
+        // Logical times test the production ordering helper, not OS latency.
+        let epoch = Instant::now();
+        let quiet = Duration::from_secs(2);
+        assert!(!dispatch_due(epoch + quiet, epoch + Duration::from_millis(1200),
+                             Some(epoch + Duration::from_millis(1200)), quiet));
+        let mut repos = vec![("r1", false), ("r2", false), ("r3", true)];
+        repos.sort_by_key(|(_, ready)| scan_priority(false, *ready, false));
+        let mut elapsed = quiet;
+        let mut dispatched = None;
+        let mut owners = HashSet::new();
+        for (name, ready) in repos {
+            if ready {
+                // Ready filesystem evidence resolves the true quiet anchor.
+                assert!(dispatch_due(epoch + elapsed, epoch, Some(epoch), quiet));
+                assert!(reserve_sync(&mut owners, Path::new(name)));
+                dispatched = Some(elapsed);
+                assert!(!reserve_sync(&mut owners, Path::new(name)));
+            } else {
+                elapsed += Duration::from_millis(600);
+            }
+        }
+        assert!(dispatched.unwrap() - quiet <= Duration::from_secs(1),
+                "ready work paid serial peer inspection: {dispatched:?}");
+        assert!(scan_priority(true, false, false) < scan_priority(false, true, false));
     }
 
     #[test]
@@ -4853,16 +4891,13 @@ pub(crate) async fn run_daemon(
         // its peers); (2) established-clean — already proved quiet in a
         // prior cycle. Stable sort keeps discovery order within each tier.
         repos.sort_by_key(|repo| {
-            if due.contains(repo) {
-                0
-            } else if activity
-                .get(repo)
-                .is_some_and(|entry| entry.dirty_since.is_none() && !entry.fingerprint.is_empty())
-            {
-                2
-            } else {
-                1
-            }
+            scan_priority(
+                due.contains(repo),
+                matches!(classification_results.get(repo), Some(Ok(_))),
+                activity.get(repo).is_some_and(|entry| {
+                    entry.dirty_since.is_none() && !entry.fingerprint.is_empty()
+                }),
+            )
         });
         if !due.is_empty() && debug_enabled() {
             eprintln!(
