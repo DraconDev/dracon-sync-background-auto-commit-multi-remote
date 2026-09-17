@@ -1142,9 +1142,7 @@ pub(crate) async fn auto_create_all_remotes(
             let result = auto_create_repo(remote, &resolved_name, create_private).await;
             if result.is_ok() {
                 if let Some(repo) = repo {
-                    exists_cache()
-                        .lock()
-                        .insert((repo.to_path_buf(), remote.name.clone()));
+                    confirm_forge_exists(repo, &remote.name.clone());
                 }
             }
             results.push((remote.name.clone(), result));
@@ -1227,6 +1225,10 @@ pub(crate) fn evict_forge_existence(repo: &Path, remote_name: &str) {
     exists_cache()
         .lock()
         .remove(&(repo.to_path_buf(), remote_name.to_string()));
+    persistent_exists_path()
+        .map(|path| remove_persistent_entry(&path, repo, remote_name))
+        .unwrap_or(Ok(()))
+        .ok();
 }
 
 /// Pure classifier: does this push error mean the forge-side repo is
@@ -1250,7 +1252,9 @@ static EXISTS_CACHE: std::sync::OnceLock<
 
 fn exists_cache(
 ) -> &'static parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>> {
-    EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
+    let cache = EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()));
+    hydrate_from_persistent_cache(cache);
+    cache
 }
 
 /// Classify an `ls-remote` failure from stderr. Definitive
@@ -1293,9 +1297,7 @@ async fn remote_repo_exists(repo: &Path, remote_name: &str) -> RemoteExistence {
         .await;
     match output {
         Ok(o) if o.status.success() => {
-            exists_cache()
-                .lock()
-                .insert((repo.to_path_buf(), remote_name.to_string()));
+            confirm_forge_exists(repo, remote_name);
             RemoteExistence::Exists
         }
         Ok(o) => {
