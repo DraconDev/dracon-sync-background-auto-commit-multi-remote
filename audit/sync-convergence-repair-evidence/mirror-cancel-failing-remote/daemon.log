@@ -1,0 +1,236 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789682393385
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=171 repo_ms=170 dirty=false daemon_ms=354
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=362 repo_ms=73 dirty=false daemon_ms=546
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing cycle_ms=786 repo_ms=377 dirty=true daemon_ms=969
+scheduler: classification_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing cycle_ms=865 pending=1 results=0
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing elapsed_ms=50 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing elapsed_ms=7 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing ms=58 ok=true
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=1205 repo_ms=340 dirty=true daemon_ms=1388
+scheduler: classification_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=1300 pending=1 results=1
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=1386 repo_ms=86 dirty=true daemon_ms=1569
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-0pytwmvn/watch/b2 elapsed_ms=98 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-0pytwmvn/watch/b2 elapsed_ms=5 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-0pytwmvn/watch/b2 ms=103 ok=true
+scheduler: classification_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=1458 pending=1 results=2
+scheduler: cycle_complete elapsed_ms=1458
+scheduler: pulse_start unix_ms=1789682394844
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-0pytwmvn/watch/c elapsed_ms=154 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-0pytwmvn/watch/c elapsed_ms=13 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-0pytwmvn/watch/c ms=168 ok=true
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=315 repo_ms=309 dirty=true daemon_ms=1956
+scheduler: classification_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=419 pending=1 results=3
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=603 repo_ms=184 dirty=true daemon_ms=2245
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-0pytwmvn/watch/a elapsed_ms=286 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-0pytwmvn/watch/a elapsed_ms=6 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-0pytwmvn/watch/a ms=292 ok=true
+scheduler: classification_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=728 pending=1 results=4
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing cycle_ms=824 repo_ms=95 dirty=true daemon_ms=2465
+scheduler: quiet_clock_assignment discovery_ms=2650 evidence_unix_ns=Some(1789682393166121303) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing cycle_ms=1009 observed_quiet_ms=2650 eligible=true daemon_ms=2650 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing path="seed.txt" unix_ns=Some(1789682393166121303)
+scheduler: dispatch repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing cycle_ms=1009 inspection_ms=280 daemon_ms=2650 unix_ms=1789682395853
+scheduler: task_start repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682395853
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-0pytwmvn/watch/b elapsed_ms=294 outcome=success
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=1073 repo_ms=64 dirty=true daemon_ms=2715
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-0pytwmvn/watch/b elapsed_ms=52 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-0pytwmvn/watch/b ms=346 ok=true
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_origin elapsed_ms=69
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_status elapsed_ms=69
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=after_status elapsed_ms=89
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_pull elapsed_ms=89
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_clean elapsed_ms=89
+scheduler: quiet_clock_assignment discovery_ms=2861 evidence_unix_ns=Some(1789682393173733851) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=1220 observed_quiet_ms=2861 eligible=true daemon_ms=2861 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/b2 path="early.txt" unix_ns=Some(1789682393173733851)
+scheduler: dispatch repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=1220 inspection_ms=211 daemon_ms=2861 unix_ms=1789682396064
+scheduler: task_start repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682396064
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_origin elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_status elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=after_status elapsed_ms=94
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_pull elapsed_ms=94
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_clean elapsed_ms=94
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_diff elapsed_ms=387
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=1407 repo_ms=186 dirty=true daemon_ms=3048
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_diff elapsed_ms=237
+🐛 /tmp/sync-fairness-0pytwmvn/watch/f-failing status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=after_diff elapsed_ms=480
+🐛 /tmp/sync-fairness-0pytwmvn/watch/f-failing to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing thread=ThreadId(15) unix_ms=1789682396333
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=unmerged elapsed_ms=9
+scheduler: quiet_clock_assignment discovery_ms=3143 evidence_unix_ns=Some(1789682394397467075) anchor_ms=1194
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=1502 observed_quiet_ms=1948 eligible=false daemon_ms=3143 anchor_daemon_ms=1194
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/c path="seed.txt" unix_ns=Some(1789682394397467075)
+🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=1502
+scheduler: pulse_start unix_ms=1789682396346
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=59 repo_ms=58 dirty=true daemon_ms=3203
+🐛 /tmp/sync-fairness-0pytwmvn/watch/b2 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=after_diff elapsed_ms=345
+🐛 /tmp/sync-fairness-0pytwmvn/watch/b2 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-0pytwmvn/watch/b2 thread=ThreadId(11) unix_ms=1789682396409
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=unmerged elapsed_ms=6
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=untracked elapsed_ms=7
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=untracked elapsed_ms=90
+scheduler: stage_files_enter repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682396435
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b2 phase=partition elapsed_ms=20
+scheduler: add_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682396455
+scheduler: add_spawned repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682396455 pid=Some(1066177)
+scheduler: stage_files_enter repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682396519
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing phase=partition elapsed_ms=6
+scheduler: add_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682396526
+scheduler: add_spawned repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682396528 pid=Some(1066206)
+scheduler: quiet_clock_assignment discovery_ms=3334 evidence_unix_ns=Some(1789682395340363053) anchor_ms=2137
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=190 observed_quiet_ms=1196 eligible=false daemon_ms=3334 anchor_daemon_ms=2137
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-0.txt" unix_ns=Some(1789682394402221939)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-1.txt" unix_ns=Some(1789682394702577900)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-2.txt" unix_ns=Some(1789682395012964410)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-3.txt" unix_ns=Some(1789682395340363053)
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=228 repo_ms=38 dirty=true daemon_ms=3372
+scheduler: add_done repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682396625 ok=true
+scheduler: add_done repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682396647 ok=true
+scheduler: quiet_clock_assignment discovery_ms=3651 evidence_unix_ns=Some(1789682394185110261) anchor_ms=982
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=507 observed_quiet_ms=2668 eligible=true daemon_ms=3651 anchor_daemon_ms=982
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/b path="seed.txt" unix_ns=Some(1789682394185110261)
+scheduler: dispatch repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=507 inspection_ms=316 daemon_ms=3651 unix_ms=1789682396853
+scheduler: task_start repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682396855
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_origin elapsed_ms=26
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_status elapsed_ms=27
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=after_status elapsed_ms=32
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_pull elapsed_ms=32
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_clean elapsed_ms=32
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=672 repo_ms=165 dirty=true daemon_ms=3816
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=789 observed_quiet_ms=2738 eligible=true daemon_ms=3933 anchor_daemon_ms=1194
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/c path="seed.txt" unix_ns=Some(1789682394397467075)
+scheduler: dispatch repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=789 inspection_ms=282 daemon_ms=3933 unix_ms=1789682397136
+scheduler: task_start repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682397136
+🔄 trailing-drain: 4 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_origin elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_status elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=after_status elapsed_ms=21
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_pull elapsed_ms=21
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_clean elapsed_ms=21
+scheduler: cycle_complete elapsed_ms=843
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_diff elapsed_ms=357
+scheduler: pulse_start unix_ms=1789682397341
+scheduler: deadline_first_order n=1 due=["/tmp/sync-fairness-0pytwmvn/watch/a"]
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_diff elapsed_ms=292
+🐛 /tmp/sync-fairness-0pytwmvn/watch/b status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=after_diff elapsed_ms=625
+🐛 /tmp/sync-fairness-0pytwmvn/watch/b to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-0pytwmvn/watch/b thread=ThreadId(15) unix_ms=1789682397480
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=152 repo_ms=112 dirty=true daemon_ms=4291
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=unmerged elapsed_ms=24
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=untracked elapsed_ms=26
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=211 observed_quiet_ms=0 eligible=false daemon_ms=4350 anchor_daemon_ms=4350
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-0.txt" unix_ns=Some(1789682394402221939)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-1.txt" unix_ns=Some(1789682394702577900)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-2.txt" unix_ns=Some(1789682395012964410)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-3.txt" unix_ns=Some(1789682395340363053)
+scheduler: stage_files_enter repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682397563
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/b phase=partition elapsed_ms=22
+scheduler: add_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682397586
+scheduler: add_spawned repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682397587 pid=Some(1066419)
+🐛 /tmp/sync-fairness-0pytwmvn/watch/c status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=after_diff elapsed_ms=495
+🐛 /tmp/sync-fairness-0pytwmvn/watch/c to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-0pytwmvn/watch/c thread=ThreadId(9) unix_ms=1789682397632
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=unmerged elapsed_ms=14
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=untracked elapsed_ms=21
+scheduler: stage_files_enter repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682397670
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/c phase=partition elapsed_ms=10
+scheduler: add_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682397680
+scheduler: add_spawned repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682397681 pid=Some(1066441)
+scheduler: cycle_complete elapsed_ms=380
+scheduler: add_done repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682397901 ok=true
+scheduler: add_done repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682397994 ok=true
+scheduler: commit_done repo=/tmp/sync-fairness-0pytwmvn/watch/b2 unix_ms=1789682398070
+📝 committed 1 file(s) in /tmp/sync-fairness-0pytwmvn/watch/b2
+scheduler: pulse_start unix_ms=1789682398343
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=318 repo_ms=273 dirty=true daemon_ms=5459
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=436 observed_quiet_ms=0 eligible=false daemon_ms=5576 anchor_daemon_ms=5576
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-0.txt" unix_ns=Some(1789682394402221939)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-1.txt" unix_ns=Some(1789682394702577900)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-2.txt" unix_ns=Some(1789682395012964410)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-3.txt" unix_ns=Some(1789682395340363053)
+scheduler: cycle_complete elapsed_ms=444
+scheduler: commit_done repo=/tmp/sync-fairness-0pytwmvn/watch/f-failing unix_ms=1789682398794
+📝 committed 1 file(s) in /tmp/sync-fairness-0pytwmvn/watch/f-failing
+scheduler: commit_done repo=/tmp/sync-fairness-0pytwmvn/watch/b unix_ms=1789682399429
+📝 committed 1 file(s) in /tmp/sync-fairness-0pytwmvn/watch/b
+scheduler: pulse_start unix_ms=1789682399430
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=77 repo_ms=76 dirty=true daemon_ms=6304
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=402 observed_quiet_ms=0 eligible=false daemon_ms=6630 anchor_daemon_ms=6630
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-0.txt" unix_ns=Some(1789682394402221939)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-1.txt" unix_ns=Some(1789682394702577900)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-2.txt" unix_ns=Some(1789682395012964410)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-3.txt" unix_ns=Some(1789682395340363053)
+scheduler: commit_done repo=/tmp/sync-fairness-0pytwmvn/watch/c unix_ms=1789682399968
+📝 committed 1 file(s) in /tmp/sync-fairness-0pytwmvn/watch/c
+scheduler: cycle_complete elapsed_ms=549
+scheduler: pulse_start unix_ms=1789682399979
+scheduler: deadline_first_order n=1 due=["/tmp/sync-fairness-0pytwmvn/watch/a"]
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-0pytwmvn/watch/b2 thread=ThreadId(9) unix_ms=1789682400194 ok=true
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=424 repo_ms=212 dirty=true daemon_ms=7202
+scheduler: eligibility repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=498 observed_quiet_ms=0 eligible=true daemon_ms=7276 anchor_daemon_ms=7276
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-0.txt" unix_ns=Some(1789682394402221939)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-1.txt" unix_ns=Some(1789682394702577900)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-2.txt" unix_ns=Some(1789682395012964410)
+scheduler: file_mtime repo=/tmp/sync-fairness-0pytwmvn/watch/a path="note-3.txt" unix_ns=Some(1789682395340363053)
+scheduler: dispatch repo=/tmp/sync-fairness-0pytwmvn/watch/a cycle_ms=498 inspection_ms=287 daemon_ms=7276 unix_ms=1789682400478
+scheduler: task_start repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682400478
+🔁 synced (late) /tmp/sync-fairness-0pytwmvn/watch/b2
+🔄 trailing-drain: 4 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_origin elapsed_ms=16
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_status elapsed_ms=16
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=after_status elapsed_ms=19
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_pull elapsed_ms=19
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_clean elapsed_ms=19
+scheduler: cycle_complete elapsed_ms=616
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_diff elapsed_ms=179
+scheduler: pulse_start unix_ms=1789682400980
+🐛 /tmp/sync-fairness-0pytwmvn/watch/a status: clean=false modified=0 staged=0 entries(libgit2)=21
+scheduler: worker_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=after_diff elapsed_ms=724
+🐛 /tmp/sync-fairness-0pytwmvn/watch/a to_stage=21 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-0pytwmvn/watch/a thread=ThreadId(15) unix_ms=1789682401203
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=136 repo_ms=135 dirty=false daemon_ms=7914
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=unmerged elapsed_ms=27
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=untracked elapsed_ms=38
+scheduler: stage_files_enter repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682401248
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=before_partition elapsed_ms=0
+scheduler: cycle_complete elapsed_ms=453
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-0pytwmvn/watch/b thread=ThreadId(15) unix_ms=1789682401702 ok=true
+scheduler: stage_prepare repo=/tmp/sync-fairness-0pytwmvn/watch/a phase=partition elapsed_ms=453
+scheduler: add_spawn repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682401703
+scheduler: add_spawned repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682401705 pid=Some(1067272)
+scheduler: add_done repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682401832 ok=true
+scheduler: pulse_start unix_ms=1789682401982
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=171 repo_ms=148 dirty=false daemon_ms=8950
+🔁 synced (late) /tmp/sync-fairness-0pytwmvn/watch/b
+scheduler: cycle_complete elapsed_ms=304
+scheduler: pulse_start unix_ms=1789682403915
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=271 repo_ms=88 dirty=false daemon_ms=10984
+scheduler: commit_done repo=/tmp/sync-fairness-0pytwmvn/watch/a unix_ms=1789682404206
+📝 committed 21 file(s) in /tmp/sync-fairness-0pytwmvn/watch/a
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-0pytwmvn/watch/c thread=ThreadId(9) unix_ms=1789682404320 ok=true
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=439 repo_ms=72 dirty=false daemon_ms=11152
+🔁 synced (late) /tmp/sync-fairness-0pytwmvn/watch/c
+⏱️ push retry 2/3 for /tmp/sync-fairness-0pytwmvn/watch/f-failing after 1s
+scheduler: cycle_complete elapsed_ms=1063
+scheduler: pulse_start unix_ms=1789682404978
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b cycle_ms=280 repo_ms=73 dirty=false daemon_ms=12055
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/b2 cycle_ms=572 repo_ms=245 dirty=false daemon_ms=12348
+scheduler: status repo=/tmp/sync-fairness-0pytwmvn/watch/c cycle_ms=697 repo_ms=69 dirty=false daemon_ms=12472
+scheduler: cycle_complete elapsed_ms=807
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-0pytwmvn/watch/a thread=ThreadId(11) unix_ms=1789682405789 ok=true
+sync: received SIGTERM, shutting down gracefully...

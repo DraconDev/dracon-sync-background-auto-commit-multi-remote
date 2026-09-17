@@ -1,0 +1,183 @@
+{
+  "root": "/tmp/sync-fairness-0pytwmvn",
+  "scope": "fairness: continuous edits, slow push, pre-start change",
+  "slow_required_filter": false,
+  "failing_remote": true,
+  "converged": true,
+  "commit_observed_seconds": {
+    "b2": 4.97820817201864,
+    "b": 6.4890868390211836,
+    "c": 6.925206699059345,
+    "a": 11.07286567799747
+  },
+  "remote_observed_seconds": {
+    "b2": 6.2549094969872385,
+    "b": 7.616095839999616,
+    "c": 10.720706732012331,
+    "a": 12.496852351003326
+  },
+  "a_commits": 1,
+  "dispatch": {
+    "a": {
+      "add_rel": 8.58444186206907,
+      "push_rel": 12.16988796798978
+    },
+    "b": {
+      "add_rel": 4.488898141076788,
+      "push_rel": 7.256497638998553
+    },
+    "b2": {
+      "add_rel": 3.3354554789839312,
+      "push_rel": 6.010529921972193
+    },
+    "c": {
+      "add_rel": 4.592186038033105,
+      "push_rel": 7.315564347081818
+    },
+    "f-failing": {
+      "add_rel": 3.37992944708094,
+      "push_rel": 6.485701009980403
+    }
+  },
+  "edit_seconds": {
+    "b": 1.000041558058001,
+    "c": 1.2116303570801392,
+    "a_started": 1.2131837119814008
+  },
+  "commit_command_end_seconds": {},
+  "edit_to_add_seconds": {
+    "b": 3.488856583018787,
+    "c": 3.380555680952966
+  },
+  "queue_delay_ms": {
+    "a": -2498,
+    "b": 162,
+    "b2": -359,
+    "c": -50,
+    "f-failing": -359
+  },
+  "stage_decomposition_ms": {
+    "a": {
+      "quiet_due_daemon_ms": 9276,
+      "dispatch_daemon_ms": 7276,
+      "dispatch_after_quiet_ms": -2000,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 725,
+      "stage_enter_to_add_spawn_ms": 500,
+      "dispatch_to_add_spawn_ms": 1225
+    },
+    "b": {
+      "quiet_due_daemon_ms": 2982,
+      "dispatch_daemon_ms": 3651,
+      "dispatch_after_quiet_ms": 669,
+      "dispatch_to_worker_start_ms": 2,
+      "worker_start_to_stage_enter_ms": 625,
+      "stage_enter_to_add_spawn_ms": 106,
+      "dispatch_to_add_spawn_ms": 733
+    },
+    "b2": {
+      "quiet_due_daemon_ms": 2000,
+      "dispatch_daemon_ms": 2861,
+      "dispatch_after_quiet_ms": 861,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 345,
+      "stage_enter_to_add_spawn_ms": 46,
+      "dispatch_to_add_spawn_ms": 391
+    },
+    "c": {
+      "quiet_due_daemon_ms": 3194,
+      "dispatch_daemon_ms": 3933,
+      "dispatch_after_quiet_ms": 739,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 496,
+      "stage_enter_to_add_spawn_ms": 48,
+      "dispatch_to_add_spawn_ms": 544
+    },
+    "f-failing": {
+      "quiet_due_daemon_ms": 2000,
+      "dispatch_daemon_ms": 2650,
+      "dispatch_after_quiet_ms": 650,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 480,
+      "stage_enter_to_add_spawn_ms": 193,
+      "dispatch_to_add_spawn_ms": 673
+    }
+  },
+  "loadavg_end": [
+    80.42,
+    81.15,
+    80.74
+  ],
+  "commit_done_unix_ms": {
+    "/tmp/sync-fairness-0pytwmvn/watch/b2": 1789682398070,
+    "/tmp/sync-fairness-0pytwmvn/watch/f-failing": 1789682398794,
+    "/tmp/sync-fairness-0pytwmvn/watch/b": 1789682399429,
+    "/tmp/sync-fairness-0pytwmvn/watch/c": 1789682399968,
+    "/tmp/sync-fairness-0pytwmvn/watch/a": 1789682404206
+  },
+  "failing_push_events": [
+    {
+      "t": 808310.475614745,
+      "args": [
+        "push",
+        "origin",
+        "--delete",
+        "master"
+      ],
+      "cwd": "/tmp/sync-fairness-0pytwmvn/watch/f-failing",
+      "pid": 1066695,
+      "phase": "start"
+    },
+    {
+      "t": 808310.491622761,
+      "args": [
+        "push",
+        "origin",
+        "--delete",
+        "master"
+      ],
+      "cwd": "/tmp/sync-fairness-0pytwmvn/watch/f-failing",
+      "pid": 1066695,
+      "phase": "end",
+      "returncode": 1
+    },
+    {
+      "t": 808311.095693684,
+      "args": [
+        "push",
+        "--no-verify",
+        "origin",
+        "HEAD:refs/heads/main"
+      ],
+      "cwd": "/tmp/sync-fairness-0pytwmvn/watch/f-failing",
+      "pid": 1066826,
+      "phase": "start"
+    },
+    {
+      "t": 808316.097101978,
+      "args": [
+        "push",
+        "--no-verify",
+        "origin",
+        "HEAD:refs/heads/main"
+      ],
+      "cwd": "/tmp/sync-fairness-0pytwmvn/watch/f-failing",
+      "pid": 1066826,
+      "phase": "end",
+      "returncode": 1
+    }
+  ],
+  "checks": {
+    "b_staging_at_quiet_plus_one_pulse": false,
+    "c_staging_at_quiet_plus_one_pulse": false,
+    "slow_push_execution_measured_separately": true,
+    "b_push_within_one_pulse_of_observed_commit": true,
+    "b_push_within_one_pulse_of_commit_done": false,
+    "continuous_work_reaches_remote_within_10s": false,
+    "pre_start_change_stages_within_3s": false,
+    "failing_remote_attempt_observed": true,
+    "healthy_staging_during_failing_push": false,
+    "failed_remote_does_not_claim_convergence": true
+  },
+  "passed": false
+}

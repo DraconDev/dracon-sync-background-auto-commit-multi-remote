@@ -140,6 +140,22 @@ def main():
         start = time.monotonic()
         start_unix = time.time()
         time.sleep(1.0)
+        if failing_remote:
+            # Exercise NEW eligible work while the failing push is in flight,
+            # not a race between preparation of unrelated initial edits.
+            failure_start_deadline = time.monotonic() + 12
+            while True:
+                complete_lines = events.read_text().splitlines(keepends=True)
+                observed = [json.loads(line) for line in complete_lines if line.endswith('\n')]
+                if any(row.get('phase') == 'start'
+                       and row['cwd'] == str(repos['f-failing'])
+                       and row['args'][:1] == ['push'] and '--delete' not in row['args']
+                       for row in observed):
+                    report['failing_push_started_before_healthy_edit'] = True
+                    break
+                if daemon.poll() is not None or time.monotonic() >= failure_start_deadline:
+                    raise RuntimeError('failing push did not start within fixture setup bound')
+                time.sleep(0.01)
         t_b = time.monotonic()
         (repos['b'] / 'seed.txt').write_text('changed\n')
         time.sleep(0.2)
