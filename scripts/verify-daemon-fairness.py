@@ -21,6 +21,7 @@ import sys
 import tempfile
 import threading
 import time
+from sync_timing import stage_timing
 
 DEADLINE = 30.0
 
@@ -262,16 +263,11 @@ def main():
         queue_delay = {}
         stage_decomposition = {}
         daemon_log_lines = (root / 'daemon.log').read_text().splitlines()
-        pulse0 = None
-        for line in daemon_log_lines:
-            if 'scheduler: pulse_start unix_ms=' in line:
-                pulse0 = int(re.search(r'unix_ms=(\d+)', line).group(1))
-                break
+        # stage_timing pairs timestamps only within the same clock domain.
         for name in names:
             anchor = None
             decision_ms = None
             eligible = False
-            add_unix = None
             for line in daemon_log_lines:
                 if f'/watch/{name} ' not in line:
                     continue
@@ -285,8 +281,6 @@ def main():
                             decision_ms = candidate
                             eligible = True
                             break
-            if name in ('b', 'c') and dispatch[name]['add_rel'] is not None:
-                add_unix = (start + dispatch[name]['add_rel'])
             if eligible:
                 m = re.search(
                     rf'scheduler: dispatch repo=.*watch/{re.escape(name)} '
@@ -296,18 +290,7 @@ def main():
                 cycle_ms = int(m.group(1)) if m else 0
                 if decision_ms is not None:
                     queue_delay[name] = decision_ms - cycle_ms - (anchor + 2000)
-                    if pulse0 is not None and anchor is not None:
-                        add_ms = None if add_unix is None else round((add_unix * 1000) - pulse0)
-                        stage_decomp = {
-                            'due_ms': anchor + 2000,
-                            'decision_ms': decision_ms,
-                            'dispatch_overrun_ms': decision_ms - (anchor + 2000),
-                            'add_ms': add_ms,
-                            'exec_after_due_ms': None if add_ms is None else add_ms - (anchor + 2000),
-                        }
-                        if add_ms is not None:
-                            stage_decomp['exec_after_dispatch_ms'] = add_ms - decision_ms
-                        stage_decomposition[name] = stage_decomp
+            stage_decomposition[name] = stage_timing(daemon_log_lines, repos[name])
         report['queue_delay_ms'] = queue_delay
         report['stage_decomposition_ms'] = stage_decomposition
         # Load context: a staging miss whose dispatch fired on time but whose
@@ -316,9 +299,9 @@ def main():
         try:
             with open('/proc/loadavg') as f:
                 fields = f.read().split()
-            report['loadavg_start'] = [float(fields[0]), float(fields[1]), float(fields[2])]
+            report['loadavg_end'] = [float(fields[0]), float(fields[1]), float(fields[2])]
         except OSError:
-            report['loadavg_start'] = None
+            report['loadavg_end'] = None
         # Exact commit completion from the daemon's own timestamped line
         # (GitService::commit is in-process libgit2; the CLI wrapper cannot
         # observe it). Push start comes from the wrapper's unix timestamp.
