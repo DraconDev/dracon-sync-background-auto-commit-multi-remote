@@ -1,0 +1,13 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-sync",
+  "root": "/tmp/sync-restart-_jxi5qlq",
+  "ls_remote_sleep": 1.5,
+  "dispatch_budget_s": 3.0,
+  "mode": "uncached",
+  "phase_b_pulse_unix_ms": 1789671708348,
+  "first_dispatch_unix_ms": 1789671711800,
+  "restart_dispatch_latency_s": 3.452,
+  "ls_remote_calls_phase_b": 2,
+  "passed": false,
+  "raw_evidence": "/home/dracon/Dev/dracon-utilities/dracon-sync/audit/sync-convergence-repair-evidence/forge-uncached-before"
+}

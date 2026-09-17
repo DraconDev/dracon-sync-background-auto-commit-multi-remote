@@ -1,0 +1,47 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789671708348
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-_jxi5qlq/watch/r1 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r1 cycle_ms=1615 repo_ms=1614 dirty=false daemon_ms=1629
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-_jxi5qlq/watch/r2 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r2 cycle_ms=3232 repo_ms=1596 dirty=false daemon_ms=3246
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-_jxi5qlq/watch/r3 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r3 cycle_ms=3292 repo_ms=40 dirty=true daemon_ms=3307
+scheduler: classification_spawn repo=/tmp/sync-restart-_jxi5qlq/watch/r3 cycle_ms=3311 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=3311
+scheduler: pulse_start unix_ms=1789671711659
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r1 cycle_ms=24 repo_ms=23 dirty=false daemon_ms=3350
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-_jxi5qlq/watch/r3 elapsed_ms=41 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-_jxi5qlq/watch/r3 elapsed_ms=4 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-_jxi5qlq/watch/r3 ms=46 ok=true
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r2 cycle_ms=81 repo_ms=32 dirty=false daemon_ms=3407
+scheduler: status repo=/tmp/sync-restart-_jxi5qlq/watch/r3 cycle_ms=121 repo_ms=18 dirty=true daemon_ms=3447
+scheduler: quiet_clock_assignment discovery_ms=3466 evidence_unix_ns=Some(1789671708324406609) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-_jxi5qlq/watch/r3 cycle_ms=140 observed_quiet_ms=3466 eligible=true daemon_ms=3466 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-_jxi5qlq/watch/r3 path="early.txt" unix_ns=Some(1789671708324273668)
+scheduler: file_mtime repo=/tmp/sync-restart-_jxi5qlq/watch/r3 path="second.txt" unix_ns=Some(1789671708324406609)
+scheduler: dispatch repo=/tmp/sync-restart-_jxi5qlq/watch/r3 cycle_ms=140 inspection_ms=37 daemon_ms=3466 unix_ms=1789671711800
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: task_start repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671711800
+scheduler: cycle_complete elapsed_ms=140
+sync: received SIGTERM, shutting down gracefully...
+🐛 /tmp/sync-restart-_jxi5qlq/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=2
+🐛 /tmp/sync-restart-_jxi5qlq/watch/r3 to_stage=2 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-_jxi5qlq/watch/r3 thread=ThreadId(16) unix_ms=1789671711935
+scheduler: stage_prepare repo=/tmp/sync-restart-_jxi5qlq/watch/r3 phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-restart-_jxi5qlq/watch/r3 phase=untracked elapsed_ms=5
+scheduler: stage_files_enter repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671711948
+scheduler: stage_prepare repo=/tmp/sync-restart-_jxi5qlq/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-_jxi5qlq/watch/r3 phase=partition elapsed_ms=6
+scheduler: add_spawn repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671711955
+scheduler: add_spawned repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671711956 pid=Some(2720687)
+scheduler: add_done repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671712001 ok=true
+scheduler: commit_done repo=/tmp/sync-restart-_jxi5qlq/watch/r3 unix_ms=1789671712384
+📝 committed 2 file(s) in /tmp/sync-restart-_jxi5qlq/watch/r3
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-_jxi5qlq/watch/r3 (public_only policy + visibility cache says None)
+ℹ️  r3 already exists on origin — skipping auto-create
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-restart-_jxi5qlq/watch/r3 thread=ThreadId(16) unix_ms=1789671712640 ok=true
