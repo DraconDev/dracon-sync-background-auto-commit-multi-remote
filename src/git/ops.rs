@@ -356,7 +356,7 @@ pub(crate) async fn run_git_captured_output(
     let _group_guard = child.id().map(GroupKillGuard);
     const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
     let label = format!("git {}", op_label);
-    let mut stdout_pipe = child.stdout.take().with_context(|| {
+    let stdout_pipe = child.stdout.take().with_context(|| {
         format!("{} in {}: stdout not captured", label, workdir.display())
     })?;
     let stderr_pipe = child.stderr.take().with_context(|| {
