@@ -2394,6 +2394,34 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn cancelled_push_task_is_not_recorded_as_push_failure() {
+        // Regression (2026-09-17, restart-poisoning incident): the
+        // phase-A SIGTERM landed mid-push, the spawned push task was
+        // aborted, and `join error: task N was cancelled` was persisted
+        // as a transport failure. The next start then suppressed ALL
+        // dispatch for 300s (`stuck_decision` backoff). Cancellation
+        // phrasing must never enter the ledger.
+        let state = tempfile::tempdir().unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        let repo = PathBuf::from("fixture/cancelled");
+        record_push_failure(&repo, "join error: task 50 was cancelled");
+        assert!(
+            load_stuck_push_repos().is_empty(),
+            "cancelled push must not create a stuck-ledger entry"
+        );
+        // Real transport failures still persist.
+        record_push_failure(&repo, "ssh: connect to host port 22: Connection refused");
+        let repos = load_stuck_push_repos();
+        assert_eq!(repos.get(&repo).unwrap().consecutive_failures, 1);
+        assert!(push_error_is_cancellation("task was cancelled mid-flight"));
+        assert!(!push_error_is_cancellation("Connection refused"));
+    }
+
+    #[test]
     fn test_record_push_failure_increments_counter() {
         // Use a temp state dir so this test does NOT pollute the
         // real stuck-push ledger at
@@ -3534,7 +3562,37 @@ pub(crate) fn record_push_success(repo: &Path) {
 /// reaches `push_max_retries`, the entry's `last_error` is
 /// preserved (so the operator can see WHY it's stuck) and the
 /// report will surface a `🛑 push-stuck` state.
+/// Cancellation-shaped push error detector. The ONLY producer of
+/// "task ... was cancelled" is tokio's JoinError when a spawned push
+/// task is aborted — daemon shutdown or wedged-task cancellation —
+/// never a git/forge outcome. A cancelled attempt has an UNKNOWN
+/// result: the remote may or may not have received the push, but the
+/// local work is intact and the next cycle re-dispatches. Recording
+/// it as a push failure persisted a stuck-ledger entry whose 300s
+/// backoff suppressed ALL dispatch for the repo after the next
+/// restart (live: phase-B fixture never dispatched in 45s,
+/// /tmp/sync-restart-yvkywhn7, 2026-09-17). Shared choke point:
+/// `record_push_failure` refuses to persist these.
+pub(crate) fn push_error_is_cancellation(error: &str) -> bool {
+    error.contains("task was cancelled") || error.contains("task cancelled")
+}
+
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
+    // Shutdown/wedge cancellation of an in-flight push task is not a
+    // remote failure: the attempt's outcome is unknown, the work tree
+    // is intact, and the next cycle re-dispatches. Persisting it armed
+    // the 300s stuck backoff after every restart (live evidence:
+    // /tmp/sync-restart-yvkywhn7). Real transport failures never carry
+    // tokio's cancellation phrasing.
+    if push_error_is_cancellation(error) {
+        if debug_enabled() {
+            eprintln!(
+                "⏭️ {} push attempt was cancelled (shutdown/wedge) — not recorded as a push failure",
+                repo.display()
+            );
+        }
+        return;
+    }
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos

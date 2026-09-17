@@ -2003,6 +2003,16 @@ async fn push_background(
                     }
                 }
                 Err(e) => {
+                    // Same cancellation rule for the origin path.
+                    if crate::daemon::push_error_is_cancellation(&e.to_string()) {
+                        if debug_enabled() {
+                            eprintln!(
+                                "⏭️ {} origin push task cancelled — not recorded as a failure",
+                                repo.display()
+                            );
+                        }
+                        return Ok(false);
+                    }
                     eprintln!(
                         "⚠️ background push to origin failed for {}: {}",
                         repo.display(),
@@ -5120,6 +5130,20 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 return Ok(false);
             }
             Err(e) => {
+                // Cancellation of the spawned push task (daemon shutdown
+                // or wedged-task abort) must not enter the stuck ledger
+                // — see `push_error_is_cancellation` in daemon.rs. The
+                // outcome is unknown, not failed; the next start
+                // re-dispatches without a 300s backoff.
+                if crate::daemon::push_error_is_cancellation(&e.to_string()) {
+                    if debug_enabled() {
+                        eprintln!(
+                            "⏭️ {} push task cancelled — not recorded as a push failure",
+                            ctx.repo.display()
+                        );
+                    }
+                    return Ok(false);
+                }
                 let error = crate::ownership::redact_url_credentials(&e.to_string());
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
                 crate::daemon::record_push_failure(ctx.repo, &error);
