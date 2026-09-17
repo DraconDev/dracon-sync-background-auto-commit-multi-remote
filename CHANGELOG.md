@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- Clean repositories with ahead/behind work now obtain and retain the
+  classification result required by the shared dispatch path. Previously they
+  could remain unpushed indefinitely. Dirty and clean divergence retain the
+  existing filter, retry and exclusive-worker gates; no unconditional push path
+  is introduced. The isolated clean-ahead fixture fails against 0.113.61 and
+  passes against the patched binary, including two subsequent content edits.
+- Ready classification results are collected at the per-repository scheduling
+  boundary as well as pulse start, avoiding a gratuitous extra pulse when a
+  classifier finishes during the scan. A deterministic test keeps an unrelated
+  classifier pending while making the ready result immediately available.
+- Release commits use the repository's configured identity, without overrides.
+
+### Diagnostics and acceptance status
+
+- Debug logs distinguish pulse, dispatch, task start, staging preparation, add
+  spawn/completion and commit completion. The strict timing fixture still has
+  intermittent failures; this release does not claim full timing or fleet
+  convergence acceptance. The original manually committed live probe is
+  explicitly invalidated and must be replaced by daemon-only evidence.
+
 ## [0.113.61] - 2026-09-17
 ## [0.113.60] - 2026-09-17
 
