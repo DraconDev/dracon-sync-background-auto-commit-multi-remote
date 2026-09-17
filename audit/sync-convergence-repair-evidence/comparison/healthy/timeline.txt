@@ -1,0 +1,37 @@
+scheduler: pulse_start unix_ms=1789672132939
+scheduler: pulse_start unix_ms=1789672133944
+scheduler: pulse_start unix_ms=1789672134808
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=502 observed_quiet_ms=1881 eligible=false daemon_ms=2533 anchor_daemon_ms=652
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=809 observed_quiet_ms=1986 eligible=false daemon_ms=2840 anchor_daemon_ms=854
+scheduler: pulse_start unix_ms=1789672135618
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=251 observed_quiet_ms=2439 eligible=true daemon_ms=3091 anchor_daemon_ms=652
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=251 inspection_ms=249 daemon_ms=3092 unix_ms=1789672135869
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672135870
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_origin elapsed_ms=19
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_status elapsed_ms=20
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=after_status elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_pull elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_clean elapsed_ms=75
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=667 observed_quiet_ms=2654 eligible=true daemon_ms=3508 anchor_daemon_ms=854
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=667 inspection_ms=239 daemon_ms=3508 unix_ms=1789672136286
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136286
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_origin elapsed_ms=9
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_status elapsed_ms=10
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_diff elapsed_ms=429
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=after_status elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_pull elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_clean elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=after_diff elapsed_ms=524
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/b thread=ThreadId(16) unix_ms=1789672136394
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136424
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136424 pid=Some(2821271)
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_diff elapsed_ms=162
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=after_diff elapsed_ms=312
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/c thread=ThreadId(2) unix_ms=1789672136599
+scheduler: pulse_start unix_ms=1789672136631
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136638
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136640 pid=Some(2821326)
+scheduler: pulse_start unix_ms=1789672138651
+scheduler: pulse_start unix_ms=1789672138949
+scheduler: pulse_start unix_ms=1789672139956
+scheduler: pulse_start unix_ms=1789672141237

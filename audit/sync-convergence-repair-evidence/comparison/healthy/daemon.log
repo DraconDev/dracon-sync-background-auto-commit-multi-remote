@@ -1,0 +1,195 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789672132939
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=152 repo_ms=128 dirty=false daemon_ms=313
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=278 repo_ms=57 dirty=false daemon_ms=439
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=396 repo_ms=50 dirty=true daemon_ms=557
+scheduler: classification_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=431 pending=1 results=0
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=503 repo_ms=66 dirty=false daemon_ms=664
+scheduler: cycle_complete elapsed_ms=554
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-bhx00mtz/watch/b2 elapsed_ms=196 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-bhx00mtz/watch/b2 elapsed_ms=18 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-bhx00mtz/watch/b2 ms=218 ok=true
+scheduler: pulse_start unix_ms=1789672133944
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=68 repo_ms=66 dirty=true daemon_ms=1234
+scheduler: classification_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=316 pending=1 results=1
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-bhx00mtz/watch/a elapsed_ms=123 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-bhx00mtz/watch/a elapsed_ms=6 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-bhx00mtz/watch/a ms=129 ok=true
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=481 repo_ms=162 dirty=true daemon_ms=1647
+scheduler: classification_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=592 pending=1 results=2
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=685 repo_ms=92 dirty=true daemon_ms=1851
+scheduler: quiet_clock_assignment discovery_ms=1887 evidence_unix_ns=Some(1789672132408139950) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=722 observed_quiet_ms=1887 eligible=false daemon_ms=1887 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/b2 path="early.txt" unix_ns=Some(1789672132408139950)
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-bhx00mtz/watch/b elapsed_ms=186 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-bhx00mtz/watch/b elapsed_ms=7 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-bhx00mtz/watch/b ms=193 ok=true
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=816 repo_ms=93 dirty=true daemon_ms=1982
+scheduler: classification_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=864 pending=1 results=3
+scheduler: cycle_complete elapsed_ms=864
+scheduler: pulse_start unix_ms=1789672134808
+scheduler: deadline_first_order n=1 due=["/tmp/sync-fairness-bhx00mtz/watch/b2"]
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=117 repo_ms=116 dirty=true daemon_ms=2148
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=163 observed_quiet_ms=2194 eligible=true daemon_ms=2194 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/b2 path="early.txt" unix_ns=Some(1789672132408139950)
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=163 inspection_ms=162 daemon_ms=2194 unix_ms=1789672134972
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672134972
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_origin elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_status elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=after_status elapsed_ms=20
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_pull elapsed_ms=21
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_clean elapsed_ms=21
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=285 repo_ms=121 dirty=true daemon_ms=2316
+scheduler: quiet_clock_assignment discovery_ms=2392 evidence_unix_ns=Some(1789672134246653294) anchor_ms=1468
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=361 observed_quiet_ms=923 eligible=false daemon_ms=2392 anchor_daemon_ms=1468
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-0.txt" unix_ns=Some(1789672133633421165)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-1.txt" unix_ns=Some(1789672133939249317)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-2.txt" unix_ns=Some(1789672134246653294)
+classification: phase=filter-aware-diff repo=/tmp/sync-fairness-bhx00mtz/watch/c elapsed_ms=369 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-fairness-bhx00mtz/watch/c elapsed_ms=6 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-fairness-bhx00mtz/watch/c ms=376 ok=true
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=401 repo_ms=39 dirty=true daemon_ms=2432
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_diff elapsed_ms=242
+scheduler: quiet_clock_assignment discovery_ms=2533 evidence_unix_ns=Some(1789672133430204332) anchor_ms=652
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=502 observed_quiet_ms=1881 eligible=false daemon_ms=2533 anchor_daemon_ms=652
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/b path="seed.txt" unix_ns=Some(1789672133430204332)
+🐛 /tmp/sync-fairness-bhx00mtz/watch/b2 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=after_diff elapsed_ms=345
+🐛 /tmp/sync-fairness-bhx00mtz/watch/b2 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/b2 thread=ThreadId(2) unix_ms=1789672135319
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=unmerged elapsed_ms=3
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=untracked elapsed_ms=5
+scheduler: stage_files_enter repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672135331
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b2 phase=partition elapsed_ms=52
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672135384
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672135385 pid=Some(2820997)
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=691 repo_ms=188 dirty=true daemon_ms=2722
+scheduler: add_done repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672135534 ok=true
+scheduler: quiet_clock_assignment discovery_ms=2840 evidence_unix_ns=Some(1789672133632119237) anchor_ms=854
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=809 observed_quiet_ms=1986 eligible=false daemon_ms=2840 anchor_daemon_ms=854
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/c path="seed.txt" unix_ns=Some(1789672133632119237)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=809
+scheduler: pulse_start unix_ms=1789672135618
+scheduler: deadline_first_order n=1 due=["/tmp/sync-fairness-bhx00mtz/watch/b"]
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=98 repo_ms=96 dirty=true daemon_ms=2939
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=251 observed_quiet_ms=2439 eligible=true daemon_ms=3091 anchor_daemon_ms=652
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/b path="seed.txt" unix_ns=Some(1789672133430204332)
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=251 inspection_ms=249 daemon_ms=3092 unix_ms=1789672135869
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672135870
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_origin elapsed_ms=19
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_status elapsed_ms=20
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=321 repo_ms=69 dirty=true daemon_ms=3162
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=after_status elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_pull elapsed_ms=75
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_clean elapsed_ms=75
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=427 observed_quiet_ms=0 eligible=false daemon_ms=3268 anchor_daemon_ms=3268
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-0.txt" unix_ns=Some(1789672133633421165)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-1.txt" unix_ns=Some(1789672133939249317)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-2.txt" unix_ns=Some(1789672134246653294)
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=515 repo_ms=87 dirty=true daemon_ms=3356
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=667 observed_quiet_ms=2654 eligible=true daemon_ms=3508 anchor_daemon_ms=854
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/c path="seed.txt" unix_ns=Some(1789672133632119237)
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/c cycle_ms=667 inspection_ms=239 daemon_ms=3508 unix_ms=1789672136286
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136286
+🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=670
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_origin elapsed_ms=9
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_status elapsed_ms=10
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_diff elapsed_ms=429
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=after_status elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_pull elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_clean elapsed_ms=14
+🐛 /tmp/sync-fairness-bhx00mtz/watch/b status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=after_diff elapsed_ms=524
+🐛 /tmp/sync-fairness-bhx00mtz/watch/b to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/b thread=ThreadId(16) unix_ms=1789672136394
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=untracked elapsed_ms=6
+scheduler: stage_files_enter repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136407
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/b phase=partition elapsed_ms=17
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136424
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136424 pid=Some(2821271)
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_diff elapsed_ms=162
+scheduler: add_done repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672136496 ok=true
+🐛 /tmp/sync-fairness-bhx00mtz/watch/c status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=after_diff elapsed_ms=312
+🐛 /tmp/sync-fairness-bhx00mtz/watch/c to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/c thread=ThreadId(2) unix_ms=1789672136599
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=untracked elapsed_ms=7
+scheduler: stage_files_enter repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136630
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=before_partition elapsed_ms=0
+scheduler: pulse_start unix_ms=1789672136631
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/c phase=partition elapsed_ms=7
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136638
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672136640 pid=Some(2821326)
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=66 repo_ms=58 dirty=true daemon_ms=3919
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=128 observed_quiet_ms=0 eligible=false daemon_ms=3982 anchor_daemon_ms=3982
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-0.txt" unix_ns=Some(1789672133633421165)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-1.txt" unix_ns=Some(1789672133939249317)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-2.txt" unix_ns=Some(1789672134246653294)
+scheduler: cycle_complete elapsed_ms=129
+scheduler: commit_done repo=/tmp/sync-fairness-bhx00mtz/watch/b2 unix_ms=1789672136766
+📝 committed 1 file(s) in /tmp/sync-fairness-bhx00mtz/watch/b2
+scheduler: add_done repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672137311 ok=true
+scheduler: commit_done repo=/tmp/sync-fairness-bhx00mtz/watch/b unix_ms=1789672138627
+📝 committed 1 file(s) in /tmp/sync-fairness-bhx00mtz/watch/b
+scheduler: pulse_start unix_ms=1789672138651
+scheduler: commit_done repo=/tmp/sync-fairness-bhx00mtz/watch/c unix_ms=1789672138656
+📝 committed 1 file(s) in /tmp/sync-fairness-bhx00mtz/watch/c
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=47 repo_ms=46 dirty=true daemon_ms=5921
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-bhx00mtz/watch/b2 thread=ThreadId(2) unix_ms=1789672138735 ok=true
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=200 observed_quiet_ms=0 eligible=false daemon_ms=6073 anchor_daemon_ms=6073
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-0.txt" unix_ns=Some(1789672133633421165)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-1.txt" unix_ns=Some(1789672133939249317)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-2.txt" unix_ns=Some(1789672134246653294)
+🔁 synced (late) /tmp/sync-fairness-bhx00mtz/watch/b2
+scheduler: cycle_complete elapsed_ms=200
+scheduler: pulse_start unix_ms=1789672138949
+scheduler: deadline_first_order n=1 due=["/tmp/sync-fairness-bhx00mtz/watch/a"]
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=108 repo_ms=107 dirty=true daemon_ms=6280
+scheduler: eligibility repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=259 observed_quiet_ms=0 eligible=true daemon_ms=6430 anchor_daemon_ms=6430
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-0.txt" unix_ns=Some(1789672133633421165)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-1.txt" unix_ns=Some(1789672133939249317)
+scheduler: file_mtime repo=/tmp/sync-fairness-bhx00mtz/watch/a path="note-2.txt" unix_ns=Some(1789672134246653294)
+scheduler: dispatch repo=/tmp/sync-fairness-bhx00mtz/watch/a cycle_ms=259 inspection_ms=257 daemon_ms=6430 unix_ms=1789672139208
+scheduler: task_start repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672139208
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_origin elapsed_ms=78
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_status elapsed_ms=79
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=after_status elapsed_ms=90
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_pull elapsed_ms=90
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_clean elapsed_ms=90
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=352 repo_ms=93 dirty=false daemon_ms=6524
+🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=467
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-fairness-bhx00mtz/watch/b thread=ThreadId(16) unix_ms=1789672139445 ok=true
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_diff elapsed_ms=350
+🐛 /tmp/sync-fairness-bhx00mtz/watch/a status: clean=false modified=0 staged=0 entries(libgit2)=20
+scheduler: worker_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=after_diff elapsed_ms=466
+🐛 /tmp/sync-fairness-bhx00mtz/watch/a to_stage=20 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-fairness-bhx00mtz/watch/a thread=ThreadId(15) unix_ms=1789672139675
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=untracked elapsed_ms=5
+scheduler: stage_files_enter repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672139885
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-fairness-bhx00mtz/watch/a phase=partition elapsed_ms=14
+scheduler: add_spawn repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672139899
+scheduler: add_spawned repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672139900 pid=Some(2822043)
+scheduler: pulse_start unix_ms=1789672139956
+scheduler: add_done repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672139976 ok=true
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=110 repo_ms=107 dirty=false daemon_ms=7289
+🔁 synced (late) /tmp/sync-fairness-bhx00mtz/watch/b
+scheduler: cycle_complete elapsed_ms=203
+scheduler: pulse_start unix_ms=1789672141237
+scheduler: commit_done repo=/tmp/sync-fairness-bhx00mtz/watch/a unix_ms=1789672141239
+📝 committed 20 file(s) in /tmp/sync-fairness-bhx00mtz/watch/a
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b cycle_ms=147 repo_ms=145 dirty=false daemon_ms=8606
+scheduler: status repo=/tmp/sync-fairness-bhx00mtz/watch/b2 cycle_ms=494 repo_ms=208 dirty=false daemon_ms=8953
+scheduler: cycle_complete elapsed_ms=537
+sync: received SIGTERM, shutting down gracefully...

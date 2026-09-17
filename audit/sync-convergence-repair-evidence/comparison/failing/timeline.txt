@@ -1,0 +1,39 @@
+scheduler: pulse_start unix_ms=1789672143647
+scheduler: pulse_start unix_ms=1789672144949
+scheduler: eligibility repo=/tmp/sync-fairness-skzt928y/watch/c cycle_ms=951 observed_quiet_ms=1151 eligible=false daemon_ms=2335 anchor_daemon_ms=1183
+scheduler: pulse_start unix_ms=1789672145901
+scheduler: eligibility repo=/tmp/sync-fairness-skzt928y/watch/b cycle_ms=659 observed_quiet_ms=2012 eligible=true daemon_ms=2995 anchor_daemon_ms=982
+scheduler: dispatch repo=/tmp/sync-fairness-skzt928y/watch/b cycle_ms=659 inspection_ms=137 daemon_ms=2995 unix_ms=1789672146561
+scheduler: task_start repo=/tmp/sync-fairness-skzt928y/watch/b unix_ms=1789672146562
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=before_origin elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=before_status elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=after_status elapsed_ms=39
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=before_pull elapsed_ms=39
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=before_clean elapsed_ms=39
+scheduler: eligibility repo=/tmp/sync-fairness-skzt928y/watch/c cycle_ms=808 observed_quiet_ms=1960 eligible=false daemon_ms=3144 anchor_daemon_ms=1183
+scheduler: pulse_start unix_ms=1789672146752
+scheduler: eligibility repo=/tmp/sync-fairness-skzt928y/watch/c cycle_ms=199 observed_quiet_ms=2201 eligible=true daemon_ms=3385 anchor_daemon_ms=1183
+scheduler: dispatch repo=/tmp/sync-fairness-skzt928y/watch/c cycle_ms=199 inspection_ms=198 daemon_ms=3385 unix_ms=1789672146951
+scheduler: task_start repo=/tmp/sync-fairness-skzt928y/watch/c unix_ms=1789672146952
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=before_origin elapsed_ms=34
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=before_status elapsed_ms=34
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=after_status elapsed_ms=38
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=before_pull elapsed_ms=38
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=before_clean elapsed_ms=38
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=before_diff elapsed_ms=446
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/b phase=after_diff elapsed_ms=626
+scheduler: stage_enter repo=/tmp/sync-fairness-skzt928y/watch/b thread=ThreadId(16) unix_ms=1789672147188
+scheduler: add_spawn repo=/tmp/sync-fairness-skzt928y/watch/b unix_ms=1789672147206
+scheduler: add_spawned repo=/tmp/sync-fairness-skzt928y/watch/b unix_ms=1789672147208 pid=Some(2823920)
+scheduler: pulse_start unix_ms=1789672148157
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=before_diff elapsed_ms=1325
+scheduler: worker_prepare repo=/tmp/sync-fairness-skzt928y/watch/c phase=after_diff elapsed_ms=1548
+scheduler: stage_enter repo=/tmp/sync-fairness-skzt928y/watch/c thread=ThreadId(6) unix_ms=1789672148500
+scheduler: add_spawn repo=/tmp/sync-fairness-skzt928y/watch/c unix_ms=1789672148582
+scheduler: add_spawned repo=/tmp/sync-fairness-skzt928y/watch/c unix_ms=1789672148588 pid=Some(2824176)
+scheduler: pulse_start unix_ms=1789672149170
+scheduler: pulse_start unix_ms=1789672149963
+scheduler: pulse_start unix_ms=1789672151007
+scheduler: pulse_start unix_ms=1789672152008
+scheduler: pulse_start unix_ms=1789672153147
+scheduler: pulse_start unix_ms=1789672154150
