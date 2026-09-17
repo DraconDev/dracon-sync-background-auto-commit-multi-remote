@@ -817,9 +817,9 @@ pub(crate) async fn diagnose_divergence(
 /// Push to all remotes in priority order.
 ///
 /// Pushes run concurrently so one slow forge does not delay every other
-/// mirror. Each result retains its configured remote name even if a task is
-/// cancelled or panics; reporting an anonymous `unknown` remote made failure
-/// ledgers and operator diagnostics needlessly ambiguous.
+/// mirror. Futures are owned by this call, not detached Tokio tasks: cancelling
+/// the repository worker drops every mirror operation before ownership releases.
+/// Results (including panics) retain the configured remote names and ordering.
 pub(crate) async fn push_to_all_remotes(
     repo: &Path,
     remotes: &[RemoteConfig],
@@ -832,33 +832,17 @@ pub(crate) async fn push_to_all_remotes(
     // Pushing to all remotes in parallel cuts push time from O(N) to O(1)
     // for N remotes. Results are returned in the same order as `sorted` so
     // callers can rely on the configured priority ordering.
-    let mut futures = Vec::with_capacity(sorted.len());
-    for remote in sorted.iter() {
-        let repo = repo.to_path_buf();
-        let name = remote.name.clone();
-        let result_name = name.clone();
-        let force_push = remote.force_push_when_behind;
-        futures.push((
-            result_name,
-            tokio::spawn(async move {
-                let result =
-                    push_to_named_remote(&repo, &name, timeout_secs, retries, force_push).await;
-                (name, result)
-            }),
-        ));
-    }
-    let mut results = Vec::with_capacity(futures.len());
-    for (name, f) in futures {
-        match f.await {
-            Ok((_task_name, result)) => results.push((name, result)),
-            Err(e) => {
-                // Preserve JoinError's type: cancellation is an interrupted
-                // attempt, not a transport failure that should arm backoff.
-                results.push((name, Err(anyhow::Error::new(e).context("join error"))));
-            }
-        }
-    }
-    results
+    use futures::FutureExt;
+    futures::future::join_all(sorted.iter().map(|remote| async move {
+        let result = std::panic::AssertUnwindSafe(push_to_named_remote(
+            repo, &remote.name, timeout_secs, retries, remote.force_push_when_behind,
+        ))
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("mirror push panicked")));
+        (remote.name.clone(), result)
+    }))
+    .await
 }
 
 /// Create a repo on GitHub using `gh` CLI.
