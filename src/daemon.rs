@@ -927,6 +927,43 @@ mod tests {
         assert!(!dispatch_due(start, now, Some(now), quiet));
     }
 
+    #[test]
+    fn pending_classification_preserves_status_transition_clock() {
+        let repo = PathBuf::from("isolated-repo");
+        let mut activity = HashMap::new();
+        let start = Instant::now();
+        let fingerprint = "main:1:0:0:0:1".to_owned();
+        book_provisional_activity(&mut activity, &repo, fingerprint.clone(), true, start);
+        book_provisional_activity(
+            &mut activity,
+            &repo,
+            fingerprint.clone(),
+            true,
+            start + Duration::from_secs(1),
+        );
+        let entry = &activity[&repo];
+        assert_eq!(entry.fingerprint, fingerprint);
+        assert_eq!(entry.changed_at, start);
+        assert_eq!(entry.dirty_since, Some(start));
+        assert!(dispatch_due(
+            start + Duration::from_secs(2),
+            entry.changed_at,
+            entry.dirty_since,
+            Duration::from_secs(2),
+        ));
+        // A new status transition resets quiet time, not the starvation clock.
+        let later = start + Duration::from_secs(2);
+        book_provisional_activity(
+            &mut activity,
+            &repo,
+            "main:1:0:0:0:2".to_owned(),
+            true,
+            later,
+        );
+        assert_eq!(activity[&repo].changed_at, later);
+        assert_eq!(activity[&repo].dirty_since, Some(start));
+    }
+
     #[tokio::test]
     async fn stalled_worker_retains_exclusive_dispatch_ownership_across_cycles() {
         let repo = PathBuf::from("isolated-repo");
@@ -3961,6 +3998,7 @@ pub(crate) async fn run_daemon(
     // to block buffering. We can't use setvbuf on Rust's handles, so instead
     // we flush stderr at strategic points in the daemon loop (see flush calls below).
     eprintln!("🔄 dracon-sync daemon started");
+    let scheduler_epoch = Instant::now();
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
     let mut pending_repos: HashMap<PathBuf, Instant> = HashMap::new();
@@ -4890,11 +4928,12 @@ pub(crate) async fn run_daemon(
 
             if debug_enabled() {
                 eprintln!(
-                    "scheduler: status repo={} cycle_ms={} repo_ms={} dirty={}",
+                    "scheduler: status repo={} cycle_ms={} repo_ms={} dirty={} daemon_ms={}",
                     repo.display(),
                     cycle_started.elapsed().as_millis(),
                     now.elapsed().as_millis(),
-                    !status.is_clean
+                    !status.is_clean,
+                    scheduler_epoch.elapsed().as_millis(),
                 );
             }
 
@@ -5103,8 +5142,7 @@ pub(crate) async fn run_daemon(
             // when the classification job happens to finish — otherwise the
             // 2s window starts a full pulse late (observed 2026-09-17:
             // changed_at reset at ~2.2s for a 1.0s edit, dispatch at 4.3s).
-            let provisional_dirty =
-                !status.is_clean || status.ahead > 0 || status.behind > 0;
+            let provisional_dirty = !status.is_clean;
             // Provisional fingerprint built from STATUS alone: booked every
             // pulse regardless of classification state, so changed_at always
             // anchors on the status transition. The classification result
@@ -5330,14 +5368,38 @@ pub(crate) async fn run_daemon(
 
             if debug_enabled() {
                 eprintln!(
-                    "scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={}",
+                    "scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={} daemon_ms={} anchor_daemon_ms={}",
                     repo.display(),
                     cycle_started.elapsed().as_millis(),
                     eligibility_now
                         .saturating_duration_since(entry.changed_at)
                         .as_millis(),
-                    enough_time
+                    enough_time,
+                    eligibility_now.saturating_duration_since(scheduler_epoch).as_millis(),
+                    entry.changed_at.saturating_duration_since(scheduler_epoch).as_millis(),
                 );
+                // Diagnostic only: mtime is filesystem evidence, not an event
+                // timestamp. Bound metadata work and never print file contents.
+                for file in entries.iter().take(8) {
+                    if file.path.is_absolute()
+                        || file
+                            .path
+                            .components()
+                            .any(|part| matches!(part, std::path::Component::ParentDir))
+                    {
+                        continue;
+                    }
+                    let modified = std::fs::symlink_metadata(repo.join(&file.path))
+                        .ok()
+                        .and_then(|meta| meta.modified().ok())
+                        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok());
+                    eprintln!(
+                        "scheduler: file_mtime repo={} path={:?} unix_ns={:?}",
+                        repo.display(),
+                        file.path,
+                        modified.map(|time| time.as_nanos())
+                    );
+                }
             }
             if !enough_time {
                 continue;
@@ -5417,10 +5479,11 @@ pub(crate) async fn run_daemon(
             classification_results.remove(&repo);
             if debug_enabled() {
                 eprintln!(
-                    "scheduler: dispatch repo={} cycle_ms={} inspection_ms={}",
+                    "scheduler: dispatch repo={} cycle_ms={} inspection_ms={} daemon_ms={}",
                     repo.display(),
                     cycle_started.elapsed().as_millis(),
-                    now.elapsed().as_millis()
+                    now.elapsed().as_millis(),
+                    scheduler_epoch.elapsed().as_millis(),
                 );
             }
             let entry_rf = std::mem::take(&mut entry.remote_failures);

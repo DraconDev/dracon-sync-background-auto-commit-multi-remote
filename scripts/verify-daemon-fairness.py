@@ -61,7 +61,7 @@ def main():
     logger.chmod(0o700)
     # Only instrument operations under test, not every status/config probe.
     wrapper.write_text('#!' + shutil.which('sh') + '\n'
-                       + 'case "$1" in add|push|diff) exec ' + shlex.quote(str(logger)) + ' "$@";; esac\n'
+                       + 'case "$1" in add|commit|push|diff) exec ' + shlex.quote(str(logger)) + ' "$@";; esac\n'
                        + 'exec ' + shlex.quote(git_bin) + ' "$@"\n')
     wrapper.chmod(0o700)
 
@@ -197,6 +197,23 @@ def main():
         c_push = dispatch['c']['push_rel']
         b2_add = dispatch['b2']['add_rel']
         report['dispatch'] = dispatch
+        report['edit_seconds'] = {'b': t_b - start, 'c': t_c - start,
+                                  'a_started': t_a - start}
+        # Compare actual command boundaries, not the later HEAD observation.
+        # Pair by wrapper PID so unrelated commits cannot satisfy the gate.
+        commit_ends = {}
+        for row in rows:
+            if (row.get('phase') == 'end' and row.get('returncode') == 0
+                    and row['args'][:1] == ['commit']):
+                for name, repo in repos.items():
+                    if row['cwd'] == str(repo):
+                        commit_ends.setdefault(name, row['t'])
+        report['commit_command_end_seconds'] = {
+            name: t - start for name, t in commit_ends.items()}
+        report['edit_to_add_seconds'] = {
+            name: None if dispatch[name]['add_rel'] is None
+            else start + dispatch[name]['add_rel'] - edited
+            for name, edited in [('b', t_b), ('c', t_c)]}
         checks = {
             'b_staging_at_quiet_plus_one_pulse': b_add is not None
                 and 2 <= start + b_add - t_b <= 3,
@@ -208,6 +225,9 @@ def main():
             # overrun proves a failure; a pass needs the finer timing gate too.
             'b_push_within_one_pulse_of_observed_commit': b_push is not None and 'b' in committed
                 and start + b_push - committed['b'] <= 1,
+            'b_push_within_one_pulse_of_commit_command': b_push is not None
+                and 'b' in commit_ends
+                and 0 <= start + b_push - commit_ends['b'] <= 1,
             'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
             'pre_start_change_stages_within_3s': b2_add is not None and b2_add <= 3,
         }
