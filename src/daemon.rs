@@ -961,6 +961,105 @@ mod tests {
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
 
+    #[test]
+    fn quiet_evidence_uses_change_time_not_discovery_time() {
+        let epoch = Instant::now();
+        let wall = std::time::SystemTime::UNIX_EPOCH + Duration::from_secs(100);
+        let mut evidence = QuietEvidence::default();
+        let snapshot = vec![(
+            PathBuf::from("c.txt"),
+            Some(wall + Duration::from_millis(1200)),
+        )];
+        let anchor = evidence.observe(
+            snapshot.clone(),
+            wall + Duration::from_millis(2155),
+            epoch + Duration::from_millis(2155),
+            epoch,
+        );
+        assert_eq!(anchor, epoch + Duration::from_millis(1200));
+        assert!(!dispatch_due(
+            epoch + Duration::from_millis(3199),
+            anchor,
+            None,
+            Duration::from_secs(2)
+        ));
+        assert!(dispatch_due(
+            epoch + Duration::from_millis(3200),
+            anchor,
+            None,
+            Duration::from_secs(2)
+        ));
+        assert_eq!(
+            evidence.observe(
+                snapshot,
+                wall + Duration::from_secs(4),
+                epoch + Duration::from_secs(4),
+                epoch
+            ),
+            anchor
+        );
+    }
+
+    #[test]
+    fn quiet_evidence_future_missing_and_prestart_are_bounded() {
+        let epoch = Instant::now();
+        let wall = std::time::SystemTime::UNIX_EPOCH + Duration::from_secs(100);
+        for stamp in [None, Some(wall + Duration::from_secs(3600))] {
+            let mut evidence = QuietEvidence::default();
+            let snapshot = vec![(PathBuf::from("file"), stamp)];
+            let anchor = evidence.observe(snapshot.clone(), wall, epoch, epoch);
+            assert_eq!(anchor, epoch);
+            let later = evidence.observe(
+                snapshot,
+                wall + Duration::from_secs(3),
+                epoch + Duration::from_secs(3),
+                epoch,
+            );
+            assert_eq!(
+                later, anchor,
+                "future/unknown evidence must not reset every pulse"
+            );
+            assert!(dispatch_due(
+                epoch + Duration::from_secs(3),
+                later,
+                None,
+                Duration::from_secs(2)
+            ));
+        }
+        let mut evidence = QuietEvidence::default();
+        assert_eq!(
+            evidence.observe(
+                vec![(PathBuf::from("old"), Some(wall - Duration::from_secs(60)))],
+                wall,
+                epoch,
+                epoch
+            ),
+            epoch
+        );
+    }
+
+    #[test]
+    fn quiet_evidence_repeated_edits_keep_maximum_dirty_age() {
+        let epoch = Instant::now();
+        let wall = std::time::SystemTime::UNIX_EPOCH + Duration::from_secs(100);
+        let mut evidence = QuietEvidence::default();
+        for second in 0..=5 {
+            let now = epoch + Duration::from_secs(second);
+            let stamp = wall + Duration::from_secs(second);
+            let anchor = evidence.observe(
+                vec![(PathBuf::from("same-file"), Some(stamp))],
+                stamp,
+                now,
+                epoch,
+            );
+            assert_eq!(anchor, now);
+            assert_eq!(
+                dispatch_due(now, anchor, Some(epoch), Duration::from_secs(2)),
+                second == 5
+            );
+        }
+    }
+
     #[tokio::test]
     async fn pending_result_collection_does_not_block_next_repo() {
         let (release, blocked) = tokio::sync::oneshot::channel::<()>();
