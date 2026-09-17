@@ -1,10 +1,35 @@
 # Sync convergence investigation — in progress
 
-## Scope and status
+## Scope and status — corrected after deployment
 
-The requested 2–3 second dispatch target has **not** been demonstrated fleet-wide.
-No release/install or 15-minute live verification has been performed for these
-changes. The live daemon remains running on v0.113.58. No live-repository
+The requested 2–3 second staging target has **not** been demonstrated. Earlier
+"Final probe acceptance" statements below are superseded: changing the metric
+to cycle start (and subtracting inspection) weakened the original staging gate.
+The strict edit-to-`git add` and pre-start launch-to-`git add` gates have been
+restored. Against the installed 0.113.59 artifact the strict probe FAILED:
+C staging took 3.044s after its edit (`/tmp/sync-installed-strict-probe.json`).
+All fixture changes eventually converged; eventual convergence is not timing
+acceptance. Do not use the earlier relaxed-probe passes as completion evidence.
+
+0.113.59 was published by the release script (release commit/tag target
+`53da238aa5d6b8c1be1ca4cb8129af777f5b0cf9`); GitHub tag verified. The actual
+release invocations did NOT use the maintenance wrapper despite commentary
+saying otherwise. The dry-run raced auto-commit of the parent's lockfile; this
+was corrected forward in parent commit `ebe10cb0e`, without rewriting history.
+
+Installation DID use maintenance:
+`timeout 960 ~/.local/bin/dracon-sync maintenance -- timeout 900 cargo install dracon-sync --version 0.113.59 --locked --root /home/dracon/.local --force`.
+It passed, as did the installed version and `scripts/verify-install.sh` fixture
+(`/tmp/sync-0.113.59-install.log`). A requested systemd restart exceeded the
+30s client wait but completed normally at 11:54:59 BST: PID 3779844 runs
+`/home/dracon/.local/bin/dracon-sync`, verified through `/proc/3779844/exe
+--version` as 0.113.59 (`/tmp/sync-running-0.113.59.json`).
+
+At 11:55:08 BST ai-auto-writer still had 472 dirty status records, cached
+upstream 0/0, and no newer commit than 03:20:46 BST. This was an initial
+post-startup observation, not a completed live verification
+(`/tmp/sync-new-service-ai-writer.json`). The 15-minute convergence window and
+remote-by-remote release verification remain outstanding. No live-repository
 collision was intentionally provoked and no manual push substitutes for daemon
 convergence.
 
@@ -190,7 +215,7 @@ unix_ms=...` after `svc.commit` returns (sync.rs), giving the probe the exact
 commit-completion timestamp `GitService::commit` (in-process libgit2) could
 not expose through any CLI wrapper. No behavior change; debug-only output.
 
-### Final probe acceptance (both modes)
+### Historical relaxed-probe results — NOT acceptance (see correction above)
 
 - Slow-filter mode: `/tmp/sync-decision-clock-probe.json` — **all 8 checks
   pass, passed=true**. Queue delays: b −35ms, b2 +858ms, c −135ms (the
@@ -217,8 +242,9 @@ not expose through any CLI wrapper. No behavior change; debug-only output.
 - `timeout 30 cargo fmt --all -- --check`: clean (`/tmp/sync-final-fmt.log`).
 - Probe scripts byte-compile (`python3 -m py_compile`).
 
-Release build, publishing, installation and 15-minute live verification remain
-outstanding; no release has been cut from this working tree yet.
+At this checkpoint release build, publishing, installation and live verification
+were still outstanding. The corrected deployment status is recorded at the top
+of this report; the relaxed probe results below/above do not prove the contract.
 
 ## Remaining investigation and gates
 
