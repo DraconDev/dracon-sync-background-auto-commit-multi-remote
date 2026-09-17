@@ -280,10 +280,7 @@ fn book_provisional_activity(
 }
 
 /// Reserve ownership at the dispatch boundary, independent of status branches.
-fn request_worker_cancellation(
-    workers: &HashMap<PathBuf, tokio::task::AbortHandle>,
-    repo: &Path,
-) {
+fn request_worker_cancellation(workers: &HashMap<PathBuf, tokio::task::AbortHandle>, repo: &Path) {
     if let Some(worker) = workers.get(repo) {
         worker.abort();
     }
@@ -1304,7 +1301,10 @@ mod tests {
 
     #[tokio::test]
     async fn wedge_cancellation_waits_for_worker_teardown_before_redispatch() {
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
         struct Cleanup(Arc<AtomicBool>);
         impl Drop for Cleanup {
             fn drop(&mut self) {
@@ -1326,11 +1326,19 @@ mod tests {
         ready.await.unwrap();
         let wrapper = tokio::spawn(worker);
         request_worker_cancellation(&workers, &repo);
-        assert!(!reserve_sync(&mut owners, &repo), "abort request must not release ownership");
+        assert!(
+            !reserve_sync(&mut owners, &repo),
+            "abort request must not release ownership"
+        );
         let result = tokio::time::timeout(Duration::from_secs(1), wrapper)
-            .await.unwrap().unwrap();
+            .await
+            .unwrap()
+            .unwrap();
         assert!(result.unwrap_err().is_cancelled());
-        assert!(cleaned.load(Ordering::SeqCst), "worker cleanup precedes joined result");
+        assert!(
+            cleaned.load(Ordering::SeqCst),
+            "worker cleanup precedes joined result"
+        );
         owners.remove(&repo);
         assert!(reserve_sync(&mut owners, &repo));
     }
@@ -4777,7 +4785,11 @@ pub(crate) async fn run_daemon(
                 }
                 if let Some(job) = provisioning_jobs.remove(&repo) {
                     if let Err(error) = job.await {
-                        eprintln!("⚠️ {} forge provisioning task failed: {}", repo.display(), error);
+                        eprintln!(
+                            "⚠️ {} forge provisioning task failed: {}",
+                            repo.display(),
+                            error
+                        );
                     }
                 }
             }

@@ -1160,7 +1160,11 @@ mod submodule_tests {
         // The nested checkout EXISTS but is exclude_repos-quarantined.
         let nested = parent_dir.join("web/games/wip/hegemon");
         fs::create_dir_all(&nested).unwrap();
-        fs::write(nested.join(".git"), "gitdir: ../../.git/modules/web-games-hegemon\n").unwrap();
+        fs::write(
+            nested.join(".git"),
+            "gitdir: ../../.git/modules/web-games-hegemon\n",
+        )
+        .unwrap();
 
         let roots = vec![tmp.path().to_path_buf()];
         let excluded: BTreeSet<String> = BTreeSet::new();
