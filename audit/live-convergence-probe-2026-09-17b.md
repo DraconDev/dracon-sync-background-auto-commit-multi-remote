@@ -5,3 +5,5 @@ This bounded synthetic change must be committed and pushed by the
 installed daemon (0.113.62); no manual git command touches it.
 
 Round-3 append at 2026-09-17T16:49:54+01:00 — daemon must commit and push this line.
+
+Round-4 append at 2026-09-17T16:51:16+0100 — daemon-only convergence window change.
