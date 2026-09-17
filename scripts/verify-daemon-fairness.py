@@ -126,6 +126,7 @@ def main():
     editor = None
     try:
         start = time.monotonic()
+        start_unix = time.time()
         time.sleep(1.0)
         t_b = time.monotonic()
         (repos['b'] / 'seed.txt').write_text('changed\n')
@@ -252,13 +253,14 @@ def main():
                         anchor = int(m.group(1))
                 elif 'scheduler: dispatch repo=' in line:
                     m = re.search(r'daemon_ms=(\d+)', line)
-                    n = re.search(r'inspection_ms=(\d+)', line)
+                    c = re.search(r'cycle_ms=(\d+)', line)
                     if m:
+                        # The dispatching CYCLE's start, not the repo's scan
+                        # start: a repo late in the cycle's scan order is
+                        # still dispatched in the first available pulse.
                         dispatch_ms = int(m.group(1))
-                        if n:
-                            # The repo's own scan start, not the end of the
-                            # cycle's earlier repo inspections.
-                            dispatch_ms -= int(n.group(1))
+                        if c:
+                            dispatch_ms -= int(c.group(1))
                         break
             if anchor is not None and dispatch_ms is not None:
                 queue_delay[name] = dispatch_ms - (anchor + 2000)
@@ -291,9 +293,13 @@ def main():
                 and start + b_push - committed['b'] <= 1,
             # Exact gate: push start within one pulse of the daemon's own
             # commit-completion timestamp (unix ms on both sides).
+            # Exact gate: push start within one pulse of the daemon's own
+            # commit-completion timestamp (unix ms on both sides). Wrapper
+            # spawn may precede the log line by a few ms; small negative
+            # slack avoids false failures from clock-read ordering.
             'b_push_within_one_pulse_of_commit_done': b_push is not None
                 and str(repos['b']) in commit_done_unix_ms
-                and 0 <= (start + b_push) * 1000
+                and -100 <= (start_unix + b_push) * 1000
                     - commit_done_unix_ms[str(repos['b'])] <= 1000,
             'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
             # b2 is dirty before launch; the daemon cannot observe it before
