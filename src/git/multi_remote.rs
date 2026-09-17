@@ -1833,6 +1833,60 @@ mod tests {
         assert!(has_codeberg_tracking_ref(&repo));
     }
 
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn cancelled_mirror_parent_terminates_push_process_group() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let script = tmp.path().join("fake-git");
+        std::fs::write(&script, r#"#!/bin/sh
+if [ "$1" = push ]; then
+    echo $$ > leader.pid
+    sleep 30 &
+    echo $! > helper.pid
+    wait
+    exit 0
+fi
+exit 1
+"#).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let _env = EnvRestorer::new("DRACON_SYNC_GIT_BIN", script.to_str().unwrap());
+        let repo = tmp.path().to_path_buf();
+        let worker_repo = repo.clone();
+        let worker = tokio::spawn(async move {
+            push_to_all_remotes(&worker_repo, &[make_remote("fixture", 1)], 60, 0).await
+        });
+        let ready = tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                if let (Ok(leader), Ok(helper)) = (
+                    std::fs::read_to_string(repo.join("leader.pid")),
+                    std::fs::read_to_string(repo.join("helper.pid")),
+                ) {
+                    if let (Ok(leader), Ok(helper)) = (leader.trim().parse::<i32>(), helper.trim().parse::<i32>()) {
+                        break (leader, helper);
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }).await;
+        worker.abort();
+        assert!(worker.await.unwrap_err().is_cancelled());
+        let (leader, helper) = ready.expect("fixture push must start before cancellation");
+        let alive = |pid| {
+            std::fs::read_to_string(format!("/proc/{pid}/stat"))
+                .ok().is_some_and(|stat| stat.rsplit_once(") ").is_some_and(|(_, rest)| !rest.starts_with('Z')))
+        };
+        let stopped = tokio::time::timeout(std::time::Duration::from_secs(1), async {
+            while alive(leader) || alive(helper) {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }).await.is_ok();
+        // Always clean up the isolated fixture before asserting the regression.
+        // SAFETY: this is the process group ID written by our fixture child.
+        unsafe { libc::kill(-leader, libc::SIGKILL); }
+        assert!(stopped, "parent joined but mirror push or helper still runs");
+    }
+
     /// Test: empty remotes list returns empty Vec.
     ///
     /// Regression test for goal `87c1bf4d`: the sequential
