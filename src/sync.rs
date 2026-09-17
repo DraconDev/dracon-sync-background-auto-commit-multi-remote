@@ -4802,11 +4802,29 @@ pub(crate) async fn sync_repo_with_ahead_since(
         }
         if !to_stage.is_empty() {
             if debug_enabled() {
-                eprintln!("scheduler: stage_enter repo={} thread={:?} unix_ms={}", repo.display(), std::thread::current().id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+                eprintln!(
+                    "scheduler: stage_enter repo={} thread={:?} unix_ms={}",
+                    repo.display(),
+                    std::thread::current().id(),
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis()
+                );
             }
-            let staged = stage_commit_and_push(&svc, &mut ctx, &status, &to_stage, &to_restore).await;
+            let staged =
+                stage_commit_and_push(&svc, &mut ctx, &status, &to_stage, &to_restore).await;
             if debug_enabled() {
-                eprintln!("scheduler: stage_exit repo={} thread={:?} unix_ms={} ok={}", repo.display(), std::thread::current().id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis(), staged.is_ok());
+                eprintln!(
+                    "scheduler: stage_exit repo={} thread={:?} unix_ms={} ok={}",
+                    repo.display(),
+                    std::thread::current().id(),
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis(),
+                    staged.is_ok()
+                );
             }
             if let Some(outcome) = staged? {
                 return Ok(outcome);
