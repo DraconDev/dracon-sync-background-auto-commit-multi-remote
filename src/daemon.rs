@@ -2394,7 +2394,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn cancelled_push_task_is_not_recorded_as_push_failure() {
         // Regression (2026-09-17, restart-poisoning incident): the
         // phase-A SIGTERM landed mid-push, the spawned push task was
@@ -3574,7 +3573,14 @@ pub(crate) fn record_push_success(repo: &Path) {
 /// /tmp/sync-restart-yvkywhn7, 2026-09-17). Shared choke point:
 /// `record_push_failure` refuses to persist these.
 pub(crate) fn push_error_is_cancellation(error: &str) -> bool {
-    error.contains("task was cancelled") || error.contains("task cancelled")
+    // tokio JoinError Display: "task <id> was cancelled" (the id is a
+    // decimal TaskId, so match around it, not on a fixed phrase).
+    // Also covers the aggregation wrapper's "join error: task <id> was
+    // cancelled" shape.
+    let trimmed = error.trim();
+    (trimmed.contains("task ") && trimmed.contains(" was cancelled"))
+        || trimmed.contains("task cancelled")
+        || trimmed.starts_with("join error: task ") && trimmed.ends_with("was cancelled")
 }
 
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
