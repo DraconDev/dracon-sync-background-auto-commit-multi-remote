@@ -2408,9 +2408,17 @@ mod tests {
             state.path().to_str().unwrap(),
         );
         let repo = PathBuf::from("fixture/abort-mid-push");
-        let remote = RemoteConfig {
+        let remote = crate::policy::RemoteConfig {
             name: "origin".into(),
-            ..RemoteConfig::default()
+            push_url: "git@invalid.example.com:fixture.git".into(),
+            auto_create: false,
+            auto_create_account: String::new(),
+            auth_type: crate::policy::AuthType::GitHub,
+            priority: 0,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: std::collections::HashMap::new(),
+            force_push_when_behind: false,
         };
         // The real wrapper spawns a push task per remote; abort it the
         // way daemon shutdown does and collect the wrapped error.
