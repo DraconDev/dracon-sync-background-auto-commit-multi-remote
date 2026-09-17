@@ -28,6 +28,7 @@ DEADLINE = 30.0
 def main():
     binary = str(Path(sys.argv[1]).resolve())
     slow_filter = '--slow-filter' in sys.argv[2:]
+    failing_remote = '--failing-remote' in sys.argv[2:]
     git_bin = shutil.which('git')
     identity = {key: subprocess.check_output([git_bin, 'config', '--get', key], text=True).strip()
                 for key in ('user.name', 'user.email')}
@@ -57,6 +58,8 @@ def main():
                        + 'event("start")\n'
                        + 'if sys.argv[1:2] == ["push"] and "--delete" not in sys.argv and os.getcwd().endswith("/c"):\n'
                        + ' time.sleep(3)\n'
+                       + 'if sys.argv[1:2] == ["push"] and "--delete" not in sys.argv and os.getcwd().endswith("/f-failing"):\n'
+                       + ' time.sleep(5)\n event("end", returncode=1)\n sys.exit(1)\n'
                        + f'rc=subprocess.call([{git_bin!r}]+sys.argv[1:])\n'
                        + 'event("end", returncode=rc)\nsys.exit(rc)\n')
     logger.chmod(0o700)
@@ -71,6 +74,9 @@ def main():
                                        stderr=subprocess.STDOUT, timeout=10)
 
     names = ('a', 'b', 'b2', 'c', 'd-filter') if slow_filter else ('a', 'b', 'b2', 'c')
+    if failing_remote:
+        names += ('f-failing',)
+    healthy_names = tuple(n for n in names if n != 'f-failing')
     repos = {}
     for name in names:
         remote = root / f'remote-{name}.git'
@@ -102,6 +108,8 @@ def main():
         # info/attributes is fixture-local and need not be committed.
         (filtered_repo / '.git/info/attributes').write_text('seed.txt filter=probe\n')
         (filtered_repo / 'seed.txt').write_text('filtered change\n')
+    if failing_remote:
+        (repos['f-failing'] / 'seed.txt').write_text('failed remote change\n')
     # Missed-event reconciliation: repo b2 is dirty before the daemon starts.
     (repos['b2'] / 'early.txt').write_text('written before daemon start\n')
 
@@ -118,7 +126,7 @@ def main():
     env.update(DRACON_SYNC_POLICY=str(policy), DRACON_SYNC_GIT_BIN=str(wrapper),
                DRACON_SYNC_DEBUG='1')
     report = {'root': str(root), 'scope': 'fairness: continuous edits, slow push, pre-start change',
-              'slow_required_filter': slow_filter}
+              'slow_required_filter': slow_filter, 'failing_remote': failing_remote}
     log = (root / 'daemon.log').open('w')
     daemon = subprocess.Popen([binary, '-vv', 'daemon'], env=env, stdout=log,
                               stderr=subprocess.STDOUT, start_new_session=True)
@@ -168,12 +176,15 @@ def main():
                         continue  # The new path has not been committed yet.
                     if blob == content:
                         observed[name] = time.monotonic()
-            if len(seen) == len(names):
+            failure_observed = not failing_remote or any(
+                row.get('returncode') == 1 and row['cwd'] == str(repos['f-failing'])
+                for row in (json.loads(line) for line in events.read_text().splitlines()))
+            if len(seen) == len(healthy_names) and failure_observed:
                 break
             time.sleep(0.05)
         stop_editing.set()
         editor.join(timeout=2)
-        report['converged'] = len(seen) == len(names)
+        report['converged'] = len(seen) == len(healthy_names)
         report['commit_observed_seconds'] = {n: t - start for n, t in committed.items()}
         report['remote_observed_seconds'] = {n: t - start for n, t in seen.items()}
         report['a_commits'] = int(git('rev-list', '--count', 'HEAD', cwd=repos['a'])) - 1
@@ -312,6 +323,19 @@ def main():
         }
         if slow_filter:
             checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
+        if failing_remote:
+            failures = [row for row in rows if row['cwd'] == str(repos['f-failing'])
+                        and row['args'][:1] == ['push'] and row.get('returncode') == 1]
+            failed_start = first('f-failing', 'push')
+            checks['failing_remote_attempt_observed'] = bool(failures)
+            checks['healthy_staging_during_failing_push'] = (
+                failed_start is not None and b_add is not None and bool(failures)
+                and failed_start <= start + b_add <= failures[0]['t'])
+            checks['failed_remote_does_not_claim_convergence'] = (
+                git('--git-dir', str(root / 'remote-f-failing.git'), 'show',
+                    'refs/heads/main:seed.txt', cwd=root) == b'seed\n')
+            report['failing_push_events'] = [row for row in rows
+                if row['cwd'] == str(repos['f-failing']) and row['args'][:1] == ['push']]
         report['checks'] = checks
         report['passed'] = all(checks.values()) and report['converged']
     finally:
