@@ -1027,6 +1027,10 @@ async fn stage_existing_files_filtered(
     if existing.is_empty() {
         return Ok(());
     }
+    let staging_started = std::time::Instant::now();
+    if debug_enabled() {
+        eprintln!("scheduler: stage_files_enter repo={} unix_ms={}", repo.display(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+    }
     // ADDED 2026-09-15 (warden-showcase probe): auto-harden hook. This
     // is the single choke point every auto-stage flows through, so the
     // encryption filter is guaranteed active at `git add` time — before
@@ -1303,6 +1307,9 @@ async fn stage_existing_files_filtered(
         //   re-stage; git already tracks these so gitignore shouldn't block updates)
         // - Ignored and untracked: skip entirely (.gitignore is intentional)
         let partition_started = std::time::Instant::now();
+        if debug_enabled() {
+            eprintln!("scheduler: stage_prepare repo={} phase=before_partition elapsed_ms={}", repo.display(), staging_started.elapsed().as_millis());
+        }
         let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
         if debug_enabled() {
             eprintln!("scheduler: stage_prepare repo={} phase=partition elapsed_ms={}", repo.display(), partition_started.elapsed().as_millis());
