@@ -4464,6 +4464,9 @@ pub(crate) async fn run_daemon(
     // Abort the actual sync worker, not its result-collecting wrapper.
     // Ownership survives cancellation until the wrapper observes its join.
     let mut sync_workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
+    // Forge provisioning may do network I/O. Retain one owner per repo,
+    // keeping it off the serial scan and mutually exclusive with sync.
+    let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
     let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
     // Per-repo dispatch counter; bumped each time the daemon
     // dispatches a new task for the repo. Used as the generation
@@ -4768,6 +4771,16 @@ pub(crate) async fn run_daemon(
             if in_flight.contains(&repo) {
                 continue;
             }
+            if let Some(job) = provisioning_jobs.get(&repo) {
+                if !job.is_finished() {
+                    continue;
+                }
+                if let Some(job) = provisioning_jobs.remove(&repo) {
+                    if let Err(error) = job.await {
+                        eprintln!("⚠️ {} forge provisioning task failed: {}", repo.display(), error);
+                    }
+                }
+            }
             let now = Instant::now();
 
             // CHANGED 2026-06-20: newly discovered repos may be empty or may
@@ -4828,6 +4841,11 @@ pub(crate) async fn run_daemon(
                     .is_some_and(|until| now < *until);
                 if any_remote_configured && !auto_create_cooled {
                     auto_create_cooldowns.insert(repo.clone(), now + Duration::from_secs(300));
+                    let provisioning_repo = repo.clone();
+                    let provisioning_policy = policy.clone();
+                    provisioning_jobs.insert(repo.clone(), tokio::spawn(async move {
+                    let repo = provisioning_repo;
+                    let policy = provisioning_policy;
                     let repo_override_for_create = crate::policy::load_repo_override(&repo);
                     let create_results = crate::git::multi_remote::push_mirror_remotes_create_only(
                         &repo,
@@ -4904,6 +4922,10 @@ pub(crate) async fn run_daemon(
                     if all_ok {
                         crate::git::multi_remote::forge_confirmed_insert(&repo);
                     }
+                    }));
+                    // No local mutation or sync dispatch until provisioning
+                    // joins. Other repositories continue on this pulse.
+                    continue;
                 }
             }
 
