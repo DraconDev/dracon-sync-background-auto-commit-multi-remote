@@ -1316,6 +1316,12 @@ fn persist_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
 }
 
 fn remove_persistent_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
+    // Missing file: nothing was persisted for this pair, so there is
+    // nothing to remove and we must not create an empty state file as a
+    // side effect of an eviction.
+    if !path.exists() {
+        return;
+    }
     let entries: Vec<(std::path::PathBuf, String)> = load_persistent_entries(path)
         .into_iter()
         .filter(|(r, m)| !(r == repo && m == remote_name))
