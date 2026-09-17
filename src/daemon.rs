@@ -5416,7 +5416,8 @@ pub(crate) async fn run_daemon(
             // WITHOUT a classification result: empty entries, not-dirty,
             // remote/push handling stays entirely in sync_repo.
             if status.is_clean && (status.ahead > 0 || status.behind > 0) {
-                let has_pending = status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
+                let has_pending =
+                    status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
                 if !has_pending {
                     activity.remove(&repo);
                     continue;
@@ -5426,20 +5427,22 @@ pub(crate) async fn run_daemon(
                 }
                 let entry_exists = activity.contains_key(&repo);
                 let now_clean = Instant::now();
-                let entry = activity.entry(repo.clone()).or_insert_with(|| RepoActivity {
-                    fingerprint: provisional_fingerprint.clone(),
-                    changed_at: now_clean,
-                    dirty_since: None,
-                    ahead_since: Some(now_clean),
-                    behind_since: None,
-                    mirror_consecutive_fails: HashMap::new(),
-                    failure_count: 0,
-                    remote_failures: HashMap::new(),
-                    ownership: None,
-                    ownership_at: None,
-                    blocked_since: None,
-                    unowned_since: None,
-                });
+                let entry = activity
+                    .entry(repo.clone())
+                    .or_insert_with(|| RepoActivity {
+                        fingerprint: provisional_fingerprint.clone(),
+                        changed_at: now_clean,
+                        dirty_since: None,
+                        ahead_since: Some(now_clean),
+                        behind_since: None,
+                        mirror_consecutive_fails: HashMap::new(),
+                        failure_count: 0,
+                        remote_failures: HashMap::new(),
+                        ownership: None,
+                        ownership_at: None,
+                        blocked_since: None,
+                        unowned_since: None,
+                    });
                 if status.ahead > 0 && entry.ahead_since.is_none() {
                     entry.ahead_since = Some(now_clean);
                 }
