@@ -347,21 +347,32 @@ pub(crate) async fn run_git_captured_output(
     struct GroupKillGuard(u32);
     impl Drop for GroupKillGuard {
         fn drop(&mut self) {
-            // Synchronous kill: short and signal-only; safe in Drop.
+            // Synchronous TERM→(grace)→KILL mirror of kill_process_group,
+            // scaled down for Drop context. Signals only the process GROUP,
+            // so git's spawned filter children die with it. A normal
+            // completion drops the guard AFTER child.wait() reaped the
+            // group leader — the signals are then harmless no-ops against
+            // an already-dead group.
             let _ = std::process::Command::new("kill")
                 .args(["-TERM", &format!("-{}", self.0)])
+                .output();
+            std::thread::sleep(Duration::from_millis(300));
+            let _ = std::process::Command::new("kill")
+                .args(["-KILL", &format!("-{}", self.0)])
                 .output();
         }
     }
     let _group_guard = child.id().map(GroupKillGuard);
     const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
     let label = format!("git {}", op_label);
-    let stdout_pipe = child.stdout.take().with_context(|| {
-        format!("{} in {}: stdout not captured", label, workdir.display())
-    })?;
-    let stderr_pipe = child.stderr.take().with_context(|| {
-        format!("{} in {}: stderr not captured", label, workdir.display())
-    })?;
+    let stdout_pipe = child
+        .stdout
+        .take()
+        .with_context(|| format!("{} in {}: stdout not captured", label, workdir.display()))?;
+    let stderr_pipe = child
+        .stderr
+        .take()
+        .with_context(|| format!("{} in {}: stderr not captured", label, workdir.display()))?;
     // stderr is capped and kept for diagnostics; stdout is bounded too —
     // `git diff --name-status -z` output for a classification is normally
     // orders of magnitude below the cap, and exceeding it is itself the
@@ -421,9 +432,10 @@ pub(crate) async fn run_git_captured_output(
             }
         }
     }
-    let status = child.wait().await.with_context(|| {
-        format!("{} in {}: wait failed", label, workdir.display())
-    })?;
+    let status = child
+        .wait()
+        .await
+        .with_context(|| format!("{} in {}: wait failed", label, workdir.display()))?;
     let stderr_buf = stderr_task
         .await
         .unwrap_or_else(|e| format!("<stderr capture failed: {e}>").into_bytes());
