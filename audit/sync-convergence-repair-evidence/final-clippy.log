@@ -220,3 +220,5 @@
     Checking zbus v5.19.0
     Checking reqwest v0.12.28
     Checking dracon-git v94.7.2
+    Checking notify-rust v4.18.0
+    Checking dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
