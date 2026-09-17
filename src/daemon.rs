@@ -5430,7 +5430,14 @@ pub(crate) async fn run_daemon(
                 let entry = activity
                     .entry(repo.clone())
                     .or_insert_with(|| RepoActivity {
-                        fingerprint: provisional_fingerprint.clone(),
+                        fingerprint: format!(
+                            "{}:0:{}:{}:{}:{}",
+                            status.branch,
+                            status.staged_files,
+                            status.ahead,
+                            status.behind,
+                            status.untracked_files
+                        ),
                         changed_at: now_clean,
                         dirty_since: None,
                         ahead_since: Some(now_clean),
