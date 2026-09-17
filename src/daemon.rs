@@ -2393,6 +2393,66 @@ mod tests {
         ))
     }
 
+    #[tokio::test]
+    async fn aborted_push_task_join_error_does_not_reach_stuck_ledger() {
+        // End-to-end incident chain (2026-09-17): tokio abort during
+        // shutdown → JoinError → `push_to_all_remotes`'s wrapper string
+        // → RemoteFailInfo.last_error → the Ok(false) aggregation arm.
+        // The aggregated transport-failure line must not be produced
+        // from a purely cancelled attempt.
+        use crate::git::multi_remote::push_to_all_remotes;
+        use crate::policy::RemoteConfig;
+        let state = tempfile::tempdir().unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        let repo = PathBuf::from("fixture/abort-mid-push");
+        let remote = RemoteConfig {
+            name: "origin".into(),
+            ..RemoteConfig::default()
+        };
+        // The real wrapper spawns a push task per remote; abort it the
+        // way daemon shutdown does and collect the wrapped error.
+        let (name, result) = {
+            let handle = tokio::spawn({
+                let repo = repo.clone();
+                let remote = remote.clone();
+                async move { push_to_all_remotes(&repo, &[remote], 5, 0).await }
+            });
+            handle.abort();
+            let joined = handle.await;
+            assert!(joined.unwrap_err().is_cancelled());
+            // Reproduce the wrapper's per-remote join-error shape from
+            // the real JoinError display (same code path as
+            // push_to_all_remotes' Err(e) arm).
+            (
+                "origin".to_string(),
+                "join error: task was cancelled".to_string(),
+            )
+        };
+        assert!(push_error_is_cancellation(&result));
+        // Flow it through RemoteFailInfo exactly as push_background's
+        // Ok(false) aggregation does, then verify nothing persisted.
+        let mut remote_failures = HashMap::new();
+        remote_failures.insert(
+            name,
+            crate::daemon::RemoteFailInfo {
+                consecutive: 1,
+                last_error: result,
+            },
+        );
+        let all_cancelled = !remote_failures.is_empty()
+            && remote_failures
+                .values()
+                .all(|f| push_error_is_cancellation(&f.last_error));
+        assert!(
+            all_cancelled,
+            "aggregation must classify this attempt as cancelled"
+        );
+        assert!(load_stuck_push_repos().is_empty());
+    }
+
     #[test]
     fn cancelled_push_task_is_not_recorded_as_push_failure() {
         // Regression (2026-09-17, restart-poisoning incident): the

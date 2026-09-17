@@ -334,7 +334,9 @@ pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
 /// to network/credentials when the true cause was a history fork).
 /// Mirrors the predicate set above; keep the arms in the same order.
 pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
-    if is_pack_too_large(err_msg) {
+    if crate::daemon::push_error_is_cancellation(err_msg) {
+        "cancelled attempt (outcome unknown — not a remote failure)"
+    } else if is_pack_too_large(err_msg) {
         "pack exceeds forge size limit (needs history rewrite)"
     } else if is_permanent_push_rejection(err_msg) {
         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
