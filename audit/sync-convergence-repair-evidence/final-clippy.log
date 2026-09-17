@@ -196,3 +196,22 @@
     Checking h2 v0.4.16
     Checking zerovec v0.11.6
     Checking zerotrie v0.2.4
+    Checking tinystr v0.8.3
+    Checking potential_utf v0.1.5
+    Checking icu_collections v2.2.0
+    Checking tower v0.5.3
+    Checking futures-executor v0.3.33
+    Checking icu_locale_core v2.2.0
+    Checking futures v0.3.33
+    Checking icu_provider v2.2.0
+    Checking hyper v1.11.0
+   Compiling zbus_names v4.3.4
+    Checking icu_properties v2.2.0
+    Checking icu_normalizer v2.2.0
+   Compiling zbus_macros v5.19.0
+    Checking hyper-util v0.1.20
+    Checking idna_adapter v1.2.2
+    Checking idna v1.1.0
+    Checking tokio-native-tls v0.3.1
+    Checking url v2.5.8
+    Checking hyper-tls v0.6.0
