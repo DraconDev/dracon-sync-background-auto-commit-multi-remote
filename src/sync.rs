@@ -9358,32 +9358,49 @@ auto_bump_versions = false
     async fn test_index_lock_contention_preserves_work_and_recovers() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "lock-recovery-repo");
-        let mut policy: SyncPolicy = toml::from_str(r#"
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
             auto_github_private = false
             auto_commit = true
             auto_pull = false
             auto_push = false
             auto_bump_versions = false
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         // Model a configured watch root; do not change the fixture identity
         // or weaken the production ownership gate.
         policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
         std::fs::write(repo.join("pending.txt"), "pending work\n").unwrap();
         let lock = repo.join(".git/index.lock");
-        let owner = std::fs::OpenOptions::new().write(true).create_new(true)
-            .open(&lock).unwrap();
-        let blocked = tokio::time::timeout(Duration::from_secs(20),
-            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
-            .await.expect("lock contention must not hang the worker");
-        assert!(blocked.is_err() || matches!(blocked, Ok(SyncOutcome::Blocked)),
-            "must not claim work synced while the index is locked: {blocked:?}");
+        let owner = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&lock)
+            .unwrap();
+        let blocked = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("lock contention must not hang the worker");
+        assert!(
+            blocked.is_err() || matches!(blocked, Ok(SyncOutcome::Blocked)),
+            "must not claim work synced while the index is locked: {blocked:?}"
+        );
         assert!(lock.exists(), "never remove another owner's lock");
-        assert_eq!(std::fs::read_to_string(repo.join("pending.txt")).unwrap(), "pending work\n");
+        assert_eq!(
+            std::fs::read_to_string(repo.join("pending.txt")).unwrap(),
+            "pending work\n"
+        );
         drop(owner);
         std::fs::remove_file(&lock).unwrap();
-        let recovered = tokio::time::timeout(Duration::from_secs(20),
-            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None))
-            .await.expect("retry after release must be bounded");
+        let recovered = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("retry after release must be bounded");
         assert!(recovered.is_ok(), "retry after lock release: {recovered:?}");
         let blob = git_cmd(&repo, &["show", "HEAD:pending.txt"]);
         assert!(blob.status.success());

@@ -64,6 +64,11 @@ async fn next_ready_result<S: futures::Stream + Unpin>(tasks: &mut S) -> Option<
     tasks.next().now_or_never().flatten()
 }
 
+/// Reserve ownership at the dispatch boundary, independent of status branches.
+fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
+    in_flight.insert(repo.to_path_buf())
+}
+
 /// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
 /// trailing-drain sync result for `repo` arriving with generation
 /// `result_gen` should be discarded as the stale outcome of a
@@ -785,15 +790,39 @@ mod tests {
     async fn pending_result_collection_does_not_block_next_repo() {
         let (release, blocked) = tokio::sync::oneshot::channel::<()>();
         let mut tasks = FuturesUnordered::new();
-        tasks.push(tokio::spawn(async move { blocked.await.unwrap(); 7 }));
-        let result = tokio::time::timeout(
-            Duration::from_millis(100), next_ready_result(&mut tasks)
-        ).await.expect("pending push must not block the next scheduler pulse");
+        tasks.push(tokio::spawn(async move {
+            blocked.await.unwrap();
+            7
+        }));
+        let result =
+            tokio::time::timeout(Duration::from_millis(100), next_ready_result(&mut tasks))
+                .await
+                .expect("pending push must not block the next scheduler pulse");
         assert!(result.is_none());
         assert_eq!(tasks.len(), 1, "retain pending ownership; no redispatch");
         release.send(()).unwrap();
         assert_eq!(tasks.next().await.unwrap().unwrap(), 7);
         assert!(tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn stalled_worker_retains_exclusive_dispatch_ownership_across_cycles() {
+        let repo = PathBuf::from("isolated-repo");
+        let mut owners = HashSet::new();
+        let (release, blocked) = tokio::sync::oneshot::channel::<()>();
+        let mut tasks = FuturesUnordered::new();
+        assert!(reserve_sync(&mut owners, &repo));
+        tasks.push(tokio::spawn(async move { blocked.await.unwrap() }));
+        // Simulate successive collector/dispatch cycles while a push stalls.
+        for _ in 0..4 {
+            assert!(next_ready_result(&mut tasks).await.is_none());
+            assert!(!reserve_sync(&mut owners, &repo), "duplicate dispatch");
+            assert_eq!(tasks.len(), 1);
+        }
+        release.send(()).unwrap();
+        tasks.next().await.unwrap().unwrap();
+        owners.remove(&repo); // only an observed completion releases ownership
+        assert!(reserve_sync(&mut owners, &repo));
     }
 
     fn git_config_value(repo: &Path, key: &str) -> String {
@@ -4122,6 +4151,11 @@ pub(crate) async fn run_daemon(
                 continue;
             }
 
+            // Skip all repo maintenance/status work while a worker owns it.
+            // This guard must cover both clean and dirty classification paths.
+            if in_flight.contains(&repo) {
+                continue;
+            }
             let now = Instant::now();
 
             // CHANGED 2026-06-20: newly discovered repos may be empty or may
@@ -5087,6 +5121,9 @@ pub(crate) async fn run_daemon(
             // slow push on one repo no longer blocks other repos from
             // being committed and pushed. The post-sync state mutations
             // happen in the apply phase after all jobs complete.
+            if !reserve_sync(&mut in_flight, &repo) {
+                continue;
+            }
             let entry_rf = std::mem::take(&mut entry.remote_failures);
             let secs = now.duration_since(entry.changed_at).as_secs();
             let policy_for_task = policy.clone();
@@ -5099,7 +5136,6 @@ pub(crate) async fn run_daemon(
             // next cycle consults `in_flight` and skips this repo
             // until the apply phase removes it. This is the
             // no-redispatch invariant in action.
-            in_flight.insert(repo.clone());
             to_sync.push((
                 repo.clone(),
                 tokio::spawn(async move {
@@ -5142,12 +5178,8 @@ pub(crate) async fn run_daemon(
         // fired — a permanent in-flight wedge that `repos` reported
         // as actively-processing (false-healthy), re-opening the
         // 2026-06-15 permanent-skip class the registry was built
-        // to fix. In maintenance mode (`dispatched_any == false`)
-        // the apply loop exits instantly (empty in_flight_tasks)
-        // and the trailing drain gets a ZERO deadline (tokio's
-        // timeout polls the inner future once: finished detached
-        // tasks are applied, still-running ones are not awaited),
-        // so cycle responsiveness is unchanged.
+        // to fix. Both collection phases now poll only ready results,
+        // including quiet cycles when nothing new was dispatched.
         let dispatched_any = !to_sync.is_empty();
         if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
@@ -5196,14 +5228,6 @@ pub(crate) async fn run_daemon(
             // notifications, `repair warns` triage, and the post-sync
             // re-fetch to a follow-up. This keeps the diff focused on
             // the parallelization win.
-            // Apply-phase deadline: stop awaiting in_flight after
-            // `apply_deadline_secs` so a slow push on one repo does
-            // not block the main loop from starting the next cycle.
-            // The unfinished tasks remain in `in_flight` and are
-            // drained in subsequent cycles. This keeps the daemon
-            // responsive: a new dirty file in repo A is processed
-            // in the next cycle, not after the slowest push on
-            // repo B finishes.
             // A pending network operation must never consume scan-loop time.
             // Pending handles are retained below with their in-flight owner.
             while let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
@@ -5275,57 +5299,11 @@ pub(crate) async fn run_daemon(
                 }
             }
 
-            // === TRAILING IN-FLIGHT DRAIN (bounded) ===
-            // Tasks that didn't complete within the apply deadline
-            // (e.g. a 60s push) are still running. We can't apply
-            // their results in this cycle, but we MUST remove them
-            // from `in_flight` when they complete so the next
-            // cycle can re-dispatch (only if the repo still has
-            // work). Drain the leftover handles with a bounded
-            // deadline so a single slow push doesn't block the
-            // main loop indefinitely. We use the same deadline
-            // policy as the apply phase (`pulse_interval_secs * 2`)
-            // so the cycle time is bounded to ~2-3× pulse interval
-            // regardless of how many slow pushes are in flight.
-            //
-            // BUGFIX (2026-06-15): previously, on trailing-drain
-            // timeout (`Err(_) => break`), the unfinished tasks
-            // were dropped from `in_flight_tasks` (which goes out
-            // of scope) but their entries in the `in_flight`
-            // HashSet were NEVER cleared. The result: a slow
-            // sync task (e.g. a 60s push on `dracon-platform`)
-            // would stay in `in_flight` forever, causing the
-            // COLLECT phase of every subsequent cycle to skip
-            // the repo. The repo would never be processed again
-            // until the daemon restarted.
-            //
-            // Fix: track dispatched repos in a local set, and
-            // on trailing-drain timeout (or normal completion),
-            // clear any `in_flight` entries that were not
-            // drained. This breaks the no-redispatch invariant
-            // for slow tasks, but the invariant was never
-            // achievable for slow tasks anyway (they always
-            // timed out). The trade-off is: re-dispatching a
-            // slow task is recoverable (the new task will fail
-            // with a lock conflict or remote rejection), while
-            // permanent skip is not.
-            //
-            // CHANGED 2026-07-09 (goal fb8ddd6b — repo-discovery
-            // audit): the trailing-drain deadline now uses a
-            // dedicated `trailing_drain_deadline_secs` policy field
-            // (default 120s) instead of `pulse_interval_secs * 2`
-            // (default 2s). The 2s deadline was killing github
-            // pushes for the 9 nested submodules (first-push cold
-            // pack cache takes 10-60s), causing the next cycle to
-            // spawn a duplicate push and creating a traffic jam
-            // that delayed smaller pushes. 120s gives most pushes
-            // enough time to complete while still bounding the
-            // daemon's cycle time. Override higher for repos with
-            // very large histories.
-            // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H1): poll-
-            // only drain (zero deadline) in quiet-maintenance mode —
-            // we must not block the scan loop waiting on a long
-            // detached push when nothing was dispatched this cycle.
+            // === TRAILING IN-FLIGHT DRAIN (ready results only) ===
+            // Retain the persistent-registry fixes from v0.112.33 and
+            // v0.113.2: pending handles and their in-flight ownership
+            // survive cycles, and finished jobs are collected even when
+            // no new work is dispatched. Polling does not cancel pushes.
             // The detached registry owns pending jobs across pulses. Waiting
             // here used to stall every other repo for up to 120 seconds.
             // trailing_drain_deadline_secs remains parseable for compatibility,
