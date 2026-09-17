@@ -1198,3 +1198,53 @@ ok
 test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) cd0775c] init
 ok
 test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 8402f4c] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 90b399a] init
+To /tmp/.tmpd2y6se/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) 6d0cbe6] init
+To /tmp/.tmpsHEUd6/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 2eb7f55] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 8a1584e] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) 353c514] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) 2738c7c] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) 2738c7c] init
+[main 9d13b4a] ahead
+HEAD is now at 9d13b4a ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 64605f5] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) ac894eb] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) ac894eb] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) ac894eb] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 7127c81] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 7127c81] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 7127c81] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 7127c81] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 7127c81] init
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) 81a327e] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) fc12f51] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 452c3e6] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) 071e582] init
