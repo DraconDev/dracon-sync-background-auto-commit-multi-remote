@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Deadline-first scan order**: the per-cycle scan now inspects repos whose
+  quiet window (or 5s continuous-work bound) has already expired FIRST,
+  instead of by arbitrary discovery order. Under load the 5-repo cycle body
+  overruns the 1s pulse (measured gaps 1.5–1.9s), which previously pushed an
+  eligible repo's dispatch past its deadline purely because of its position
+  in the scan. Strict fairness-probe timing failures on the prior release
+  build (B 3.25s/C 3.11s/C 3.15s) were caused by this arbitrary-position
+  delay; with the reordering, four consecutive strict runs pass (B 2.21–2.65s,
+  C 2.24–2.65s incl. slow-filter and plain modes). Total cycle cost is
+  unchanged — scan position, not inspection cost, was the arbitrary part.
 - Clean repositories with ahead/behind work now obtain and retain the
   classification result required by the shared dispatch path. Previously they
   could remain unpushed indefinitely. Dirty and clean divergence retain the
