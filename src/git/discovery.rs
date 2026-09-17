@@ -146,6 +146,31 @@ pub(crate) fn discover_git_repos(
     }
     for candidate in submodule_candidates {
         if !repos.contains(&candidate) {
+            // Excluded repos must not resurrect as legacy anchor-path
+            // candidates. If the operator excludes a nested submodule
+            // (e.g. `.../wip/hegemon` quarantined), the nested path was
+            // filtered OUT of `repos` above, so `nested_already_discovered`
+            // is false and the fallback candidate `<anchor>/<basename>`
+            // would re-add the excluded repo as a phantom row reporting
+            // healthy/EMPTY while the canonical path is divergent. An
+            // excluded repo is excluded in every form: full path AND
+            // legacy basename anchor candidate (2026-09-17, sync-
+            // convergence audit: hegemon's exclusion surfaced as a
+            // misleading healthy/EMPTY row).
+            let candidate_abs = candidate.to_string_lossy().to_lowercase();
+            let candidate_name = candidate
+                .file_name()
+                .map(|n| n.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if exlude_set.contains(&candidate_abs) || exlude_set.contains(&candidate_name) {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 skipping submodule fallback candidate {} (repo is exclude_repos-quarantined)",
+                        candidate.display()
+                    );
+                }
+                continue;
+            }
             repos.push(candidate);
         }
     }
