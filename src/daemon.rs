@@ -5050,12 +5050,16 @@ pub(crate) async fn run_daemon(
                     activity.remove(&repo);
                     continue;
                 }
-                // Remote issues but clean — a pending/absent classification
-                // keeps the repo skipped this pulse (fail-closed, no state
-                // mutation); a ready result decides.
-                let Some(Ok(entries)) = classification_results.remove(&repo) else {
+                // Remote issues but clean — PEEK the classification result:
+                // the eligibility check below runs before the dispatch gate,
+                // and consuming here would destroy the result on every
+                // quiet-window continue (forcing a filter re-run next pulse,
+                // observed 2026-09-17). Results are consumed only at the
+                // dispatch gate.
+                let Some(Ok(entries)) = classification_results.get(&repo) else {
                     continue;
                 };
+                let entries = entries.clone();
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
@@ -5070,9 +5074,10 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let Some(Ok(filtered)) = classification_results.remove(&repo) else {
+                let Some(Ok(filtered)) = classification_results.get(&repo) else {
                     continue;
                 };
+                let filtered = filtered.clone();
                 // repo_diff_entries already applies the clean filter through
                 // `git diff --name-status HEAD` and includes untracked files.
                 // Repeating a name-only HEAD diff doubles filter execution and
@@ -5102,6 +5107,10 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
+            // Consumed only here (after eligibility + in-flight checks):
+            // the peek above keeps the result alive across quiet-window
+            // pulses so one result serves the entire dispatch pipeline.
+            classification_results.remove(&repo);
 
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
