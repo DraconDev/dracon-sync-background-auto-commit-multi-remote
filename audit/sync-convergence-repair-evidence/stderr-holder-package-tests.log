@@ -1069,4 +1069,59 @@ test sync::tests::test_is_backstop_active_below_threshold ... ok
 test sync::tests::test_is_backstop_active_no_ahead_since ... ok
 test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
 test sync::tests::test_lcp_scope_cases ... ok
-test sync::tests::test_lock_token_and_negative ... 
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 9433567] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) c2b28f6] init
+To /tmp/.tmpVNm6fT/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 234f93a] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) 5adce1a] init
+[main c7f098e] ahead
+HEAD is now at c7f098e ahead
+To /tmp/.tmpGY3UOu/origin.git
+   5adce1a..c7f098e  HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmpQnsJVq/remote.git/
+[master (root-commit) 2415dd5] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... ok
+test sync::tests::test_repo_has_warden_filter_probe ... ok
+test sync::tests::test_safety_metric_predicate ... ok
+test sync::tests::test_sanitize_task_name_drops_explanatory_clauses ... ok
+test sync::tests::test_sanitize_task_name_limits_plain_text ... ok
+test sync::tests::test_scale_push_timeout_absurd_base_saturates ... ok
+test sync::tests::test_scale_push_timeout_huge_push_sextuples ... ok
+test sync::tests::test_scale_push_timeout_large_push_quadruples ... ok
+test sync::tests::test_scale_push_timeout_medium_push_doubles ... ok
+test sync::tests::test_scale_push_timeout_never_truncates_live_base ... ok
+test sync::tests::test_scale_push_timeout_small_push_uses_base ... ok
+test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
+test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
+test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
+test sync::tests::test_scope_root_files_backcompat ... ok
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) 262fe64] init
+[main b18f869] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) 1536f8b] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) 76cfb47] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 76cfb47] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 76cfb47] init
