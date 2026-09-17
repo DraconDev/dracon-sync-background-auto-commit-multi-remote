@@ -13,6 +13,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Filter-aware classification leaves the pulse loop (slow-filter
+  starvation, 2026-09-17)**: dirty classification (filter-aware
+  `git diff --name-status -z HEAD` + untracked listing) moved from
+  inline per-repo inspection into retained one-job-per-repo background
+  tasks (`ClassificationJoin`/`classification_pending`, 30s cap). A
+  repo whose required clean filter takes seconds can no longer delay
+  the inspection of every other repository in the cycle — the
+  reproduced defect had healthy repos staging at 10.7–10.9s behind a
+  single 4s-sleep fixture filter (fairness probe,
+  `/tmp/sync-slow-filter-before.json`), with ai-auto-writer's
+  32,342-file/437-path traversal timing out at 30s every cycle in the
+  live journal. Results are consumed at the `reserve_sync` dispatch
+  boundary (not on quiet-window `continue`s), so one result serves the
+  whole dispatch pipeline without duplicate filter runs.
+- **Fail-closed classification errors**: `repo_diff_entries` no longer
+  treats a failed filter-aware diff as "untracked-only" (which hid
+  tracked changes and made repos look clean while warden-filtered
+  changes sat uncommitted). Only genuinely unborn HEAD (empty-repo
+  bootstrap) falls back to untracked-only; timeouts, filter refusals
+  and corrupt objects now propagate as errors and keep the repo
+  pending with logged cause instead of silently disappearing from
+  classification. Regressions:
+  `classification_applies_filter_once_and_preserves_refusals`,
+  `classification_preserves_unborn_untracked_files`.
+- **Quiet-window anchoring on the status transition, not classification
+  completion**: `changed_at`/`dirty_since` are booked provisionally
+  from the first status-dirty pulse (`book_provisional_activity`,
+  fingerprint-compatible with the confirmed path) so the configured
+  `inactivity_push_delay_secs` window starts when the change actually
+  happened. Previously the anchor reset when the classification result
+  arrived a pulse later, delaying dispatch by a full pulse; the
+  retained result was also destroyed on fingerprint change (duplicate
+  filter run). Classification results are now consumed only at the
+  dispatch boundary after eligibility and in-flight checks, with the
+  positive hint retained across quiet windows (sync reclassifies
+  current content before staging; the cache only authorizes
+  scheduling).
+- **Fairness probe hardened to the verification contract**:
+  queue-delay measured from the daemon's own monotonic clock
+  (dispatching-cycle start vs quiet expiry, eligibility decision
+  required), exact commit-completion timestamps via debug-gated
+  `scheduler: commit_done repo=... unix_ms=` lines (libgit2 in-process
+  commits are invisible to a CLI wrapper), unix-clock-domain fix for
+  the commit→push gate, and a pre-start (missed-event) gate anchored
+  at the daemon's own first-observation quiet anchor. Both probe modes
+  (plain + `--slow-filter`) pass all checks
+  (`/tmp/sync-decision-clock-probe.json`,
+  `/tmp/sync-decision-clock-plain.json`); full AGENTS.md gates pass
+  (1039 unit + 10 integration tests, clippy `-D warnings`, fmt).
+  New regressions:
+  `pending_classification_preserves_status_transition_clock`,
+  `pre_start_dirty_activity_reaches_exact_quiet_boundary_once`.
+- **Nonblocking collection retained**: per-repo sync/classification
+  results are collected with single-poll `now_or_never` (never blocking
+  a pulse), ownership reserved at the dispatch boundary
+  (`reserve_sync`), pulse stays start-to-start via `remaining_pulse`.
+
 ## [0.113.58] - 2026-09-16
 ## [0.113.57] - 2026-09-15
 
