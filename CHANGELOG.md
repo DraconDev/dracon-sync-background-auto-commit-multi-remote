@@ -36,15 +36,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundary as well as pulse start, avoiding a gratuitous extra pulse when a
   classifier finishes during the scan. A deterministic test keeps an unrelated
   classifier pending while making the ready result immediately available.
+- **Child-exit wake for every Git operation runner**: `run_child_inner`
+  observed child completion with a 100ms `try_wait` poll; exit now wakes the
+  runner immediately via `child.wait()` inside the same `tokio::select!`
+  (cancel-safe). Fail-before regression
+  `child_exit_wakes_runner_without_poll_interval` documents the 100ms-per-
+  command latency (~15 git commands per stage-commit-push path) and passes
+  after the fix. The deadline tick and progress-driven deadline extension are
+  unchanged.
 - Release commits use the repository's configured identity, without overrides.
 
 ### Diagnostics and acceptance status
 
 - Debug logs distinguish pulse, dispatch, task start, staging preparation, add
-  spawn/completion and commit completion. The strict timing fixture still has
-  intermittent failures; this release does not claim full timing or fleet
-  convergence acceptance. The original manually committed live probe is
-  explicitly invalidated and must be replaced by daemon-only evidence.
+  spawn/completion and commit completion. With the deadline-first scan order,
+  four consecutive strict fairness runs pass on the release build (B 2.21–2.65s,
+  C 2.24–2.65s, slow-filter and plain). The 15-minute live observation and
+  per-remote verification remain outstanding; this changelog entry is written
+  before the release, not after live acceptance. The original manually
+  committed live probe is explicitly invalidated and must be replaced by
+  daemon-only evidence.
 
 ## [0.113.61] - 2026-09-17
 ## [0.113.60] - 2026-09-17
