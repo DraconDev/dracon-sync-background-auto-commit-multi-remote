@@ -351,6 +351,18 @@ def main():
             after_quiet = decomp.get('dispatch_after_quiet_ms')
             return after_quiet is not None and after_quiet <= 1000 + scan_overrun_ms
 
+        def push_after_commit_ms(name):
+            """Push-start minus the daemon's own commit_done, both unix ms.
+            Persisted so a failing run attributes itself without cross-clock
+            reconstruction after the fact."""
+            key = str(repos[name])
+            if key not in commit_done_unix_ms or dispatch[name]['push_rel'] is None:
+                return None
+            delta = round((start_unix + dispatch[name]['push_rel']) * 1000
+                          - commit_done_unix_ms[key])
+            report.setdefault('push_after_commit_done_ms', {})[name] = delta
+            return delta
+
         checks = {
             # Contract gate, daemon clock: staging DISPATCH at the configured
             # 2s quiet window plus at most one 1-second pulse. "One pulse" is
@@ -386,12 +398,13 @@ def main():
             # Continuous edits: no starvation — the repo commits via the 5s
             # starvation valve and its push dispatches within one pulse of the
             # daemon's own commit completion; the remote tip must close.
+            # Key is the repo's FULL PATH (commit_done keys come from the
+            # daemon log's repo=<path> field), never the bare fixture name.
             'continuous_work_pushes_within_one_pulse_of_commit': (
-                'a' in commit_done_unix_ms
+                str(repos['a']) in commit_done_unix_ms
                 and dispatch['a']['push_rel'] is not None
-                and -100 <= (start_unix + dispatch['a']['push_rel']) * 1000
-                    - commit_done_unix_ms[str(repos['a'])]
-                    <= 1000 + scan_overrun_ms),
+                and push_after_commit_ms('a') is not None
+                and -100 <= push_after_commit_ms('a') <= 1000 + scan_overrun_ms),
             'continuous_work_reaches_remote': 'a' in seen,
             'continuous_work_remote_seconds': seen.get('a'),
             # Missed-event reconciliation: dispatch within the daemon's own
