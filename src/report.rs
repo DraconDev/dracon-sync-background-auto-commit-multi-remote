@@ -9912,6 +9912,25 @@ mod tests {
     }
 
     #[test]
+    fn test_stuck_pull_is_failed_not_actively_pushing() {
+        let flags = vec!["STUCK_PULL".to_string(), "AHEAD:6731".to_string()];
+        let inputs = StateCauseInputs {
+            flags: &flags,
+            push_status: "PENDING",
+            modified: 1,
+            staged: 1390,
+            untracked: 0,
+            ahead: 6731,
+            behind: 4391,
+            last_commit_minutes: Some(15),
+            last_push_minutes: Some(50400),
+        };
+        let cause = classify_state_cause(&inputs, &default_thresholds());
+        assert_eq!(cause, StateCause::Failed);
+        assert!(!repo_is_active(inputs.push_status, &cause));
+    }
+
+    #[test]
     fn test_classify_state_cause_stalled_is_the_users_pain() {
         let dirty_flags: Vec<String> = vec!["DIRTY".to_string()];
         let inputs = StateCauseInputs {
