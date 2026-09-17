@@ -1,0 +1,61 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789673177089
+scheduler: status repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=976 repo_ms=976 dirty=false daemon_ms=1079
+scheduler: cycle_complete elapsed_ms=1370
+scheduler: pulse_start unix_ms=1789673178460
+scheduler: status repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=376 repo_ms=376 dirty=false daemon_ms=1851
+scheduler: cycle_complete elapsed_ms=960
+scheduler: pulse_start unix_ms=1789673179518
+scheduler: status repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=703 repo_ms=678 dirty=true daemon_ms=3235
+scheduler: classification_spawn repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=1073 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=1079
+scheduler: pulse_start unix_ms=1789673180598
+classification: phase=filter-aware-diff repo=/tmp/sync-cadence-lm2youzj/watch/sample elapsed_ms=253 outcome=success
+scheduler: status repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=422 repo_ms=421 dirty=true daemon_ms=4033
+classification: phase=untracked-discovery repo=/tmp/sync-cadence-lm2youzj/watch/sample elapsed_ms=192 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-cadence-lm2youzj/watch/sample ms=446 ok=true
+scheduler: quiet_clock_assignment discovery_ms=4256 evidence_unix_ns=Some(1789673178987048484) anchor_ms=2000
+scheduler: eligibility repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=645 observed_quiet_ms=2256 eligible=true daemon_ms=4256 anchor_daemon_ms=2000
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="sample.txt" unix_ns=Some(1789673178987048484)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-0.txt" unix_ns=Some(1789673178978350626)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-1.txt" unix_ns=Some(1789673178978419626)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-10.txt" unix_ns=Some(1789673178978721045)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-11.txt" unix_ns=Some(1789673178978750360)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-12.txt" unix_ns=Some(1789673178978777522)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-13.txt" unix_ns=Some(1789673178978804493)
+scheduler: file_mtime repo=/tmp/sync-cadence-lm2youzj/watch/sample path="fixture-14.txt" unix_ns=Some(1789673178978831734)
+scheduler: dispatch repo=/tmp/sync-cadence-lm2youzj/watch/sample cycle_ms=645 inspection_ms=644 daemon_ms=4257 unix_ms=1789673181243
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: task_start repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673181243
+scheduler: cycle_complete elapsed_ms=645
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_origin elapsed_ms=110
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_status elapsed_ms=110
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=after_status elapsed_ms=141
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_pull elapsed_ms=141
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_clean elapsed_ms=141
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_diff elapsed_ms=325
+scheduler: pulse_start unix_ms=1789673181660
+scheduler: cycle_complete elapsed_ms=0
+🐛 /tmp/sync-cadence-lm2youzj/watch/sample status: clean=false modified=1 staged=0 entries(libgit2)=100
+scheduler: worker_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=after_diff elapsed_ms=491
+🐛 /tmp/sync-cadence-lm2youzj/watch/sample to_stage=100 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-cadence-lm2youzj/watch/sample thread=ThreadId(6) unix_ms=1789673181735
+scheduler: stage_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=untracked elapsed_ms=5
+scheduler: stage_files_enter repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673181796
+scheduler: stage_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-cadence-lm2youzj/watch/sample phase=partition elapsed_ms=176
+scheduler: add_spawn repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673181973
+scheduler: add_spawned repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673181977 pid=Some(2982199)
+scheduler: add_done repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673182169 ok=true
+scheduler: add_spawn repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673182169
+scheduler: add_spawned repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673182189 pid=Some(2982241)
+scheduler: add_done repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673182244 ok=true
+scheduler: pulse_start unix_ms=1789673183594
+scheduler: cycle_complete elapsed_ms=1
+scheduler: commit_done repo=/tmp/sync-cadence-lm2youzj/watch/sample unix_ms=1789673183633
+📝 committed 100 file(s) in /tmp/sync-cadence-lm2youzj/watch/sample
+scheduler: pulse_start unix_ms=1789673184687
+scheduler: cycle_complete elapsed_ms=56
+sync: received SIGTERM, shutting down gracefully...
