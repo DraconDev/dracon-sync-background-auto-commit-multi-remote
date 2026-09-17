@@ -5231,9 +5231,14 @@ pub(crate) async fn run_daemon(
                 entry.fingerprint = fingerprint;
                 entry.changed_at = now;
                 entry.failure_count = 0;
-                // The retained classification result describes the previous
-                // fingerprint; a changed fingerprint invalidates it.
-                classification_results.remove(&repo);
+                // NOTE: the retained classification result is deliberately
+                // NOT dropped here. A filter-aware result that arrives one
+                // pulse after the status flip legitimately describes the
+                // current content (the edit happened before the job ran); the
+                // empty-result staleness pass handles the only genuinely
+                // stale shape. Dropping here destroyed the fresh result and
+                // forced a duplicate filter run (observed 2026-09-17:
+                // `results=2` for a single edit, dispatch delayed a pulse).
             }
 
             // Wait `inactivity_push_delay_secs` after the last
