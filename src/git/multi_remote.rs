@@ -1485,7 +1485,10 @@ mod tests {
         });
         let entries = load_persistent_entries(&path);
         for index in 0..16 {
-            assert!(entries.contains(&(PathBuf::from(format!("fixture-{index}")), "origin".into())));
+            assert!(entries.contains(&(
+                std::path::PathBuf::from(format!("fixture-{index}")),
+                "origin".into()
+            )));
         }
         assert_eq!(entries.len(), 16);
     }

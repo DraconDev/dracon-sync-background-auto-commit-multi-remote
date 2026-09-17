@@ -12,3 +12,5 @@ help: consider importing one of these structs
 1429 +     use std::path::PathBuf;
      |
 
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `dracon-sync` (bin "dracon-sync" test) due to 1 previous error
