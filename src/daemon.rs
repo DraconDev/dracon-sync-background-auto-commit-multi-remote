@@ -2401,7 +2401,6 @@ mod tests {
         // The aggregated transport-failure line must not be produced
         // from a purely cancelled attempt.
         use crate::git::multi_remote::push_to_all_remotes;
-        use crate::policy::RemoteConfig;
         let state = tempfile::tempdir().unwrap();
         let _guard = crate::test_helpers::EnvRestorer::new(
             "DRACON_SYNC_STATE_DIR",
