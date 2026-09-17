@@ -13,6 +13,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.63] - 2026-09-17
+
+### Fixed
+
+- **Durable forge-existence cache**: confirmed `(repo, remote)` pairs now
+  persist to `$DRACON_SYNC_STATE_DIR/forge-exists-cache.json` (atomic
+  tmp+rename) and hydrate once per process. Previously the existence cache
+  was session-only, so every daemon restart re-paid one serial `ls-remote`
+  SSH round-trip per configured remote per established repo before the scan
+  could reach later repos — measured live 2026-09-17 16:43–16:44 as ~2.4–3.5s
+  of forge probing per repo (32 repos ≈ 90s) with a 3ms classification result
+  stranded until the next pulse. With the durable cache, the isolated
+  restart-latency harness (`/tmp/restart_latency.py`, 3 fixtures with 1.5s
+  simulated ls-remote, phase A requiring a daemon-made commit+push so the
+  cache is genuinely warm) measures first dirty-repo dispatch **6.063s**
+  after restart on the pre-fix binary vs **2.108s** (2s quiet + one pulse,
+  zero fresh ls-remote) on the patched build. The out-of-band-deletion
+  self-heal contract is preserved: `evict_forge_existence` removes the
+  durable entry too, so a stale cache still costs exactly one loud push
+  failure before re-probe; eviction without a persisted file writes nothing
+  (unit-tested both ways).
+- **Truthful state cause for stuck pulls**: `classify_state_cause` now maps
+  the `STUCK_PULL` flag to `Failed` before the generic `PENDING → Pushing`
+  rule, and `repo_is_active` treats `Failed` as inactive. A repo whose pull
+  is lock-blocked and whose push was rejected non-fast-forward (hegemon,
+  2026-09-17 16:52:24–16:52:37) was displayed as actively "pushing" while its
+  pushes were failing; it now reports failed, which is truthful and visible.
+  Regression `test_stuck_pull_is_failed_not_actively_pushing` reproduces the
+  live inventory shape (6731 ahead / 4391 behind / 1390 staged + 1 modified)
+  and fails on 0.113.62's behavior (`Pushing != Failed`), passes after.
+
+### Verification status at release time
+
+Post-fix gates: 1049 unit + 10 integration tests (0 failed), clippy
+`--all-targets -D warnings` clean, fmt clean with timestamped attestation.
+Restart-latency fail-before/pass-after recorded above. The 15-minute live
+observation of 0.113.62 (16:51–17:06 BST) remains valid for that release;
+this entry documents restart-latency and reporting fixes shipped in 0.113.63,
+not a re-run of the full live acceptance.
+
 ## [0.113.62] - 2026-09-17
 
 ### Fixed
