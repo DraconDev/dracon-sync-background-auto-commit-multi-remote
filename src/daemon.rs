@@ -3628,44 +3628,7 @@ pub(crate) fn record_push_success(repo: &Path) {
 /// reaches `push_max_retries`, the entry's `last_error` is
 /// preserved (so the operator can see WHY it's stuck) and the
 /// report will surface a `🛑 push-stuck` state.
-/// Cancellation-shaped push error detector. The ONLY producer of
-/// "task ... was cancelled" is tokio's JoinError when a spawned push
-/// task is aborted — daemon shutdown or wedged-task cancellation —
-/// never a git/forge outcome. A cancelled attempt has an UNKNOWN
-/// result: the remote may or may not have received the push, but the
-/// local work is intact and the next cycle re-dispatches. Recording
-/// it as a push failure persisted a stuck-ledger entry whose 300s
-/// backoff suppressed ALL dispatch for the repo after the next
-/// restart (live: phase-B fixture never dispatched in 45s,
-/// /tmp/sync-restart-yvkywhn7, 2026-09-17). Shared choke point:
-/// `record_push_failure` refuses to persist these.
-pub(crate) fn push_error_is_cancellation(error: &str) -> bool {
-    // tokio JoinError Display: "task <id> was cancelled" (the id is a
-    // decimal TaskId, so match around it, not on a fixed phrase).
-    // Also covers the aggregation wrapper's "join error: task <id> was
-    // cancelled" shape.
-    let trimmed = error.trim();
-    (trimmed.contains("task ") && trimmed.contains(" was cancelled"))
-        || trimmed.contains("task cancelled")
-        || trimmed.starts_with("join error: task ") && trimmed.ends_with("was cancelled")
-}
-
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
-    // Shutdown/wedge cancellation of an in-flight push task is not a
-    // remote failure: the attempt's outcome is unknown, the work tree
-    // is intact, and the next cycle re-dispatches. Persisting it armed
-    // the 300s stuck backoff after every restart (live evidence:
-    // /tmp/sync-restart-yvkywhn7). Real transport failures never carry
-    // tokio's cancellation phrasing.
-    if push_error_is_cancellation(error) {
-        if debug_enabled() {
-            eprintln!(
-                "⏭️ {} push attempt was cancelled (shutdown/wedge) — not recorded as a push failure",
-                repo.display()
-            );
-        }
-        return;
-    }
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos
