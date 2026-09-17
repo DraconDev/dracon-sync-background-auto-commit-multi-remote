@@ -280,6 +280,15 @@ fn book_provisional_activity(
 }
 
 /// Reserve ownership at the dispatch boundary, independent of status branches.
+fn request_worker_cancellation(
+    workers: &HashMap<PathBuf, tokio::task::AbortHandle>,
+    repo: &Path,
+) {
+    if let Some(worker) = workers.get(repo) {
+        worker.abort();
+    }
+}
+
 fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
 }
@@ -4419,6 +4428,9 @@ pub(crate) async fn run_daemon(
     // force-cleared and possibly re-dispatched).
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
+    // Abort the actual sync worker, not its result-collecting wrapper.
+    // Ownership survives cancellation until the wrapper observes its join.
+    let mut sync_workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
     let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
     // Per-repo dispatch counter; bumped each time the daemon
     // dispatches a new task for the repo. Used as the generation
@@ -5944,6 +5956,7 @@ pub(crate) async fn run_daemon(
         if dispatched_any || !detached_syncs.is_empty() {
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
+                sync_workers.insert(repo_path.clone(), handle.abort_handle());
                 // CHANGED 2026-07-27 (v0.113.5, audit M1): bump the
                 // per-repo dispatch generation so the trailing-drain
                 // discard check can distinguish a fresh task's
@@ -5997,6 +6010,7 @@ pub(crate) async fn run_daemon(
                 // Remove from in_flight set so the next cycle can
                 // re-dispatch if the repo still has work to do.
                 in_flight.remove(&repo);
+                sync_workers.remove(&repo);
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
@@ -6109,6 +6123,7 @@ pub(crate) async fn run_daemon(
                         continue;
                     }
                     in_flight.remove(&repo);
+                    sync_workers.remove(&repo);
                     dispatched_this_cycle.remove(&repo);
                     detached_since.remove(&repo);
                     if let Some(entry) = activity.get_mut(&repo) {
@@ -6191,13 +6206,10 @@ pub(crate) async fn run_daemon(
                 }
             }
 
-            // Wedged-task safety valve: a detached task older than
-            // 15 minutes is presumed wedged (e.g. a hung ssh
-            // negotiate). Force-clear its in_flight entry so the
-            // repo re-dispatches, and mark its eventual result for
-            // discard so the stale outcome doesn't double-count
-            // failures. This preserves the 2026-06-15 no-permanent-
-            // skip invariant without the duplicate-dispatch window.
+            // Request cancellation after 15 minutes, but never release the
+            // reservation here. Aborting is only a request: synchronous work
+            // may still be running. The normal joined-result path above is
+            // the sole authority to release ownership after worker teardown.
             let wedged: Vec<PathBuf> = detached_since
                 .iter()
                 .filter(|(_, t)| Instant::now().duration_since(**t) > Duration::from_secs(900))
@@ -6205,19 +6217,12 @@ pub(crate) async fn run_daemon(
                 .collect();
             for repo in wedged {
                 eprintln!(
-                    "⚠️ {} sync task wedged for >15 min — force-clearing in-flight (stale result will be discarded)",
+                    "⚠️ {} sync task wedged for >15 min — requesting cancellation; retaining ownership until worker joins",
                     repo.display()
                 );
-                in_flight.remove(&repo);
-                detached_since.remove(&repo);
-                // CHANGED 2026-07-27 (v0.113.5, audit M1): record
-                // the wedged task's CURRENT generation so the
-                // trailing-drain discard check only drops results
-                // with the matching generation. A re-dispatched
-                // fresh task will have a NEWER generation and
-                // falls through to the apply phase normally.
-                let wedged_gen = dispatch_gen.get(&repo).copied().unwrap_or(0);
-                detached_discard.insert(repo, wedged_gen);
+                request_worker_cancellation(&sync_workers, &repo);
+                // Rate-limit warnings even if non-yielding work delays abort.
+                detached_since.insert(repo, Instant::now());
             }
         }
 
