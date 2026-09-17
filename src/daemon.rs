@@ -4846,34 +4846,31 @@ pub(crate) async fn run_daemon(
             })
             .map(|(repo_path, _)| repo_path.clone())
             .collect();
-        if !due.is_empty() {
-            if debug_enabled() {
-                eprintln!(
-                    "scheduler: deadline_first_order n={} due={:?}",
-                    due.len(),
-                    due.iter()
-                        .map(|p| p.display().to_string())
-                        .collect::<Vec<_>>()
-                );
-            }
-            repos.sort_by_key(|repo| if due.contains(repo) { 0 } else { 1 });
-        }
-        // Post-restart eligibility (2026-09-17 convergence fix): after a
-        // restart the in-memory activity map is empty, so every repo's
-        // quiet state is unknown and the due set above is empty. Sorting by
-        // discovery order then parks a dirty repo behind every other
-        // repo's inspection (forge-evicted probe: dispatch at 3.19s,
-        // one full pulse late). New/unknown repos have NO completed-cycle
-        // evidence of being quiet, so they sort BEFORE repos with an
-        // established clean state (those already proved nothing to do in a
-        // prior cycle; unknown ones might be eligible now).
+        // Single three-tier scan order (2026-09-17, convergence goal):
+        // (0) due now — quiet or starvation deadline expired; (1) unknown —
+        // no completed-cycle evidence yet (every repo right after restart:
+        // a dirty repo must not pay discovery-order serial inspection of
+        // its peers); (2) established-clean — already proved quiet in a
+        // prior cycle. Stable sort keeps discovery order within each tier.
         repos.sort_by_key(|repo| {
-            let established = activity
+            if due.contains(repo) {
+                0
+            } else if activity
                 .get(repo)
-                .is_some_and(|entry| entry.dirty_since.is_none() && !entry.fingerprint.is_empty());
-            // stable sort keeps discovery order within each tier
-            u8::from(established)
+                .is_some_and(|entry| entry.dirty_since.is_none() && !entry.fingerprint.is_empty())
+            {
+                2
+            } else {
+                1
+            }
         });
+        if !due.is_empty() && debug_enabled() {
+            eprintln!(
+                "scheduler: deadline_first_order n={} due={:?}",
+                due.len(),
+                due.iter().map(|p| p.display().to_string()).collect::<Vec<_>>()
+            );
+        }
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
             // If the policy is reloaded mid-cycle (SIGHUP), this repo still
