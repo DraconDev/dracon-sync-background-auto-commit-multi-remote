@@ -4868,7 +4868,9 @@ pub(crate) async fn run_daemon(
             eprintln!(
                 "scheduler: deadline_first_order n={} due={:?}",
                 due.len(),
-                due.iter().map(|p| p.display().to_string()).collect::<Vec<_>>()
+                due.iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
             );
         }
         for repo in repos {
