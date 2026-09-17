@@ -56,6 +56,27 @@ pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     HashMap<String, RemoteFailInfo>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
+
+/// Result of one per-repo dirty-classification job: the path, the
+/// filter-aware diff entries, and whether classification failed. A
+/// classification job runs OUTSIDE the pulse loop so a slow or
+/// failing required clean filter in one repo cannot delay the
+/// inspection of other repositories; results are consumed the next
+/// time the scheduler reaches the repo.
+pub(crate) type ClassificationJoin = tokio::task::JoinHandle<(
+    PathBuf,
+    Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+)>;
+
+/// Collect one ready classification result without blocking. Pending
+/// jobs stay in the unordered set; their results apply on a later
+/// pulse.
+fn next_ready_classification<S: futures::Stream + Unpin>(
+    jobs: &mut S,
+) -> Option<S::Item> {
+    use futures::FutureExt;
+    jobs.next().now_or_never().flatten()
+}
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
 /// Collect completed work without cancelling or dropping pending jobs.
@@ -3977,6 +3998,20 @@ pub(crate) async fn run_daemon(
     // captured in `SyncTrioJoin` and compared against the wedged
     // marker in the trailing-drain discard check.
     let mut dispatch_gen: HashMap<PathBuf, u64> = HashMap::new();
+    // Per-repo classification jobs (filter-aware `git diff HEAD` +
+    // untracked listing). Spawned outside the pulse loop so a slow or
+    // failing required clean filter in one repo cannot stall the
+    // inspection of other repositories within the same pulse; each
+    // result is consumed the next time the scheduler reaches the
+    // repo. One job per repo is retained at a time (pending_registry).
+    let mut classification_jobs: FuturesUnordered<ClassificationJoin> = FuturesUnordered::new();
+    let mut classification_results: HashMap<
+        PathBuf,
+        Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+    > = HashMap::new();
+    let mut classification_pending: HashSet<PathBuf> = HashSet::new();
+    let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
+    const CLASSIFICATION_MAX_FAILURES: usize = 3;
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
