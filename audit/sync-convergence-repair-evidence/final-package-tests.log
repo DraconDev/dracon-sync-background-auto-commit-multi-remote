@@ -1142,4 +1142,146 @@ test report::v011313_tests::activity_label_appends_excl_marker ... ok
 test report::v011313_tests::classify_committable_modified_and_staged ... ok
 test report::v011313_tests::classify_excluded_tracked_pattern_is_not_committable ... ok
 test report::v011313_tests::classify_submodule_worktree_dirt_excluded_gitlink_drift_committable ... ok
-test report::v011313_tests::classify_untracked_never_committable_but_excludable ... 
+test report::v011313_tests::classify_untracked_never_committable_but_excludable ... ok
+test report::v011313_tests::parse_porcelain_z_handles_renames_and_untracked ... ok
+test report::v011315_tests::push_cell_appends_age_on_success_only ... ok
+test report::v011315_tests::rem_cell_fits_column_budget ... ok
+test report::v011315_tests::rem_cell_shows_only_active_push_remotes ... ok
+test report::v011315_tests::rem_cell_unknown_remote_renders_letters_not_dropped ... ok
+test report::v011315_tests::remote_icon_maps_canonical_hosts ... ok
+test report::v011316_tests::quota_rule_excludes_codeberg_without_tracking_ref ... ok
+test report::v011316_tests::quota_rule_keeps_codeberg_with_tracking_ref ... ok
+test report::v011316_tests::too_big_for_github_excludes_github ... ok
+test report::v011318_tests::dynamic_rem_column_covers_rendered_remote_labels ... ok
+test report::v011318_tests::five_digit_commit_pulse_counts_fit_column_budget ... ok
+test report::v011318_tests::table_icons_are_width_two ... ok
+test report::v011318_tests::three_digit_change_counts_fit_column_budget ... ok
+test report::v011318b_tests::repo_cell_leading_marker_and_alignment ... ok
+test report::v011318b_tests::repo_cell_truncates_long_names_after_marker ... ok
+test report::v011320_tests::measure_modules_size_bytes_counts_modules_dir ... ok
+test report::v011320_tests::size_cell_color_follows_own_pack ... ok
+test report::v011320_tests::size_cell_plain_repo_uses_adaptive_label ... ok
+test report::v011320_tests::size_cell_superproject_shows_own_plus_modules ... ok
+test report::v011320_tests::size_compact_formats_units ... ok
+test report::v011321_tests::push_marker_token_only_for_relevant_forges ... ok
+test report::v011321_tests::push_markers_broken_history_and_token ... ok
+test report::v011321_tests::rem_cell_active_only_no_excluded ... ok
+test report::v011321_tests::repo_cell_nested_badge_after_lock ... ok
+test role::tests::classify_role_for_parent_repo ... ok
+test role::tests::classify_role_for_standalone_repo ... ok
+test role::tests::classify_role_for_submod_repo ... ok
+test role::tests::f55_full_path_distinguishes_same_basename_repos ... ok
+test role::tests::full_path_match_beats_earlier_basename_fallback ... ok
+test role::tests::label_compact_submod_falls_back_when_no_web_games_prefix ... ok
+test role::tests::label_compact_submod_keeps_released_tier ... ok
+test role::tests::label_compact_submod_strips_web_games_prefix ... ok
+test role::tests::label_parent_unchanged ... ok
+test role::tests::label_standalone_unchanged ... ok
+test role::tests::priority_submod_over_parent_when_dual_role ... ok
+test secrets::tests::test_load_secret_from_dir_loads_clean_value ... ok
+test secrets::tests::test_load_secret_from_dir_refuses_control_chars ... ok
+test standard_files::tests::test_absolute_source_path ... ok
+test standard_files::tests::test_copies_file_when_missing ... ok
+test standard_files::tests::test_dry_run_does_not_copy_files ... ok
+test standard_files::tests::test_funding_yml_in_dot_github_subdir ... ok
+test standard_files::tests::test_funding_yml_skip_standard_files_optout ... ok
+test standard_files::tests::test_overwrite_directory_target ... ok
+test standard_files::tests::test_overwrites_when_configured ... ok
+test standard_files::tests::test_parent_dir_source_rejected_at_point_of_use ... ok
+test standard_files::tests::test_root_equivalent_target_cannot_delete_repo_on_overwrite ... ok
+test standard_files::tests::test_short_form_source_resolution ... ok
+test standard_files::tests::test_skips_from_repo_override ... ok
+test standard_files::tests::test_skips_when_target_exists ... ok
+test standard_files::tests::test_subdirectory_target_creates_parent ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_delete_external_directory ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_write_or_delete_external ... ok
+test standard_files::tests::test_tilde_source_rejected ... ok
+test standard_files::tests::test_warns_when_template_missing ... ok
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) 00856e7] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) 58d02af] init
+ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_budget_caps_pathological_subject ... ok
+test sync::tests::test_cap_batch_union_caps_the_union_not_each_list ... ok
+test sync::tests::test_cap_batch_union_gitlink_priority ... ok
+test sync::tests::test_cap_batch_union_single_class_behavior_unchanged ... ok
+test sync::tests::test_cap_batch_union_under_limit_is_unchanged ... ok
+test sync::tests::test_check_untracked_threshold_above ... ok
+test sync::tests::test_check_untracked_threshold_below ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_check_untracked_threshold_keeps_plain_untracked_dirs ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_multiple_nested_repos ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_nested_repo ... ok
+test sync::tests::test_check_untracked_threshold_zero_disables ... ok
+test sync::tests::test_classify_failing_remotes_dedupes_divergence ... ok
+test sync::tests::test_classify_failing_remotes_empty_map ... ok
+test sync::tests::test_commit_guard_allows_path_owned_untrusted_identity ... ok
+test sync::tests::test_commit_guard_allows_trusted_identity ... ok
+test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
+test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) ddef1fe] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) ddef1fe] init
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 1a0a97d] c1
+[main f2e36d6] c2
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 9739495] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) a1203f5] init
+ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) b0e5fa4] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) b0e5fa4] init
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) fd48b7d] init
