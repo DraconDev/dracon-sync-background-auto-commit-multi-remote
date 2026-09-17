@@ -58,6 +58,12 @@ pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
 )>;
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
+/// Collect completed work without cancelling or dropping pending jobs.
+async fn next_ready_result<S: futures::Stream + Unpin>(tasks: &mut S) -> Option<S::Item> {
+    use futures::FutureExt;
+    tasks.next().now_or_never().flatten()
+}
+
 /// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
 /// trailing-drain sync result for `repo` arriving with generation
 /// `result_gen` should be discarded as the stale outcome of a
@@ -774,6 +780,21 @@ pub(crate) fn stuck_decision(
 mod tests {
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
+
+    #[tokio::test]
+    async fn pending_result_collection_does_not_block_next_repo() {
+        let (release, blocked) = tokio::sync::oneshot::channel::<()>();
+        let mut tasks = FuturesUnordered::new();
+        tasks.push(tokio::spawn(async move { blocked.await.unwrap(); 7 }));
+        let result = tokio::time::timeout(
+            Duration::from_millis(100), next_ready_result(&mut tasks)
+        ).await.expect("pending push must not block the next scheduler pulse");
+        assert!(result.is_none());
+        assert_eq!(tasks.len(), 1, "retain pending ownership; no redispatch");
+        release.send(()).unwrap();
+        assert_eq!(tasks.next().await.unwrap().unwrap(), 7);
+        assert!(tasks.is_empty());
+    }
 
     fn git_config_value(repo: &Path, key: &str) -> String {
         String::from_utf8_lossy(
@@ -5183,15 +5204,9 @@ pub(crate) async fn run_daemon(
             // responsive: a new dirty file in repo A is processed
             // in the next cycle, not after the slowest push on
             // repo B finishes.
-            let apply_deadline = Duration::from_secs(policy.pulse_interval_secs.max(1) * 2);
-            let apply_deadline_at = tokio::time::Instant::now() + apply_deadline;
-            loop {
-                let next = tokio::time::timeout_at(apply_deadline_at, in_flight_tasks.next()).await;
-                let joined = match next {
-                    Ok(Some(joined)) => joined,
-                    Ok(None) => break, // in_flight_tasks empty
-                    Err(_) => break,   // timeout
-                };
+            // A pending network operation must never consume scan-loop time.
+            // Pending handles are retained below with their in-flight owner.
+            while let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
                 let Ok((repo, _gen, remote_failures, sync_res)) = joined else {
                     continue;
                 };
@@ -5311,12 +5326,10 @@ pub(crate) async fn run_daemon(
             // only drain (zero deadline) in quiet-maintenance mode —
             // we must not block the scan loop waiting on a long
             // detached push when nothing was dispatched this cycle.
-            let trailing_deadline = if dispatched_any {
-                Duration::from_secs(policy.trailing_drain_deadline_secs.max(1))
-            } else {
-                Duration::ZERO
-            };
-            let trailing_deadline_at = tokio::time::Instant::now() + trailing_deadline;
+            // The detached registry owns pending jobs across pulses. Waiting
+            // here used to stall every other repo for up to 120 seconds.
+            // trailing_drain_deadline_secs remains parseable for compatibility,
+            // but is no longer a scheduler-blocking wait.
             let mut dispatched_this_cycle: HashSet<PathBuf> = in_flight.clone();
             loop {
                 if in_flight_tasks.is_empty() && detached_syncs.is_empty() {
@@ -5327,17 +5340,12 @@ pub(crate) async fn run_daemon(
                 // detached tasks through the same apply path
                 // (detached tasks are previous cycles' stragglers —
                 // see the registry handoff below).
-                let next = tokio::time::timeout_at(trailing_deadline_at, async {
-                    tokio::select! {
-                        a = in_flight_tasks.next(), if !in_flight_tasks.is_empty() => a,
-                        b = detached_syncs.next(), if !detached_syncs.is_empty() => b,
-                    }
-                })
-                .await;
-                let joined = match next {
-                    Ok(Some(joined)) => joined,
-                    Ok(None) => break, // all drained
-                    Err(_) => break,   // trailing deadline hit
+                let joined = if let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
+                    joined
+                } else if let Some(joined) = next_ready_result(&mut detached_syncs).await {
+                    joined
+                } else {
+                    break;
                 };
                 if let Ok((repo, gen, remote_failures, sync_res)) = joined {
                     // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
