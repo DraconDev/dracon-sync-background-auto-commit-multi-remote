@@ -1031,3 +1031,51 @@ test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [m
 [main a33528c] c2
 ok
 test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 81df387] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) ad8e6f6] init
+ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 80c4492] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) 93a5566] init
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 57f1d3f] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 8c74afb] init
+To /tmp/.tmpIDSB00/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 5a96383] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... 
