@@ -2003,15 +2003,15 @@ async fn push_background(
                     }
                 }
                 Err(e) => {
-                    // Same cancellation rule for the origin path.
-                    if crate::daemon::push_error_is_cancellation(&e.to_string()) {
+                    // Preserve interrupted-attempt identity through the caller.
+                    if crate::daemon::push_error_is_cancellation(&e) {
                         if debug_enabled() {
                             eprintln!(
                                 "⏭️ {} origin push task cancelled — not recorded as a failure",
                                 repo.display()
                             );
                         }
-                        return Ok(false);
+                        return Err(e);
                     }
                     eprintln!(
                         "⚠️ background push to origin failed for {}: {}",
@@ -2145,33 +2145,52 @@ async fn push_background(
             policy.sync_visibility_interval_hours,
         )
         .await;
-        let all_ok = push_results.iter().all(|(_, r)| r.is_ok());
-        if !all_ok {
-            for (name, result) in &push_results {
-                if let Err(e) = result {
-                    log_warn!("push to {} failed for {}: {}", name, repo.display(), e);
-                    if let Some(rf) = remote_failures.as_deref_mut() {
-                        let fail = rf.entry(name.clone()).or_default();
-                        fail.consecutive += 1;
-                        fail.last_error = e.to_string();
-                    }
-                }
-            }
-            return Ok(false);
-        } else if let Some(rf) = remote_failures {
-            // Successful push — clear any prior failure count for the
-            // remotes we actually pushed to. (Remotes we deliberately
-            // skipped — e.g. github when `.git` > 2 GiB — are NOT in
-            // `push_results`, so their skip marker survives until the
-            // repo shrinks and they push successfully.)
-            for (name, _) in &push_results {
-                rf.remove(name);
-            }
-        }
+        return aggregate_push_results(repo, push_results, origin_failed, remote_failures);
+
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
     // false when origin failed (mirrors may still have succeeded).
     Ok(!origin_failed)
+}
+
+/// Aggregate actual attempt results before converting errors to report text.
+/// An interrupted-only attempt stays Err(JoinError); mixed attempts retain
+/// real failures, and cancellation never increments a remote failure counter.
+pub(crate) fn aggregate_push_results(
+    repo: &Path,
+    results: Vec<(String, Result<()>)>,
+    mut failed: bool,
+    mut remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
+) -> Result<bool> {
+    let mut interrupted = None;
+    for (name, result) in results {
+        match result {
+            Ok(()) => {
+                if let Some(map) = remote_failures.as_deref_mut() {
+                    map.remove(&name);
+                }
+            }
+            Err(error) if crate::daemon::push_error_is_cancellation(&error) => {
+                interrupted = Some(error);
+            }
+            Err(error) => {
+                failed = true;
+                log_warn!("push to {} failed for {}: {}", name, repo.display(), error);
+                if let Some(map) = remote_failures.as_deref_mut() {
+                    let info = map.entry(name).or_default();
+                    info.consecutive += 1;
+                    info.last_error = format!("{error:#}");
+                }
+            }
+        }
+    }
+    if failed {
+        Ok(false)
+    } else if let Some(error) = interrupted {
+        Err(error)
+    } else {
+        Ok(true)
+    }
 }
 
 /// ADDED 2026-07-21 (v0.112.31, audit M1/F3.9): format the
