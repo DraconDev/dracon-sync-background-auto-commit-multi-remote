@@ -1468,6 +1468,28 @@ mod tests {
         assert!(!persistent_exists_path().exists());
     }
 
+    #[test]
+    fn concurrent_forge_confirmations_preserve_every_pair() {
+        let state = tempfile::tempdir().unwrap();
+        let path = state.path().join("forge-exists-cache.json");
+        let barrier = std::sync::Barrier::new(16);
+        std::thread::scope(|scope| {
+            for index in 0..16 {
+                let path = &path;
+                let barrier = &barrier;
+                scope.spawn(move || {
+                    barrier.wait();
+                    persist_entry(path, Path::new(&format!("fixture-{index}")), "origin");
+                });
+            }
+        });
+        let entries = load_persistent_entries(&path);
+        for index in 0..16 {
+            assert!(entries.contains(&(PathBuf::from(format!("fixture-{index}")), "origin".into())));
+        }
+        assert_eq!(entries.len(), 16);
+    }
+
     /// Helper: build a minimal RemoteConfig for testing.
     /// `name` and `priority` are the only fields that affect the sort.
     fn make_remote(name: &str, priority: u32) -> RemoteConfig {
