@@ -1443,7 +1443,7 @@ mod tests {
         // Eviction removes the durable entry (self-heal contract).
         evict_forge_existence(&repo, "origin");
         assert!(
-            !load_persistent_entries(&path).contains(&(repo, "origin")),
+            !load_persistent_entries(&path).contains(&(repo, "origin".to_string())),
             "evicted pair must not survive on disk"
         );
     }
