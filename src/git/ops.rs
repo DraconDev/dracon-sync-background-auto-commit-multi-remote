@@ -701,7 +701,8 @@ mod tests {
         use futures::FutureExt;
         use tokio::io::AsyncWriteExt;
         let mut command = tokio::process::Command::new("sh");
-        command.args(["-c", "read line; exit 0"])
+        command
+            .args(["-c", "read line; exit 0"])
             .stdin(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true);
@@ -715,7 +716,8 @@ mod tests {
         input.write_all(b"finish\n").await.unwrap();
         drop(input);
         tokio::time::timeout(std::time::Duration::from_millis(80), run)
-            .await.expect("child exit must wake the runner before the old 100ms polling tick")
+            .await
+            .expect("child exit must wake the runner before the old 100ms polling tick")
             .unwrap();
     }
 
