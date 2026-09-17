@@ -5049,6 +5049,13 @@ pub(crate) async fn run_daemon(
                     }));
                 }
             }
+            // Provisional dirtiness from the STATUS transition: the quiet
+            // clock must anchor here (status is available every pulse), not
+            // when the classification job happens to finish — otherwise the
+            // 2s window starts a full pulse late (observed 2026-09-17:
+            // changed_at reset at ~2.2s for a 1.0s edit, dispatch at 4.3s).
+            let provisional_dirty =
+                !status.is_clean || status.ahead > 0 || status.behind > 0;
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
@@ -5083,11 +5090,15 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
+                // Status-dirty (or ahead/behind) repo: require a READY
+                // classification result at dispatch time, but do not gate the
+                // fingerprint/eligibility bookkeeping on it (provisional path
+                // below anchors the quiet clock on the status transition).
                 let Some(Ok(filtered)) = classification_results.get(&repo) else {
+                    classification_pending_bookkeeping = true;
                     continue;
                 };
                 let filtered = filtered.clone();
-                // repo_diff_entries already applies the clean filter through
                 // `git diff --name-status HEAD` and includes untracked files.
                 // Repeating a name-only HEAD diff doubles filter execution and
                 // can time out despite the first traversal having succeeded.
