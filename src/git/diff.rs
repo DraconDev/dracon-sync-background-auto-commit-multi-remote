@@ -244,25 +244,30 @@ pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     let mut phase = ClassificationPhase::start(repo, "filter-aware-diff");
     // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): `-z` + exit
     // status checked (was: status unchecked — a failed diff read as
-    // "no changes").
-    let output = crate::git::tokio_git_cmd()
-        .args(["diff", "--name-status", "-z", "HEAD"])
-        .current_dir(repo)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .await?;
-    if !output.status.success() {
+    // "no changes"). CHANGED 2026-09-17: the child is spawned with its
+    // own process group and kill_on_drop, so cancelling this future
+    // (scheduler classification timeout) terminates git AND any spawned
+    // warden filter children instead of leaking them to contend with
+    // the retry. Regression:
+    // classification_cancellation_terminates_git_process_group.
+    let child = crate::git::spawn_git_command_cancellable(
+        repo,
+        &["diff", "--name-status", "-z", "HEAD"],
+        "diff --name-status -z HEAD",
+    )?;
+    let (status, stdout, _stderr) =
+        crate::git::run_git_captured_output(child, repo, "diff --name-status -z HEAD").await?;
+    if !status.success() {
         phase.outcome = "nonzero-exit";
         return Err(anyhow::anyhow!(
             "git diff --name-status -z HEAD failed in {}: exit {}",
             repo.display(),
-            output.status
+            status
         ));
     }
     phase.outcome = "success";
     let mut entries = Vec::new();
-    for (path, status) in parse_name_status_z(&output.stdout) {
+    for (path, status) in parse_name_status_z(&stdout) {
         entries.push(DiffFile::new(path, status));
     }
     Ok(entries)
@@ -271,28 +276,37 @@ pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
 /// Get untracked file entries via `git ls-files --others --exclude-standard`.
 pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     let mut phase = ClassificationPhase::start(repo, "untracked-discovery");
-    let output = crate::git::tokio_git_cmd()
-        .args(["ls-files", "--others", "--exclude-standard", "-z"])
-        .current_dir(repo)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .await?;
-    if !output.status.success() {
+    let child = crate::git::spawn_git_command_cancellable(
+        repo,
+        &["ls-files", "--others", "--exclude-standard", "-z"],
+        "ls-files --others --exclude-standard",
+    )?;
+    let (status, stdout, _stderr) =
+        crate::git::run_git_captured_output(child, repo, "ls-files --others").await?;
+    if !status.success() {
         phase.outcome = "nonzero-exit";
         return Err(anyhow::anyhow!(
             "git ls-files --others --exclude-standard failed in {}: exit {}",
             repo.display(),
-            output.status
+            status
         ));
     }
     phase.outcome = "success";
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout
-        .split('\0')
+    let mut entries = Vec::new();
+    for path in parse_z_paths(&stdout) {
+        entries.push(DiffFile::new(path, FileStatus::Added));
+    }
+    Ok(entries)
+}
+
+/// Split NUL-delimited raw paths (the `-z` convention). Bytes pass through
+/// unquoted and unfiltered — the same contract as `parse_name_status_z`.
+fn parse_z_paths(stdout: &[u8]) -> Vec<PathBuf> {
+    stdout
+        .split(|&b| b == 0)
         .filter(|s| !s.is_empty())
-        .map(|p| DiffFile::new(PathBuf::from(p), FileStatus::Added))
-        .collect())
+        .map(|s| PathBuf::from(String::from_utf8_lossy(s).to_string()))
+        .collect()
 }
 
 /// Get diff entries from both repo status, diff, and untracked files.

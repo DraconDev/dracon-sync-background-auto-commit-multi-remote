@@ -302,6 +302,119 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
 }
 
+/// Spawn a git child that is SAFE to cancel: its own process group,
+/// `kill_on_drop`, and captured stdout/stderr. Dropping the returned child
+/// (including via a cancelled future) terminates the whole group — git plus
+/// any spawned filter/helper children — so a scheduler timeout can never
+/// leak work that later contends with the retry. Fail-before regression:
+/// `classification_cancellation_terminates_git_process_group`.
+pub(crate) fn spawn_git_command_cancellable(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+) -> Result<tokio::process::Child> {
+    let label = format!("git {}", op_label);
+    let mut cmd = crate::policy::tokio_git_command();
+    cmd.args(args)
+        .current_dir(repo)
+        .kill_on_drop(true)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    configure_git_process_group(&mut cmd);
+    cmd.spawn()
+        .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
+}
+
+/// Run a cancellable git child to completion, capturing both output streams,
+/// WITHOUT imposing a timeout of its own. The CALLER decides cancellation —
+/// e.g. `tokio::time::timeout` around the future — and the child's process
+/// group dies with the future via `kill_on_drop` + process group.
+///
+/// Returns (exit status, stdout bytes, stderr bytes). Output is fully
+/// drained before awaiting the exit so large traversals cannot deadlock on
+/// full pipes; stdout is capped in memory to keep classification bounded
+/// (a repo whose diff exceeds the cap surfaces the cap, not a hang).
+pub(crate) async fn run_git_captured_output(
+    mut child: tokio::process::Child,
+    workdir: &Path,
+    op_label: &str,
+) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>, Vec<u8>)> {
+    const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
+    let label = format!("git {}", op_label);
+    let mut stdout_pipe = child.stdout.take().with_context(|| {
+        format!("{} in {}: stdout not captured", label, workdir.display())
+    })?;
+    let stderr_pipe = child.stderr.take().with_context(|| {
+        format!("{} in {}: stderr not captured", label, workdir.display())
+    })?;
+    // stderr is capped and kept for diagnostics; stdout is bounded too —
+    // `git diff --name-status -z` output for a classification is normally
+    // orders of magnitude below the cap, and exceeding it is itself the
+    // signal to report rather than buffer forever.
+    let stderr_task = tokio::spawn(async move {
+        let mut buf = Vec::new();
+        let mut truncated = false;
+        use tokio::io::AsyncReadExt;
+        let mut reader = stderr_pipe;
+        loop {
+            let mut chunk = [0u8; 8192];
+            match reader.read(&mut chunk).await {
+                Ok(0) => break,
+                Ok(n) => {
+                    if buf.len() < MAX_CAPTURED_BYTES {
+                        let take = n.min(MAX_CAPTURED_BYTES - buf.len());
+                        buf.extend_from_slice(&chunk[..take]);
+                    }
+                    if buf.len() >= MAX_CAPTURED_BYTES {
+                        truncated = true;
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        if truncated {
+            buf.extend_from_slice(b"<stderr truncated>");
+        }
+        buf
+    });
+    let mut stdout_buf = Vec::new();
+    use tokio::io::AsyncReadExt;
+    let mut stdout_reader = stdout_pipe;
+    loop {
+        let mut chunk = [0u8; 65536];
+        match stdout_reader.read(&mut chunk).await {
+            Ok(0) => break,
+            Ok(n) => {
+                if stdout_buf.len() >= MAX_CAPTURED_BYTES {
+                    anyhow::bail!(
+                        "{} in {}: stdout exceeded {} bytes",
+                        label,
+                        workdir.display(),
+                        MAX_CAPTURED_BYTES
+                    );
+                }
+                stdout_buf.extend_from_slice(&chunk[..n]);
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(
+                    "{} in {}: stdout read failed: {}",
+                    label,
+                    workdir.display(),
+                    e
+                ))
+            }
+        }
+    }
+    let status = child.wait().await.with_context(|| {
+        format!("{} in {}: wait failed", label, workdir.display())
+    })?;
+    let stderr_buf = stderr_task
+        .await
+        .unwrap_or_else(|e| format!("<stderr capture failed: {e}>").into_bytes());
+    Ok((status, stdout_buf, stderr_buf))
+}
+
 fn spawn_git_command_env(
     repo: &Path,
     args: &[&str],
