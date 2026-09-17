@@ -1125,3 +1125,76 @@ ok
 test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 76cfb47] init
 ok
 test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 76cfb47] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) dbcb291] init
+ok
+test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_stage_gitlink_updates_no_op_for_empty_input ... ok
+test sync::tests::test_stage_gitlink_updates_propagates_sibling_subrepo_pointer ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 3eeeaa9] init
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 6b25cef] init
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 7fd8bb3] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 7fd8bb3] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 83fafd4] init
+ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 5fb3ac9] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 4c08b02] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpJbRDX7/origin.git'
+[master 053fa9d] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) f5fc08b] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 2d89f10] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 2d89f10] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) cd0775c] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) cd0775c] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 8402f4c] init
