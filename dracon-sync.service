@@ -19,7 +19,13 @@ Restart=always
 RestartSec=5
 RestartPreventExitStatus=2 78
 Nice=10
-CPUQuota=15%
+# CHANGED 2026-09-17 (convergence goal): CPUQuota=15% starved the filter-aware
+# classification pass (measured 7.4 CPU-s for ai-auto-writer's diff alone vs a
+# 4.5 CPU-s budget within the 30s classifier deadline; the same command ran
+# 49.2s under quota vs 13.0s without). 100% (one core) lets classification
+# converge while Nice=10 + the guard's graduated renice still keep the daemon
+# behind interactive work. Memory limits and the sandbox are unchanged.
+CPUQuota=100%
 MemoryHigh=768M
 MemoryMax=2G
 TasksMax=96
