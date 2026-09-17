@@ -964,6 +964,34 @@ mod tests {
         assert_eq!(activity[&repo].dirty_since, Some(start));
     }
 
+    #[test]
+    fn pre_start_dirty_activity_reaches_exact_quiet_boundary_once() {
+        // Logical clock only: no sleeps or wall-clock timing tolerances.
+        // This covers activity/eligibility/ownership helpers, not worker
+        // execution time or the full daemon's scan-loop ordering.
+        let repo = PathBuf::from("pre-start-b2");
+        let start = Instant::now();
+        let quiet = Duration::from_secs(2);
+        let mut activity = HashMap::new();
+        let mut owners = HashSet::new();
+        let fingerprint = "main:1:0:0:0:1".to_owned();
+        let mut dispatches = Vec::new();
+        for millis in [0, 1000, 1999, 2000, 3000] {
+            let now = start + Duration::from_millis(millis);
+            book_provisional_activity(&mut activity, &repo, fingerprint.clone(), true, now);
+            let entry = &activity[&repo];
+            let classification_ready = millis >= 1000;
+            if classification_ready
+                && dispatch_due(now, entry.changed_at, entry.dirty_since, quiet)
+                && reserve_sync(&mut owners, &repo)
+            {
+                dispatches.push(millis);
+            }
+            assert_eq!(entry.changed_at, start, "ready result must not reset quiet");
+        }
+        assert_eq!(dispatches, vec![2000]);
+    }
+
     #[tokio::test]
     async fn stalled_worker_retains_exclusive_dispatch_ownership_across_cycles() {
         let repo = PathBuf::from("isolated-repo");

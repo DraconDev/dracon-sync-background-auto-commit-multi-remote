@@ -119,6 +119,52 @@ executing `~/.local/bin/dracon-sync daemon`; it has not been replaced.
   fairness gate still FAILS for the reasons above. Release build, publishing,
   installation and 15-minute deployment verification remain outstanding.
 
+### Additional timestamped diagnostic run (not an acceptance pass)
+
+Added debug-only daemon-relative timestamps to status, eligibility and dispatch,
+and bounded path-mtime logging at eligibility (up to eight entries; no contents).
+Mtimes remain diagnostic evidence; scheduling has **not** switched to mtimes.
+
+`/tmp/sync-timestamp-probe.json` and
+`/tmp/sync-fairness-c70ips87/daemon.log` show d-filter classification execution
+of 4117ms, first dirty status at daemon 264ms, and dispatch at 5339ms. Since
+classification started after that status observation, ready-to-dispatch delay
+is at most `5339 - 264 - 4117 = 958ms`. The focused one-pulse check passes;
+`/tmp/sync-d-filter-focused-timing.json` records this conservative bound.
+This is NOT an edit-to-dispatch subsecond claim: the fixture deliberately has
+a 2s quiet window and a required 4s clean filter.
+
+The full probe still fails. B and C timing passed in this run, but pre-start B2
+missed its strict deadline, and exact CLI commit timing remains unavailable.
+This variation is evidence of remaining timing/observation uncertainty, not
+permission to relax the assertions. The debug logging itself adds measured
+inspection work and no fleet-wide bound has been established.
+
+After the timestamp instrumentation, bounded package tests, clippy and fmt all
+passed again (`/tmp/sync-timestamp-tests.log`, `/tmp/sync-timestamp-clippy.log`,
+`/tmp/sync-timestamp-fmt.log`). No publishing, installation or service restart
+occurred. The next necessary work is a proper commit-completion instrument,
+phase-sensitive scheduling tests, and remaining classification cancellation /
+ownership review before deployment.
+
+### Deterministic pre-start boundary regression
+
+`pre_start_dirty_activity_reaches_exact_quiet_boundary_once` supplies logical
+instants at 0/1000/1999/2000/3000ms, classification ready at 1000ms, and a
+pre-existing dirty status. It verifies the activity clock stays anchored at
+startup and eligibility plus ownership permit exactly one dispatch at 2000ms.
+`timeout 180 cargo test -p dracon-sync --locked pre_start_dirty_activity_reaches_exact_quiet_boundary_once`
+passed (`/tmp/sync-prestart-deterministic.log`); bounded clippy passed
+(`/tmp/sync-prestart-clippy.log`). This is helper-level coverage, **not** a
+replacement for the failing full-daemon timing probe.
+
+A further unchanged probe (`/tmp/sync-selfcheck-probe.json`) converged all five
+repos but failed C's staging bound (3.121s after edit) and the unmeasured CLI
+commit boundary. No production fix for that remaining timing failure is
+claimed. Inspection of dracon-git 94.7.2 confirms `GitService::commit` uses
+libgit2 first, with CLI only as a fallback; the wrapper cannot observe ordinary
+successful commit completion.
+
 ## Remaining investigation and gates
 
 1. The scan loop still does sequential discovery, status/filter-aware diffs,
