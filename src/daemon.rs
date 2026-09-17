@@ -5576,7 +5576,9 @@ pub(crate) async fn run_daemon(
             if effective_dirty && !entries.is_empty() {
                 let snapshot = quiet_evidence_snapshot(&repo, &entries);
                 let evidence = quiet_evidence.entry(repo.clone()).or_default();
-                let status_changed = evidence.status_fingerprint.as_ref()
+                let status_changed = evidence
+                    .status_fingerprint
+                    .as_ref()
                     .is_some_and(|old| old != &entry.fingerprint);
                 entry.changed_at = evidence.observe(
                     snapshot,
