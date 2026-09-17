@@ -1029,7 +1029,14 @@ async fn stage_existing_files_filtered(
     }
     let staging_started = std::time::Instant::now();
     if debug_enabled() {
-        eprintln!("scheduler: stage_files_enter repo={} unix_ms={}", repo.display(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+        eprintln!(
+            "scheduler: stage_files_enter repo={} unix_ms={}",
+            repo.display(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
     }
     // ADDED 2026-09-15 (warden-showcase probe): auto-harden hook. This
     // is the single choke point every auto-stage flows through, so the
@@ -1308,11 +1315,19 @@ async fn stage_existing_files_filtered(
         // - Ignored and untracked: skip entirely (.gitignore is intentional)
         let partition_started = std::time::Instant::now();
         if debug_enabled() {
-            eprintln!("scheduler: stage_prepare repo={} phase=before_partition elapsed_ms={}", repo.display(), staging_started.elapsed().as_millis());
+            eprintln!(
+                "scheduler: stage_prepare repo={} phase=before_partition elapsed_ms={}",
+                repo.display(),
+                staging_started.elapsed().as_millis()
+            );
         }
         let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
         if debug_enabled() {
-            eprintln!("scheduler: stage_prepare repo={} phase=partition elapsed_ms={}", repo.display(), partition_started.elapsed().as_millis());
+            eprintln!(
+                "scheduler: stage_prepare repo={} phase=partition elapsed_ms={}",
+                repo.display(),
+                partition_started.elapsed().as_millis()
+            );
         }
 
         if !normal_paths.is_empty() {
@@ -3741,7 +3756,11 @@ async fn stage_commit_and_push(
     let prepare_started = std::time::Instant::now();
     let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
     if debug_enabled() {
-        eprintln!("scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}", repo.display(), prepare_started.elapsed().as_millis());
+        eprintln!(
+            "scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}",
+            repo.display(),
+            prepare_started.elapsed().as_millis()
+        );
     }
     if resolved > 0 {
         eprintln!(
@@ -3755,7 +3774,11 @@ async fn stage_commit_and_push(
     // when the untracked-file count exceeds the policy threshold.
     let _untracked_count = check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
     if debug_enabled() {
-        eprintln!("scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}", repo.display(), prepare_started.elapsed().as_millis());
+        eprintln!(
+            "scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}",
+            repo.display(),
+            prepare_started.elapsed().as_millis()
+        );
     }
 
     // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
