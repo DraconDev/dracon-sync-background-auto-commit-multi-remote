@@ -105,19 +105,10 @@ fn needs_classification(
     has_origin: bool,
     has_upstream: bool,
 ) -> bool {
-    if status_is_clean {
-        // Clean repos still classify when remote issues or ahead/behind
-        // state requires the dirty-entries check.
-        ahead == 0 && behind == 0 && (!has_origin || !has_upstream)
-    } else {
-        // CHANGED 2026-09-17 (convergence goal): a dirty repo with an
-        // ahead/behind mirror override (ahead>0) previously NEVER
-        // classified, so the dispatch gate's required result never
-        // appeared — the repo sat dirty + unpushed forever (observed
-        // live: dracon-utilities/dracon-sync dirty + ahead=3 for 20 min;
-        // polis ahead=12 pending for hours).
-        true
-    }
+    // Every state reaching the shared dispatch gate needs a ready result.
+    // Remote divergence must not suppress classification, even if status is
+    // clean: filter-aware diff remains authoritative for worktree changes.
+    !status_is_clean || ahead > 0 || behind > 0 || !has_origin || !has_upstream
 }
 
 fn dispatch_due(
@@ -5403,104 +5394,6 @@ pub(crate) async fn run_daemon(
                         (repo_for_job, outcome)
                     }));
                 }
-            }
-            // CHANGED 2026-09-17 (convergence goal, wedge arm 2): a CLEAN
-            // repo with a mirror-ahead override (ahead>0) never classified
-            // (no worktree content to classify) but the dispatch gate below
-            // required a classification result for it anyway — the repo sat
-            // clean + unpushed forever with no dispatch (observed live:
-            // dracon-utilities/dracon-sync clean + ahead=6 vs the stale
-            // gitlab mirror for 25+ min after the v0.113.61 release; the
-            // same shape held polis for hours as AHEAD:12 PENDING). A clean
-            // ahead/behind repo therefore dispatches a push-only sync
-            // WITHOUT a classification result: empty entries, not-dirty,
-            // remote/push handling stays entirely in sync_repo.
-            if status.is_clean && (status.ahead > 0 || status.behind > 0) {
-                let has_pending =
-                    status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
-                if !has_pending {
-                    activity.remove(&repo);
-                    continue;
-                }
-                if in_flight.contains(&repo) {
-                    continue;
-                }
-                let entry_exists = activity.contains_key(&repo);
-                let now_clean = Instant::now();
-                let entry = activity
-                    .entry(repo.clone())
-                    .or_insert_with(|| RepoActivity {
-                        fingerprint: format!(
-                            "{}:0:{}:{}:{}:{}",
-                            status.branch,
-                            status.staged_files,
-                            status.ahead,
-                            status.behind,
-                            status.untracked_files
-                        ),
-                        changed_at: now_clean,
-                        dirty_since: None,
-                        ahead_since: Some(now_clean),
-                        behind_since: None,
-                        mirror_consecutive_fails: HashMap::new(),
-                        failure_count: 0,
-                        remote_failures: HashMap::new(),
-                        ownership: None,
-                        ownership_at: None,
-                        blocked_since: None,
-                        unowned_since: None,
-                    });
-                if status.ahead > 0 && entry.ahead_since.is_none() {
-                    entry.ahead_since = Some(now_clean);
-                }
-                if !entry_exists {
-                    continue;
-                }
-                let enough_time = dispatch_due(now_clean, entry.changed_at, None, inactivity_delay);
-                if !enough_time {
-                    let deadline = entry.changed_at + inactivity_delay;
-                    next_quiet_deadline =
-                        Some(next_quiet_deadline.map_or(deadline, |old| old.min(deadline)));
-                    continue;
-                }
-                if !reserve_sync(&mut in_flight, &repo) {
-                    continue;
-                }
-                if debug_enabled() {
-                    eprintln!(
-                        "scheduler: dispatch repo={} cycle_ms={} inspection_ms={} daemon_ms={} push_only=true",
-                        repo.display(),
-                        cycle_started.elapsed().as_millis(),
-                        now.elapsed().as_millis(),
-                        scheduler_epoch.elapsed().as_millis(),
-                    );
-                }
-                let entry_rf = std::mem::take(&mut entry.remote_failures);
-                let secs = now_clean.duration_since(entry.changed_at).as_secs();
-                let policy_for_task = policy.clone();
-                let excluded_for_task = excluded_dir_names.clone();
-                let policy_path_for_task = policy_path.clone();
-                let repo_for_task = repo.clone();
-                let ahead_since_for_task = entry.ahead_since;
-                to_sync.push((
-                    repo.clone(),
-                    tokio::spawn(async move {
-                        let mut rf = entry_rf;
-                        let r = sync_repo_with_ahead_since(
-                            &repo_for_task,
-                            &policy_for_task,
-                            &excluded_for_task,
-                            secs,
-                            Some(&mut rf),
-                            false,
-                            Some(&policy_path_for_task),
-                            ahead_since_for_task,
-                        )
-                        .await;
-                        (rf, r)
-                    }),
-                ));
-                continue;
             }
             // Provisional dirtiness from the STATUS transition: the quiet
             // clock must anchor here (status is available every pulse), not
