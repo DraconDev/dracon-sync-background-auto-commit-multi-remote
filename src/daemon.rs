@@ -1303,6 +1303,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn wedge_cancellation_waits_for_worker_teardown_before_redispatch() {
+        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        struct Cleanup(Arc<AtomicBool>);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::SeqCst);
+            }
+        }
+        let repo = PathBuf::from("isolated-wedged-repo");
+        let mut owners = HashSet::new();
+        assert!(reserve_sync(&mut owners, &repo));
+        let cleaned = Arc::new(AtomicBool::new(false));
+        let worker_cleaned = cleaned.clone();
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let worker = tokio::spawn(async move {
+            let _cleanup = Cleanup(worker_cleaned);
+            started.send(()).unwrap();
+            std::future::pending::<()>().await;
+        });
+        let workers = HashMap::from([(repo.clone(), worker.abort_handle())]);
+        ready.await.unwrap();
+        let wrapper = tokio::spawn(worker);
+        request_worker_cancellation(&workers, &repo);
+        assert!(!reserve_sync(&mut owners, &repo), "abort request must not release ownership");
+        let result = tokio::time::timeout(Duration::from_secs(1), wrapper)
+            .await.unwrap().unwrap();
+        assert!(result.unwrap_err().is_cancelled());
+        assert!(cleaned.load(Ordering::SeqCst), "worker cleanup precedes joined result");
+        owners.remove(&repo);
+        assert!(reserve_sync(&mut owners, &repo));
+    }
+
+    #[tokio::test]
     async fn refresh_publish_preserves_successfully_pushed_tracking_ref() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_publish_upstream_repo(&tmp);
