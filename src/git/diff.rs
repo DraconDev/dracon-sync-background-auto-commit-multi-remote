@@ -582,14 +582,11 @@ mod f33_tests {
         );
     }
 
-    /// FAIL-BEFORE regression for the live 30s-classification-timeout leak
-    /// (journal 2026-09-17 11:57–12:01): cancelling `cli_diff_entries` via
-    /// the scheduler's outer timeout must terminate the spawned git
-    /// process group, not leak it. The fixture's clean filter sleeps 180s
-    /// and records its own PID; without kill-on-cancel the git child
-    /// survives the future's drop. This test FAILS against the pre-fix
-    /// implementation (bare TokioCommand, no kill_on_drop/process_group).
-    /// Skip politely when sandboxed /proc makes the check impossible.
+    /// Cancelling classification must terminate a required filter even if
+    /// it ignores TERM. This fixture proves process lifetime, not the cause
+    /// of the live ai-auto-writer timeout. /proc errors fail rather than
+    /// silently counting as successful cleanup.
+    #[cfg(target_os = "linux")]
     #[tokio::test]
     async fn classification_cancellation_terminates_git_process_group() {
         let tmp = tempfile::tempdir().unwrap();
@@ -620,47 +617,57 @@ mod f33_tests {
         git(&[
             "config",
             "filter.probe.clean",
-            "sh -c 'echo $$ > .git/filter-pid; sleep 180'",
+            "sh -c 'trap \"\" TERM; echo $$ > .git/filter-pid; exec sleep 180'", 
         ]);
         git(&["config", "filter.probe.required", "true"]);
         std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
 
+        // Poll the classifier and readiness together: a loaded test host
+        // must not accidentally time out before the filter has even run.
+        let mut classification = Box::pin(super::cli_diff_entries(repo));
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            loop {
+                tokio::select! {
+                    result = &mut classification => panic!("filter exited early: {result:?}"),
+                    _ = tokio::time::sleep(std::time::Duration::from_millis(10)) => {
+                        if repo.join(".git/filter-pid").exists() { break; }
+                    }
+                }
+            }
+        }).await.expect("filter must start within fixture budget");
+        let pid: i32 = std::fs::read_to_string(repo.join(".git/filter-pid"))
+            .unwrap().trim().parse().unwrap();
+        // Clean up the exact fixture PID even when the assertion fails.
+        struct FixtureCleanup(i32);
+        impl Drop for FixtureCleanup {
+            fn drop(&mut self) {
+                // SAFETY: positive PID recorded by this fixture's filter.
+                unsafe { libc::kill(self.0, libc::SIGKILL); }
+            }
+        }
+        let _cleanup = FixtureCleanup(pid);
+        assert!(process_is_running(pid));
         let result = tokio::time::timeout(
-            std::time::Duration::from_millis(1500),
-            super::cli_diff_entries(repo),
-        )
-        .await;
-        assert!(result.is_err(), "fixture must hit the caller timeout");
-        // Give the runtime a beat to drop the future and (post-fix) run the
-        // drop-guard kill.
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-        let pid_str = std::fs::read_to_string(repo.join(".git/filter-pid"))
-            .expect("filter must have written its pid");
-        let pid: i32 = pid_str.trim().parse().unwrap();
-        let alive = tokio::task::spawn_blocking(move || {
-            std::process::Command::new("kill")
-                .args(["-0", pid.to_string().as_str()])
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false)
-        })
-        .await
-        .unwrap();
-        // PID reuse could theoretically resurface; treat an exited process
-        // as terminated and only flag a live PID as a leak.
-        assert!(
-            !alive_with_comm(pid, "sleep").unwrap_or(false),
-            "filter process {pid} survived classification cancellation (leaked process group)"
-        );
-        let _ = alive_with_comm(pid, "sleep");
+            std::time::Duration::from_millis(50), classification,
+        ).await;
+        assert!(result.is_err(), "fixture must hit caller timeout");
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while process_is_running(pid) {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }).await.expect("filter survived classification cancellation");
     }
 
-    /// Returns true when `pid` exists and its /proc comm equals `comm`.
-    /// Err when /proc is unavailable (skip politely at the call site).
-    fn alive_with_comm(pid: i32, comm: &str) -> Option<bool> {
-        let stat = std::fs::read_to_string(format!("/proc/{pid}/comm")).ok()?;
-        Some(stat.trim() == comm)
+    #[cfg(target_os = "linux")]
+    fn process_is_running(pid: i32) -> bool {
+        match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
+            Ok(stat) => {
+                let (_, rest) = stat.rsplit_once(") ").expect("valid proc stat");
+                !matches!(rest.as_bytes().first(), Some(b'Z' | b'X'))
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => panic!("cannot inspect fixture PID {pid}: {e}"),
+        }
     }
 
     #[tokio::test]
