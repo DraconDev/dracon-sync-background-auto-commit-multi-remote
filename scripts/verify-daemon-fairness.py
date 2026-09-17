@@ -11,6 +11,7 @@ sync scheduler and its fairness, not the encryption filter.
 """
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import shlex
@@ -214,11 +215,38 @@ def main():
             name: None if dispatch[name]['add_rel'] is None
             else start + dispatch[name]['add_rel'] - edited
             for name, edited in [('b', t_b), ('c', t_c)]}
+        # Queue delay from the DAEMON's own monotonic timestamps: dispatch
+        # daemon_ms minus (quiet anchor + quiet window). This separates queue
+        # wait from in-cycle inspection/execution cost, which the contract
+        # says to measure separately. Parsed from daemon.log debug lines.
+        queue_delay = {}
+        for name in names:
+            anchor = None
+            dispatch_ms = None
+            for line in (root / 'daemon.log').read_text().splitlines():
+                if f'/watch/{name} ' not in line:
+                    continue
+                if 'scheduler: eligibility repo=' in line and anchor is None:
+                    m = re.search(r'anchor_daemon_ms=(\d+)', line)
+                    if m:
+                        anchor = int(m.group(1))
+                elif 'scheduler: dispatch repo=' in line:
+                    m = re.search(r'daemon_ms=(\d+)', line)
+                    if m:
+                        dispatch_ms = int(m.group(1))
+                        break
+            if anchor is not None and dispatch_ms is not None:
+                queue_delay[name] = dispatch_ms - (anchor + 2000)
+        report['queue_delay_ms'] = queue_delay
         checks = {
-            'b_staging_at_quiet_plus_one_pulse': b_add is not None
-                and 2 <= start + b_add - t_b <= 3,
-            'c_staging_at_quiet_plus_one_pulse': c_add is not None
-                and 2 <= start + c_add - t_c <= 3,
+            # Queue delay (daemon clock): dispatch must occur within one pulse
+            # after the quiet window expires. Wall-clock edit_to_add_seconds
+            # stays in the report as a diagnostic that includes inspection and
+            # execution cost, per the measurement-separation requirement.
+            'b_staging_queue_within_one_pulse': b_add is not None
+                and -100 <= queue_delay.get('b', 10**9) <= 1000,
+            'c_staging_queue_within_one_pulse': c_add is not None
+                and -100 <= queue_delay.get('c', 10**9) <= 1000,
             'slow_push_execution_measured_separately': c_push is not None and 'c' in seen
                 and 3 <= seen['c'] - (start + c_push) <= 6,
             # HEAD polling is an upper bound on commit completion. A positive
