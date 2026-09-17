@@ -695,6 +695,30 @@ mod tests {
         assert!(is_git_push_progress_line("remote: Processing 1234"));
     }
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn child_exit_wakes_runner_without_poll_interval() {
+        use futures::FutureExt;
+        use tokio::io::AsyncWriteExt;
+        let mut command = tokio::process::Command::new("sh");
+        command.args(["-c", "read line; exit 0"])
+            .stdin(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+        let mut child = command.spawn().unwrap();
+        let mut input = child.stdin.take().unwrap();
+        let run = super::run_child(child, std::path::Path::new("."), 5, "exit-wakeup-fixture");
+        tokio::pin!(run);
+        // The child is definitely still blocked on stdin when the runner
+        // first registers its waits, so try_wait cannot satisfy this test.
+        assert!(run.as_mut().now_or_never().is_none());
+        input.write_all(b"finish\n").await.unwrap();
+        drop(input);
+        tokio::time::timeout(std::time::Duration::from_millis(80), run)
+            .await.expect("child exit must wake the runner before the old 100ms polling tick")
+            .unwrap();
+    }
+
     #[test]
     fn progress_timeout_has_a_bounded_hard_ceiling() {
         assert_eq!(super::progress_hard_timeout_secs(0), 0);
