@@ -1,0 +1,64 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789685821924
+scheduler: cycle_complete elapsed_ms=68
+scheduler: pulse_start unix_ms=1789685822927
+scheduler: cycle_complete elapsed_ms=2
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-jbxap98o/watch/r2 auto-created on origin
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-jbxap98o/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789685823930
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-jbxap98o/watch/r1 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r2 cycle_ms=112 repo_ms=109 dirty=false daemon_ms=2234
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r3 cycle_ms=197 repo_ms=41 dirty=true daemon_ms=2320
+scheduler: classification_spawn repo=/tmp/sync-restart-jbxap98o/watch/r3 cycle_ms=280 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=281
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-jbxap98o/watch/r3 elapsed_ms=54 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-jbxap98o/watch/r3 elapsed_ms=14 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-jbxap98o/watch/r3 ms=69 ok=true
+scheduler: pulse_start unix_ms=1789685824943
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r3 cycle_ms=61 repo_ms=58 dirty=true daemon_ms=3196
+scheduler: quiet_clock_assignment discovery_ms=3369 evidence_unix_ns=Some(1789685821789182718) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-jbxap98o/watch/r3 cycle_ms=233 observed_quiet_ms=3369 eligible=true daemon_ms=3369 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-jbxap98o/watch/r3 path="early.txt" unix_ns=Some(1789685821789182718)
+scheduler: dispatch repo=/tmp/sync-restart-jbxap98o/watch/r3 cycle_ms=233 inspection_ms=231 daemon_ms=3369 unix_ms=1789685825176
+scheduler: task_start repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685825177
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_origin elapsed_ms=12
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_status elapsed_ms=12
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r1 cycle_ms=270 repo_ms=36 dirty=false daemon_ms=3405
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=after_status elapsed_ms=45
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_pull elapsed_ms=45
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_clean elapsed_ms=45
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_diff elapsed_ms=280
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r2 cycle_ms=571 repo_ms=236 dirty=false daemon_ms=3706
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=705
+🐛 /tmp/sync-restart-jbxap98o/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=after_diff elapsed_ms=587
+🐛 /tmp/sync-restart-jbxap98o/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-jbxap98o/watch/r3 thread=ThreadId(10) unix_ms=1789685825765
+scheduler: stage_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=unmerged elapsed_ms=20
+scheduler: stage_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=untracked elapsed_ms=30
+scheduler: stage_files_enter repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685825809
+scheduler: stage_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-jbxap98o/watch/r3 phase=partition elapsed_ms=68
+scheduler: add_spawn repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685825878
+scheduler: add_spawned repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685825879 pid=Some(1782319)
+scheduler: add_done repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685825936 ok=true
+scheduler: pulse_start unix_ms=1789685825944
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r1 cycle_ms=137 repo_ms=135 dirty=false daemon_ms=4274
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r2 cycle_ms=421 repo_ms=216 dirty=false daemon_ms=4558
+scheduler: cycle_complete elapsed_ms=642
+scheduler: commit_done repo=/tmp/sync-restart-jbxap98o/watch/r3 unix_ms=1789685827513
+📝 committed 1 file(s) in /tmp/sync-restart-jbxap98o/watch/r3
+scheduler: pulse_start unix_ms=1789685827513
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r1 cycle_ms=69 repo_ms=69 dirty=false daemon_ms=5775
+scheduler: status repo=/tmp/sync-restart-jbxap98o/watch/r2 cycle_ms=225 repo_ms=106 dirty=false daemon_ms=5931
+scheduler: cycle_complete elapsed_ms=292
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-jbxap98o/watch/r3 (public_only policy + visibility cache says None)
+ℹ️  r3 already exists on origin — skipping auto-create
+sync: received SIGTERM, shutting down gracefully...
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-restart-jbxap98o/watch/r3 thread=ThreadId(10) unix_ms=1789685828205 ok=true
