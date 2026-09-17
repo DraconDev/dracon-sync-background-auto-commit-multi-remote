@@ -4858,6 +4858,22 @@ pub(crate) async fn run_daemon(
             }
             repos.sort_by_key(|repo| if due.contains(repo) { 0 } else { 1 });
         }
+        // Post-restart eligibility (2026-09-17 convergence fix): after a
+        // restart the in-memory activity map is empty, so every repo's
+        // quiet state is unknown and the due set above is empty. Sorting by
+        // discovery order then parks a dirty repo behind every other
+        // repo's inspection (forge-evicted probe: dispatch at 3.19s,
+        // one full pulse late). New/unknown repos have NO completed-cycle
+        // evidence of being quiet, so they sort BEFORE repos with an
+        // established clean fingerprint (known-clean repos already proved
+        // nothing to do; unknown ones might be eligible now).
+        repos.sort_by_key(|repo| {
+            let established_clean = activity
+                .get(repo)
+                .is_some_and(|entry| !entry.dirty_since.is_some() || entry.fingerprint.is_empty());
+            // stable sort keeps discovery order within each tier
+            u8::from(established_clean)
+        });
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
             // If the policy is reloaded mid-cycle (SIGHUP), this repo still
