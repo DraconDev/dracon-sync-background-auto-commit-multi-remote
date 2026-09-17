@@ -2307,14 +2307,18 @@ mod tests {
     fn test_repo_auto_repair_enabled_merge() {
         let mut global_on: SyncPolicy = toml::from_str("").expect("parse empty");
         assert!(global_on.auto_repair_concerns);
-        let mut opt_out = RepoPolicyOverride::default();
-        opt_out.auto_repair_concerns = Some(false);
+        let opt_out = RepoPolicyOverride {
+            auto_repair_concerns: Some(false),
+            ..Default::default()
+        };
         assert!(!repo_auto_repair_enabled(&global_on, &opt_out));
         let inherit = RepoPolicyOverride::default();
         assert!(repo_auto_repair_enabled(&global_on, &inherit));
         global_on.auto_repair_concerns = false;
-        let mut opt_in = RepoPolicyOverride::default();
-        opt_in.auto_repair_concerns = Some(true);
+        let opt_in = RepoPolicyOverride {
+            auto_repair_concerns: Some(true),
+            ..Default::default()
+        };
         assert!(!repo_auto_repair_enabled(&global_on, &opt_in));
         assert!(!repo_auto_repair_enabled(&global_on, &inherit));
     }
