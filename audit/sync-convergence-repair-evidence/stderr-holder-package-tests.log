@@ -255,4 +255,85 @@ test git::github_pack_tests::precomputed_small_size_short_circuits_without_git .
 test git::github_pack_tests::pushed_branch_size_is_reported_for_small_repo ... ok
 test git::github_pack_tests::small_repo_is_not_too_big_for_github ... ok
 test git::janitor_tests::aborts_when_bundle_fails ... ok
-test git::janitor_tests::disabled_is_noop ... 
+test git::janitor_tests::disabled_is_noop ... ok
+test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... ok
+test git::janitor_tests::prunes_orphaned_tracking_refs ... ok
+test git::janitor_tests::skips_remote_delete_when_tracking_tip_differs ... ok
+test git::multi_remote::tests::cancelled_mirror_parent_terminates_push_process_group ... ok
+test git::multi_remote::tests::concurrent_forge_confirmations_preserve_every_pair ... ok
+test git::multi_remote::tests::test_codeberg_excluded_no_codeberg_remote_in_policy ... ok
+test git::multi_remote::tests::test_codeberg_excluded_via_push_url_autodetect ... ok
+test git::multi_remote::tests::test_codeberg_excluded_when_auto_create_off_and_no_tracking_ref ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_global_auto_create_on ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_opted_in ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_tracking_ref_exists ... ok
+test git::multi_remote::tests::test_configure_all_remotes_bootstraps_origin_when_missing ... ok
+test git::multi_remote::tests::test_configure_all_remotes_does_not_overwrite_existing_origin ... ok
+test git::multi_remote::tests::test_configure_all_remotes_no_origin_when_no_github_in_policy ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_branch_config ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_remote_add ... ok
+test git::multi_remote::tests::test_evict_forge_existence_absent_key ... ok
+test git::multi_remote::tests::test_evict_without_persisted_file_writes_nothing ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_matching_remote ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_multiple_remotes ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_empty_exclude_is_noop ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_is_per_call_not_global ... ok
+test git::multi_remote::tests::test_forge_confirmed_helpers_cycle ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_absent_for_fresh_repo ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_follows_non_main_branch ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_present_after_update_ref ... ok
+test git::multi_remote::tests::test_ls_remote_indicates_missing_classification ... ok
+test git::multi_remote::tests::test_persistent_forge_exists_roundtrip_and_eviction ... ok
+test git::multi_remote::tests::test_private_or_unknown_visibility_blocks_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_public_visibility_allows_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_push_err_indicates_repo_missing ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_continues_after_failure ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_empty_list_returns_empty ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_respects_priority_order ... ok
+test git::multi_remote::tests::test_remote_repo_exists_checks_remote_head ... ok
+test git::ops::tests::cancellation_after_leader_exit_kills_stderr_holder ... ok
+test git::ops::tests::child_exit_wakes_runner_without_poll_interval ... ok
+test git::ops::tests::progress_timeout_has_a_bounded_hard_ceiling ... ok
+test git::ops::tests::test_f48_tightened_progress_predicate ... ok
+test git::ops::tests::test_git_askpass_script_atomic_0o700_create_and_cleanup ... ok
+test git::ops::tests::test_git_askpass_script_rejects_single_quote ... ok
+test git::ops::tests::test_git_push_progress_predicate_detects_pack_progress ... ok
+test git::push::tests::test_classify_push_failure_maps_every_mode ... ok
+test git::push::tests::test_is_pack_too_large_case_insensitive ... ok
+test git::push::tests::test_is_pack_too_large_ignores_transient_errors ... ok
+test git::push::tests::test_is_pack_too_large_recognises_github_gh001 ... ok
+test git::push::tests::test_is_pack_too_large_recognises_pack_exceeds ... ok
+test git::push::tests::test_is_permanent_push_rejection_ignores_transient_errors ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_github_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_gitlab_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_repo_gone ... ok
+test git::push::tests::test_is_push_rejected_still_works ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsParsed 1 commitsHEAD is now at 0e83bf5 init
+
+New history written in 0.18 seconds...
+Completely finished after 0.20 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at e7d609b c1
+
+New history written in 0.13 seconds...
+Completely finished after 0.29 seconds.
+ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... 
