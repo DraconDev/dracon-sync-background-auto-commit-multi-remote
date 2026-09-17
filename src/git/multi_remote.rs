@@ -1285,7 +1285,9 @@ fn persistent_exists_path() -> std::path::PathBuf {
         .join("forge-exists-cache.json")
 }
 
-fn load_persistent_entries(path: &std::path::Path) -> std::collections::HashSet<(std::path::PathBuf, String)> {
+fn load_persistent_entries(
+    path: &std::path::Path,
+) -> std::collections::HashSet<(std::path::PathBuf, String)> {
     let Ok(text) = std::fs::read_to_string(path) else {
         return Default::default();
     };
