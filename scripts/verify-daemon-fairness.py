@@ -57,7 +57,7 @@ def main():
     logger.write_text('#!/usr/bin/env python3\nimport json,os,subprocess,sys,time\n'
                        + 'def event(phase, **extra):\n'
                        + f' with open({str(events)!r}, "a") as f:\n'
-                       + '  f.write(json.dumps({"t":time.monotonic(),"args":sys.argv[1:],'
+                       + '  f.write(json.dumps({"t":time.monotonic(),"unix_ms":time.time_ns()//1000000,"args":sys.argv[1:],'
                        '"cwd":os.getcwd(),"pid":os.getpid(),"phase":phase,**extra})+"\\n")\n'
                        + 'event("start")\n'
                        + 'if sys.argv[1:2] == ["push"] and "--delete" not in sys.argv and os.getcwd().endswith("/c"):\n'
@@ -138,7 +138,6 @@ def main():
     editor = None
     try:
         start = time.monotonic()
-        start_unix = time.time()
         time.sleep(1.0)
         if failing_remote:
             # Exercise NEW eligible work while the failing push is in flight,
@@ -309,10 +308,8 @@ def main():
             stage_decomposition[name] = stage_timing(daemon_log_lines, repos[name])
         report['queue_delay_ms'] = queue_delay
         report['stage_decomposition_ms'] = stage_decomposition
-        # Deterministic pulse-domain bound: one pulse is one real daemon cycle,
-        # whose length under host load is measured from the daemon's own
-        # pulse_start timestamps (not assumed to be exactly 1s). Staging
-        # dispatch must land within quiet + one such cycle.
+        # Diagnostic only: observed scan overruns must never increase the
+        # configured 1000ms acceptance budget.
         pulse_starts = []
         for line in daemon_log_lines:
             if 'scheduler: pulse_start unix_ms=' in line:
@@ -344,32 +341,31 @@ def main():
         report['commit_done_unix_ms'] = commit_done_unix_ms
 
         def within_one_pulse(name):
-            """Daemon-clock check: eligible decision (dispatch) fired within
-            the repo's quiet expiry (anchor + 2s) plus one measured pulse.
-            All inputs are daemon-monotonic values from the same log domain."""
+            """Fixed configured pulse bound, independent of observed overruns."""
             decomp = stage_decomposition.get(name) or {}
             after_quiet = decomp.get('dispatch_after_quiet_ms')
-            return after_quiet is not None and after_quiet <= 1000 + scan_overrun_ms
+            return after_quiet is not None and 0 <= after_quiet <= 1000
 
         def push_after_commit_ms(name):
             """Push-start minus the daemon's own commit_done, both unix ms.
             Persisted so a failing run attributes itself without cross-clock
             reconstruction after the fact."""
             key = str(repos[name])
-            if key not in commit_done_unix_ms or dispatch[name]['push_rel'] is None:
+            push = next((row for row in rows
+                         if row['cwd'] == key and row.get('phase') == 'start'
+                         and row['args'][:1] == ['push']
+                         and '--delete' not in row['args']), None)
+            if key not in commit_done_unix_ms or push is None:
                 return None
-            delta = round((start_unix + dispatch[name]['push_rel']) * 1000
-                          - commit_done_unix_ms[key])
+            delta = push['unix_ms'] - commit_done_unix_ms[key]
             report.setdefault('push_after_commit_done_ms', {})[name] = delta
             return delta
 
         checks = {
             # Contract gate, daemon clock: staging DISPATCH at the configured
-            # 2s quiet window plus at most one 1-second pulse. "One pulse" is
-            # the daemon's actual cycle length under current host load
-            # (scan_overrun_ms from measured pulse gaps) — deterministic and
-            # immune to Python/daemon cross-clock skew. Wall-clock add times
-            # are enforced separately below as execution diagnostics.
+            # 2s quiet window plus at most one configured 1-second pulse.
+            # Scan overruns are diagnostics, never extra acceptance slack.
+            # Worker execution is measured separately below.
             'b_staging_dispatch_at_quiet_plus_one_pulse': b_add is not None
                 and within_one_pulse('b'),
             'c_staging_dispatch_at_quiet_plus_one_pulse': c_add is not None
@@ -392,9 +388,8 @@ def main():
             # spawn may precede the log line by a few ms; small negative
             # slack avoids false failures from clock-read ordering.
             'b_push_within_one_pulse_of_commit_done': b_push is not None
-                and str(repos['b']) in commit_done_unix_ms
-                and -100 <= (start_unix + b_push) * 1000
-                    - commit_done_unix_ms[str(repos['b'])] <= 1000,
+                and push_after_commit_ms('b') is not None
+                and -100 <= push_after_commit_ms('b') <= 1000,
             # Continuous edits: no starvation — the repo commits via the 5s
             # starvation valve and its push dispatches within one pulse of the
             # daemon's own commit completion; the remote tip must close.
@@ -404,9 +399,8 @@ def main():
                 str(repos['a']) in commit_done_unix_ms
                 and dispatch['a']['push_rel'] is not None
                 and push_after_commit_ms('a') is not None
-                and -100 <= push_after_commit_ms('a') <= 1000 + scan_overrun_ms),
+                and -100 <= push_after_commit_ms('a') <= 1000),
             'continuous_work_reaches_remote': 'a' in seen,
-            'continuous_work_remote_seconds': seen.get('a'),
             # Missed-event reconciliation: dispatch within the daemon's own
             # anchor + quiet + one pulse; execution bounded separately.
             'pre_start_reconciliation_dispatch_within_quiet_plus_one_pulse': (
@@ -430,7 +424,10 @@ def main():
                     'refs/heads/main:seed.txt', cwd=root) == b'seed\n')
             report['failing_push_events'] = [row for row in rows
                 if row['cwd'] == str(repos['f-failing']) and row['args'][:1] == ['push']]
+        report['continuous_work_remote_seconds'] = (
+            seen['a'] - start if 'a' in seen else None)
         report['checks'] = checks
+        assert all(type(value) is bool for value in checks.values())
         report['passed'] = all(checks.values()) and report['converged']
     finally:
         stop_editing.set()

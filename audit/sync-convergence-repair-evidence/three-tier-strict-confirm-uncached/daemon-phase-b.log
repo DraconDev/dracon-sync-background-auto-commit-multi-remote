@@ -1,0 +1,42 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789684141645
+scheduler: cycle_complete elapsed_ms=80
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-pybukwzr/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789684142653
+scheduler: status repo=/tmp/sync-restart-pybukwzr/watch/r3 cycle_ms=713 repo_ms=712 dirty=true daemon_ms=1825
+scheduler: classification_spawn repo=/tmp/sync-restart-pybukwzr/watch/r3 cycle_ms=850 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=850
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-pybukwzr/watch/r3 elapsed_ms=69 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-pybukwzr/watch/r3 elapsed_ms=10 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-pybukwzr/watch/r3 ms=80 ok=true
+scheduler: pulse_start unix_ms=1789684143655
+scheduler: status repo=/tmp/sync-restart-pybukwzr/watch/r3 cycle_ms=44 repo_ms=44 dirty=true daemon_ms=2159
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-pybukwzr/watch/r1 auto-created on origin
+scheduler: quiet_clock_assignment discovery_ms=2292 evidence_unix_ns=Some(1789684141436913988) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-pybukwzr/watch/r3 cycle_ms=178 observed_quiet_ms=2292 eligible=true daemon_ms=2292 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-pybukwzr/watch/r3 path="early.txt" unix_ns=Some(1789684141436751612)
+scheduler: file_mtime repo=/tmp/sync-restart-pybukwzr/watch/r3 path="second.txt" unix_ns=Some(1789684141436913988)
+scheduler: dispatch repo=/tmp/sync-restart-pybukwzr/watch/r3 cycle_ms=178 inspection_ms=178 daemon_ms=2293 unix_ms=1789684143833
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=178
+scheduler: task_start repo=/tmp/sync-restart-pybukwzr/watch/r3 unix_ms=1789684143834
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_origin elapsed_ms=71
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_status elapsed_ms=71
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-pybukwzr/watch/r2 auto-created on origin
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=after_status elapsed_ms=109
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_pull elapsed_ms=109
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_clean elapsed_ms=109
+sync: received SIGTERM, shutting down gracefully...
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_diff elapsed_ms=465
+🐛 /tmp/sync-restart-pybukwzr/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=2
+scheduler: worker_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=after_diff elapsed_ms=765
+🐛 /tmp/sync-restart-pybukwzr/watch/r3 to_stage=2 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-pybukwzr/watch/r3 thread=ThreadId(10) unix_ms=1789684144599
+scheduler: stage_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=unmerged elapsed_ms=4
+scheduler: stage_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=untracked elapsed_ms=9
+scheduler: stage_files_enter repo=/tmp/sync-restart-pybukwzr/watch/r3 unix_ms=1789684144631
+scheduler: stage_prepare repo=/tmp/sync-restart-pybukwzr/watch/r3 phase=before_partition elapsed_ms=0
