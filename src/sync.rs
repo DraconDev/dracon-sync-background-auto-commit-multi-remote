@@ -3911,6 +3911,19 @@ async fn stage_commit_and_push(
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
         svc.commit(&msg).await?;
+        if crate::policy::debug_enabled() {
+            // Exact commit-completion timestamp for the fairness probe's
+            // commit→push gate (GitService::commit is in-process libgit2,
+            // invisible to a CLI wrapper). Debug-gated: no fleet overhead.
+            eprintln!(
+                "scheduler: commit_done repo={} unix_ms={}",
+                repo.display(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis())
+                    .unwrap_or(0)
+            );
+        }
         eprintln!(
             "📝 committed {} file(s) in {}",
             committed_entries.len(),
