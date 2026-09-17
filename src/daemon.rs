@@ -148,8 +148,15 @@ fn dispatch_due(
 
 /// Rank a repository before performing serial status/maintenance inspection.
 fn scan_priority(due: bool, classification_ready: bool, established: bool) -> u8 {
-    let _ = classification_ready;
-    if due { 0 } else if established { 2 } else { 1 }
+    if due {
+        0
+    } else if classification_ready {
+        1
+    } else if established {
+        3
+    } else {
+        2
+    }
 }
 
 /// Reconcile filesystem evidence with a monotonic quiet clock. A repeated
@@ -1266,8 +1273,12 @@ mod tests {
         // Logical times test the production ordering helper, not OS latency.
         let epoch = Instant::now();
         let quiet = Duration::from_secs(2);
-        assert!(!dispatch_due(epoch + quiet, epoch + Duration::from_millis(1200),
-                             Some(epoch + Duration::from_millis(1200)), quiet));
+        assert!(!dispatch_due(
+            epoch + quiet,
+            epoch + Duration::from_millis(1200),
+            Some(epoch + Duration::from_millis(1200)),
+            quiet
+        ));
         let mut repos = vec![("r1", false), ("r2", false), ("r3", true)];
         repos.sort_by_key(|(_, ready)| scan_priority(false, *ready, false));
         let mut elapsed = quiet;
@@ -1284,8 +1295,10 @@ mod tests {
                 elapsed += Duration::from_millis(600);
             }
         }
-        assert!(dispatched.unwrap() - quiet <= Duration::from_secs(1),
-                "ready work paid serial peer inspection: {dispatched:?}");
+        assert!(
+            dispatched.unwrap() - quiet <= Duration::from_secs(1),
+            "ready work paid serial peer inspection: {dispatched:?}"
+        );
         assert!(scan_priority(true, false, false) < scan_priority(false, true, false));
     }
 
@@ -4884,12 +4897,13 @@ pub(crate) async fn run_daemon(
             })
             .map(|(repo_path, _)| repo_path.clone())
             .collect();
-        // Single three-tier scan order (2026-09-17, convergence goal):
-        // (0) due now — quiet or starvation deadline expired; (1) unknown —
-        // no completed-cycle evidence yet (every repo right after restart:
-        // a dirty repo must not pay discovery-order serial inspection of
-        // its peers); (2) established-clean — already proved quiet in a
-        // prior cycle. Stable sort keeps discovery order within each tier.
+        // Due work first, then ready classification results before unknown
+        // repos. A ready result can establish an older filesystem quiet
+        // anchor than the provisional status clock used by `due` above.
+        // Prioritizing its inspection avoids charging it for every unknown
+        // peer before that anchor is resolved. This is a scheduling hint:
+        // the normal eligibility, ownership and filter gates still apply.
+        // Stable ordering preserves discovery order within each tier.
         repos.sort_by_key(|repo| {
             scan_priority(
                 due.contains(repo),

@@ -1,1 +1,25 @@
    Compiling dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 42.03s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-f4943e618e838bf0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-b3b53017058fedd7)
+
+running 1 test
+test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... 
+thread 'daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget' (1426130) panicked at dracon-sync/src/daemon.rs:1287:9:
+ready work paid serial peer inspection: Some(3.2s)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1058 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
