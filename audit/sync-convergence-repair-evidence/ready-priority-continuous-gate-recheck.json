@@ -1,0 +1,20 @@
+{
+  "default": {
+    "source": "ready-priority-strict-default.json",
+    "continuous_edit_to_remote_seconds": 8.777785071986727,
+    "fixed_budget_seconds": 10,
+    "passed": true
+  },
+  "failing": {
+    "source": "ready-priority-strict-failing.json",
+    "continuous_edit_to_remote_seconds": 8.605989475967363,
+    "fixed_budget_seconds": 10,
+    "passed": true
+  },
+  "filter": {
+    "source": "ready-priority-strict-filter.json",
+    "continuous_edit_to_remote_seconds": 7.786041371989995,
+    "fixed_budget_seconds": 10,
+    "passed": true
+  }
+}

@@ -743,6 +743,60 @@ mod tests {
             .unwrap();
     }
 
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn cancellation_after_leader_exit_kills_stderr_holder() {
+        use std::time::Duration;
+        let temp = tempfile::tempdir().unwrap();
+        let mut command = tokio::process::Command::new("sh");
+        command.args(["-c", "sleep 30 & echo $! > helper.pid; exit 0"])
+            .current_dir(temp.path())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+        super::configure_git_process_group(&mut command);
+        let child = command.spawn().unwrap();
+        let leader = child.id().unwrap();
+        let root = temp.path().to_path_buf();
+        let worker = tokio::spawn(async move {
+            super::run_child(child, &root, 10, "stderr-holder-fixture").await
+        });
+        let helper_file = temp.path().join("helper.pid");
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while !helper_file.exists() {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            // Wait for exit (zombie or already reaped), not merely spawn.
+            loop {
+                let state = std::fs::read_to_string(format!("/proc/{leader}/stat")).ok();
+                if state.as_ref().is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z')) {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        }).await.unwrap();
+        let helper: i32 = std::fs::read_to_string(helper_file).unwrap().trim().parse().unwrap();
+        // Also clean up on assertion failure; this fixture must not leak.
+        struct Cleanup(i32);
+        impl Drop for Cleanup {
+            fn drop(&mut self) { unsafe { libc::kill(self.0, libc::SIGKILL); } }
+        }
+        let _cleanup = Cleanup(helper);
+        // Give the old runner a turn to reap and disarm before aborting.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(!worker.is_finished(), "helper still owns stderr");
+        worker.abort();
+        assert!(worker.await.unwrap_err().is_cancelled());
+        tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                let state = std::fs::read_to_string(format!("/proc/{helper}/stat")).ok();
+                if state.as_ref().is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z')) {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        }).await.expect("cancelled runner left stderr helper alive after leader exit");
+    }
+
     #[test]
     fn progress_timeout_has_a_bounded_hard_ceiling() {
         assert_eq!(super::progress_hard_timeout_secs(0), 0);
