@@ -1302,7 +1302,11 @@ async fn stage_existing_files_filtered(
         // - Ignored but already-tracked paths: `git add -A -f -- <paths>` (force
         //   re-stage; git already tracks these so gitignore shouldn't block updates)
         // - Ignored and untracked: skip entirely (.gitignore is intentional)
+        let partition_started = std::time::Instant::now();
         let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
+        if debug_enabled() {
+            eprintln!("scheduler: stage_prepare repo={} phase=partition elapsed_ms={}", repo.display(), partition_started.elapsed().as_millis());
+        }
 
         if !normal_paths.is_empty() {
             let mut add_args = vec!["add", "-A", "--"];
@@ -3727,7 +3731,11 @@ async fn stage_commit_and_push(
     // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): auto-resolve
     // unmerged index entries so the commit loop is never blocked.
     // See `auto_resolve_unmerged_if_safe` for the full rationale.
+    let prepare_started = std::time::Instant::now();
     let resolved = auto_resolve_unmerged_if_safe(repo, policy.auto_resolve_unmerged).await?;
+    if debug_enabled() {
+        eprintln!("scheduler: stage_prepare repo={} phase=unmerged elapsed_ms={}", repo.display(), prepare_started.elapsed().as_millis());
+    }
     if resolved > 0 {
         eprintln!(
             "🔧 {} auto-resolved {} unmerged entries",
@@ -3739,6 +3747,9 @@ async fn stage_commit_and_push(
     // FIX (goal 55db3bfc-4fc0-4650-8349-38da9e62bd44): emit a warning
     // when the untracked-file count exceeds the policy threshold.
     let _untracked_count = check_untracked_threshold(repo, policy.untracked_warn_threshold).await?;
+    if debug_enabled() {
+        eprintln!("scheduler: stage_prepare repo={} phase=untracked elapsed_ms={}", repo.display(), prepare_started.elapsed().as_millis());
+    }
 
     // FIX (goal mr0xseig-fn9bbd): split `to_stage` into gitlink
     // pointer updates vs regular files. Gitlink entries are staged
