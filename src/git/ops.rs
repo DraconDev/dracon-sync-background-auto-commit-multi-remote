@@ -339,6 +339,21 @@ pub(crate) async fn run_git_captured_output(
     workdir: &Path,
     op_label: &str,
 ) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>, Vec<u8>)> {
+    // kill_on_drop terminates only the direct git child. Filter/helper
+    // children spawned by git share its process group; without a group
+    // kill they are orphaned on cancellation and keep contending with the
+    // retry (observed live 2026-09-17). The guard fires on drop — normal
+    // completion, error return, or future cancellation alike.
+    struct GroupKillGuard(u32);
+    impl Drop for GroupKillGuard {
+        fn drop(&mut self) {
+            // Synchronous kill: short and signal-only; safe in Drop.
+            let _ = std::process::Command::new("kill")
+                .args(["-TERM", &format!("-{}", self.0)])
+                .output();
+        }
+    }
+    let _group_guard = child.id().map(GroupKillGuard);
     const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
     let label = format!("git {}", op_label);
     let mut stdout_pipe = child.stdout.take().with_context(|| {
