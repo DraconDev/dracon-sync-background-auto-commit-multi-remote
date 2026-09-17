@@ -2146,7 +2146,6 @@ async fn push_background(
         )
         .await;
         return aggregate_push_results(repo, push_results, origin_failed, remote_failures);
-
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
     // false when origin failed (mirrors may still have succeeded).
@@ -4121,7 +4120,10 @@ async fn stage_commit_and_push(
                 eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
                 crate::daemon::record_push_failure(
                     repo,
-                    &format!("git push returned non-zero (remotes: {}) — {}", names, cause),
+                    &format!(
+                        "git push returned non-zero (remotes: {}) — {}",
+                        names, cause
+                    ),
                 );
                 notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
                 push_failed = true;

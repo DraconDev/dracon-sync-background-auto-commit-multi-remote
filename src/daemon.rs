@@ -2397,7 +2397,8 @@ mod tests {
     async fn push_aggregation_cancellation_does_not_arm_backoff() {
         let state = tempfile::tempdir().unwrap();
         let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap(),
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
         );
         let repo = PathBuf::from("fixture/abort-mid-push");
         let handle = tokio::spawn(std::future::pending::<()>());
@@ -2407,7 +2408,10 @@ mod tests {
         let error = anyhow::Error::new(joined).context("join error");
         let mut failures = HashMap::new();
         let result = crate::sync::aggregate_push_results(
-            &repo, vec![("origin".into(), Err(error))], false, Some(&mut failures),
+            &repo,
+            vec![("origin".into(), Err(error))],
+            false,
+            Some(&mut failures),
         );
         let error = result.expect_err("interruption must not claim success");
         assert!(push_error_is_cancellation(&error));
@@ -2419,7 +2423,10 @@ mod tests {
         let before = load_stuck_push_repos()[&repo].clone();
         record_push_attempt_error(&repo, &error);
         let after = load_stuck_push_repos();
-        assert_eq!(after[&repo].consecutive_failures, before.consecutive_failures);
+        assert_eq!(
+            after[&repo].consecutive_failures,
+            before.consecutive_failures
+        );
         assert_eq!(after[&repo].last_error_at, before.last_error_at);
         assert_eq!(after[&repo].last_error, before.last_error);
     }
@@ -2428,7 +2435,8 @@ mod tests {
     async fn push_aggregation_mixed_failure_still_arms_backoff() {
         let state = tempfile::tempdir().unwrap();
         let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_STATE_DIR", state.path().to_str().unwrap(),
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
         );
         let repo = PathBuf::from("fixture/mixed-push");
         let handle = tokio::spawn(std::future::pending::<()>());
@@ -2437,9 +2445,12 @@ mod tests {
         let mut failures = HashMap::new();
         let result = crate::sync::aggregate_push_results(
             &repo,
-            vec![("cancelled".into(), Err(error)),
-                 ("origin".into(), Err(anyhow::anyhow!("Connection refused")))],
-            false, Some(&mut failures),
+            vec![
+                ("cancelled".into(), Err(error)),
+                ("origin".into(), Err(anyhow::anyhow!("Connection refused"))),
+            ],
+            false,
+            Some(&mut failures),
         );
         assert!(!result.unwrap());
         assert_eq!(failures.len(), 1);
@@ -3595,7 +3606,9 @@ pub(crate) fn record_push_success(repo: &Path) {
 /// preserved (so the operator can see WHY it's stuck) and the
 /// report will surface a `🛑 push-stuck` state.
 pub(crate) fn push_error_is_cancellation(error: &anyhow::Error) -> bool {
-    error.downcast_ref::<tokio::task::JoinError>().is_some_and(|error| error.is_cancelled())
+    error
+        .downcast_ref::<tokio::task::JoinError>()
+        .is_some_and(|error| error.is_cancelled())
 }
 
 /// Record only genuine failures; interrupted attempts leave existing state intact.
