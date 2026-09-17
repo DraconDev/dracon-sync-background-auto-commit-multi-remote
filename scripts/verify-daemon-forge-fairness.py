@@ -33,6 +33,9 @@ PHASE_B_TIMEOUT = 45.0
 def main():
     binary = str(Path(sys.argv[1]).resolve())
     out_path = Path(sys.argv[2]).resolve()
+    mode = sys.argv[3] if len(sys.argv) > 3 else 'warm'
+    if mode not in ('warm', 'evicted', 'uncached'):
+        raise ValueError('mode must be warm, evicted, or uncached')
     git_bin = shutil.which('git')
     identity = {k: subprocess.check_output([git_bin, 'config', '--get', k], text=True).strip()
                 for k in ('user.name', 'user.email')}
@@ -146,13 +149,23 @@ def main():
         tip = remote_tip(repos['r3'])
         return bool(local) and local != seed_sha and tip == local
 
-    daemon, log_a = start_daemon('daemon-phase-a.log')
-    try:
-        wait_for(lambda: r3_daemon_converged(), PHASE_A_TIMEOUT,
-                 'phase-A daemon commit+push of r3')
-        report['phase_a_converged'] = True
-    finally:
-        stop_daemon(daemon, log_a)
+    cache = state / 'forge-exists-cache.json'
+    if mode != 'uncached':
+        daemon, log_a = start_daemon('daemon-phase-a.log')
+        try:
+            wait_for(r3_daemon_converged, PHASE_A_TIMEOUT,
+                     'phase-A daemon commit+push of r3')
+            report['phase_a_converged'] = True
+        finally:
+            stop_daemon(daemon, log_a)
+    if mode == 'evicted':
+        entries = json.loads(cache.read_text())
+        cache.write_text(json.dumps([entry for entry in entries if entry[0] == str(repos['r3'])]))
+    elif mode == 'uncached':
+        # Healthy r3 has a known forge; independent r1/r2 are first-seen.
+        cache.write_text(json.dumps([[str(repos['r3']), 'origin']]))
+    report['mode'] = mode
+    phase_b_started = time.monotonic()
 
     # ── Phase B: second edit + restart, measure first dispatch of r3 ──
     (repos['r3'] / 'second.txt').write_text('edit after restart\n')
@@ -184,7 +197,8 @@ def main():
                     e = json.loads(ev)
                 except json.JSONDecodeError:
                     continue
-                if e.get('args', [])[:1] == ['ls-remote'] and e.get('phase') == 'start':
+                if (e.get('args', [])[:1] == ['ls-remote'] and e.get('phase') == 'start'
+                        and e['t'] >= phase_b_started):
                     ls_remote_phase_b += 1
         report.update({'phase_b_pulse_unix_ms': pulse, 'first_dispatch_unix_ms': first_dispatch,
                        'restart_dispatch_latency_s': round(latency_s, 3),
@@ -192,6 +206,13 @@ def main():
                        'passed': latency_s <= DISPATCH_BUDGET_S})
     finally:
         stop_daemon(daemon, log_b)
+    evidence = out_path.with_suffix('')
+    evidence.mkdir(parents=True, exist_ok=True)
+    for name in ('daemon-phase-a.log', 'daemon-phase-b.log', 'git-events.jsonl', 'policy.toml'):
+        source = root / name
+        if source.exists():
+            shutil.copy2(source, evidence / name)
+    report['raw_evidence'] = str(evidence)
     out_path.write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
     return 0 if report.get('passed') else 1
