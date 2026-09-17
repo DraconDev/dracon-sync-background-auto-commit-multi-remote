@@ -2084,7 +2084,7 @@ pub(crate) fn repo_is_active(push_status: &str, state_cause: &StateCause) -> boo
     // An ownership-blocked repo may still have ahead commits, but the
     // daemon is deliberately not working on it. Likewise, a broken-history
     // row must never look ACTIVE merely because its old ahead count remains.
-    if matches!(state_cause, StateCause::Unowned { .. })
+    if matches!(state_cause, StateCause::Unowned { .. } | StateCause::Failed)
         || matches!(push_status, "BLOCKED" | "BROKEN")
     {
         return false;
@@ -2265,6 +2265,11 @@ pub(crate) fn classify_state_cause(
     let last_commit = inputs.last_commit_minutes;
     let last_push = inputs.last_push_minutes;
 
+    // Pending commits alone do not establish an active transfer. In
+    // particular, preserve the concrete pull blocker on divergent repos.
+    if inputs.flags.iter().any(|flag| flag == "STUCK_PULL") {
+        return StateCause::Failed;
+    }
     if inputs.push_status == "PENDING" {
         return StateCause::Pushing;
     }
