@@ -568,6 +568,87 @@ mod f33_tests {
         );
     }
 
+    /// FAIL-BEFORE regression for the live 30s-classification-timeout leak
+    /// (journal 2026-09-17 11:57–12:01): cancelling `cli_diff_entries` via
+    /// the scheduler's outer timeout must terminate the spawned git
+    /// process group, not leak it. The fixture's clean filter sleeps 180s
+    /// and records its own PID; without kill-on-cancel the git child
+    /// survives the future's drop. This test FAILS against the pre-fix
+    /// implementation (bare TokioCommand, no kill_on_drop/process_group).
+    /// Skip politely when sandboxed /proc makes the check impossible.
+    #[tokio::test]
+    async fn classification_cancellation_terminates_git_process_group() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let git = |args: &[&str]| {
+            let output = crate::git::git_cmd()
+                .args(["-c", "core.hooksPath=/dev/null"])
+                .args(args)
+                .current_dir(repo)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{args:?}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        };
+        git(&["init", "-q"]);
+        std::fs::write(repo.join("sample.txt"), "seed\n").unwrap();
+        git(&["add", "--", "sample.txt"]);
+        git(&["commit", "-qm", "classification fixture"]);
+        std::fs::create_dir_all(repo.join(".git/info")).unwrap();
+        std::fs::write(
+            repo.join(".git/info/attributes"),
+            "sample.txt filter=probe\n",
+        )
+        .unwrap();
+        git(&[
+            "config",
+            "filter.probe.clean",
+            "sh -c 'echo $$ > .git/filter-pid; sleep 180'",
+        ]);
+        git(&["config", "filter.probe.required", "true"]);
+        std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
+
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(1500),
+            super::cli_diff_entries(repo),
+        )
+        .await;
+        assert!(result.is_err(), "fixture must hit the caller timeout");
+        // Give the runtime a beat to drop the future and (post-fix) run the
+        // drop-guard kill.
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+        let pid_str = std::fs::read_to_string(repo.join(".git/filter-pid"))
+            .expect("filter must have written its pid");
+        let pid: i32 = pid_str.trim().parse().unwrap();
+        let alive = tokio::task::spawn_blocking(move || {
+            std::process::Command::new("kill")
+                .args(["-0", pid.to_string().as_str()])
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+        })
+        .await
+        .unwrap();
+        // PID reuse could theoretically resurface; treat an exited process
+        // as terminated and only flag a live PID as a leak.
+        assert!(
+            !alive_with_comm(pid, "sleep").unwrap_or(false),
+            "filter process {pid} survived classification cancellation (leaked process group)"
+        );
+        let _ = alive_with_comm(pid, "sleep");
+    }
+
+    /// Returns true when `pid` exists and its /proc comm equals `comm`.
+    /// Err when /proc is unavailable (skip politely at the call site).
+    fn alive_with_comm(pid: i32, comm: &str) -> Option<bool> {
+        let stat = std::fs::read_to_string(format!("/proc/{pid}/comm")).ok()?;
+        Some(stat.trim() == comm)
+    }
+
     #[tokio::test]
     async fn classification_preserves_unborn_untracked_files() {
         let tmp = tempfile::tempdir().unwrap();
