@@ -1310,7 +1310,12 @@ fn write_persistent_entries(
     std::fs::rename(&tmp, path)
 }
 
+// Serialize read-modify-write including the shared temporary path. Forge
+// provisioning can complete concurrently for independent repositories.
+static PERSISTENT_EXISTS_WRITE: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+
 fn persist_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
+    let _writer = PERSISTENT_EXISTS_WRITE.lock();
     let mut entries: Vec<(std::path::PathBuf, String)> =
         load_persistent_entries(path).into_iter().collect();
     entries.push((repo.to_path_buf(), remote_name.to_string()));
@@ -1318,6 +1323,7 @@ fn persist_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
 }
 
 fn remove_persistent_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
+    let _writer = PERSISTENT_EXISTS_WRITE.lock();
     // Missing file: nothing was persisted for this pair, so there is
     // nothing to remove and we must not create an empty state file as a
     // side effect of an eviction.
