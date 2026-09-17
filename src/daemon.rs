@@ -104,6 +104,89 @@ fn dispatch_due(
         || now.saturating_duration_since(changed_at) >= quiet
 }
 
+/// Reconcile filesystem evidence with a monotonic quiet clock. A repeated
+/// snapshot retains its anchor, including unknown/future timestamps; it must
+/// not postpone eligibility forever just because wall time is suspect.
+#[derive(Default)]
+struct QuietEvidence {
+    snapshot: Option<Vec<(PathBuf, Option<std::time::SystemTime>)>>,
+    anchor: Option<Instant>,
+}
+
+impl QuietEvidence {
+    fn observe(
+        &mut self,
+        snapshot: Vec<(PathBuf, Option<std::time::SystemTime>)>,
+        wall_now: std::time::SystemTime,
+        now: Instant,
+        epoch: Instant,
+    ) -> Instant {
+        if self.snapshot.as_ref() != Some(&snapshot) {
+            let newest = snapshot.iter().try_fold(None, |latest, (_, stamp)| {
+                stamp.map(|stamp| Some(latest.map_or(stamp, |old| std::cmp::max(old, stamp))))
+            });
+            let age = newest
+                .flatten()
+                .and_then(|stamp| wall_now.duration_since(stamp).ok());
+            self.anchor = Some(
+                age.and_then(|age| now.checked_sub(age))
+                    .unwrap_or(now)
+                    .max(epoch),
+            );
+            if debug_enabled() {
+                eprintln!(
+                    "scheduler: quiet_clock_assignment discovery_ms={} evidence_unix_ns={:?} anchor_ms={}",
+                    now.saturating_duration_since(epoch).as_millis(),
+                    newest.flatten().and_then(|stamp| stamp.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()).map(|age| age.as_nanos()),
+                    self.anchor.unwrap_or(now).saturating_duration_since(epoch).as_millis(),
+                );
+            }
+            self.snapshot = Some(snapshot);
+        }
+        self.anchor.unwrap_or(now)
+    }
+}
+
+/// Include ctime on Unix: restored/backdated mtimes must not make a new
+/// write appear quiet. Missing files (deletions) use observation time.
+fn quiet_evidence_snapshot(
+    repo: &Path,
+    entries: &[dracon_git::types::DiffFile],
+) -> Vec<(PathBuf, Option<std::time::SystemTime>)> {
+    let mut snapshot: Vec<_> = entries
+        .iter()
+        .map(|entry| {
+            let safe = !entry.path.is_absolute()
+                && !entry
+                    .path
+                    .components()
+                    .any(|c| matches!(c, std::path::Component::ParentDir));
+            let stamp = safe
+                .then(|| std::fs::symlink_metadata(repo.join(&entry.path)).ok())
+                .flatten()
+                .and_then(|meta| {
+                    let modified = meta.modified().ok()?;
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::MetadataExt;
+                        let seconds = u64::try_from(meta.ctime()).ok()?;
+                        let nanos = u32::try_from(meta.ctime_nsec()).ok()?;
+                        let changed = std::time::SystemTime::UNIX_EPOCH
+                            .checked_add(Duration::new(seconds, nanos))?;
+                        Some(modified.max(changed))
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        Some(modified)
+                    }
+                });
+            (entry.path.clone(), stamp)
+        })
+        .collect();
+    snapshot.sort_by(|a, b| a.0.cmp(&b.0));
+    snapshot
+}
+
 /// Book provisional per-repo activity from the STATUS transition alone.
 /// Called when classification is still pending so `changed_at`/`dirty_since`
 /// anchor on the first status-dirty pulse. The fingerprint MUST use the same
@@ -4029,6 +4112,7 @@ pub(crate) async fn run_daemon(
     let scheduler_epoch = Instant::now();
 
     let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
+    let mut quiet_evidence: HashMap<PathBuf, QuietEvidence> = HashMap::new();
     let mut pending_repos: HashMap<PathBuf, Instant> = HashMap::new();
     let mut initial_repos: HashSet<PathBuf>; // populated after first scan
     let mut repair_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
@@ -4286,6 +4370,7 @@ pub(crate) async fn run_daemon(
             continue;
         }
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
+        let mut next_quiet_deadline: Option<Instant> = None;
         let roots = policy.watch_root_paths();
         let excluded_dir_names = excluded_dir_names_set(&policy);
         let repos = discover_git_repos(
@@ -5192,6 +5277,7 @@ pub(crate) async fn run_daemon(
                 let has_remote_issues = !has_origin || !has_upstream;
                 if !has_remote_issues {
                     activity.remove(&repo);
+                    quiet_evidence.remove(&repo);
                     continue;
                 }
                 // Remote issues but clean — PEEK the classification result:
@@ -5387,12 +5473,29 @@ pub(crate) async fn run_daemon(
             // Status/filter inspection may cross the eligibility deadline.
             // Re-read the monotonic clock at dispatch, not at scan entry.
             let eligibility_now = Instant::now();
+            if effective_dirty && !entries.is_empty() {
+                let snapshot = quiet_evidence_snapshot(&repo, &entries);
+                entry.changed_at = quiet_evidence.entry(repo.clone()).or_default().observe(
+                    snapshot,
+                    std::time::SystemTime::now(),
+                    eligibility_now,
+                    scheduler_epoch,
+                );
+            }
             let enough_time = dispatch_due(
                 eligibility_now,
                 entry.changed_at,
                 entry.dirty_since,
                 inactivity_delay,
             );
+            if !enough_time {
+                let deadline = entry.changed_at + inactivity_delay;
+                let deadline = entry.dirty_since.map_or(deadline, |since| {
+                    deadline.min(since + Duration::from_secs(5))
+                });
+                next_quiet_deadline =
+                    Some(next_quiet_deadline.map_or(deadline, |old| old.min(deadline)));
+            }
 
             if debug_enabled() {
                 eprintln!(
@@ -6040,7 +6143,13 @@ pub(crate) async fn run_daemon(
         sleep_responsive(
             &reload_notify,
             || freeze_reason(&policy_path).is_some(),
-            remaining_pulse(Duration::from_secs(scan_interval), cycle_started.elapsed()),
+            next_quiet_deadline.map_or(
+                remaining_pulse(Duration::from_secs(scan_interval), cycle_started.elapsed()),
+                |deadline| {
+                    remaining_pulse(Duration::from_secs(scan_interval), cycle_started.elapsed())
+                        .min(deadline.saturating_duration_since(Instant::now()))
+                },
+            ),
         )
         .await;
     }
