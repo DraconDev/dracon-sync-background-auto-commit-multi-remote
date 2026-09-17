@@ -120,6 +120,20 @@ ran 2.4–3.5s each; dispatch waited until 16:44:37. See
 remote transfer latency. Trace the startup inspection/maintenance work and
 remove it from the scheduling critical path before claiming full acceptance.
 
+Source/trace correlation: `src/daemon.rs` calls
+`push_mirror_remotes_create_only(...).await` before readiness/status inside
+its serial repo loop. The first-cycle journal pairs every repo's GitHub and
+GitLab `already exists ... skipping auto-create` lines with a 2.4–3.5s repo
+inspection; sync's pair is 16:43:42/16:43:43. Its 3ms classification is then
+stranded while the remaining repo existence probes run. This is demonstrated
+network work on the scheduling critical path, not a CPU-quota hypothesis.
+Read `docs/design/empty-repo-auto-create-fix-2026-07-21.md` before changing
+it: provisioning must continue for empty repos, honor exclusions/visibility,
+and preserve bootstrap protections. A blind detached task would race Git
+config/remote maintenance and worker ownership; use an owned, bounded
+lifecycle and isolated slow-forge regression instead. No startup refactor
+has been implemented yet.
+
 ## Historical checkpoint — 2026-09-17, before 0.113.60 publication
 
 The running service was verified through `/proc/1857001/exe --version` as
