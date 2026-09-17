@@ -4119,18 +4119,18 @@ async fn stage_commit_and_push(
                     }
                     push_failed = true;
                 } else {
-                let names = failing_remote_names(ctx.remote_failures.as_deref());
-                let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
-                eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
-                crate::daemon::record_push_failure(
-                    repo,
-                    &format!(
-                        "git push returned non-zero (remotes: {}) — {}",
-                        names, cause
-                    ),
-                );
-                notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
-                push_failed = true;
+                    let names = failing_remote_names(ctx.remote_failures.as_deref());
+                    let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
+                    eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
+                    crate::daemon::record_push_failure(
+                        repo,
+                        &format!(
+                            "git push returned non-zero (remotes: {}) — {}",
+                            names, cause
+                        ),
+                    );
+                    notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
+                    push_failed = true;
                 }
             }
             Err(e) => {
@@ -5131,6 +5131,28 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             Ok(false) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error.
+                // CHANGED 2026-09-17 (restart-poisoning fix): skip the
+                // ledger when every failing remote's error is task
+                // cancellation (same rule as the first Ok(false) arm).
+                let all_cancelled = ctx
+                    .remote_failures
+                    .as_deref()
+                    .map(|map| {
+                        !map.is_empty()
+                            && map
+                                .values()
+                                .all(|f| crate::daemon::push_error_is_cancellation(&f.last_error))
+                    })
+                    .unwrap_or(false);
+                if all_cancelled {
+                    if debug_enabled() {
+                        eprintln!(
+                            "⏭️ {} push cancelled (shutdown/wedge) — not recorded as a push failure",
+                            ctx.repo.display()
+                        );
+                    }
+                    return Ok(false);
+                }
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 eprintln!(
                     "⚠️ push failed for {} (remotes: {})",
