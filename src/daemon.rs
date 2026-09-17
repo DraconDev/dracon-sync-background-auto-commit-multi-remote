@@ -111,6 +111,13 @@ fn needs_classification(
     !status_is_clean || ahead > 0 || behind > 0 || !has_origin || !has_upstream
 }
 
+fn scheduler_unix_ms() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+}
+
 fn dispatch_due(
     now: Instant,
     changed_at: Instant,
@@ -4431,6 +4438,9 @@ pub(crate) async fn run_daemon(
 
     while !shutdown.load(Ordering::SeqCst) {
         let cycle_started = Instant::now();
+        if debug_enabled() {
+            eprintln!("scheduler: pulse_start unix_ms={}", scheduler_unix_ms());
+        }
         if reload.load(Ordering::SeqCst) {
             reload.store(false, Ordering::SeqCst);
             match SyncPolicy::load(&policy_path) {
@@ -5768,11 +5778,12 @@ pub(crate) async fn run_daemon(
             classification_results.remove(&repo);
             if debug_enabled() {
                 eprintln!(
-                    "scheduler: dispatch repo={} cycle_ms={} inspection_ms={} daemon_ms={}",
+                    "scheduler: dispatch repo={} cycle_ms={} inspection_ms={} daemon_ms={} unix_ms={}",
                     repo.display(),
                     cycle_started.elapsed().as_millis(),
                     now.elapsed().as_millis(),
                     scheduler_epoch.elapsed().as_millis(),
+                    scheduler_unix_ms(),
                 );
             }
             let entry_rf = std::mem::take(&mut entry.remote_failures);
@@ -5790,6 +5801,9 @@ pub(crate) async fn run_daemon(
             to_sync.push((
                 repo.clone(),
                 tokio::spawn(async move {
+                    if debug_enabled() {
+                        eprintln!("scheduler: task_start repo={} unix_ms={}", repo_for_task.display(), scheduler_unix_ms());
+                    }
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
