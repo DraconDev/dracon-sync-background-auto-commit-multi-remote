@@ -111,6 +111,7 @@ fn dispatch_due(
 struct QuietEvidence {
     snapshot: Option<Vec<(PathBuf, Option<std::time::SystemTime>)>>,
     anchor: Option<Instant>,
+    status_fingerprint: Option<String>,
 }
 
 impl QuietEvidence {
@@ -5574,12 +5575,24 @@ pub(crate) async fn run_daemon(
             let eligibility_now = Instant::now();
             if effective_dirty && !entries.is_empty() {
                 let snapshot = quiet_evidence_snapshot(&repo, &entries);
-                entry.changed_at = quiet_evidence.entry(repo.clone()).or_default().observe(
+                let evidence = quiet_evidence.entry(repo.clone()).or_default();
+                let status_changed = evidence.status_fingerprint.as_ref()
+                    .is_some_and(|old| old != &entry.fingerprint);
+                entry.changed_at = evidence.observe(
                     snapshot,
                     std::time::SystemTime::now(),
                     eligibility_now,
                     scheduler_epoch,
                 );
+                // A retained classifier result may omit files added since it
+                // completed. A changed status fingerprint is newer evidence
+                // than that path list: conservatively restart quiet, but keep
+                // dirty_since so continuous additions cannot starve forever.
+                if status_changed {
+                    evidence.anchor = Some(eligibility_now);
+                    entry.changed_at = eligibility_now;
+                }
+                evidence.status_fingerprint = Some(entry.fingerprint.clone());
             }
             let enough_time = dispatch_due(
                 eligibility_now,
