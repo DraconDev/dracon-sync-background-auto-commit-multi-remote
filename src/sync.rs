@@ -4362,6 +4362,13 @@ pub(crate) async fn sync_repo_with_ahead_since(
     policy_path: Option<&Path>,
     ahead_since: Option<std::time::Instant>,
 ) -> Result<SyncOutcome> {
+    let preparation_start = std::time::Instant::now();
+    let preparation_phase = |phase: &str| {
+        if debug_enabled() {
+            eprintln!("scheduler: worker_prepare repo={} phase={} elapsed_ms={}",
+                repo.display(), phase, preparation_start.elapsed().as_millis());
+        }
+    };
     let svc = GitService::new(repo)?;
     if !svc.is_git_repo().await? {
         if debug_enabled() {
@@ -4465,9 +4472,12 @@ pub(crate) async fn sync_repo_with_ahead_since(
         }
     }
 
+    preparation_phase("before_origin");
     let has_origin = ensure_origin_remote(repo, policy);
     let has_upstream = has_tracking_upstream(repo);
+    preparation_phase("before_status");
     let initial_status = svc.get_status().await?;
+    preparation_phase("after_status");
     // dracon-git reports ahead=0 for a detached HEAD because libgit2 cannot
     // resolve a branch upstream in that state. The push path deliberately
     // targets the conventional `main` branch for detached worktrees, so use
@@ -4612,15 +4622,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
         .await?;
     }
 
+    preparation_phase("before_pull");
     auto_pull_merge(&svc, &ctx, &initial_status).await?;
-
+    preparation_phase("before_clean");
     clean_staged_paths(&ctx).await?;
+    preparation_phase("before_diff");
 
     let DiffResult {
         mut status,
         mut entries,
         filter_only_cleared,
     } = compute_diff_entries(&svc, repo).await?;
+    preparation_phase("after_diff");
 
     // ADDED 2026-07-01, goal `mr10pdzr-i495vy`:
     // Inject synthetic DiffFile entries for any tracked gitlink whose

@@ -1,0 +1,39 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789671929578
+scheduler: cycle_complete elapsed_ms=82
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mnxmxqmu/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789671930584
+scheduler: status repo=/tmp/sync-restart-mnxmxqmu/watch/r3 cycle_ms=185 repo_ms=184 dirty=true daemon_ms=1240
+scheduler: classification_spawn repo=/tmp/sync-restart-mnxmxqmu/watch/r3 cycle_ms=277 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=277
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-mnxmxqmu/watch/r3 elapsed_ms=84 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-mnxmxqmu/watch/r3 elapsed_ms=15 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-mnxmxqmu/watch/r3 ms=100 ok=true
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mnxmxqmu/watch/r1 auto-created on origin
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mnxmxqmu/watch/r2 auto-created on origin
+scheduler: pulse_start unix_ms=1789671931585
+scheduler: status repo=/tmp/sync-restart-mnxmxqmu/watch/r1 cycle_ms=120 repo_ms=118 dirty=false daemon_ms=2175
+scheduler: status repo=/tmp/sync-restart-mnxmxqmu/watch/r2 cycle_ms=313 repo_ms=91 dirty=false daemon_ms=2368
+scheduler: status repo=/tmp/sync-restart-mnxmxqmu/watch/r3 cycle_ms=522 repo_ms=99 dirty=true daemon_ms=2578
+scheduler: quiet_clock_assignment discovery_ms=2666 evidence_unix_ns=Some(1789671929511502236) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-mnxmxqmu/watch/r3 cycle_ms=611 observed_quiet_ms=2666 eligible=true daemon_ms=2666 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-mnxmxqmu/watch/r3 path="second.txt" unix_ns=Some(1789671929511502236)
+scheduler: dispatch repo=/tmp/sync-restart-mnxmxqmu/watch/r3 cycle_ms=611 inspection_ms=187 daemon_ms=2666 unix_ms=1789671932196
+scheduler: task_start repo=/tmp/sync-restart-mnxmxqmu/watch/r3 unix_ms=1789671932196
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=612
+sync: received SIGTERM, shutting down gracefully...
+🐛 /tmp/sync-restart-mnxmxqmu/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+🐛 /tmp/sync-restart-mnxmxqmu/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-mnxmxqmu/watch/r3 thread=ThreadId(14) unix_ms=1789671932452
+scheduler: stage_prepare repo=/tmp/sync-restart-mnxmxqmu/watch/r3 phase=unmerged elapsed_ms=4
+scheduler: stage_prepare repo=/tmp/sync-restart-mnxmxqmu/watch/r3 phase=untracked elapsed_ms=10
+scheduler: stage_files_enter repo=/tmp/sync-restart-mnxmxqmu/watch/r3 unix_ms=1789671932489
+scheduler: stage_prepare repo=/tmp/sync-restart-mnxmxqmu/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-mnxmxqmu/watch/r3 phase=partition elapsed_ms=62
+scheduler: add_spawn repo=/tmp/sync-restart-mnxmxqmu/watch/r3 unix_ms=1789671932552
+scheduler: add_spawned repo=/tmp/sync-restart-mnxmxqmu/watch/r3 unix_ms=1789671932555 pid=Some(2787331)
