@@ -77,6 +77,78 @@ fn next_ready_classification<S: futures::Stream + Unpin>(
     use futures::FutureExt;
     jobs.next().now_or_never().flatten()
 }
+
+/// What the scheduler should do with per-repo dirty classification for
+/// this pulse.
+enum ClassificationStep {
+    /// A ready result exists; staging decisions may proceed.
+    Ready(Vec<dracon_git::types::DiffFile>),
+    /// No result yet and none is running: spawn a job this pulse.
+    Spawn,
+    /// A job is in flight or the failure backoff is active: skip the
+    /// repo this pulse without touching its activity state.
+    Skip,
+}
+
+/// Consume a ready classification result, or decide the next step.
+/// A pending job always wins (never duplicated). A failed classification
+/// is fail-closed: it never becomes "clean", is counted, and after
+/// `CLASSIFICATION_MAX_FAILURES` consecutive failures the repo backs off
+/// for 15 minutes with one fresh probe afterwards (bounded, visible,
+/// never a silent permanent skip).
+fn consume_classification(
+    repo: &Path,
+    ready: Option<Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
+    pending: &HashSet<PathBuf>,
+    failures: &mut HashMap<PathBuf, usize>,
+    cooldowns: &mut HashMap<PathBuf, Instant>,
+    now: Instant,
+) -> ClassificationStep {
+    if let Some(outcome) = ready {
+        return match outcome {
+            Ok(entries) => {
+                failures.remove(repo);
+                ClassificationStep::Ready(entries)
+            }
+            Err(e) => {
+                let count = failures
+                    .entry(repo.to_path_buf())
+                    .and_modify(|count| *count += 1)
+                    .or_insert(1);
+                if *count >= CLASSIFICATION_MAX_FAILURES {
+                    cooldowns.insert(repo.to_path_buf(), now + Duration::from_secs(900));
+                    eprintln!(
+                        "⚠️ {} classification failed {}×; backing off 15 min (will re-probe): {}",
+                        repo.display(),
+                        count,
+                        e
+                    );
+                } else {
+                    eprintln!(
+                        "⚠️ {} classification failed (attempt {}/{}) — skipping sync classification: {}",
+                        repo.display(),
+                        count,
+                        CLASSIFICATION_MAX_FAILURES,
+                        e
+                    );
+                }
+                ClassificationStep::Skip
+            }
+        };
+    }
+    if pending.contains(repo) {
+        return ClassificationStep::Skip;
+    }
+    if let Some(until) = cooldowns.get(repo) {
+        if now < *until {
+            return ClassificationStep::Skip;
+        }
+        // Cooldown expired: allow one fresh probe.
+        cooldowns.remove(repo);
+        failures.remove(repo);
+    }
+    ClassificationStep::Spawn
+}
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
 /// Collect completed work without cancelling or dropping pending jobs.
@@ -4011,7 +4083,9 @@ pub(crate) async fn run_daemon(
     > = HashMap::new();
     let mut classification_pending: HashSet<PathBuf> = HashSet::new();
     let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
+    let mut classification_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
     const CLASSIFICATION_MAX_FAILURES: usize = 3;
+    const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -4192,6 +4266,20 @@ pub(crate) async fn run_daemon(
         // benign (worst case: one-cycle-stale view).
         stuck_push_repos = load_stuck_push_repos();
         stuck_push_repos.retain(|repo, _| repo_set.contains(repo));
+
+        // Collect ready classification results (ready-only, never blocking);
+        // retain only jobs whose repo is still watched.
+        while let Some(joined) = next_ready_classification(&mut classification_jobs) {
+            let (repo, outcome) = match joined {
+                Ok(pair) => pair,
+                Err(e) => {
+                    eprintln!("⚠️ classification job join error: {}", e);
+                    continue;
+                }
+            };
+            classification_pending.remove(&repo);
+            classification_results.insert(repo, outcome);
+        }
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
         cycle_count += 1;
@@ -4915,6 +5003,18 @@ pub(crate) async fn run_daemon(
 
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Only do detailed diff analysis when the repo actually has changes.
+            // Classification (filter-aware diff + untracked listing) runs as a
+            // per-repo background job: consume a ready result, spawn one if
+            // none is pending, or skip this pulse — a slow/failing required
+            // clean filter in one repo never delays another repo's pulse.
+            let classification = consume_classification(
+                &repo,
+                classification_results.remove(&repo),
+                &classification_pending,
+                &mut classification_failures,
+                &mut classification_cooldowns,
+                now,
+            );
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
@@ -4925,19 +5025,11 @@ pub(crate) async fn run_daemon(
                     activity.remove(&repo);
                     continue;
                 }
-                // Remote issues but clean — check for dirty files that
-                // has_sync_relevant_dirty_entries would detect (untracked in excluded
-                // dirs, oversized files, etc.) before committing to dirty state.
-                let entries = match repo_diff_entries(&repo).await {
-                    Ok(entries) => entries,
-                    Err(e) => {
-                        eprintln!(
-                            "⚠️ {} diff inspection failed; leaving activity state unchanged: {}",
-                            repo.display(),
-                            e
-                        );
-                        continue;
-                    }
+                // Remote issues but clean — classification detects dirty files
+                // (untracked in excluded dirs, oversized files, etc.) before
+                // committing to dirty state.
+                let ClassificationStep::Ready(entries) = classification else {
+                    continue;
                 };
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
@@ -4953,16 +5045,8 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let filtered = match repo_diff_entries(&repo).await {
-                    Ok(entries) => entries,
-                    Err(e) => {
-                        eprintln!(
-                            "⚠️ {} diff inspection failed; skipping sync classification: {}",
-                            repo.display(),
-                            e
-                        );
-                        continue;
-                    }
+                let ClassificationStep::Ready(filtered) = classification else {
+                    continue;
                 };
                 // repo_diff_entries already applies the clean filter through
                 // `git diff --name-status HEAD` and includes untracked files.
