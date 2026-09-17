@@ -395,7 +395,10 @@ async fn read_captured_pipe(
         if n == 0 {
             return Ok(bytes);
         }
-        anyhow::ensure!(n <= cap.saturating_sub(bytes.len()), "output exceeded {cap} bytes");
+        anyhow::ensure!(
+            n <= cap.saturating_sub(bytes.len()),
+            "output exceeded {cap} bytes"
+        );
         bytes.extend_from_slice(&chunk[..n]);
     }
 }

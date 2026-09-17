@@ -9,35 +9,19 @@ use std::path::{Path, PathBuf};
 /// Unlike `git status`, `git diff HEAD` applies clean filters and correctly
 /// ignores files that only differ due to smudge filter decryption.
 pub(crate) async fn git_diff_head_files(repo: &Path) -> Result<HashSet<PathBuf>> {
-    let r = repo.to_path_buf();
-    let outcome = tokio::time::timeout(
-        std::time::Duration::from_secs(30),
-        tokio::task::spawn_blocking(move || -> anyhow::Result<HashSet<PathBuf>> {
-            let output = crate::git::git_cmd()
-                .current_dir(&r)
-                .args(["diff", "HEAD", "--name-only", "-z"])
-                .output()?;
-            if !output.status.success() {
-                anyhow::bail!("git diff HEAD exited with {}", output.status);
-            }
-            let files: HashSet<PathBuf> = String::from_utf8_lossy(&output.stdout)
-                .split('\0')
-                .filter(|s| !s.is_empty())
-                .map(PathBuf::from)
-                .collect();
-            Ok(files)
-        }),
-    )
-    .await;
-    let inner = match outcome {
-        Ok(inner) => inner,
-        Err(_) => return Err(anyhow::anyhow!("git diff HEAD timed out")),
-    };
-    match inner {
-        Ok(Ok(files)) => Ok(files),
-        Ok(Err(e)) => Err(anyhow::anyhow!("git diff HEAD task failed: {}", e)),
-        Err(e) => Err(anyhow::anyhow!("git diff HEAD task failed: {}", e)),
-    }
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        let child = crate::git::spawn_git_command_cancellable(
+            repo,
+            &["diff", "HEAD", "--name-only", "-z"],
+            "diff HEAD",
+        )?;
+        let (status, stdout, _) =
+            crate::git::run_git_captured_output(child, repo, "diff HEAD").await?;
+        anyhow::ensure!(status.success(), "git diff HEAD exited with {status}");
+        Ok(parse_z_paths(&stdout).into_iter().collect())
+    })
+    .await
+    .context("git diff HEAD timed out")?
 }
 
 /// Parse a single line from `git status --porcelain` or `git diff --name-status`.
@@ -299,8 +283,7 @@ pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     Ok(entries)
 }
 
-/// Split NUL-delimited raw paths (the `-z` convention). Bytes pass through
-/// unquoted and unfiltered — the same contract as `parse_name_status_z`.
+/// Split NUL-delimited paths, preserving the existing lossy UTF-8 policy.
 fn parse_z_paths(stdout: &[u8]) -> Vec<PathBuf> {
     stdout
         .split(|&b| b == 0)
@@ -617,7 +600,7 @@ mod f33_tests {
         git(&[
             "config",
             "filter.probe.clean",
-            "sh -c 'trap \"\" TERM; echo $$ > .git/filter-pid; exec sleep 180'", 
+            "sh -c 'trap \"\" TERM; echo $$ > .git/filter-pid; exec sleep 180'",
         ]);
         git(&["config", "filter.probe.required", "true"]);
         std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
@@ -634,28 +617,36 @@ mod f33_tests {
                     }
                 }
             }
-        }).await.expect("filter must start within fixture budget");
+        })
+        .await
+        .expect("filter must start within fixture budget");
         let pid: i32 = std::fs::read_to_string(repo.join(".git/filter-pid"))
-            .unwrap().trim().parse().unwrap();
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
         // Clean up the exact fixture PID even when the assertion fails.
         struct FixtureCleanup(i32);
         impl Drop for FixtureCleanup {
             fn drop(&mut self) {
                 // SAFETY: positive PID recorded by this fixture's filter.
-                unsafe { libc::kill(self.0, libc::SIGKILL); }
+                unsafe {
+                    libc::kill(self.0, libc::SIGKILL);
+                }
             }
         }
         let _cleanup = FixtureCleanup(pid);
         assert!(process_is_running(pid));
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(50), classification,
-        ).await;
+        let result =
+            tokio::time::timeout(std::time::Duration::from_millis(50), classification).await;
         assert!(result.is_err(), "fixture must hit caller timeout");
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
             while process_is_running(pid) {
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
-        }).await.expect("filter survived classification cancellation");
+        })
+        .await
+        .expect("filter survived classification cancellation");
     }
 
     #[cfg(target_os = "linux")]
