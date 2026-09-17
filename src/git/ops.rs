@@ -144,9 +144,13 @@ where
     F: FnMut(&str) -> bool + Send + 'static,
 {
     let pid = child.id();
+    // This runner receives children spawned into their own process group.
+    // kill_on_drop kills only the leader, not SSH/filter/helper descendants.
+    let mut group_guard = GroupKillGuard(pid);
     let stderr_handle = child.stderr.take();
     let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<Instant>();
-    let stderr_task = tokio::spawn(async move {
+    // Keep capture owned by this future so cancellation cannot detach it.
+    let stderr_task = async move {
         let mut stderr_output = String::new();
         let mut stderr_truncated = false;
         const MAX_STDERR_BYTES: usize = 1024 * 1024;
@@ -198,7 +202,9 @@ where
             stderr_output.push_str("\n<stderr truncated at 1 MiB>");
         }
         stderr_output
-    });
+    };
+    tokio::pin!(stderr_task);
+    let mut captured_stderr = None;
 
     let started_at = Instant::now();
     let hard_deadline = started_at + Duration::from_secs(progress_hard_timeout_secs(timeout_secs));
@@ -219,7 +225,10 @@ where
             }
             let _ = child.start_kill();
             let _ = child.wait().await;
-            let _ = stderr_task.await;
+            group_guard.0 = None;
+            if captured_stderr.is_none() {
+                let _ = stderr_task.await;
+            }
             return Err(anyhow::anyhow!(
                 "{} timeout in {} after {}s idle ({}s hard cap)",
                 label,
@@ -240,10 +249,16 @@ where
             status = child.wait() => {
                 let status = status
                     .map_err(|e| anyhow::anyhow!("{} failed in {}: {}", label, workdir.display(), e))?;
-                let stderr_output = stderr_task
-                    .await
-                    .unwrap_or_else(|e| format!("stderr capture failed: {e}"));
+                // wait reaped the leader; never signal its potentially reused PID.
+                group_guard.0 = None;
+                let stderr_output = match captured_stderr.take() {
+                    Some(output) => output,
+                    None => stderr_task.await,
+                };
                 return child_status_result(status, label, workdir, stderr_output);
+            }
+            output = &mut stderr_task, if captured_stderr.is_none() => {
+                captured_stderr = Some(output);
             }
             Some(_) = progress_rx.recv() => {
                 deadline = std::cmp::min(
