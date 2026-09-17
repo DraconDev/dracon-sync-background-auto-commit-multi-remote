@@ -1413,3 +1413,16 @@ ok
 test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 381ac1f] init
 ok
 test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 32262bc] init
+To /tmp/.tmpwDhtLV/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) fc5fade] init
+To /tmp/.tmp3iNtoV/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 57bfc34] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 2cddfa4] init
