@@ -4668,35 +4668,36 @@ pub(crate) async fn run_daemon(
         }
 
         // Deadline-first scan order (2026-09-17, convergence goal): the
-        // cycle body (multi-repo inspection, mirror overrides, ls-remote
-        // maintenance) can overrun the 1s pulse (measured gaps 1.5–1.9s with
-        // 5 repos under load). Repos whose quiet deadline has already passed
-        // are inspected FIRST so their dispatch is not pushed into another
-        // overstretched cycle; everyone else keeps discovery order.
+        // cycle body (per-repo status/inspection × N repos) can overrun the
+        // 1s pulse (measured pulse gaps 1.5–1.9s with 5 repos under load),
+        // so a repo whose quiet window expired mid-cycle must not wait for
+        // every later position in the scan. Repos already eligible at cycle
+        // start are inspected FIRST; everyone else keeps discovery order.
+        // Total cycle cost is unchanged — this removes the ARBITRARY part of
+        // the delay (scan position), which is exactly the contract's
+        // "first available pulse" requirement.
         let mut repos: Vec<PathBuf> = repos;
-        if let Some(deadline) = next_quiet_deadline {
-            let due: BTreeSet<PathBuf> = activity
-                .iter()
-                .filter(|(_, entry)| {
-                    let expired = entry.changed_at + inactivity_delay <= deadline
-                        || entry
-                            .dirty_since
-                            .is_some_and(|since| since + Duration::from_secs(5) <= deadline);
-                    let owned = !in_flight.contains(entry_repo_key(entry));
-                    expired && owned
-                })
-                .map(|(repo, _)| repo.clone())
-                .collect();
-            if !due.is_empty() {
-                if debug_enabled() {
-                    eprintln!(
-                        "scheduler: deadline_first_order n={} repos_before={:?}",
-                        due.len(),
-                        repos.iter().map(|p| p.display().to_string()).collect::<Vec<_>>()
-                    );
-                }
-                repos.sort_by_key(|repo| if due.contains(repo) { 0 } else { 1 });
+        let scan_started = Instant::now();
+        let due: BTreeSet<PathBuf> = activity
+            .iter()
+            .filter(|(repo_path, entry)| {
+                let quiet_expired = entry.changed_at + inactivity_delay <= scan_started;
+                let starve_expired = entry
+                    .dirty_since
+                    .is_some_and(|since| since + Duration::from_secs(5) <= scan_started);
+                (quiet_expired || starve_expired) && !in_flight.contains(*repo_path)
+            })
+            .map(|(repo_path, _)| repo_path.clone())
+            .collect();
+        if !due.is_empty() {
+            if debug_enabled() {
+                eprintln!(
+                    "scheduler: deadline_first_order n={} due={:?}",
+                    due.len(),
+                    due.iter().map(|p| p.display().to_string()).collect::<Vec<_>>()
+                );
             }
+            repos.sort_by_key(|repo| if due.contains(repo) { 0 } else { 1 });
         }
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
