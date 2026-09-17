@@ -165,6 +165,61 @@ claimed. Inspection of dracon-git 94.7.2 confirms `GitService::commit` uses
 libgit2 first, with CLI only as a fallback; the wrapper cannot observe ordinary
 successful commit completion.
 
+### Probe instrumentation defects found and corrected
+
+The original wall-clock assertions conflated queue delay with in-cycle
+inspection and execution cost. Three measurement defects were identified from
+raw daemon logs and fixed in the probe:
+
+1. **Clock-domain mismatch**: `(start + b_push) * 1000` compared a monotonic
+   reading against a unix-ms commit timestamp (off by ~1.03e9 ms). Fixed with
+   `start_unix = time.time()`; unix-to-unix comparison.
+2. **Wrong dispatch denominator**: `dispatch daemon_ms` includes every earlier
+   repo's in-cycle inspection, and `cycle_ms` includes this repo's inspection.
+   The first available pulse is the dispatching cycle's start; the eligibility
+   decision line certifies quiet had expired. Queue = decision_ms − cycle_ms −
+   (anchor + quiet). Negative slack (−500ms) tolerates anchor/clock-read
+   ordering; the upper bound stays exactly 1000ms.
+3. **b2 pre-start**: the daemon cannot observe a pre-launch edit, so staging
+   from probe start was unmeasurable. Gate now: dispatch begins within quiet +
+   one pulse of the daemon's own quiet anchor. `b2` still must be committed
+   and pushed before the 3s wall-clock check, which passed.
+
+The daemon gained one debug-gated log line: `scheduler: commit_done repo=...
+unix_ms=...` after `svc.commit` returns (sync.rs), giving the probe the exact
+commit-completion timestamp `GitService::commit` (in-process libgit2) could
+not expose through any CLI wrapper. No behavior change; debug-only output.
+
+### Final probe acceptance (both modes)
+
+- Slow-filter mode: `/tmp/sync-decision-clock-probe.json` — **all 8 checks
+  pass, passed=true**. Queue delays: b −35ms, b2 +858ms, c −135ms (the
+  dispatching cycle started before expiry; the eligibility decision at expiry
+  dispatched in the same cycle, wasting no pulse). d-filter's 4.1s classification
+  and 3s slow push are execution cost, measured separately; its slow-remote
+  transfer completes within the asserted 3–6s window.
+- Plain mode: `/tmp/sync-decision-clock-plain.json` — **all checks pass,
+  passed=true**.
+- Repo a (continuously edited) reports queue ≈ −2000ms in both runs: it
+  dispatches via the 5-second `dirty_since` starvation bound, not the quiet
+  window. This is documented scheduler behavior for continuous work, not a
+  defect; the quiet-window metric applies to quiet repos (b, b2, c).
+- One-pulse classification turnaround verified separately:
+  `/tmp/sync-d-filter-focused-timing.json` (conservative ready-to-dispatch
+  bound 958ms ≤ 1000ms).
+
+### Full package gates after instrumentation
+
+- `timeout 240 cargo test --locked`: 1039 unit + 10 integration, 0 failed
+  (`/tmp/sync-final-suite.log`).
+- `timeout 240 cargo clippy --locked -- -D warnings`: clean
+  (`/tmp/sync-final-clippy.log`).
+- `timeout 30 cargo fmt --all -- --check`: clean (`/tmp/sync-final-fmt.log`).
+- Probe scripts byte-compile (`python3 -m py_compile`).
+
+Release build, publishing, installation and 15-minute live verification remain
+outstanding; no release has been cut from this working tree yet.
+
 ## Remaining investigation and gates
 
 1. The scan loop still does sequential discovery, status/filter-aware diffs,
