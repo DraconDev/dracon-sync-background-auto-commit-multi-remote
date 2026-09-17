@@ -1142,7 +1142,7 @@ pub(crate) async fn auto_create_all_remotes(
             let result = auto_create_repo(remote, &resolved_name, create_private).await;
             if result.is_ok() {
                 if let Some(repo) = repo {
-                    confirm_forge_exists(repo, &remote.name.clone());
+                    confirm_forge_exists(repo, &remote.name);
                 }
             }
             results.push((remote.name.clone(), result));
@@ -1252,10 +1252,92 @@ static EXISTS_CACHE: std::sync::OnceLock<
 
 fn exists_cache(
 ) -> &'static parking_lot::Mutex<std::collections::HashSet<(std::path::PathBuf, String)>> {
-    let cache = EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()));
-    hydrate_from_persistent_cache(cache);
+    let cache =
+        EXISTS_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()));
+    PERSISTENT_EXISTS_HYDRATED.get_or_init(|| {
+        let entries = load_persistent_entries(&persistent_exists_path());
+        if !entries.is_empty() {
+            cache.lock().extend(entries);
+        }
+    });
     cache
 }
+
+/// Durable companion to `EXISTS_CACHE` (2026-09-17, sync-convergence
+/// goal). The session-only cache re-pays one `ls-remote` SSH round-trip
+/// per (repo, remote) after EVERY daemon restart — observed live as
+/// ~2.4-3.5s of serial forge probing per established repo before the
+/// first dispatch of the restart cycle (32 repos ≈ 90s on
+/// 2026-09-17 16:43-16:44). Confirmed pairs are persisted to the state
+/// dir and hydrated once per process; eviction (out-of-band forge
+/// deletion self-heal, v0.113.x) removes the durable entry too, so a
+/// stale cache still costs exactly one loud push failure before
+/// re-probe — the same contract as before, minus the restart tax.
+fn persistent_exists_path() -> std::path::PathBuf {
+    if let Ok(dir) = std::env::var("DRACON_SYNC_STATE_DIR") {
+        if !dir.trim().is_empty() {
+            return std::path::PathBuf::from(dir).join("forge-exists-cache.json");
+        }
+    }
+    dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join(".local")
+        .join("state")
+        .join("dracon")
+        .join("forge-exists-cache.json")
+}
+
+fn load_persistent_entries(path: &std::path::Path) -> std::collections::HashSet<(std::path::PathBuf, String)> {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return Default::default();
+    };
+    serde_json::from_str::<Vec<(std::path::PathBuf, String)>>(&text)
+        .unwrap_or_default()
+        .into_iter()
+        .collect()
+}
+
+fn write_persistent_entries(
+    path: &std::path::Path,
+    entries: &[(std::path::PathBuf, String)],
+) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let body = serde_json::to_string(entries).map_err(std::io::Error::other)?;
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, body)?;
+    std::fs::rename(&tmp, path)
+}
+
+fn persist_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
+    let mut entries: Vec<(std::path::PathBuf, String)> =
+        load_persistent_entries(path).into_iter().collect();
+    entries.push((repo.to_path_buf(), remote_name.to_string()));
+    write_persistent_entries(path, &entries).ok();
+}
+
+fn remove_persistent_entry(path: &std::path::Path, repo: &Path, remote_name: &str) {
+    let entries: Vec<(std::path::PathBuf, String)> = load_persistent_entries(path)
+        .into_iter()
+        .filter(|(r, m)| !(r == repo && m == remote_name))
+        .collect();
+    write_persistent_entries(path, &entries).ok();
+}
+
+/// Record a confirmed (repo, remote) pair in the session cache and the
+/// durable state file. Called only after a positive ls-remote or a
+/// successful auto-create, preserving the tri-state contract above.
+fn confirm_forge_exists(repo: &Path, remote_name: &str) {
+    let newly_confirmed = exists_cache()
+        .lock()
+        .insert((repo.to_path_buf(), remote_name.to_string()));
+    if newly_confirmed {
+        persist_entry(&persistent_exists_path(), repo, remote_name);
+    }
+}
+
+static PERSISTENT_EXISTS_HYDRATED: std::sync::OnceLock<()> = std::sync::OnceLock::new();
 
 /// Classify an `ls-remote` failure from stderr. Definitive
 /// not-found phrasings per forge:
