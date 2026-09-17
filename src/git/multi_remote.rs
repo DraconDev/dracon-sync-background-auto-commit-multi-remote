@@ -1225,11 +1225,8 @@ pub(crate) fn evict_forge_existence(repo: &Path, remote_name: &str) {
     exists_cache()
         .lock()
         .remove(&(repo.to_path_buf(), remote_name.to_string()));
-    persistent_exists_path()
-        .into()
-        .map(|path| remove_persistent_entry(&path, repo, remote_name))
-        .unwrap_or(Ok(()))
-        .ok();
+    let path = persistent_exists_path();
+    remove_persistent_entry(&path, repo, remote_name);
 }
 
 /// Pure classifier: does this push error mean the forge-side repo is
