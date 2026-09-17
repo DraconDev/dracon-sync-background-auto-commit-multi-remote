@@ -64,6 +64,12 @@ async fn next_ready_result<S: futures::Stream + Unpin>(tasks: &mut S) -> Option<
     tasks.next().now_or_never().flatten()
 }
 
+/// Keep pulses start-to-start: inspection time is part of the interval,
+/// not an extra delay added to it. An overrun schedules the next scan now.
+fn remaining_pulse(interval: Duration, elapsed: Duration) -> Duration {
+    interval.saturating_sub(elapsed)
+}
+
 /// Reserve ownership at the dispatch boundary, independent of status branches.
 fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
@@ -803,6 +809,14 @@ mod tests {
         release.send(()).unwrap();
         assert_eq!(tasks.next().await.unwrap().unwrap(), 7);
         assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn pulse_accounts_for_scan_work_and_overruns() {
+        let pulse = Duration::from_secs(1);
+        assert_eq!(remaining_pulse(pulse, Duration::from_millis(350)), Duration::from_millis(650));
+        assert_eq!(remaining_pulse(pulse, pulse), Duration::ZERO);
+        assert_eq!(remaining_pulse(pulse, Duration::from_secs(120)), Duration::ZERO);
     }
 
     #[tokio::test]
@@ -3973,6 +3987,7 @@ pub(crate) async fn run_daemon(
     });
 
     while !shutdown.load(Ordering::SeqCst) {
+        let cycle_started = Instant::now();
         if reload.load(Ordering::SeqCst) {
             reload.store(false, Ordering::SeqCst);
             match SyncPolicy::load(&policy_path) {
@@ -4701,6 +4716,12 @@ pub(crate) async fn run_daemon(
                 }
             };
 
+            if debug_enabled() {
+                eprintln!("scheduler: status repo={} cycle_ms={} repo_ms={} dirty={}",
+                    repo.display(), cycle_started.elapsed().as_millis(),
+                    now.elapsed().as_millis(), !status.is_clean);
+            }
+
             // Cache remote checks — used in both fast and slow paths
             let has_origin = has_origin_remote(&repo);
             let has_upstream = has_tracking_upstream(&repo);
@@ -5052,6 +5073,11 @@ pub(crate) async fn run_daemon(
                 .is_some_and(|since| now.duration_since(since) >= MAX_DIRTY_DELAY)
                 || now.duration_since(entry.changed_at) >= inactivity_delay;
 
+            if debug_enabled() {
+                eprintln!("scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={}",
+                    repo.display(), cycle_started.elapsed().as_millis(),
+                    now.saturating_duration_since(entry.changed_at).as_millis(), enough_time);
+            }
             if !enough_time {
                 continue;
             }
@@ -5123,6 +5149,10 @@ pub(crate) async fn run_daemon(
             // happen in the apply phase after all jobs complete.
             if !reserve_sync(&mut in_flight, &repo) {
                 continue;
+            }
+            if debug_enabled() {
+                eprintln!("scheduler: dispatch repo={} cycle_ms={} inspection_ms={}",
+                    repo.display(), cycle_started.elapsed().as_millis(), now.elapsed().as_millis());
             }
             let entry_rf = std::mem::take(&mut entry.remote_failures);
             let secs = now.duration_since(entry.changed_at).as_secs();
@@ -5634,6 +5664,9 @@ pub(crate) async fn run_daemon(
             });
         }
 
+        if debug_enabled() {
+            eprintln!("scheduler: cycle_complete elapsed_ms={}", cycle_started.elapsed().as_millis());
+        }
         // CHANGED 2026-08-11 (audit LOW, daemon.rs:3524-3576): the
         // bottom-of-cycle sleep is responsive — it wakes early on
         // SIGHUP (reload lands at the next loop top) and on a fresh
@@ -5644,7 +5677,7 @@ pub(crate) async fn run_daemon(
         sleep_responsive(
             &reload_notify,
             || freeze_reason(&policy_path).is_some(),
-            Duration::from_secs(scan_interval),
+            remaining_pulse(Duration::from_secs(scan_interval), cycle_started.elapsed()),
         )
         .await;
     }

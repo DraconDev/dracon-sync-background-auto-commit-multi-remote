@@ -71,7 +71,8 @@ def main():
                       'auto_tag = false\nauto_release = false\nauto_publish = false\n'
                       'auto_gc_garbage_threshold_bytes = 0\n'
                       'remotes = []\n')
-    env.update(DRACON_SYNC_POLICY=str(policy), DRACON_SYNC_GIT_BIN=str(wrapper))
+    env.update(DRACON_SYNC_POLICY=str(policy), DRACON_SYNC_GIT_BIN=str(wrapper),
+               DRACON_SYNC_DEBUG='1')
     report = {'root': str(root), 'binary': binary, 'scope': 'plain-file scheduler, local bare remote'}
     with (root / 'daemon.log').open('w') as log:
         daemon = subprocess.Popen([binary, '-vv', 'daemon'], env=env, stdout=log,
@@ -96,13 +97,15 @@ def main():
             for row in rows:
                 if row['t'] >= changed:
                     for op in ('add', 'commit', 'push'):
-                        if op in row['args']:
+                        if op in row['args'] and not (op == 'push' and '--delete' in row['args']):
                             dispatch.setdefault(op, row['t'] - changed)
             report.update(dispatch_seconds=dispatch,
                           commit_seconds=None if commit_at is None else commit_at - changed,
                           remote_seconds=None if remote_at is None else remote_at - changed)
             report['passed'] = (remote_at is not None and 2 <= dispatch.get('add', 999) <= 3
-                                and dispatch.get('push', 999) - dispatch.get('commit', 0) <= 1)
+                                and commit_at is not None
+                                and 0 <= changed + dispatch.get('push', 999) - commit_at <= 1)
+            report['commit_timestamp_note'] = 'polled HEAD observation; up to polling interval late'
         finally:
             os.killpg(daemon.pid, signal.SIGTERM)
             try:

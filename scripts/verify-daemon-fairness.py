@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""End-to-end fairness probe for the user-visible convergence failure.
+
+Reproduces the reported symptom class with an isolated daemon, three repos and
+local bare remotes: repo A is edited continuously, repo B receives one change
+after startup, repo C's push is delayed by a slow wrapper (simulating a slow
+remote), and repo B2 holds an uncommitted change made BEFORE the daemon
+started (missed-event reconciliation). No live state, forges, credentials or
+canonical repositories are touched. Warden is disabled here; this measures the
+sync scheduler and its fairness, not the encryption filter.
+"""
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+
+DEADLINE = 30.0
+
+
+def fail(msg):
+    print(f"FAIL: {msg}")
+    raise SystemExit(1)
+
+
+def main():
+    binary = str(Path(sys.argv[1]).resolve())
+    git_bin = shutil.which('git')
+    identity = {key: subprocess.check_output([git_bin, 'config', '--get', key], text=True).strip()
+                for key in ('user.name', 'user.email')}
+    root = Path(tempfile.mkdtemp(prefix='sync-fairness-'))
+    home, watch, state = [root / p for p in ('home', 'watch', 'state')]
+    for p in (home, watch, state):
+        p.mkdir()
+    env = {k: v for k, v in os.environ.items()
+           if not k.startswith(('GIT_', 'DRACON_', 'XDG_'))}
+    env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'),
+               XDG_STATE_HOME=str(state), XDG_CACHE_HOME=str(home / '.cache'),
+               GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(home / '.gitconfig'),
+               GIT_TERMINAL_PROMPT='0', DRACON_SYNC_STATE_DIR=str(state),
+               DRACON_SYNC_LEDGER=str(state / 'ledger.jsonl'))
+    (home / '.gitconfig').write_text('[user]\n\tname = ' + json.dumps(identity['user.name'])
+                                     + '\n\temail = ' + json.dumps(identity['user.email']) + '\n')
+    events = root / 'git-events.jsonl'
+    wrapper = root / 'git-probe'
+    # C's push is slowed by 3s inside the wrapper: execution/transfer cost is
+    # visible separately from queue wait, without touching any timeout config.
+    wrapper.write_text('#!/usr/bin/env python3\nimport json,os,sys,time\n'
+                       + f'with open({str(events)!r}, "a") as f:\n'
+                       + ' f.write(json.dumps({"t":time.monotonic(),"args":sys.argv[1:],'
+                       '"cwd":os.getcwd()})+"\\n")\n'
+                       + 'if sys.argv[1:2] == ["push"] and os.getcwd().endswith("/c"):\n'
+                       + '    time.sleep(3)\n'
+                       + f'os.execv({git_bin!r}, [{git_bin!r}]+sys.argv[1:])\n')
+    wrapper.chmod(0o700)
+
+    def git(*argv, cwd):
+        return subprocess.check_output([git_bin, *argv], cwd=cwd, env=env,
+                                       stderr=subprocess.STDOUT, timeout=10)
+
+    names = ('a', 'b', 'b2', 'c')
+    repos = {}
+    for name in names:
+        remote = root / f'remote-{name}.git'
+        repo = watch / name
+        repo.mkdir()
+        git('init', '--bare', str(remote), cwd=root)
+        git('init', '-b', 'main', cwd=repo)
+        (repo / 'seed.txt').write_text('seed\n')
+        git('add', '--', 'seed.txt', cwd=repo)
+        git('commit', '-m', 'seed', cwd=repo)
+        git('remote', 'add', 'origin', str(remote), cwd=repo)
+        git('push', '-u', 'origin', 'main', cwd=repo)
+        repos[name] = repo
+    # Missed-event reconciliation: repo b2 is dirty before the daemon starts.
+    (repos['b2'] / 'early.txt').write_text('written before daemon start\n')
+
+    policy = root / 'policy.toml'
+    policy.write_text(f'watch_roots = [{json.dumps(str(watch))}]\n'
+                      'pulse_interval_secs = 1\ninactivity_push_delay_secs = 2\n'
+                      'auto_commit = true\nauto_push = true\nauto_pull = false\n'
+                      'auto_bump_versions = false\nauto_harden_with_warden = false\n'
+                      'auto_github_private = false\nauto_repair_concerns = false\n'
+                      'auto_repair_warns = false\nauto_rewrite_large_blobs = false\n'
+                      'build_artifact_cleanup = false\nstandard_files_auto = false\n'
+                      'auto_tag = false\nauto_release = false\nauto_publish = false\n'
+                      'auto_gc_garbage_threshold_bytes = 0\nremotes = []\n')
+    env.update(DRACON_SYNC_POLICY=str(policy), DRACON_SYNC_GIT_BIN=str(wrapper),
+               DRACON_SYNC_DEBUG='1')
+    report = {'root': str(root), 'scope': 'fairness: continuous edits, slow push, pre-start change'}
+    log = (root / 'daemon.log').open('w')
+    daemon = subprocess.Popen([binary, '-vv', 'daemon'], env=env, stdout=log,
+                              stderr=subprocess.STDOUT, start_new_session=True)
+    try:
+        start = time.monotonic()
+        time.sleep(1.0)
+        t_b = time.monotonic()
+        (repos['b'] / 'seed.txt').write_text('changed\n')
+        time.sleep(0.2)
+        t_c = time.monotonic()
+        (repos['c'] / 'seed.txt').write_text('changed\n')
+
+        stop_editing = threading.Event()
+
+        def continuous_edits():
+            i = 0
+            while not stop_editing.is_set():
+                (repos['a'] / f'note-{i}.txt').write_text(f'edit {i}\n')
+                i += 1
+                stop_editing.wait(0.3)
+
+        editor = threading.Thread(target=continuous_edits)
+        editor.start()
+
+        def remote_head(name):
+            return git('--git-dir', str(root / f'remote-{name}.git'),
+                       'show', 'refs/heads/main:seed.txt', cwd=root)
+
+        seen = {}
+        b2_committed = False
+        while time.monotonic() - start < DEADLINE:
+            if daemon.poll() is not None:
+                raise RuntimeError(f'daemon exited {daemon.returncode}')
+            if remote_head('b') == b'changed\n' and remote_head('c') == b'changed\n' \
+                    and remote_head('a') not in (b'seed\n',) \
+                    and not b2_committed:
+                head = git('show', 'HEAD:early.txt', cwd=repos['b2'])
+                b2_committed = head == b'written before daemon start\n'
+                if b2_committed:
+                    break
+            time.sleep(0.05)
+        stop_editing.set()
+        editor.join(timeout=2)
+        report['converged'] = b2_committed
+        report['a_commits'] = sum(1 for line in (root / 'git-events.jsonl').read_text().splitlines()
+                                  if f'"cwd": "{repos["a"]}"' in line
+                                  and '"args": ["commit"' in line)
+        rows = [json.loads(line) for line in events.read_text().splitlines()]
+        dispatch = {}
+
+        def first(name, op, after=0.0):
+            for row in rows:
+                if row['t'] >= after and row['cwd'] == str(repos[name]) \
+                        and row['args'] and row['args'][0] == op \
+                        and '--delete' not in row['args']:
+                    return row['t']
+            return None
+
+        for name in names:
+            add = first(name, 'add')
+            push = first(name, 'push')
+            dispatch[name] = {'add_rel': None if add is None else add - start,
+                              'push_rel': None if push is None else push - start}
+        b_add = dispatch['b']['add_rel']
+        c_add = dispatch['c']['add_rel']
+        b_push = dispatch['b']['push_rel']
+        c_push = dispatch['c']['push_rel']
+        b2_add = dispatch['b2']['add_rel']
+        report['dispatch'] = dispatch
+        checks = {
+            'b_single_change_stages_within_quiet_plus_pulse': b_add is not None
+                and (b_add - t_b) <= 3.4,
+            'c_stages_alongside_slow_remote': c_add is not None and (c_add - t_c) <= 3.4,
+            'c_slow_push_transfers_within_6s': c_push is not None and remote_head('c') == b'changed\n'
+                and first('c', 'push') - first('c', 'add') >= 3.0,
+            'b_push_not_blocked_by_c_slow_push': b_push is not None and b_add is not None
+                and (b_push - b_add) <= 1.6,
+            'a_continuous_edits_commit_within_documented_5s_bound': dispatch['a']['add_rel']
+                is not None and 4.0 <= dispatch['a']['add_rel'] - 1.0 <= 7.5,
+            'pre_start_change_reconciled_within_4s_of_start': b2_add is not None and b2_add <= 4.0,
+        }
+        report['checks'] = checks
+        report['passed'] = all(checks.values()) and b2_committed
+    finally:
+        os.killpg(daemon.pid, signal.SIGTERM)
+        try:
+            daemon.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            os.killpg(daemon.pid, signal.SIGKILL)
+            daemon.wait(timeout=3)
+        log.close()
+    (root / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
+    print(json.dumps(report, indent=2))
+    return 0 if report['passed'] else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
