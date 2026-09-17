@@ -4116,46 +4116,24 @@ async fn stage_commit_and_push(
                 // CHANGED 2026-08-09 (v0.113.50): also classify the
                 // per-remote errors (divergence vs transport vs
                 // policy) so the HINT says WHY, not just WHO.
-                // CHANGED 2026-09-17 (restart-poisoning fix): when EVERY
-                // failing remote's error is task cancellation (daemon
-                // shutdown/wedge abort), the outcome is unknown — not a
-                // transport failure. Do not record; the next start
-                // re-dispatches without the 300s stuck backoff.
-                let any_real_failure = ctx
-                    .remote_failures
-                    .as_deref()
-                    .map(|map| {
-                        map.values()
-                            .any(|f| !crate::daemon::push_error_is_cancellation(&f.last_error))
-                    })
-                    .unwrap_or(true); // no per-remote detail: treat as real
-                if !any_real_failure {
-                    if debug_enabled() {
-                        eprintln!(
-                            "⏭️ {} push cancelled (shutdown/wedge) — not recorded as a push failure",
-                            repo.display()
-                        );
-                    }
-                    push_failed = true;
-                } else {
-                    let names = failing_remote_names(ctx.remote_failures.as_deref());
-                    let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
-                    eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
-                    crate::daemon::record_push_failure(
-                        repo,
-                        &format!(
-                            "git push returned non-zero (remotes: {}) — {}",
-                            names, cause
-                        ),
-                    );
-                    notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
-                    push_failed = true;
-                }
+                let names = failing_remote_names(ctx.remote_failures.as_deref());
+                let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
+                eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
+                crate::daemon::record_push_failure(
+                    repo,
+                    &format!("git push returned non-zero (remotes: {}) — {}", names, cause),
+                );
+                notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
+                push_failed = true;
+            }
+            Err(e) if crate::daemon::push_error_is_cancellation(&e) => {
+                crate::daemon::record_push_attempt_error(repo, &e);
+                push_failed = true;
             }
             Err(e) => {
-                let error = crate::ownership::redact_url_credentials(&e.to_string());
+                let error = crate::ownership::redact_url_credentials(&format!("{e:#}"));
                 eprintln!("⚠️ push error for {}: {}", repo.display(), error);
-                crate::daemon::record_push_failure(repo, &error);
+                crate::daemon::record_push_attempt_error(repo, &e);
                 let cause = crate::git::classify_push_failure(&error);
                 notify_webhook_persistent_push_failure(policy, repo, "origin/mirrors", cause);
                 push_failed = true;
@@ -5150,28 +5128,6 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             Ok(false) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error.
-                // CHANGED 2026-09-17 (restart-poisoning fix): skip the
-                // ledger when every failing remote's error is task
-                // cancellation (same rule as the first Ok(false) arm).
-                let all_cancelled = ctx
-                    .remote_failures
-                    .as_deref()
-                    .map(|map| {
-                        !map.is_empty()
-                            && map
-                                .values()
-                                .all(|f| crate::daemon::push_error_is_cancellation(&f.last_error))
-                    })
-                    .unwrap_or(false);
-                if all_cancelled {
-                    if debug_enabled() {
-                        eprintln!(
-                            "⏭️ {} push cancelled (shutdown/wedge) — not recorded as a push failure",
-                            ctx.repo.display()
-                        );
-                    }
-                    return Ok(false);
-                }
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 eprintln!(
                     "⚠️ push failed for {} (remotes: {})",
@@ -5199,7 +5155,8 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // — see `push_error_is_cancellation` in daemon.rs. The
                 // outcome is unknown, not failed; the next start
                 // re-dispatches without a 300s backoff.
-                if crate::daemon::push_error_is_cancellation(&e.to_string()) {
+                if crate::daemon::push_error_is_cancellation(&e) {
+                    crate::daemon::record_push_attempt_error(ctx.repo, &e);
                     if debug_enabled() {
                         eprintln!(
                             "⏭️ {} push task cancelled — not recorded as a push failure",
@@ -5208,9 +5165,9 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     }
                     return Ok(false);
                 }
-                let error = crate::ownership::redact_url_credentials(&e.to_string());
+                let error = crate::ownership::redact_url_credentials(&format!("{e:#}"));
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
-                crate::daemon::record_push_failure(ctx.repo, &error);
+                crate::daemon::record_push_attempt_error(ctx.repo, &e);
                 let cause = crate::git::classify_push_failure(&error);
                 notify_webhook_persistent_push_failure(
                     ctx.policy,
