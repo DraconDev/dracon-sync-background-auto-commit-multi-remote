@@ -1387,3 +1387,29 @@ ok
 test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) dca459f] init
 ok
 test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 6f915b6] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 178a1d4] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpy5UGr8/origin.git'
+[master 760b387] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 4c86d22] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 765f5c9] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) d10e6dd] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 7b6e9fe] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 7b6e9fe] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 381ac1f] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 32262bc] init
