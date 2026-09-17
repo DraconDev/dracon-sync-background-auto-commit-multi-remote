@@ -4970,9 +4970,7 @@ pub(crate) async fn run_daemon(
             let needs_classification = if status.is_clean {
                 // Clean repos still classify when remote issues or ahead/behind
                 // state requires the dirty-entries check.
-                status.ahead == 0
-                    && status.behind == 0
-                    && (!has_origin || !has_upstream)
+                status.ahead == 0 && status.behind == 0 && (!has_origin || !has_upstream)
             } else {
                 status.ahead == 0 && status.behind == 0
             };
@@ -5010,10 +5008,21 @@ pub(crate) async fn run_daemon(
                 }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
-                    && !classification_cooldowns.get(&repo).is_some_and(|until| now < *until)
+                    && !classification_cooldowns
+                        .get(&repo)
+                        .is_some_and(|until| now < *until)
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());
+                    if debug_enabled() {
+                        eprintln!(
+                            "scheduler: classification_spawn repo={} cycle_ms={} pending={} results={}",
+                            repo.display(),
+                            cycle_started.elapsed().as_millis(),
+                            classification_pending.len(),
+                            classification_results.len()
+                        );
+                    }
                     let repo_for_job = repo.clone();
                     classification_jobs.push(tokio::task::spawn(async move {
                         let started = Instant::now();
