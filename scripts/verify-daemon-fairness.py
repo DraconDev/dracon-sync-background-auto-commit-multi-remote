@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end fairness probe for the user-visible convergence failure.
 
-Reproduces the reported symptom class with an isolated daemon, three repos and
+Reproduces the reported symptom class with an isolated daemon, four repos and
 local bare remotes: repo A is edited continuously, repo B receives one change
 after startup, repo C's push is delayed by a slow wrapper (simulating a slow
 remote), and repo B2 holds an uncommitted change made BEFORE the daemon
@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import signal
 import subprocess
 import sys
@@ -21,11 +22,6 @@ import threading
 import time
 
 DEADLINE = 30.0
-
-
-def fail(msg):
-    print(f"FAIL: {msg}")
-    raise SystemExit(1)
 
 
 def main():
@@ -48,15 +44,21 @@ def main():
                                      + '\n\temail = ' + json.dumps(identity['user.email']) + '\n')
     events = root / 'git-events.jsonl'
     wrapper = root / 'git-probe'
+    logger = root / 'git-event-probe'
     # C's push is slowed by 3s inside the wrapper: execution/transfer cost is
     # visible separately from queue wait, without touching any timeout config.
-    wrapper.write_text('#!/usr/bin/env python3\nimport json,os,sys,time\n'
+    logger.write_text('#!/usr/bin/env python3\nimport json,os,sys,time\n'
                        + f'with open({str(events)!r}, "a") as f:\n'
                        + ' f.write(json.dumps({"t":time.monotonic(),"args":sys.argv[1:],'
                        '"cwd":os.getcwd()})+"\\n")\n'
-                       + 'if sys.argv[1:2] == ["push"] and os.getcwd().endswith("/c"):\n'
+                       + 'if sys.argv[1:2] == ["push"] and "--delete" not in sys.argv and os.getcwd().endswith("/c"):\n'
                        + '    time.sleep(3)\n'
                        + f'os.execv({git_bin!r}, [{git_bin!r}]+sys.argv[1:])\n')
+    logger.chmod(0o700)
+    # Only instrument operations under test, not every status/config probe.
+    wrapper.write_text('#!' + shutil.which('sh') + '\n'
+                       + 'case "$1" in add|push) exec ' + shlex.quote(str(logger)) + ' "$@";; esac\n'
+                       + 'exec ' + shlex.quote(git_bin) + ' "$@"\n')
     wrapper.chmod(0o700)
 
     def git(*argv, cwd):
@@ -96,6 +98,8 @@ def main():
     log = (root / 'daemon.log').open('w')
     daemon = subprocess.Popen([binary, '-vv', 'daemon'], env=env, stdout=log,
                               stderr=subprocess.STDOUT, start_new_session=True)
+    stop_editing = threading.Event()
+    editor = None
     try:
         start = time.monotonic()
         time.sleep(1.0)
@@ -105,7 +109,7 @@ def main():
         t_c = time.monotonic()
         (repos['c'] / 'seed.txt').write_text('changed\n')
 
-        stop_editing = threading.Event()
+        t_a = time.monotonic()
 
         def continuous_edits():
             i = 0
@@ -117,29 +121,35 @@ def main():
         editor = threading.Thread(target=continuous_edits)
         editor.start()
 
-        def remote_head(name):
-            return git('--git-dir', str(root / f'remote-{name}.git'),
-                       'show', 'refs/heads/main:seed.txt', cwd=root)
-
-        seen = {}
-        b2_committed = False
+        expected = {'a': ('note-0.txt', b'edit 0\n'),
+                    'b': ('seed.txt', b'changed\n'),
+                    'b2': ('early.txt', b'written before daemon start\n'),
+                    'c': ('seed.txt', b'changed\n')}
+        seen, committed = {}, {}
         while time.monotonic() - start < DEADLINE:
             if daemon.poll() is not None:
                 raise RuntimeError(f'daemon exited {daemon.returncode}')
-            if remote_head('b') == b'changed\n' and remote_head('c') == b'changed\n' \
-                    and remote_head('a') not in (b'seed\n',) \
-                    and not b2_committed:
-                head = git('show', 'HEAD:early.txt', cwd=repos['b2'])
-                b2_committed = head == b'written before daemon start\n'
-                if b2_committed:
-                    break
+            for name, (path, content) in expected.items():
+                for observed, gitdir in ((committed, repos[name] / '.git'),
+                                         (seen, root / f'remote-{name}.git')):
+                    if name in observed:
+                        continue
+                    try:
+                        blob = git('--git-dir', str(gitdir), 'show',
+                                   f'refs/heads/main:{path}', cwd=root)
+                    except subprocess.CalledProcessError:
+                        continue  # The new path has not been committed yet.
+                    if blob == content:
+                        observed[name] = time.monotonic()
+            if len(seen) == len(names):
+                break
             time.sleep(0.05)
         stop_editing.set()
         editor.join(timeout=2)
-        report['converged'] = b2_committed
-        report['a_commits'] = sum(1 for line in (root / 'git-events.jsonl').read_text().splitlines()
-                                  if f'"cwd": "{repos["a"]}"' in line
-                                  and '"args": ["commit"' in line)
+        report['converged'] = len(seen) == len(names)
+        report['commit_observed_seconds'] = {n: t - start for n, t in committed.items()}
+        report['remote_observed_seconds'] = {n: t - start for n, t in seen.items()}
+        report['a_commits'] = int(git('rev-list', '--count', 'HEAD', cwd=repos['a'])) - 1
         rows = [json.loads(line) for line in events.read_text().splitlines()]
         dispatch = {}
 
@@ -163,20 +173,25 @@ def main():
         b2_add = dispatch['b2']['add_rel']
         report['dispatch'] = dispatch
         checks = {
-            'b_single_change_stages_within_quiet_plus_pulse': b_add is not None
-                and (b_add - t_b) <= 3.4,
-            'c_stages_alongside_slow_remote': c_add is not None and (c_add - t_c) <= 3.4,
-            'c_slow_push_transfers_within_6s': c_push is not None and remote_head('c') == b'changed\n'
-                and first('c', 'push') - first('c', 'add') >= 3.0,
-            'b_push_not_blocked_by_c_slow_push': b_push is not None and b_add is not None
-                and (b_push - b_add) <= 1.6,
-            'a_continuous_edits_commit_within_documented_5s_bound': dispatch['a']['add_rel']
-                is not None and 4.0 <= dispatch['a']['add_rel'] - 1.0 <= 7.5,
-            'pre_start_change_reconciled_within_4s_of_start': b2_add is not None and b2_add <= 4.0,
+            'b_staging_at_quiet_plus_one_pulse': b_add is not None
+                and 2 <= start + b_add - t_b <= 3,
+            'c_staging_at_quiet_plus_one_pulse': c_add is not None
+                and 2 <= start + c_add - t_c <= 3,
+            'slow_push_execution_measured_separately': c_push is not None and 'c' in seen
+                and 3 <= seen['c'] - (start + c_push) <= 6,
+            # HEAD polling is an upper bound on commit completion. A positive
+            # overrun proves a failure; a pass needs the finer timing gate too.
+            'b_push_within_one_pulse_of_observed_commit': b_push is not None and 'b' in committed
+                and start + b_push - committed['b'] <= 1,
+            'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
+            'pre_start_change_stages_within_3s': b2_add is not None and b2_add <= 3,
         }
         report['checks'] = checks
-        report['passed'] = all(checks.values()) and b2_committed
+        report['passed'] = all(checks.values()) and report['converged']
     finally:
+        stop_editing.set()
+        if editor is not None:
+            editor.join(timeout=2)
         os.killpg(daemon.pid, signal.SIGTERM)
         try:
             daemon.wait(timeout=3)

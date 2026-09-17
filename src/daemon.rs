@@ -70,6 +70,11 @@ fn remaining_pulse(interval: Duration, elapsed: Duration) -> Duration {
     interval.saturating_sub(elapsed)
 }
 
+fn dispatch_due(now: Instant, changed_at: Instant, dirty_since: Option<Instant>, quiet: Duration) -> bool {
+    dirty_since.is_some_and(|since| now.saturating_duration_since(since) >= Duration::from_secs(5))
+        || now.saturating_duration_since(changed_at) >= quiet
+}
+
 /// Reserve ownership at the dispatch boundary, independent of status branches.
 fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
@@ -559,7 +564,10 @@ pub(crate) async fn refresh_publish_upstream(repo: &Path, policy: &SyncPolicy) -
     if remote == "origin" && has_ssh_mirrors(repo) {
         return Ok(false);
     }
-    let refspec = format!("{branch}:refs/remotes/{remote}/{branch}");
+    // Pruning compares source refs against advertised full ref names.
+    // A short source (`main`) can make Git prune the destination it just
+    // fetched; use the fully qualified source to preserve origin/main.
+    let refspec = format!("refs/heads/{branch}:refs/remotes/{remote}/{branch}");
     let fetch = run_git_with_timeout(
         repo,
         &["fetch", "--prune", &remote, &refspec],
@@ -819,6 +827,17 @@ mod tests {
         assert_eq!(remaining_pulse(pulse, Duration::from_secs(120)), Duration::ZERO);
     }
 
+    #[test]
+    fn eligibility_uses_dispatch_clock_and_bounds_continuous_work() {
+        let start = Instant::now();
+        let quiet = Duration::from_secs(2);
+        assert!(!dispatch_due(start + Duration::from_millis(1999), start, Some(start), quiet));
+        assert!(dispatch_due(start + quiet, start, Some(start), quiet));
+        let now = start + Duration::from_secs(5);
+        assert!(dispatch_due(now, now, Some(start), quiet));
+        assert!(!dispatch_due(start, now, Some(now), quiet));
+    }
+
     #[tokio::test]
     async fn stalled_worker_retains_exclusive_dispatch_ownership_across_cycles() {
         let repo = PathBuf::from("isolated-repo");
@@ -837,6 +856,31 @@ mod tests {
         tasks.next().await.unwrap().unwrap();
         owners.remove(&repo); // only an observed completion releases ownership
         assert!(reserve_sync(&mut owners, &repo));
+    }
+
+    #[tokio::test]
+    async fn refresh_publish_preserves_successfully_pushed_tracking_ref() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_publish_upstream_repo(&tmp);
+        let remote = tmp.path().join("remote.git");
+        let run = |args: &[&str]| {
+            let output = crate::git::git_cmd().args(args).current_dir(&repo).output().unwrap();
+            assert!(output.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&output.stderr));
+        };
+        // Only a local remote: the refresh must actually run, not skip due
+        // to the fixture helper's named SSH mirror.
+        run(&["remote", "remove", "github"]);
+        run(&["init", "--bare", remote.to_str().unwrap()]);
+        run(&["remote", "add", "origin", remote.to_str().unwrap()]);
+        run(&["push", "--no-verify", "-u", "origin", "main"]);
+        assert!(!crate::git::upstream_tracking_ref_missing(&repo));
+        let policy: SyncPolicy = toml::from_str("remotes = []").unwrap();
+        let refreshed = refresh_publish_upstream(&repo, &policy).await;
+        assert!(refreshed.is_ok(), "refresh failed: {refreshed:?}");
+        assert!(!crate::git::upstream_tracking_ref_missing(&repo), "refresh removed a pushed tracking ref");
+        let status = GitService::new(&repo).unwrap().get_status().await.unwrap();
+        assert_eq!(status.ahead, 0);
+        assert_eq!(status.behind, 0);
     }
 
     fn git_config_value(repo: &Path, key: &str) -> String {
@@ -4765,6 +4809,12 @@ pub(crate) async fn run_daemon(
                 }
             }
             if status.ahead == 0 && (!has_upstream || upstream_ref_missing) {
+                if debug_enabled() {
+                    eprintln!(
+                        "scheduler: ahead-override-enter repo={} has_upstream={} upstream_ref_missing={} ahead={}",
+                        repo.display(), has_upstream, upstream_ref_missing, status.ahead
+                    );
+                }
                 let unpushed = count_unpushed_vs_mirrors(&repo);
                 // CHANGED 2026-07-21 (v0.112.31, audit H7/F1.4):
                 // LOCAL-FIRST fallback chain. The pre-fix order ran
@@ -5067,16 +5117,17 @@ pub(crate) async fn run_daemon(
             // since the repo first became dirty — this ensures
             // continuous editing (e.g. a build process) still gets
             // committed at a steady cadence.
-            const MAX_DIRTY_DELAY: Duration = Duration::from_secs(5);
-            let enough_time = entry
-                .dirty_since
-                .is_some_and(|since| now.duration_since(since) >= MAX_DIRTY_DELAY)
-                || now.duration_since(entry.changed_at) >= inactivity_delay;
+            // Status/filter inspection may cross the eligibility deadline.
+            // Re-read the monotonic clock at dispatch, not at scan entry.
+            let eligibility_now = Instant::now();
+            let enough_time = dispatch_due(
+                eligibility_now, entry.changed_at, entry.dirty_since, inactivity_delay,
+            );
 
             if debug_enabled() {
                 eprintln!("scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={}",
                     repo.display(), cycle_started.elapsed().as_millis(),
-                    now.saturating_duration_since(entry.changed_at).as_millis(), enough_time);
+                    eligibility_now.saturating_duration_since(entry.changed_at).as_millis(), enough_time);
             }
             if !enough_time {
                 continue;
