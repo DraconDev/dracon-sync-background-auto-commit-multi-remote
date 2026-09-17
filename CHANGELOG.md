@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [Unreleased]
+
+### Fixed
+
+- **Classification cancellation leaks the git process group
+  (2026-09-17)**: the background classifier spawned its filter-aware
+  `git diff` via a bare tokio Command with NO kill_on_drop and NO
+  process group. When the scheduler's 30s classification timeout
+  cancelled the future, the git child — and the `dracon-warden
+  filter-clean` children git spawned for every filter-managed file —
+  were orphaned and kept running, contending with the retry (live
+  journal 11:57–12:01: ai-auto-writer classification timed out every
+  cycle). `cli_diff_entries`/`untracked_entries` now spawn through
+  `spawn_git_command_cancellable` (own process group + kill_on_drop +
+  captured output) and `run_git_captured_output` adds a Drop group-kill
+  guard (TERM→KILL escalation mirroring `kill_process_group`). The
+  guard fires on normal completion too — after `wait()` reaped the
+  leader, signals are no-ops. Fail-before regression
+  `classification_cancellation_terminates_git_process_group` (a
+  180s-sleep required filter survives the pre-fix cancellation; passes
+  post-fix); full package gates pass (1040 unit + 10 integration,
+  clippy `-D warnings`, fmt).
+
 ## [0.113.59] - 2026-09-17
 
 ### Fixed
