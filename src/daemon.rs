@@ -76,6 +76,24 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
     jobs.next().now_or_never().flatten()
 }
 
+/// Apply finished classifiers at both pulse and per-repo scheduling boundaries.
+/// Never await unfinished jobs: slow required filters retain their ownership.
+fn collect_ready_classifications(
+    jobs: &mut FuturesUnordered<ClassificationJoin>,
+    pending: &mut HashSet<PathBuf>,
+    results: &mut HashMap<PathBuf, Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
+) {
+    while let Some(joined) = next_ready_classification(jobs) {
+        match joined {
+            Ok((repo, outcome)) => {
+                pending.remove(&repo);
+                results.insert(repo, outcome);
+            }
+            Err(error) => eprintln!("⚠️ classification job join error: {}", error),
+        }
+    }
+}
+
 /// Hard wall-clock cap for one classification job (filter-aware diff +
 /// untracked listing). Matches the prior inline git_diff_head_files cap.
 const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
@@ -985,6 +1003,44 @@ pub(crate) fn stuck_decision(
 mod tests {
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
+
+    #[tokio::test]
+    async fn classifier_completed_during_scan_is_available_at_repo_boundary() {
+        let repo = PathBuf::from("ready-during-scan");
+        let slow_repo = PathBuf::from("still-classifying");
+        let mut jobs = FuturesUnordered::new();
+        let mut pending = HashSet::from([repo.clone(), slow_repo.clone()]);
+        let mut results = HashMap::new();
+        let (release, wait) = tokio::sync::oneshot::channel::<()>();
+        let (finished, finish_wait) = tokio::sync::oneshot::channel();
+        let path = repo.clone();
+        jobs.push(tokio::spawn(async move {
+            wait.await.unwrap();
+            finished.send(()).unwrap();
+            (path, Ok(Vec::new()))
+        }));
+        let slow = tokio::spawn(async move {
+            futures::future::pending::<()>().await;
+            (slow_repo, Ok(Vec::new()))
+        });
+        let slow_abort = slow.abort_handle();
+        jobs.push(slow);
+        // At pulse start neither result exists.
+        collect_ready_classifications(&mut jobs, &mut pending, &mut results);
+        assert!(results.is_empty());
+        release.send(()).unwrap();
+        finish_wait.await.unwrap();
+        tokio::task::yield_now().await;
+        // The per-repo boundary sees the result without waiting for the slow
+        // classifier or a timer/next pulse, and retains empty success results.
+        collect_ready_classifications(&mut jobs, &mut pending, &mut results);
+        assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
+        assert!(!pending.contains(&repo));
+        assert_eq!(pending.len(), 1);
+        assert_eq!(jobs.len(), 1);
+        slow_abort.abort();
+        assert!(jobs.next().await.unwrap().unwrap_err().is_cancelled());
+    }
 
     #[test]
     fn needs_classification_dirty_repo_with_ahead_override_classifies() {
@@ -4570,17 +4626,11 @@ pub(crate) async fn run_daemon(
 
         // Collect ready classification results (ready-only, never blocking);
         // retain only jobs whose repo is still watched.
-        while let Some(joined) = next_ready_classification(&mut classification_jobs) {
-            let (repo, outcome) = match joined {
-                Ok(pair) => pair,
-                Err(e) => {
-                    eprintln!("⚠️ classification job join error: {}", e);
-                    continue;
-                }
-            };
-            classification_pending.remove(&repo);
-            classification_results.insert(repo, outcome);
-        }
+        collect_ready_classifications(
+            &mut classification_jobs,
+            &mut classification_pending,
+            &mut classification_results,
+        );
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
         cycle_count += 1;
@@ -5307,8 +5357,15 @@ pub(crate) async fn run_daemon(
                 }
             }
 
+            // A classifier may finish while earlier repos are inspected. Apply
+            // it here rather than spending another pulse with a missing result.
+            collect_ready_classifications(
+                &mut classification_jobs,
+                &mut classification_pending,
+                &mut classification_results,
+            );
             // Fast path: skip expensive git diff calls for clean, synced repos.
-            // Only do detailed diff analysis when the repo actually has changes.
+            // Detailed classification is also needed for pending remote work.
             // Classification (filter-aware diff + untracked listing) runs as a
             // per-repo background job: one job per repo while any classification
             // is needed; results are PEEKED (kept) here so a quiet-window
