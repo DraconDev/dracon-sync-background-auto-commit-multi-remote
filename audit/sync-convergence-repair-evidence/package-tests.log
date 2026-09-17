@@ -1240,3 +1240,123 @@ ok
 test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) 8ae2fe8] init
 ok
 test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 8ae2fe8] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) 0908eb0] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
+test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
+test test_helpers::tests::test_env_restorer_round_trip ... ok
+test tests::test_env_freeze_takes_precedence ... ok
+test tests::test_freeze_marker_paths ... ok
+test tests::test_freeze_reason_none_when_no_marker ... ok
+test tests::test_metrics_contains_all_expected_metrics ... ok
+test tests::test_metrics_output_has_expected_format ... ok
+test tests::test_run_maintenance_pauses_runs_resumes ... ok
+test tests::test_run_maintenance_preserves_existing_freeze ... ok
+test tests::test_run_maintenance_resumes_even_on_failure ... ok
+test tests::test_run_maintenance_spawn_failure_returns_127_and_resumes ... ok
+test tests::test_scaffold_does_not_delete_symlinked_external_directory ... ok
+test tests::test_scaffold_rejects_root_target_without_deleting_repo ... ok
+test tests::test_scaffold_rejects_symlink_directory_escape ... ok
+test vanished::tests::detect_is_sorted_by_path_for_deterministic_reports ... ok
+test vanished::tests::detect_reports_only_unexpired_vanished_entries ... ok
+test vanished::tests::ledger_roundtrips_through_json ... ok
+test vanished::tests::mark_seen_adds_and_clears_vanished_stamp ... ok
+test vanished::tests::update_stamps_newly_absent_and_clears_returned ... ok
+test visibility::tests::test_cache_not_written_on_unparseable_origin ... ok
+test visibility::tests::test_cache_not_written_when_gh_visibility_unknown ... ok
+test visibility::tests::test_cache_prevents_repeated_api_calls ... ok
+test visibility::tests::test_cached_repo_visibility_returns_none_when_no_file ... ok
+test visibility::tests::test_cached_repo_visibility_returns_private ... ok
+test visibility::tests::test_cached_repo_visibility_returns_public ... ok
+test visibility::tests::test_cached_repo_visibility_treats_legacy_format_as_unknown ... ok
+test visibility::tests::test_cached_repo_visibility_window_follows_interval_hours ... ok
+test visibility::tests::test_codeberg_api_url_construction ... ok
+test visibility::tests::test_get_github_metadata_returns_empty_on_error ... ok
+test visibility::tests::test_get_github_visibility_returns_safe_default_on_error ... ok
+test visibility::tests::test_github_visibility_at_creation_disabled ... ok
+test visibility::tests::test_github_visibility_at_creation_enabled_private ... ok
+test visibility::tests::test_gitlab_api_url_construction ... ok
+test visibility::tests::test_last_known_visibility_survives_stale_cache_for_display_only ... ok
+test visibility::tests::test_parse_github_owner_repo_empty_string ... ok
+test visibility::tests::test_parse_github_owner_repo_gitlab_url ... ok
+test visibility::tests::test_parse_github_owner_repo_https ... ok
+test visibility::tests::test_parse_github_owner_repo_invalid_url ... ok
+test visibility::tests::test_parse_github_owner_repo_no_git_suffix ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh_scheme_and_userinfo ... ok
+test visibility::tests::test_parse_github_owner_repo_with_dots ... ok
+test visibility::tests::test_parse_github_owner_repo_with_hyphens ... ok
+test visibility::tests::test_parse_github_owner_repo_with_name_mapping ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+test result: ok. 1051 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 51.92s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-3967f75cc8231982)
+
+running 10 tests
+test test_sync_repo_basic ... ok
+test test_sync_repo_branch_operations ... ok
+test test_sync_repo_commit ... ok
+test test_sync_repo_conflict_detection ... ok
+test test_sync_repo_diff ... ok
+test test_sync_repo_merge ... ok
+test test_sync_repo_multiple_commits ... ok
+test test_sync_repo_push_to_bare ... ok
+test test_sync_repo_stash ... ok
+test test_sync_repo_tag ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
+
+   Doc-tests dracon_sync
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
