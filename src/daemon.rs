@@ -29,7 +29,7 @@ use crate::exclude::{excluded_dir_names_set, has_sync_relevant_dirty_entries};
 use crate::git::list_submodules;
 use crate::git::{
     count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
-    discover_git_repos, git_diff_head_files, has_both_main_and_master, has_origin_remote,
+    discover_git_repos, has_both_main_and_master, has_origin_remote,
     has_tracking_upstream, index_lock_path, is_repo_ready, is_safe_branch_name,
     repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
 };
@@ -4918,7 +4918,7 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let raw_entries = match repo_diff_entries(&repo).await {
+                let filtered = match repo_diff_entries(&repo).await {
                     Ok(entries) => entries,
                     Err(e) => {
                         eprintln!(
@@ -4929,50 +4929,10 @@ pub(crate) async fn run_daemon(
                         continue;
                     }
                 };
-                // Filter out entries that only differ due to clean/smudge filters.
-                // `git status` shows filter-processed files as modified, but `git diff HEAD`
-                // correctly applies the clean filter and shows no diff for such files.
-                // Note: untracked files don't appear in `git diff HEAD`, so they always pass.
-                let diff_head_files = match git_diff_head_files(&repo).await {
-                    Ok(files) => files,
-                    Err(e) => {
-                        eprintln!(
-                            "⚠️ {} filter-aware diff failed; skipping sync classification: {}",
-                            repo.display(),
-                            e
-                        );
-                        continue;
-                    }
-                };
-                let filtered: Vec<_> = if diff_head_files.is_empty() && !raw_entries.is_empty() {
-                    // git diff HEAD returned nothing. Only clear if ALL entries are Modified
-                    // (filter-only). Untracked/Added files don't appear in git diff HEAD.
-                    let has_non_modified = raw_entries
-                        .iter()
-                        .any(|e| !matches!(e.status, dracon_git::types::FileStatus::Modified));
-                    if has_non_modified {
-                        raw_entries
-                            .into_iter()
-                            .filter(|e| {
-                                !matches!(e.status, dracon_git::types::FileStatus::Modified)
-                            })
-                            .collect()
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    raw_entries
-                        .into_iter()
-                        .filter(|e| {
-                            // Always keep non-modified entries (added, deleted, etc.)
-                            // For modified entries, only keep if git diff HEAD shows them
-                            if !matches!(e.status, dracon_git::types::FileStatus::Modified) {
-                                return true;
-                            }
-                            diff_head_files.contains(&e.path)
-                        })
-                        .collect()
-                };
+                // repo_diff_entries already applies the clean filter through
+                // `git diff --name-status HEAD` and includes untracked files.
+                // Repeating a name-only HEAD diff doubles filter execution and
+                // can time out despite the first traversal having succeeded.
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &filtered,

@@ -265,26 +265,28 @@ pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
     if status.is_clean {
         return Ok(Vec::new());
     }
-    // Get diff entries between HEAD and working tree (includes both staged
-    // and unstaged modifications, but NOT untracked files).
-    //
-    // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8):
-    // `cli_diff_entries` now propagates non-zero exits as Err —
-    // including `git diff HEAD` on an UNBORN repo (no HEAD yet),
-    // which is a legitimate state (the v0.112.30 empty-repo
-    // bootstrap depends on the untracked fallback below). Treat the
-    // failure as "diff unavailable" and fall through to the
-    // untracked-only path with a debug note, rather than aborting
-    // the whole dirty-detection pipeline.
+    // A failed required clean filter must never become "no tracked changes".
+    // Only an explicitly absent symbolic HEAD ref permits the unborn fallback;
+    // corrupt objects, detached HEAD failures and filter refusals propagate.
     let diff = match cli_diff_entries(repo).await {
         Ok(d) => d,
         Err(e) => {
-            if crate::policy::debug_enabled() {
-                eprintln!(
-                    "🐛 {} cli_diff_entries unavailable ({}); falling back to untracked-only",
-                    repo.display(),
-                    e
-                );
+            let symbolic = crate::git::tokio_git_cmd()
+                .args(["symbolic-ref", "--quiet", "HEAD"])
+                .current_dir(repo)
+                .output()
+                .await?;
+            if !symbolic.status.success() {
+                return Err(e);
+            }
+            let reference = String::from_utf8_lossy(&symbolic.stdout);
+            let exists = crate::git::tokio_git_cmd()
+                .args(["show-ref", "--verify", "--quiet", reference.trim()])
+                .current_dir(repo)
+                .output()
+                .await?;
+            if exists.status.code() != Some(1) {
+                return Err(e);
             }
             Vec::new()
         }

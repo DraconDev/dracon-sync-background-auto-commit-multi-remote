@@ -26,6 +26,7 @@ DEADLINE = 30.0
 
 def main():
     binary = str(Path(sys.argv[1]).resolve())
+    slow_filter = '--slow-filter' in sys.argv[2:]
     git_bin = shutil.which('git')
     identity = {key: subprocess.check_output([git_bin, 'config', '--get', key], text=True).strip()
                 for key in ('user.name', 'user.email')}
@@ -57,7 +58,7 @@ def main():
     logger.chmod(0o700)
     # Only instrument operations under test, not every status/config probe.
     wrapper.write_text('#!' + shutil.which('sh') + '\n'
-                       + 'case "$1" in add|push) exec ' + shlex.quote(str(logger)) + ' "$@";; esac\n'
+                       + 'case "$1" in add|push|diff) exec ' + shlex.quote(str(logger)) + ' "$@";; esac\n'
                        + 'exec ' + shlex.quote(git_bin) + ' "$@"\n')
     wrapper.chmod(0o700)
 
@@ -65,7 +66,7 @@ def main():
         return subprocess.check_output([git_bin, *argv], cwd=cwd, env=env,
                                        stderr=subprocess.STDOUT, timeout=10)
 
-    names = ('a', 'b', 'b2', 'c')
+    names = ('a', 'b', 'b2', 'c', 'd-filter') if slow_filter else ('a', 'b', 'b2', 'c')
     repos = {}
     for name in names:
         remote = root / f'remote-{name}.git'
@@ -79,6 +80,19 @@ def main():
         git('remote', 'add', 'origin', str(remote), cwd=repo)
         git('push', '-u', 'origin', 'main', cwd=repo)
         repos[name] = repo
+    if slow_filter:
+        # A required clean filter with bounded execution cost. It never contacts
+        # Warden or reads real secrets. Only this fixture's local config changes.
+        filter_program = root / 'slow-clean.py'
+        filter_program.write_text('import sys,time\ntime.sleep(4)\n'
+                                  'sys.stdout.buffer.write(sys.stdin.buffer.read())\n')
+        filtered_repo = repos['d-filter']
+        git('config', 'filter.probe.clean',
+            shlex.quote(sys.executable) + ' ' + shlex.quote(str(filter_program)), cwd=filtered_repo)
+        git('config', 'filter.probe.required', 'true', cwd=filtered_repo)
+        # info/attributes is fixture-local and need not be committed.
+        (filtered_repo / '.git/info/attributes').write_text('seed.txt filter=probe\n')
+        (filtered_repo / 'seed.txt').write_text('filtered change\n')
     # Missed-event reconciliation: repo b2 is dirty before the daemon starts.
     (repos['b2'] / 'early.txt').write_text('written before daemon start\n')
 
@@ -94,7 +108,8 @@ def main():
                       'auto_gc_garbage_threshold_bytes = 0\nremotes = []\n')
     env.update(DRACON_SYNC_POLICY=str(policy), DRACON_SYNC_GIT_BIN=str(wrapper),
                DRACON_SYNC_DEBUG='1')
-    report = {'root': str(root), 'scope': 'fairness: continuous edits, slow push, pre-start change'}
+    report = {'root': str(root), 'scope': 'fairness: continuous edits, slow push, pre-start change',
+              'slow_required_filter': slow_filter}
     log = (root / 'daemon.log').open('w')
     daemon = subprocess.Popen([binary, '-vv', 'daemon'], env=env, stdout=log,
                               stderr=subprocess.STDOUT, start_new_session=True)
@@ -125,6 +140,8 @@ def main():
                     'b': ('seed.txt', b'changed\n'),
                     'b2': ('early.txt', b'written before daemon start\n'),
                     'c': ('seed.txt', b'changed\n')}
+        if slow_filter:
+            expected['d-filter'] = ('seed.txt', b'filtered change\n')
         seen, committed = {}, {}
         while time.monotonic() - start < DEADLINE:
             if daemon.poll() is not None:
@@ -186,6 +203,8 @@ def main():
             'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
             'pre_start_change_stages_within_3s': b2_add is not None and b2_add <= 3,
         }
+        if slow_filter:
+            checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
         report['checks'] = checks
         report['passed'] = all(checks.values()) and report['converged']
     finally:
