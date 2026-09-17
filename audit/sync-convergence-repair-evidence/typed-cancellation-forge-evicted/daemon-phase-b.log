@@ -1,0 +1,50 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789676583716
+scheduler: cycle_complete elapsed_ms=66
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-l_3o2dwv/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789676584724
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r3 cycle_ms=204 repo_ms=203 dirty=true daemon_ms=1242
+scheduler: classification_spawn repo=/tmp/sync-restart-l_3o2dwv/watch/r3 cycle_ms=304 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=304
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-l_3o2dwv/watch/r3 elapsed_ms=133 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-l_3o2dwv/watch/r3 elapsed_ms=6 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-l_3o2dwv/watch/r3 ms=139 ok=true
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-l_3o2dwv/watch/r2 auto-created on origin
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-l_3o2dwv/watch/r1 auto-created on origin
+scheduler: pulse_start unix_ms=1789676585725
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r1 cycle_ms=222 repo_ms=188 dirty=false daemon_ms=2261
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r2 cycle_ms=501 repo_ms=130 dirty=false daemon_ms=2539
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r3 cycle_ms=853 repo_ms=178 dirty=true daemon_ms=2892
+scheduler: quiet_clock_assignment discovery_ms=2998 evidence_unix_ns=Some(1789676583673278105) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-l_3o2dwv/watch/r3 cycle_ms=959 observed_quiet_ms=2998 eligible=true daemon_ms=2998 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-l_3o2dwv/watch/r3 path="second.txt" unix_ns=Some(1789676583673278105)
+scheduler: dispatch repo=/tmp/sync-restart-l_3o2dwv/watch/r3 cycle_ms=959 inspection_ms=284 daemon_ms=2998 unix_ms=1789676586684
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=959
+scheduler: task_start repo=/tmp/sync-restart-l_3o2dwv/watch/r3 unix_ms=1789676586684
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_origin elapsed_ms=8
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_status elapsed_ms=8
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=after_status elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_pull elapsed_ms=14
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_clean elapsed_ms=14
+scheduler: pulse_start unix_ms=1789676586729
+sync: received SIGTERM, shutting down gracefully...
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r1 cycle_ms=243 repo_ms=242 dirty=false daemon_ms=3286
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_diff elapsed_ms=511
+scheduler: status repo=/tmp/sync-restart-l_3o2dwv/watch/r2 cycle_ms=586 repo_ms=186 dirty=false daemon_ms=3629
+🐛 /tmp/sync-restart-l_3o2dwv/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=after_diff elapsed_ms=692
+🐛 /tmp/sync-restart-l_3o2dwv/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-l_3o2dwv/watch/r3 thread=ThreadId(4) unix_ms=1789676587377
+scheduler: stage_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=unmerged elapsed_ms=6
+scheduler: stage_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=untracked elapsed_ms=42
+scheduler: stage_files_enter repo=/tmp/sync-restart-l_3o2dwv/watch/r3 unix_ms=1789676587437
+scheduler: stage_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-l_3o2dwv/watch/r3 phase=partition elapsed_ms=133
+scheduler: add_spawn repo=/tmp/sync-restart-l_3o2dwv/watch/r3 unix_ms=1789676587571
+scheduler: add_spawned repo=/tmp/sync-restart-l_3o2dwv/watch/r3 unix_ms=1789676587613 pid=Some(3937204)
+scheduler: cycle_complete elapsed_ms=940
