@@ -1,0 +1,69 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789683279623
+scheduler: cycle_complete elapsed_ms=37
+scheduler: pulse_start unix_ms=1789683280624
+scheduler: cycle_complete elapsed_ms=0
+scheduler: pulse_start unix_ms=1789683281626
+scheduler: cycle_complete elapsed_ms=26
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r2 auto-created on origin
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r3 auto-created on origin
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r1 auto-created on origin
+scheduler: pulse_start unix_ms=1789683282633
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=431 repo_ms=431 dirty=false daemon_ms=3561
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=802 repo_ms=159 dirty=false daemon_ms=3932
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=1265 repo_ms=350 dirty=true daemon_ms=4395
+scheduler: classification_spawn repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=1488 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=1488
+scheduler: pulse_start unix_ms=1789683284122
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-n4zm60ns/watch/r3 elapsed_ms=374 outcome=success
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=377 repo_ms=377 dirty=false daemon_ms=4996
+classification: phase=untracked-discovery repo=/tmp/sync-restart-n4zm60ns/watch/r3 elapsed_ms=10 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-n4zm60ns/watch/r3 ms=384 ok=true
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=608 repo_ms=107 dirty=false daemon_ms=5227
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=934 repo_ms=260 dirty=true daemon_ms=5552
+scheduler: quiet_clock_assignment discovery_ms=5787 evidence_unix_ns=Some(1789683279497797167) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=1169 observed_quiet_ms=5787 eligible=true daemon_ms=5787 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-n4zm60ns/watch/r3 path="early.txt" unix_ns=Some(1789683279497797167)
+scheduler: dispatch repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=1169 inspection_ms=495 daemon_ms=5787 unix_ms=1789683285291
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=1169
+scheduler: pulse_start unix_ms=1789683285291
+scheduler: task_start repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683285292
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_origin elapsed_ms=83
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_status elapsed_ms=83
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=after_status elapsed_ms=93
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_pull elapsed_ms=93
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_clean elapsed_ms=93
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=426 repo_ms=426 dirty=false daemon_ms=6214
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=661 repo_ms=95 dirty=false daemon_ms=6449
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_diff elapsed_ms=665
+scheduler: cycle_complete elapsed_ms=863
+🐛 /tmp/sync-restart-n4zm60ns/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=after_diff elapsed_ms=952
+🐛 /tmp/sync-restart-n4zm60ns/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-n4zm60ns/watch/r3 thread=ThreadId(16) unix_ms=1789683286245
+scheduler: stage_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=unmerged elapsed_ms=94
+scheduler: stage_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=untracked elapsed_ms=114
+scheduler: stage_files_enter repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683286379
+scheduler: stage_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: pulse_start unix_ms=1789683286380
+scheduler: stage_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=partition elapsed_ms=75
+scheduler: add_spawn repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683286454
+scheduler: add_spawned repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683286480 pid=Some(1243578)
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=151 repo_ms=150 dirty=false daemon_ms=7028
+scheduler: add_done repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683286681 ok=true
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=430 repo_ms=88 dirty=false daemon_ms=7307
+scheduler: cycle_complete elapsed_ms=598
+scheduler: commit_done repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683288287
+📝 committed 1 file(s) in /tmp/sync-restart-n4zm60ns/watch/r3
+scheduler: pulse_start unix_ms=1789683288300
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=180 repo_ms=180 dirty=false daemon_ms=8977
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=589 repo_ms=128 dirty=false daemon_ms=9386
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-n4zm60ns/watch/r3 (public_only policy + visibility cache says None)
+scheduler: cycle_complete elapsed_ms=868
+ℹ️  r3 already exists on origin — skipping auto-create
+sync: received SIGTERM, shutting down gracefully...

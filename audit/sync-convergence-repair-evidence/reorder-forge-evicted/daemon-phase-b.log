@@ -1,0 +1,34 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789683289462
+scheduler: cycle_complete elapsed_ms=141
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789683290481
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=449 repo_ms=416 dirty=true daemon_ms=1546
+scheduler: classification_spawn repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=601 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=602
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-n4zm60ns/watch/r3 elapsed_ms=121 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-n4zm60ns/watch/r3 elapsed_ms=50 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-n4zm60ns/watch/r3 ms=172 ok=true
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r2 auto-created on origin
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-n4zm60ns/watch/r1 auto-created on origin
+scheduler: pulse_start unix_ms=1789683291493
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r1 cycle_ms=401 repo_ms=400 dirty=false daemon_ms=2510
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r2 cycle_ms=539 repo_ms=58 dirty=false daemon_ms=2648
+scheduler: status repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=706 repo_ms=44 dirty=true daemon_ms=2815
+scheduler: quiet_clock_assignment discovery_ms=2995 evidence_unix_ns=Some(1789683289338371076) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=885 observed_quiet_ms=2995 eligible=true daemon_ms=2995 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-n4zm60ns/watch/r3 path="second.txt" unix_ns=Some(1789683289338371076)
+scheduler: dispatch repo=/tmp/sync-restart-n4zm60ns/watch/r3 cycle_ms=885 inspection_ms=224 daemon_ms=2995 unix_ms=1789683292379
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=886
+scheduler: task_start repo=/tmp/sync-restart-n4zm60ns/watch/r3 unix_ms=1789683292380
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_origin elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_status elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=after_status elapsed_ms=46
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_pull elapsed_ms=46
+scheduler: worker_prepare repo=/tmp/sync-restart-n4zm60ns/watch/r3 phase=before_clean elapsed_ms=46
+sync: received SIGTERM, shutting down gracefully...
