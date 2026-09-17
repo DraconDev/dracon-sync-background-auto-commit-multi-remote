@@ -164,3 +164,35 @@
    Compiling clap_derive v4.6.4
     Checking tokio v1.53.1
     Checking regex v1.13.1
+    Checking clap v4.6.6
+    Checking ppv-lite86 v0.2.21
+   Compiling synstructure v0.13.2
+    Checking rand_chacha v0.9.0
+    Checking zvariant_utils v4.0.0
+    Checking zcheapstr v1.1.0
+    Checking serde_spanned v0.6.9
+    Checking toml_datetime v0.6.11
+    Checking serde_urlencoded v0.7.1
+    Checking toml_edit v0.22.27
+    Checking proptest v1.11.0
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling zerovec-derive v0.11.3
+   Compiling enumflags2_derive v0.7.12
+   Compiling futures-macro v0.3.33
+   Compiling tracing-attributes v0.1.31
+   Compiling zvariant_derive v5.14.0
+    Checking tokio-util v0.7.19
+   Compiling openssl-macros v0.1.1
+    Checking futures-util v0.3.33
+   Compiling async-recursion v1.1.1
+   Compiling enumflags2 v0.7.12
+   Compiling thiserror-impl v1.0.69
+    Checking toml v0.8.23
+    Checking zerofrom v0.1.8
+    Checking tracing v0.1.44
+   Compiling zvariant v5.14.0
+    Checking yoke v0.8.3
+    Checking h2 v0.4.16
+    Checking zerovec v0.11.6
+    Checking zerotrie v0.2.4
