@@ -39,10 +39,11 @@ restarted as PID 3560717 at 16:43:06 BST, verified through
 
 | Repo | Demonstrated cause | Fix & live evidence |
 | --- | --- | --- |
-| ai-auto-writer | 30s classification timeouts under `CPUQuota=15%` (49.2s under quota vs 13.0s unthrottled, systemd-run probe) + cancellation process-group leak | Quota 15%→100% (14:22) + cancellation fix (0.113.60). Live: classification succeeded 13.6s; backlog drained 472→0; final inventory CLEAN, push OK, synced. |
-| polis | Wedge shape 1 (dirty + ahead override never classified) + shape 2 (clean + ahead=12 unreachable dispatch). | Shape-1 fix (0.113.61) + shape-2 fix/retained-empty-result (0.113.62). Live: committed 4+1 files, synced; final inventory CLEAN OK. |
+| ai-auto-writer | Repeated classification timeouts (`/tmp/sync-live-recheck-journal.log`, 08:59:37/09:01:56); quota probe `/tmp/sync-quota-classification-probe.log` completed in 49.238s, over the 30s classifier timeout. Cancellation ownership was independently defective, not established as the cause of those timeouts. | Quota 15%→100% plus cancellation fix. `/tmp/sync62-leftover-recovery-journal.log`: commit batches 14:24:53–14:28:05 and sync completions through 14:28:20; final `/tmp/sync62-final-inventory.json` has no backlog. |
+| polis | Dirty+ahead classification gate defect; clean+ahead shared-path defect reproduced in `/tmp/sync-ahead-installed-before.json` (15s failure), with patched clean and dirty passes in `/tmp/sync-clean-ahead-confirm.json` and `/tmp/sync-ahead-dirty-after.json`. These fixtures demonstrate the gate defect, not the age of every historical polis edit. | `/tmp/sync62-leftover-recovery-journal.log`: classified 15:00:32, committed 4 files 15:00:53, synced 15:01:08; committed 1 file 15:03:45, synced 15:03:59. Final inventory CLEAN OK. |
 | dracon-sync (self) | Same two wedge shapes (dirty+ahead=3, later clean+ahead=6 vs stale gitlab mirror). | Both fixes above; probe round 2 committed `3b77000` + round 3 `bc41119` committed and pushed to BOTH remotes; round-3 direct poller observed matching tips after its own start; its **12.6s** value is not end-to-end latency (see correction). |
-| junk-runner, freeport | Prior 0.113.59 fixes + current scheduler fixes. | Final inventory: CLEAN, OK, synced, no backlog. |
+| junk-runner | Baseline journal `/tmp/sync-convergence-baseline.log` recorded index.lock failure; competing owner and historical delay attribution remain unknown. The isolated lock-contention regression proves preservation/recovery, not the historical owner's identity. | `/tmp/sync-live-recheck-inventory.json` at approximately 09:04 BST already had no dirty/ahead/behind backlog; final inventory remains CLEAN/OK. Do not attribute historical recovery to later releases. |
+| freeport | No persistent leftover at the approximately 09:04 BST read-only snapshot (`/tmp/sync-live-recheck-inventory.json`); historical cause not established. Last-push age is not edit age. | Final `/tmp/sync62-final-inventory.json` remains CLEAN/OK; there is no demonstrated freeport-specific fix to claim. |
 | hegemon | Origin non-fast-forward rejection; auto-pull hit index.lock. Inventory: 6731 ahead, 4391 behind, STUCK_PULL, 1390 staged + 1 modified. | Journal 16:52:24–16:52:37 establishes failed push/retry, not successful convergence. History reconciliation is outside scope; stale `pushing` label remains under review. |
 
 ### Strict timing acceptance (0.113.62 release build)
@@ -84,6 +85,40 @@ needed in the daemon.
   four strict-probe passes above and the 12.6s direct measurement.
 - Timing evidence is from the isolated harness (5 fixtures); fleet-scale
   variance under heavy system load was not re-baselined in this window.
+
+### Review repairs and outstanding deployment work
+
+The independent reviewer blocked acceptance on incomplete causal citations,
+missing revision-bound fmt evidence, and hegemon's false active-pushing state.
+The table above now separates demonstrated causes from unknown historical
+causes. No extra change was planted in divergent hegemon.
+
+`src/report.rs` now gives STUCK_PULL precedence over PENDING and excludes
+Failed causes from `repo_is_active`. The real inventory shape (6731 ahead,
+4391 behind, 1390 staged + 1 modified) is reproduced in
+`test_stuck_pull_is_failed_not_actively_pushing`: FAIL before
+(`/tmp/sync63-stuck-before.log`, Pushing != Failed), PASS after
+(`/tmp/sync63-stuck-after.log`). `timeout 300 cargo test -p dracon-sync
+--locked` passed 1047 unit + 10 integration, 3 ignored, zero failed
+(`/tmp/sync63-suite.log`); `timeout 240 cargo clippy -p dracon-sync
+--all-targets --locked -- -D warnings` passed (`/tmp/sync63-clippy.log`).
+`/tmp/sync63-fmt-attested.log` records timestamp, HEAD and exit status of
+`timeout 30 cargo fmt --all -- --check`. Production fix commit `9a78a38`;
+regression commit `e1c8175`. This follow-up is NOT yet released/installed.
+
+The actual round-4 write timestamp in the JSON is 1789660276.206483, not the
+script-launch timestamp 16:51:15. Journal dispatch 1789660279025ms and add
+1789660279077ms give **2.819s dispatch / 2.871s add after write**. Commit
+completed 1789660279160ms, sync logged 16:51:26. Thus this live sample has
+strict staging evidence independent of the flawed first-poll timestamps.
+
+The initial 64s sample exposes a remaining startup scan issue: at 16:43:43
+classification completed in 3ms, but the first cycle's serial repo inspections
+ran 2.4–3.5s each; dispatch waited until 16:44:37. See
+`/tmp/sync62-window-journal.log` (initial pulse 16:43:06, classification
+16:43:43, dispatch unix_ms=1789659877581). This is NOT filter execution or
+remote transfer latency. Trace the startup inspection/maintenance work and
+remove it from the scheduling critical path before claiming full acceptance.
 
 ## Historical checkpoint — 2026-09-17, before 0.113.60 publication
 
