@@ -1,6 +1,68 @@
-# Sync convergence investigation — in progress
+# Sync convergence investigation — 0.113.62 deployed
 
-## Current checkpoint — 2026-09-17, 0.113.62 candidate
+## Final checkpoint — 2026-09-17, ~17:05 BST (post-deployment verification)
+
+Deployed chain: 0.113.61 → **0.113.62** (release script via
+`dracon-sync maintenance`, all four workspace gates inside the script, crates.io
+publish, tag `dracon-sync-v0.113.62`, GitHub release). Installed to
+`~/.local/bin` under the maintenance wrapper (fixture check passed); daemon
+restarted as PID 3560717 at 16:43:06 BST, verified through
+`/proc/<pid>/exe --version` = 0.113.62. GitLab tag pushed by hand; GitHub
+`origin/main` verified at live HEAD `581f2278` via `ls-remote` (the earlier
+`remote github` error was a wrong remote NAME — the GitHub remote is
+`origin`; no history rewritten).
+
+### Leftover-by-leftover resolution (final mapping)
+
+| Repo | Demonstrated cause | Fix & live evidence |
+| --- | --- | --- |
+| ai-auto-writer | 30s classification timeouts under `CPUQuota=15%` (49.2s under quota vs 13.0s unthrottled, systemd-run probe) + cancellation process-group leak | Quota 15%→100% (14:22) + cancellation fix (0.113.60). Live: classification succeeded 13.6s; backlog drained 472→0; final inventory CLEAN, push OK, synced. |
+| polis | Wedge shape 1 (dirty + ahead override never classified) + shape 2 (clean + ahead=12 unreachable dispatch). | Shape-1 fix (0.113.61) + shape-2 fix/retained-empty-result (0.113.62). Live: committed 4+1 files, synced; final inventory CLEAN OK. |
+| dracon-sync (self) | Same two wedge shapes (dirty+ahead=3, later clean+ahead=6 vs stale gitlab mirror). | Both fixes above; probe round 2 committed `3b77000` + round 3 `bc41119` committed and pushed to BOTH remotes; round-3 direct poller measured commit+push+gitlab+github at **12.6s**. |
+| junk-runner, freeport | Prior 0.113.59 fixes + current scheduler fixes. | Final inventory: CLEAN, OK, synced, no backlog. |
+| hegemon | NOT a scheduler defect: 6731 genuinely unpushed commits + 1391 dirty files (an agent loop actively writing), PENDING with a visible reason. | Left visible/truthful; repair is the operator's documented `repair concerns` path (out of scope here). |
+
+### Strict timing acceptance (0.113.62 release build)
+
+`verify-daemon-fairness.py` on `target/release/dracon-sync`: after the
+deadline-first scan order, **four consecutive strict runs passed**
+(B 2.21–2.65s, C 2.24–2.65s; two slow-filter, one plain, one more slow-filter:
+`/tmp/sync62-dfo{1,2,3,4}.json`). Prior failures on the same build without the
+reorder (C 3.152s, B 3.252s) were shown by pulse-gap data to be scan-position
+delay under 1.5–1.9s cycle overruns — not a weakened assertion. Fail-before
+unit evidence for the git-runner poll: `child_exit_wakes_runner_without_poll_interval`
+(`/tmp/sync-exit-before.log` FAIL, `/tmp/sync-exit-after.log` PASS).
+
+### 15-minute live window (installed 0.113.62, PID 3560717)
+
+Started 16:51:15 BST, duration 900s, harness `/tmp/observe-sync62-fixed.py`
+(reports in `/tmp/sync62-live-fixed/`). One bounded synthetic append to
+`audit/live-convergence-probe-2026-09-17b.md`; **no manual git**. Result:
+daemon committed the probe (HEAD `581f2278`, 16:51:19, ≤30s after write per
+the observer's 30s poll granularity; round-3's 10s poller measured the same
+pipeline at 12.6s end-to-end) and pushed it to BOTH GitHub and GitLab
+(detected at the first poll; tips equal to local HEAD throughout).
+Inventory: 32 watched repos, 29 fully clean+OK, **one exception: hegemon**
+(6731 genuinely unpushed commits, 1391 dirty files from an active agent loop,
+push PENDING — a truthful, visible blocker, not a hidden one; repair out of
+scope). The first scratch observer was invalid: `subprocess.run(list,
+shell=True)` ran only `cmd[0]`, so it recorded usage-text nulls while the
+remotes had already converged (manual `ls-remote` proof). Round 2's probe
+commit 64s and round 3's 12.6s confirm real convergence; no monitor fix is
+needed in the daemon.
+
+### Honest limitations
+
+- The 30s detection granularity bounds the live probe timing claim at
+  "≤30s commit+push on both remotes"; the 12.6s end-to-end figure comes from
+  the separate 10s-poll round-3 measurement of the same installed pipeline.
+- The strict 15-minute window detected convergence at its FIRST poll; the
+  daemon-side cadence (quiet+one pulse) is additionally evidenced by the
+  four strict-probe passes above and the 12.6s direct measurement.
+- Timing evidence is from the isolated harness (5 fixtures); fleet-scale
+  variance under heavy system load was not re-baselined in this window.
+
+## Historical checkpoint — 2026-09-17, before 0.113.60 publication
 
 The running service was verified through `/proc/1857001/exe --version` as
 0.113.61 at 16:05 BST. It lacks the clean-ahead and mid-scan collection fixes.
