@@ -4964,37 +4964,52 @@ pub(crate) async fn run_daemon(
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Only do detailed diff analysis when the repo actually has changes.
             // Classification (filter-aware diff + untracked listing) runs as a
-            // per-repo background job: spawn for any status-dirty repo regardless
-            // of eligibility, consume a ready result only when the quiet window
-            // has also elapsed — the quiet window and the classification job
-            // run in PARALLEL, never one gating the other.
-            if !status.is_clean && status.ahead == 0 && status.behind == 0 {
+            // per-repo background job: one job per repo while any classification
+            // is needed; results are PEEKED (kept) here so a quiet-window
+            // pulse never destroys the result and forces a filter re-run.
+            let needs_classification = if status.is_clean {
+                // Clean repos still classify when remote issues or ahead/behind
+                // state requires the dirty-entries check.
+                status.ahead == 0
+                    && status.behind == 0
+                    && (!has_origin || !has_upstream)
+            } else {
+                status.ahead == 0 && status.behind == 0
+            };
+            if needs_classification {
+                // Staleness pass: drop results that describe an older index
+                // snapshot. Non-empty results are KEPT (they will be consumed
+                // at the dispatch site below); empty results are stale by
+                // definition once the status reports dirty, so they are
+                // dropped with a short re-probe cooldown; failures are
+                // dropped unconditionally.
                 if let Some(outcome) = classification_results.remove(&repo) {
-                    // Only empty results can go stale: a status-dirty repo whose
-                    // filter-aware diff came back empty either has filter-only
-                    // noise (harmless) or a genuinely clean index snapshot taken
-                    // before the edit. Either way, drop it; the job re-spawns
-                    // next pulse unless the status reports clean first.
-                    if outcome.is_ok()
-                        && outcome.as_ref().unwrap().is_empty()
-                        && !classification_pending.contains(&repo)
-                    {
-                        classification_cooldowns
-                            .insert(repo.clone(), now + Duration::from_millis(500));
-                    }
-                    if let Err(e) = outcome {
-                        classification_failures
-                            .entry(repo.clone())
-                            .and_modify(|c| *c += 1)
-                            .or_insert(1);
-                        eprintln!(
-                            "⚠️ {} classification failed: {}",
-                            repo.display(),
-                            e
-                        );
+                    match outcome {
+                        Ok(entries) if entries.is_empty() => {
+                            if !classification_pending.contains(&repo) {
+                                classification_cooldowns
+                                    .insert(repo.clone(), now + Duration::from_millis(500));
+                            }
+                        }
+                        Ok(entries) => {
+                            // Re-insert: a non-empty result stays consumable.
+                            classification_results.insert(repo.clone(), Ok(entries));
+                        }
+                        Err(e) => {
+                            classification_failures
+                                .entry(repo.clone())
+                                .and_modify(|c| *c += 1)
+                                .or_insert(1);
+                            if !classification_pending.contains(&repo) {
+                                classification_cooldowns
+                                    .insert(repo.clone(), now + Duration::from_secs(1));
+                            }
+                            eprintln!("⚠️ {} classification failed: {}", repo.display(), e);
+                        }
                     }
                 }
                 if !classification_pending.contains(&repo)
+                    && !classification_results.contains_key(&repo)
                     && !classification_cooldowns.get(&repo).is_some_and(|until| now < *until)
                 {
                     classification_cooldowns.remove(&repo);
