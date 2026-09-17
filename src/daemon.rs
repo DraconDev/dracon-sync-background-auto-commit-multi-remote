@@ -4667,6 +4667,37 @@ pub(crate) async fn run_daemon(
             continue;
         }
 
+        // Deadline-first scan order (2026-09-17, convergence goal): the
+        // cycle body (multi-repo inspection, mirror overrides, ls-remote
+        // maintenance) can overrun the 1s pulse (measured gaps 1.5–1.9s with
+        // 5 repos under load). Repos whose quiet deadline has already passed
+        // are inspected FIRST so their dispatch is not pushed into another
+        // overstretched cycle; everyone else keeps discovery order.
+        let mut repos: Vec<PathBuf> = repos;
+        if let Some(deadline) = next_quiet_deadline {
+            let due: BTreeSet<PathBuf> = activity
+                .iter()
+                .filter(|(_, entry)| {
+                    let expired = entry.changed_at + inactivity_delay <= deadline
+                        || entry
+                            .dirty_since
+                            .is_some_and(|since| since + Duration::from_secs(5) <= deadline);
+                    let owned = !in_flight.contains(entry_repo_key(entry));
+                    expired && owned
+                })
+                .map(|(repo, _)| repo.clone())
+                .collect();
+            if !due.is_empty() {
+                if debug_enabled() {
+                    eprintln!(
+                        "scheduler: deadline_first_order n={} repos_before={:?}",
+                        due.len(),
+                        repos.iter().map(|p| p.display().to_string()).collect::<Vec<_>>()
+                    );
+                }
+                repos.sort_by_key(|repo| if due.contains(repo) { 0 } else { 1 });
+            }
+        }
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
             // If the policy is reloaded mid-cycle (SIGHUP), this repo still
