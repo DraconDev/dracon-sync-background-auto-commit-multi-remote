@@ -432,8 +432,39 @@ pub(crate) async fn run_git_with_timeout(
     op_label: &str,
 ) -> Result<()> {
     let label = format!("git {}", op_label);
+    let trace_add = args.first() == Some(&"add") && crate::policy::debug_enabled();
+    let unix_ms = || {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    };
+    if trace_add {
+        eprintln!(
+            "scheduler: add_spawn repo={} unix_ms={}",
+            repo.display(),
+            unix_ms()
+        );
+    }
     let child = spawn_git_command(repo, args, op_label)?;
-    run_child(child, repo, timeout_secs, &label).await
+    if trace_add {
+        eprintln!(
+            "scheduler: add_spawned repo={} unix_ms={} pid={:?}",
+            repo.display(),
+            unix_ms(),
+            child.id()
+        );
+    }
+    let result = run_child(child, repo, timeout_secs, &label).await;
+    if trace_add {
+        eprintln!(
+            "scheduler: add_done repo={} unix_ms={} ok={}",
+            repo.display(),
+            unix_ms(),
+            result.is_ok()
+        );
+    }
+    result
 }
 
 /// ADDED 2026-07-21 (v0.112.33, audit M13/F2.4): run a std git

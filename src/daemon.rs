@@ -5802,7 +5802,11 @@ pub(crate) async fn run_daemon(
                 repo.clone(),
                 tokio::spawn(async move {
                     if debug_enabled() {
-                        eprintln!("scheduler: task_start repo={} unix_ms={}", repo_for_task.display(), scheduler_unix_ms());
+                        eprintln!(
+                            "scheduler: task_start repo={} unix_ms={}",
+                            repo_for_task.display(),
+                            scheduler_unix_ms()
+                        );
                     }
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
