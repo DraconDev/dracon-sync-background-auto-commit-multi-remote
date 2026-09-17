@@ -46,6 +46,9 @@ def main():
     (home / '.gitconfig').write_text('[user]\n\tname = ' + json.dumps(identity['user.name'])
                                      + '\n\temail = ' + json.dumps(identity['user.email']) + '\n')
     events = root / 'git-events.jsonl'
+    # A daemon that never reaches Git should fail timing checks, not crash
+    # while opening a log that the first Git subprocess has not created yet.
+    events.touch()
     wrapper = root / 'git-probe'
     logger = root / 'git-event-probe'
     # C's push is slowed by 3s inside the wrapper: execution/transfer cost is

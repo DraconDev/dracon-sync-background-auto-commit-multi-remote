@@ -2405,6 +2405,23 @@ mod tests {
         handle.abort();
         let joined = handle.await.unwrap_err();
         assert!(joined.is_cancelled());
+        // Fault injection: the old producer erased the JoinError type.
+        // The same real cancellation then looked like a transport failure.
+        let erased = anyhow::anyhow!("join error: {}", joined);
+        let mut old_failures = HashMap::new();
+        let old_result = crate::sync::aggregate_push_results(
+            &repo,
+            vec![("origin".into(), Err(erased))],
+            false,
+            Some(&mut old_failures),
+        );
+        assert!(!old_result.unwrap());
+        record_push_failure(&repo, &old_failures["origin"].last_error);
+        assert_eq!(load_stuck_push_repos()[&repo].consecutive_failures, 1);
+        record_push_success(&repo);
+        assert!(load_stuck_push_repos().is_empty());
+
+        // Fixed producer retains the very same JoinError through anyhow.
         let error = anyhow::Error::new(joined).context("join error");
         let mut failures = HashMap::new();
         let result = crate::sync::aggregate_push_results(
