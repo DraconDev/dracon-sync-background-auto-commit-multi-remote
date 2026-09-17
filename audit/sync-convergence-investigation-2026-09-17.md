@@ -1,8 +1,52 @@
 # Sync convergence investigation — in progress
 
-## Scope and status — corrected after deployment
+## Current checkpoint — 2026-09-17, before 0.113.60 publication
 
-The requested 2–3 second staging target has **not** been demonstrated. Earlier
+The deployed 0.113.59 still lacks timing/live-convergence acceptance. The
+0.113.60 candidate now passes the unchanged strict isolated harness. Three
+consecutive slow-filter runs from committed sync HEAD `637f7e5` passed:
+B edit-to-add 2.366/2.340/2.274s; C 2.269/2.220/2.698s. Each continuous-edit
+fixture made one commit. Logs: `/tmp/sync-head-slow-{1,2,3}.json`.
+A trace shows C discovered at daemon 2278ms but anchored at 1195ms (the edit),
+then eligible at 3227ms. The earlier cancellation-only candidate failed at
+3.061s (`/tmp/sync-cancel-strict-slow.json`): discovery anchored the quiet
+window almost one pulse late. Filesystem evidence now uses mtime/ctime,
+stable fallback for unknown/future times, and deadline-aware wakes. Tests
+cover discovery versus edit time, pre-start changes, future/missing times,
+and continuous writes. Status changes conservatively reset quiet when a
+retained classification snapshot may omit newly added files.
+
+Classification cancellation also now owns the Git process group on Unix and
+both bounded capture readers; successful completion disarms cleanup without
+sleeping. The required-filter cancellation fixture passes, including a
+TERM-ignoring filter. This does NOT prove the cause of live ai-auto-writer
+30s timeouts. The earlier claim that leaked processes definitely caused
+those timeouts was unsupported.
+
+Release attempts were NOT successful: repeated bounded invocations stopped
+at `dracon-system::tests::guard_report_completes_for_ok_disk`. Claims that
+this was merely a slow suite were incorrect. The 2400s invocation survived
+its tool abort; its test was explicitly terminated after >30 minutes, then
+the maintenance wrapper exited and the freeze marker was confirmed absent.
+A 25s strace of the original compiled test (`/tmp/guard-original-wait.trace`)
+showed production-default cleanup estimation walking host `/tmp` with `du`;
+the test also scanned real Trash (credential guard blocked emptying). No
+apply mode was enabled. Only the test in `dracon-system/src/tests.rs` changed:
+it uses a temporary report path, unreachable test-only pressure thresholds,
+explicitly disabled cleanup/mitigation, and an internal 10s timeout. The
+isolated test passes in 0.07s (`/tmp/guard-report-fixed20.log`). Production
+system code/policy is unchanged; no system release is needed for this test fix.
+
+Latest bounded gates all PASS: `timeout 240 cargo test --workspace --locked`
+(`/tmp/sync-workspace-isolated-guard.log`), `timeout 240 cargo build --release
+--locked` (`/tmp/sync-current-release-build.log`), `timeout 120 cargo deny
+check` (`/tmp/sync-current-deny.log`), and `timeout 180 cargo clippy --workspace
+--locked -- -D warnings` (`/tmp/sync-current-workspace-clippy.log`). Candidate
+publication/install, remote refs, and the 15-minute live acceptance remain open.
+
+## Historical checkpoint — corrected after 0.113.59 deployment
+
+At this checkpoint the requested 2–3 second staging target had **not** been demonstrated. Earlier
 "Final probe acceptance" statements below are superseded: changing the metric
 to cycle start (and subtracting inspection) weakened the original staging gate.
 The strict edit-to-`git add` and pre-start launch-to-`git add` gates have been
