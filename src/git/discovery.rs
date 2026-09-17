@@ -1113,6 +1113,65 @@ mod submodule_tests {
         assert_eq!(discovered[0], parent_dir);
     }
 
+    /// Regression (2026-09-17, sync-convergence audit): when the operator
+    /// exclude_repos-quarantines a nested submodule, the legacy anchor
+    /// fallback candidate (`<watch_root>/<basename>`) must NOT resurrect
+    /// it as a phantom discovery row. Live shape: hegemon's canonical
+    /// path excluded, nested checkout absent from `repos`, fallback
+    /// candidate re-added it as `/Dev/hegemon` reporting healthy/EMPTY.
+    #[test]
+    fn discover_git_repos_exclude_repos_suppresses_submodule_fallback_candidate() {
+        let tmp = tempfile::tempdir().unwrap();
+        let parent_dir = tmp.path().join("dracon-platform");
+        fs::create_dir_all(&parent_dir).unwrap();
+        let _head = init_parent_repo(&parent_dir);
+
+        let gitmodules = "[submodule \"web-games-hegemon\"]\n\
+                          \tpath = web/games/wip/hegemon\n\
+                          \turl = git@github.com:DraconDev/web-games-hegemon.git\n";
+        fs::write(parent_dir.join(".gitmodules"), gitmodules).unwrap();
+        let head = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap()
+            .stdout;
+        let head_sha = String::from_utf8_lossy(&head).trim().to_string();
+        Command::new("git")
+            .args([
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                &format!("160000,{},{}", head_sha, "web/games/wip/hegemon"),
+            ])
+            .current_dir(&parent_dir)
+            .output()
+            .unwrap();
+        // The nested checkout EXISTS but is exclude_repos-quarantined.
+        let nested = parent_dir.join("web/games/wip/hegemon");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(nested.join(".git"), "gitdir: ../../.git/modules/web-games-hegemon\n").unwrap();
+
+        let roots = vec![tmp.path().to_path_buf()];
+        let excluded: BTreeSet<String> = BTreeSet::new();
+        let exclude_repos = vec![nested.to_string_lossy().to_string()];
+        let discovered = discover_git_repos(&roots, &excluded, &exclude_repos, None);
+
+        assert!(
+            discovered.contains(&parent_dir),
+            "parent must still be discovered"
+        );
+        assert!(
+            !discovered.contains(&nested),
+            "excluded canonical path must stay excluded"
+        );
+        assert!(
+            !discovered.contains(&tmp.path().join("hegemon")),
+            "excluded repo must not resurrect as a legacy anchor candidate, got: {:?}",
+            discovered
+        );
+    }
+
     #[test]
     fn discover_git_repos_dedups_standalone_with_nested_submodule() {
         // Regression test for the duplicate-row problem:
