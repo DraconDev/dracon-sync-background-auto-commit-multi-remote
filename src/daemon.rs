@@ -78,6 +78,17 @@ fn next_ready_classification<S: futures::Stream + Unpin>(
     jobs.next().now_or_never().flatten()
 }
 
+/// Bounded consecutive-failure budget for per-repo dirty classification.
+/// Module-level so both the helper and the daemon loop agree; mirrors the
+/// MAX_FAILURES escalation style used for sync attempts.
+const CLASSIFICATION_MAX_FAILURES: usize = 3;
+/// After the failure budget is exhausted, the repo backs off this long and
+/// then gets one fresh probe (a failure re-arms; a success clears).
+const CLASSIFICATION_BACKOFF: Duration = Duration::from_secs(900);
+/// Hard wall-clock cap for one classification job (filter-aware diff +
+/// untracked listing). Matches the prior inline git_diff_head_files cap.
+const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// What the scheduler should do with per-repo dirty classification for
 /// this pulse.
 enum ClassificationStep {
@@ -116,7 +127,7 @@ fn consume_classification(
                     .and_modify(|count| *count += 1)
                     .or_insert(1);
                 if *count >= CLASSIFICATION_MAX_FAILURES {
-                    cooldowns.insert(repo.to_path_buf(), now + Duration::from_secs(900));
+                    cooldowns.insert(repo.to_path_buf(), now + CLASSIFICATION_BACKOFF);
                     eprintln!(
                         "⚠️ {} classification failed {}×; backing off 15 min (will re-probe): {}",
                         repo.display(),
@@ -4084,8 +4095,6 @@ pub(crate) async fn run_daemon(
     let mut classification_pending: HashSet<PathBuf> = HashSet::new();
     let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
     let mut classification_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
-    const CLASSIFICATION_MAX_FAILURES: usize = 3;
-    const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -5078,6 +5087,38 @@ pub(crate) async fn run_daemon(
                 (dirty, filtered)
             };
 
+            // Both classification branches need a Spawn fallback handled at
+            // ONE site: after the two-branch match, spawn a pending job if
+            // the step said so (bounded by the pending set + cooldowns).
+            let spawn_needed = matches!(classification, ClassificationStep::Spawn);
+            if spawn_needed {
+                let repo_for_job = repo.clone();
+                classification_pending.insert(repo.clone());
+                classification_jobs.push(tokio::task::spawn(async move {
+                    let started = Instant::now();
+                    let outcome = tokio::time::timeout(
+                        CLASSIFICATION_TIMEOUT,
+                        repo_diff_entries(&repo_for_job),
+                    )
+                    .await
+                    .unwrap_or_else(|_| {
+                        Err(anyhow::anyhow!(
+                            "dirty classification timed out after {}s",
+                            CLASSIFICATION_TIMEOUT.as_secs()
+                        ))
+                    });
+                    if std::env::var("DRACON_SYNC_DEBUG").is_ok_and(|v| v == "1") {
+                        eprintln!(
+                            "scheduler: classification repo={} ms={} ok={}",
+                            repo_for_job.display(),
+                            started.elapsed().as_millis(),
+                            outcome.is_ok()
+                        );
+                    }
+                    (repo_for_job, outcome)
+                }));
+            }
+
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
             // exceeds `stale_dirty_alert_secs`, emit a "Changes Piling
@@ -5198,8 +5239,7 @@ pub(crate) async fn run_daemon(
             // committed at a steady cadence.
             // Status/filter inspection may cross the eligibility deadline.
             // Re-read the monotonic clock at dispatch, not at scan entry.
-            let eligibility_now = Instant::now();
-            let enough_time = dispatch_due(
+            let eligibility_now = Instant::now();            let enough_time = dispatch_due(
                 eligibility_now, entry.changed_at, entry.dirty_since, inactivity_delay,
             );
 
