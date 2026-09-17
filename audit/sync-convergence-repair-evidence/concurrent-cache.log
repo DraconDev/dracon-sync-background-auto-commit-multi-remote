@@ -1,0 +1,14 @@
+   Compiling dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+error[E0433]: cannot find type `PathBuf` in this scope
+    --> dracon-sync/src/git/multi_remote.rs:1488:40
+     |
+1488 |             assert!(entries.contains(&(PathBuf::from(format!("fixture-{index}")), "origin".into())));
+     |                                        ^^^^^^^ use of undeclared type `PathBuf`
+     |
+help: consider importing one of these structs
+     |
+1429 +     use crate::PathBuf;
+     |
+1429 +     use std::path::PathBuf;
+     |
+
