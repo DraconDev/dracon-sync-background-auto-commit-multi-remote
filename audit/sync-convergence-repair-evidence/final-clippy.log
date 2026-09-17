@@ -222,3 +222,4 @@
     Checking dracon-git v94.7.2
     Checking notify-rust v4.18.0
     Checking dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 59s
