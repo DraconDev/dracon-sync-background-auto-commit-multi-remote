@@ -4097,6 +4097,28 @@ async fn stage_commit_and_push(
                 // CHANGED 2026-08-09 (v0.113.50): also classify the
                 // per-remote errors (divergence vs transport vs
                 // policy) so the HINT says WHY, not just WHO.
+                // CHANGED 2026-09-17 (restart-poisoning fix): when EVERY
+                // failing remote's error is task cancellation (daemon
+                // shutdown/wedge abort), the outcome is unknown — not a
+                // transport failure. Do not record; the next start
+                // re-dispatches without the 300s stuck backoff.
+                let any_real_failure = ctx
+                    .remote_failures
+                    .as_deref()
+                    .map(|map| {
+                        map.values()
+                            .any(|f| !crate::daemon::push_error_is_cancellation(&f.last_error))
+                    })
+                    .unwrap_or(true); // no per-remote detail: treat as real
+                if !any_real_failure {
+                    if debug_enabled() {
+                        eprintln!(
+                            "⏭️ {} push cancelled (shutdown/wedge) — not recorded as a push failure",
+                            repo.display()
+                        );
+                    }
+                    push_failed = true;
+                } else {
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
                 eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
@@ -4109,6 +4131,7 @@ async fn stage_commit_and_push(
                 );
                 notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
                 push_failed = true;
+                }
             }
             Err(e) => {
                 let error = crate::ownership::redact_url_credentials(&e.to_string());
