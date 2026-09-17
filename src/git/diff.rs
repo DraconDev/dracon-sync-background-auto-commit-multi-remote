@@ -480,8 +480,12 @@ mod f33_tests {
                 .current_dir(repo)
                 .output()
                 .unwrap();
-            assert!(output.status.success(), "{:?}: {}", args,
-                String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "{:?}: {}",
+                args,
+                String::from_utf8_lossy(&output.stderr)
+            );
         };
         // Inherit the caller's configured identity; never modify it.
         git(&["init", "-q"]);
@@ -490,26 +494,47 @@ mod f33_tests {
         git(&["commit", "-qm", "classification fixture"]);
         // `git init` on template-less installs (e.g. Nix) omits .git/info.
         std::fs::create_dir_all(repo.join(".git/info")).unwrap();
-        std::fs::write(repo.join(".git/info/attributes"), "sample.txt filter=probe\n").unwrap();
-        git(&["config", "filter.probe.clean", "echo call >> .git/filter-calls; tr 'A-Z' 'a-z' | tr -d ' '"]);
+        std::fs::write(
+            repo.join(".git/info/attributes"),
+            "sample.txt filter=probe\n",
+        )
+        .unwrap();
+        git(&[
+            "config",
+            "filter.probe.clean",
+            "echo call >> .git/filter-calls; tr 'A-Z' 'a-z' | tr -d ' '",
+        ]);
         git(&["config", "filter.probe.required", "true"]);
         // Different size avoids Git's same-size/same-mtime stat-cache shortcut.
         std::fs::write(repo.join("sample.txt"), "SEED   \n").unwrap();
         assert!(super::repo_diff_entries(repo).await.unwrap().is_empty());
-        assert_eq!(std::fs::read_to_string(repo.join(".git/filter-calls")).unwrap().lines().count(), 1);
+        assert_eq!(
+            std::fs::read_to_string(repo.join(".git/filter-calls"))
+                .unwrap()
+                .lines()
+                .count(),
+            1
+        );
         std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
         let entries = super::repo_diff_entries(repo).await.unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].path, PathBuf::from("sample.txt"));
         git(&["config", "filter.probe.clean", "exit 1"]);
-        assert!(super::repo_diff_entries(repo).await.is_err(), "required filter failure must not look clean");
+        assert!(
+            super::repo_diff_entries(repo).await.is_err(),
+            "required filter failure must not look clean"
+        );
     }
 
     #[tokio::test]
     async fn classification_preserves_unborn_untracked_files() {
         let tmp = tempfile::tempdir().unwrap();
-        assert!(crate::git::git_cmd().args(["init", "-q"])
-            .current_dir(tmp.path()).status().unwrap().success());
+        assert!(crate::git::git_cmd()
+            .args(["init", "-q"])
+            .current_dir(tmp.path())
+            .status()
+            .unwrap()
+            .success());
         std::fs::write(tmp.path().join("new.txt"), "new\n").unwrap();
         let entries = super::repo_diff_entries(tmp.path()).await.unwrap();
         assert_eq!(entries.len(), 1);

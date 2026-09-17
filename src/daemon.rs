@@ -29,9 +29,9 @@ use crate::exclude::{excluded_dir_names_set, has_sync_relevant_dirty_entries};
 use crate::git::list_submodules;
 use crate::git::{
     count_pushable_unpushed_vs_mirrors, count_unpushed_vs_mirrors, current_branch,
-    discover_git_repos, has_both_main_and_master, has_origin_remote,
-    has_tracking_upstream, index_lock_path, is_repo_ready, is_safe_branch_name,
-    repair_broken_tracking, repo_diff_entries, run_git_with_timeout,
+    discover_git_repos, has_both_main_and_master, has_origin_remote, has_tracking_upstream,
+    index_lock_path, is_repo_ready, is_safe_branch_name, repair_broken_tracking, repo_diff_entries,
+    run_git_with_timeout,
 };
 use crate::policy::{debug_enabled, freeze_reason, timestamp_secs, SyncPolicy};
 use crate::report::{run_repair_concerns, run_repair_warns, ConcernRepairFilter};
@@ -71,9 +71,7 @@ pub(crate) type ClassificationJoin = tokio::task::JoinHandle<(
 /// Collect one ready classification result without blocking. Pending
 /// jobs stay in the unordered set; their results apply on a later
 /// pulse.
-fn next_ready_classification<S: futures::Stream + Unpin>(
-    jobs: &mut S,
-) -> Option<S::Item> {
+fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option<S::Item> {
     use futures::FutureExt;
     jobs.next().now_or_never().flatten()
 }
@@ -110,6 +108,10 @@ enum ClassificationStep {
 fn consume_classification(
     repo: &Path,
     ready: Option<Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
+    results: &mut HashMap<
+        PathBuf,
+        Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+    >,
     pending: &HashSet<PathBuf>,
     failures: &mut HashMap<PathBuf, usize>,
     cooldowns: &mut HashMap<PathBuf, Instant>,
@@ -117,11 +119,19 @@ fn consume_classification(
 ) -> ClassificationStep {
     if let Some(outcome) = ready {
         return match outcome {
+            // KEEP the Ok result in the map: eligibility (quiet window) may
+            // not be satisfied this pulse, and discarding here would force a
+            // full re-spawn + filter re-run next pulse (observed 2026-09-17:
+            // staging at 4.0s after dirty instead of ≤3s). The result is
+            // consumed (removed) by the branch that dispatches, or when the
+            // repo reports clean again.
             Ok(entries) => {
                 failures.remove(repo);
+                results.insert(repo.to_path_buf(), Ok(entries.clone()));
                 ClassificationStep::Ready(entries)
             }
             Err(e) => {
+                results.remove(repo);
                 let count = failures
                     .entry(repo.to_path_buf())
                     .and_modify(|count| *count += 1)
@@ -174,7 +184,12 @@ fn remaining_pulse(interval: Duration, elapsed: Duration) -> Duration {
     interval.saturating_sub(elapsed)
 }
 
-fn dispatch_due(now: Instant, changed_at: Instant, dirty_since: Option<Instant>, quiet: Duration) -> bool {
+fn dispatch_due(
+    now: Instant,
+    changed_at: Instant,
+    dirty_since: Option<Instant>,
+    quiet: Duration,
+) -> bool {
     dirty_since.is_some_and(|since| now.saturating_duration_since(since) >= Duration::from_secs(5))
         || now.saturating_duration_since(changed_at) >= quiet
 }
@@ -926,16 +941,27 @@ mod tests {
     #[test]
     fn pulse_accounts_for_scan_work_and_overruns() {
         let pulse = Duration::from_secs(1);
-        assert_eq!(remaining_pulse(pulse, Duration::from_millis(350)), Duration::from_millis(650));
+        assert_eq!(
+            remaining_pulse(pulse, Duration::from_millis(350)),
+            Duration::from_millis(650)
+        );
         assert_eq!(remaining_pulse(pulse, pulse), Duration::ZERO);
-        assert_eq!(remaining_pulse(pulse, Duration::from_secs(120)), Duration::ZERO);
+        assert_eq!(
+            remaining_pulse(pulse, Duration::from_secs(120)),
+            Duration::ZERO
+        );
     }
 
     #[test]
     fn eligibility_uses_dispatch_clock_and_bounds_continuous_work() {
         let start = Instant::now();
         let quiet = Duration::from_secs(2);
-        assert!(!dispatch_due(start + Duration::from_millis(1999), start, Some(start), quiet));
+        assert!(!dispatch_due(
+            start + Duration::from_millis(1999),
+            start,
+            Some(start),
+            quiet
+        ));
         assert!(dispatch_due(start + quiet, start, Some(start), quiet));
         let now = start + Duration::from_secs(5);
         assert!(dispatch_due(now, now, Some(start), quiet));
@@ -968,8 +994,16 @@ mod tests {
         let repo = init_publish_upstream_repo(&tmp);
         let remote = tmp.path().join("remote.git");
         let run = |args: &[&str]| {
-            let output = crate::git::git_cmd().args(args).current_dir(&repo).output().unwrap();
-            assert!(output.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&output.stderr));
+            let output = crate::git::git_cmd()
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         };
         // Only a local remote: the refresh must actually run, not skip due
         // to the fixture helper's named SSH mirror.
@@ -981,7 +1015,10 @@ mod tests {
         let policy: SyncPolicy = toml::from_str("remotes = []").unwrap();
         let refreshed = refresh_publish_upstream(&repo, &policy).await;
         assert!(refreshed.is_ok(), "refresh failed: {refreshed:?}");
-        assert!(!crate::git::upstream_tracking_ref_missing(&repo), "refresh removed a pushed tracking ref");
+        assert!(
+            !crate::git::upstream_tracking_ref_missing(&repo),
+            "refresh removed a pushed tracking ref"
+        );
         let status = GitService::new(&repo).unwrap().get_status().await.unwrap();
         assert_eq!(status.ahead, 0);
         assert_eq!(status.behind, 0);
@@ -4893,9 +4930,13 @@ pub(crate) async fn run_daemon(
             };
 
             if debug_enabled() {
-                eprintln!("scheduler: status repo={} cycle_ms={} repo_ms={} dirty={}",
-                    repo.display(), cycle_started.elapsed().as_millis(),
-                    now.elapsed().as_millis(), !status.is_clean);
+                eprintln!(
+                    "scheduler: status repo={} cycle_ms={} repo_ms={} dirty={}",
+                    repo.display(),
+                    cycle_started.elapsed().as_millis(),
+                    now.elapsed().as_millis(),
+                    !status.is_clean
+                );
             }
 
             // Cache remote checks — used in both fast and slow paths
@@ -5019,6 +5060,7 @@ pub(crate) async fn run_daemon(
             let classification = consume_classification(
                 &repo,
                 classification_results.remove(&repo),
+                &mut classification_results,
                 &classification_pending,
                 &mut classification_failures,
                 &mut classification_cooldowns,
@@ -5230,6 +5272,9 @@ pub(crate) async fn run_daemon(
                 entry.fingerprint = fingerprint;
                 entry.changed_at = now;
                 entry.failure_count = 0;
+                // The retained classification result describes the previous
+                // fingerprint; a changed fingerprint invalidates it.
+                classification_results.remove(&repo);
             }
 
             // Wait `inactivity_push_delay_secs` after the last
@@ -5240,14 +5285,24 @@ pub(crate) async fn run_daemon(
             // committed at a steady cadence.
             // Status/filter inspection may cross the eligibility deadline.
             // Re-read the monotonic clock at dispatch, not at scan entry.
-            let eligibility_now = Instant::now();            let enough_time = dispatch_due(
-                eligibility_now, entry.changed_at, entry.dirty_since, inactivity_delay,
+            let eligibility_now = Instant::now();
+            let enough_time = dispatch_due(
+                eligibility_now,
+                entry.changed_at,
+                entry.dirty_since,
+                inactivity_delay,
             );
 
             if debug_enabled() {
-                eprintln!("scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={}",
-                    repo.display(), cycle_started.elapsed().as_millis(),
-                    eligibility_now.saturating_duration_since(entry.changed_at).as_millis(), enough_time);
+                eprintln!(
+                    "scheduler: eligibility repo={} cycle_ms={} observed_quiet_ms={} eligible={}",
+                    repo.display(),
+                    cycle_started.elapsed().as_millis(),
+                    eligibility_now
+                        .saturating_duration_since(entry.changed_at)
+                        .as_millis(),
+                    enough_time
+                );
             }
             if !enough_time {
                 continue;
@@ -5322,8 +5377,12 @@ pub(crate) async fn run_daemon(
                 continue;
             }
             if debug_enabled() {
-                eprintln!("scheduler: dispatch repo={} cycle_ms={} inspection_ms={}",
-                    repo.display(), cycle_started.elapsed().as_millis(), now.elapsed().as_millis());
+                eprintln!(
+                    "scheduler: dispatch repo={} cycle_ms={} inspection_ms={}",
+                    repo.display(),
+                    cycle_started.elapsed().as_millis(),
+                    now.elapsed().as_millis()
+                );
             }
             let entry_rf = std::mem::take(&mut entry.remote_failures);
             let secs = now.duration_since(entry.changed_at).as_secs();
@@ -5836,7 +5895,10 @@ pub(crate) async fn run_daemon(
         }
 
         if debug_enabled() {
-            eprintln!("scheduler: cycle_complete elapsed_ms={}", cycle_started.elapsed().as_millis());
+            eprintln!(
+                "scheduler: cycle_complete elapsed_ms={}",
+                cycle_started.elapsed().as_millis()
+            );
         }
         // CHANGED 2026-08-11 (audit LOW, daemon.rs:3524-3576): the
         // bottom-of-cycle sleep is responsive — it wakes early on
