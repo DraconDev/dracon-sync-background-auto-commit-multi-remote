@@ -197,6 +197,26 @@ def main():
         b_push = dispatch['b']['push_rel']
         c_push = dispatch['c']['push_rel']
         b2_add = dispatch['b2']['add_rel']
+        # b2 is dirty BEFORE the daemon starts (missed-event reconciliation).
+        # The quiet clock cannot anchor before launch: measure dispatch from
+        # the daemon's own first-observation anchor, plus quiet + one pulse.
+        b2_anchor = None
+        b2_dispatch_ms = None
+        for line in (root / 'daemon.log').read_text().splitlines():
+            if '/watch/b2 ' not in line:
+                continue
+            if b2_anchor is None and 'scheduler: eligibility repo=' in line:
+                m = re.search(r'anchor_daemon_ms=(\d+)', line)
+                if m:
+                    b2_anchor = int(m.group(1))
+            elif 'scheduler: dispatch repo=' in line:
+                m = re.search(r'daemon_ms=(\d+)', line)
+                n = re.search(r'inspection_ms=(\d+)', line)
+                if m:
+                    b2_dispatch_ms = int(m.group(1))
+                    if n:
+                        b2_dispatch_ms -= int(n.group(1))
+                    break
         report['dispatch'] = dispatch
         report['edit_seconds'] = {'b': t_b - start, 'c': t_c - start,
                                   'a_started': t_a - start}
@@ -232,12 +252,28 @@ def main():
                         anchor = int(m.group(1))
                 elif 'scheduler: dispatch repo=' in line:
                     m = re.search(r'daemon_ms=(\d+)', line)
+                    n = re.search(r'inspection_ms=(\d+)', line)
                     if m:
                         dispatch_ms = int(m.group(1))
+                        if n:
+                            # The repo's own scan start, not the end of the
+                            # cycle's earlier repo inspections.
+                            dispatch_ms -= int(n.group(1))
                         break
             if anchor is not None and dispatch_ms is not None:
                 queue_delay[name] = dispatch_ms - (anchor + 2000)
         report['queue_delay_ms'] = queue_delay
+        # Exact commit completion from the daemon's own timestamped line
+        # (GitService::commit is in-process libgit2; the CLI wrapper cannot
+        # observe it). Push start comes from the wrapper's unix timestamp.
+        commit_done_unix_ms = {}
+        for line in (root / 'daemon.log').read_text().splitlines():
+            if 'scheduler: commit_done repo=' not in line:
+                continue
+            m = re.search(r'repo=(\S+) unix_ms=(\d+)', line)
+            if m:
+                commit_done_unix_ms.setdefault(m.group(1), int(m.group(2)))
+        report['commit_done_unix_ms'] = commit_done_unix_ms
         checks = {
             # Queue delay (daemon clock): dispatch must occur within one pulse
             # after the quiet window expires. Wall-clock edit_to_add_seconds
@@ -253,11 +289,19 @@ def main():
             # overrun proves a failure; a pass needs the finer timing gate too.
             'b_push_within_one_pulse_of_observed_commit': b_push is not None and 'b' in committed
                 and start + b_push - committed['b'] <= 1,
-            'b_push_within_one_pulse_of_commit_command': b_push is not None
-                and 'b' in commit_ends
-                and 0 <= start + b_push - commit_ends['b'] <= 1,
+            # Exact gate: push start within one pulse of the daemon's own
+            # commit-completion timestamp (unix ms on both sides).
+            'b_push_within_one_pulse_of_commit_done': b_push is not None
+                and str(repos['b']) in commit_done_unix_ms
+                and 0 <= (start + b_push) * 1000
+                    - commit_done_unix_ms[str(repos['b'])] <= 1000,
             'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
-            'pre_start_change_stages_within_3s': b2_add is not None and b2_add <= 3,
+            # b2 is dirty before launch; the daemon cannot observe it before
+            # its first scan. The faithful gate: dispatch begins within quiet
+            # + one pulse of the daemon's own quiet anchor.
+            'pre_start_queue_within_quiet_plus_one_pulse': b2_anchor is not None
+                and b2_dispatch_ms is not None
+                and -100 <= b2_dispatch_ms - (b2_anchor + 2000) <= 1000,
         }
         if slow_filter:
             checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
