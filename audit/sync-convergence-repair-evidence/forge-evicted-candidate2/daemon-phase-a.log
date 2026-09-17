@@ -1,0 +1,54 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789671790942
+scheduler: cycle_complete elapsed_ms=23
+scheduler: pulse_start unix_ms=1789671791947
+scheduler: cycle_complete elapsed_ms=6
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mulsyq34/watch/r1 auto-created on origin
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mulsyq34/watch/r3 auto-created on origin
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-mulsyq34/watch/r2 auto-created on origin
+scheduler: pulse_start unix_ms=1789671792948
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r1 cycle_ms=171 repo_ms=170 dirty=false daemon_ms=2215
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r2 cycle_ms=302 repo_ms=82 dirty=false daemon_ms=2345
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r3 cycle_ms=390 repo_ms=57 dirty=true daemon_ms=2434
+scheduler: classification_spawn repo=/tmp/sync-restart-mulsyq34/watch/r3 cycle_ms=420 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=420
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-mulsyq34/watch/r3 elapsed_ms=96 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-mulsyq34/watch/r3 elapsed_ms=6 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-mulsyq34/watch/r3 ms=102 ok=true
+scheduler: pulse_start unix_ms=1789671793962
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r1 cycle_ms=48 repo_ms=44 dirty=false daemon_ms=3105
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r2 cycle_ms=120 repo_ms=45 dirty=false daemon_ms=3177
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r3 cycle_ms=199 repo_ms=30 dirty=true daemon_ms=3257
+scheduler: quiet_clock_assignment discovery_ms=3295 evidence_unix_ns=Some(1789671790874105914) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-mulsyq34/watch/r3 cycle_ms=237 observed_quiet_ms=3295 eligible=true daemon_ms=3295 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-mulsyq34/watch/r3 path="early.txt" unix_ns=Some(1789671790874105914)
+scheduler: dispatch repo=/tmp/sync-restart-mulsyq34/watch/r3 cycle_ms=238 inspection_ms=68 daemon_ms=3295 unix_ms=1789671794200
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=238
+scheduler: task_start repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671794200
+🐛 /tmp/sync-restart-mulsyq34/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+🐛 /tmp/sync-restart-mulsyq34/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-mulsyq34/watch/r3 thread=ThreadId(2) unix_ms=1789671794533
+scheduler: stage_prepare repo=/tmp/sync-restart-mulsyq34/watch/r3 phase=unmerged elapsed_ms=1
+scheduler: stage_prepare repo=/tmp/sync-restart-mulsyq34/watch/r3 phase=untracked elapsed_ms=3
+scheduler: stage_files_enter repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671794544
+scheduler: stage_prepare repo=/tmp/sync-restart-mulsyq34/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-mulsyq34/watch/r3 phase=partition elapsed_ms=16
+scheduler: add_spawn repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671794561
+scheduler: add_spawned repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671794561 pid=Some(2751509)
+scheduler: add_done repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671794617 ok=true
+scheduler: pulse_start unix_ms=1789671795487
+scheduler: commit_done repo=/tmp/sync-restart-mulsyq34/watch/r3 unix_ms=1789671795492
+📝 committed 1 file(s) in /tmp/sync-restart-mulsyq34/watch/r3
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r1 cycle_ms=78 repo_ms=72 dirty=false daemon_ms=4661
+scheduler: status repo=/tmp/sync-restart-mulsyq34/watch/r2 cycle_ms=197 repo_ms=78 dirty=false daemon_ms=4780
+scheduler: cycle_complete elapsed_ms=240
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-mulsyq34/watch/r3 (public_only policy + visibility cache says None)
+ℹ️  r3 already exists on origin — skipping auto-create
+sync: received SIGTERM, shutting down gracefully...
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-restart-mulsyq34/watch/r3 thread=ThreadId(2) unix_ms=1789671796104 ok=true

@@ -1,0 +1,22 @@
+watch_roots = ["/tmp/sync-restart-mulsyq34/watch"]
+pulse_interval_secs = 1
+inactivity_push_delay_secs = 2
+auto_commit = true
+auto_push = true
+auto_pull = false
+auto_bump_versions = false
+auto_harden_with_warden = false
+auto_github_private = false
+auto_repair_concerns = false
+auto_repair_warns = false
+auto_rewrite_large_blobs = false
+build_artifact_cleanup = false
+standard_files_auto = false
+auto_tag = false
+auto_release = false
+auto_publish = false
+auto_gc_garbage_threshold_bytes = 0
+[[remotes]]
+name = "origin"
+push_url = "/tmp/sync-restart-mulsyq34/remote-{repo}.git"
+auto_create = true
