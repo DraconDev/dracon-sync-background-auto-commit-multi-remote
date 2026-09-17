@@ -748,7 +748,8 @@ mod tests {
         use std::time::Duration;
         let temp = tempfile::tempdir().unwrap();
         let mut command = tokio::process::Command::new("sh");
-        command.args(["-c", "sleep 30 & echo $! > helper.pid; exit 0"])
+        command
+            .args(["-c", "sleep 30 & echo $! > helper.pid; exit 0"])
             .current_dir(temp.path())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true);
@@ -767,17 +768,30 @@ mod tests {
             // Wait for exit (zombie or already reaped), not merely spawn.
             loop {
                 let state = std::fs::read_to_string(format!("/proc/{leader}/stat")).ok();
-                if state.as_ref().is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z')) {
+                if state
+                    .as_ref()
+                    .is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z'))
+                {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
-        }).await.unwrap();
-        let helper: i32 = std::fs::read_to_string(helper_file).unwrap().trim().parse().unwrap();
+        })
+        .await
+        .unwrap();
+        let helper: i32 = std::fs::read_to_string(helper_file)
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
         // Also clean up on assertion failure; this fixture must not leak.
         struct Cleanup(i32);
         impl Drop for Cleanup {
-            fn drop(&mut self) { unsafe { libc::kill(self.0, libc::SIGKILL); } }
+            fn drop(&mut self) {
+                unsafe {
+                    libc::kill(self.0, libc::SIGKILL);
+                }
+            }
         }
         let _cleanup = Cleanup(helper);
         // Give the old runner a turn to reap and disarm before aborting.
@@ -788,12 +802,17 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(2), async {
             loop {
                 let state = std::fs::read_to_string(format!("/proc/{helper}/stat")).ok();
-                if state.as_ref().is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z')) {
+                if state
+                    .as_ref()
+                    .is_none_or(|s| s.rsplit_once(") ").unwrap().1.starts_with('Z'))
+                {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
-        }).await.expect("cancelled runner left stderr helper alive after leader exit");
+        })
+        .await
+        .expect("cancelled runner left stderr helper alive after leader exit");
     }
 
     #[test]
