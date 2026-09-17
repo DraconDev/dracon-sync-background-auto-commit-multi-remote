@@ -116,6 +116,16 @@ pub(crate) fn discover_git_repos(
             // it's already discovered by the recursive walk —
             // skip adding a candidate.
             let nested_path = parent.join(&sub.path);
+            // Apply exclusions to the canonical path before converting it
+            // into a legacy anchor candidate; the conversion loses this path.
+            let nested_abs = nested_path.to_string_lossy().to_lowercase();
+            let nested_name = nested_path
+                .file_name()
+                .map(|name| name.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if exlude_set.contains(&nested_abs) || exlude_set.contains(&nested_name) {
+                continue;
+            }
             let nested_already_discovered = nested_path.join(".git").exists()
                 && repos.iter().any(|r| {
                     std::fs::canonicalize(r).ok() == std::fs::canonicalize(&nested_path).ok()
