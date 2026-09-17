@@ -48,13 +48,16 @@ def main():
     logger = root / 'git-event-probe'
     # C's push is slowed by 3s inside the wrapper: execution/transfer cost is
     # visible separately from queue wait, without touching any timeout config.
-    logger.write_text('#!/usr/bin/env python3\nimport json,os,sys,time\n'
-                       + f'with open({str(events)!r}, "a") as f:\n'
-                       + ' f.write(json.dumps({"t":time.monotonic(),"args":sys.argv[1:],'
-                       '"cwd":os.getcwd()})+"\\n")\n'
+    logger.write_text('#!/usr/bin/env python3\nimport json,os,subprocess,sys,time\n'
+                       + 'def event(phase, **extra):\n'
+                       + f' with open({str(events)!r}, "a") as f:\n'
+                       + '  f.write(json.dumps({"t":time.monotonic(),"args":sys.argv[1:],'
+                       '"cwd":os.getcwd(),"pid":os.getpid(),"phase":phase,**extra})+"\\n")\n'
+                       + 'event("start")\n'
                        + 'if sys.argv[1:2] == ["push"] and "--delete" not in sys.argv and os.getcwd().endswith("/c"):\n'
-                       + '    time.sleep(3)\n'
-                       + f'os.execv({git_bin!r}, [{git_bin!r}]+sys.argv[1:])\n')
+                       + ' time.sleep(3)\n'
+                       + f'rc=subprocess.call([{git_bin!r}]+sys.argv[1:])\n'
+                       + 'event("end", returncode=rc)\nsys.exit(rc)\n')
     logger.chmod(0o700)
     # Only instrument operations under test, not every status/config probe.
     wrapper.write_text('#!' + shutil.which('sh') + '\n'
@@ -84,8 +87,13 @@ def main():
         # A required clean filter with bounded execution cost. It never contacts
         # Warden or reads real secrets. Only this fixture's local config changes.
         filter_program = root / 'slow-clean.py'
-        filter_program.write_text('import sys,time\ntime.sleep(4)\n'
-                                  'sys.stdout.buffer.write(sys.stdin.buffer.read())\n')
+        filter_program.write_text('import json,os,sys,time\n'
+                                  'def event(phase):\n'
+                                  + f' with open({str(root / "filter-events.jsonl")!r}, "a") as f:\n'
+                                  + '  f.write(json.dumps({"t":time.monotonic(),"pid":os.getpid(),"phase":phase})+"\\n")\n'
+                                  'event("start")\ntime.sleep(4)\n'
+                                  'sys.stdout.buffer.write(sys.stdin.buffer.read())\n'
+                                  'sys.stdout.buffer.flush()\nevent("end")\n')
         filtered_repo = repos['d-filter']
         git('config', 'filter.probe.clean',
             shlex.quote(sys.executable) + ' ' + shlex.quote(str(filter_program)), cwd=filtered_repo)
@@ -172,7 +180,7 @@ def main():
 
         def first(name, op, after=0.0):
             for row in rows:
-                if row['t'] >= after and row['cwd'] == str(repos[name]) \
+                if row.get('phase', 'start') == 'start' and row['t'] >= after and row['cwd'] == str(repos[name]) \
                         and row['args'] and row['args'][0] == op \
                         and '--delete' not in row['args']:
                     return row['t']

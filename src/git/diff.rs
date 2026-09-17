@@ -1,10 +1,7 @@
 //! Diff and status operations — parse git diff/status output and collect staged entries.
 
 use anyhow::{Context, Result};
-use dracon_git::{
-    types::{DiffFile, FileStatus},
-    GitService,
-};
+use dracon_git::types::{DiffFile, FileStatus};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -260,11 +257,6 @@ pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
 /// This ensures untracked files are included in the diff entries so the
 /// daemon can detect and commit them.
 pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
-    let svc = GitService::new(repo)?;
-    let status = svc.get_status().await?;
-    if status.is_clean {
-        return Ok(Vec::new());
-    }
     // A failed required clean filter must never become "no tracked changes".
     // Only an explicitly absent symbolic HEAD ref permits the unborn fallback;
     // corrupt objects, detached HEAD failures and filter refusals propagate.
@@ -475,6 +467,51 @@ mod f33_tests {
     fn parse_name_status_empty_line_returns_none() {
         assert!(parse_name_status_line("").is_none());
         assert!(parse_name_status_line("\tfoo").is_none());
+    }
+
+    #[tokio::test]
+    async fn classification_applies_filter_once_and_preserves_refusals() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let git = |args: &[&str]| {
+            let output = crate::git::git_cmd()
+                .args(["-c", "core.hooksPath=/dev/null"])
+                .args(args)
+                .current_dir(repo)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{:?}: {}", args,
+                String::from_utf8_lossy(&output.stderr));
+        };
+        // Inherit the caller's configured identity; never modify it.
+        git(&["init", "-q"]);
+        std::fs::write(repo.join("sample.txt"), "seed\n").unwrap();
+        git(&["add", "--", "sample.txt"]);
+        git(&["commit", "-qm", "classification fixture"]);
+        std::fs::write(repo.join(".git/info/attributes"), "sample.txt filter=probe\n").unwrap();
+        git(&["config", "filter.probe.clean", "echo call >> .git/filter-calls; tr 'A-Z' 'a-z' | tr -d ' '"]);
+        git(&["config", "filter.probe.required", "true"]);
+        // Different size avoids Git's same-size/same-mtime stat-cache shortcut.
+        std::fs::write(repo.join("sample.txt"), "SEED   \n").unwrap();
+        assert!(super::repo_diff_entries(repo).await.unwrap().is_empty());
+        assert_eq!(std::fs::read_to_string(repo.join(".git/filter-calls")).unwrap().lines().count(), 1);
+        std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
+        let entries = super::repo_diff_entries(repo).await.unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].path, PathBuf::from("sample.txt"));
+        git(&["config", "filter.probe.clean", "exit 1"]);
+        assert!(super::repo_diff_entries(repo).await.is_err(), "required filter failure must not look clean");
+    }
+
+    #[tokio::test]
+    async fn classification_preserves_unborn_untracked_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(crate::git::git_cmd().args(["init", "-q"])
+            .current_dir(tmp.path()).status().unwrap().success());
+        std::fs::write(tmp.path().join("new.txt"), "new\n").unwrap();
+        let entries = super::repo_diff_entries(tmp.path()).await.unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].path, PathBuf::from("new.txt"));
     }
 
     #[tokio::test]
