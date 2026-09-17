@@ -29,14 +29,17 @@ rather than repaired.
 
 After the window, `exclude_repos` in the live operator config quarantined
 `/home/dracon/Dev/dracon-platform/web/games/wip/hegemon` ("recurring
-stale-mirror merge conflicts"). The repo still exists and has moved (HEAD
-`4a5739a`, origin/main `8f2774f`, still diverged), so the daemon's report
-row shows a misleading `/home/dracon/Dev/hegemon` VANISHED/EMPTY artifact
-instead of the quarantine reason. Hegemon's history reconciliation remains
-OUT OF SCOPE (objective), now under an explicit operator quarantine; no
-manual commit/push substitutes were used. Its residual dirty files belong
-to the active game-agent workflow. Recorded as a deliberately deferred,
-operator-owned item.
+stale-mirror merge conflicts"). The canonical checkout still exists and has
+moved (HEAD `4a5739a`, origin/main `8f2774f`, still diverged); the daemon's
+report row shows a misleading `/home/dracon/Dev/hegemon` VANISHED/EMPTY
+artifact instead of the quarantine reason. `repair concerns` lists no
+hegemon entry (it surfaces only the seven pre-existing unrelated
+vanished-probe concerns, e.g. `/home/dracon/Dev/forge-evict-proof`, all from
+2026-09-16/17 probe cleanups, unchanged by this goal). Hegemon's history
+reconciliation remains OUT OF SCOPE (objective), now under an explicit
+operator quarantine; no manual commit/push substitutes were used. Its
+residual dirty files belong to the active game-agent workflow. Recorded as
+a deliberately deferred, operator-owned item.
 
 ### Live restart-latency verification (0.113.63)
 
