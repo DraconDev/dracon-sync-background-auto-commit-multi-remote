@@ -282,14 +282,13 @@ def main():
                 commit_done_unix_ms.setdefault(m.group(1), int(m.group(2)))
         report['commit_done_unix_ms'] = commit_done_unix_ms
         checks = {
-            # Queue delay (daemon clock): dispatch must occur within one pulse
-            # after the quiet window expires. Wall-clock edit_to_add_seconds
-            # stays in the report as a diagnostic that includes inspection and
-            # execution cost, per the measurement-separation requirement.
-            'b_staging_queue_within_one_pulse': b_add is not None
-                and -500 <= queue_delay.get('b', 10**9) <= 1000,
-            'c_staging_queue_within_one_pulse': c_add is not None
-                and -500 <= queue_delay.get('c', 10**9) <= 1000,
+            # Acceptance measures actual staging start, not an earlier cycle
+            # start. Keep internal queue estimates diagnostic only: subtracting
+            # inspection time must not hide a missed staging deadline.
+            'b_staging_at_quiet_plus_one_pulse': b_add is not None
+                and 2 <= start + b_add - t_b <= 3,
+            'c_staging_at_quiet_plus_one_pulse': c_add is not None
+                and 2 <= start + c_add - t_c <= 3,
             'slow_push_execution_measured_separately': c_push is not None and 'c' in seen
                 and 3 <= seen['c'] - (start + c_push) <= 6,
             # HEAD polling is an upper bound on commit completion. A positive
@@ -307,12 +306,9 @@ def main():
                 and -100 <= (start_unix + b_push) * 1000
                     - commit_done_unix_ms[str(repos['b'])] <= 1000,
             'continuous_work_reaches_remote_within_10s': 'a' in seen and seen['a'] - t_a <= 10,
-            # b2 is dirty before launch; the daemon cannot observe it before
-            # its first scan. The faithful gate: dispatch begins within quiet
-            # + one pulse of the daemon's own quiet anchor.
-            'pre_start_queue_within_quiet_plus_one_pulse': b2_anchor is not None
-                and b2_dispatch_ms is not None
-                and -500 <= b2_dispatch_ms - (b2_anchor + 2000) <= 1000,
+            # Reconciliation must include initial scan time, rather than
+            # resetting the acceptance clock when the daemon notices the file.
+            'pre_start_change_stages_within_3s': b2_add is not None and b2_add <= 3,
         }
         if slow_filter:
             checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
