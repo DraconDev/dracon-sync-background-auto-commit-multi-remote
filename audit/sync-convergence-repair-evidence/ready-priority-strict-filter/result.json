@@ -1,0 +1,141 @@
+{
+  "root": "/tmp/sync-fairness-ifpnof2x",
+  "scope": "fairness: continuous edits, slow push, pre-start change",
+  "slow_required_filter": true,
+  "failing_remote": false,
+  "converged": true,
+  "commit_observed_seconds": {
+    "b2": 3.8081644349731505,
+    "b": 4.785570598905906,
+    "c": 5.41340121300891,
+    "a": 8.487266974989325,
+    "d-filter": 15.569066743948497
+  },
+  "remote_observed_seconds": {
+    "b2": 4.1707773639354855,
+    "b": 5.6682123659411445,
+    "c": 8.90229094796814,
+    "a": 8.991063178982586,
+    "d-filter": 16.115706539014354
+  },
+  "a_commits": 1,
+  "dispatch": {
+    "a": {
+      "add_rel": 7.112264603958465,
+      "push_rel": 8.846705728909
+    },
+    "b": {
+      "add_rel": 3.675536818918772,
+      "push_rel": 5.307126897969283
+    },
+    "b2": {
+      "add_rel": 2.519195785978809,
+      "push_rel": 4.007873489987105
+    },
+    "c": {
+      "add_rel": 4.1585258189588785,
+      "push_rel": 5.7850224279100075
+    },
+    "d-filter": {
+      "add_rel": 10.044674619915895,
+      "push_rel": 15.970640789018944
+    }
+  },
+  "edit_seconds": {
+    "b": 1.0000945159699768,
+    "c": 1.2047977739712223,
+    "a_started": 1.2050218069925904
+  },
+  "commit_command_end_seconds": {},
+  "edit_to_add_seconds": {
+    "b": 2.6754423029487953,
+    "c": 2.953728044987656
+  },
+  "queue_delay_ms": {
+    "a": -2089,
+    "b": 8,
+    "b2": 1,
+    "c": -196,
+    "d-filter": 3006
+  },
+  "stage_decomposition_ms": {
+    "a": {
+      "quiet_due_daemon_ms": 8440,
+      "dispatch_daemon_ms": 6440,
+      "dispatch_after_quiet_ms": -2000,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 374,
+      "stage_enter_to_add_spawn_ms": 90,
+      "dispatch_to_add_spawn_ms": 464
+    },
+    "b": {
+      "quiet_due_daemon_ms": 2977,
+      "dispatch_daemon_ms": 3162,
+      "dispatch_after_quiet_ms": 185,
+      "dispatch_to_worker_start_ms": 2,
+      "worker_start_to_stage_enter_ms": 357,
+      "stage_enter_to_add_spawn_ms": 81,
+      "dispatch_to_add_spawn_ms": 440
+    },
+    "b2": {
+      "quiet_due_daemon_ms": 2000,
+      "dispatch_daemon_ms": 2060,
+      "dispatch_after_quiet_ms": 60,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 288,
+      "stage_enter_to_add_spawn_ms": 94,
+      "dispatch_to_add_spawn_ms": 382
+    },
+    "c": {
+      "quiet_due_daemon_ms": 3181,
+      "dispatch_daemon_ms": 3676,
+      "dispatch_after_quiet_ms": 495,
+      "dispatch_to_worker_start_ms": 0,
+      "worker_start_to_stage_enter_ms": 335,
+      "stage_enter_to_add_spawn_ms": 36,
+      "dispatch_to_add_spawn_ms": 371
+    },
+    "d-filter": {
+      "quiet_due_daemon_ms": 2000,
+      "dispatch_daemon_ms": 5242,
+      "dispatch_after_quiet_ms": 3242,
+      "dispatch_to_worker_start_ms": 1,
+      "worker_start_to_stage_enter_ms": 4574,
+      "stage_enter_to_add_spawn_ms": 122,
+      "dispatch_to_add_spawn_ms": 4697
+    }
+  },
+  "scan_overrun_ms": 1015,
+  "loadavg_end": [
+    74.24,
+    80.61,
+    82.41
+  ],
+  "commit_done_unix_ms": {
+    "/tmp/sync-fairness-ifpnof2x/watch/b2": 1789684846498,
+    "/tmp/sync-fairness-ifpnof2x/watch/b": 1789684847418,
+    "/tmp/sync-fairness-ifpnof2x/watch/c": 1789684848148,
+    "/tmp/sync-fairness-ifpnof2x/watch/a": 1789684851175,
+    "/tmp/sync-fairness-ifpnof2x/watch/d-filter": 1789684858363
+  },
+  "push_after_commit_done_ms": {
+    "b": 689,
+    "a": 472
+  },
+  "continuous_work_remote_seconds": 8.991063178982586,
+  "checks": {
+    "b_staging_dispatch_at_quiet_plus_one_pulse": true,
+    "c_staging_dispatch_at_quiet_plus_one_pulse": true,
+    "b_staging_execution_within_5s": true,
+    "c_staging_execution_within_5s": true,
+    "slow_push_execution_measured_separately": true,
+    "b_push_within_one_pulse_of_observed_commit": true,
+    "b_push_within_one_pulse_of_commit_done": true,
+    "continuous_work_pushes_within_one_pulse_of_commit": true,
+    "continuous_work_reaches_remote": true,
+    "pre_start_reconciliation_dispatch_within_quiet_plus_one_pulse": true,
+    "pre_start_reconciliation_execution_within_5s": true,
+    "slow_required_filter_eventually_converges": true
+  },
+  "passed": true
+}
