@@ -1,0 +1,46 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789671739488
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-gnj7pkzv/watch/r1 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r1 cycle_ms=1619 repo_ms=1618 dirty=false daemon_ms=1635
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-gnj7pkzv/watch/r2 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r2 cycle_ms=3235 repo_ms=1596 dirty=false daemon_ms=3251
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-gnj7pkzv/watch/r3 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r3 cycle_ms=3310 repo_ms=50 dirty=true daemon_ms=3326
+scheduler: classification_spawn repo=/tmp/sync-restart-gnj7pkzv/watch/r3 cycle_ms=3330 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=3330
+scheduler: pulse_start unix_ms=1789671742819
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r1 cycle_ms=40 repo_ms=29 dirty=false daemon_ms=3388
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-gnj7pkzv/watch/r3 elapsed_ms=44 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-gnj7pkzv/watch/r3 elapsed_ms=3 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-gnj7pkzv/watch/r3 ms=47 ok=true
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r2 cycle_ms=80 repo_ms=23 dirty=false daemon_ms=3428
+scheduler: status repo=/tmp/sync-restart-gnj7pkzv/watch/r3 cycle_ms=113 repo_ms=15 dirty=true daemon_ms=3461
+scheduler: quiet_clock_assignment discovery_ms=3478 evidence_unix_ns=Some(1789671739464140233) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-gnj7pkzv/watch/r3 cycle_ms=131 observed_quiet_ms=3478 eligible=true daemon_ms=3478 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-gnj7pkzv/watch/r3 path="second.txt" unix_ns=Some(1789671739464140233)
+scheduler: dispatch repo=/tmp/sync-restart-gnj7pkzv/watch/r3 cycle_ms=131 inspection_ms=33 daemon_ms=3478 unix_ms=1789671742950
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: task_start repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671742950
+scheduler: cycle_complete elapsed_ms=131
+sync: received SIGTERM, shutting down gracefully...
+🐛 /tmp/sync-restart-gnj7pkzv/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+🐛 /tmp/sync-restart-gnj7pkzv/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-gnj7pkzv/watch/r3 thread=ThreadId(12) unix_ms=1789671743060
+scheduler: stage_prepare repo=/tmp/sync-restart-gnj7pkzv/watch/r3 phase=unmerged elapsed_ms=1
+scheduler: stage_prepare repo=/tmp/sync-restart-gnj7pkzv/watch/r3 phase=untracked elapsed_ms=3
+scheduler: stage_files_enter repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671743068
+scheduler: stage_prepare repo=/tmp/sync-restart-gnj7pkzv/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-gnj7pkzv/watch/r3 phase=partition elapsed_ms=8
+scheduler: add_spawn repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671743076
+scheduler: add_spawned repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671743077 pid=Some(2730206)
+scheduler: add_done repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671743122 ok=true
+scheduler: commit_done repo=/tmp/sync-restart-gnj7pkzv/watch/r3 unix_ms=1789671743540
+📝 committed 1 file(s) in /tmp/sync-restart-gnj7pkzv/watch/r3
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-gnj7pkzv/watch/r3 (public_only policy + visibility cache says None)
+ℹ️  r3 already exists on origin — skipping auto-create
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-restart-gnj7pkzv/watch/r3 thread=ThreadId(12) unix_ms=1789671743750 ok=true

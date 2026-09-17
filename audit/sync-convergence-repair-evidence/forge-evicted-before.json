@@ -1,0 +1,14 @@
+{
+  "binary": "/home/dracon/.local/bin/dracon-sync",
+  "root": "/tmp/sync-restart-gnj7pkzv",
+  "ls_remote_sleep": 1.5,
+  "dispatch_budget_s": 3.0,
+  "phase_a_converged": true,
+  "mode": "evicted",
+  "phase_b_pulse_unix_ms": 1789671739488,
+  "first_dispatch_unix_ms": 1789671742950,
+  "restart_dispatch_latency_s": 3.462,
+  "ls_remote_calls_phase_b": 2,
+  "passed": false,
+  "raw_evidence": "/home/dracon/Dev/dracon-utilities/dracon-sync/audit/sync-convergence-repair-evidence/forge-evicted-before"
+}
