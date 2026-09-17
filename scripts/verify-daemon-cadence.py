@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--binary', required=True)
     parser.add_argument('--deadline', type=float, default=20)
+    parser.add_argument('--files', type=int, default=1)
     args = parser.parse_args()
     binary = str(Path(args.binary).resolve())
     git_bin = shutil.which('git')
@@ -80,7 +81,11 @@ def main():
         try:
             time.sleep(2)
             changed = time.monotonic()
+            for index in range(max(0, args.files - 1)):
+                (repo / f'fixture-{index}.txt').write_text(f'synthetic file {index}\n')
             (repo / 'sample.txt').write_text('changed\n')
+            report['file_count'] = args.files
+            report['write_finished_monotonic'] = time.monotonic()
             report['change_monotonic'] = changed
             commit_at = remote_at = None
             while time.monotonic() - changed < args.deadline:

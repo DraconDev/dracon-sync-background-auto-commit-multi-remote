@@ -4365,8 +4365,12 @@ pub(crate) async fn sync_repo_with_ahead_since(
     let preparation_start = std::time::Instant::now();
     let preparation_phase = |phase: &str| {
         if debug_enabled() {
-            eprintln!("scheduler: worker_prepare repo={} phase={} elapsed_ms={}",
-                repo.display(), phase, preparation_start.elapsed().as_millis());
+            eprintln!(
+                "scheduler: worker_prepare repo={} phase={} elapsed_ms={}",
+                repo.display(),
+                phase,
+                preparation_start.elapsed().as_millis()
+            );
         }
     };
     let svc = GitService::new(repo)?;

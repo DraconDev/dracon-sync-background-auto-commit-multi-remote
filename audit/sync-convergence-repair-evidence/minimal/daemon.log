@@ -1,0 +1,52 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789672397790
+scheduler: status repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=597 repo_ms=596 dirty=false daemon_ms=642
+scheduler: cycle_complete elapsed_ms=1782
+scheduler: pulse_start unix_ms=1789672399572
+scheduler: status repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=724 repo_ms=724 dirty=true daemon_ms=2552
+scheduler: classification_spawn repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=1747 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=1748
+scheduler: pulse_start unix_ms=1789672401354
+classification: phase=filter-aware-diff repo=/tmp/sync-cadence-rn68urlz/watch/sample elapsed_ms=52 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-cadence-rn68urlz/watch/sample elapsed_ms=37 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-cadence-rn68urlz/watch/sample ms=89 ok=true
+scheduler: status repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=710 repo_ms=709 dirty=true daemon_ms=4319
+scheduler: quiet_clock_assignment discovery_ms=4932 evidence_unix_ns=Some(1789672399668437994) anchor_ms=1923
+scheduler: eligibility repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=1323 observed_quiet_ms=3009 eligible=true daemon_ms=4932 anchor_daemon_ms=1923
+scheduler: file_mtime repo=/tmp/sync-cadence-rn68urlz/watch/sample path="sample.txt" unix_ns=Some(1789672399668437994)
+scheduler: dispatch repo=/tmp/sync-cadence-rn68urlz/watch/sample cycle_ms=1323 inspection_ms=1322 daemon_ms=4932 unix_ms=1789672402677
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=1323
+scheduler: pulse_start unix_ms=1789672402678
+scheduler: cycle_complete elapsed_ms=0
+scheduler: task_start repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672402679
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_origin elapsed_ms=98
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_status elapsed_ms=98
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=after_status elapsed_ms=108
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_pull elapsed_ms=108
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_clean elapsed_ms=108
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_diff elapsed_ms=411
+🐛 /tmp/sync-cadence-rn68urlz/watch/sample status: clean=false modified=1 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=after_diff elapsed_ms=593
+🐛 /tmp/sync-cadence-rn68urlz/watch/sample to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-cadence-rn68urlz/watch/sample thread=ThreadId(9) unix_ms=1789672403273
+scheduler: stage_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=unmerged elapsed_ms=5
+scheduler: stage_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=untracked elapsed_ms=42
+scheduler: stage_files_enter repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672403424
+scheduler: stage_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=before_partition elapsed_ms=0
+scheduler: pulse_start unix_ms=1789672403687
+scheduler: cycle_complete elapsed_ms=1
+scheduler: stage_prepare repo=/tmp/sync-cadence-rn68urlz/watch/sample phase=partition elapsed_ms=358
+scheduler: add_spawn repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672403783
+scheduler: add_spawned repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672403783 pid=Some(2858766)
+scheduler: add_done repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672403816 ok=true
+scheduler: commit_done repo=/tmp/sync-cadence-rn68urlz/watch/sample unix_ms=1789672405491
+📝 committed 1 file(s) in /tmp/sync-cadence-rn68urlz/watch/sample
+scheduler: pulse_start unix_ms=1789672405491
+scheduler: cycle_complete elapsed_ms=0
+scheduler: pulse_start unix_ms=1789672406503
+scheduler: cycle_complete elapsed_ms=1
+sync: received SIGTERM, shutting down gracefully...
+branch 'main' set up to track 'origin/main'.
+scheduler: stage_exit repo=/tmp/sync-cadence-rn68urlz/watch/sample thread=ThreadId(2) unix_ms=1789672407455 ok=true
