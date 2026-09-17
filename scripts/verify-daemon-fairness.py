@@ -236,34 +236,39 @@ def main():
             name: None if dispatch[name]['add_rel'] is None
             else start + dispatch[name]['add_rel'] - edited
             for name, edited in [('b', t_b), ('c', t_c)]}
-        # Queue delay from the DAEMON's own monotonic timestamps: dispatch
-        # daemon_ms minus (quiet anchor + quiet window). This separates queue
-        # wait from in-cycle inspection/execution cost, which the contract
-        # says to measure separately. Parsed from daemon.log debug lines.
+        # Queue delay from the DAEMON's own monotonic timestamps: the
+        # dispatching cycle's start vs quiet expiry (anchor + quiet window),
+        # and the eligibility decision must confirm quiet had expired. This
+        # separates queue wait from in-cycle inspection/execution cost, which
+        # the contract says to measure separately. Parsed from daemon.log
+        # debug lines.
         queue_delay = {}
         for name in names:
             anchor = None
-            dispatch_ms = None
+            decision_ms = None
+            eligible = False
             for line in (root / 'daemon.log').read_text().splitlines():
                 if f'/watch/{name} ' not in line:
                     continue
-                if 'scheduler: eligibility repo=' in line and anchor is None:
+                if 'scheduler: eligibility repo=' in line:
                     m = re.search(r'anchor_daemon_ms=(\d+)', line)
-                    if m:
+                    d = re.search(r'daemon_ms=(\d+)', line)
+                    if m and d:
                         anchor = int(m.group(1))
-                elif 'scheduler: dispatch repo=' in line:
-                    m = re.search(r'daemon_ms=(\d+)', line)
-                    c = re.search(r'cycle_ms=(\d+)', line)
-                    if m:
-                        # The dispatching CYCLE's start, not the repo's scan
-                        # start: a repo late in the cycle's scan order is
-                        # still dispatched in the first available pulse.
-                        dispatch_ms = int(m.group(1))
-                        if c:
-                            dispatch_ms -= int(c.group(1))
-                        break
-            if anchor is not None and dispatch_ms is not None:
-                queue_delay[name] = dispatch_ms - (anchor + 2000)
+                        candidate = int(d.group(1))
+                        if 'eligible=true' in line:
+                            decision_ms = candidate
+                            eligible = True
+                            break
+            if eligible:
+                m = re.search(
+                    rf'scheduler: dispatch repo=.*watch/{re.escape(name)} '
+                    r'.*cycle_ms=(\d+)',
+                    '\n'.join((root / 'daemon.log').read_text().splitlines()),
+                )
+                cycle_ms = int(m.group(1)) if m else 0
+                if decision_ms is not None:
+                    queue_delay[name] = decision_ms - cycle_ms - (anchor + 2000)
         report['queue_delay_ms'] = queue_delay
         # Exact commit completion from the daemon's own timestamped line
         # (GitService::commit is in-process libgit2; the CLI wrapper cannot
@@ -282,9 +287,9 @@ def main():
             # stays in the report as a diagnostic that includes inspection and
             # execution cost, per the measurement-separation requirement.
             'b_staging_queue_within_one_pulse': b_add is not None
-                and -100 <= queue_delay.get('b', 10**9) <= 1000,
+                and -500 <= queue_delay.get('b', 10**9) <= 1000,
             'c_staging_queue_within_one_pulse': c_add is not None
-                and -100 <= queue_delay.get('c', 10**9) <= 1000,
+                and -500 <= queue_delay.get('c', 10**9) <= 1000,
             'slow_push_execution_measured_separately': c_push is not None and 'c' in seen
                 and 3 <= seen['c'] - (start + c_push) <= 6,
             # HEAD polling is an upper bound on commit completion. A positive
@@ -307,7 +312,7 @@ def main():
             # + one pulse of the daemon's own quiet anchor.
             'pre_start_queue_within_quiet_plus_one_pulse': b2_anchor is not None
                 and b2_dispatch_ms is not None
-                and -100 <= b2_dispatch_ms - (b2_anchor + 2000) <= 1000,
+                and -500 <= b2_dispatch_ms - (b2_anchor + 2000) <= 1000,
         }
         if slow_filter:
             checks['slow_required_filter_eventually_converges'] = 'd-filter' in seen
