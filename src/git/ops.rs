@@ -211,16 +211,6 @@ where
     let poll_interval = Duration::from_millis(100);
 
     loop {
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|e| anyhow::anyhow!("{} failed in {}: {}", label, workdir.display(), e))?
-        {
-            let stderr_output = stderr_task
-                .await
-                .unwrap_or_else(|e| format!("stderr capture failed: {e}"));
-            return child_status_result(status, label, workdir, stderr_output);
-        }
-
         let effective_deadline = std::cmp::min(deadline, hard_deadline);
         let remaining = effective_deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
@@ -239,7 +229,22 @@ where
             ));
         }
 
+        // CHANGED 2026-09-17 (convergence goal): observe child exit via
+        // `child.wait()` (cancel-safe; the child keeps running if this select
+        // arm loses) instead of a 100ms `try_wait` poll. The poll added up to
+        // one tick of pure latency to EVERY git command's completion
+        // observation (~15 commands in one stage-commit-push path → hundreds
+        // of ms per dispatch). The 100ms sleep stays as a deadline-safety
+        // tick; progress output still extends the deadline event-driven.
         tokio::select! {
+            status = child.wait() => {
+                let status = status
+                    .map_err(|e| anyhow::anyhow!("{} failed in {}: {}", label, workdir.display(), e))?;
+                let stderr_output = stderr_task
+                    .await
+                    .unwrap_or_else(|e| format!("stderr capture failed: {e}"));
+                return child_status_result(status, label, workdir, stderr_output);
+            }
             Some(_) = progress_rx.recv() => {
                 deadline = std::cmp::min(
                     Instant::now() + Duration::from_secs(timeout_secs),
