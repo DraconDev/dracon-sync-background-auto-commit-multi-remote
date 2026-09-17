@@ -203,8 +203,45 @@ pub(crate) fn fallback_status_rank(status: &FileStatus) -> u8 {
     }
 }
 
+/// Attribute slow classification to its actual subprocess phase, including
+/// cancellation by the caller's timeout. This guard reports future lifetime;
+/// it does not claim that dropping the future terminated the subprocess.
+struct ClassificationPhase<'a> {
+    repo: &'a Path,
+    name: &'static str,
+    started: std::time::Instant,
+    outcome: &'static str,
+}
+
+impl<'a> ClassificationPhase<'a> {
+    fn start(repo: &'a Path, name: &'static str) -> Self {
+        Self {
+            repo,
+            name,
+            started: std::time::Instant::now(),
+            outcome: "interrupted",
+        }
+    }
+}
+
+impl Drop for ClassificationPhase<'_> {
+    fn drop(&mut self) {
+        let elapsed = self.started.elapsed();
+        if crate::policy::debug_enabled() || elapsed >= std::time::Duration::from_secs(5) {
+            eprintln!(
+                "classification: phase={} repo={} elapsed_ms={} outcome={}",
+                self.name,
+                self.repo.display(),
+                elapsed.as_millis(),
+                self.outcome,
+            );
+        }
+    }
+}
+
 /// Get diff entries via `git diff` CLI (fallback when libgit2 fails).
 pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
+    let mut phase = ClassificationPhase::start(repo, "filter-aware-diff");
     // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): `-z` + exit
     // status checked (was: status unchecked — a failed diff read as
     // "no changes").
@@ -216,12 +253,14 @@ pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
         .output()
         .await?;
     if !output.status.success() {
+        phase.outcome = "nonzero-exit";
         return Err(anyhow::anyhow!(
             "git diff --name-status -z HEAD failed in {}: exit {}",
             repo.display(),
             output.status
         ));
     }
+    phase.outcome = "success";
     let mut entries = Vec::new();
     for (path, status) in parse_name_status_z(&output.stdout) {
         entries.push(DiffFile::new(path, status));
@@ -231,6 +270,7 @@ pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
 
 /// Get untracked file entries via `git ls-files --others --exclude-standard`.
 pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
+    let mut phase = ClassificationPhase::start(repo, "untracked-discovery");
     let output = crate::git::tokio_git_cmd()
         .args(["ls-files", "--others", "--exclude-standard", "-z"])
         .current_dir(repo)
@@ -239,12 +279,14 @@ pub(crate) async fn untracked_entries(repo: &Path) -> Result<Vec<DiffFile>> {
         .output()
         .await?;
     if !output.status.success() {
+        phase.outcome = "nonzero-exit";
         return Err(anyhow::anyhow!(
             "git ls-files --others --exclude-standard failed in {}: exit {}",
             repo.display(),
             output.status
         ));
     }
+    phase.outcome = "success";
     let stdout = String::from_utf8_lossy(&output.stdout);
     Ok(stdout
         .split('\0')
