@@ -94,6 +94,32 @@ fn remaining_pulse(interval: Duration, elapsed: Duration) -> Duration {
     interval.saturating_sub(elapsed)
 }
 
+/// Pure decision for whether a repo needs a filter-aware background
+/// classification this pulse. Extracted so the wedge shape (dirty + ahead
+/// override) is unit-testable. AHEAD/BEHIND IS A PUSH CONCERN: it must not
+/// suppress worktree classification for a dirty repo.
+fn needs_classification(
+    status_is_clean: bool,
+    ahead: usize,
+    behind: usize,
+    has_origin: bool,
+    has_upstream: bool,
+) -> bool {
+    if status_is_clean {
+        // Clean repos still classify when remote issues or ahead/behind
+        // state requires the dirty-entries check.
+        ahead == 0 && behind == 0 && (!has_origin || !has_upstream)
+    } else {
+        // CHANGED 2026-09-17 (convergence goal): a dirty repo with an
+        // ahead/behind mirror override (ahead>0) previously NEVER
+        // classified, so the dispatch gate's required result never
+        // appeared — the repo sat dirty + unpushed forever (observed
+        // live: dracon-utilities/dracon-sync dirty + ahead=3 for 20 min;
+        // polis ahead=12 pending for hours).
+        true
+    }
+}
+
 fn dispatch_due(
     now: Instant,
     changed_at: Instant,
@@ -961,6 +987,27 @@ pub(crate) fn stuck_decision(
 mod tests {
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
+
+    #[test]
+    fn needs_classification_dirty_repo_with_ahead_override_classifies() {
+        // The live wedge: status dirty + mirror-ahead override (ahead=3).
+        // Classification must run or the dispatch gate starves forever.
+        assert!(needs_classification(false, 3, 0, true, true));
+        assert!(needs_classification(false, 0, 2, true, true));
+        assert!(needs_classification(false, 0, 0, true, true));
+        // Clean + synced + healthy remotes: fast path, no classification.
+        assert!(!needs_classification(true, 0, 0, true, true));
+        // Clean but remote issues: keep the dirty-entries check.
+        assert!(needs_classification(true, 0, 0, false, true));
+        assert!(needs_classification(true, 0, 0, true, false));
+        // Clean + ahead/behind: the clean arm deliberately skips
+        // classification — ahead/behind is a push concern and there is no
+        // worktree content to classify; the push path owns it.
+        assert!(!needs_classification(true, 2, 0, true, true));
+        // Clean + mirror-ahead override: classification still not needed (the
+        // clean arm has no worktree content to classify); push path handles it.
+        assert!(!needs_classification(true, 3, 0, true, true));
+    }
 
     #[test]
     fn quiet_evidence_uses_change_time_not_discovery_time() {
@@ -5268,13 +5315,20 @@ pub(crate) async fn run_daemon(
             // per-repo background job: one job per repo while any classification
             // is needed; results are PEEKED (kept) here so a quiet-window
             // pulse never destroys the result and forces a filter re-run.
-            let needs_classification = if status.is_clean {
-                // Clean repos still classify when remote issues or ahead/behind
-                // state requires the dirty-entries check.
-                status.ahead == 0 && status.behind == 0 && (!has_origin || !has_upstream)
-            } else {
-                status.ahead == 0 && status.behind == 0
-            };
+            // CHANGED 2026-09-17 (convergence goal): a dirty repo with an
+            // ahead/behind mirror override (ahead>0) previously NEVER
+            // classified, so the dispatch gate's required result never
+            // appeared — the repo sat dirty + unpushed forever (observed
+            // live: dracontilities/dracon-sync dirty + ahead=3 for 20 min;
+            // polis ahead=12 pending for hours). Ahead/behind is a PUSH
+            // concern and must not suppress worktree classification.
+            let needs_classification = needs_classification(
+                status.is_clean,
+                status.ahead,
+                status.behind,
+                has_origin,
+                has_upstream,
+            );
             if needs_classification {
                 // Staleness pass: drop results that describe an older index
                 // snapshot. Non-empty results are KEPT (they will be consumed
