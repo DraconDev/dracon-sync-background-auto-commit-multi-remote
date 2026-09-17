@@ -1,0 +1,93 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.18s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-f4943e618e838bf0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-b3b53017058fedd7)
+
+running 1060 tests
+test bump::tests::test_extract_version_from_cargo_ignorefile ... ok
+test bump::tests::test_extract_version_from_cargo_no_version ... ok
+test bump::tests::test_extract_version_from_cargo_package ... ok
+test bump::tests::test_extract_version_from_cargo_with_inline_comment ... ok
+test bump::tests::test_extract_version_from_cargo_with_trailing_semicolon ... ok
+test bump::tests::test_extract_version_from_cargo_workspace_package ... ok
+test bump::tests::test_extract_version_from_json ... ok
+test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
+test bump::tests::test_extract_version_from_json_multiple_keys ... ok
+test bump::tests::test_extract_version_from_json_not_found ... ok
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 28c593e] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpA2RlOh/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 78135d4] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpA2RlOh/remote.git
+   28c593e..78135d4  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) d710503] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpqJXVPZ/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main d846eb7] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) 3cc544f] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::daemon_tests::test_is_repo_ready_nonexistent_path ... ok
+test daemon::daemon_tests::test_is_repo_stuck_false ... ok
+test daemon::daemon_tests::test_list_stuck_repos_empty ... ok
+test daemon::daemon_tests::test_load_stuck_push_repos_nonexistent ... ok
+test daemon::daemon_tests::test_no_redispatch_invariant ... ok
+test daemon::daemon_tests::test_policy_clone_at_repo_iteration ... ok
+test daemon::daemon_tests::test_sem_max_concurrent_sync_default_is_four ... ok
+test daemon::daemon_tests::test_skips_nonexistent_repo ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format_full ... ok
+test daemon::daemon_tests::test_stuck_repos_path_home ... ok
+test daemon::daemon_tests::test_trailing_drain_clears_stuck_in_flight ... ok
+test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... ok
+test daemon::test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age ... ok
+test daemon::test_ownership_detection_end_to_end ... ok
+test daemon::test_ownership_needs_redetect_ttl ... ok
+test daemon::test_ownership_per_repo_override_forces_unowned ... ok
+test daemon::test_push_failure_notification_requires_persistent_budget_exhaustion ... ok
+test daemon::test_record_push_failure_accumulates_across_calls ... ok
+test daemon::test_settling_max_delay_default_is_60 ... ok
+test daemon::test_stale_dirty_alert_due_throttle_and_disable ... ok
+test daemon::test_stale_dirty_alert_policy_default_and_serde ... ok
+test daemon::test_stuck_decision_backoff_inside_window ... ok
+test daemon::test_stuck_decision_exhausted_at_budget ... ok
+test daemon::test_stuck_decision_retry_after_window ... ok
+test daemon::test_stuck_decision_retry_respects_last_retry_stamp ... ok
+test daemon::test_sustained_threshold_met ... ok
+test daemon::tests::classifier_completed_during_scan_is_available_at_repo_boundary ... ok
+test daemon::tests::eligibility_uses_dispatch_clock_and_bounds_continuous_work ... ok
+test daemon::tests::needs_classification_dirty_repo_with_ahead_override_classifies ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::pending_result_collection_does_not_block_next_repo ... ok
+test daemon::tests::pre_start_dirty_activity_reaches_exact_quiet_boundary_once ... ok
+test daemon::tests::pulse_accounts_for_scan_work_and_overruns ... ok
+test daemon::tests::push_aggregation_cancellation_does_not_arm_backoff ... ok
+test daemon::tests::push_aggregation_mixed_failure_still_arms_backoff ... ok
+test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... ok
+test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
+test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
+test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... ok
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... 
