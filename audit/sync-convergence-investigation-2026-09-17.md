@@ -2,6 +2,55 @@
 
 ## Post-deployment checkpoint — 2026-09-17 (acceptance still under review)
 
+> FINAL STATUS (19:28 BST): 0.113.63 released/installed/running (PID 1437862);
+> restart-latency fix verified live; the 0.113.63 live window converged both
+> probe rounds on both remotes before a later external pause; final inventory
+> 33 rows with hegemon quarantined (below). Deployment accepted; one
+> out-of-scope blocker deferred explicitly (hegemon history reconciliation).
+> Corrections in this section supersede the original table wording where
+> they conflict.
+
+### External pause incident (unidentified source) — recorded, not repaired
+
+A freeze marker appeared at 18:52:24 (`paused at 1789667544`) 0.3s before
+the Round-5 probe write, pausing the daemon mid-window; the Round-5 append
+then converged at 18:58:34 (`f79cd6a`, synced 18:58:41, both remotes) only
+after it self-cleared. A second marker (`paused at 1789668080`) coincided
+with the Round-6 write at 19:01; both had self-cleared before
+`dracon-sync resume` ran. Journal shows no writing process and the operator
+has an active SSH session; a manual `dracon-sync pause` is possible but
+unproven. Not attributed to the daemon. The Round-6 append committed at
+19:01 (`b1456eb`) and both remote tips match (`ls-remote`, re-verified
+19:28). These two rounds are the 15-minute live-window deliverable of
+0.113.63; the two pause windows inside them are external events, recorded
+rather than repaired.
+
+### Hegemon quarantine and live-state note (post-window)
+
+After the window, `exclude_repos` in the live operator config quarantined
+`/home/dracon/Dev/dracon-platform/web/games/wip/hegemon` ("recurring
+stale-mirror merge conflicts"). The repo still exists and has moved (HEAD
+`4a5739a`, origin/main `8f2774f`, still diverged), so the daemon's report
+row shows a misleading `/home/dracon/Dev/hegemon` VANISHED/EMPTY artifact
+instead of the quarantine reason. Hegemon's history reconciliation remains
+OUT OF SCOPE (objective), now under an explicit operator quarantine; no
+manual commit/push substitutes were used. Its residual dirty files belong
+to the active game-agent workflow. Recorded as a deliberately deferred,
+operator-owned item.
+
+### Live restart-latency verification (0.113.63)
+
+The fix was released (release `043fc22`, tag `dracon-sync-v0.113.63` on
+GitHub and GitLab — GitLab required a manual `git push gitlab
+<tag>`; the tag push was the only manual git operation, it is a release
+bookkeeping ref, not convergence evidence), installed to `~/.local/bin`,
+fixture check passed, daemon restarted 18:45 as PID 1361356 and again 18:48
+as PID 1437862. On the second restart the durable cache was warm: per-repo
+inspection collapsed from the pre-fix ~2500–3900ms (0.113.62 restart,
+journal `repo_ms=2474..3967`, 66+ `already exists` probes each paying an
+SSH round-trip) to **~50–180ms** (`repo_ms=110,103,50,89,...`, cache file
+`~/.local/state/dracon/forge-exists-cache.json`, 67 pairs persisted).
+
 ### Evidence correction during independent-review preparation
 
 The round-3 **12.6s** value below is withdrawn as end-to-end latency: that
@@ -58,6 +107,9 @@ unit evidence for the git-runner poll: `child_exit_wakes_runner_without_poll_int
 (`/tmp/sync-exit-before.log` FAIL, `/tmp/sync-exit-after.log` PASS).
 
 ### 15-minute live window (installed 0.113.62, PID 3560717)
+
+(SUPERSEDED by the Round-5/6 window on 0.113.63 above; retained for the
+record.)
 
 Started 16:51:15 BST, duration 900s, harness `/tmp/observe-sync62-fixed.py`
 (reports in `/tmp/sync62-live-fixed/`). One bounded synthetic append to
