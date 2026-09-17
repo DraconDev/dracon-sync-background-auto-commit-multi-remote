@@ -5119,7 +5119,7 @@ pub(crate) async fn run_daemon(
                     });
                     if std::env::var("DRACON_SYNC_DEBUG").is_ok_and(|v| v == "1") {
                         eprintln!(
-                            "scheduler: classification repo={} ms={} ok={}",
+                            "scheduler: classification_job_done repo={} ms={} ok={}",
                             repo_for_job.display(),
                             started.elapsed().as_millis(),
                             outcome.is_ok()
