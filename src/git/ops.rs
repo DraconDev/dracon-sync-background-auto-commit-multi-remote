@@ -257,15 +257,14 @@ where
             ));
         }
 
-        // CHANGED 2026-09-17 (convergence goal): observe child exit via
-        // `child.wait()` (cancel-safe; the child keeps running if this select
-        // arm loses) instead of a 100ms `try_wait` poll. The poll added up to
-        // one tick of pure latency to EVERY git command's completion
-        // observation (~15 commands in one stage-commit-push path → hundreds
-        // of ms per dispatch). The 100ms sleep stays as a deadline-safety
-        // tick; progress output still extends the deadline event-driven.
+        // Drain stderr before reaping the leader: helpers may inherit the
+        // pipe and outlive Git. Keeping the leader unreaped retains its PID
+        // (and our group identity) until cancellation-safe capture finishes.
+        // EOF wakes this select immediately; the next iteration waits for
+        // child exit without a polling delay. Timeout/progress stay active
+        // even when a helper holds the pipe open after Git exits.
         tokio::select! {
-            status = child.wait() => {
+            status = child.wait(), if captured_stderr.is_some() => {
                 let status = status
                     .map_err(|e| anyhow::anyhow!("{} failed in {}: {}", label, workdir.display(), e))?;
                 // wait reaped the leader; never signal its potentially reused PID.
