@@ -1,6 +1,47 @@
 # Sync convergence investigation — in progress
 
-## Current checkpoint — 2026-09-17, before 0.113.60 publication
+## Current checkpoint — 2026-09-17, 0.113.62 candidate
+
+The running service was verified through `/proc/1857001/exe --version` as
+0.113.61 at 16:05 BST. It lacks the clean-ahead and mid-scan collection fixes.
+The release-build candidate has these fixes, but full acceptance remains open.
+
+- Clean-ahead fail-before: `verify-daemon-ahead.py ~/.local/bin/dracon-sync`
+  failed its 15s bound; worktree/index/HEAD agreed, bare remote remained stale.
+  `/tmp/sync-ahead-installed-before.json` and `/tmp/sync-ahead-w6sm70d8/`.
+- Patched clean-ahead: `/tmp/sync-clean-ahead-confirm.json` passes; initial
+  remote convergence 2.327s, followed by two edits with identical worktree,
+  index, HEAD and bare-remote hashes. Dirty-ahead also passes:
+  `/tmp/sync-ahead-dirty-after.json`. These are content/convergence fixtures,
+  not substitutes for strict staging timing.
+- `classifier_completed_during_scan_is_available_at_repo_boundary` passes
+  (`/tmp/sync62-boundary-test.log`). Both collection sites use the same
+  nonblocking helper; a slow classifier remains pending and owned.
+- Strict release-build probes remain mixed: `/tmp/sync62-strict-slow1.json`
+  failed C=3.152s; `/tmp/sync62-strict-slow2.json` failed B=3.252s/C=3.110s.
+  `/tmp/sync62-prepare-probe.json` passed B=2.638s/C=2.728s. No thresholds were
+  relaxed. The passing run does not erase the two failures.
+- Dispatch/task-start timestamps differ by at most 1ms in these traces.
+  C's pre-add preparation varied; no causal Warden finding is supported:
+  C has no filter, and only d-filter runs the fixture's deliberate 4s sleep.
+  A process-only strace perturbed C to 17.535s
+  (`/tmp/sync62-process-probe.json`), so it is diagnostic, not acceptance.
+- `timeout 700 cargo test --workspace --locked` passed with 32 successful
+  test-result sections (`/tmp/sync62-ws-tests.log`) before the mid-scan helper.
+  `timeout 300 cargo build --release -p dracon-sync --locked` passed after it
+  (`/tmp/sync62-prepare-build.log`). Final release-script gates remain due.
+- **Evidence correction:** commit `4f22bd7` manually committed the original
+  synthetic probe. Its message falsely attributed that commit to the daemon.
+  `audit/live-convergence-probe-2026-09-17.md` now explicitly invalidates it.
+  A fresh post-install synthetic edit must be committed/pushed solely by the
+  daemon. No 15-minute live acceptance is claimed.
+
+Remaining: release/install candidate with all gates, independently verify refs,
+resolve strict timing variability and truthful mirror status, and collect a
+fresh timestamped 15-minute installed-pipeline inventory. Historical sections
+below remain evidence, not current deployment claims.
+
+## Historical checkpoint — before 0.113.60 publication
 
 The deployed 0.113.59 still lacks timing/live-convergence acceptance. The
 0.113.60 candidate now passes the unchanged strict isolated harness. Three
