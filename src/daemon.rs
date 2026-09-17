@@ -106,15 +106,18 @@ fn dispatch_due(
 
 /// Book provisional per-repo activity from the STATUS transition alone.
 /// Called when classification is still pending so `changed_at`/`dirty_since`
-/// anchor on the first status-dirty pulse; the confirmed classification
-/// updates the same entry when its result arrives.
+/// anchor on the first status-dirty pulse. The fingerprint MUST use the same
+/// format as the confirmed path: when the classification result arrives and
+/// confirms dirtiness, the fingerprint is unchanged, so changed_at keeps the
+/// status-transition anchor (a format mismatch reset it one pulse late —
+/// observed 2026-09-17: quiet=39ms at the 2.2s pulse).
 fn book_provisional_activity(
     activity: &mut HashMap<PathBuf, RepoActivity>,
     repo: &Path,
+    fingerprint: String,
     provisional_dirty: bool,
     now: Instant,
 ) {
-    let fingerprint = format!("provisional:{}:{}", provisional_dirty as u8, true);
     match activity.get_mut(repo) {
         Some(entry) => {
             if entry.fingerprint != fingerprint {
@@ -5107,14 +5110,14 @@ pub(crate) async fn run_daemon(
             // anchors on the status transition. The classification result
             // adds the filter-confirmed dirty bit only at dispatch.
             let provisional_fingerprint = format!(
-                "{}:{}:{}:{}:{}",
+                "{}:{}:{}:{}:{}:{}",
                 status.branch,
                 provisional_dirty as u8,
+                status.staged_files,
                 status.ahead,
                 status.behind,
                 status.untracked_files
             );
-            let _ = &provisional_fingerprint;
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
@@ -5155,7 +5158,13 @@ pub(crate) async fn run_daemon(
                 // path below anchors the quiet clock on the status
                 // transition).
                 let Some(Ok(filtered)) = classification_results.get(&repo) else {
-                    book_provisional_activity(&mut activity, &repo, provisional_dirty, now);
+                    book_provisional_activity(
+                        &mut activity,
+                        &repo,
+                        provisional_fingerprint.clone(),
+                        provisional_dirty,
+                        now,
+                    );
                     continue;
                 };
                 let filtered = filtered.clone();
@@ -5187,10 +5196,6 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
-            // Consumed only here (after eligibility + in-flight checks):
-            // the peek above keeps the result alive across quiet-window
-            // pulses so one result serves the entire dispatch pipeline.
-            classification_results.remove(&repo);
 
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
@@ -5302,14 +5307,9 @@ pub(crate) async fn run_daemon(
                 entry.fingerprint = fingerprint;
                 entry.changed_at = now;
                 entry.failure_count = 0;
-                // NOTE: the retained classification result is deliberately
-                // NOT dropped here. A filter-aware result that arrives one
-                // pulse after the status flip legitimately describes the
-                // current content (the edit happened before the job ran); the
-                // empty-result staleness pass handles the only genuinely
-                // stale shape. Dropping here destroyed the fresh result and
-                // forced a duplicate filter run (observed 2026-09-17:
-                // `results=2` for a single edit, dispatch delayed a pulse).
+                // Keep a positive scheduling hint across the quiet window.
+                // It is not a staging snapshot: sync_repo must reclassify
+                // current content and enforce required filters at execution.
             }
 
             // Wait `inactivity_push_delay_secs` after the last
@@ -5411,6 +5411,10 @@ pub(crate) async fn run_daemon(
             if !reserve_sync(&mut in_flight, &repo) {
                 continue;
             }
+            // Retain the ready result through quiet-window and retry gates.
+            // sync_repo reclassifies current content before staging; this
+            // cached result only authorizes scheduling, not the staged paths.
+            classification_results.remove(&repo);
             if debug_enabled() {
                 eprintln!(
                     "scheduler: dispatch repo={} cycle_ms={} inspection_ms={}",
