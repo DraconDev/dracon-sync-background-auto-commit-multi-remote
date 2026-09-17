@@ -5024,6 +5024,37 @@ pub(crate) async fn run_daemon(
                 &mut classification_cooldowns,
                 now,
             );
+            // Spawn any needed classification job IMMEDIATELY, before the
+            // branch match below: both branches `continue` on non-Ready
+            // results, and a spawn placed after them would never run
+            // (self-deadlock observed 2026-09-17).
+            if matches!(classification, ClassificationStep::Spawn) {
+                let repo_for_job = repo.clone();
+                classification_pending.insert(repo.clone());
+                classification_jobs.push(tokio::task::spawn(async move {
+                    let started = Instant::now();
+                    let outcome = tokio::time::timeout(
+                        CLASSIFICATION_TIMEOUT,
+                        repo_diff_entries(&repo_for_job),
+                    )
+                    .await
+                    .unwrap_or_else(|_| {
+                        Err(anyhow::anyhow!(
+                            "dirty classification timed out after {}s",
+                            CLASSIFICATION_TIMEOUT.as_secs()
+                        ))
+                    });
+                    if std::env::var("DRACON_SYNC_DEBUG").is_ok_and(|v| v == "1") {
+                        eprintln!(
+                            "scheduler: classification_job_done repo={} ms={} ok={}",
+                            repo_for_job.display(),
+                            started.elapsed().as_millis(),
+                            outcome.is_ok()
+                        );
+                    }
+                    (repo_for_job, outcome)
+                }));
+            }
             let (effective_dirty, entries) = if status.is_clean
                 && status.ahead == 0
                 && status.behind == 0
@@ -5088,46 +5119,6 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
-
-            // Both classification branches need a Spawn fallback handled at
-            // ONE site: after the two-branch match, spawn a pending job if
-            // the step said so (bounded by the pending set + cooldowns).
-            if debug_enabled() {
-                eprintln!(
-                    "scheduler: classification repo={} ms={} ok={}",
-                    repo.display(),
-                    cycle_started.elapsed().as_millis(),
-                    matches!(classification, ClassificationStep::Ready(_))
-                );
-            }
-            let spawn_needed = matches!(classification, ClassificationStep::Spawn);
-            if spawn_needed {
-                let repo_for_job = repo.clone();
-                classification_pending.insert(repo.clone());
-                classification_jobs.push(tokio::task::spawn(async move {
-                    let started = Instant::now();
-                    let outcome = tokio::time::timeout(
-                        CLASSIFICATION_TIMEOUT,
-                        repo_diff_entries(&repo_for_job),
-                    )
-                    .await
-                    .unwrap_or_else(|_| {
-                        Err(anyhow::anyhow!(
-                            "dirty classification timed out after {}s",
-                            CLASSIFICATION_TIMEOUT.as_secs()
-                        ))
-                    });
-                    if std::env::var("DRACON_SYNC_DEBUG").is_ok_and(|v| v == "1") {
-                        eprintln!(
-                            "scheduler: classification_job_done repo={} ms={} ok={}",
-                            repo_for_job.display(),
-                            started.elapsed().as_millis(),
-                            outcome.is_ok()
-                        );
-                    }
-                    (repo_for_job, outcome)
-                }));
-            }
 
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
