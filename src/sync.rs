@@ -3787,13 +3787,30 @@ async fn stage_commit_and_push(
     // records the new submodule SHA without walking into the
     // submodule's working tree. Regular files keep their existing
     // recursion-and-`git add -A` path.
+    //
+    // CHANGED 2026-09-17 (sync-convergence follow-up): the partition
+    // previously called per-path `is_gitlink` — one `git ls-tree HEAD`
+    // subprocess PER FILE. Measured on this box (20-file fixture,
+    // load ~70-90): stage_enter → first add_spawn took ~5.7s for 20
+    // files; a 100-file commit never reached `git add` within the
+    // 20s probe window. `tracked_gitlink_set` resolves the same
+    // classification with ONE `git ls-tree HEAD -- <all candidates>`
+    // call (already used by the commit-subject path). Paths absent
+    // from HEAD (new untracked files) cannot be gitlinks, so only
+    // paths present in the returned set partition as gitlinks —
+    // identical semantics, O(1) spawns instead of O(N).
+    let candidates: Vec<String> = to_stage
+        .iter()
+        .map(|e| e.path.to_string_lossy().to_string())
+        .collect();
+    let gitlink_set = tracked_gitlink_set(repo, &candidates);
     let (gitlink_entries, regular_entries): (
         Vec<dracon_git::types::DiffFile>,
         Vec<dracon_git::types::DiffFile>,
     ) = to_stage
         .iter()
         .cloned()
-        .partition(|e| crate::exclude::is_gitlink(repo, &e.path));
+        .partition(|e| gitlink_set.contains(&e.path.to_string_lossy().to_string()));
     let gitlink_paths: Vec<String> = gitlink_entries
         .iter()
         .map(|e| e.path.to_string_lossy().to_string())

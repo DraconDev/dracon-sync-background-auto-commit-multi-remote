@@ -1,0 +1,73 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789672872758
+scheduler: status repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=273 repo_ms=272 dirty=false daemon_ms=348
+scheduler: cycle_complete elapsed_ms=1524
+scheduler: pulse_start unix_ms=1789672874283
+scheduler: status repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=1040 repo_ms=1039 dirty=true daemon_ms=2640
+scheduler: classification_spawn repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=1566 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=1566
+scheduler: pulse_start unix_ms=1789672875850
+classification: phase=filter-aware-diff repo=/tmp/sync-cadence-2z4m2lln/watch/sample elapsed_ms=358 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-cadence-2z4m2lln/watch/sample elapsed_ms=32 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-cadence-2z4m2lln/watch/sample ms=391 ok=true
+scheduler: status repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=449 repo_ms=444 dirty=true daemon_ms=3616
+scheduler: quiet_clock_assignment discovery_ms=3948 evidence_unix_ns=Some(1789672874740351684) anchor_ms=2056
+scheduler: eligibility repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=781 observed_quiet_ms=1891 eligible=false daemon_ms=3948 anchor_daemon_ms=2056
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="sample.txt" unix_ns=Some(1789672874740351684)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-0.txt" unix_ns=Some(1789672874677268909)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-1.txt" unix_ns=Some(1789672874677541814)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-10.txt" unix_ns=Some(1789672874681207122)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-11.txt" unix_ns=Some(1789672874681249202)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-12.txt" unix_ns=Some(1789672874681287815)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-13.txt" unix_ns=Some(1789672874681324213)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-14.txt" unix_ns=Some(1789672874681359991)
+scheduler: cycle_complete elapsed_ms=782
+scheduler: pulse_start unix_ms=1789672876759
+scheduler: deadline_first_order n=1 due=["/tmp/sync-cadence-2z4m2lln/watch/sample"]
+scheduler: status repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=452 repo_ms=450 dirty=true daemon_ms=4528
+scheduler: eligibility repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=1021 observed_quiet_ms=3040 eligible=true daemon_ms=5097 anchor_daemon_ms=2056
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="sample.txt" unix_ns=Some(1789672874740351684)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-0.txt" unix_ns=Some(1789672874677268909)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-1.txt" unix_ns=Some(1789672874677541814)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-10.txt" unix_ns=Some(1789672874681207122)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-11.txt" unix_ns=Some(1789672874681249202)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-12.txt" unix_ns=Some(1789672874681287815)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-13.txt" unix_ns=Some(1789672874681324213)
+scheduler: file_mtime repo=/tmp/sync-cadence-2z4m2lln/watch/sample path="fixture-14.txt" unix_ns=Some(1789672874681359991)
+scheduler: dispatch repo=/tmp/sync-cadence-2z4m2lln/watch/sample cycle_ms=1021 inspection_ms=1020 daemon_ms=5097 unix_ms=1789672877781
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=1022
+scheduler: pulse_start unix_ms=1789672877781
+scheduler: task_start repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672877782
+scheduler: cycle_complete elapsed_ms=1
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_origin elapsed_ms=79
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_status elapsed_ms=79
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=after_status elapsed_ms=90
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_pull elapsed_ms=90
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_clean elapsed_ms=90
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_diff elapsed_ms=329
+🐛 /tmp/sync-cadence-2z4m2lln/watch/sample status: clean=false modified=1 staged=0 entries(libgit2)=100
+scheduler: worker_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=after_diff elapsed_ms=436
+🐛 /tmp/sync-cadence-2z4m2lln/watch/sample to_stage=100 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-cadence-2z4m2lln/watch/sample thread=ThreadId(16) unix_ms=1789672878221
+scheduler: stage_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=unmerged elapsed_ms=2
+scheduler: stage_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=untracked elapsed_ms=4
+scheduler: stage_files_enter repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672878749
+scheduler: stage_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=before_partition elapsed_ms=0
+scheduler: pulse_start unix_ms=1789672878786
+scheduler: cycle_complete elapsed_ms=1
+scheduler: stage_prepare repo=/tmp/sync-cadence-2z4m2lln/watch/sample phase=partition elapsed_ms=402
+scheduler: add_spawn repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879152
+scheduler: add_spawned repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879154 pid=Some(2926341)
+scheduler: add_done repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879475 ok=true
+scheduler: add_spawn repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879475
+scheduler: add_spawned repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879485 pid=Some(2926363)
+scheduler: add_done repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672879649 ok=true
+scheduler: pulse_start unix_ms=1789672881210
+scheduler: cycle_complete elapsed_ms=5
+scheduler: commit_done repo=/tmp/sync-cadence-2z4m2lln/watch/sample unix_ms=1789672881225
+📝 committed 100 file(s) in /tmp/sync-cadence-2z4m2lln/watch/sample
+scheduler: pulse_start unix_ms=1789672882247
+scheduler: cycle_complete elapsed_ms=1
+sync: received SIGTERM, shutting down gracefully...

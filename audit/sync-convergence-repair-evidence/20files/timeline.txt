@@ -1,0 +1,31 @@
+scheduler: dispatch repo=/tmp/sync-cadence-dien6y59/watch/sample cycle_ms=1410 inspection_ms=1407 daemon_ms=7086 unix_ms=1789672749950
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=before_origin elapsed_ms=336
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=before_status elapsed_ms=336
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=after_status elapsed_ms=358
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=before_pull elapsed_ms=358
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=before_clean elapsed_ms=358
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=before_diff elapsed_ms=1044
+scheduler: worker_prepare repo=/tmp/sync-cadence-dien6y59/watch/sample phase=after_diff elapsed_ms=1165
+scheduler: stage_enter repo=/tmp/sync-cadence-dien6y59/watch/sample thread=ThreadId(16) unix_ms=1789672751117
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="sample.txt" process_elapsed_us=89172 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-0.txt" process_elapsed_us=81978 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-1.txt" process_elapsed_us=53819 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-10.txt" process_elapsed_us=49280 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-11.txt" process_elapsed_us=125330 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-12.txt" process_elapsed_us=108231 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-13.txt" process_elapsed_us=95956 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-14.txt" process_elapsed_us=34112 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-15.txt" process_elapsed_us=113167 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-16.txt" process_elapsed_us=136353 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-17.txt" process_elapsed_us=430991 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-18.txt" process_elapsed_us=899959 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-2.txt" process_elapsed_us=593283 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-3.txt" process_elapsed_us=113388 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-4.txt" process_elapsed_us=106172 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-5.txt" process_elapsed_us=901222 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-6.txt" process_elapsed_us=136770 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-7.txt" process_elapsed_us=499130 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-8.txt" process_elapsed_us=586615 ok=true
+scheduler: gitlink_probe repo=/tmp/sync-cadence-dien6y59/watch/sample path="fixture-9.txt" process_elapsed_us=324012 ok=true
+scheduler: add_spawn repo=/tmp/sync-cadence-dien6y59/watch/sample unix_ms=1789672756770
+scheduler: add_spawn repo=/tmp/sync-cadence-dien6y59/watch/sample unix_ms=1789672757003
