@@ -991,13 +991,10 @@ mod tests {
         // Clean but remote issues: keep the dirty-entries check.
         assert!(needs_classification(true, 0, 0, false, true));
         assert!(needs_classification(true, 0, 0, true, false));
-        // Clean + ahead/behind: the clean arm deliberately skips
-        // classification — ahead/behind is a push concern and there is no
-        // worktree content to classify; the push path owns it.
-        assert!(!needs_classification(true, 2, 0, true, true));
-        // Clean + mirror-ahead override: classification still not needed (the
-        // clean arm has no worktree content to classify); push path handles it.
-        assert!(!needs_classification(true, 3, 0, true, true));
+        // Clean divergence reaches the same result-gated dispatch path.
+        assert!(needs_classification(true, 2, 0, true, true));
+        assert!(needs_classification(true, 3, 0, true, true));
+        assert!(needs_classification(true, 0, 2, true, true));
     }
 
     #[test]
@@ -5329,14 +5326,16 @@ pub(crate) async fn run_daemon(
                 // dropped unconditionally.
                 if let Some(outcome) = classification_results.remove(&repo) {
                     match outcome {
-                        Ok(entries) if entries.is_empty() => {
+                        Ok(entries) if entries.is_empty() && !status.is_clean => {
                             if !classification_pending.contains(&repo) {
                                 classification_cooldowns
                                     .insert(repo.clone(), now + Duration::from_millis(500));
                             }
                         }
                         Ok(entries) => {
-                            // Re-insert: a non-empty result stays consumable.
+                            // Clean divergence needs its empty result too:
+                            // retain it through the quiet/retry gates so the
+                            // next pulse can dispatch rather than reclassify.
                             classification_results.insert(repo.clone(), Ok(entries));
                         }
                         Err(e) => {
