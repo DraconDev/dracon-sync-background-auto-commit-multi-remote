@@ -1,0 +1,35 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789684882205
+scheduler: cycle_complete elapsed_ms=43
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789684883209
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=313 repo_ms=289 dirty=true daemon_ms=1346
+scheduler: classification_spawn repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=543 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=543
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r1 auto-created on origin
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-xos5r2sd/watch/r3 elapsed_ms=261 outcome=success
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r2 auto-created on origin
+classification: phase=untracked-discovery repo=/tmp/sync-restart-xos5r2sd/watch/r3 elapsed_ms=45 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-xos5r2sd/watch/r3 ms=306 ok=true
+scheduler: pulse_start unix_ms=1789684884248
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=157 repo_ms=156 dirty=true daemon_ms=2229
+scheduler: quiet_clock_assignment discovery_ms=2463 evidence_unix_ns=Some(1789684882158714369) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=391 observed_quiet_ms=2463 eligible=true daemon_ms=2463 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-xos5r2sd/watch/r3 path="second.txt" unix_ns=Some(1789684882158714369)
+scheduler: dispatch repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=391 inspection_ms=390 daemon_ms=2463 unix_ms=1789684884640
+scheduler: task_start repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684884641
+sync: received SIGTERM, shutting down gracefully...
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_origin elapsed_ms=64
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_status elapsed_ms=64
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=after_status elapsed_ms=111
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_pull elapsed_ms=111
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_clean elapsed_ms=111
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r1 cycle_ms=673 repo_ms=281 dirty=false daemon_ms=2745
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_diff elapsed_ms=712
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r2 cycle_ms=1115 repo_ms=170 dirty=false daemon_ms=3188
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=1240

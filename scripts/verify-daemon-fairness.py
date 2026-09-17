@@ -401,6 +401,8 @@ def main():
                 and push_after_commit_ms('a') is not None
                 and -100 <= push_after_commit_ms('a') <= 1000),
             'continuous_work_reaches_remote': 'a' in seen,
+            'continuous_work_reaches_remote_within_10s': (
+                'a' in seen and 0 <= seen['a'] - t_a <= 10),
             # Missed-event reconciliation: dispatch within the daemon's own
             # anchor + quiet + one pulse; execution bounded separately.
             'pre_start_reconciliation_dispatch_within_quiet_plus_one_pulse': (
@@ -425,7 +427,7 @@ def main():
             report['failing_push_events'] = [row for row in rows
                 if row['cwd'] == str(repos['f-failing']) and row['args'][:1] == ['push']]
         report['continuous_work_remote_seconds'] = (
-            seen['a'] - start if 'a' in seen else None)
+            seen['a'] - t_a if 'a' in seen else None)
         report['checks'] = checks
         assert all(type(value) is bool for value in checks.values())
         report['passed'] = all(checks.values()) and report['converged']

@@ -1,0 +1,61 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789684875433
+scheduler: cycle_complete elapsed_ms=40
+scheduler: pulse_start unix_ms=1789684876436
+scheduler: cycle_complete elapsed_ms=0
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789684877437
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r2 auto-created on origin
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-xos5r2sd/watch/r1 auto-created on origin
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=387 repo_ms=386 dirty=true daemon_ms=2543
+scheduler: classification_spawn repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=420 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=420
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-xos5r2sd/watch/r3 elapsed_ms=170 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-xos5r2sd/watch/r3 elapsed_ms=24 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-xos5r2sd/watch/r3 ms=195 ok=true
+scheduler: pulse_start unix_ms=1789684878463
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=39 repo_ms=38 dirty=true daemon_ms=3221
+scheduler: quiet_clock_assignment discovery_ms=3322 evidence_unix_ns=Some(1789684875219806980) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=140 observed_quiet_ms=3322 eligible=true daemon_ms=3322 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-xos5r2sd/watch/r3 path="early.txt" unix_ns=Some(1789684875219806980)
+scheduler: dispatch repo=/tmp/sync-restart-xos5r2sd/watch/r3 cycle_ms=140 inspection_ms=139 daemon_ms=3322 unix_ms=1789684878603
+scheduler: task_start repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684878607
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_origin elapsed_ms=38
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_status elapsed_ms=38
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=after_status elapsed_ms=89
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_pull elapsed_ms=89
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_clean elapsed_ms=89
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r1 cycle_ms=258 repo_ms=118 dirty=false daemon_ms=3441
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_diff elapsed_ms=299
+🐛 /tmp/sync-restart-xos5r2sd/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=1
+scheduler: worker_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=after_diff elapsed_ms=443
+🐛 /tmp/sync-restart-xos5r2sd/watch/r3 to_stage=1 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-xos5r2sd/watch/r3 thread=ThreadId(16) unix_ms=1789684879051
+scheduler: stage_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=unmerged elapsed_ms=1
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r2 cycle_ms=594 repo_ms=191 dirty=false daemon_ms=3777
+scheduler: stage_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=untracked elapsed_ms=13
+scheduler: stage_files_enter repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684879087
+scheduler: stage_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-xos5r2sd/watch/r3 phase=partition elapsed_ms=39
+scheduler: add_spawn repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684879126
+scheduler: add_spawned repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684879127 pid=Some(1532381)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=715
+scheduler: add_done repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684879220 ok=true
+scheduler: pulse_start unix_ms=1789684879473
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r1 cycle_ms=132 repo_ms=131 dirty=false daemon_ms=4324
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r2 cycle_ms=445 repo_ms=186 dirty=false daemon_ms=4637
+scheduler: cycle_complete elapsed_ms=600
+scheduler: pulse_start unix_ms=1789684881037
+scheduler: commit_done repo=/tmp/sync-restart-xos5r2sd/watch/r3 unix_ms=1789684881041
+📝 committed 1 file(s) in /tmp/sync-restart-xos5r2sd/watch/r3
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r1 cycle_ms=114 repo_ms=113 dirty=false daemon_ms=5871
+scheduler: status repo=/tmp/sync-restart-xos5r2sd/watch/r2 cycle_ms=473 repo_ms=174 dirty=false daemon_ms=6230
+scheduler: cycle_complete elapsed_ms=535
+🐛 codeberg gate: skipping codeberg push for /tmp/sync-restart-xos5r2sd/watch/r3 (public_only policy + visibility cache says None)
+ℹ️  r3 already exists on origin — skipping auto-create
+sync: received SIGTERM, shutting down gracefully...

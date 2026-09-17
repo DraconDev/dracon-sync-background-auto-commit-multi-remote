@@ -1,0 +1,50 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+scheduler: pulse_start unix_ms=1789684887070
+scheduler: cycle_complete elapsed_ms=102
+ℹ️  r3 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-8_fepsto/watch/r3 auto-created on origin
+scheduler: pulse_start unix_ms=1789684888071
+scheduler: status repo=/tmp/sync-restart-8_fepsto/watch/r3 cycle_ms=71 repo_ms=71 dirty=true daemon_ms=1266
+scheduler: classification_spawn repo=/tmp/sync-restart-8_fepsto/watch/r3 cycle_ms=130 pending=1 results=0
+scheduler: cycle_complete elapsed_ms=130
+classification: phase=filter-aware-diff repo=/tmp/sync-restart-8_fepsto/watch/r3 elapsed_ms=110 outcome=success
+classification: phase=untracked-discovery repo=/tmp/sync-restart-8_fepsto/watch/r3 elapsed_ms=13 outcome=success
+scheduler: classification_job_done repo=/tmp/sync-restart-8_fepsto/watch/r3 ms=124 ok=true
+ℹ️  r1 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-8_fepsto/watch/r1 auto-created on origin
+ℹ️  r2 already exists on origin — skipping auto-create
+🆕 /tmp/sync-restart-8_fepsto/watch/r2 auto-created on origin
+scheduler: pulse_start unix_ms=1789684889072
+scheduler: status repo=/tmp/sync-restart-8_fepsto/watch/r3 cycle_ms=71 repo_ms=70 dirty=true daemon_ms=2267
+scheduler: quiet_clock_assignment discovery_ms=2322 evidence_unix_ns=Some(1789684886863359213) anchor_ms=0
+scheduler: eligibility repo=/tmp/sync-restart-8_fepsto/watch/r3 cycle_ms=126 observed_quiet_ms=2322 eligible=true daemon_ms=2322 anchor_daemon_ms=0
+scheduler: file_mtime repo=/tmp/sync-restart-8_fepsto/watch/r3 path="early.txt" unix_ns=Some(1789684886863228877)
+scheduler: file_mtime repo=/tmp/sync-restart-8_fepsto/watch/r3 path="second.txt" unix_ns=Some(1789684886863359213)
+scheduler: dispatch repo=/tmp/sync-restart-8_fepsto/watch/r3 cycle_ms=126 inspection_ms=125 daemon_ms=2322 unix_ms=1789684889198
+scheduler: task_start repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684889198
+sync: received SIGTERM, shutting down gracefully...
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_origin elapsed_ms=26
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_status elapsed_ms=26
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=after_status elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_pull elapsed_ms=35
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_clean elapsed_ms=35
+scheduler: status repo=/tmp/sync-restart-8_fepsto/watch/r1 cycle_ms=249 repo_ms=122 dirty=false daemon_ms=2445
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_diff elapsed_ms=216
+scheduler: status repo=/tmp/sync-restart-8_fepsto/watch/r2 cycle_ms=496 repo_ms=167 dirty=false daemon_ms=2692
+🐛 /tmp/sync-restart-8_fepsto/watch/r3 status: clean=false modified=0 staged=0 entries(libgit2)=2
+scheduler: worker_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=after_diff elapsed_ms=416
+🐛 /tmp/sync-restart-8_fepsto/watch/r3 to_stage=2 to_restore=0
+scheduler: stage_enter repo=/tmp/sync-restart-8_fepsto/watch/r3 thread=ThreadId(2) unix_ms=1789684889615
+scheduler: stage_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=unmerged elapsed_ms=3
+scheduler: stage_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=untracked elapsed_ms=5
+scheduler: stage_files_enter repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684889646
+scheduler: stage_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=before_partition elapsed_ms=0
+scheduler: stage_prepare repo=/tmp/sync-restart-8_fepsto/watch/r3 phase=partition elapsed_ms=37
+scheduler: add_spawn repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684889683
+scheduler: add_spawned repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684889683 pid=Some(1535662)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+scheduler: cycle_complete elapsed_ms=674
+scheduler: add_done repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684889865 ok=true
+scheduler: commit_done repo=/tmp/sync-restart-8_fepsto/watch/r3 unix_ms=1789684891966
+📝 committed 2 file(s) in /tmp/sync-restart-8_fepsto/watch/r3
