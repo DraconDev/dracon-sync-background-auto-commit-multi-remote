@@ -488,6 +488,8 @@ mod f33_tests {
         std::fs::write(repo.join("sample.txt"), "seed\n").unwrap();
         git(&["add", "--", "sample.txt"]);
         git(&["commit", "-qm", "classification fixture"]);
+        // `git init` on template-less installs (e.g. Nix) omits .git/info.
+        std::fs::create_dir_all(repo.join(".git/info")).unwrap();
         std::fs::write(repo.join(".git/info/attributes"), "sample.txt filter=probe\n").unwrap();
         git(&["config", "filter.probe.clean", "echo call >> .git/filter-calls; tr 'A-Z' 'a-z' | tr -d ' '"]);
         git(&["config", "filter.probe.required", "true"]);
