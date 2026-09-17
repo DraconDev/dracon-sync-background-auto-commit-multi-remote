@@ -5037,9 +5037,10 @@ pub(crate) async fn run_daemon(
                 // Remote issues but clean — classification detects dirty files
                 // (untracked in excluded dirs, oversized files, etc.) before
                 // committing to dirty state.
-                let ClassificationStep::Ready(entries) = classification else {
+                let ClassificationStep::Ready(entries) = &classification else {
                     continue;
                 };
+                let entries = entries.clone();
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
@@ -5054,9 +5055,10 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, entries)
             } else {
-                let ClassificationStep::Ready(filtered) = classification else {
+                let ClassificationStep::Ready(filtered) = &classification else {
                     continue;
                 };
+                let filtered = filtered.clone();
                 // repo_diff_entries already applies the clean filter through
                 // `git diff --name-status HEAD` and includes untracked files.
                 // Repeating a name-only HEAD diff doubles filter execution and
@@ -5090,6 +5092,14 @@ pub(crate) async fn run_daemon(
             // Both classification branches need a Spawn fallback handled at
             // ONE site: after the two-branch match, spawn a pending job if
             // the step said so (bounded by the pending set + cooldowns).
+            if debug_enabled() {
+                eprintln!(
+                    "scheduler: classification repo={} ms={} ok={}",
+                    repo.display(),
+                    cycle_started.elapsed().as_millis(),
+                    matches!(classification, ClassificationStep::Ready(_))
+                );
+            }
             let spawn_needed = matches!(classification, ClassificationStep::Spawn);
             if spawn_needed {
                 let repo_for_job = repo.clone();
