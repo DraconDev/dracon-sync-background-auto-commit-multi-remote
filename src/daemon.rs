@@ -3594,6 +3594,17 @@ pub(crate) fn record_push_success(repo: &Path) {
 /// reaches `push_max_retries`, the entry's `last_error` is
 /// preserved (so the operator can see WHY it's stuck) and the
 /// report will surface a `🛑 push-stuck` state.
+pub(crate) fn push_error_is_cancellation(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<tokio::task::JoinError>().is_some_and(|error| error.is_cancelled())
+}
+
+/// Record only genuine failures; interrupted attempts leave existing state intact.
+pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
+    if !push_error_is_cancellation(error) {
+        record_push_failure(repo, &format!("{error:#}"));
+    }
+}
+
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
