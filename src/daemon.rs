@@ -82,7 +82,13 @@ fn collect_ready_classifications(
     jobs: &mut FuturesUnordered<ClassificationJoin>,
     pending: &mut HashSet<PathBuf>,
     pending_since: &mut HashMap<PathBuf, Instant>,
-    results: &mut HashMap<PathBuf, Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
+    results: &mut HashMap<
+        PathBuf,
+        (
+            Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+            Instant,
+        ),
+    >,
     failures: &mut HashMap<PathBuf, usize>,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
@@ -100,7 +106,7 @@ fn collect_ready_classifications(
                 if outcome.is_ok() {
                     failures.remove(&repo);
                 }
-                results.insert(repo, outcome);
+                results.insert(repo, (outcome, Instant::now()));
             }
             // NOTE 2026-09-18 (v0.113.65): a dead job (panic /
             // cancellation) surfaces here WITHOUT its repo identity
@@ -129,6 +135,24 @@ const CLASSIFICATION_PENDING_WATCHDOG_SECS: u64 = 90;
 fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> bool {
     now.saturating_duration_since(spawned_at)
         >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
+}
+
+/// Max age of a KEPT classification result for a dirty repo.
+/// Results are kept across pulses so a quiet-window pulse never
+/// forces a filter re-run — but a kept non-empty result can
+/// describe a worktree that no longer exists (observed live
+/// 2026-09-19: capture-anime-girls pinned 30+ min on an 815-entry
+/// snapshot whose files were already gone, filter-clean-skipping
+/// real dirt forever because the spawn gate requires no result).
+/// Past this age a dirty repo's result is dropped and re-probed.
+/// 120s is far above the 2s quiet window + 1s pulse (the keep's
+/// purpose) and far below the 600s starvation threshold. Pure
+/// decision helper for test.
+const CLASSIFICATION_RESULT_MAX_AGE_SECS: u64 = 120;
+
+fn classification_result_expired(taken_at: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(taken_at)
+        >= Duration::from_secs(CLASSIFICATION_RESULT_MAX_AGE_SECS)
 }
 
 /// ADDED 2026-09-18 (v0.113.67): dispatch-starvation signal. A repo that
@@ -1326,7 +1350,7 @@ mod tests {
             &mut results,
             &mut HashMap::new(),
         );
-        assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
+        assert!(results.get(&repo).unwrap().0.as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
         // v0.113.65: collection also releases the watchdog timestamp.
         assert!(!pending_since.contains_key(&repo));
@@ -3070,6 +3094,58 @@ mod tests {
             CLASSIFICATION_BACKOFF_CAP_SECS, 300,
             "cap is the documented 5-min bound"
         );
+    }
+
+    /// ADDED 2026-09-19 (v0.113.76, stale-result pin): a kept
+    /// non-empty classification result expires past its max age so a
+    /// dirty repo re-probes instead of filter-clean-skipping on a dead
+    /// snapshot forever (observed live: capture-anime-girls pinned 30+
+    /// min on an 815-entry snapshot whose files were already gone).
+    #[test]
+    fn test_classification_result_expired_matrix() {
+        let now = Instant::now();
+        // Fresh result: kept.
+        assert!(!classification_result_expired(now, now));
+        assert!(!classification_result_expired(
+            now - Duration::from_secs(119),
+            now
+        ));
+        // At and past the bound: re-probe.
+        assert!(classification_result_expired(
+            now - Duration::from_secs(120),
+            now
+        ));
+        assert!(classification_result_expired(
+            now - Duration::from_secs(3600),
+            now
+        ));
+        assert_eq!(
+            CLASSIFICATION_RESULT_MAX_AGE_SECS, 120,
+            "120s dwarfs the 2s quiet window, trails the 600s starvation threshold"
+        );
+    }
+
+    /// Pin-scenario regression: a stale non-empty result for a STILL-DIRTY
+    /// repo must refresh (the spawn gate requires no result, so keeping it
+    /// suppresses all future probes). A fresh result, an empty result, or
+    /// a clean repo must keep the old keep-behavior.
+    #[test]
+    fn test_stale_result_refresh_only_when_dirty_and_expired() {
+        let now = Instant::now();
+        let stale = now - Duration::from_secs(3600);
+        let fresh = now;
+        // The exact predicate used at the staleness pass.
+        let due = |non_empty: bool, is_clean: bool, taken_at: Instant| {
+            non_empty && !is_clean && classification_result_expired(taken_at, now)
+        };
+        // Live pin: stale + non-empty + dirty -> refresh.
+        assert!(due(true, false, stale));
+        // Fresh stale-candidate: keep (quiet window does not churn).
+        assert!(!due(true, false, fresh));
+        // Empty result: keep (clean-divergence path owns it).
+        assert!(!due(false, false, stale));
+        // Clean repo: keep (nothing to re-probe for).
+        assert!(!due(true, true, stale));
     }
 
     /// ADDED 2026-09-18 (v0.113.74, firehose fairness): pile-rate
@@ -5394,7 +5470,10 @@ pub(crate) async fn run_daemon(
     let mut classification_jobs: FuturesUnordered<ClassificationJoin> = FuturesUnordered::new();
     let mut classification_results: HashMap<
         PathBuf,
-        Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+        (
+            Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
+            Instant,
+        ),
     > = HashMap::new();
     let mut classification_pending: HashSet<PathBuf> = HashSet::new();
     // ADDED 2026-09-18 (v0.113.65): spawn instant per pending
@@ -5729,7 +5808,7 @@ pub(crate) async fn run_daemon(
         repos.sort_by_key(|repo| {
             scan_priority(
                 due.contains(repo),
-                matches!(classification_results.get(repo), Some(Ok(_))),
+                matches!(classification_results.get(repo), Some((Ok(_), _))),
                 activity.get(repo).is_some_and(|entry| {
                     entry.dirty_since.is_none() && !entry.fingerprint.is_empty()
                 }),
@@ -6663,7 +6742,7 @@ pub(crate) async fn run_daemon(
                 // definition once the status reports dirty, so they are
                 // dropped with a short re-probe cooldown; failures are
                 // dropped unconditionally.
-                if let Some(outcome) = classification_results.remove(&repo) {
+                if let Some((outcome, taken_at)) = classification_results.remove(&repo) {
                     match outcome {
                         Ok(entries) if entries.is_empty() && !status.is_clean => {
                             if !classification_pending.contains(&repo) {
@@ -6672,10 +6751,39 @@ pub(crate) async fn run_daemon(
                             }
                         }
                         Ok(entries) => {
-                            // Clean divergence needs its empty result too:
-                            // retain it through the quiet/retry gates so the
-                            // next pulse can dispatch rather than reclassify.
-                            classification_results.insert(repo.clone(), Ok(entries));
+                            // ADDED 2026-09-19 (v0.113.76, stale-result
+                            // pin): a kept non-empty result can describe
+                            // a worktree that no longer exists — the
+                            // spawn gate requires no result, so a
+                            // filter-clean verdict on dead entries pins
+                            // the repo forever with zero further output.
+                            // Re-probe a dirty repo's result past its max
+                            // age (short cooldown, same as the empty path).
+                            if !entries.is_empty()
+                                && !status.is_clean
+                                && classification_result_expired(taken_at, now)
+                            {
+                                if !classification_pending.contains(&repo) {
+                                    classification_cooldowns.insert(
+                                        repo.clone(),
+                                        now + Duration::from_millis(500),
+                                    );
+                                }
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "scheduler: classification_stale_refresh repo={} age_s={} entries={}",
+                                        repo.display(),
+                                        now.saturating_duration_since(taken_at).as_secs(),
+                                        entries.len()
+                                    );
+                                }
+                            } else {
+                                // Clean divergence needs its empty result too:
+                                // retain it through the quiet/retry gates so the
+                                // next pulse can dispatch rather than reclassify.
+                                classification_results
+                                    .insert(repo.clone(), (Ok(entries), taken_at));
+                            }
                         }
                         Err(e) => {
                             // CHANGED 2026-09-18 (v0.113.74, firehose
@@ -6803,7 +6911,7 @@ pub(crate) async fn run_daemon(
                 // quiet-window continue (forcing a filter re-run next pulse,
                 // observed 2026-09-17). Results are consumed only at the
                 // dispatch gate.
-                let Some(Ok(entries)) = classification_results.get(&repo) else {
+                let Some((Ok(entries), _)) = classification_results.get(&repo) else {
                     continue;
                 };
                 let entries = entries.clone();
@@ -6826,7 +6934,7 @@ pub(crate) async fn run_daemon(
                 // fingerprint/eligibility bookkeeping on it (the provisional
                 // path below anchors the quiet clock on the status
                 // transition).
-                let Some(Ok(filtered)) = classification_results.get(&repo) else {
+                let Some((Ok(filtered), _)) = classification_results.get(&repo) else {
                     // ADDED 2026-09-18 (v0.113.65): skip-reason logging.
                     // These holds were fully silent, which made a 16-min
                     // dirty-but-undispatched window undebuggable from the
