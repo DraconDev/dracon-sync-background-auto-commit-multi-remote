@@ -5190,8 +5190,13 @@ pub(crate) async fn run_daemon(
         // alert once per recovered host.
         for host in crate::forge::poll_forge_recovery(crate::policy::timestamp_secs()) {
             eprintln!("✅ forge recovered: {} — per-repo push alerts re-armed", host);
+            let alert_anchor = policy
+                .watch_root_paths()
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| PathBuf::from("."));
             crate::report::record_sync_alert(
-                &PathBuf::from(&policy.watch_root),
+                &alert_anchor,
                 "Forge Incident Resolved",
                 &format!(
                     "{}: transient window quiet; per-repo push alerts re-armed",
