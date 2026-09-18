@@ -99,14 +99,26 @@ shipped (only version/changelog differ). Each verdict JSON ships with its
   marker) and post-read timestamps (valid upper bounds). Smoke-tested live:
   a trial marker committed by the daemon and detected via
   `git log -S` + `git show <rev>:<probe>`.
-- The valid 15-minute installed-pipeline run (task 4) is PENDING, blocked by
-  box contention, not by the pipeline: at observation time the box sat at
-  load ~77 on 16 cores with 0 free RAM (operator chromium fleet + an
-  unrelated `npm run release:check` at ~700% CPU), and daemon pulses
-  stretched to 4–43s (journal `pulse_start` gaps 02:52:49–02:54:51). Under
-  those conditions any live bound measures starvation, not scheduling, so
-  the run was deferred rather than recorded as a failure. No live
-  faster-than-X claim is made for 0.113.64.
+- The valid 15-minute installed-pipeline run (task 4) COMPLETED 02:57:28–03:12:28
+  BST (exit 0) under sustained box load ~77 (operator chromium fleet +
+  agent workloads; daemon pulses ~12s instead of 1s). Evidence:
+  `audit/sync-convergence-repair-evidence/live-observation-0.113.64/`
+  (`live-report.json`: 90 snapshots, 15 inventories × 32 rows; `final.json`).
+  Synthetic probe (unique marker `PROBE-MARKER-0.113.64-1789696648`):
+  daemon commit upper bound **27.3s** after write (rev `b2bed65`, tree
+  independently confirmed to contain the marker), GitHub tip match **28.6s**,
+  GitLab tip match **30.2s** — all post-read timestamps. No null timings.
+  The ~27s commit bound decomposes honestly: ~2s quiet + ~12s pulse
+  cadence under load + scan position, not scheduler idleness; isolated
+  fixed-bound acceptance remains §3. No live faster-than-X claim is made.
+  Baseline→final backlog: 11 non-clean rows → 8, of which 7 are fresh
+  `dirty:1` game-agent edits that arrived mid-window (live repos commit
+  continuously) plus doomtap PUSH_STUCK (see §5). junk-runner,
+  ai-auto-writer, polis, freeport all ended `synced`, zero backlog,
+  push OK on both remotes. Hegemon has NO inventory row (excluded from
+  discovery; no phantom healthy/EMPTY row) — the operator quarantine
+  `exclude_repos = [".../wip/hegemon"]` in the live config is the visible
+  reason.
 - Self-caused incident recorded: my first release attempt was killed by its
   550s timeout while the maintenance freeze marker was held; the marker
   survived the kill and paused the daemon (~02:46–02:48) until
@@ -145,8 +157,6 @@ shipped (only version/changelog differ). Each verdict JSON ships with its
 
 ## 7. Remaining work
 
-- Task 4: run `scripts/observe-live.py` (≈15 min) once box load permits;
-  record `live-observation-0.113.64/live-report.json` + `final.json` with
-  per-remote closure and the start/end inventory backlog state.
-- Then re-call `complete_goal` against the auditor TODO (items 1a–1c are
-  green above; observer repair + valid window close the remainder).
+- Task 4 DONE (see §4). Remaining: re-call `complete_goal` against the
+  auditor TODO (items 1a–1c green in §3; observer repair + valid window
+  closed in §4; hegemon truthfulness in §5).
