@@ -4143,6 +4143,77 @@ pub(crate) fn in_flight_path_for_test() -> std::path::PathBuf {
     in_flight_path()
 }
 
+/// On-disk path for the dispatch-hold snapshot (v0.113.67). Written every
+/// scan cycle alongside the in-flight file: per-repo hold reason + age so
+/// `repos` (and operators) can see WHY a dirty repo is not dispatching
+/// without tailing the journal.
+fn dispatch_holds_path() -> std::path::PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        return home
+            .join(".local")
+            .join("state")
+            .join("dracon")
+            .join("dracon-sync-dispatch-holds.json");
+    }
+    std::path::PathBuf::from("/tmp/dracon-sync-dispatch-holds.json")
+}
+
+/// Atomically write the current dispatch holds. `holds` maps repo →
+/// (reason, hold-since Instant); ages are rendered against `now_unix` so
+/// readers get seconds without clock access. Same temp-file + rename
+/// discipline as the in-flight file. Empty map removes the file.
+pub(crate) fn save_dispatch_holds(holds: &HashMap<PathBuf, (String, Instant)>, now: Instant) {
+    let path = dispatch_holds_path();
+    if holds.is_empty() {
+        if path.exists() {
+            let _ = std::fs::remove_file(&path);
+        }
+        return;
+    }
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+    }
+    let now_unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let mut entries: Vec<serde_json::Value> = holds
+        .iter()
+        .map(|(repo, (reason, since))| {
+            serde_json::json!({
+                "repo": repo.display().to_string(),
+                "reason": reason,
+                "hold_secs": now.saturating_duration_since(*since).as_secs(),
+            })
+        })
+        .collect();
+    entries.sort_by(|a, b| a["repo"].as_str().cmp(&b["repo"].as_str()));
+    let content = match serde_json::to_string_pretty(&serde_json::json!({
+        "holds": entries,
+        "written_at": now_unix,
+    })) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("⚠️ failed serializing dispatch_holds: {}", e);
+            return;
+        }
+    };
+    let tmp_path = path.with_extension("tmp");
+    if let Err(e) = std::fs::write(&tmp_path, &content) {
+        let _ = std::fs::remove_file(&tmp_path);
+        if e.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("⚠️ failed writing dispatch_holds tmp: {}", e);
+        }
+        return;
+    }
+    if let Err(e) = std::fs::rename(&tmp_path, &path) {
+        eprintln!("⚠️ failed renaming dispatch_holds file: {}", e);
+        let _ = std::fs::remove_file(&tmp_path);
+    }
+}
+
 /// Read the current `in_flight` set from disk. Used by the
 /// `repos` command to render the ACTIVITY column with the
 /// active/stalled distinction. Returns an empty set if the file
