@@ -1,0 +1,13 @@
+{
+  "binary": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+  "root": "/tmp/sync-restart-tz0e4_a3",
+  "ls_remote_sleep": 1.5,
+  "dispatch_budget_s": 3.0,
+  "mode": "uncached",
+  "phase_b_pulse_unix_ms": 1789693821628,
+  "first_dispatch_unix_ms": 1789693823709,
+  "restart_dispatch_latency_s": 2.081,
+  "ls_remote_calls_phase_b": 2,
+  "passed": true,
+  "raw_evidence": "/tmp/gates-forge-uncached"
+}
