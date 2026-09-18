@@ -1006,10 +1006,6 @@ pub(crate) struct RemoteFailInfo {
 const MIRROR_PAUSE_CONSECUTIVE: usize = 3;
 pub(crate) const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
 
-pub(crate) fn mirror_push_paused_impl(fail: &RemoteFailInfo, now_unix: u64) -> bool {
-    mirror_push_paused_impl(fail, now_unix, false)
-}
-
 /// v0.113.73 forge-degraded: while the remote's host is under a
 /// declared forge incident, the re-probe stretches 15 min -> 60 min
 /// (`FORGE_INCIDENT_REPROBE_SECS`). A down forge must not be

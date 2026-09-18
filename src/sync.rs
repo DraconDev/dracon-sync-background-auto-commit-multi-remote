@@ -2055,13 +2055,6 @@ fn incident_shield_hosts(
 /// for test + shared by the origin gate and the mirror exclude list).
 /// Skipped remotes must NOT refresh `last_attempt_unix` — only a real
 /// attempt does — or the 15-min re-probe below never fires.
-pub(crate) fn paused_remote_names_incident(
-    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
-    now_unix: u64,
-) -> Vec<String> {
-    paused_remote_names_incident(remote_failures, now_unix, &|_| false)
-}
-
 /// v0.113.73 forge-degraded: `is_incident(name)` reports whether the
 /// named remote's host is under a declared incident (stretched
 /// 60-min re-probe). Pure over the predicate for test.
