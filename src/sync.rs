@@ -1932,7 +1932,10 @@ pub(crate) enum PushReport {
     /// callers map `ok+degraded` to PushPaused with NO ledger touch
     /// (no success-clear: that would drop the activity entry and wipe
     /// the sick remote's pause memory, re-hammering it next cycle).
-    Attempted { ok: bool, degraded: bool },
+    Attempted {
+        ok: bool,
+        degraded: bool,
+    },
     AllPaused,
 }
 
@@ -5398,9 +5401,9 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // `SyncOutcome::PushFailed` instead of `NothingToDo`
                 // (which the apply phase treated as success).
                 return Ok(PushReport::Attempted {
-                        ok: false,
-                        degraded: false,
-                    });
+                    ok: false,
+                    degraded: false,
+                });
             }
             Err(e) => {
                 // Cancellation of the spawned push task (daemon shutdown
@@ -5432,9 +5435,9 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     cause,
                 );
                 return Ok(PushReport::Attempted {
-                        ok: false,
-                        degraded: false,
-                    });
+                    ok: false,
+                    degraded: false,
+                });
             }
         }
     } else if ctx.policy.auto_push
@@ -8402,7 +8405,9 @@ push_url = "{}"
         );
         // Pause memory retained: origin counters frozen, not reset,
         // not incremented (zero attempts means zero records).
-        let origin = remote_failures.get("origin").expect("origin pause entry must survive");
+        let origin = remote_failures
+            .get("origin")
+            .expect("origin pause entry must survive");
         assert_eq!(origin.consecutive, 3);
         assert_eq!(origin.last_attempt_unix, now);
         // The mirror still converged: it has the newly committed dirt.

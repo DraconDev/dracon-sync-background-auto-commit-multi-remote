@@ -13,6 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.72] - 2026-09-18
+
+### Fixed
+
+- **Degraded success no longer wipes per-remote pause memory**: when
+  a push converged the healthy legs while a sick remote was
+  pause-skipped, `push_background` returned plain success —
+  `record_push_success` cleared the ledger and dropped the activity
+  entry, wiping the sick remote's pause counters. Observed live: the
+  pause line printed, the mirror no-op success unstuck the repo, and
+  5s later the sick forge was re-attempted (consecutive reset to 1)
+  — the per-remote pause was defeated by the amnesia. `PushReport::
+  Attempted` now carries `degraded` (a configured remote was
+  pause-skipped); `ok+degraded` maps to `PushPaused` with NO ledger
+  touch either way (no success-clear, no failure burn), retaining the
+  activity entry and its frozen pause counters. The mirror still
+  converges; the sick remote re-probes only via the 15-min per-remote
+  gate. Pinned by `test_degraded_success_reports_paused_not_synced`
+  (fails on v0.113.71 with `Synced`, passes here with `PushPaused` +
+  frozen counters + mirror convergence + empty ledger).
+
 ## [0.113.71] - 2026-09-18
 
 ### Fixed
