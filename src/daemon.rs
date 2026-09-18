@@ -81,17 +81,43 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
 fn collect_ready_classifications(
     jobs: &mut FuturesUnordered<ClassificationJoin>,
     pending: &mut HashSet<PathBuf>,
+    pending_since: &mut HashMap<PathBuf, Instant>,
     results: &mut HashMap<PathBuf, Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         match joined {
             Ok((repo, outcome)) => {
                 pending.remove(&repo);
+                pending_since.remove(&repo);
                 results.insert(repo, outcome);
             }
-            Err(error) => eprintln!("⚠️ classification job join error: {}", error),
+            // NOTE 2026-09-18 (v0.113.65): a dead job (panic /
+            // cancellation) surfaces here WITHOUT its repo identity
+            // (JoinError carries no payload), so this arm cannot
+            // release that repo's `pending` reservation directly.
+            // Release is handled generically by the pending watchdog
+            // at the spawn gate (`classification_pending_watchdog_due`):
+            // any reservation older than 90s is dropped and re-probed.
+            // Without it, one lost job suppressed ALL future spawns
+            // for its repo (the gate requires !pending) — a dirty repo
+            // sat visible-but-undispatched with zero further output.
+            Err(error) => {
+                eprintln!("⚠️ classification job join error: {}", error);
+            }
         }
     }
+}
+
+/// Bound for a classification reservation without a result. Jobs carry a
+/// 30s internal timeout (`CLASSIFICATION_TIMEOUT`); a reservation older
+/// than this bound means the result path desynced (job lost without a
+/// join error surfacing) and the repo would otherwise sit dirty with no
+/// spawn and no eligibility log forever. Pure decision helper for test.
+const CLASSIFICATION_PENDING_WATCHDOG_SECS: u64 = 90;
+
+fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(spawned_at)
+        >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
 }
 
 /// Hard wall-clock cap for one classification job (filter-aware diff +
@@ -1045,14 +1071,15 @@ mod tests {
         let slow_abort = slow.abort_handle();
         jobs.push(slow);
         // At pulse start neither result exists.
-        collect_ready_classifications(&mut jobs, &mut pending, &mut results);
+        let mut pending_since = HashMap::new();
+        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
         assert!(results.is_empty());
         release.send(()).unwrap();
         finish_wait.await.unwrap();
         tokio::task::yield_now().await;
         // The per-repo boundary sees the result without waiting for the slow
         // classifier or a timer/next pulse, and retains empty success results.
-        collect_ready_classifications(&mut jobs, &mut pending, &mut results);
+        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
         assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
         assert_eq!(pending.len(), 1);
@@ -3681,9 +3708,44 @@ pub(crate) fn push_error_is_cancellation(error: &anyhow::Error) -> bool {
 
 /// Record only genuine failures; interrupted attempts leave existing state intact.
 pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
-    if !push_error_is_cancellation(error) {
-        record_push_failure(repo, &format!("{error:#}"));
+    if push_error_is_cancellation(error) {
+        return;
     }
+    let msg = format!("{error:#}");
+    // ADDED 2026-09-18 (v0.113.65): transient forge outages (Gitaly/5xx)
+    // must not burn the needs-human stuck budget — the cause is neither
+    // actionable by the operator nor fixable by the daemon, and it clears
+    // on its own. Record the outage for visibility + backoff anchoring
+    // (last_error_at drives the 300s retry throttle) without incrementing
+    // consecutive_failures, so auto-push pauses never trigger on infra.
+    if crate::git::is_transient_forge_outage(&msg) {
+        record_push_transient_outage(repo, &msg);
+        return;
+    }
+    record_push_failure(repo, &msg);
+}
+
+/// Visibility-only ledger upsert for transient forge outages: refreshes the
+/// failure message and backoff anchor without consuming stuck-budget. The
+/// entry keeps the repo on the 5-minute retry throttle (via last_error_at)
+/// and in `stuck-list` output with a truthful cause, but consecutive_failures
+/// never reaches the Exhausted arm on infra alone.
+pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
+    let mut repos = load_stuck_push_repos();
+    let now = timestamp_secs();
+    let entry = repos
+        .entry(repo.to_path_buf())
+        .or_insert_with(|| StuckRepoEntry {
+            path: repo.to_path_buf(),
+            stuck_since: now,
+            consecutive_failures: 0,
+            last_error: String::new(),
+            last_error_at: 0,
+            last_retry_at: 0,
+        });
+    entry.last_error = crate::ownership::redact_url_credentials(error);
+    entry.last_error_at = now;
+    save_stuck_push_repos(&repos);
 }
 
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
@@ -4645,6 +4707,12 @@ pub(crate) async fn run_daemon(
         Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>,
     > = HashMap::new();
     let mut classification_pending: HashSet<PathBuf> = HashSet::new();
+    // ADDED 2026-09-18 (v0.113.65): spawn instant per pending
+    // reservation, backing the 90s pending watchdog at the spawn gate.
+    // A reservation that outlives the job's 30s internal timeout by 3x
+    // means the result path desynced; the watchdog drops it and the
+    // gate re-probes instead of suppressing the repo forever.
+    let mut classification_pending_since: HashMap<PathBuf, Instant> = HashMap::new();
     let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
     let mut classification_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
 
@@ -4837,6 +4905,7 @@ pub(crate) async fn run_daemon(
         collect_ready_classifications(
             &mut classification_jobs,
             &mut classification_pending,
+            &mut classification_pending_since,
             &mut classification_results,
         );
 
@@ -5640,6 +5709,7 @@ pub(crate) async fn run_daemon(
             collect_ready_classifications(
                 &mut classification_jobs,
                 &mut classification_pending,
+                &mut classification_pending_since,
                 &mut classification_results,
             );
             // Fast path: skip expensive git diff calls for clean, synced repos.
@@ -5696,6 +5766,25 @@ pub(crate) async fn run_daemon(
                         }
                     }
                 }
+                // ADDED 2026-09-18 (v0.113.65): pending watchdog. A
+                // reservation older than 90s (3x the job's 30s internal
+                // timeout) means its result will never arrive — job lost
+                // without a join error surfacing. Drop it so the gate
+                // below re-probes instead of suppressing this repo's
+                // dispatches silently forever.
+                if classification_pending.contains(&repo)
+                    && classification_pending_since
+                        .get(&repo)
+                        .is_some_and(|spawned| {
+                            classification_pending_watchdog_due(*spawned, now)
+                        }) {
+                    classification_pending.remove(&repo);
+                    classification_pending_since.remove(&repo);
+                    eprintln!(
+                        "⚠️ {} classification pending over 90s without result — dropping stale reservation and re-probing",
+                        repo.display()
+                    );
+                }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
                     && !classification_cooldowns
@@ -5704,6 +5793,7 @@ pub(crate) async fn run_daemon(
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());
+                    classification_pending_since.insert(repo.clone(), now);
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: classification_spawn repo={} cycle_ms={} pending={} results={}",
@@ -5799,6 +5889,29 @@ pub(crate) async fn run_daemon(
                 // path below anchors the quiet clock on the status
                 // transition).
                 let Some(Ok(filtered)) = classification_results.get(&repo) else {
+                    // ADDED 2026-09-18 (v0.113.65): skip-reason logging.
+                    // These holds were fully silent, which made a 16-min
+                    // dirty-but-undispatched window undebuggable from the
+                    // journal (2026-09-18 dracon-platform incident).
+                    // Debug-gated: the status line above already logs
+                    // every scan, so this adds no new volume class.
+                    if debug_enabled() {
+                        let reason = if classification_pending.contains(&repo) {
+                            "classification-pending"
+                        } else if classification_cooldowns
+                            .get(&repo)
+                            .is_some_and(|until| now < *until)
+                        {
+                            "classification-cooldown"
+                        } else {
+                            "classification-missing"
+                        };
+                        eprintln!(
+                            "scheduler: skip repo={} reason={}",
+                            repo.display(),
+                            reason
+                        );
+                    }
                     book_provisional_activity(
                         &mut activity,
                         &repo,
@@ -5823,6 +5936,19 @@ pub(crate) async fn run_daemon(
                 let has_local_or_pending_work =
                     dirty || status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
                 if !has_local_or_pending_work {
+                    // ADDED 2026-09-18 (v0.113.65): skip-reason logging
+                    // (status-dirty but filter-clean branch only — the
+                    // clean fast-path above stays quiet). A worktree can
+                    // read dirty for days while every entry is excluded
+                    // from auto-commit; without this line that correct
+                    // idle is indistinguishable from a scheduler stall.
+                    if debug_enabled() {
+                        eprintln!(
+                            "scheduler: skip repo={} reason=filter-clean entries={}",
+                            repo.display(),
+                            filtered.len()
+                        );
+                    }
                     activity.remove(&repo);
                     continue;
                 }
@@ -5833,6 +5959,21 @@ pub(crate) async fn run_daemon(
                 // This prevents duplicate `git push` invocations on
                 // the same (repo, remote) pair within a cycle window.
                 if in_flight.contains(&repo) {
+                    // ADDED 2026-09-18 (v0.113.65): skip-reason logging
+                    // with hold age when the detached registry tracks it.
+                    if debug_enabled() {
+                        match detached_since.get(&repo) {
+                            Some(since) => eprintln!(
+                                "scheduler: skip repo={} reason=in-flight detached_secs={}",
+                                repo.display(),
+                                now.saturating_duration_since(*since).as_secs()
+                            ),
+                            None => eprintln!(
+                                "scheduler: skip repo={} reason=in-flight",
+                                repo.display()
+                            ),
+                        }
+                    }
                     continue;
                 }
                 (dirty, filtered)
@@ -6105,6 +6246,15 @@ pub(crate) async fn run_daemon(
             // being committed and pushed. The post-sync state mutations
             // happen in the apply phase after all jobs complete.
             if !reserve_sync(&mut in_flight, &repo) {
+                // ADDED 2026-09-18 (v0.113.65): skip-reason logging. A
+                // lost reservation race here means a concurrent dispatch
+                // won the slot; the repo stays scheduled, not dropped.
+                if debug_enabled() {
+                    eprintln!(
+                        "scheduler: skip repo={} reason=reserve-race",
+                        repo.display()
+                    );
+                }
                 continue;
             }
             // Retain the ready result through quiet-window and retry gates.

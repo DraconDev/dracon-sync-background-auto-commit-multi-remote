@@ -334,7 +334,9 @@ pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
 /// to network/credentials when the true cause was a history fork).
 /// Mirrors the predicate set above; keep the arms in the same order.
 pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
-    if is_pack_too_large(err_msg) {
+    if is_transient_forge_outage(err_msg) {
+        "forge-side outage (transient infra: Gitaly/5xx; retrying with backoff, excluded from stuck budget)"
+    } else if is_pack_too_large(err_msg) {
         "pack exceeds forge size limit (needs history rewrite)"
     } else if is_permanent_push_rejection(err_msg) {
         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
@@ -343,6 +345,37 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
     } else {
         "transport/auth failure (network, timeout, or credentials)"
     }
+}
+
+/// Check if an error message indicates a transient forge-side infrastructure
+/// outage (NOT a repo policy decision): GitLab's Gitaly storage backend
+/// unavailable, HTTP 5xx from the forge, explicit try-again-later replies.
+/// Observed live 2026-09-18: `web-games-doomtap` pack receipt failed with
+/// "ERROR: The git server, Gitaly, is not available at this time" while the
+/// identical commits pushed cleanly to github and to the `doomtap` GitLab
+/// project seconds apart, and the GitLab API returned HTTP 500s at the same
+/// time. Retrying will not fix it NOW, but unlike a policy rejection it can
+/// clear on its own — so callers must back off and retry WITHOUT burning
+/// the needs-human stuck-push budget (see `record_push_attempt_error`).
+/// Matching is deliberately narrow: only unambiguous infra strings. A
+/// `pre-receive hook declined` stays permanent (a rule decision), even
+/// though a sick backend can also trip hooks spuriously — misclassifying a
+/// real secret/branch rule as transient would retry a doomed push forever.
+pub(crate) fn is_transient_forge_outage(err_msg: &str) -> bool {
+    let lower = err_msg.to_lowercase();
+    lower.contains("gitaly")
+        || lower.contains("is not available at this time")
+        || lower.contains("internal server error")
+        || lower.contains("bad gateway")
+        || lower.contains("service unavailable")
+        || lower.contains("temporarily unavailable")
+        || lower.contains("try again later")
+        || lower.contains("error 520")
+        || lower.contains("error 522")
+        || lower.contains("error 524")
+        || lower.contains("code: 520")
+        || lower.contains("code: 522")
+        || lower.contains("code: 524")
 }
 
 /// Check if an error message indicates a permanent push rejection that
@@ -540,6 +573,33 @@ mod tests {
         // Transport: no rejection markers at all.
         let transport = classify_push_failure("Connection timed out");
         assert!(transport.contains("transport/auth"), "got: {}", transport);
+    }
+
+    #[test]
+    fn test_transient_forge_outage_gitaly_unavailable() {
+        // Live 2026-09-18: GitLab pack receipt failed while the identical
+        // commits pushed cleanly to github and to a second GitLab project.
+        let msg = "git push failed with status exit status: 128: remote:\nremote: ERROR: The git server, Gitaly, is not available at this time. Please contact your administrator.";
+        assert!(is_transient_forge_outage(msg));
+        let class = classify_push_failure(msg);
+        assert!(
+            class.contains("forge-side outage"),
+            "got: {}",
+            class
+        );
+    }
+
+    #[test]
+    fn test_transient_forge_outage_does_not_swallow_policy() {
+        // A real rule decision must stay permanent: retrying it forever
+        // instead of pausing for the operator would be the wrong call.
+        let hook = "! [remote rejected] HEAD -> main (pre-receive hook declined)";
+        assert!(!is_transient_forge_outage(hook));
+        assert!(classify_push_failure(hook).contains("server-side policy"));
+        let prot =
+            "remote: error: GH006: Protected branch update failed for main.";
+        assert!(!is_transient_forge_outage(prot));
+        assert!(classify_push_failure(prot).contains("server-side policy"));
     }
 
     #[test]
