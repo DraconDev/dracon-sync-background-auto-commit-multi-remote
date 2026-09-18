@@ -1947,10 +1947,23 @@ pub(crate) fn paused_remote_names(
     remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
     now_unix: u64,
 ) -> Vec<String> {
+    paused_remote_names_incident(remote_failures, now_unix, &|_| false)
+}
+
+/// v0.113.73 forge-degraded: `is_incident(name)` reports whether the
+/// named remote's host is under a declared incident (stretched
+/// 60-min re-probe). Pure over the predicate for test.
+pub(crate) fn paused_remote_names_incident(
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+    now_unix: u64,
+    is_incident: &dyn Fn(&str) -> bool,
+) -> Vec<String> {
     remote_failures
         .map(|rf| {
             rf.iter()
-                .filter(|(_, f)| crate::daemon::mirror_push_paused(f, now_unix))
+                .filter(|(n, f)| {
+                    crate::daemon::mirror_push_paused_impl(f, now_unix, is_incident(n))
+                })
                 .map(|(n, _)| n.clone())
                 .collect()
         })
