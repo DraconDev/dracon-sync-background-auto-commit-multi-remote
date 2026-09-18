@@ -1007,9 +1007,27 @@ const MIRROR_PAUSE_CONSECUTIVE: usize = 3;
 const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
 
 pub(crate) fn mirror_push_paused(fail: &RemoteFailInfo, now_unix: u64) -> bool {
+    mirror_push_paused_impl(fail, now_unix, false)
+}
+
+/// v0.113.73 forge-degraded: while the remote's host is under a
+/// declared forge incident, the re-probe stretches 15 min -> 60 min
+/// (`FORGE_INCIDENT_REPROBE_SECS`). A down forge must not be
+/// re-hammered on the normal cadence by every repo; recovery
+/// fail-opens (incident cleared -> normal window -> re-probe due).
+pub(crate) fn mirror_push_paused_impl(
+    fail: &RemoteFailInfo,
+    now_unix: u64,
+    incident: bool,
+) -> bool {
+    let window = if incident {
+        crate::forge::FORGE_INCIDENT_REPROBE_SECS
+    } else {
+        MIRROR_PAUSE_REPROBE_SECS
+    };
     fail.consecutive >= MIRROR_PAUSE_CONSECUTIVE
         && fail.last_attempt_unix != 0
-        && now_unix.saturating_sub(fail.last_attempt_unix) < MIRROR_PAUSE_REPROBE_SECS
+        && now_unix.saturating_sub(fail.last_attempt_unix) < window
 }
 
 /// v0.113.69 commit-only steady-state throttle (pure, for test): skip
