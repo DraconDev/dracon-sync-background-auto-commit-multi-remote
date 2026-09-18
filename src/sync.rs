@@ -8683,7 +8683,7 @@ trusted_authors = ["test"]
 
 [[remotes]]
 name = "mirror"
-push_url = "ssh://git@forge-test.invalid:22/{}.git"
+push_url = "ssh://git@forge-test.invalid/{}.git"
 "#,
             name
         );
