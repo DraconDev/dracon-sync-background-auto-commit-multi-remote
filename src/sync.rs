@@ -1961,6 +1961,7 @@ fn observe_round_transient_hits(
     let now_unix = crate::policy::timestamp_secs();
     let repo_str = repo.to_string_lossy().into_owned();
     for (name, info) in rf.iter() {
+        eprintln!("TMP-OBSERVE repo={} name={} last_attempt={} round_start={} err={:?}", repo.display(), name, info.last_attempt_unix, round_start_unix, info.last_error.chars().take(120).collect::<String>());
         if info.last_attempt_unix < round_start_unix {
             continue;
         }
