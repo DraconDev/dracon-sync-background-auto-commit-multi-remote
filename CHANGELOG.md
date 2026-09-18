@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.75] - 2026-09-18
+
+### Fixed
+
+- Clippy-clean under the current toolchain (`unnecessary_get_then_check`
+  in three test assertions: `get().is_none()` → `!contains_key()`).
+  No behavior change.
+
 ## [0.113.74] - 2026-09-18
 
 ### Added
