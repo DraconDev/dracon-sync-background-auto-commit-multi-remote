@@ -5185,25 +5185,6 @@ pub(crate) async fn run_daemon(
         if debug_enabled() {
             eprintln!("scheduler: pulse_start unix_ms={}", scheduler_unix_ms());
         }
-        // v0.113.73 forge-degraded: poll incident recovery once per
-        // cycle (one small JSON read; writes only on change) and
-        // alert once per recovered host.
-        for host in crate::forge::poll_forge_recovery(crate::policy::timestamp_secs()) {
-            eprintln!("✅ forge recovered: {} — per-repo push alerts re-armed", host);
-            let alert_anchor = policy
-                .watch_root_paths()
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| PathBuf::from("."));
-            crate::report::record_sync_alert(
-                &alert_anchor,
-                "Forge Incident Resolved",
-                &format!(
-                    "{}: transient window quiet; per-repo push alerts re-armed",
-                    host
-                ),
-            );
-        }
         if reload.load(Ordering::SeqCst) {
             reload.store(false, Ordering::SeqCst);
             match SyncPolicy::load(&policy_path) {
@@ -5259,6 +5240,25 @@ pub(crate) async fn run_daemon(
         let scan_interval = override_interval_secs
             .unwrap_or(policy.pulse_interval_secs)
             .max(1);
+        // v0.113.73 forge-degraded: poll incident recovery once per
+        // cycle (one small JSON read; writes only on change) and
+        // alert once per recovered host.
+        for host in crate::forge::poll_forge_recovery(crate::policy::timestamp_secs()) {
+            eprintln!("✅ forge recovered: {} — per-repo push alerts re-armed", host);
+            let alert_anchor = policy
+                .watch_root_paths()
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| PathBuf::from("."));
+            crate::report::record_sync_alert(
+                &alert_anchor,
+                "Forge Incident Resolved",
+                &format!(
+                    "{}: transient window quiet; per-repo push alerts re-armed",
+                    host
+                ),
+            );
+        }
         // CHANGED 2026-08-11 (audit LOW, daemon.rs:3524-3576): the
         // freeze marker used to be checked only after repo discovery
         // and the sleeps were blind — a `pause` could land a full
@@ -5918,14 +5918,28 @@ pub(crate) async fn run_daemon(
                             } else {
                                 crate::git::classify_push_failure(&info.last_error)
                             };
-                            crate::report::send_sync_conflict_notification(
-                                &repo,
-                                "Push Stuck (budget exhausted)",
-                                &format!(
-                                    "{} consecutive push failures — {}; auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
-                                    info.consecutive_failures, cause
-                                ),
-                            );
+                            // v0.113.73 forge-degraded: same coalescing
+                            // as the retry alert above (incident alert
+                            // covers incident-attributed exhaustion).
+                            if crate::forge::forge_incident_covers_repo(
+                                &repo.to_string_lossy(),
+                            ) {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} exhausted alert coalesced (forge incident covers this repo)",
+                                        repo.display()
+                                    );
+                                }
+                            } else {
+                                crate::report::send_sync_conflict_notification(
+                                    &repo,
+                                    "Push Stuck (budget exhausted)",
+                                    &format!(
+                                        "{} consecutive push failures — {}; auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
+                                        info.consecutive_failures, cause
+                                    ),
+                                );
+                            }
                         }
                         // CHANGED 2026-09-18 (v0.113.69,
                         // commit-despite-paused-push): no longer `continue`.
@@ -5962,17 +5976,33 @@ pub(crate) async fn run_daemon(
                             } else {
                                 crate::git::classify_push_failure(&info.last_error)
                             };
-                            crate::report::record_sync_alert(
-                                &repo,
-                                "Stuck Push Retry",
-                                &format!(
-                                    "retrying after {}s; stuck since unix {}; {} consecutive failures; {}",
-                                    stuck_age_secs,
-                                    info.stuck_since,
-                                    info.consecutive_failures,
-                                    cause
-                                ),
-                            );
+                            // v0.113.73 forge-degraded: coalesce — while
+                            // the repo's latest transient hit is on a
+                            // declared incident host, the incident alert
+                            // covers it; per-repo retry alerts resume on
+                            // recovery. The journal line above still logs.
+                            if crate::forge::forge_incident_covers_repo(
+                                &repo.to_string_lossy(),
+                            ) {
+                                if debug_enabled() {
+                                    eprintln!(
+                                        "🐛 {} stuck-retry alert coalesced (forge incident covers this repo)",
+                                        repo.display()
+                                    );
+                                }
+                            } else {
+                                crate::report::record_sync_alert(
+                                    &repo,
+                                    "Stuck Push Retry",
+                                    &format!(
+                                        "retrying after {}s; stuck since unix {}; {} consecutive failures; {}",
+                                        stuck_age_secs,
+                                        info.stuck_since,
+                                        info.consecutive_failures,
+                                        cause
+                                    ),
+                                );
+                            }
                         }
                         // CHANGED 2026-09-18 (v0.113.70): do NOT stamp
                         // `last_retry_at` here. The stamp is written at
