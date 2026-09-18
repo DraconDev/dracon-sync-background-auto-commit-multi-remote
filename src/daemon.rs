@@ -179,8 +179,10 @@ fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
 /// A repo with no ready result yet records a `status-pending` hold
 /// and is re-checked next cycle — small repos behind a stalled
 /// giant are inspected and dispatched on time instead of waiting.
-pub(crate) type StatusJoin =
-    tokio::task::JoinHandle<(PathBuf, Result<dracon_git::types::RepoStatus, anyhow::Error>)>;
+pub(crate) type StatusJoin = tokio::task::JoinHandle<(
+    PathBuf,
+    Result<dracon_git::types::RepoStatus, anyhow::Error>,
+)>;
 
 /// A collected status older than this is stale (spawned before the
 /// worktree's current state) — drop it and re-probe. Bounds how long
@@ -197,7 +199,13 @@ fn collect_ready_status(
     jobs: &mut FuturesUnordered<StatusJoin>,
     pending: &mut HashSet<PathBuf>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
-    results: &mut HashMap<PathBuf, (Result<dracon_git::types::RepoStatus, anyhow::Error>, Instant)>,
+    results: &mut HashMap<
+        PathBuf,
+        (
+            Result<dracon_git::types::RepoStatus, anyhow::Error>,
+            Instant,
+        ),
+    >,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         match joined {
@@ -231,7 +239,10 @@ fn classification_backoff_secs(consecutive_failures: usize) -> Duration {
         return Duration::from_secs(1);
     }
     let shift = consecutive_failures.saturating_sub(1).min(9) as u32;
-    Duration::from_secs(1u64.saturating_mul(1 << shift).min(CLASSIFICATION_BACKOFF_CAP_SECS))
+    Duration::from_secs(
+        1u64.saturating_mul(1 << shift)
+            .min(CLASSIFICATION_BACKOFF_CAP_SECS),
+    )
 }
 
 /// ADDED 2026-09-18 (v0.113.74, firehose fairness): rate-aware pile
@@ -1295,14 +1306,26 @@ mod tests {
         // At pulse start neither result exists.
         let mut pending_since = HashMap::new();
         pending_since.insert(repo.clone(), Instant::now());
-        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results, &mut HashMap::new());
+        collect_ready_classifications(
+            &mut jobs,
+            &mut pending,
+            &mut pending_since,
+            &mut results,
+            &mut HashMap::new(),
+        );
         assert!(results.is_empty());
         release.send(()).unwrap();
         finish_wait.await.unwrap();
         tokio::task::yield_now().await;
         // The per-repo boundary sees the result without waiting for the slow
         // classifier or a timer/next pulse, and retains empty success results.
-        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results, &mut HashMap::new());
+        collect_ready_classifications(
+            &mut jobs,
+            &mut pending,
+            &mut pending_since,
+            &mut results,
+            &mut HashMap::new(),
+        );
         assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
         // v0.113.65: collection also releases the watchdog timestamp.
@@ -6388,10 +6411,7 @@ pub(crate) async fn run_daemon(
                 status_spawned_at.insert(repo.clone(), now);
                 status_jobs.push(tokio::spawn(async move {
                     let outcome = match GitService::new(&repo_for_status) {
-                        Ok(svc) => svc
-                            .get_status()
-                            .await
-                            .map_err(|e| anyhow::anyhow!("{}", e)),
+                        Ok(svc) => svc.get_status().await.map_err(|e| anyhow::anyhow!("{}", e)),
                         Err(e) => Err(anyhow::anyhow!("{}", e)),
                     };
                     (repo_for_status, outcome)
