@@ -2708,10 +2708,18 @@ mod tests {
         activity.insert(
             live.clone(),
             RepoActivity {
-                last_seen: now,
+                fingerprint: String::new(),
                 changed_at: now,
                 dirty_since: Some(now),
-                ..Default::default()
+                ahead_since: None,
+                behind_since: None,
+                mirror_consecutive_fails: HashMap::new(),
+                failure_count: 0,
+                remote_failures: HashMap::new(),
+                ownership: None,
+                ownership_at: None,
+                blocked_since: None,
+                unowned_since: None,
             },
         );
         prune_repo_liveness(&mut holds, &activity);
