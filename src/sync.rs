@@ -1987,6 +1987,70 @@ fn observe_round_transient_hits(
     }
 }
 
+/// Forge-incident shield decision (v0.113.73): returns the attributed
+/// transient hosts when the current failure set is fully covered by
+/// declared incidents (caller records visibility-only instead of
+/// burning the stuck budget). Recency-gated: only attempts within
+/// the incident window count (stale entries are prior rounds, not
+/// this failure). Unattributable transient failures (local paths,
+/// unreadable origin URL) veto the shield — something outside any
+/// incident failed, so the budget burns normally.
+fn incident_shield_hosts(
+    repo: &std::path::Path,
+    policy: &SyncPolicy,
+    has_origin: bool,
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+) -> Option<Vec<String>> {
+    let incidents = crate::forge::forge_incident_hosts();
+    if incidents.is_empty() {
+        return None;
+    }
+    let rf = remote_failures?;
+    let now_unix = crate::policy::timestamp_secs();
+    let repo_name = repo
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let host_of = |name: &str| -> Option<String> {
+        if name == "origin" {
+            if !has_origin {
+                return None;
+            }
+            crate::git::multi_remote::get_remote_url(repo, "origin")
+                .and_then(|u| crate::forge::forge_host_of_url(&u))
+        } else {
+            policy
+                .remotes
+                .iter()
+                .find(|r| r.name == name)
+                .map(|r| r.resolve_push_url(&repo_name))
+                .and_then(|u| crate::forge::forge_host_of_url(&u))
+        }
+    };
+    let mut transient_hosts = Vec::new();
+    let mut veto = false;
+    for (name, info) in rf.iter() {
+        if now_unix.saturating_sub(info.last_attempt_unix)
+            > crate::forge::FORGE_INCIDENT_WINDOW_SECS
+        {
+            continue;
+        }
+        if crate::git::is_transient_forge_outage(&info.last_error) {
+            match host_of(name) {
+                Some(h) => transient_hosts.push(h),
+                None => veto = true,
+            }
+        } else {
+            veto = true;
+        }
+    }
+    if crate::forge::incident_shields_failure(&transient_hosts, veto, &incidents) {
+        Some(transient_hosts)
+    } else {
+        None
+    }
+}
+
 /// Names of remotes currently under the per-remote pause gate (pure,
 /// for test + shared by the origin gate and the mirror exclude list).
 /// Skipped remotes must NOT refresh `last_attempt_unix` — only a real
