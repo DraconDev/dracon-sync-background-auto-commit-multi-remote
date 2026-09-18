@@ -149,6 +149,13 @@ fn prune_repo_liveness<Map>(
     map.retain(|repo, _| activity.contains_key(repo));
 }
 
+/// Drop expired backoff stamps (ADDED 2026-09-18, v0.113.68 watchdog
+/// audit). Unexpired entries are kept — the backoff is still owed.
+/// Pure helper for test.
+fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
+    map.retain(|_, until| now < *until);
+}
+
 /// Hard wall-clock cap for one classification job (filter-aware diff +
 /// untracked listing). Matches the prior inline git_diff_head_files cap.
 const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
@@ -2729,6 +2736,17 @@ mod tests {
         assert!(!holds.contains_key(&dead));
         assert!(dispatches.contains_key(&live));
         assert!(!dispatches.contains_key(&dead));
+    }
+
+    #[test]
+    fn test_prune_expired_cooldowns_keeps_owed_backoff() {
+        let now = Instant::now();
+        let mut map: HashMap<PathBuf, Instant> = HashMap::new();
+        map.insert("/tmp/owed".into(), now + Duration::from_secs(600));
+        map.insert("/tmp/spent".into(), now - Duration::from_secs(1));
+        prune_expired_cooldowns(&mut map, now);
+        assert!(map.contains_key(&PathBuf::from("/tmp/owed")));
+        assert!(!map.contains_key(&PathBuf::from("/tmp/spent")));
     }
 
     #[test]
@@ -6867,9 +6885,8 @@ pub(crate) async fn run_daemon(
         prune_repo_liveness(&mut quiet_evidence, &activity);
         // ADDED 2026-09-18 (v0.113.68, watchdog audit): drop expired
         // max-fail backoffs instead of carrying dead `until` stamps.
-        // (Unexpired entries are kept: the backoff is still owed.)
         let persist_now = Instant::now();
-        max_fail_cooldowns.retain(|_, until| persist_now < *until);
+        prune_expired_cooldowns(&mut max_fail_cooldowns, persist_now);
         save_dispatch_holds(&dispatch_holds, persist_now);
 
         // === Sustained-state notifications ===
