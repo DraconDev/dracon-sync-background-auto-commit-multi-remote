@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.71] - 2026-09-18
+
+### Fixed
+
+- **Retry stamp written at dispatch, not at log time**: the Retry arm
+  stamped `last_retry_at` the moment it logged "retrying push", but
+  the cycle can still skip dispatch afterwards (classification-
+  pending, quiet, cooldowns) — silently swallowing the retry while
+  the ledger claimed an attempt happened (observed live: stamp
+  advanced, no worker ran, consecutive frozen; with the commit-only
+  throttle the swallowed retry then waits out another full 300s
+  window doing nothing). The arm now sets a `stamp_retry` flag and
+  the spawn site writes the stamp only when a worker actually
+  dispatches; an unstamped retry stays `Retry` and dispatches as soon
+  as the gate clears. The stamp's original anti-spin purpose is
+  preserved (a dispatched retry stamps exactly once per window).
+
 ## [0.113.70] - 2026-09-18
 
 ### Fixed
