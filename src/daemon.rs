@@ -1012,6 +1012,14 @@ pub(crate) fn mirror_push_paused(fail: &RemoteFailInfo, now_unix: u64) -> bool {
         && now_unix.saturating_sub(fail.last_attempt_unix) < MIRROR_PAUSE_REPROBE_SECS
 }
 
+/// v0.113.69 commit-only steady-state throttle (pure, for test): skip
+/// the dispatch only when the repo is commit-only AND clean. Dirty
+/// commit-only repos must always dispatch (commits flow); non-
+/// commit-only repos are unaffected (normal + Retry paths).
+pub(crate) fn commit_only_idle_skip(commit_only: bool, is_clean: bool) -> bool {
+    commit_only && is_clean
+}
+
 /// ADDED 2026-07-22 (v0.112.37): whether an `Option<Instant>`
 /// "since" timestamp has been set AND at least `threshold` has
 /// elapsed since it was set. Extracted so the sustained-state
@@ -2829,6 +2837,14 @@ mod tests {
         assert!(!holds.contains_key(&dead));
         assert!(dispatches.contains_key(&live));
         assert!(!dispatches.contains_key(&dead));
+    }
+
+    #[test]
+    fn test_commit_only_idle_skip_matrix() {
+        assert!(commit_only_idle_skip(true, true));
+        assert!(!commit_only_idle_skip(true, false));
+        assert!(!commit_only_idle_skip(false, true));
+        assert!(!commit_only_idle_skip(false, false));
     }
 
     #[test]
@@ -6002,6 +6018,26 @@ pub(crate) async fn run_daemon(
                     !status.is_clean,
                     scheduler_epoch.elapsed().as_millis(),
                 );
+            }
+
+            // ADDED 2026-09-18 (v0.113.69, commit-only steady-state
+            // throttle): a commit-only repo with a CLEAN worktree has
+            // nothing to commit and its push is paused — dispatching a
+            // worker every cycle is pure churn (observed live: a
+            // stuck-ahead repo dispatched ~every 3s, 312 workers in
+            // 16 min). Skip the dispatch but KEEP the activity entry;
+            // fresh dirt flips `is_clean` and the repo dispatches on
+            // the normal quiet path (~3s commit latency preserved).
+            // Retry cycles clear commit_only BEFORE this point, so the
+            // 300s push re-probe is unaffected.
+            if commit_only_idle_skip(commit_only_repos.contains(&repo), status.is_clean) {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 {} commit-only + clean: skipping dispatch (nothing to commit, push paused)",
+                        repo.display()
+                    );
+                }
+                continue;
             }
 
             // Cache remote checks — used in both fast and slow paths
