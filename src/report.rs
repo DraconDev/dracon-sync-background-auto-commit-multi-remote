@@ -1142,7 +1142,6 @@ pub(crate) enum RepoFilter {
     Warn,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// ADDED 2026-09-18 (v0.113.67): remote-divergence detection. Extract the
 /// `host/path` identity from each remote URL so `repair concerns` can warn
 /// when one repo's remotes point at differently-named forge projects
@@ -1200,6 +1199,7 @@ fn remote_slug_diverged(named_urls: &[(String, String)]) -> bool {
     by_host.values().any(|slugs| slugs.len() > 1)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ConcernRepairFilter {
     All,
     StuckPush,
