@@ -13,6 +13,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.74] - 2026-09-18
+
+### Added
+
+- **Firehose fairness (full-program P1-5)**: three mechanisms so a
+  giant repo can't delay others' pickup and its own pile pages with
+  rates. (1) **Pipelined status inspection**: the serial scan loop
+  used to `await` every repo's `get_status()` inline — one giant
+  repo's 5–22s status (measured live over 11.5k samples: ai-auto-
+  writer up to 17.7s, dracon-platform up to 22.4s, p99 824ms)
+  head-of-line-blocked every repo behind it. Status now runs as one
+  task per repo with ready-only collection at the repo boundary; a
+  repo with no ready result records a `status-pending` hold while
+  the scan proceeds, and results older than 30s are dropped as
+  stale and re-probed. (2) **Classification scaling guard**: the
+  re-probe cooldown after a failed classification scales 1s, 2s,
+  4s, … capped at 5 min (was flat 1s, respawning a fresh 30s job
+  every ~31s forever on repos whose diff always times out); any
+  success resets the streak. (3) **Rate-aware pile alert**: per-repo
+  untracked arrival-vs-drain windows; a pile ≥500 files still growing
+  net-positive over ≥60s pages `Pile Growing` with both per-minute
+  rates (throttled 30 min per repo; draining piles stay silent).
+  Regressions: `test_status_pipeline_collects_ready_while_slow_pending`,
+  `test_status_pipeline_result_carries_spawn_instant`,
+  `test_classification_backoff_secs_matrix`, `test_pile_alert_due_matrix`,
+  `test_pile_watch_sample_accumulates_arrival_and_drain`.
+
 ## [0.113.73] - 2026-09-18
 
 ### Added

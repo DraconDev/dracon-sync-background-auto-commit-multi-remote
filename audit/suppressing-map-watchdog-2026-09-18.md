@@ -29,6 +29,9 @@ fixed (v0.113.68); one earlier claim corrected.
 | `empty_bootstrap/auto_create/ls_remote_cooldowns`, `pending_repos`, forge cache | bootstrap pacing | cleared on SIGHUP; per-op TTLs | — | ✅ bounded |
 | forge health (`dracon-sync-forge-health.json`, v0.113.73) | incident re-probe stretch (15m→60m); alert coalescing; stuck-budget shield | hits pruned to 10-min window, 50/host cap; incident clears on quiet window via per-cycle `poll_forge_recovery` | 🔥 declare / ✅ recover / 🛡️ shield lines | ✅ bounded (persisted SUPPRESSOR: survives restarts by design — that is the fix for restart amnesia; staleness bounded by the window) |
 | `commit_only_repos` (v0.113.69–72) | Backoff/Exhausted dispatch commit-only; clean+commit-only skips dispatch (v0.113.70 throttle) | cleared on Retry/unstuck/success; retry stamp at dispatch (v0.113.71); degraded-PushPaused retains (v0.113.72) | commit-only + throttle skip lines | ✅ bounded (no timer: membership follows the stuck ledger) |
+| status pipeline (`status_jobs`/`status_pending`/`status_spawned_at`/`status_results`, v0.113.74) | repo inspection waits for its own status only; others scan on | at most one task per repo (spawn gated on !pending); results >30s old dropped + re-probed; failures keep old skip semantics; pending released on collect | `status-pending` hold + `status-stale` re-probe lines | ✅ bounded (no timer: ownership ends at task completion; staleness cap 30s) |
+| `pile_watch` (v0.113.74) | n/a (observability: arrival/drain windows) | pruned to live `activity` every cycle; window resets on alert | `Pile Growing` alert with rates | ✅ self-cleaning |
+| classification backoff (v0.113.74) | re-probe cooldown scales 1s→5min with consecutive failures | cap 300s; success resets via collect; 90s pending watchdog unchanged | scaled `re-probe in Ns` line | ✅ bounded |
 
 ## Record correction
 
