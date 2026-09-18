@@ -6764,10 +6764,8 @@ pub(crate) async fn run_daemon(
                                 && classification_result_expired(taken_at, now)
                             {
                                 if !classification_pending.contains(&repo) {
-                                    classification_cooldowns.insert(
-                                        repo.clone(),
-                                        now + Duration::from_millis(500),
-                                    );
+                                    classification_cooldowns
+                                        .insert(repo.clone(), now + Duration::from_millis(500));
                                 }
                                 if debug_enabled() {
                                     eprintln!(
