@@ -6860,7 +6860,17 @@ pub(crate) async fn run_daemon(
         // here; only currently-held dirty repos persist.
         prune_repo_liveness(&mut dispatch_holds, &activity);
         prune_repo_liveness(&mut last_dispatch, &activity);
-        save_dispatch_holds(&dispatch_holds, Instant::now());
+        // ADDED 2026-09-18 (v0.113.68, watchdog audit): `quiet_evidence`
+        // was removed only at the clean fast-path, so filter-clean and
+        // vanished repos leaked entries (bounded by repo count, rebuilt
+        // on demand — benign, but untidy). Same activity-prune rule.
+        prune_repo_liveness(&mut quiet_evidence, &activity);
+        // ADDED 2026-09-18 (v0.113.68, watchdog audit): drop expired
+        // max-fail backoffs instead of carrying dead `until` stamps.
+        // (Unexpired entries are kept: the backoff is still owed.)
+        let persist_now = Instant::now();
+        max_fail_cooldowns.retain(|_, until| persist_now < *until);
+        save_dispatch_holds(&dispatch_holds, persist_now);
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.
