@@ -2371,7 +2371,9 @@ async fn push_background(
         if !push_results.is_empty() {
             attempted = true;
         }
-        let ok = aggregate_push_results(repo, push_results, origin_failed, remote_failures)?;
+        // v0.113.73: reborrow (not move) — the forge-hit observation
+        // below needs shared access to the updated map.
+        let ok = aggregate_push_results(repo, push_results, origin_failed, remote_failures.as_deref_mut())?;
         // AllPaused only when a CONFIGURED remote was pause-skipped:
         // stale entries for decommissioned remotes must not veto the
         // legacy path (they linger until overwritten, never cleared).
