@@ -13,6 +13,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Three-tier scan order with ready-classification priority**: the per-cycle
+  scan now orders (0) due repos, (1) repos with a completed classification
+  result, (2) unknown repos, (3) established-clean repos. A completed
+  classifier can establish an older filesystem quiet anchor than the
+  provisional status clock, so inspecting its repo before unknown peers
+  avoids charging ready work for serial peer inspection. Stable order is
+  preserved within each tier; all eligibility, ownership, and filter gates
+  still apply. Regression
+  `ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget`
+  fails at 3.2s against the fixed 3s bound before the fix and passes after.
+- **Wedge recovery retains ownership until worker teardown**: sync workers
+  are tracked in `sync_workers` and cancelled via `request_worker_cancellation`;
+  `in_flight` ownership is released only after the worker join is observed.
+  An abort request alone no longer frees the repo for redispatch while the
+  old task still runs. Regression
+  `wedge_cancellation_waits_for_worker_teardown_before_redispatch` covers
+  the abort-request/ownership/join/cleanup ordering.
+- **Typed push-cancellation aggregation**: `push_to_all_remotes` preserves
+  Tokio JoinError identity through anyhow instead of flattening it into a
+  transport-error string; `push_error_is_cancellation` detects real
+  cancellation via downcast, `record_push_attempt_error` records only genuine
+  failures, and `aggregate_push_results` separates interrupted-only results
+  (interrupted, no backoff) from mixed results (real failures still recorded).
+  Spoofed error text alone is not treated as cancellation. Regressions
+  `push_aggregation_cancellation_does_not_arm_backoff` and
+  `push_aggregation_mixed_failure_still_arms_backoff` include fault injection
+  for the erased-type producer.
+- **Parent-owned mirror pushes**: `push_to_all_remotes` uses `join_all` with
+  `catch_unwind` instead of detached `tokio::spawn` tasks, so aborting the
+  parent terminates every mirror operation before ownership releases. Panics
+  surface as `mirror push panicked` with remote names and ordering preserved.
+  Regression `cancelled_mirror_parent_terminates_push_process_group` uses a
+  fake git with a `sleep 30` helper and asserts both die after abort.
+- **Process-group teardown with stderr-holder ordering**: `GroupKillGuard`
+  owns the child process group created by `configure_git_process_group` and
+  SIGKILLs it on drop (disarmed after reaping to avoid reused PIDs, ESRCH
+  tolerated). `run_child_inner` drains stderr before reaping the leader so a
+  helper holding the pipe cannot outlive cancellation; `run_git_captured_output`
+  keeps the leader unreaped while draining pipes. Regressions cover leader-exit
+  with a live stderr holder and exit-wakeup without the old poll tick.
+- **Quarantined repos stay excluded in every form**: discovery suppresses
+  submodule-fallback candidates and canonical nested paths that match
+  `exclude_repos` before legacy-anchor conversion, so an excluded nested
+  submodule cannot resurrect as a phantom `healthy`/`EMPTY` row. Regression
+  `discover_git_repos_exclude_repos_suppresses_submodule_fallback_candidate`
+  covers the hegemon shape.
+- **Serialized forge-existence persistence**: concurrent provisioning results
+  serialize read-modify-write via `PERSISTENT_EXISTS_WRITE`, preserving every
+  confirmed `(repo, remote)` pair under parallel completion. Regression
+  `concurrent_forge_confirmations_preserve_every_pair` uses 16 threads.
+
 ## [0.113.63] - 2026-09-17
 
 ### Fixed
