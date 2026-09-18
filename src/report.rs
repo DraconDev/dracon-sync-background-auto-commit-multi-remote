@@ -7961,14 +7961,12 @@ pub(crate) async fn run_repair_concerns(
         // pushes succeed elsewhere (doomtap: `origin` →
         // `web-games-doomtap` vs `github`/`gitlab` → `doomtap`). Placed
         // before the concern gate so it surfaces on every run.
-        let named_urls: Vec<(String, String)> =
-            crate::git::multi_remote::list_remotes(&repo)
-                .into_iter()
-                .filter_map(|name| {
-                    crate::git::multi_remote::get_remote_url(&repo, &name)
-                        .map(|url| (name, url))
-                })
-                .collect();
+        let named_urls: Vec<(String, String)> = crate::git::multi_remote::list_remotes(&repo)
+            .into_iter()
+            .filter_map(|name| {
+                crate::git::multi_remote::get_remote_url(&repo, &name).map(|url| (name, url))
+            })
+            .collect();
         if remote_slug_diverged(&named_urls) {
             let detail = named_urls
                 .iter()
@@ -8692,7 +8690,10 @@ mod tests {
         // scp-like SSH.
         assert_eq!(
             remote_project_identity("git@gitlab.com:DraconDev/web-games-doomtap.git"),
-            Some(("gitlab.com".to_string(), "dracondev/web-games-doomtap".to_string()))
+            Some((
+                "gitlab.com".to_string(),
+                "dracondev/web-games-doomtap".to_string()
+            ))
         );
         // Plain https.
         assert_eq!(
@@ -8715,26 +8716,53 @@ mod tests {
         // Live 2026-09-18: origin names the stale project while github +
         // gitlab agree on the live one — same-host divergence must fire.
         let urls = vec![
-            ("origin".to_string(), "git@gitlab.com:DraconDev/web-games-doomtap.git".to_string()),
-            ("github".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
-            ("gitlab".to_string(), "git@gitlab.com:DraconDev/doomtap.git".to_string()),
+            (
+                "origin".to_string(),
+                "git@gitlab.com:DraconDev/web-games-doomtap.git".to_string(),
+            ),
+            (
+                "github".to_string(),
+                "git@github.com:DraconDev/doomtap.git".to_string(),
+            ),
+            (
+                "gitlab".to_string(),
+                "git@gitlab.com:DraconDev/doomtap.git".to_string(),
+            ),
         ];
         assert!(remote_slug_diverged(&urls));
         // Healthy mirrors: same slug everywhere (case drift OK).
         let healthy = vec![
-            ("origin".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
-            ("github".to_string(), "git@github.com:dracondev/doomtap.git".to_string()),
-            ("gitlab".to_string(), "git@gitlab.com:DraconDev/doomtap.git".to_string()),
+            (
+                "origin".to_string(),
+                "git@github.com:DraconDev/doomtap.git".to_string(),
+            ),
+            (
+                "github".to_string(),
+                "git@github.com:dracondev/doomtap.git".to_string(),
+            ),
+            (
+                "gitlab".to_string(),
+                "git@gitlab.com:DraconDev/doomtap.git".to_string(),
+            ),
         ];
         assert!(!remote_slug_diverged(&healthy));
         // Cross-host difference alone is the mirror design, not drift.
         let cross_host = vec![
-            ("github".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
-            ("gitlab".to_string(), "git@gitlab.com:DraconDev/other.git".to_string()),
+            (
+                "github".to_string(),
+                "git@github.com:DraconDev/doomtap.git".to_string(),
+            ),
+            (
+                "gitlab".to_string(),
+                "git@gitlab.com:DraconDev/other.git".to_string(),
+            ),
         ];
         assert!(!remote_slug_diverged(&cross_host));
         // Single remote / unparseable: never warn.
-        assert!(!remote_slug_diverged(&[("origin".to_string(), "/srv/x".to_string())]));
+        assert!(!remote_slug_diverged(&[(
+            "origin".to_string(),
+            "/srv/x".to_string()
+        )]));
         assert!(!remote_slug_diverged(&[]));
     }
     use crate::policy::{
