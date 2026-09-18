@@ -2980,6 +2980,9 @@ mod tests {
         }));
         pending.insert(slow_repo.clone());
         spawned_at.insert(slow_repo.clone(), now);
+        // Let the spawned tasks run: the fast task completes, the slow
+        // task parks on pending forever (the point of the test).
+        tokio::task::yield_now().await;
         collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
         // Fast result collected immediately; slow repo still pending
         // (its task untouched, still owned by the job set).
@@ -3013,6 +3016,7 @@ mod tests {
         }));
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), old);
+        tokio::task::yield_now().await;
         collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
         let (_, at) = results.get(&repo).unwrap();
         // The boundary's staleness check sees the 45s age and drops
