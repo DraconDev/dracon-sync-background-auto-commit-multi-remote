@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.69] - 2026-09-18
+
+### Fixed
+
+- **Commit-despite-paused-push (full-program P0-1)**: Backoff/Exhausted
+  repos no longer freeze local commits. The stuck-decision scan arms
+  dispatch the worker with `commit_only=true` instead of `continue`;
+  the worker commits but never attempts network I/O and returns the
+  new `SyncOutcome::PushPaused`, which the apply phase maps to
+  `ApplyOutcome::PushPaused` (no failure count, no stuck-ledger write,
+  no stage cooldown, activity retained). The Exhausted desktop
+  notification is unchanged. Fail-before: no commit-only path existed
+  (compile-level absence); pass-after regressions
+  `test_commit_only_commits_but_never_pushes` +
+  `test_commit_only_control_pushes_and_fails` +
+  `test_apply_outcome_push_paused_retains_without_cooldown`.
+- **Per-remote pause scope (full-program P0-2)**: remotes fail
+  independently. `RemoteFailInfo` gains `last_attempt_unix` (stamped
+  on every real attempt, never on a skip); remotes with 3+ consecutive
+  failures are pause-skipped for 15 min then re-probed
+  (`mirror_push_paused`, unit-tested), while healthy remotes push
+  every cycle. `push_background`/`handle_ahead_push` report
+  `PushReport::AllPaused` when nothing was attempted (mapped to
+  PushPaused, never PushFailed), so sick mirrors stop vetoing repo
+  health and stop burning the repo-level stuck budget. Pure helper
+  `paused_remote_names` pinned by
+  `test_paused_remote_names_lists_only_gated`.
+
 ## [0.113.68] - 2026-09-18
 
 ### Fixed
