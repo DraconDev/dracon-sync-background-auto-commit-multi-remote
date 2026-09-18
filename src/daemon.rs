@@ -120,6 +120,33 @@ fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> boo
         >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
 }
 
+/// ADDED 2026-09-18 (v0.113.67): dispatch-starvation signal. A repo that is
+dirty but undispatched must page with its hold reason instead of sitting
+/// silent (2026-09-18: 157 dirty scans / 16.5 min, zero log output). Pure
+/// decision helper for test: `dirty_since_age` is how long the repo has
+/// been continuously dirty, `last_dispatch_age` is time since its last
+/// successful reservation (`None` = never dispatched this lifetime).
+/// Starved = dirty longer than the threshold with no dispatch inside it.
+/// A repo dispatching steadily (even every minute) never trips, no matter
+/// how old its dirt is.
+const DISPATCH_STARVED_THRESHOLD_SECS: u64 = 600;
+
+fn dispatch_starved(dirty_since_age: Duration, last_dispatch_age: Option<Duration>) -> bool {
+    dirty_since_age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS)
+        && last_dispatch_age.is_none_or(|age| {
+            age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS)
+        })
+}
+
+/// Prune per-repo hold/liveness maps to the live activity set. `activity`
+/// entries are removed on clean/success, so any hold or dispatch stamp
+/// for a repo outside it describes a previous window and must not linger
+/// (stale holds would page forever; stale dispatch stamps would mask a
+/// fresh stall). Pure helper for test.
+fn prune_repo_liveness<Map>(map: &mut HashMap<PathBuf, Map>, activity: &HashMap<PathBuf, RepoActivity>) {
+    map.retain(|repo, _| activity.contains_key(repo));
+}
+
 /// Hard wall-clock cap for one classification job (filter-aware diff +
 /// untracked listing). Matches the prior inline git_diff_head_files cap.
 const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
