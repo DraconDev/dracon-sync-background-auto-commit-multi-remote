@@ -1072,6 +1072,7 @@ mod tests {
         jobs.push(slow);
         // At pulse start neither result exists.
         let mut pending_since = HashMap::new();
+        pending_since.insert(repo.clone(), Instant::now());
         collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
         assert!(results.is_empty());
         release.send(()).unwrap();
@@ -1082,6 +1083,8 @@ mod tests {
         collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
         assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
+        // v0.113.65: collection also releases the watchdog timestamp.
+        assert!(!pending_since.contains(&repo));
         assert_eq!(pending.len(), 1);
         assert_eq!(jobs.len(), 1);
         slow_abort.abort();
@@ -2590,6 +2593,61 @@ mod tests {
 
         // Cleanup
         let _ = crate::daemon::unstuck_repo(&repo);
+    }
+
+    #[test]
+    fn test_transient_forge_outage_does_not_burn_stuck_budget() {
+        // Live 2026-09-18: GitLab Gitaly outage failed doomtap's origin
+        // push while identical commits reached github + gitlab `doomtap`.
+        // An infra outage must throttle (Backoff via last_error_at) but
+        // never consume the needs-human stuck budget, and the ledger
+        // must name the true cause instead of "policy rejection".
+        // See `test_record_push_failure_increments_counter` for the
+        // temp-state-dir rationale.
+        let temp_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            temp_dir.path().to_string_lossy().as_ref(),
+        );
+        let repo = make_test_repo_path("transient-outage-budget");
+        let _ = crate::daemon::unstuck_repo(&repo);
+
+        let gitaly = anyhow::anyhow!(
+            "git push failed with status exit status: 128: remote: ERROR: The git server, Gitaly, is not available at this time."
+        );
+        record_push_attempt_error(&repo, &gitaly);
+        let info = get_stuck_push_info(&repo).expect("outage entry should exist");
+        assert_eq!(info.consecutive_failures, 0);
+        assert!(crate::git::classify_push_failure(&info.last_error)
+            .contains("forge-side outage"));
+        // Fresh outage throttles retries (Backoff), never hot-loops.
+        let now = timestamp_secs();
+        assert!(matches!(
+            stuck_decision(&info, now, 5, 300),
+            StuckDecision::Backoff
+        ));
+        // A repeat outage still burns nothing ...
+        record_push_attempt_error(&repo, &gitaly);
+        assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 0);
+        // ... while a genuine policy failure still counts.
+        record_push_attempt_error(
+            &repo,
+            &anyhow::anyhow!("protected branch hook declined"),
+        );
+        assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 1);
+
+        let _ = crate::daemon::unstuck_repo(&repo);
+    }
+
+    #[test]
+    fn test_classification_pending_watchdog_due() {
+        let now = Instant::now();
+        let ago = |secs: u64| now - Duration::from_secs(secs);
+        // Jobs self-timeout at 30s; the 90s bound is 3x headroom.
+        assert!(!classification_pending_watchdog_due(ago(30), now));
+        assert!(!classification_pending_watchdog_due(ago(89), now));
+        assert!(classification_pending_watchdog_due(ago(90), now));
+        assert!(classification_pending_watchdog_due(ago(3600), now));
     }
 
     #[test]
