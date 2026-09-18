@@ -8642,10 +8642,16 @@ push_url = "{}"
     }
 
     /// Fixture for the forge-incident e2e: a repo whose only mirror is
-    /// an ssh URL on a fake forge host. With `GIT_SSH_COMMAND` pointed
-    /// at a script that prints a Gitaly-unavailable error and exits
-    /// 128, every push fails TRANSIENT-class without any network.
-    fn incident_fixture(tmp: &tempfile::TempDir, name: &str) -> (std::path::PathBuf, SyncPolicy) {
+    /// an HTTP URL on a fake forge (see `fake_forge_503` below).
+    /// Every push fails TRANSIENT-class (HTTP 503) over loopback — no
+    /// external network, no ssh (the daemon hard-overrides
+    /// `GIT_SSH_COMMAND` with its hardening string, so ssh-based fault
+    /// injection is impossible; HTTP fault injection works).
+    fn incident_fixture(
+        tmp: &tempfile::TempDir,
+        name: &str,
+        forge_port: u16,
+    ) -> (std::path::PathBuf, SyncPolicy) {
         let repo = tmp.path().join(name);
         crate::git::git_cmd()
             .args(["init", "-q", "-b", "master"])
@@ -8684,12 +8690,43 @@ trusted_authors = ["test"]
 
 [[remotes]]
 name = "mirror"
-push_url = "ssh://git@forge-test.invalid/{}.git"
+push_url = "http://127.0.0.1:{}/{}.git"
 "#,
-            name
+            forge_port, name
         );
         let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
         (repo, policy)
+    }
+
+    /// Fake forge: answers every HTTP request with 503 + a Gitaly body
+    /// (mirrors the live GitLab degradation signature, including the
+    /// `remote:` body lines git surfaces). Binds loopback port 0;
+    /// returns the port and an abort guard for the serve task.
+    async fn fake_forge_503() -> (u16, tokio::task::AbortHandle) {
+        use tokio::io::AsyncWriteExt;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = tokio::spawn(async move {
+            loop {
+                let Ok((mut sock, _)) = listener.accept().await else {
+                    break;
+                };
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 4096];
+                    use tokio::io::AsyncReadExt;
+                    let _ = sock.read(&mut buf).await;
+                    let body = "Service Unavailable - Gitaly is not available at this time";
+                    let resp = format!(
+                        "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
+                    );
+                    let _ = sock.write_all(resp.as_bytes()).await;
+                });
+            }
+        })
+        .abort_handle();
+        (port, handle)
     }
 
     /// ADDED 2026-09-18 (v0.113.73, forge-degraded e2e): two repos
@@ -8700,32 +8737,18 @@ push_url = "ssh://git@forge-test.invalid/{}.git"
     /// failure burns (repo B consecutive == 1, outcome PushFailed).
     #[tokio::test]
     async fn test_forge_incident_declares_and_shields() {
-        use std::os::unix::fs::PermissionsExt;
         let state_dir = tempfile::tempdir().unwrap();
         let _state_guard = crate::test_helpers::EnvRestorer::new(
             "DRACON_SYNC_STATE_DIR",
             state_dir.path().to_string_lossy().as_ref(),
         );
-        // Fake ssh: every connection "reaches" a forge whose Gitaly
-        // backend is down. stderr propagates through git's ssh
-        // transport into the push error string.
-        let tmp = tempfile::tempdir().unwrap();
-        let fake_ssh = tmp.path().join("fake-ssh");
-        std::fs::write(
-            &fake_ssh,
-            "#!/bin/sh\necho 'remote: ERROR: The git server, Gitaly, is not available at this time. Please contact your administrator.' >&2\nexit 128\n",
-        )
-        .unwrap();
-        std::fs::set_permissions(&fake_ssh, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let _ssh_guard = crate::test_helpers::EnvRestorer::new(
-            "GIT_SSH_COMMAND",
-            fake_ssh.to_string_lossy().as_ref(),
-        );
         let _prompt_guard =
             crate::test_helpers::EnvRestorer::new("GIT_TERMINAL_PROMPT", "0");
-
-        let (repo_a, policy_a) = incident_fixture(&tmp, "repo-a");
-        let (repo_b, policy_b) = incident_fixture(&tmp, "repo-b");
+        let tmp = tempfile::tempdir().unwrap();
+        // One fake forge serves both repos: same host => corroboration.
+        let (forge_port, forge_abort) = fake_forge_503().await;
+        let (repo_a, policy_a) = incident_fixture(&tmp, "repo-a", forge_port);
+        let (repo_b, policy_b) = incident_fixture(&tmp, "repo-b", forge_port);
         let mut rf_a = HashMap::new();
         let mut rf_b = HashMap::new();
         // Repo A fails first: anecdote, not incident — burns budget.

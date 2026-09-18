@@ -618,6 +618,18 @@ mod tests {
     }
 
     #[test]
+    fn test_transient_forge_outage_http_numeric_5xx() {
+        // git's HTTP-transport message for forge 5xx (body may be
+        // empty — the spelled-out phrases don't cover this form).
+        let msg = "git push-to-mirror failed with status exit status: 128: fatal: unable to access 'http://127.0.0.1:18923/x.git/': The requested URL returned error: 503";
+        assert!(is_transient_forge_outage(msg));
+        assert!(classify_push_failure(msg).contains("forge-side outage"));
+        // 4xx stays transport/auth (client error, not forge infra).
+        assert!(!is_transient_forge_outage("The requested URL returned error: 403"));
+        assert!(!is_transient_forge_outage("The requested URL returned error: 404"));
+    }
+
+    #[test]
     fn test_transient_forge_outage_does_not_swallow_policy() {
         // A real rule decision must stay permanent: retrying it forever
         // instead of pausing for the operator would be the wrong call.
