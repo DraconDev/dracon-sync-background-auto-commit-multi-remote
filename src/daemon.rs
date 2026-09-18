@@ -6030,6 +6030,9 @@ pub(crate) async fn run_daemon(
                     // read dirty for days while every entry is excluded
                     // from auto-commit; without this line that correct
                     // idle is indistinguishable from a scheduler stall.
+                    dispatch_holds
+                        .entry(repo.clone())
+                        .or_insert_with(|| ("filter-clean".to_string(), now));
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: skip repo={} reason=filter-clean entries={}",
@@ -6047,6 +6050,9 @@ pub(crate) async fn run_daemon(
                 // This prevents duplicate `git push` invocations on
                 // the same (repo, remote) pair within a cycle window.
                 if in_flight.contains(&repo) {
+                    dispatch_holds
+                        .entry(repo.clone())
+                        .or_insert_with(|| ("in-flight".to_string(), now));
                     // ADDED 2026-09-18 (v0.113.65): skip-reason logging
                     // with hold age when the detached registry tracks it.
                     if debug_enabled() {
@@ -6334,6 +6340,9 @@ pub(crate) async fn run_daemon(
             // being committed and pushed. The post-sync state mutations
             // happen in the apply phase after all jobs complete.
             if !reserve_sync(&mut in_flight, &repo) {
+                dispatch_holds
+                    .entry(repo.clone())
+                    .or_insert_with(|| ("reserve-race".to_string(), now));
                 // ADDED 2026-09-18 (v0.113.65): skip-reason logging. A
                 // lost reservation race here means a concurrent dispatch
                 // won the slot; the repo stays scheduled, not dropped.
@@ -6345,6 +6354,11 @@ pub(crate) async fn run_daemon(
                 }
                 continue;
             }
+            // ADDED 2026-09-18 (v0.113.67): dispatch clears the hold and
+            // stamps liveness. A steadily-dispatched repo never trips the
+            // starvation alert no matter how old its dirt grows.
+            dispatch_holds.remove(&repo);
+            last_dispatch.insert(repo.clone(), now);
             // Retain the ready result through quiet-window and retry gates.
             // sync_repo reclassifies current content before staging; this
             // cached result only authorizes scheduling, not the staged paths.
