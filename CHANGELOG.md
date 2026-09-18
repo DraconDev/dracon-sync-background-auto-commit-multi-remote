@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Dispatch-hold observability (full-program P0)**: every silent
+  scheduler skip now records `(reason, since)` into a per-cycle
+  `dracon-sync-dispatch-holds.json` snapshot (pruned to the live
+  activity set), and a dirty repo with no dispatch for >10 min fires a
+  `Dispatch Starved` desktop notification naming its hold. The 2026-09-18
+  16-min silent window would have paged at minute 10 with the reason
+  attached. Steady-but-slow repos (dispatch inside the window) never
+  trip — pure `dispatch_starved` + `prune_repo_liveness` helpers with
+  boundary tests.
+- **Remote-drift detection (full-program P0)**: `repair concerns` now
+  warns (`REMOTE-DRIFT`, detection only, no repair/count) when one
+  repo's same-host remotes name different forge projects — the doomtap
+  `origin → web-games-doomtap` vs `github`/`gitlab → doomtap` stale
+  remote would have surfaced on first run. Case-insensitive, never
+  warns on unparseable URLs or cross-host mirrors.
+
 ## [0.113.66] - 2026-09-18
 
 ### Fixed
