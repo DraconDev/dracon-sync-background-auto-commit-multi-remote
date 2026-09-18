@@ -6,6 +6,7 @@ mod bump;
 mod cooldown;
 mod daemon;
 mod exclude;
+mod forge;
 mod git;
 mod helpers;
 mod log;
