@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.70] - 2026-09-18
+
+### Fixed
+
+- **Commit-only steady-state throttle**: a commit-only repo with a
+  clean worktree now skips dispatch (keeps its activity entry, no
+  worker spawned). Without this, a stuck-ahead repo dispatched a
+  full worker ~every 3s (312 workers in 16 min observed live) — pure
+  churn versus the old `continue`'s zero cost. Fresh dirt flips
+  `is_clean` (tracked, staged, AND untracked all count) so commits
+  still flow on the normal ~3s quiet path; Retry cycles clear
+  commit-only before the gate so the 300s push re-probe is
+  unaffected. Pinned by `test_commit_only_idle_skip_matrix`.
+  Known trade-off: a repo that is BOTH stuck AND continuously
+  filter-noise-dirty still dispatches ~every 3s (PushPaused carries
+  no cooldown so real commits are never delayed); bounded ~50ms
+  local classification per dispatch, ends when unstuck.
+
 ## [0.113.69] - 2026-09-18
 
 ### Fixed
