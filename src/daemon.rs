@@ -2618,8 +2618,7 @@ mod tests {
         record_push_attempt_error(&repo, &gitaly);
         let info = get_stuck_push_info(&repo).expect("outage entry should exist");
         assert_eq!(info.consecutive_failures, 0);
-        assert!(crate::git::classify_push_failure(&info.last_error)
-            .contains("forge-side outage"));
+        assert!(crate::git::classify_push_failure(&info.last_error).contains("forge-side outage"));
         // Fresh outage throttles retries (Backoff), never hot-loops.
         let now = timestamp_secs();
         assert!(matches!(
@@ -2630,10 +2629,7 @@ mod tests {
         record_push_attempt_error(&repo, &gitaly);
         assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 0);
         // ... while a genuine policy failure still counts.
-        record_push_attempt_error(
-            &repo,
-            &anyhow::anyhow!("protected branch hook declined"),
-        );
+        record_push_attempt_error(&repo, &anyhow::anyhow!("protected branch hook declined"));
         assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 1);
 
         let _ = crate::daemon::unstuck_repo(&repo);
@@ -5833,9 +5829,8 @@ pub(crate) async fn run_daemon(
                 if classification_pending.contains(&repo)
                     && classification_pending_since
                         .get(&repo)
-                        .is_some_and(|spawned| {
-                            classification_pending_watchdog_due(*spawned, now)
-                        }) {
+                        .is_some_and(|spawned| classification_pending_watchdog_due(*spawned, now))
+                {
                     classification_pending.remove(&repo);
                     classification_pending_since.remove(&repo);
                     eprintln!(
@@ -5964,11 +5959,7 @@ pub(crate) async fn run_daemon(
                         } else {
                             "classification-missing"
                         };
-                        eprintln!(
-                            "scheduler: skip repo={} reason={}",
-                            repo.display(),
-                            reason
-                        );
+                        eprintln!("scheduler: skip repo={} reason={}", repo.display(), reason);
                     }
                     book_provisional_activity(
                         &mut activity,

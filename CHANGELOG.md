@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Skip-reason logging for silent scheduler holds**: the three
+  pre-eligibility `continue` sites for dirty repos (classification
+  pending/cooldown/missing, filter-clean with a dirty worktree,
+  in-flight hold with detached age, reserve race) now emit a one-line
+  debug-gated `scheduler: skip repo=... reason=...`. Live 2026-09-18 the
+  parent repo showed 157 dirty scans over 16.5 min with zero eligibility
+  or spawn output; the holds are legitimate (filter-excluded leftovers,
+  owned worker slot) but were indistinguishable from a stall in the
+  journal. No behavior change.
+- **Classification pending watchdog (90s)**: a classification reservation
+  older than 3x the job's 30s internal timeout is dropped with a warning
+  and re-probed at the spawn gate. A lost job (panic/cancellation
+  surfaces its JoinError without repo identity, so collection cannot
+  release that repo's reservation directly) previously suppressed all
+  future spawns for its repo until daemon restart. Pure decision helper
+  `classification_pending_watchdog_due` with boundary tests; collection
+  also releases the watchdog timestamp on success.
+- **Transient forge-outage classification**: new `is_transient_forge_outage`
+  predicate (Gitaly-unavailable, HTTP 5xx markers, try-again-later +
+  Cloudflare 52x codes) with its own `classify_push_failure` cause string,
+  replacing the misleading "server-side policy rejection" label for
+  infra errors. `record_push_attempt_error` routes outages to a
+  visibility-only ledger upsert (refreshes message + 300s backoff anchor)
+  WITHOUT incrementing the stuck-push budget, so a GitLab-side incident
+  can neither pause auto-push nor demand `stuck-unstuck`. Verified live:
+  `web-games-doomtap` pack receipt failed with Gitaly-unavailable while
+  identical commits reached github and the `doomtap` GitLab project;
+  matching is deliberately narrow — `pre-receive hook declined` stays
+  permanent so real rules still escalate to the operator.
+
 ## [0.113.64] - 2026-09-18
 
 ### Fixed

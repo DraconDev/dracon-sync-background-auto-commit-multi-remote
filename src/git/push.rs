@@ -582,11 +582,7 @@ mod tests {
         let msg = "git push failed with status exit status: 128: remote:\nremote: ERROR: The git server, Gitaly, is not available at this time. Please contact your administrator.";
         assert!(is_transient_forge_outage(msg));
         let class = classify_push_failure(msg);
-        assert!(
-            class.contains("forge-side outage"),
-            "got: {}",
-            class
-        );
+        assert!(class.contains("forge-side outage"), "got: {}", class);
     }
 
     #[test]
