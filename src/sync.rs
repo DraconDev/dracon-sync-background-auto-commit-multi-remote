@@ -2437,7 +2437,12 @@ async fn push_background(
         }
         // v0.113.73: reborrow (not move) — the forge-hit observation
         // below needs shared access to the updated map.
-        let ok = aggregate_push_results(repo, push_results, origin_failed, remote_failures.as_deref_mut())?;
+        let ok = aggregate_push_results(
+            repo,
+            push_results,
+            origin_failed,
+            remote_failures.as_deref_mut(),
+        )?;
         // AllPaused only when a CONFIGURED remote was pause-skipped:
         // stale entries for decommissioned remotes must not veto the
         // legacy path (they linger until overwritten, never cleared).
@@ -4463,7 +4468,10 @@ async fn stage_commit_and_push(
                 // policy) so the HINT says WHY, not just WHO.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
-                let msg = format!("git push returned non-zero (remotes: {}) — {}", names, cause);
+                let msg = format!(
+                    "git push returned non-zero (remotes: {}) — {}",
+                    names, cause
+                );
                 // v0.113.73 forge-degraded: fully incident-covered
                 // transient failures don't burn the stuck budget (and
                 // don't fire per-repo webhooks — the incident alert
@@ -8741,8 +8749,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
             "DRACON_SYNC_STATE_DIR",
             state_dir.path().to_string_lossy().as_ref(),
         );
-        let _prompt_guard =
-            crate::test_helpers::EnvRestorer::new("GIT_TERMINAL_PROMPT", "0");
+        let _prompt_guard = crate::test_helpers::EnvRestorer::new("GIT_TERMINAL_PROMPT", "0");
         let tmp = tempfile::tempdir().unwrap();
         // One fake forge serves both repos: same host => corroboration.
         let (forge_port, forge_abort) = fake_forge_503().await;
@@ -8752,7 +8759,15 @@ push_url = "http://127.0.0.1:{}/{}.git"
         let mut rf_b = HashMap::new();
         // Repo A fails first: anecdote, not incident — burns budget.
         let out_a = sync_repo_with_ahead_since(
-            &repo_a, &policy_a, &BTreeSet::new(), 0, Some(&mut rf_a), false, None, None, false,
+            &repo_a,
+            &policy_a,
+            &BTreeSet::new(),
+            0,
+            Some(&mut rf_a),
+            false,
+            None,
+            None,
+            false,
         )
         .await;
         assert!(
@@ -8762,7 +8777,15 @@ push_url = "http://127.0.0.1:{}/{}.git"
         assert!(crate::forge::forge_incident_hosts().is_empty());
         // Repo B fails on the same host: incident declares.
         let out_b = sync_repo_with_ahead_since(
-            &repo_b, &policy_b, &BTreeSet::new(), 0, Some(&mut rf_b), false, None, None, false,
+            &repo_b,
+            &policy_b,
+            &BTreeSet::new(),
+            0,
+            Some(&mut rf_b),
+            false,
+            None,
+            None,
+            false,
         )
         .await;
         assert!(
@@ -8785,7 +8808,15 @@ push_url = "http://127.0.0.1:{}/{}.git"
         ));
         // Repo A fails again under the incident: shielded, still 1.
         let out_a2 = sync_repo_with_ahead_since(
-            &repo_a, &policy_a, &BTreeSet::new(), 0, Some(&mut rf_a), false, None, None, false,
+            &repo_a,
+            &policy_a,
+            &BTreeSet::new(),
+            0,
+            Some(&mut rf_a),
+            false,
+            None,
+            None,
+            false,
         )
         .await;
         assert!(matches!(out_a2.unwrap(), SyncOutcome::PushPaused));
@@ -8797,9 +8828,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
         );
         // Recovery on window expiry (alert-once edge).
         let recovered = crate::forge::poll_forge_recovery(
-            crate::policy::timestamp_secs()
-                + crate::forge::FORGE_INCIDENT_WINDOW_SECS
-                + 60,
+            crate::policy::timestamp_secs() + crate::forge::FORGE_INCIDENT_WINDOW_SECS + 60,
         );
         assert_eq!(recovered, vec!["127.0.0.1".to_string()]);
         assert!(crate::forge::forge_incident_hosts().is_empty());
@@ -8862,13 +8891,9 @@ push_url = "http://127.0.0.1:{}/{}.git"
             vec!["sick".to_string()]
         );
         // Past the stretched window: due again (fail-open).
-        assert!(
-            paused_remote_names_incident(Some(&map), now + 2000, &|_| true).is_empty()
-        );
+        assert!(paused_remote_names_incident(Some(&map), now + 2000, &|_| true).is_empty());
         // Predicate is per-remote: a healthy-host remote is unaffected.
-        assert!(
-            paused_remote_names_incident(Some(&map), now, &|_| false).is_empty()
-        );
+        assert!(paused_remote_names_incident(Some(&map), now, &|_| false).is_empty());
     }
 
     #[tokio::test]

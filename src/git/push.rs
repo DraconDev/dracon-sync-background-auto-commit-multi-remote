@@ -625,8 +625,12 @@ mod tests {
         assert!(is_transient_forge_outage(msg));
         assert!(classify_push_failure(msg).contains("forge-side outage"));
         // 4xx stays transport/auth (client error, not forge infra).
-        assert!(!is_transient_forge_outage("The requested URL returned error: 403"));
-        assert!(!is_transient_forge_outage("The requested URL returned error: 404"));
+        assert!(!is_transient_forge_outage(
+            "The requested URL returned error: 403"
+        ));
+        assert!(!is_transient_forge_outage(
+            "The requested URL returned error: 404"
+        ));
     }
 
     #[test]

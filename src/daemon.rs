@@ -5244,7 +5244,10 @@ pub(crate) async fn run_daemon(
         // cycle (one small JSON read; writes only on change) and
         // alert once per recovered host.
         for host in crate::forge::poll_forge_recovery(crate::policy::timestamp_secs()) {
-            eprintln!("✅ forge recovered: {} — per-repo push alerts re-armed", host);
+            eprintln!(
+                "✅ forge recovered: {} — per-repo push alerts re-armed",
+                host
+            );
             let alert_anchor = policy
                 .watch_root_paths()
                 .into_iter()
@@ -5921,9 +5924,7 @@ pub(crate) async fn run_daemon(
                             // v0.113.73 forge-degraded: same coalescing
                             // as the retry alert above (incident alert
                             // covers incident-attributed exhaustion).
-                            if crate::forge::forge_incident_covers_repo(
-                                &repo.to_string_lossy(),
-                            ) {
+                            if crate::forge::forge_incident_covers_repo(&repo.to_string_lossy()) {
                                 if debug_enabled() {
                                     eprintln!(
                                         "🐛 {} exhausted alert coalesced (forge incident covers this repo)",
@@ -5981,9 +5982,7 @@ pub(crate) async fn run_daemon(
                             // declared incident host, the incident alert
                             // covers it; per-repo retry alerts resume on
                             // recovery. The journal line above still logs.
-                            if crate::forge::forge_incident_covers_repo(
-                                &repo.to_string_lossy(),
-                            ) {
+                            if crate::forge::forge_incident_covers_repo(&repo.to_string_lossy()) {
                                 if debug_enabled() {
                                     eprintln!(
                                         "🐛 {} stuck-retry alert coalesced (forge incident covers this repo)",
