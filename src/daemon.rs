@@ -5837,6 +5837,12 @@ pub(crate) async fn run_daemon(
             // `push_max_retries` was never enforced (report-display
             // only) — the `Exhausted` arm below stops auto-push
             // until the operator intervenes.
+            // v0.113.70: set by the Retry arm; the `last_retry_at`
+            // stamp is written at the spawn site below, ONLY when a
+            // worker actually dispatches (a stamped-but-skipped retry
+            // is silently swallowed — ledger claims an attempt that
+            // never happened).
+            let mut stamp_retry = false;
             if let Some(info) = stuck_push_repos.get(&repo).cloned() {
                 match stuck_decision(&info, timestamp_secs(), policy.push_max_retries, 300) {
                     StuckDecision::Backoff => {
@@ -5931,19 +5937,28 @@ pub(crate) async fn run_daemon(
                                 ),
                             );
                         }
-                        // Stamp the retry attempt (persisted) so a
-                        // retry that fails for a NON-push reason
-                        // (staging error, lock contention) doesn't
-                        // spin every cycle — the backoff window
-                        // restarts from NOW. On push failure,
+                        // CHANGED 2026-09-18 (v0.113.70): do NOT stamp
+                        // `last_retry_at` here. The stamp is written at
+                        // DISPATCH time (see `stamp_retry` at the spawn
+                        // site). Stamping here recorded a retry the
+                        // moment it was LOGGED — but the cycle can still
+                        // skip dispatch afterwards (classification-
+                        // pending, quiet, cooldowns), silently swallowing
+                        // the retry while the ledger claimed an attempt
+                        // happened (observed live: stamp advanced, no
+                        // worker ran, consecutive frozen). An unstamped
+                        // retry stays `Retry` next cycle and dispatches
+                        // as soon as the gate clears.
+                        // The stamp's original purpose (a retry that
+                        // fails for a NON-push reason must not spin
+                        // every cycle) is preserved: a dispatched retry
+                        // stamps at spawn, so its worker runs exactly
+                        // once per backoff window. On push failure,
                         // `record_push_failure` additionally bumps
                         // `consecutive_failures` + `last_error_at`;
                         // on success, `record_push_success` removes
                         // the entry entirely.
-                        let mut updated = info.clone();
-                        updated.last_retry_at = timestamp_secs();
-                        stuck_push_repos.insert(repo.clone(), updated);
-                        save_stuck_push_repos(&stuck_push_repos);
+                        stamp_retry = true;
                     }
                 }
             } else {
@@ -6745,6 +6760,18 @@ pub(crate) async fn run_daemon(
             // v0.113.69 commit-despite-paused-push: Backoff/Exhausted
             // repos commit without pushing (PushPaused outcome).
             let commit_only_for_task = commit_only_repos.contains(&repo);
+            // v0.113.70: stamp the retry attempt NOW — a worker is
+            // actually dispatching. (The Retry arm above only sets
+            // the flag; stamping at log time swallowed retries when
+            // the cycle skipped dispatch afterwards.)
+            if stamp_retry {
+                if let Some(entry_info) = stuck_push_repos.get(&repo).cloned() {
+                    let mut updated = entry_info;
+                    updated.last_retry_at = timestamp_secs();
+                    stuck_push_repos.insert(repo.clone(), updated);
+                    save_stuck_push_repos(&stuck_push_repos);
+                }
+            }
             // Mark the repo as having an in-flight task BEFORE
             // dispatching. The eligibility check at the top of the
             // next cycle consults `in_flight` and skips this repo
