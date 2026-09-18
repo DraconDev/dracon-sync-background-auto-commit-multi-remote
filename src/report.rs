@@ -7954,6 +7954,33 @@ pub(crate) async fn run_repair_concerns(
         // the `repos` command. A repo with at least one configured
         // remote (any name) is not a "no origin" concern.
         let has_any_remote = !crate::git::multi_remote::list_remotes(&repo).is_empty();
+        // ADDED 2026-09-18 (v0.113.67): remote-divergence detection
+        // (detection ONLY — no repair, no concern count). Warns when one
+        // repo's same-host remotes name different forge projects, i.e. a
+        // stale remote still points at a renamed/superseded project while
+        // pushes succeed elsewhere (doomtap: `origin` →
+        // `web-games-doomtap` vs `github`/`gitlab` → `doomtap`). Placed
+        // before the concern gate so it surfaces on every run.
+        let named_urls: Vec<(String, String)> =
+            crate::git::multi_remote::list_remotes(&repo)
+                .into_iter()
+                .filter_map(|name| {
+                    crate::git::multi_remote::get_remote_url(&repo, &name)
+                        .map(|url| (name, url))
+                })
+                .collect();
+        if remote_slug_diverged(&named_urls) {
+            let detail = named_urls
+                .iter()
+                .map(|(name, url)| format!("{}={}", name, url))
+                .collect::<Vec<_>>()
+                .join(" ");
+            out!(
+                "⚠️ REMOTE-DRIFT {}: same-host remotes point at different forge projects ({}) — likely a stale remote; retiring it is an operator call, pushes to healthy remotes continue.",
+                repo.display(),
+                detail
+            );
+        }
         // Use the same refined concern logic as the `repos` command:
         // an AHEAD repo is only a concern if a recent push failure was
         // recorded. This keeps `repair concerns` consistent with the
