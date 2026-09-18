@@ -1192,8 +1192,7 @@ fn remote_project_identity(url: &str) -> Option<(String, String)> {
 fn remote_slug_diverged(named_urls: &[(String, String)]) -> bool {
     use std::collections::{HashMap, HashSet};
     let mut by_host: HashMap<String, HashSet<String>> = HashMap::new();
-    for (name, url) in named_urls {
-        let _ = name;
+    for (_, url) in named_urls {
         if let Some((host, slug)) = remote_project_identity(url) {
             by_host.entry(host).or_default().insert(slug);
         }
