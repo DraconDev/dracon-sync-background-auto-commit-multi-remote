@@ -6845,6 +6845,46 @@ pub(crate) async fn run_daemon(
                 }
             }
 
+            // ADDED 2026-09-18 (v0.113.67): dispatch-starved dirty repo.
+            // Dirty longer than 10 min with no dispatch inside that window
+            // pages WITH the current hold reason (classification-pending /
+            // filter-clean / in-flight / reserve-race) instead of sitting
+            // silent. Steady-but-slow repos (dispatch inside the window)
+            // never trip. Rate-limited to 30 min like the other alerts.
+            if let Some(dirty_at) = entry.dirty_since {
+                let dirty_age = notification_now.saturating_duration_since(dirty_at);
+                let dispatch_age =
+                    last_dispatch.get(repo).map(|t| notification_now.saturating_duration_since(*t));
+                if dispatch_starved(dirty_age, dispatch_age) {
+                    let notify_key = format!("dispatch-starved-{}", repo.display());
+                    if notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    ) {
+                        let hold = dispatch_holds
+                            .get(repo)
+                            .map(|(reason, since)| {
+                                format!(
+                                    "{} for {}s",
+                                    reason,
+                                    notification_now.saturating_duration_since(*since).as_secs()
+                                )
+                            })
+                            .unwrap_or_else(|| "no hold recorded (check journal)".to_string());
+                        crate::report::send_sync_conflict_notification(
+                            repo,
+                            "Dispatch Starved (>10 min)",
+                            &format!(
+                                "dirty but undispatched for {}s — hold: {}",
+                                dirty_age.as_secs(),
+                                hold
+                            ),
+                        );
+                    }
+                }
+            }
+
             // Mirror degraded (one mirror consistently failing)
             for (mirror_name, fail_info) in &entry.mirror_consecutive_fails {
                 if fail_info.consecutive >= MIRROR_DEGRADED_THRESHOLD {
