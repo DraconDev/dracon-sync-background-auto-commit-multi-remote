@@ -8640,6 +8640,148 @@ push_url = "{}"
         );
     }
 
+    /// Fixture for the forge-incident e2e: a repo whose only mirror is
+    /// an ssh URL on a fake forge host. With `GIT_SSH_COMMAND` pointed
+    /// at a script that prints a Gitaly-unavailable error and exits
+    /// 128, every push fails TRANSIENT-class without any network.
+    fn incident_fixture(tmp: &tempfile::TempDir, name: &str) -> (std::path::PathBuf, SyncPolicy) {
+        let repo = tmp.path().join(name);
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // No origin: mirror-only path (the origin-only tail is covered
+        // by the commit_only fixtures).
+        std::fs::write(repo.join("change.txt"), "changed\n").unwrap();
+        let toml_str = format!(
+            r#"
+auto_commit = true
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+
+[[remotes]]
+name = "mirror"
+push_url = "ssh://git@forge-test.invalid:22/{}.git"
+"#,
+            name
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+        (repo, policy)
+    }
+
+    /// ADDED 2026-09-18 (v0.113.73, forge-degraded e2e): two repos
+    /// failing transient-class on the SAME fake forge host declare an
+    /// incident; the second repo's failure is shielded (no budget
+    /// burn, PushPaused so commits keep flowing); recovery clears on
+    /// window expiry. FAIL-BEFORE: no incident file exists, every
+    /// failure burns (repo B consecutive == 1, outcome PushFailed).
+    #[tokio::test]
+    async fn test_forge_incident_declares_and_shields() {
+        use std::os::unix::fs::PermissionsExt;
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        // Fake ssh: every connection "reaches" a forge whose Gitaly
+        // backend is down. stderr propagates through git's ssh
+        // transport into the push error string.
+        let tmp = tempfile::tempdir().unwrap();
+        let fake_ssh = tmp.path().join("fake-ssh");
+        std::fs::write(
+            &fake_ssh,
+            "#!/bin/sh\necho 'remote: ERROR: The git server, Gitaly, is not available at this time. Please contact your administrator.' >&2\nexit 128\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_ssh, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let _ssh_guard = crate::test_helpers::EnvRestorer::new(
+            "GIT_SSH_COMMAND",
+            fake_ssh.to_string_lossy().as_ref(),
+        );
+        let _prompt_guard =
+            crate::test_helpers::EnvRestorer::new("GIT_TERMINAL_PROMPT", "0");
+
+        let (repo_a, policy_a) = incident_fixture(&tmp, "repo-a");
+        let (repo_b, policy_b) = incident_fixture(&tmp, "repo-b");
+        let mut rf_a = HashMap::new();
+        let mut rf_b = HashMap::new();
+        // Repo A fails first: anecdote, not incident — burns budget.
+        let out_a = sync_repo_with_ahead_since(
+            &repo_a, &policy_a, &BTreeSet::new(), 0, Some(&mut rf_a), false, None, None, false,
+        )
+        .await;
+        assert!(
+            matches!(out_a.unwrap(), SyncOutcome::PushFailed),
+            "first transient failure (no incident yet) must burn: PushFailed"
+        );
+        assert!(crate::forge::forge_incident_hosts().is_empty());
+        // Repo B fails on the same host: incident declares.
+        let out_b = sync_repo_with_ahead_since(
+            &repo_b, &policy_b, &BTreeSet::new(), 0, Some(&mut rf_b), false, None, None, false,
+        )
+        .await;
+        assert!(
+            matches!(out_b.unwrap(), SyncOutcome::PushPaused),
+            "second corroborating failure must be shielded: PushPaused"
+        );
+        let incidents = crate::forge::forge_incident_hosts();
+        assert!(incidents.contains("forge-test.invalid"));
+        // Budget accounting: A burned once (pre-incident), B never.
+        let ledger = crate::daemon::load_stuck_push_repos();
+        assert_eq!(ledger.get(&repo_a).map(|e| e.consecutive_failures), Some(1));
+        assert_eq!(
+            ledger.get(&repo_b).map(|e| e.consecutive_failures),
+            Some(0),
+            "shielded repo keeps a visibility-only entry, never a burn"
+        );
+        // Alert coalescing covers A now (its latest hit is the incident).
+        assert!(crate::forge::forge_incident_covers_repo(
+            &repo_a.to_string_lossy()
+        ));
+        // Repo A fails again under the incident: shielded, still 1.
+        let out_a2 = sync_repo_with_ahead_since(
+            &repo_a, &policy_a, &BTreeSet::new(), 0, Some(&mut rf_a), false, None, None, false,
+        )
+        .await;
+        assert!(matches!(out_a2.unwrap(), SyncOutcome::PushPaused));
+        assert_eq!(
+            crate::daemon::load_stuck_push_repos()
+                .get(&repo_a)
+                .map(|e| e.consecutive_failures),
+            Some(1)
+        );
+        // Recovery on window expiry (alert-once edge).
+        let recovered = crate::forge::poll_forge_recovery(
+            crate::policy::timestamp_secs()
+                + crate::forge::FORGE_INCIDENT_WINDOW_SECS
+                + 60,
+        );
+        assert_eq!(recovered, vec!["forge-test.invalid".to_string()]);
+        assert!(crate::forge::forge_incident_hosts().is_empty());
+    }
+
     /// ADDED 2026-09-18 (v0.113.69, per-remote pause scope):
     /// `paused_remote_names` lists exactly the gated remotes — sick
     /// (3+ fails, recent attempt), never young (<3 fails), never
