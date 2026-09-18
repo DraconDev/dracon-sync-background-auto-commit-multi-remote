@@ -2055,7 +2055,7 @@ fn incident_shield_hosts(
 /// for test + shared by the origin gate and the mirror exclude list).
 /// Skipped remotes must NOT refresh `last_attempt_unix` — only a real
 /// attempt does — or the 15-min re-probe below never fires.
-pub(crate) fn paused_remote_names(
+pub(crate) fn paused_remote_names_incident(
     remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
     now_unix: u64,
 ) -> Vec<String> {
@@ -8861,10 +8861,10 @@ push_url = "http://127.0.0.1:{}/{}.git"
             },
         );
         assert_eq!(
-            paused_remote_names(Some(&map), now),
+            paused_remote_names_incident(Some(&map), now),
             vec!["sick".to_string()]
         );
-        assert!(paused_remote_names(None, now).is_empty());
+        assert!(paused_remote_names_incident(None, now).is_empty());
     }
 
     /// ADDED 2026-09-18 (v0.113.73, forge-degraded): under a declared
@@ -8884,7 +8884,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
             },
         );
         // Normal window (900s): 1800s ago is due.
-        assert!(paused_remote_names(Some(&map), now).is_empty());
+        assert!(paused_remote_names_incident(Some(&map), now).is_empty());
         // Incident window (3600s): still paused.
         assert_eq!(
             paused_remote_names_incident(Some(&map), now, &|_| true),

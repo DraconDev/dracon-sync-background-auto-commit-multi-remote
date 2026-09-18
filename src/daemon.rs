@@ -1006,7 +1006,7 @@ pub(crate) struct RemoteFailInfo {
 const MIRROR_PAUSE_CONSECUTIVE: usize = 3;
 pub(crate) const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
 
-pub(crate) fn mirror_push_paused(fail: &RemoteFailInfo, now_unix: u64) -> bool {
+pub(crate) fn mirror_push_paused_impl(fail: &RemoteFailInfo, now_unix: u64) -> bool {
     mirror_push_paused_impl(fail, now_unix, false)
 }
 
@@ -2874,17 +2874,17 @@ mod tests {
             last_attempt_unix: now - ago_secs,
         };
         // Healthy / few failures: push every cycle.
-        assert!(!mirror_push_paused(&fail(0, 0), now));
-        assert!(!mirror_push_paused(&fail(2, 10), now));
+        assert!(!mirror_push_paused_impl(&fail(0, 0), now));
+        assert!(!mirror_push_paused_impl(&fail(2, 10), now));
         // 3+ failures, recent attempt: paused.
-        assert!(mirror_push_paused(&fail(3, 60), now));
-        assert!(mirror_push_paused(&fail(9, 899), now));
+        assert!(mirror_push_paused_impl(&fail(3, 60), now));
+        assert!(mirror_push_paused_impl(&fail(9, 899), now));
         // 3+ failures, last attempt 15+ min ago: re-probe due.
-        assert!(!mirror_push_paused(&fail(3, 900), now));
-        assert!(!mirror_push_paused(&fail(9, 3600), now));
+        assert!(!mirror_push_paused_impl(&fail(3, 900), now));
+        assert!(!mirror_push_paused_impl(&fail(9, 3600), now));
         // Never attempted (synthetic guard entries): always due — the
         // guard's own exclusion governs those, not this gate.
-        assert!(!mirror_push_paused(
+        assert!(!mirror_push_paused_impl(
             &RemoteFailInfo {
                 consecutive: 5,
                 last_error: String::new(),
