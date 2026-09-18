@@ -4463,14 +4463,27 @@ async fn stage_commit_and_push(
                 // policy) so the HINT says WHY, not just WHO.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
+                let msg = format!("git push returned non-zero (remotes: {}) — {}", names, cause);
+                // v0.113.73 forge-degraded: fully incident-covered
+                // transient failures don't burn the stuck budget (and
+                // don't fire per-repo webhooks — the incident alert
+                // covers them). The commit above already landed; map
+                // to PushPaused so commits keep flowing while the
+                // forge is down (a PushFailed outcome would feed the
+                // MAX_FAILURES scan-skip and stall commits).
+                if let Some(hosts) =
+                    incident_shield_hosts(repo, policy, has_origin, ctx.remote_failures.as_deref())
+                {
+                    eprintln!(
+                        "🛡️ {} push failure shielded by forge incident ({}) — no stuck-budget burn",
+                        repo.display(),
+                        hosts.join(", ")
+                    );
+                    crate::daemon::record_push_transient_outage(repo, &msg);
+                    return Ok(Some(SyncOutcome::PushPaused));
+                }
                 eprintln!("⚠️ push failed for {} (remotes: {})", repo.display(), names);
-                crate::daemon::record_push_failure(
-                    repo,
-                    &format!(
-                        "git push returned non-zero (remotes: {}) — {}",
-                        names, cause
-                    ),
-                );
+                crate::daemon::record_push_failure(repo, &msg);
                 notify_webhook_persistent_push_failure(policy, repo, &names, &cause);
                 push_failed = true;
             }
