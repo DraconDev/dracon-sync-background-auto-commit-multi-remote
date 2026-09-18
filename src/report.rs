@@ -1155,24 +1155,20 @@ fn remote_project_identity(url: &str) -> Option<(String, String)> {
     // URL `scheme://host/path` first (an `https://user@host/...` userinfo
     // `@` must not route into the scp branch), then scp-like
     // `git@host:path` (colon before any slash).
-    let (host, path) = match url.split("://").nth(1) {
-        Some(after_scheme) => match after_scheme.find('/') {
-            Some(i) => (
-                after_scheme[..i].to_string(),
-                after_scheme[i + 1..].to_string(),
-            ),
-            None => return None,
-        },
-        None => {
-            let after_at = url.split('@').next_back().unwrap_or(url);
-            match after_at.find(':') {
-                Some(colon) if !after_at[..colon].contains('/') => {
-                    let (h, p) = after_at.split_at(colon);
-                    (h.to_string(), p[1..].to_string())
-                }
-                _ => return None,
-            }
+    let (host, path) = if let Some(after_scheme) = url.split("://").nth(1) {
+        let i = after_scheme.find('/')?;
+        (
+            after_scheme[..i].to_string(),
+            after_scheme[i + 1..].to_string(),
+        )
+    } else {
+        let after_at = url.split('@').next_back().unwrap_or(url);
+        let colon = after_at.find(':')?;
+        if after_at[..colon].contains('/') {
+            return None;
         }
+        let (h, p) = after_at.split_at(colon);
+        (h.to_string(), p[1..].to_string())
     };
     // Strip URL userinfo (`https://user@host/...`) so identical projects
     // compare equal regardless of credential embedding.
