@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Watchdog audit (full-program P0)**: enumerated every scheduler
+  structure that can suppress a repo and verified each has a release
+  bound (artifact:
+  `dracon-sync/audit/suppressing-map-watchdog-2026-09-18.md`). Two
+  minor leaks fixed: `quiet_evidence` now pruned to the live activity
+  set every cycle (was clean-path-only), expired `max_fail_cooldowns`
+  dropped via tested `prune_expired_cooldowns` helper. Record
+  correction: no 24h stuck-entry expiry exists — Exhausted persists
+  until operator unstick or push success, by design.
+
 ## [0.113.67] - 2026-09-18
 
 ### Fixed
