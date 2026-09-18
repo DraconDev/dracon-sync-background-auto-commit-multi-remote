@@ -5185,6 +5185,20 @@ pub(crate) async fn run_daemon(
         if debug_enabled() {
             eprintln!("scheduler: pulse_start unix_ms={}", scheduler_unix_ms());
         }
+        // v0.113.73 forge-degraded: poll incident recovery once per
+        // cycle (one small JSON read; writes only on change) and
+        // alert once per recovered host.
+        for host in crate::forge::poll_forge_recovery(crate::policy::timestamp_secs()) {
+            eprintln!("✅ forge recovered: {} — per-repo push alerts re-armed", host);
+            crate::report::record_sync_alert(
+                &PathBuf::from(&policy.watch_root),
+                "Forge Incident Resolved",
+                &format!(
+                    "{}: transient window quiet; per-repo push alerts re-armed",
+                    host
+                ),
+            );
+        }
         if reload.load(Ordering::SeqCst) {
             reload.store(false, Ordering::SeqCst);
             match SyncPolicy::load(&policy_path) {
