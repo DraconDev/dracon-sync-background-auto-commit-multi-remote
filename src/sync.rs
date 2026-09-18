@@ -76,6 +76,13 @@ pub(crate) enum SyncOutcome {
     /// this variant to `sync_success = false` (commit kept, failure
     /// counted, no synced log).
     PushFailed,
+    /// ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push):
+    /// push deliberately not attempted this cycle — commit-only mode
+    /// (Backoff/Exhausted repo still committing) or every remote
+    /// individually paused by the per-remote gate. The daemon apply
+    /// phase maps this to `ApplyOutcome::PushPaused`: no failure
+    /// count, no stuck-ledger write, activity retained.
+    PushPaused,
     /// ADDED 2026-07-21 (v0.112.33, audit M9/F1.8): changes were
     /// present but ALL filtered out by clean/smudge filters
     /// (filter-only dirty — nothing real to commit). Previously this
@@ -256,6 +263,13 @@ struct SyncContext<'a> {
     /// backstop and returns `SyncOutcome::NothingToDo`). Manual commits
     /// are unaffected.
     backstop_active: bool,
+    /// ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push): when
+    /// true, the worker commits but never pushes — set by the daemon
+    /// for Backoff/Exhausted repos so a sick forge pauses pushes
+    /// without freezing local commits. Push phases return
+    /// `SyncOutcome::PushPaused` (no failure recorded, stuck ledger
+    /// untouched) instead of attempting network I/O.
+    commit_only: bool,
 }
 
 fn notify_webhook_failure(webhook_url: &str, repo: &Path, remote: &str, error: &str) {
@@ -1896,6 +1910,37 @@ fn github_mirror_matches_origin(origin_url: Option<&str>, github_url: Option<&st
     }
 }
 
+/// What `push_background` actually did this cycle (ADDED 2026-09-18,
+/// v0.113.69, per-remote pause scope). `Attempted(ok)` preserves the
+/// legacy bool: at least one remote was pushed, `ok` = all attempted
+/// succeeded. `AllPaused` = every configured remote was individually
+/// paused by the per-remote gate — zero network attempts, zero
+/// failure records. Callers map `AllPaused` to `SyncOutcome::PushPaused`
+/// (no failure count, no stuck-ledger write), never to PushFailed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PushReport {
+    Attempted(bool),
+    AllPaused,
+}
+
+/// Names of remotes currently under the per-remote pause gate (pure,
+/// for test + shared by the origin gate and the mirror exclude list).
+/// Skipped remotes must NOT refresh `last_attempt_unix` — only a real
+/// attempt does — or the 15-min re-probe below never fires.
+pub(crate) fn paused_remote_names(
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+    now_unix: u64,
+) -> Vec<String> {
+    remote_failures
+        .map(|rf| {
+            rf.iter()
+                .filter(|(_, f)| crate::daemon::mirror_push_paused(f, now_unix))
+                .map(|(n, _)| n.clone())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Push to origin + all mirror remotes. Returns true if all succeeded.
 ///
 /// Updates `remote_failures` (if Some) to track consecutive failures per
@@ -1908,7 +1953,7 @@ async fn push_background(
     policy: &SyncPolicy,
     has_origin: bool,
     mut remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
-) -> Result<bool> {
+) -> Result<PushReport> {
     // Scale the push idle timeout with the local ahead count. A 60s
     // timeout is fine for a small push, but a 28-commit push with
     // binary test artifacts can sit in the negotiate phase for >60s
@@ -1984,10 +2029,39 @@ async fn push_background(
     // recorded in `remote_failures` and the aggregate is returned at
     // the end.
     let mut origin_failed = false;
+    // v0.113.69 per-remote pause scope: sick remotes back off
+    // independently (15 min) while healthy remotes push every cycle.
+    // `attempted` distinguishes "tried and failed" (PushFailed +
+    // stuck-ledger write) from "paused, nothing attempted" (PushPaused).
+    let now_unix = crate::policy::timestamp_secs();
+    let paused: std::collections::HashSet<String> = paused_remote_names(
+        remote_failures.as_deref(),
+        now_unix,
+    )
+    .into_iter()
+    .collect();
+    let mut attempted = false;
     if has_origin {
         // Skip origin if it points at github and the pack is too big for
         // github's 2 GiB limit (defensive; most repos' origin is codeberg).
-        if too_big_for_github && origin_is_github {
+        if paused.contains("origin") {
+            let consecutive = remote_failures
+                .as_ref()
+                .and_then(|rf| rf.get("origin"))
+                .map(|f| f.consecutive)
+                .unwrap_or(0);
+            let last = remote_failures
+                .as_ref()
+                .and_then(|rf| rf.get("origin"))
+                .map(|f| f.last_attempt_unix)
+                .unwrap_or(0);
+            eprintln!(
+                "⏸️ {} origin push paused ({} consecutive fails, re-probe in {}s) — healthy mirrors still push",
+                repo.display(),
+                consecutive,
+                900u64.saturating_sub(now_unix.saturating_sub(last)),
+            );
+        } else if too_big_for_github && origin_is_github {
             if !github_already_flagged {
                 log_warn!(
                     "🚫 skipping origin (github) push for {}: pushable branch is {:.2} GiB (exceeds github's 2 GiB pack limit)",
@@ -1996,6 +2070,7 @@ async fn push_background(
                 );
             }
         } else {
+            attempted = true;
             match push_with_retries(repo, scaled_timeout, policy.push_retries, "push").await {
                 Ok(()) => {
                     if let Some(rf) = remote_failures.as_deref_mut() {
@@ -2022,6 +2097,7 @@ async fn push_background(
                         let fail = rf.entry("origin".to_string()).or_default();
                         fail.consecutive += 1;
                         fail.last_error = e.to_string();
+                        fail.last_attempt_unix = crate::policy::timestamp_secs();
                     }
                     origin_failed = true;
                 }
@@ -2117,6 +2193,10 @@ async fn push_background(
                     fail.last_error =
                         "skipped: pushable branch exceeds github's 2 GiB pack limit".to_string();
                 }
+                // Synthetic guard entry, not a real attempt: leave
+                // last_attempt_unix at 0 so the per-remote pause gate
+                // treats it as always-due (the 2 GiB exclusion above
+                // governs these, not the pause gate).
             }
             if !github_already_flagged {
                 log_warn!(
@@ -2134,6 +2214,32 @@ async fn push_background(
                 }
             }
         }
+        // v0.113.69 per-remote pause scope: paused mirrors join the
+        // exclude list for THIS cycle only (local vec, never persisted).
+        // Their `consecutive`/`last_attempt_unix` stay frozen so the
+        // 15-min re-probe fires; successes on healthy mirrors still
+        // clear only their own entries via `aggregate_push_results`.
+        let mut paused_mirror_count = 0usize;
+        for name in &paused {
+            if name != "origin" && !combined_exclude.iter().any(|e| e == name) {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 {} mirror '{}' paused (per-remote gate), skipping this cycle",
+                        repo.display(),
+                        name
+                    );
+                }
+                combined_exclude.push(name.clone());
+                paused_mirror_count += 1;
+            }
+        }
+        if paused_mirror_count > 0 {
+            eprintln!(
+                "⏸️ {} {} mirror(s) paused (per-remote gate) — healthy remotes still push",
+                repo.display(),
+                paused_mirror_count,
+            );
+        }
         let push_results = push_mirror_remotes(
             repo,
             &policy.remotes,
@@ -2145,11 +2251,26 @@ async fn push_background(
             policy.sync_visibility_interval_hours,
         )
         .await;
-        return aggregate_push_results(repo, push_results, origin_failed, remote_failures);
+        if !push_results.is_empty() {
+            attempted = true;
+        }
+        let ok = aggregate_push_results(repo, push_results, origin_failed, remote_failures)?;
+        // AllPaused only when a CONFIGURED remote was pause-skipped:
+        // stale entries for decommissioned remotes must not veto the
+        // legacy path (they linger until overwritten, never cleared).
+        let paused_configured =
+            (has_origin && paused.contains("origin")) || policy.remotes.iter().any(|r| paused.contains(&r.name));
+        if !attempted && paused_configured {
+            return Ok(PushReport::AllPaused);
+        }
+        return Ok(PushReport::Attempted(ok));
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
     // false when origin failed (mirrors may still have succeeded).
-    Ok(!origin_failed)
+    if !attempted && has_origin && paused.contains("origin") {
+        return Ok(PushReport::AllPaused);
+    }
+    Ok(PushReport::Attempted(!origin_failed))
 }
 
 /// Aggregate actual attempt results before converting errors to report text.
@@ -2179,6 +2300,7 @@ pub(crate) fn aggregate_push_results(
                     let info = map.entry(name).or_default();
                     info.consecutive += 1;
                     info.last_error = format!("{error:#}");
+                    info.last_attempt_unix = crate::policy::timestamp_secs();
                 }
             }
         }
@@ -4080,6 +4202,15 @@ async fn stage_commit_and_push(
     // falling through to `Ok(None)` (→ `Synced`). Previously the
     // apply phase logged `🔁 synced`, reset `failure_count`, and
     // dropped the activity entry on a failed push — false-healthy.
+    // v0.113.69 commit-only: the commit above already landed; skip
+    // the push attempt entirely (PushPaused, not PushFailed).
+    if ctx.commit_only {
+        eprintln!(
+            "⏸️ {} committed; push paused (commit-only mode)",
+            repo.display()
+        );
+        return Ok(Some(SyncOutcome::PushPaused));
+    }
     let mut push_failed = false;
     if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
         // Push synchronously so mirror failures can be tracked in
@@ -4088,7 +4219,7 @@ async fn stage_commit_and_push(
         // it bypassed the failure-tracking needed by callers like
         // `test_sync_repo_mirror_push_failure_second`.
         match push_background(repo, policy, has_origin, ctx.remote_failures.as_deref_mut()).await {
-            Ok(true) => {
+            Ok(PushReport::Attempted(true)) => {
                 if let Err(e) = crate::daemon::refresh_publish_upstream(repo, policy).await {
                     // The publish upstream config is already set by
                     // `configure_publish_upstream_if_missing` and surfaces
@@ -4108,7 +4239,13 @@ async fn stage_commit_and_push(
                 }
                 crate::daemon::record_push_success(repo);
             }
-            Ok(false) => {
+            // v0.113.69: every remote individually paused — the commit
+            // above already landed. No failure, no ledger write; the
+            // caller maps this to `SyncOutcome::PushPaused`.
+            Ok(PushReport::AllPaused) => {
+                return Ok(Some(SyncOutcome::PushPaused));
+            }
+            Ok(PushReport::Attempted(false)) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error so
                 // the repos HINT says WHICH forge is failing.
@@ -4393,6 +4530,7 @@ pub(crate) async fn sync_repo(
         dry_run,
         policy_path,
         None,
+        false,
     )
     .await
 }
@@ -4410,6 +4548,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
     dry_run: bool,
     policy_path: Option<&Path>,
     ahead_since: Option<std::time::Instant>,
+    // v0.113.69 commit-despite-paused-push: commit without pushing.
+    commit_only: bool,
 ) -> Result<SyncOutcome> {
     let preparation_start = std::time::Instant::now();
     let preparation_phase = |phase: &str| {
@@ -4440,6 +4580,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             build_artifact_cleanup: policy.build_artifact_cleanup,
             remote_failures: None,
             backstop_active: false,
+            commit_only: false,
         };
         maybe_sync_visibility_and_metadata(&ctx);
         return Ok(SyncOutcome::NothingToDo);
@@ -4459,6 +4600,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             build_artifact_cleanup: policy.build_artifact_cleanup,
             remote_failures: None,
             backstop_active: false,
+            commit_only: false,
         };
         maybe_sync_visibility_and_metadata(&ctx);
         return Ok(blocked);
@@ -4627,6 +4769,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
         build_artifact_cleanup,
         remote_failures,
         backstop_active,
+        commit_only,
     };
 
     let copied_standard_files = if policy.standard_files_auto {
@@ -4791,9 +4934,23 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // The FilterOnly outcome (and its 300s stage cooldown) still
         // applies, bounding a repo whose tracking ref never
         // converges to one push attempt per 5 min.
-        let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
-        if !push_ok {
-            return Ok(SyncOutcome::PushFailed);
+        // v0.113.69 commit-only: skip the backlog push AND the
+        // FilterOnly cooldown (its 300s stage cooldown would freeze
+        // commits — the thing commit-only exists to keep flowing).
+        if ctx.commit_only {
+            eprintln!(
+                "⏸️ {} push paused (commit-only): skipping backlog push",
+                repo.display()
+            );
+            return Ok(SyncOutcome::PushPaused);
+        }
+        match handle_ahead_push(&mut ctx, &svc).await? {
+            // v0.113.69: all remotes paused — PushPaused carries no
+            // stage cooldown (unlike FilterOnly below), so commits
+            // keep flowing every cycle until the push is unpaused.
+            PushReport::AllPaused => return Ok(SyncOutcome::PushPaused),
+            PushReport::Attempted(false) => return Ok(SyncOutcome::PushFailed),
+            PushReport::Attempted(true) => {}
         }
         if debug_enabled() {
             eprintln!(
@@ -4822,11 +4979,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
             // daemon's activity map) instead of `NothingToDo`
             // (treated as success → `ahead_since` wiped → backstop
             // disarmed after one skipped dispatch).
-            let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
-            return Ok(if push_ok {
-                SyncOutcome::BackstopSkipped
-            } else {
-                SyncOutcome::PushFailed
+            // v0.113.69 commit-only: the backstop already skips the
+            // commit; also skip the backlog-drain push (BackstopSkipped
+            // keeps ahead_since with only a 60s breather).
+            if ctx.commit_only {
+                return Ok(SyncOutcome::BackstopSkipped);
+            }
+            // v0.113.69: AllPaused keeps the backstop breather (60s)
+            // with no failure recorded; attempted-failure stays PushFailed.
+            return Ok(match handle_ahead_push(&mut ctx, &svc).await? {
+                PushReport::AllPaused => SyncOutcome::BackstopSkipped,
+                PushReport::Attempted(true) => SyncOutcome::BackstopSkipped,
+                PushReport::Attempted(false) => SyncOutcome::PushFailed,
             });
         }
         // When `auto_stage_untracked = false`, we need to know which
@@ -4970,13 +5134,21 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // surfaces as `PushFailed` so the daemon's apply phase counts it
     // as a failure (no `🔁 synced`, `failure_count` increments)
     // instead of the previous false-healthy `NothingToDo`.
-    let push_ok = handle_ahead_push(&mut ctx, &svc).await?;
+    // v0.113.69 commit-only: never attempt the push; PushPaused
+    // records no failure and leaves the stuck ledger untouched.
+    if ctx.commit_only {
+        return Ok(SyncOutcome::PushPaused);
+    }
+    let push_report = handle_ahead_push(&mut ctx, &svc).await?;
 
     maybe_sync_visibility_and_metadata(&ctx);
-    if !push_ok {
-        return Ok(SyncOutcome::PushFailed);
+    match push_report {
+        // v0.113.69: nothing attempted, nothing failed — retain
+        // activity, record nothing.
+        PushReport::AllPaused => Ok(SyncOutcome::PushPaused),
+        PushReport::Attempted(false) => Ok(SyncOutcome::PushFailed),
+        PushReport::Attempted(true) => Ok(SyncOutcome::NothingToDo),
     }
-    Ok(SyncOutcome::NothingToDo)
 }
 
 /// ADDED 2026-07-26 (v0.113.1): after a successful push, refresh
@@ -5048,13 +5220,19 @@ async fn refresh_stale_upstream_ref(repo: &Path) {
 
 /// Pushes unpushed commits when needed.
 ///
-/// Returns `Ok(true)` when no push was needed or the push succeeded,
-/// `Ok(false)` when a push was attempted and FAILED (already recorded
-/// to the push ledger by this function). CHANGED 2026-07-21
+/// Returns `Ok(PushReport::Attempted(true))` when no push was needed or
+/// the push succeeded, `Attempted(false)` when a push was attempted and
+/// FAILED (already recorded to the push ledger by this function), and
+/// `AllPaused` when every remote was pause-skipped (v0.113.69 — the
+/// caller maps that to `SyncOutcome::PushPaused`, never PushFailed).
+/// CHANGED 2026-07-21
 /// (v0.112.31, audit H3/F1.3): previously returned `Result<()>` and
 /// swallowed push failures, so the caller's `NothingToDo` outcome
 /// read as success in the daemon's apply phase.
-async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<bool> {
+// v0.113.69: reports whether any push was attempted so callers can
+// distinguish "tried and failed" (PushFailed + stuck-ledger write)
+// from "every remote paused" (PushPaused, no failure recorded).
+async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Result<PushReport> {
     let current_status = svc.get_status().await?;
     // dracon-git's libgit2 status cannot associate a detached HEAD with an
     // upstream, so it reports ahead=0 even when HEAD is one or more commits
@@ -5120,14 +5298,18 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
         )
         .await
         {
-            Ok(true) => {
+            Ok(PushReport::Attempted(true)) => {
                 crate::daemon::record_push_success(ctx.repo);
                 // ADDED 2026-07-26 (v0.113.1): refresh the upstream
                 // tracking ref so a stale `origin/main` doesn't
                 // report ahead>0 forever after the push is done.
                 refresh_stale_upstream_ref(ctx.repo).await;
             }
-            Ok(false) => {
+            // v0.113.69: propagate — zero attempts is not a failure.
+            Ok(PushReport::AllPaused) => {
+                return Ok(PushReport::AllPaused);
+            }
+            Ok(PushReport::Attempted(false)) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
@@ -5149,7 +5331,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // propagate the failure so the caller returns
                 // `SyncOutcome::PushFailed` instead of `NothingToDo`
                 // (which the apply phase treated as success).
-                return Ok(false);
+                return Ok(PushReport::Attempted(false));
             }
             Err(e) => {
                 // Cancellation of the spawned push task (daemon shutdown
@@ -5165,7 +5347,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                             ctx.repo.display()
                         );
                     }
-                    return Ok(false);
+                    return Ok(PushReport::Attempted(false));
                 }
                 let error = crate::ownership::redact_url_credentials(&format!("{e:#}"));
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
@@ -5177,7 +5359,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     "origin/mirrors",
                     cause,
                 );
-                return Ok(false);
+                return Ok(PushReport::Attempted(false));
             }
         }
     } else if ctx.policy.auto_push
@@ -5190,7 +5372,7 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             ctx.repo.display()
         );
     }
-    Ok(true)
+    Ok(PushReport::Attempted(true))
 }
 
 #[cfg(test)]
@@ -7514,6 +7696,7 @@ auto_bump_versions = false
             crate::daemon::RemoteFailInfo {
                 consecutive: 2,
                 last_error: "rejected (non-fast-forward)".to_string(),
+                last_attempt_unix: 0,
             },
         );
         map.insert(
@@ -7521,6 +7704,7 @@ auto_bump_versions = false
             crate::daemon::RemoteFailInfo {
                 consecutive: 1,
                 last_error: "connection timed out".to_string(),
+                last_attempt_unix: 0,
             },
         );
         assert_eq!(failing_remote_names(Some(&map)), "codeberg, gitlab");
@@ -7538,6 +7722,7 @@ auto_bump_versions = false
             crate::daemon::RemoteFailInfo {
                 consecutive: 5,
                 last_error: "! [rejected] HEAD -> main (non-fast-forward)".to_string(),
+                last_attempt_unix: 0,
             },
         );
         map.insert(
@@ -7545,6 +7730,7 @@ auto_bump_versions = false
             crate::daemon::RemoteFailInfo {
                 consecutive: 5,
                 last_error: "error: failed to push some refs (fetch first)".to_string(),
+                last_attempt_unix: 0,
             },
         );
         let cause = classify_failing_remotes(Some(&map));
@@ -7901,6 +8087,176 @@ push_url = "git@nonexistent.example.com:repo.git"
                 .unwrap_or(false),
             "bad-mirror failure should carry the raw error"
         );
+    }
+
+    /// Build a fixture repo whose only remote is unpushable (TEST-only
+    /// helper for the commit-only tests below). Returns (repo, policy).
+    fn commit_only_fixture(tmp: &tempfile::TempDir) -> (std::path::PathBuf, SyncPolicy) {
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // Unpushable remote: connection refused on localhost is fast
+        // (no DNS stall) and deterministic offline.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "origin",
+                "ssh://127.0.0.1:9/unpushable.git",
+            ])
+            .status()
+            .unwrap();
+        std::fs::write(repo.join("change.txt"), "changed\n").unwrap();
+        let toml_str = r#"
+auto_commit = true
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        (repo, policy)
+    }
+
+    /// ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push):
+    /// commit_only=true commits the dirt but NEVER pushes — the
+    /// outcome is PushPaused, the commit lands, no per-remote failure
+    /// is recorded, and the stuck ledger is untouched. FAIL-BEFORE:
+    /// without the commit_only gate this fixture pushes to a dead
+    /// remote and returns PushFailed with an origin failure recorded.
+    #[tokio::test]
+    async fn test_commit_only_commits_but_never_pushes() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let (repo, policy) = commit_only_fixture(&tmp);
+        let mut remote_failures = HashMap::new();
+        let result = sync_repo_with_ahead_since(
+            &repo,
+            &policy,
+            &BTreeSet::new(),
+            0,
+            Some(&mut remote_failures),
+            false,
+            None,
+            None,
+            true,
+        )
+        .await;
+        assert!(
+            matches!(result.unwrap(), SyncOutcome::PushPaused),
+            "commit-only must return PushPaused, not PushFailed"
+        );
+        // The commit landed: two commits now, clean worktree.
+        let log_count = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-list", "--count", "HEAD"])
+            .output()
+            .unwrap();
+        assert_eq!(String::from_utf8_lossy(&log_count.stdout).trim(), "2");
+        // Zero push attempts: no per-remote failure recorded.
+        assert!(
+            remote_failures.is_empty(),
+            "commit-only must not record remote failures, got: {:?}",
+            remote_failures
+        );
+        // Stuck ledger untouched: no entry for this repo.
+        assert!(
+            crate::daemon::load_stuck_push_repos().get(&repo).is_none(),
+            "commit-only must not write the stuck ledger"
+        );
+    }
+
+    /// Control for the test above: the SAME fixture with
+    /// commit_only=false pushes to the dead remote and returns
+    /// PushFailed with the origin failure recorded. Proves the
+    /// fixture actually exercises the push path (the commit-only
+    /// test is not vacuously passing on a repo with no push work).
+    #[tokio::test]
+    async fn test_commit_only_control_pushes_and_fails() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let (repo, policy) = commit_only_fixture(&tmp);
+        let mut remote_failures = HashMap::new();
+        let result = sync_repo_with_ahead_since(
+            &repo,
+            &policy,
+            &BTreeSet::new(),
+            0,
+            Some(&mut remote_failures),
+            false,
+            None,
+            None,
+            false,
+        )
+        .await;
+        assert!(
+            matches!(result.unwrap(), SyncOutcome::PushFailed),
+            "control: dead-remote push must return PushFailed"
+        );
+        assert!(
+            remote_failures.get("origin").map(|f| f.consecutive).unwrap_or(0) >= 1,
+            "control: origin failure must be recorded"
+        );
+    }
+
+    /// ADDED 2026-09-18 (v0.113.69, per-remote pause scope):
+    /// `paused_remote_names` lists exactly the gated remotes — sick
+    /// (3+ fails, recent attempt), never young (<3 fails), never
+    /// stale (last attempt 15+ min ago: re-probe due), never
+    /// never-attempted (synthetic guard entries).
+    #[test]
+    fn test_paused_remote_names_lists_only_gated() {
+        let now = 1_800_000_000u64;
+        let fail = |consecutive: usize, ago_secs: u64| crate::daemon::RemoteFailInfo {
+            consecutive,
+            last_error: "boom".to_string(),
+            last_attempt_unix: now.saturating_sub(ago_secs),
+        };
+        let mut map: HashMap<String, crate::daemon::RemoteFailInfo> = HashMap::new();
+        map.insert("sick".to_string(), fail(5, 60));
+        map.insert("young".to_string(), fail(2, 10));
+        map.insert("stale".to_string(), fail(9, 3600));
+        map.insert(
+            "guard".to_string(),
+            crate::daemon::RemoteFailInfo {
+                consecutive: 9,
+                last_error: "skipped: pack too large".to_string(),
+                last_attempt_unix: 0,
+            },
+        );
+        assert_eq!(paused_remote_names(Some(&map), now), vec!["sick".to_string()]);
+        assert!(paused_remote_names(None, now).is_empty());
     }
 
     #[tokio::test]

@@ -1052,6 +1052,14 @@ async fn main() -> Result<()> {
                             repo.display()
                         );
                     }
+                    // ADDED 2026-09-18 (v0.113.69): `once` never sets
+                    // commit_only, but all-remotes-paused still reports.
+                    Ok(crate::sync::SyncOutcome::PushPaused) => {
+                        eprintln!(
+                            "⏸️ {} committed but push paused (see daemon log)",
+                            repo.display()
+                        );
+                    }
                     // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
                     Ok(crate::sync::SyncOutcome::FilterOnly) => {
                         println!(

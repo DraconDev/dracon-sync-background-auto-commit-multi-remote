@@ -484,6 +484,13 @@ pub(crate) enum ApplyOutcome {
     /// than the daemon can push). Retain the activity entry and
     /// DO NOT increment failure_count.
     BackstopSkipped,
+    /// ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push):
+    /// push deliberately not attempted this cycle (commit-only mode
+    /// for Backoff/Exhausted repos, or every remote individually
+    /// paused). Not a failure, not a success: retain the activity
+    /// entry, DO NOT increment failure_count, DO NOT touch the
+    /// stuck ledger.
+    PushPaused,
     /// Push failed or sync returned an error. Retain the
     /// activity entry and increment failure_count.
     Failure,
@@ -585,6 +592,15 @@ pub(crate) fn apply_outcome(
             }
             stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
             ApplyOutcome::BackstopSkipped
+        }
+        Ok(SyncOutcome::PushPaused) => {
+            eprintln!(
+                "⏸️ {} committed but push paused{} (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)",
+                repo.display(),
+                late_tag
+            );
+            entry.blocked_since = None;
+            ApplyOutcome::PushPaused
         }
         Ok(SyncOutcome::PushFailed) => {
             eprintln!(
@@ -975,6 +991,25 @@ pub(crate) struct RemoteFailInfo {
     pub(crate) consecutive: usize,
     /// Most recent raw `git push` error text for this remote.
     pub(crate) last_error: String,
+    /// Unix seconds of the last real push ATTEMPT (success or failure).
+    /// ADDED 2026-09-18 (v0.113.69, per-remote pause scope): a skipped
+    /// remote must not refresh this, or the re-probe below never fires.
+    /// 0 = never attempted (synthetic guard entries) → always due.
+    pub(crate) last_attempt_unix: u64,
+}
+
+/// Per-remote pause scope (ADDED 2026-09-18, v0.113.69): a remote with
+/// ≥3 consecutive failures is skipped for 15 min, then re-probed. Sick
+/// remotes back off independently while healthy mirrors push every cycle.
+/// Never-attempted entries (last_attempt_unix = 0) are always due.
+/// Pure helper for test.
+const MIRROR_PAUSE_CONSECUTIVE: usize = 3;
+const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
+
+pub(crate) fn mirror_push_paused(fail: &RemoteFailInfo, now_unix: u64) -> bool {
+    fail.consecutive >= MIRROR_PAUSE_CONSECUTIVE
+        && fail.last_attempt_unix != 0
+        && now_unix.saturating_sub(fail.last_attempt_unix) < MIRROR_PAUSE_REPROBE_SECS
 }
 
 /// ADDED 2026-07-22 (v0.112.37): whether an `Option<Instant>`
@@ -1767,6 +1802,64 @@ mod tests {
             false,
         );
         assert_eq!(outcome, ApplyOutcome::Failure);
+        assert!(entry.blocked_since.is_none());
+    }
+
+    /// ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push):
+    /// PushPaused retains the activity entry, sets NO stage cooldown
+    /// (commits must keep flowing), leaves the stuck ledger intact
+    /// (the Backoff/Exhausted entry that caused commit-only dispatch
+    /// survives for the Retry re-probe), and clears blocked_since.
+    #[test]
+    fn test_apply_outcome_push_paused_retains_without_cooldown() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let mut entry = RepoActivity {
+            fingerprint: String::new(),
+            changed_at: std::time::Instant::now(),
+            dirty_since: None,
+            ahead_since: None,
+            behind_since: None,
+            mirror_consecutive_fails: HashMap::new(),
+            failure_count: 0,
+            remote_failures: HashMap::new(),
+            ownership: None,
+            ownership_at: None,
+            blocked_since: Some(std::time::Instant::now()),
+            unowned_since: None,
+        };
+        let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> = HashMap::new();
+        let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
+        stuck_push_repos.insert(
+            repo.clone(),
+            StuckRepoEntry {
+                path: repo.clone(),
+                stuck_since: 1_000_000,
+                consecutive_failures: 5,
+                last_error: "boom".to_string(),
+                last_error_at: 1_000_001,
+                last_retry_at: 1_000_002,
+            },
+        );
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::PushPaused),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::PushPaused);
+        assert!(
+            stage_cooldowns.get(&repo).is_none(),
+            "PushPaused must not set a stage cooldown — commits keep flowing"
+        );
+        assert!(
+            stuck_push_repos.contains_key(&repo),
+            "PushPaused must leave the stuck entry for the Retry re-probe"
+        );
         assert!(entry.blocked_since.is_none());
     }
 
@@ -2739,6 +2832,35 @@ mod tests {
     }
 
     #[test]
+    fn test_mirror_push_paused_skips_sick_reprobes_stale() {
+        let now = 1_800_000_000u64;
+        let fail = |consecutive: usize, ago_secs: u64| RemoteFailInfo {
+            consecutive,
+            last_error: "boom".to_string(),
+            last_attempt_unix: now - ago_secs,
+        };
+        // Healthy / few failures: push every cycle.
+        assert!(!mirror_push_paused(&fail(0, 0), now));
+        assert!(!mirror_push_paused(&fail(2, 10), now));
+        // 3+ failures, recent attempt: paused.
+        assert!(mirror_push_paused(&fail(3, 60), now));
+        assert!(mirror_push_paused(&fail(9, 899), now));
+        // 3+ failures, last attempt 15+ min ago: re-probe due.
+        assert!(!mirror_push_paused(&fail(3, 900), now));
+        assert!(!mirror_push_paused(&fail(9, 3600), now));
+        // Never attempted (synthetic guard entries): always due — the
+        // guard's own exclusion governs those, not this gate.
+        assert!(!mirror_push_paused(
+            &RemoteFailInfo {
+                consecutive: 5,
+                last_error: String::new(),
+                last_attempt_unix: 0,
+            },
+            now
+        ));
+    }
+
+    #[test]
     fn test_prune_expired_cooldowns_keeps_owed_backoff() {
         let now = Instant::now();
         let mut map: HashMap<PathBuf, Instant> = HashMap::new();
@@ -3274,7 +3396,10 @@ fn stuck_repos_path() -> PathBuf {
         .join("dracon-sync-stuck-push-repos.json")
 }
 
-fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
+// v0.113.69: pub(crate) so the sync-layer commit-only regression test
+// can assert the stuck ledger is untouched (was private; the only
+// other readers are daemon-internal).
+pub(crate) fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
     let path = stuck_repos_path();
     if !path.exists() {
         return HashMap::new();
@@ -4673,6 +4798,14 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
                 changed += 1;
                 eprintln!("⚠️ {} committed but push failed", repo.display());
             }
+            // ADDED 2026-09-18 (v0.113.69): one-shot `sync-all` path
+            // never sets commit_only, but the worker can still report
+            // AllPaused when every remote is pause-skipped. Count the
+            // commit, warn about the pause.
+            Ok(SyncOutcome::PushPaused) => {
+                changed += 1;
+                eprintln!("⏸️ {} committed but push paused", repo.display());
+            }
             Ok(SyncOutcome::NothingToDo)
             | Ok(SyncOutcome::Blocked)
             | Ok(SyncOutcome::BackstopSkipped) => {}
@@ -4855,6 +4988,14 @@ pub(crate) async fn run_daemon(
     // startup load below is used for the operator-visible summary of
     // repos entering the daemon already stuck (and keeps the
     // initial assignment read, not dead).
+    // ADDED 2026-09-18 (v0.113.69, commit-despite-paused-push): repos
+    // whose push is paused (Backoff/Exhausted) but whose commits must
+    // keep flowing. The worker gets `commit_only=true` and returns
+    // PushPaused (no failure, no ledger write). Entries are added by
+    // the stuck-decision arms below and removed on Retry / unstuck /
+    // success — a repo absent from the stuck ledger is never commit-only.
+    let mut commit_only_repos: std::collections::HashSet<PathBuf> =
+        std::collections::HashSet::new();
     let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = load_stuck_push_repos();
     if !stuck_push_repos.is_empty() {
         eprintln!(
@@ -5683,7 +5824,21 @@ pub(crate) async fn run_daemon(
             if let Some(info) = stuck_push_repos.get(&repo).cloned() {
                 match stuck_decision(&info, timestamp_secs(), policy.push_max_retries, 300) {
                     StuckDecision::Backoff => {
-                        continue;
+                        // CHANGED 2026-09-18 (v0.113.69,
+                        // commit-despite-paused-push): no longer `continue`.
+                        // The push stays paused (the worker gets
+                        // commit_only=true and never attempts network
+                        // I/O), but local commits keep flowing so a
+                        // sick forge stops freezing the repo's history.
+                        // PushPaused records no failure and leaves this
+                        // ledger entry intact for the Retry re-probe.
+                        commit_only_repos.insert(repo.clone());
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} push backoff: commit-only dispatch (push paused, commits continue)",
+                                repo.display()
+                            );
+                        }
                     }
                     StuckDecision::Exhausted => {
                         let notify_key = format!("stuck-exhausted-{}", repo.display());
@@ -5713,9 +5868,23 @@ pub(crate) async fn run_daemon(
                                 ),
                             );
                         }
-                        continue;
+                        // CHANGED 2026-09-18 (v0.113.69,
+                        // commit-despite-paused-push): no longer `continue`.
+                        // Same commit-only dispatch as Backoff; the
+                        // Exhausted notification above is unchanged (the
+                        // operator still gets told the budget is gone).
+                        commit_only_repos.insert(repo.clone());
+                        if debug_enabled() {
+                            eprintln!(
+                                "🐛 {} push exhausted: commit-only dispatch (push paused, commits continue)",
+                                repo.display()
+                            );
+                        }
                     }
                     StuckDecision::Retry => {
+                        // A retry re-attempts the full push: leave
+                        // commit-only mode for this dispatch.
+                        commit_only_repos.remove(&repo);
                         let stuck_age_secs = timestamp_secs().saturating_sub(info.stuck_since);
                         eprintln!(
                             "🔄 {} was stuck ({} consecutive failures), retrying push after {}s",
@@ -5761,6 +5930,12 @@ pub(crate) async fn run_daemon(
                         save_stuck_push_repos(&stuck_push_repos);
                     }
                 }
+            } else {
+                // Not in the stuck ledger (never stuck, or cleared by
+                // success / operator unstuck): full dispatch, never
+                // commit-only. This also heals a stale flag if the
+                // entry vanished between cycles.
+                commit_only_repos.remove(&repo);
             }
             if has_both_main_and_master(&repo) {
                 eprintln!(
@@ -6531,6 +6706,9 @@ pub(crate) async fn run_daemon(
             let policy_path_for_task = policy_path.clone();
             let repo_for_task = repo.clone();
             let ahead_since_for_task = entry.ahead_since;
+            // v0.113.69 commit-despite-paused-push: Backoff/Exhausted
+            // repos commit without pushing (PushPaused outcome).
+            let commit_only_for_task = commit_only_repos.contains(&repo);
             // Mark the repo as having an in-flight task BEFORE
             // dispatching. The eligibility check at the top of the
             // next cycle consults `in_flight` and skips this repo
@@ -6556,6 +6734,7 @@ pub(crate) async fn run_daemon(
                         false,
                         Some(&policy_path_for_task),
                         ahead_since_for_task,
+                        commit_only_for_task,
                     )
                     .await;
                     (rf, r)
@@ -6793,7 +6972,9 @@ pub(crate) async fn run_daemon(
                                 max_fail_cooldowns.remove(&repo);
                                 activity.remove(&repo);
                             }
-                            ApplyOutcome::Blocked | ApplyOutcome::BackstopSkipped => {
+                            ApplyOutcome::Blocked
+                            | ApplyOutcome::BackstopSkipped
+                            | ApplyOutcome::PushPaused => {
                                 // Keep the activity entry; no
                                 // failure_count increment (matches
                                 // the pre-helper behavior).
