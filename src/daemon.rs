@@ -83,12 +83,23 @@ fn collect_ready_classifications(
     pending: &mut HashSet<PathBuf>,
     pending_since: &mut HashMap<PathBuf, Instant>,
     results: &mut HashMap<PathBuf, Result<Vec<dracon_git::types::DiffFile>, anyhow::Error>>,
+    failures: &mut HashMap<PathBuf, usize>,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         match joined {
             Ok((repo, outcome)) => {
                 pending.remove(&repo);
                 pending_since.remove(&repo);
+                // ADDED 2026-09-18 (v0.113.74, firehose fairness):
+                // any finished job — success OR failure — ends the
+                // current failure streak accounting below; a success
+                // clears it outright, a failure re-arms from the
+                // incremented count at the spawn gate. Without the
+                // success reset, one ancient timeout would inflate
+                // every future backoff for the repo forever.
+                if outcome.is_ok() {
+                    failures.remove(&repo);
+                }
                 results.insert(repo, outcome);
             }
             // NOTE 2026-09-18 (v0.113.65): a dead job (panic /
@@ -154,6 +165,124 @@ fn prune_repo_liveness<Map>(
 /// Pure helper for test.
 fn prune_expired_cooldowns(map: &mut HashMap<PathBuf, Instant>, now: Instant) {
     map.retain(|_, until| now < *until);
+}
+
+/// ADDED 2026-09-18 (v0.113.74, firehose fairness): pipelined status
+/// inspection. The serial scan loop used to `await` every repo's
+/// `get_status()` inline, so one giant repo's 5–22s status (measured
+/// live: ai-auto-writer up to 17.7s, dracon-platform up to 22.4s,
+/// p99 824ms over 11.5k samples) head-of-line-blocked every repo
+/// behind it in scan order. Status now runs as a per-repo task:
+/// at most one in flight per repo, results collected ready-only at
+/// the repo boundary, and results older than the max age below are
+/// dropped as stale (the worktree moved on; re-probe next cycle).
+/// A repo with no ready result yet records a `status-pending` hold
+/// and is re-checked next cycle — small repos behind a stalled
+/// giant are inspected and dispatched on time instead of waiting.
+pub(crate) type StatusJoin =
+    tokio::task::JoinHandle<(PathBuf, Result<dracon_git::types::RepoStatus, anyhow::Error>)>;
+
+/// A collected status older than this is stale (spawned before the
+/// worktree's current state) — drop it and re-probe. Bounds how long
+/// a slow repo's result can gate its own dispatch, and keeps a
+/// wedged status task from pinning a stale snapshot forever.
+const STATUS_RESULT_MAX_AGE_SECS: u64 = 30;
+
+/// Collect finished status tasks without blocking. Finished tasks
+/// release their repo's `pending` reservation; results stamp into
+/// `results` with their spawn time for the staleness check at the
+/// repo boundary. Never awaits unfinished tasks: a slow repo's
+/// inspection retains its ownership without stalling the scan.
+fn collect_ready_status(
+    jobs: &mut FuturesUnordered<StatusJoin>,
+    pending: &mut HashSet<PathBuf>,
+    spawned_at: &mut HashMap<PathBuf, Instant>,
+    results: &mut HashMap<PathBuf, (Result<dracon_git::types::RepoStatus, anyhow::Error>, Instant)>,
+) {
+    while let Some(joined) = next_ready_classification(jobs) {
+        match joined {
+            Ok((repo, outcome)) => {
+                pending.remove(&repo);
+                let at = spawned_at.remove(&repo).unwrap_or_else(Instant::now);
+                if let Err(error) = &outcome {
+                    eprintln!("⚠️ {} status task failed: {}", repo.display(), error);
+                }
+                results.insert(repo, (outcome, at));
+            }
+            Err(error) => {
+                eprintln!("⚠️ status job join error: {}", error);
+            }
+        }
+    }
+}
+
+/// ADDED 2026-09-18 (v0.113.74, firehose fairness): classification
+/// scaling guard. A giant repo whose filter-aware diff always exceeds
+/// the 30s job timeout used to respawn a fresh 30s job ~every 31s
+/// (flat 1s failure cooldown) — burning a blocking thread and git
+/// subprocesses forever while never producing a dispatchable result.
+/// Consecutive failures now scale the re-probe cooldown
+/// exponentially (1s, 2s, 4s, … capped at 5 min); any successful
+/// result resets the count. Pure decision helper for test.
+const CLASSIFICATION_BACKOFF_CAP_SECS: u64 = 300;
+
+fn classification_backoff_secs(consecutive_failures: usize) -> Duration {
+    if consecutive_failures == 0 {
+        return Duration::from_secs(1);
+    }
+    let shift = consecutive_failures.saturating_sub(1).min(9) as u32;
+    Duration::from_secs(1u64.saturating_mul(1 << shift).min(CLASSIFICATION_BACKOFF_CAP_SECS))
+}
+
+/// ADDED 2026-09-18 (v0.113.74, firehose fairness): rate-aware pile
+/// verdict. Tracks untracked-file arrival vs drain (commit) rates per
+/// repo over the window since the last alert: arrival accumulates
+/// positive deltas, drain accumulates negative deltas. Fires only
+/// when the pile is big AND still growing net-positive over at least
+/// a minute — a draining firehose pages nothing. Returns the two
+/// rates per minute for the alert message. Pure decision helper.
+const PILE_ALERT_MIN_UNTRACKED: u64 = 500;
+const PILE_ALERT_MIN_WINDOW_SECS: u64 = 60;
+
+/// Fold one status sample into the repo's pile window. Positive
+/// deltas accumulate as arrival (generator output), negative deltas
+/// as drain (commits carrying files away). Returns the updated
+/// (curr, arrival, drain, window_start) for the alert check.
+fn pile_watch_sample(
+    watch: &mut HashMap<PathBuf, (u64, u64, u64, Instant)>,
+    repo: &Path,
+    curr_untracked: u64,
+    now: Instant,
+) -> (u64, u64, u64, Instant) {
+    let entry = watch
+        .entry(repo.to_path_buf())
+        .or_insert((curr_untracked, 0, 0, now));
+    if curr_untracked > entry.0 {
+        entry.1 += curr_untracked - entry.0;
+    } else {
+        entry.2 += entry.0 - curr_untracked;
+    }
+    entry.0 = curr_untracked;
+    *entry
+}
+
+fn pile_alert_due(
+    curr_untracked: u64,
+    arrival_files: u64,
+    drain_files: u64,
+    window_secs: u64,
+) -> Option<(f64, f64)> {
+    if curr_untracked < PILE_ALERT_MIN_UNTRACKED || window_secs < PILE_ALERT_MIN_WINDOW_SECS {
+        return None;
+    }
+    let window_min = window_secs as f64 / 60.0;
+    let arrival_per_min = arrival_files as f64 / window_min;
+    let drain_per_min = drain_files as f64 / window_min;
+    if arrival_files > drain_files {
+        Some((arrival_per_min, drain_per_min))
+    } else {
+        None
+    }
 }
 
 /// Hard wall-clock cap for one classification job (filter-aware diff +
@@ -1166,14 +1295,14 @@ mod tests {
         // At pulse start neither result exists.
         let mut pending_since = HashMap::new();
         pending_since.insert(repo.clone(), Instant::now());
-        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
+        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results, &mut HashMap::new());
         assert!(results.is_empty());
         release.send(()).unwrap();
         finish_wait.await.unwrap();
         tokio::task::yield_now().await;
         // The per-repo boundary sees the result without waiting for the slow
         // classifier or a timer/next pulse, and retains empty success results.
-        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results);
+        collect_ready_classifications(&mut jobs, &mut pending, &mut pending_since, &mut results, &mut HashMap::new());
         assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
         // v0.113.65: collection also releases the watchdog timestamp.
@@ -2814,6 +2943,140 @@ mod tests {
         assert!(dispatch_starved(mins(3600), Some(mins(601))));
         // Boundary: exactly at threshold trips (>= semantics).
         assert!(dispatch_starved(mins(600), Some(mins(600))));
+    }
+
+    /// ADDED 2026-09-18 (v0.113.74, firehose fairness): the scan
+    /// must collect a ready status without waiting for a slow
+    /// repo's task. Fails on the pre-fix architecture (inline await
+    /// = head-of-line blocking); passes with pipelined collection.
+    #[tokio::test]
+    async fn test_status_pipeline_collects_ready_while_slow_pending() {
+        let fast_repo: PathBuf = "/tmp/fast-repo".into();
+        let slow_repo: PathBuf = "/tmp/slow-repo".into();
+        let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
+        let mut pending: HashSet<PathBuf> = HashSet::new();
+        let mut spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
+        let mut results: HashMap<
+            PathBuf,
+            (
+                Result<dracon_git::types::RepoStatus, anyhow::Error>,
+                Instant,
+            ),
+        > = HashMap::new();
+        let now = Instant::now();
+        // Fast repo: already-finished task. Slow repo: never-resolving
+        // task (stands in for a 20s libgit2 status on a giant pile).
+        let fast = fast_repo.clone();
+        jobs.push(tokio::spawn(async move {
+            (fast, Ok(dracon_git::types::RepoStatus::new()))
+        }));
+        pending.insert(fast_repo.clone());
+        spawned_at.insert(fast_repo.clone(), now);
+        let slow = slow_repo.clone();
+        jobs.push(tokio::spawn(async move {
+            futures::future::pending::<()>().await;
+            #[allow(unreachable_code)]
+            (slow, Ok(dracon_git::types::RepoStatus::new()))
+        }));
+        pending.insert(slow_repo.clone());
+        spawned_at.insert(slow_repo.clone(), now);
+        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        // Fast result collected immediately; slow repo still pending
+        // (its task untouched, still owned by the job set).
+        assert!(results.contains_key(&fast_repo));
+        assert!(!pending.contains(&fast_repo));
+        assert!(!results.contains_key(&slow_repo));
+        assert!(pending.contains(&slow_repo));
+        assert_eq!(jobs.len(), 1);
+    }
+
+    /// ADDED 2026-09-18 (v0.113.74): results older than 30s are
+    /// stale — but collection itself never drops (the boundary
+    /// decides). A fresh result is kept with its spawn instant.
+    #[tokio::test]
+    async fn test_status_pipeline_result_carries_spawn_instant() {
+        let repo: PathBuf = "/tmp/stale-repo".into();
+        let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
+        let mut pending: HashSet<PathBuf> = HashSet::new();
+        let mut spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
+        let mut results: HashMap<
+            PathBuf,
+            (
+                Result<dracon_git::types::RepoStatus, anyhow::Error>,
+                Instant,
+            ),
+        > = HashMap::new();
+        let old = Instant::now() - Duration::from_secs(45);
+        let r = repo.clone();
+        jobs.push(tokio::spawn(async move {
+            (r, Ok(dracon_git::types::RepoStatus::new()))
+        }));
+        pending.insert(repo.clone());
+        spawned_at.insert(repo.clone(), old);
+        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        let (_, at) = results.get(&repo).unwrap();
+        // The boundary's staleness check sees the 45s age and drops
+        // it (>= 30s max age) — the repo re-probes next cycle.
+        assert!(
+            Instant::now().saturating_duration_since(*at)
+                >= Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS)
+        );
+        // Reservation released even for stale results (no leak).
+        assert!(!pending.contains(&repo));
+    }
+
+    /// ADDED 2026-09-18 (v0.113.74, firehose fairness): backoff
+    /// matrix. Streak 1 preserves the old flat 1s (no behavior
+    /// change for the occasional timeout); repeat offenders scale
+    /// to the 5-min cap. Fails on the pre-fix flat-1s arm.
+    #[test]
+    fn test_classification_backoff_secs_matrix() {
+        assert_eq!(classification_backoff_secs(0), Duration::from_secs(1));
+        assert_eq!(classification_backoff_secs(1), Duration::from_secs(1));
+        assert_eq!(classification_backoff_secs(2), Duration::from_secs(2));
+        assert_eq!(classification_backoff_secs(3), Duration::from_secs(4));
+        assert_eq!(classification_backoff_secs(5), Duration::from_secs(16));
+        assert_eq!(classification_backoff_secs(9), Duration::from_secs(256));
+        assert_eq!(classification_backoff_secs(10), Duration::from_secs(300));
+        assert_eq!(classification_backoff_secs(100), Duration::from_secs(300));
+        assert_eq!(
+            CLASSIFICATION_BACKOFF_CAP_SECS, 300,
+            "cap is the documented 5-min bound"
+        );
+    }
+
+    /// ADDED 2026-09-18 (v0.113.74, firehose fairness): pile-rate
+    /// verdict matrix. Only a big AND net-growing pile pages, with
+    /// arrival-vs-drain rates for the message.
+    #[test]
+    fn test_pile_alert_due_matrix() {
+        // Small pile, however fast-growing: silent.
+        assert!(pile_alert_due(499, 1000, 0, 3600).is_none());
+        // Big pile but draining faster than arriving: silent.
+        assert!(pile_alert_due(800, 100, 500, 600).is_none());
+        // Big pile, balanced: silent.
+        assert!(pile_alert_due(800, 200, 200, 600).is_none());
+        // Window under a minute: silent (rates not yet meaningful).
+        assert!(pile_alert_due(800, 50, 0, 30).is_none());
+        // Big and growing: fires with per-minute rates.
+        let (arr, dr) = pile_alert_due(1200, 600, 60, 600).unwrap();
+        assert!((arr - 60.0).abs() < f64::EPSILON);
+        assert!((dr - 6.0).abs() < f64::EPSILON);
+    }
+
+    /// ADDED 2026-09-18 (v0.113.74): window accumulation. Positive
+    /// deltas feed arrival, negative feed drain, prev tracks curr.
+    #[test]
+    fn test_pile_watch_sample_accumulates_arrival_and_drain() {
+        let repo: PathBuf = "/tmp/pile-repo".into();
+        let mut watch: HashMap<PathBuf, (u64, u64, u64, Instant)> = HashMap::new();
+        let now = Instant::now();
+        let (c, a, d, _) = pile_watch_sample(&mut watch, &repo, 100, now);
+        assert_eq!((c, a, d), (100, 0, 0));
+        let (c, a, d, _) = pile_watch_sample(&mut watch, &repo, 350, now);
+        assert_eq!((c, a, d), (350, 250, 0));
+        let (c, a, d, _) = pile_watch_sample(&mut watch, &repo, 200, now);
+        assert_eq!((c, a, d), (200, 250, 150));
     }
 
     #[test]
@@ -5124,6 +5387,27 @@ pub(crate) async fn run_daemon(
     let mut last_dispatch: HashMap<PathBuf, Instant> = HashMap::new();
     let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
     let mut classification_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-09-18 (v0.113.74, firehose fairness): pipelined
+    // status inspection. At most one status task per repo; ready
+    // results collect at the repo boundary without blocking the
+    // scan, so a giant repo's multi-second status never
+    // head-of-line-blocks the repos behind it. Spawn instants back
+    // the 30s result-staleness bound.
+    let mut status_jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
+    let mut status_pending: HashSet<PathBuf> = HashSet::new();
+    let mut status_spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
+    let mut status_results: HashMap<
+        PathBuf,
+        (
+            Result<dracon_git::types::RepoStatus, anyhow::Error>,
+            Instant,
+        ),
+    > = HashMap::new();
+    // ADDED 2026-09-18 (v0.113.74, firehose fairness): per-repo
+    // pile window (prev untracked count, cumulative arrival/drain
+    // files, window start) backing the rate-aware pile alert.
+    // Pruned to the live activity set at persist time.
+    let mut pile_watch: HashMap<PathBuf, (u64, u64, u64, Instant)> = HashMap::new();
 
     // ── Startup cleanup: prune stale state from previous runs ──
     let (repo_set, _) = run_startup_cleanup(&policy_path).await;
@@ -5338,6 +5622,17 @@ pub(crate) async fn run_daemon(
             &mut classification_pending,
             &mut classification_pending_since,
             &mut classification_results,
+            &mut classification_failures,
+        );
+        // ADDED 2026-09-18 (v0.113.74, firehose fairness): collect
+        // ready status results at the same pulse boundary, so a
+        // status that finished while earlier repos were inspected
+        // is available without spending another pulse waiting.
+        collect_ready_status(
+            &mut status_jobs,
+            &mut status_pending,
+            &mut status_spawned_at,
+            &mut status_results,
         );
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
@@ -6072,15 +6367,64 @@ pub(crate) async fn run_daemon(
                 }
                 continue;
             }
-            let svc = match GitService::new(&repo) {
-                Ok(svc) => svc,
-                Err(e) => {
-                    eprintln!("⚠️ {} init_failed: {}", repo.display(), e);
+            // CHANGED 2026-09-18 (v0.113.74, firehose fairness):
+            // pipelined status inspection. The old code awaited
+            // `get_status()` inline, so one giant repo's multi-second
+            // status stalled every repo behind it in scan order.
+            // Now at most one status task runs per repo; this
+            // boundary only collects ready results. A repo with no
+            // ready result yet records a `status-pending` hold and is
+            // re-checked next cycle — the scan proceeds to the next
+            // repo immediately. Stale results (>30s old) are dropped
+            // and re-probed; task failures keep the old
+            // `status_failed` skip semantics.
+            if !status_pending.contains(&repo) && !status_results.contains_key(&repo) {
+                let repo_for_status = repo.clone();
+                status_pending.insert(repo.clone());
+                status_spawned_at.insert(repo.clone(), now);
+                status_jobs.push(tokio::spawn(async move {
+                    let outcome = match GitService::new(&repo_for_status) {
+                        Ok(svc) => svc
+                            .get_status()
+                            .await
+                            .map_err(|e| anyhow::anyhow!("{}", e)),
+                        Err(e) => Err(anyhow::anyhow!("{}", e)),
+                    };
+                    (repo_for_status, outcome)
+                }));
+            }
+            collect_ready_status(
+                &mut status_jobs,
+                &mut status_pending,
+                &mut status_spawned_at,
+                &mut status_results,
+            );
+            let Some((status_outcome, spawned)) = status_results.remove(&repo) else {
+                dispatch_holds
+                    .entry(repo.clone())
+                    .or_insert_with(|| ("status-pending".to_string(), now));
+                if debug_enabled() {
+                    eprintln!(
+                        "scheduler: skip repo={} reason=status-pending",
+                        repo.display()
+                    );
+                }
+                continue;
+            };
+            dispatch_holds.remove(&repo);
+            let stale = now.saturating_duration_since(spawned)
+                >= Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS);
+            let mut status = match status_outcome {
+                Ok(status) if !stale => status,
+                Ok(_) => {
+                    if debug_enabled() {
+                        eprintln!(
+                            "scheduler: skip repo={} reason=status-stale (re-probing)",
+                            repo.display()
+                        );
+                    }
                     continue;
                 }
-            };
-            let mut status = match svc.get_status().await {
-                Ok(status) => status,
                 Err(e) => {
                     eprintln!("⚠️ {} status_failed: {}", repo.display(), e);
                     continue;
@@ -6092,10 +6436,39 @@ pub(crate) async fn run_daemon(
                     "scheduler: status repo={} cycle_ms={} repo_ms={} dirty={} daemon_ms={}",
                     repo.display(),
                     cycle_started.elapsed().as_millis(),
-                    now.elapsed().as_millis(),
+                    now.saturating_duration_since(spawned).as_millis(),
                     !status.is_clean,
                     scheduler_epoch.elapsed().as_millis(),
                 );
+            }
+            // ADDED 2026-09-18 (v0.113.74, firehose fairness):
+            // rate-aware pile alert. Every collected status feeds the
+            // repo's arrival/drain window; when the pile is big and
+            // still growing net-positive, page with both rates so the
+            // operator sees whether the generator outruns the daemon.
+            // Firing resets the window — the next alert (if any)
+            // carries fresh rates. Throttled per repo (30 min).
+            let (curr, arrival, drain, since) =
+                pile_watch_sample(&mut pile_watch, &repo, status.untracked_files as u64, now);
+            let window_secs = now.saturating_duration_since(since).as_secs();
+            if let Some((arrival_per_min, drain_per_min)) =
+                pile_alert_due(curr, arrival, drain, window_secs)
+            {
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &format!("pile-rate-{}", repo.display()),
+                    Duration::from_secs(1800),
+                ) {
+                    crate::report::record_sync_alert(
+                        &repo,
+                        "Pile Growing",
+                        &format!(
+                            "{} untracked files (+{:.1}/min arrival vs {:.1}/min drain over {}s); generator outruns commits — throttle the producer or the pile keeps growing",
+                            curr, arrival_per_min, drain_per_min, window_secs,
+                        ),
+                    );
+                    pile_watch.insert(repo.clone(), (curr, 0, 0, now));
+                }
             }
 
             // ADDED 2026-09-18 (v0.113.69, commit-only steady-state
@@ -6237,6 +6610,7 @@ pub(crate) async fn run_daemon(
                 &mut classification_pending,
                 &mut classification_pending_since,
                 &mut classification_results,
+                &mut classification_failures,
             );
             // Fast path: skip expensive git diff calls for clean, synced repos.
             // Detailed classification is also needed for pending remote work.
@@ -6280,15 +6654,30 @@ pub(crate) async fn run_daemon(
                             classification_results.insert(repo.clone(), Ok(entries));
                         }
                         Err(e) => {
-                            classification_failures
+                            // CHANGED 2026-09-18 (v0.113.74, firehose
+                            // fairness): scale the re-probe cooldown
+                            // with consecutive failures (1s, 2s, 4s, …
+                            // capped at 5 min) instead of a flat 1s. A
+                            // giant repo whose diff always exceeds the
+                            // 30s job timeout respawned a fresh 30s job
+                            // every ~31s forever; now it backs off while
+                            // staying bounded (cap + success reset in
+                            // `collect_ready_classifications`).
+                            let failures = classification_failures
                                 .entry(repo.clone())
                                 .and_modify(|c| *c += 1)
                                 .or_insert(1);
+                            let backoff = classification_backoff_secs(*failures);
                             if !classification_pending.contains(&repo) {
-                                classification_cooldowns
-                                    .insert(repo.clone(), now + Duration::from_secs(1));
+                                classification_cooldowns.insert(repo.clone(), now + backoff);
                             }
-                            eprintln!("⚠️ {} classification failed: {}", repo.display(), e);
+                            eprintln!(
+                                "⚠️ {} classification failed (streak {}): {} — re-probe in {}s",
+                                repo.display(),
+                                failures,
+                                e,
+                                backoff.as_secs()
+                            );
                         }
                     }
                 }
@@ -7185,6 +7574,10 @@ pub(crate) async fn run_daemon(
         // here; only currently-held dirty repos persist.
         prune_repo_liveness(&mut dispatch_holds, &activity);
         prune_repo_liveness(&mut last_dispatch, &activity);
+        // ADDED 2026-09-18 (v0.113.74, firehose fairness): pile-watch
+        // windows follow the same activity-prune rule — a repo that
+        // went clean or succeeded restarts its rate window fresh.
+        prune_repo_liveness(&mut pile_watch, &activity);
         // ADDED 2026-09-18 (v0.113.68, watchdog audit): `quiet_evidence`
         // was removed only at the clean fast-path, so filter-clean and
         // vanished repos leaked entries (bounded by repo count, rebuilt
