@@ -14,7 +14,7 @@ fixed (v0.113.68); one earlier claim corrected.
 | `sync_workers: HashMap<AbortHandle>` | n/a (ownership, not suppression) | removed on both join paths | — | ✅ no leak |
 | `classification_pending` + `_since` | spawn gate (no result → no dispatch) | 30s job timeout + 90s pending watchdog + re-probe | `classification_job_done`, watchdog warn | ✅ bounded (v0.113.65) |
 | `classification_cooldowns` | spawn gate | 500ms–1s, then re-probe | skip reason | ✅ bounded |
-| `classification_results` | n/a (authorizes dispatch) | consumed at dispatch; staleness pass drops empty-dirty/failures | — | ✅ no leak (vanished-repo singletons bounded, benign) |
+| `classification_results` (+taken_at stamp) | n/a (authorizes dispatch) | consumed at dispatch; staleness pass drops empty-dirty/failures AND non-empty results past 120s max-age on dirty repos (`classification_stale_refresh` + 500ms re-probe) | stale-refresh line | ✅ bounded (v0.113.76 fixed the stale-result pin: kept 815-entry snapshot filter-clean-skipped real dirt 30+ min) |
 | `dispatch_holds` | n/a (observability) | pruned to live `activity` every cycle | snapshot file | ✅ self-cleaning (v0.113.67) |
 | `last_dispatch` | n/a (starvation alert input) | pruned to live `activity` every cycle | — | ✅ self-cleaning (v0.113.67) |
 | `quiet_evidence` | quiet-clock anchor | pruned to live `activity` every cycle | — | ✅ fixed v0.113.68 (was clean-path-only) |

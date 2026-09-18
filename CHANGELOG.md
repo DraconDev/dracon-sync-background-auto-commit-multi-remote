@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.76] - 2026-09-19
+
+### Fixed
+
+- **Stale classification-result pin**: a kept non-empty result could
+  describe a worktree that no longer exists, and the spawn gate
+  (which requires no result) then suppressed all future probes — the
+  repo filter-clean-skipped real dirt forever with zero further
+  output. Observed live: capture-anime-girls sat dirty 36 min on an
+  815-entry snapshot whose files were already gone (only
+  `tests/phase73.test.ts` remained, genuinely committable). Results
+  now carry their collect instant; a dirty repo's result past the
+  120s max age is dropped and re-probed (`classification_stale_refresh`
+  line + 500ms cooldown). Regressions:
+  `test_classification_result_expired_matrix`,
+  `test_stale_result_refresh_only_when_dirty_and_expired`.
+
 ## [0.113.75] - 2026-09-18
 
 ### Fixed
