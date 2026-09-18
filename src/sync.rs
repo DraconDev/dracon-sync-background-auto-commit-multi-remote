@@ -8854,10 +8854,10 @@ push_url = "http://127.0.0.1:{}/{}.git"
             },
         );
         assert_eq!(
-            paused_remote_names_incident(Some(&map), now),
+            paused_remote_names_incident(Some(&map), now, &|_| false),
             vec!["sick".to_string()]
         );
-        assert!(paused_remote_names_incident(None, now).is_empty());
+        assert!(paused_remote_names_incident(None, now, &|_| false).is_empty());
     }
 
     /// ADDED 2026-09-18 (v0.113.73, forge-degraded): under a declared
@@ -8877,7 +8877,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
             },
         );
         // Normal window (900s): 1800s ago is due.
-        assert!(paused_remote_names_incident(Some(&map), now).is_empty());
+        assert!(paused_remote_names_incident(Some(&map), now, &|_| false).is_empty());
         // Incident window (3600s): still paused.
         assert_eq!(
             paused_remote_names_incident(Some(&map), now, &|_| true),

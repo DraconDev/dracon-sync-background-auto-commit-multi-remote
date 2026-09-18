@@ -2870,14 +2870,14 @@ mod tests {
             last_attempt_unix: now - ago_secs,
         };
         // Healthy / few failures: push every cycle.
-        assert!(!mirror_push_paused_impl(&fail(0, 0), now));
-        assert!(!mirror_push_paused_impl(&fail(2, 10), now));
+        assert!(!mirror_push_paused_impl(&fail(0, 0), now, false));
+        assert!(!mirror_push_paused_impl(&fail(2, 10), now, false));
         // 3+ failures, recent attempt: paused.
-        assert!(mirror_push_paused_impl(&fail(3, 60), now));
-        assert!(mirror_push_paused_impl(&fail(9, 899), now));
+        assert!(mirror_push_paused_impl(&fail(3, 60), now, false));
+        assert!(mirror_push_paused_impl(&fail(9, 899), now, false));
         // 3+ failures, last attempt 15+ min ago: re-probe due.
-        assert!(!mirror_push_paused_impl(&fail(3, 900), now));
-        assert!(!mirror_push_paused_impl(&fail(9, 3600), now));
+        assert!(!mirror_push_paused_impl(&fail(3, 900), now, false));
+        assert!(!mirror_push_paused_impl(&fail(9, 3600), now, false));
         // Never attempted (synthetic guard entries): always due — the
         // guard's own exclusion governs those, not this gate.
         assert!(!mirror_push_paused_impl(
