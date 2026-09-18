@@ -108,6 +108,12 @@ pub(crate) fn forge_host_of_url(url: &str) -> Option<String> {
     if url.is_empty() {
         return None;
     }
+    // ext:: carries a shell command, not a host — check before the
+    // scheme test (`ext::ssh ...` has no `://` and would parse as an
+    // scp-like `ext` host).
+    if url.starts_with("ext::") {
+        return None;
+    }
     // scp-like syntax: [user@]host:path (but not C:\ windows paths —
     // irrelevant on this daemon's platforms, and a single-letter
     // "host" with a windows drive shape never matches a forge).
@@ -126,10 +132,6 @@ pub(crate) fn forge_host_of_url(url: &str) -> Option<String> {
     }
     // Scheme URLs: strip scheme, optional userinfo, then host[:port].
     let after_scheme = url.split("://").nth(1).unwrap_or("");
-    // ext:: carries a shell command, not a host.
-    if url.starts_with("ext::") {
-        return None;
-    }
     let authority = after_scheme
         .split('/')
         .next()
