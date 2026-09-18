@@ -2063,10 +2063,34 @@ async fn push_background(
     // `attempted` distinguishes "tried and failed" (PushFailed +
     // stuck-ledger write) from "paused, nothing attempted" (PushPaused).
     let now_unix = crate::policy::timestamp_secs();
+    // v0.113.73 forge-degraded: load declared incidents once per push
+    // (one small JSON read; pushes are rare) and stretch the re-probe
+    // for remotes hosted on incident forges (15 min -> 60 min).
+    let incident_hosts = crate::forge::forge_incident_hosts();
+    let origin_host = origin_url
+        .as_deref()
+        .and_then(crate::forge::forge_host_of_url);
+    let mirror_host = |name: &str| {
+        policy
+            .remotes
+            .iter()
+            .find(|r| r.name == name)
+            .and_then(|r| r.push_url.as_deref())
+            .and_then(crate::forge::forge_host_of_url)
+    };
+    let remote_host = |name: &str| {
+        if name == "origin" {
+            origin_host.clone()
+        } else {
+            mirror_host(name)
+        }
+    };
     let paused: std::collections::HashSet<String> =
-        paused_remote_names(remote_failures.as_deref(), now_unix)
-            .into_iter()
-            .collect();
+        paused_remote_names_incident(remote_failures.as_deref(), now_unix, &|name| {
+            remote_host(name).is_some_and(|h| incident_hosts.contains(&h))
+        })
+        .into_iter()
+        .collect();
     let mut attempted = false;
     if has_origin {
         // Skip origin if it points at github and the pack is too big for
@@ -2082,11 +2106,21 @@ async fn push_background(
                 .and_then(|rf| rf.get("origin"))
                 .map(|f| f.last_attempt_unix)
                 .unwrap_or(0);
+            // v0.113.73: stretched re-probe while the origin's host is
+            // under a declared incident (matches the gate window).
+            let origin_incident = origin_host
+                .as_deref()
+                .is_some_and(|h| incident_hosts.contains(h));
+            let window = if origin_incident {
+                crate::forge::FORGE_INCIDENT_REPROBE_SECS
+            } else {
+                crate::daemon::MIRROR_PAUSE_REPROBE_SECS
+            };
             eprintln!(
                 "⏸️ {} origin push paused ({} consecutive fails, re-probe in {}s) — healthy mirrors still push",
                 repo.display(),
                 consecutive,
-                900u64.saturating_sub(now_unix.saturating_sub(last)),
+                window.saturating_sub(now_unix.saturating_sub(last)),
             );
         } else if too_big_for_github && origin_is_github {
             if !github_already_flagged {
