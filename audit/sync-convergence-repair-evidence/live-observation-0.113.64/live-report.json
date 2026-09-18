@@ -810,6 +810,19 @@
         "committed": 79,
         "synced": 83
       }
+    },
+    {
+      "observed_at_unix": 1789697297.8904295,
+      "committed_ub_after_write_s": 27.3,
+      "pushed_github_ub_after_write_s": 28.6,
+      "pushed_gitlab_ub_after_write_s": 30.2,
+      "commit_rev": "b2bed65a7eb5",
+      "github_tip": "a86c9cd14daf",
+      "gitlab_tip": "a86c9cd14daf",
+      "journal": {
+        "committed": 83,
+        "synced": 83
+      }
     }
   ],
   "probe_events": [
