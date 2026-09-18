@@ -1,0 +1,13 @@
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (2 consecutive failures), retrying push after 603s
+⚠️ push failed for /tmp/scope-demo/repos/demo-repo (remotes: origin)
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (3 consecutive failures), retrying push after 903s
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (3 consecutive failures), retrying push after 904s
+⚠️ push failed for /tmp/scope-demo/repos/demo-repo (remotes: origin)
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (4 consecutive failures), retrying push after 1204s
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (4 consecutive failures), retrying push after 1205s
+⚠️ push failed for /tmp/scope-demo/repos/demo-repo (remotes: origin)
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (5 consecutive failures), retrying push after 1505s
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (5 consecutive failures), retrying push after 1506s
+⏸️ /tmp/scope-demo/repos/demo-repo origin push paused (3 consecutive fails, re-probe in 599s) — healthy mirrors still push
+⏸️ /tmp/scope-demo/repos/demo-repo committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+[{'path': '/tmp/scope-demo/repos/demo-repo', 'stuck_since': 1789749287, 'consecutive_failures': 5, 'last_error': 'git push returned non-zero (remotes: origin) — transport/auth failure (network, timeout, or credentials)', 'last_error_at': 1789750492, 'last_retry_at': 1789750793}]
