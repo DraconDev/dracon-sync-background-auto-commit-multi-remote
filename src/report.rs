@@ -1143,6 +1143,55 @@ pub(crate) enum RepoFilter {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// ADDED 2026-09-18 (v0.113.67): remote-divergence detection. Extract the
+/// `host/path` identity from each remote URL so `repair concerns` can warn
+/// when one repo's remotes point at differently-named forge projects
+/// (live case: doomtap's `origin` → `web-games-doomtap` while `github` +
+/// `gitlab` → `doomtap`). Returns `(host, slug)` lowercased for
+/// comparison; `None` when the URL shape is unrecognized (never warn on
+/// parse failure — detection must not cry wolf on exotic remotes).
+fn remote_project_identity(url: &str) -> Option<(String, String)> {
+    let url = url.trim().trim_end_matches('/');
+    let url = url.strip_suffix(".git").unwrap_or(url);
+    // scp-like `git@host:path` vs URL `scheme://host/path`.
+    let (host, path) = if let Some(after_at) = url.split('@').next_back()
+        && let Some(colon) = after_at.find(':')
+        && !after_at[..colon].contains('/')
+    {
+        let (h, p) = after_at.split_at(colon);
+        (h, p[1..].to_string())
+    } else if let Some(after_scheme) = url.split("://").nth(1) {
+        match after_scheme.find('/') {
+            Some(i) => (&after_scheme[..i], after_scheme[i + 1..].to_string()),
+            None => return None,
+        }
+    } else {
+        return None;
+    };
+    let host = host.to_lowercase();
+    let slug = path.trim_matches('/').to_lowercase();
+    if host.is_empty() || slug.is_empty() {
+        return None;
+    }
+    Some((host, slug))
+}
+
+/// True when the repo's remotes name at least two distinct forge projects
+/// on the SAME host (cross-host mirrors trivially differ — github vs
+/// gitlab is the design, not drift). Same-host, different-slug is the
+/// stale-remote signature. Pure helper for test.
+fn remote_slug_diverged(named_urls: &[(String, String)]) -> bool {
+    use std::collections::{HashMap, HashSet};
+    let mut by_host: HashMap<String, HashSet<String>> = HashMap::new();
+    for (name, url) in named_urls {
+        let _ = name;
+        if let Some((host, slug)) = remote_project_identity(url) {
+            by_host.entry(host).or_default().insert(slug);
+        }
+    }
+    by_host.values().any(|slugs| slugs.len() > 1)
+}
+
 pub(crate) enum ConcernRepairFilter {
     All,
     StuckPush,
