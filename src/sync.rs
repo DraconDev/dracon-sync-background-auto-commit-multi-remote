@@ -1939,6 +1939,54 @@ pub(crate) enum PushReport {
     AllPaused,
 }
 
+/// Observe transient-class failures attempted THIS round (v0.113.73
+/// forge-degraded): for each remote attempted since `round_start_unix`
+/// whose recorded error is transient-class, resolve its forge host and
+/// record a hit. Returns nothing; declaration alerts fire inline (once
+/// per incident via the edge latch). Unattributable remotes (local
+/// paths, unparseable URLs) are skipped — they can never corroborate
+/// a forge incident. Stale entries (attempts from prior rounds) are
+/// excluded by the recency filter: only same-or-later-second stamps
+/// count, and two workers for one repo can never share a second
+/// (in_flight reservation).
+fn observe_round_transient_hits(
+    repo: &std::path::Path,
+    remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
+    round_start_unix: u64,
+    host_of: &dyn Fn(&str) -> Option<String>,
+) {
+    let Some(rf) = remote_failures else {
+        return;
+    };
+    let now_unix = crate::policy::timestamp_secs();
+    let repo_str = repo.to_string_lossy().into_owned();
+    for (name, info) in rf.iter() {
+        if info.last_attempt_unix < round_start_unix {
+            continue;
+        }
+        if !crate::git::is_transient_forge_outage(&info.last_error) {
+            continue;
+        }
+        let Some(host) = host_of(name) else {
+            continue;
+        };
+        if crate::forge::observe_forge_hit(&host, &repo_str, now_unix) {
+            eprintln!(
+                "🔥 forge incident declared: {} (transient failures corroborated across repos) — per-repo push alerts coalesced, sick-remote re-probes stretched to 1h",
+                host
+            );
+            crate::report::record_sync_alert(
+                repo,
+                "Forge Incident Declared",
+                &format!(
+                    "{}: transient forge-side failures corroborated across repos; per-repo push alerts coalesced until recovery",
+                    host
+                ),
+            );
+        }
+    }
+}
+
 /// Names of remotes currently under the per-remote pause gate (pure,
 /// for test + shared by the origin gate and the mirror exclude list).
 /// Skipped remotes must NOT refresh `last_attempt_unix` — only a real
@@ -2334,6 +2382,9 @@ async fn push_background(
         if !attempted && paused_configured {
             return Ok(PushReport::AllPaused);
         }
+        // v0.113.73: observe this round's transient hits BEFORE
+        // returning (AllPaused attempted nothing — nothing to observe).
+        observe_round_transient_hits(repo, remote_failures.as_deref(), now_unix, &remote_host);
         return Ok(PushReport::Attempted { ok, degraded });
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
@@ -2341,6 +2392,7 @@ async fn push_background(
     if !attempted && has_origin && paused.contains("origin") {
         return Ok(PushReport::AllPaused);
     }
+    observe_round_transient_hits(repo, remote_failures.as_deref(), now_unix, &remote_host);
     Ok(PushReport::Attempted {
         ok: !origin_failed,
         degraded: false,

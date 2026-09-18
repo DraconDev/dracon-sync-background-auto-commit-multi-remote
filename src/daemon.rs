@@ -1004,7 +1004,7 @@ pub(crate) struct RemoteFailInfo {
 /// Never-attempted entries (last_attempt_unix = 0) are always due.
 /// Pure helper for test.
 const MIRROR_PAUSE_CONSECUTIVE: usize = 3;
-const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
+pub(crate) const MIRROR_PAUSE_REPROBE_SECS: u64 = 900;
 
 pub(crate) fn mirror_push_paused(fail: &RemoteFailInfo, now_unix: u64) -> bool {
     mirror_push_paused_impl(fail, now_unix, false)
