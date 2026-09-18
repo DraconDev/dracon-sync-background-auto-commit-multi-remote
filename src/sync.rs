@@ -2118,13 +2118,17 @@ async fn push_background(
     let origin_host = origin_url
         .as_deref()
         .and_then(crate::forge::forge_host_of_url);
+    let repo_name = repo
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
     let mirror_host = |name: &str| {
         policy
             .remotes
             .iter()
             .find(|r| r.name == name)
-            .and_then(|r| r.push_url.as_deref())
-            .and_then(crate::forge::forge_host_of_url)
+            .map(|r| r.resolve_push_url(&repo_name))
+            .and_then(|url| crate::forge::forge_host_of_url(&url))
     };
     let remote_host = |name: &str| {
         if name == "origin" {
