@@ -1084,7 +1084,7 @@ mod tests {
         assert!(results.get(&repo).unwrap().as_ref().unwrap().is_empty());
         assert!(!pending.contains(&repo));
         // v0.113.65: collection also releases the watchdog timestamp.
-        assert!(!pending_since.contains(&repo));
+        assert!(!pending_since.contains_key(&repo));
         assert_eq!(pending.len(), 1);
         assert_eq!(jobs.len(), 1);
         slow_abort.abort();

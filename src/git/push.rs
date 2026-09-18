@@ -596,8 +596,7 @@ mod tests {
         let hook = "! [remote rejected] HEAD -> main (pre-receive hook declined)";
         assert!(!is_transient_forge_outage(hook));
         assert!(classify_push_failure(hook).contains("server-side policy"));
-        let prot =
-            "remote: error: GH006: Protected branch update failed for main.";
+        let prot = "remote: error: GH006: Protected branch update failed for main.\n! [remote rejected] main -> main (protected branch hook declined)";
         assert!(!is_transient_forge_outage(prot));
         assert!(classify_push_failure(prot).contains("server-side policy"));
     }
