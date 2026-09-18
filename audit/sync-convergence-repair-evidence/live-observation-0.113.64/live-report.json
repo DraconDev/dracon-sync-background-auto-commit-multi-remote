@@ -498,6 +498,19 @@
         "committed": 31,
         "synced": 34
       }
+    },
+    {
+      "observed_at_unix": 1789697051.9390411,
+      "committed_ub_after_write_s": 27.3,
+      "pushed_github_ub_after_write_s": 28.6,
+      "pushed_gitlab_ub_after_write_s": 30.2,
+      "commit_rev": "b2bed65a7eb5",
+      "github_tip": "cb59879191ec",
+      "gitlab_tip": "cb59879191ec",
+      "journal": {
+        "committed": 34,
+        "synced": 35
+      }
     }
   ],
   "probe_events": [
@@ -2980,6 +2993,463 @@
           },
           {
             "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+            "state": "dirty",
+            "dirty": 1,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-utilities",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/.dracon/convos",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/db-gateway",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+            "state": "idle",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+            "state": "committing",
+            "dirty": 8,
+            "excluded_dirty": 0,
+            "ahead": 3,
+            "behind": 0,
+            "push": "PUSH_STUCK",
+            "push_error": "git push returned non-zero (remotes: origin) \u2014 server-side policy rejection (protected branch / hook declined / missing repo / lost key)",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-strategy",
+            "state": "idle",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+            "state": "idle",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+            "state": "idle",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/warden-vid",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/pi-plugins",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+            "state": "cold",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "observed_at_unix": 1789697051.9390411,
+      "phase": "minute",
+      "inventory": {
+        "row_count": 32,
+        "rows": [
+          {
+            "repo": "/home/dracon/Dev/browser-extensions-shared",
+            "state": "dirty",
+            "dirty": 1,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+            "state": "dirty",
+            "dirty": 1,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/.dracon",
+            "state": "dirty",
+            "dirty": 1,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+            "state": "working",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+            "state": "synced",
+            "dirty": 0,
+            "excluded_dirty": 0,
+            "ahead": 0,
+            "behind": 0,
+            "push": "OK",
+            "push_error": "",
+            "remotes": [
+              "github",
+              "gitlab"
+            ]
+          },
+          {
+            "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
             "state": "dirty",
             "dirty": 1,
             "excluded_dirty": 0,
