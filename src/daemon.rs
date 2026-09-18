@@ -120,9 +120,9 @@ fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> boo
         >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
 }
 
-/// ADDED 2026-09-18 (v0.113.67): dispatch-starvation signal. A repo that is
-dirty but undispatched must page with its hold reason instead of sitting
-/// silent (2026-09-18: 157 dirty scans / 16.5 min, zero log output). Pure
+/// ADDED 2026-09-18 (v0.113.67): dispatch-starvation signal. A repo that
+/// is dirty but undispatched must page with its hold reason instead of
+/// sitting silent (2026-09-18: 157 dirty scans / 16.5 min, zero output). Pure
 /// decision helper for test: `dirty_since_age` is how long the repo has
 /// been continuously dirty, `last_dispatch_age` is time since its last
 /// successful reservation (`None` = never dispatched this lifetime).
@@ -4794,6 +4794,15 @@ pub(crate) async fn run_daemon(
     // means the result path desynced; the watchdog drops it and the
     // gate re-probes instead of suppressing the repo forever.
     let mut classification_pending_since: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-09-18 (v0.113.67): dispatch-hold snapshot + last-dispatch
+    // liveness. `dispatch_holds` records (reason, since) at each silent
+    // skip site so the per-cycle snapshot file and the starved alert can
+    // name the hold; `last_dispatch` stamps every successful reservation
+    // so steady-but-slow repos never trip the starvation alert. Both are
+    // pruned to the live `activity` set at persist time (see
+    // `prune_repo_liveness`).
+    let mut dispatch_holds: HashMap<PathBuf, (String, Instant)> = HashMap::new();
+    let mut last_dispatch: HashMap<PathBuf, Instant> = HashMap::new();
     let mut classification_failures: HashMap<PathBuf, usize> = HashMap::new();
     let mut classification_cooldowns: HashMap<PathBuf, Instant> = HashMap::new();
 
