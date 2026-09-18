@@ -380,6 +380,14 @@ pub(crate) fn is_transient_forge_outage(err_msg: &str) -> bool {
         // wedged push still escalates to the operator.
         || lower.contains("push operation timed out")
         || lower.contains("operation timed out")
+        // ADDED 2026-09-18 (v0.113.73): git's own HTTP-transport
+        // message for forge 5xx ("The requested URL returned error:
+        // 503") — previously only spelled-out phrases matched, so a
+        // 5xx with an empty body fell through to transport/auth.
+        || lower.contains("returned error: 500")
+        || lower.contains("returned error: 502")
+        || lower.contains("returned error: 503")
+        || lower.contains("returned error: 504")
         || lower.contains("error 520")
         || lower.contains("error 522")
         || lower.contains("error 524")
