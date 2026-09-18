@@ -370,6 +370,16 @@ pub(crate) fn is_transient_forge_outage(err_msg: &str) -> bool {
         || lower.contains("service unavailable")
         || lower.contains("temporarily unavailable")
         || lower.contains("try again later")
+        // ADDED 2026-09-18 (v0.113.66): GitLab server-side push timeout
+        // ("remote: GitLab: Push operation timed out") seen live on
+        // web-games-endless-td during the same Gitaly degradation that
+        // produced doomtap's Gitaly-unavailable. The forge gave up on
+        // ITS side — retryable, not a rule decision. Deliberately NOT
+        // matching bare client-side timeouts ("connection timed out",
+        // our own op-timeout kills): those still count, so a locally
+        // wedged push still escalates to the operator.
+        || lower.contains("push operation timed out")
+        || lower.contains("operation timed out")
         || lower.contains("error 520")
         || lower.contains("error 522")
         || lower.contains("error 524")
@@ -583,6 +593,20 @@ mod tests {
         assert!(is_transient_forge_outage(msg));
         let class = classify_push_failure(msg);
         assert!(class.contains("forge-side outage"), "got: {}", class);
+    }
+
+    #[test]
+    fn test_transient_forge_outage_gitlab_push_timeout() {
+        // Live 2026-09-18: web-games-endless-td gitlab push failed with
+        // a server-side timeout during the Gitaly degradation. Retryable
+        // infra, not a rule — must not burn the stuck budget.
+        let msg = "git push-to-gitlab failed with status exit status: 1: remote: GitLab: Push operation timed out\nerror: failed to push some refs";
+        assert!(is_transient_forge_outage(msg));
+        assert!(classify_push_failure(msg).contains("forge-side outage"));
+        // Bare client-side timeouts still count (local wedge must
+        // escalate, not retry silently forever).
+        assert!(!is_transient_forge_outage("Connection timed out"));
+        assert!(!is_transient_forge_outage("op timed out after 300s"));
     }
 
     #[test]

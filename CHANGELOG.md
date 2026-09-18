@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **Transient outage: GitLab server-side push timeouts**: extended
+  `is_transient_forge_outage` with `push operation timed out` /
+  `operation timed out` after `web-games-endless-td` burned its stuck
+  budget on `remote: GitLab: Push operation timed out` during the same
+  Gitaly degradation. Bare client-side timeouts (`connection timed out`,
+  op-timeout kills) deliberately still count so a locally wedged push
+  escalates instead of retrying silently forever.
+
 ## [0.113.65] - 2026-09-18
 
 ### Fixed
