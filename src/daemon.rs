@@ -2674,6 +2674,55 @@ mod tests {
     }
 
     #[test]
+    fn test_dispatch_starved_needs_dirty_and_no_dispatch() {
+        let mins = Duration::from_secs;
+        // Fresh dirt: never starved, dispatched or not.
+        assert!(!dispatch_starved(mins(60), None));
+        assert!(!dispatch_starved(mins(60), Some(mins(3600))));
+        // Old dirt with a recent dispatch (steady-but-slow repo): not
+        // starved. This is the ai-auto-writer case (dispatches ~1/min
+        // while dirt never fully drains) — must not page.
+        assert!(!dispatch_starved(mins(3600), Some(mins(60))));
+        // Old dirt, never dispatched: starved (the 2026-09-18 16-min
+        // dracon-platform window pages at the 10-min mark).
+        assert!(dispatch_starved(mins(601), None));
+        // Old dirt, last dispatch also old: starved.
+        assert!(dispatch_starved(mins(3600), Some(mins(601))));
+        // Boundary: exactly at threshold trips (>= semantics).
+        assert!(dispatch_starved(mins(600), Some(mins(600))));
+    }
+
+    #[test]
+    fn test_prune_repo_liveness_drops_dead_repos() {
+        use std::collections::HashSet;
+        let live: PathBuf = "/tmp/live-repo".into();
+        let dead: PathBuf = "/tmp/dead-repo".into();
+        let now = Instant::now();
+        let mut holds: HashMap<PathBuf, (String, Instant)> = HashMap::new();
+        holds.insert(live.clone(), ("in-flight".to_string(), now));
+        holds.insert(dead.clone(), ("filter-clean".to_string(), now));
+        let mut dispatches: HashMap<PathBuf, Instant> = HashMap::new();
+        dispatches.insert(live.clone(), now);
+        dispatches.insert(dead.clone(), now);
+        let mut activity: HashMap<PathBuf, RepoActivity> = HashMap::new();
+        activity.insert(
+            live.clone(),
+            RepoActivity {
+                last_seen: now,
+                changed_at: now,
+                dirty_since: Some(now),
+                ..Default::default()
+            },
+        );
+        prune_repo_liveness(&mut holds, &activity);
+        prune_repo_liveness(&mut dispatches, &activity);
+        assert!(holds.contains_key(&live));
+        assert!(!holds.contains_key(&dead));
+        assert!(dispatches.contains_key(&live));
+        assert!(!dispatches.contains_key(&dead));
+    }
+
+    #[test]
     fn test_record_push_success_clears_entry() {
         // See `test_record_push_failure_increments_counter`
         // for the rationale on using a temp state dir.
