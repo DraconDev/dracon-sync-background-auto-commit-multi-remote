@@ -2696,7 +2696,6 @@ mod tests {
 
     #[test]
     fn test_prune_repo_liveness_drops_dead_repos() {
-        use std::collections::HashSet;
         let live: PathBuf = "/tmp/live-repo".into();
         let dead: PathBuf = "/tmp/dead-repo".into();
         let now = Instant::now();
@@ -6861,7 +6860,7 @@ pub(crate) async fn run_daemon(
         // here; only currently-held dirty repos persist.
         prune_repo_liveness(&mut dispatch_holds, &activity);
         prune_repo_liveness(&mut last_dispatch, &activity);
-        save_dispatch_holds(&dispatch_holds, now);
+        save_dispatch_holds(&dispatch_holds, Instant::now());
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.
