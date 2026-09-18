@@ -8687,6 +8687,56 @@ pub(crate) async fn nested_repo_untracked_count(repo: &Path) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn test_remote_project_identity_shapes() {
+        // scp-like SSH.
+        assert_eq!(
+            remote_project_identity("git@gitlab.com:DraconDev/web-games-doomtap.git"),
+            Some(("gitlab.com".to_string(), "dracondev/web-games-doomtap".to_string()))
+        );
+        // Plain https.
+        assert_eq!(
+            remote_project_identity("https://github.com/DraconDev/doomtap.git"),
+            Some(("github.com".to_string(), "dracondev/doomtap".to_string()))
+        );
+        // Case-insensitive comparison input (DraconDev vs dracondev).
+        assert_eq!(
+            remote_project_identity("git@github.com:DraconDev/Doomtap.git"),
+            remote_project_identity("git@github.com:dracondev/doomtap.git")
+        );
+        // Unrecognized shapes never warn.
+        assert_eq!(remote_project_identity("/srv/local/repo"), None);
+        assert_eq!(remote_project_identity("git@github.com:"), None);
+        assert_eq!(remote_project_identity(""), None);
+    }
+
+    #[test]
+    fn test_remote_slug_diverged_doomtap_case() {
+        // Live 2026-09-18: origin names the stale project while github +
+        // gitlab agree on the live one — same-host divergence must fire.
+        let urls = vec![
+            ("origin".to_string(), "git@gitlab.com:DraconDev/web-games-doomtap.git".to_string()),
+            ("github".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
+            ("gitlab".to_string(), "git@gitlab.com:DraconDev/doomtap.git".to_string()),
+        ];
+        assert!(remote_slug_diverged(&urls));
+        // Healthy mirrors: same slug everywhere (case drift OK).
+        let healthy = vec![
+            ("origin".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
+            ("github".to_string(), "git@github.com:dracondev/doomtap.git".to_string()),
+            ("gitlab".to_string(), "git@gitlab.com:DraconDev/doomtap.git".to_string()),
+        ];
+        assert!(!remote_slug_diverged(&healthy));
+        // Cross-host difference alone is the mirror design, not drift.
+        let cross_host = vec![
+            ("github".to_string(), "git@github.com:DraconDev/doomtap.git".to_string()),
+            ("gitlab".to_string(), "git@gitlab.com:DraconDev/other.git".to_string()),
+        ];
+        assert!(!remote_slug_diverged(&cross_host));
+        // Single remote / unparseable: never warn.
+        assert!(!remote_slug_diverged(&[("origin".to_string(), "/srv/x".to_string())]));
+        assert!(!remote_slug_diverged(&[]));
+    }
     use crate::policy::{
         default_auto_resolve_unmerged, default_push_debounce_secs, default_untracked_warn_threshold,
     };
