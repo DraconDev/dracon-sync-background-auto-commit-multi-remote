@@ -226,7 +226,7 @@ pub(crate) fn forge_incident_covers_repo(repo: &str) -> bool {
     let mut latest: Option<(&String, u64)> = None;
     for (host, entry) in health.hosts.iter() {
         for hit in entry.hits.iter() {
-            if hit.repo == repo && latest.map_or(true, |(_, at)| hit.at_unix >= at) {
+            if hit.repo == repo && latest.is_none_or(|(_, at)| hit.at_unix >= at) {
                 latest = Some((host, hit.at_unix));
             }
         }

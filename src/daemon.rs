@@ -2886,7 +2886,8 @@ mod tests {
                 last_error: String::new(),
                 last_attempt_unix: 0,
             },
-            now
+            now,
+            false
         ));
     }
 
