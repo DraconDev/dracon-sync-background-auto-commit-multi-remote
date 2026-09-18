@@ -1917,9 +1917,22 @@ fn github_mirror_matches_origin(origin_url: Option<&str>, github_url: Option<&st
 /// paused by the per-remote gate — zero network attempts, zero
 /// failure records. Callers map `AllPaused` to `SyncOutcome::PushPaused`
 /// (no failure count, no stuck-ledger write), never to PushFailed.
+/// KNOWN 2026-09-18 (v0.113.69, observed live): per-remote counters
+/// live in the activity entry, so a repo-level unstuck (healthy-mirror
+/// success clears the ledger) drops the sick remote's pause memory —
+/// the next cycle re-attempts it once (consecutive=1) before the pause
+/// re-arms at 3. Steady state for one-sick/one-healthy is a ~15-min
+/// oscillation; commits flow throughout. Durable per-forge memory
+/// belongs to forge-degraded mode (full-program P1-4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PushReport {
-    Attempted(bool),
+    /// `ok` = every ATTEMPTED push succeeded. `degraded` = at least one
+    /// configured remote was pause-skipped (v0.113.72): progress was
+    /// made on the healthy legs, but a sick remote is still paused —
+    /// callers map `ok+degraded` to PushPaused with NO ledger touch
+    /// (no success-clear: that would drop the activity entry and wipe
+    /// the sick remote's pause memory, re-hammering it next cycle).
+    Attempted { ok: bool, degraded: bool },
     AllPaused,
 }
 
@@ -2219,7 +2232,11 @@ async fn push_background(
         // clear only their own entries via `aggregate_push_results`.
         let mut paused_mirror_count = 0usize;
         for name in &paused {
-            if name != "origin" && !combined_exclude.iter().any(|e| e == name) {
+            // Only CONFIGURED mirrors count (stale entries for
+            // decommissioned remotes linger in the map but are not
+            // pushed anyway — skipping them is not a degradation).
+            let configured = policy.remotes.iter().any(|r| &r.name == name);
+            if configured && name != "origin" && !combined_exclude.iter().any(|e| e == name) {
                 if debug_enabled() {
                     eprintln!(
                         "🐛 {} mirror '{}' paused (per-remote gate), skipping this cycle",
@@ -2258,17 +2275,26 @@ async fn push_background(
         // legacy path (they linger until overwritten, never cleared).
         let paused_configured = (has_origin && paused.contains("origin"))
             || policy.remotes.iter().any(|r| paused.contains(&r.name));
+        // v0.113.72 degraded: a CONFIGURED remote was pause-skipped AND
+        // at least one leg was attempted. Progress on healthy remotes
+        // must read as neither full success (that clears pause memory)
+        // nor failure.
+        let degraded = paused_configured
+            && (paused_mirror_count > 0 || (has_origin && paused.contains("origin")));
         if !attempted && paused_configured {
             return Ok(PushReport::AllPaused);
         }
-        return Ok(PushReport::Attempted(ok));
+        return Ok(PushReport::Attempted { ok, degraded });
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
     // false when origin failed (mirrors may still have succeeded).
     if !attempted && has_origin && paused.contains("origin") {
         return Ok(PushReport::AllPaused);
     }
-    Ok(PushReport::Attempted(!origin_failed))
+    Ok(PushReport::Attempted {
+        ok: !origin_failed,
+        degraded: false,
+    })
 }
 
 /// Aggregate actual attempt results before converting errors to report text.
@@ -4217,7 +4243,10 @@ async fn stage_commit_and_push(
         // it bypassed the failure-tracking needed by callers like
         // `test_sync_repo_mirror_push_failure_second`.
         match push_background(repo, policy, has_origin, ctx.remote_failures.as_deref_mut()).await {
-            Ok(PushReport::Attempted(true)) => {
+            Ok(PushReport::Attempted {
+                ok: true,
+                degraded: false,
+            }) => {
                 if let Err(e) = crate::daemon::refresh_publish_upstream(repo, policy).await {
                     // The publish upstream config is already set by
                     // `configure_publish_upstream_if_missing` and surfaces
@@ -4240,10 +4269,20 @@ async fn stage_commit_and_push(
             // v0.113.69: every remote individually paused — the commit
             // above already landed. No failure, no ledger write; the
             // caller maps this to `SyncOutcome::PushPaused`.
-            Ok(PushReport::AllPaused) => {
+            // v0.113.72 degraded: healthy legs converged but a sick
+            // remote is still paused — same treatment (no success-
+            // clear, no failure burn; pause memory retained).
+            Ok(PushReport::Attempted {
+                ok: true,
+                degraded: true,
+            })
+            | Ok(PushReport::AllPaused) => {
                 return Ok(Some(SyncOutcome::PushPaused));
             }
-            Ok(PushReport::Attempted(false)) => {
+            Ok(PushReport::Attempted {
+                ok: false,
+                degraded: _,
+            }) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error so
                 // the repos HINT says WHICH forge is failing.
@@ -4947,8 +4986,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
             // stage cooldown (unlike FilterOnly below), so commits
             // keep flowing every cycle until the push is unpaused.
             PushReport::AllPaused => return Ok(SyncOutcome::PushPaused),
-            PushReport::Attempted(false) => return Ok(SyncOutcome::PushFailed),
-            PushReport::Attempted(true) => {}
+            PushReport::Attempted { ok: false, .. } => return Ok(SyncOutcome::PushFailed),
+            PushReport::Attempted { ok: true, .. } => {}
         }
         if debug_enabled() {
             eprintln!(
@@ -4987,8 +5026,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
             // with no failure recorded; attempted-failure stays PushFailed.
             return Ok(match handle_ahead_push(&mut ctx, &svc).await? {
                 PushReport::AllPaused => SyncOutcome::BackstopSkipped,
-                PushReport::Attempted(true) => SyncOutcome::BackstopSkipped,
-                PushReport::Attempted(false) => SyncOutcome::PushFailed,
+                PushReport::Attempted { ok: true, .. } => SyncOutcome::BackstopSkipped,
+                PushReport::Attempted { ok: false, .. } => SyncOutcome::PushFailed,
             });
         }
         // When `auto_stage_untracked = false`, we need to know which
@@ -5144,8 +5183,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // v0.113.69: nothing attempted, nothing failed — retain
         // activity, record nothing.
         PushReport::AllPaused => Ok(SyncOutcome::PushPaused),
-        PushReport::Attempted(false) => Ok(SyncOutcome::PushFailed),
-        PushReport::Attempted(true) => Ok(SyncOutcome::NothingToDo),
+        PushReport::Attempted { ok: false, .. } => Ok(SyncOutcome::PushFailed),
+        // Degraded (ok + pause-skips) maps to PushPaused here:
+        // progress on healthy legs, sick remote still paused — retain
+        // activity + pause memory, write no ledger entry either way.
+        PushReport::Attempted {
+            ok: true,
+            degraded: true,
+        } => Ok(SyncOutcome::PushPaused),
+        PushReport::Attempted {
+            ok: true,
+            degraded: false,
+        } => Ok(SyncOutcome::NothingToDo),
     }
 }
 
@@ -5296,18 +5345,37 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
         )
         .await
         {
-            Ok(PushReport::Attempted(true)) => {
+            Ok(PushReport::Attempted {
+                ok: true,
+                degraded: false,
+            }) => {
                 crate::daemon::record_push_success(ctx.repo);
                 // ADDED 2026-07-26 (v0.113.1): refresh the upstream
                 // tracking ref so a stale `origin/main` doesn't
                 // report ahead>0 forever after the push is done.
                 refresh_stale_upstream_ref(ctx.repo).await;
             }
+            // v0.113.72 degraded: healthy legs converged but a sick
+            // remote is still paused. Record NOTHING — no success
+            // (that would clear the ledger and drop the activity
+            // entry, wiping the sick remote's pause memory), no
+            // failure (zero attempts failed). Propagate as AllPaused
+            // so the caller maps it to PushPaused (retains activity
+            // + frozen pause counters, no cooldown).
+            Ok(PushReport::Attempted {
+                ok: true,
+                degraded: true,
+            }) => {
+                return Ok(PushReport::AllPaused);
+            }
             // v0.113.69: propagate — zero attempts is not a failure.
             Ok(PushReport::AllPaused) => {
                 return Ok(PushReport::AllPaused);
             }
-            Ok(PushReport::Attempted(false)) => {
+            Ok(PushReport::Attempted {
+                ok: false,
+                degraded: _,
+            }) => {
                 // CHANGED 2026-07-21 (v0.112.31, audit M1/F3.9):
                 // name the failing remotes in the ledger error.
                 let names = failing_remote_names(ctx.remote_failures.as_deref());
@@ -5329,7 +5397,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                 // propagate the failure so the caller returns
                 // `SyncOutcome::PushFailed` instead of `NothingToDo`
                 // (which the apply phase treated as success).
-                return Ok(PushReport::Attempted(false));
+                return Ok(PushReport::Attempted {
+                        ok: false,
+                        degraded: false,
+                    });
             }
             Err(e) => {
                 // Cancellation of the spawned push task (daemon shutdown
@@ -5345,7 +5416,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                             ctx.repo.display()
                         );
                     }
-                    return Ok(PushReport::Attempted(false));
+                    return Ok(PushReport::Attempted {
+                        ok: false,
+                        degraded: false,
+                    });
                 }
                 let error = crate::ownership::redact_url_credentials(&format!("{e:#}"));
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
@@ -5357,7 +5431,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     "origin/mirrors",
                     cause,
                 );
-                return Ok(PushReport::Attempted(false));
+                return Ok(PushReport::Attempted {
+                        ok: false,
+                        degraded: false,
+                    });
             }
         }
     } else if ctx.policy.auto_push
@@ -5370,7 +5447,10 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             ctx.repo.display()
         );
     }
-    Ok(PushReport::Attempted(true))
+    Ok(PushReport::Attempted {
+        ok: true,
+        degraded: false,
+    })
 }
 
 #[cfg(test)]
@@ -8229,6 +8309,123 @@ trusted_authors = ["test"]
                 .unwrap_or(0)
                 >= 1,
             "control: origin failure must be recorded"
+        );
+    }
+
+    /// Fixture for the degraded-success test: dead origin (never
+    /// attempted when pause-seeded) + working local mirror.
+    fn degraded_fixture(tmp: &tempfile::TempDir) -> (std::path::PathBuf, SyncPolicy) {
+        let mirror_bare = tmp.path().join("mirror.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "master"])
+            .arg(&mirror_bare)
+            .status()
+            .unwrap();
+        let (repo, _) = commit_only_fixture(tmp);
+        // Push the base commit to the mirror so only the new dirt is
+        // unpushed (mirrors the live one-sick/one-healthy steady state).
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "push",
+                &mirror_bare.to_string_lossy(),
+                "master",
+            ])
+            .status()
+            .unwrap();
+        let toml_str = format!(
+            r#"
+auto_commit = true
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+
+[[remotes]]
+name = "mirror"
+push_url = "{}"
+"#,
+            mirror_bare.to_string_lossy()
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+        (repo, policy)
+    }
+
+    /// ADDED 2026-09-18 (v0.113.72, degraded-success): a sick-paused
+    /// origin + healthy mirror must report PushPaused — NOT Synced.
+    /// Synced clears the repo ledger AND drops the activity entry,
+    /// which wipes the origin's pause memory; the next cycle then
+    /// re-hammers the sick forge (observed live: pause line printed,
+    /// mirror no-op success unstuck the repo, 5s later origin was
+    /// re-attempted with consecutive=1 — the per-remote pause was
+    /// completely defeated by the amnesia). PushPaused retains the
+    /// activity entry (with the frozen origin pause counters), writes
+    /// no ledger entry either way, and the mirror still converges.
+    /// FAIL-BEFORE (v0.113.71): returns Synced (record_push_success).
+    #[tokio::test]
+    async fn test_degraded_success_reports_paused_not_synced() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let (repo, policy) = degraded_fixture(&tmp);
+        // Seed the origin pause: 3 consecutive fails, last attempt now.
+        let now = crate::policy::timestamp_secs();
+        let mut remote_failures = HashMap::new();
+        remote_failures.insert(
+            "origin".to_string(),
+            crate::daemon::RemoteFailInfo {
+                consecutive: 3,
+                last_error: "ssh: Connection refused".to_string(),
+                last_attempt_unix: now,
+            },
+        );
+        let result = sync_repo_with_ahead_since(
+            &repo,
+            &policy,
+            &BTreeSet::new(),
+            0,
+            Some(&mut remote_failures),
+            false,
+            None,
+            None,
+            false,
+        )
+        .await;
+        assert!(
+            matches!(result.unwrap(), SyncOutcome::PushPaused),
+            "degraded success (sick-paused origin, healthy mirror) must return PushPaused, not Synced"
+        );
+        // Pause memory retained: origin counters frozen, not reset,
+        // not incremented (zero attempts means zero records).
+        let origin = remote_failures.get("origin").expect("origin pause entry must survive");
+        assert_eq!(origin.consecutive, 3);
+        assert_eq!(origin.last_attempt_unix, now);
+        // The mirror still converged: it has the newly committed dirt.
+        let mirror_log = crate::git::git_cmd()
+            .args([
+                "--git-dir",
+                &tmp.path().join("mirror.git").to_string_lossy(),
+                "log",
+                "--format=%s",
+            ])
+            .output()
+            .unwrap();
+        let mirror_log = String::from_utf8_lossy(&mirror_log.stdout);
+        assert!(
+            mirror_log.contains("change.txt"),
+            "mirror must carry the new commit, got:\n{}",
+            mirror_log
+        );
+        // No ledger write either way: neither a failure burn nor a
+        // premature success-clear while a remote is still sick-paused.
+        assert!(
+            crate::daemon::load_stuck_push_repos().get(&repo).is_none(),
+            "degraded success must not write the stuck ledger"
         );
     }
 

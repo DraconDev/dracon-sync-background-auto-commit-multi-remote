@@ -1,0 +1,8 @@
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (6 consecutive failures), retrying push after 3932s
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (6 consecutive failures), retrying push after 4232s
+⚠️ push failed for /tmp/scope-demo/repos/demo-repo (remotes: origin)
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (7 consecutive failures), retrying push after 4532s
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (7 consecutive failures), retrying push after 4833s
+⏸️ /tmp/scope-demo/repos/demo-repo origin push paused (3 consecutive fails, re-probe in 299s) — healthy mirrors still push
+⚠️ push failed for /tmp/scope-demo/repos/demo-repo (remotes: origin)
+🔄 /tmp/scope-demo/repos/demo-repo was stuck (1 consecutive failures), retrying push after 300s
