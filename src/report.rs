@@ -1153,22 +1153,31 @@ pub(crate) enum RepoFilter {
 fn remote_project_identity(url: &str) -> Option<(String, String)> {
     let url = url.trim().trim_end_matches('/');
     let url = url.strip_suffix(".git").unwrap_or(url);
-    // scp-like `git@host:path` vs URL `scheme://host/path`.
-    let (host, path) = if let Some(after_at) = url.split('@').next_back()
-        && let Some(colon) = after_at.find(':')
-        && !after_at[..colon].contains('/')
-    {
-        let (h, p) = after_at.split_at(colon);
-        (h, p[1..].to_string())
-    } else if let Some(after_scheme) = url.split("://").nth(1) {
-        match after_scheme.find('/') {
-            Some(i) => (&after_scheme[..i], after_scheme[i + 1..].to_string()),
+    // URL `scheme://host/path` first (an `https://user@host/...` userinfo
+    // `@` must not route into the scp branch), then scp-like
+    // `git@host:path` (colon before any slash).
+    let (host, path) = match url.split("://").nth(1) {
+        Some(after_scheme) => match after_scheme.find('/') {
+            Some(i) => (
+                after_scheme[..i].to_string(),
+                after_scheme[i + 1..].to_string(),
+            ),
             None => return None,
+        },
+        None => {
+            let after_at = url.split('@').next_back().unwrap_or(url);
+            match after_at.find(':') {
+                Some(colon) if !after_at[..colon].contains('/') => {
+                    let (h, p) = after_at.split_at(colon);
+                    (h.to_string(), p[1..].to_string())
+                }
+                _ => return None,
+            }
         }
-    } else {
-        return None;
     };
-    let host = host.to_lowercase();
+    // Strip URL userinfo (`https://user@host/...`) so identical projects
+    // compare equal regardless of credential embedding.
+    let host = host.split('@').next_back().unwrap_or(&host).to_lowercase();
     let slug = path.trim_matches('/').to_lowercase();
     if host.is_empty() || slug.is_empty() {
         return None;
