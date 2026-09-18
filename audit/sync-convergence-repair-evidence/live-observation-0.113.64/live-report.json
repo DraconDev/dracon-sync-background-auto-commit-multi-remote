@@ -628,6 +628,32 @@
         "committed": 54,
         "synced": 58
       }
+    },
+    {
+      "observed_at_unix": 1789697163.2693214,
+      "committed_ub_after_write_s": 27.3,
+      "pushed_github_ub_after_write_s": 28.6,
+      "pushed_gitlab_ub_after_write_s": 30.2,
+      "commit_rev": "b2bed65a7eb5",
+      "github_tip": "3c796a5e97db",
+      "gitlab_tip": "3c796a5e97db",
+      "journal": {
+        "committed": 56,
+        "synced": 58
+      }
+    },
+    {
+      "observed_at_unix": 1789697171.0929432,
+      "committed_ub_after_write_s": 27.3,
+      "pushed_github_ub_after_write_s": 28.6,
+      "pushed_gitlab_ub_after_write_s": 30.2,
+      "commit_rev": "b2bed65a7eb5",
+      "github_tip": "0e707ed6008f",
+      "gitlab_tip": "0e707ed6008f",
+      "journal": {
+        "committed": 56,
+        "synced": 59
+      }
     }
   ],
   "probe_events": [
