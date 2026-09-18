@@ -6792,6 +6792,13 @@ pub(crate) async fn run_daemon(
         // processed" and "stalled" rows. Self-cleaning: empty set
         // removes the file. Atomic write: temp file + rename.
         save_in_flight(&in_flight);
+        // ADDED 2026-09-18 (v0.113.67): prune hold/liveness maps to the
+        // live activity set, then snapshot dispatch holds for `repos` /
+        // operators. Holds for repos that went clean or succeeded vanish
+        // here; only currently-held dirty repos persist.
+        prune_repo_liveness(&mut dispatch_holds, &activity);
+        prune_repo_liveness(&mut last_dispatch, &activity);
+        save_dispatch_holds(&dispatch_holds, now);
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.
