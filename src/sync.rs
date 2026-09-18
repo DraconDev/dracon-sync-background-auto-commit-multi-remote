@@ -5570,6 +5570,30 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                     names
                 );
                 let cause = classify_failing_remotes(ctx.remote_failures.as_deref());
+                // v0.113.73 forge-degraded: incident-covered transient
+                // failures propagate as AllPaused (caller maps to
+                // PushPaused: no budget burn, commits keep flowing)
+                // instead of burning the stuck budget + webhook.
+                if let Some(hosts) = incident_shield_hosts(
+                    ctx.repo,
+                    ctx.policy,
+                    ctx.has_origin,
+                    ctx.remote_failures.as_deref(),
+                ) {
+                    eprintln!(
+                        "🛡️ {} push failure shielded by forge incident ({}) — no stuck-budget burn",
+                        ctx.repo.display(),
+                        hosts.join(", ")
+                    );
+                    crate::daemon::record_push_transient_outage(
+                        ctx.repo,
+                        &format!(
+                            "git push returned non-zero (remotes: {}) — {}",
+                            names, cause
+                        ),
+                    );
+                    return Ok(PushReport::AllPaused);
+                }
                 crate::daemon::record_push_failure(
                     ctx.repo,
                     &format!(
