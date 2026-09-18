@@ -2034,12 +2034,10 @@ async fn push_background(
     // `attempted` distinguishes "tried and failed" (PushFailed +
     // stuck-ledger write) from "paused, nothing attempted" (PushPaused).
     let now_unix = crate::policy::timestamp_secs();
-    let paused: std::collections::HashSet<String> = paused_remote_names(
-        remote_failures.as_deref(),
-        now_unix,
-    )
-    .into_iter()
-    .collect();
+    let paused: std::collections::HashSet<String> =
+        paused_remote_names(remote_failures.as_deref(), now_unix)
+            .into_iter()
+            .collect();
     let mut attempted = false;
     if has_origin {
         // Skip origin if it points at github and the pack is too big for
@@ -2258,8 +2256,8 @@ async fn push_background(
         // AllPaused only when a CONFIGURED remote was pause-skipped:
         // stale entries for decommissioned remotes must not veto the
         // legacy path (they linger until overwritten, never cleared).
-        let paused_configured =
-            (has_origin && paused.contains("origin")) || policy.remotes.iter().any(|r| paused.contains(&r.name));
+        let paused_configured = (has_origin && paused.contains("origin"))
+            || policy.remotes.iter().any(|r| paused.contains(&r.name));
         if !attempted && paused_configured {
             return Ok(PushReport::AllPaused);
         }
@@ -8225,7 +8223,11 @@ trusted_authors = ["test"]
             "control: dead-remote push must return PushFailed"
         );
         assert!(
-            remote_failures.get("origin").map(|f| f.consecutive).unwrap_or(0) >= 1,
+            remote_failures
+                .get("origin")
+                .map(|f| f.consecutive)
+                .unwrap_or(0)
+                >= 1,
             "control: origin failure must be recorded"
         );
     }
@@ -8255,7 +8257,10 @@ trusted_authors = ["test"]
                 last_attempt_unix: 0,
             },
         );
-        assert_eq!(paused_remote_names(Some(&map), now), vec!["sick".to_string()]);
+        assert_eq!(
+            paused_remote_names(Some(&map), now),
+            vec!["sick".to_string()]
+        );
         assert!(paused_remote_names(None, now).is_empty());
     }
 
