@@ -5984,18 +5984,21 @@ pub(crate) async fn run_daemon(
                     // journal (2026-09-18 dracon-platform incident).
                     // Debug-gated: the status line above already logs
                     // every scan, so this adds no new volume class.
+                    let hold_reason = if classification_pending.contains(&repo) {
+                        "classification-pending"
+                    } else if classification_cooldowns
+                        .get(&repo)
+                        .is_some_and(|until| now < *until)
+                    {
+                        "classification-cooldown"
+                    } else {
+                        "classification-missing"
+                    };
+                    dispatch_holds
+                        .entry(repo.clone())
+                        .or_insert_with(|| (hold_reason.to_string(), now));
                     if debug_enabled() {
-                        let reason = if classification_pending.contains(&repo) {
-                            "classification-pending"
-                        } else if classification_cooldowns
-                            .get(&repo)
-                            .is_some_and(|until| now < *until)
-                        {
-                            "classification-cooldown"
-                        } else {
-                            "classification-missing"
-                        };
-                        eprintln!("scheduler: skip repo={} reason={}", repo.display(), reason);
+                        eprintln!("scheduler: skip repo={} reason={}", repo.display(), hold_reason);
                     }
                     book_provisional_activity(
                         &mut activity,
