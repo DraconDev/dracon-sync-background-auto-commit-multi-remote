@@ -1961,7 +1961,6 @@ fn observe_round_transient_hits(
     let now_unix = crate::policy::timestamp_secs();
     let repo_str = repo.to_string_lossy().into_owned();
     for (name, info) in rf.iter() {
-        eprintln!("TMP-OBSERVE repo={} name={} last_attempt={} round_start={} err={:?}", repo.display(), name, info.last_attempt_unix, round_start_unix, info.last_error.chars().take(120).collect::<String>());
         if info.last_attempt_unix < round_start_unix {
             continue;
         }
@@ -8771,7 +8770,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
             "second corroborating failure must be shielded: PushPaused"
         );
         let incidents = crate::forge::forge_incident_hosts();
-        assert!(incidents.contains("forge-test.invalid"));
+        assert!(incidents.contains("127.0.0.1"), "got: {:?}", incidents);
         // Budget accounting: A burned once (pre-incident), B never.
         let ledger = crate::daemon::load_stuck_push_repos();
         assert_eq!(ledger.get(&repo_a).map(|e| e.consecutive_failures), Some(1));
@@ -8802,8 +8801,9 @@ push_url = "http://127.0.0.1:{}/{}.git"
                 + crate::forge::FORGE_INCIDENT_WINDOW_SECS
                 + 60,
         );
-        assert_eq!(recovered, vec!["forge-test.invalid".to_string()]);
+        assert_eq!(recovered, vec!["127.0.0.1".to_string()]);
         assert!(crate::forge::forge_incident_hosts().is_empty());
+        forge_abort.abort();
     }
 
     /// ADDED 2026-09-18 (v0.113.69, per-remote pause scope):
@@ -8836,6 +8836,39 @@ push_url = "http://127.0.0.1:{}/{}.git"
             vec!["sick".to_string()]
         );
         assert!(paused_remote_names(None, now).is_empty());
+    }
+
+    /// ADDED 2026-09-18 (v0.113.73, forge-degraded): under a declared
+    /// incident the re-probe stretches 15 min -> 60 min. A remote 30
+    /// min since its last attempt is due normally but stays paused
+    /// under incident; at 61 min both are due (fail-open recovery).
+    #[test]
+    fn test_paused_remote_names_incident_stretches_reprobe() {
+        let now = 1_800_000_000u64;
+        let mut map = HashMap::new();
+        map.insert(
+            "sick".to_string(),
+            crate::daemon::RemoteFailInfo {
+                consecutive: 3,
+                last_error: "Gitaly unavailable".to_string(),
+                last_attempt_unix: now - 1800,
+            },
+        );
+        // Normal window (900s): 1800s ago is due.
+        assert!(paused_remote_names(Some(&map), now).is_empty());
+        // Incident window (3600s): still paused.
+        assert_eq!(
+            paused_remote_names_incident(Some(&map), now, &|_| true),
+            vec!["sick".to_string()]
+        );
+        // Past the stretched window: due again (fail-open).
+        assert!(
+            paused_remote_names_incident(Some(&map), now + 2000, &|_| true).is_empty()
+        );
+        // Predicate is per-remote: a healthy-host remote is unaffected.
+        assert!(
+            paused_remote_names_incident(Some(&map), now, &|_| false).is_empty()
+        );
     }
 
     #[tokio::test]
