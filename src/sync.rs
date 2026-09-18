@@ -8476,7 +8476,7 @@ trusted_authors = ["test"]
         );
         // Stuck ledger untouched: no entry for this repo.
         assert!(
-            crate::daemon::load_stuck_push_repos().get(&repo).is_none(),
+            !crate::daemon::load_stuck_push_repos().contains_key(&repo),
             "commit-only must not write the stuck ledger"
         );
     }
@@ -8636,7 +8636,7 @@ push_url = "{}"
         // No ledger write either way: neither a failure burn nor a
         // premature success-clear while a remote is still sick-paused.
         assert!(
-            crate::daemon::load_stuck_push_repos().get(&repo).is_none(),
+            !crate::daemon::load_stuck_push_repos().contains_key(&repo),
             "degraded success must not write the stuck ledger"
         );
     }

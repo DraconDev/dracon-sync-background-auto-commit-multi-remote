@@ -2027,7 +2027,7 @@ mod tests {
         );
         assert_eq!(outcome, ApplyOutcome::PushPaused);
         assert!(
-            stage_cooldowns.get(&repo).is_none(),
+            !stage_cooldowns.contains_key(&repo),
             "PushPaused must not set a stage cooldown — commits keep flowing"
         );
         assert!(
