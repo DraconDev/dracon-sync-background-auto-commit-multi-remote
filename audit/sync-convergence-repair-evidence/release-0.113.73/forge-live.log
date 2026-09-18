@@ -1,0 +1,4 @@
+🔥 forge incident declared: 127.0.0.1 (transient failures corroborated across repos) — per-repo push alerts coalesced, sick-remote re-probes stretched to 1h
+🛡️ /tmp/forge-demo/repos/repo-a push failure shielded by forge incident (127.0.0.1) — no stuck-budget burn
+⏸️ /tmp/forge-demo/repos/repo-b committed; push paused (commit-only mode)
+⏸️ /tmp/forge-demo/repos/repo-a committed; push paused (commit-only mode)
