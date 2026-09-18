@@ -1,0 +1,15 @@
+{
+  "version": "0.113.64",
+  "release_commit": "703f91ba74c966461adf696058fc1650e1a7528e",
+  "tag_refs": {
+    "github": "703f91ba74c966461adf696058fc1650e1a7528e",
+    "gitlab": "703f91ba74c966461adf696058fc1650e1a7528e",
+    "origin": "703f91ba74c966461adf696058fc1650e1a7528e"
+  },
+  "installed_binary": "/home/dracon/.local/bin/dracon-sync",
+  "installed_version": "dracon-sync 0.113.64",
+  "running_pid": 55328,
+  "running_exe_md5": "0ff2a52551bcb283bcdc5208375727b7",
+  "installed_md5": "0ff2a52551bcb283bcdc5208375727b7",
+  "fixture_check": "pass (untracked=0)"
+}

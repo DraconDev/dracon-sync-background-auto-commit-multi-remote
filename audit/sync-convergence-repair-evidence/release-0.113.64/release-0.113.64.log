@@ -1,0 +1,2800 @@
+⏸️  Sync already paused — running command without touching freeze state
+✓ push remote: origin (auto-detected from remote.*.url)
+step 1/8: test discipline gates (AGENTS.md)
+   $ cargo test --workspace --locked
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.17s
+     Running unittests src/lib.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_security-5cba3a889831471b)
+
+running 71 tests
+test modules::backup::tests::write_backup_retries_when_timestamp_already_exists ... ok
+test modules::crypto::authorization_tests::delegated_dh_cannot_forge_owner_authorization_signature ... ok
+test modules::crypto::authorization_tests::delegated_machine_identity_cannot_authorize_new_recipient ... ok
+test modules::scanner::tests::test_scanner_custom_patterns_empty ... ok
+test modules::scanner::tests::test_scanner_truncates_utf8_snippet_at_char_boundary ... ok
+test modules::scanner::tests::test_scanner_with_custom_patterns ... ok
+test tests::test_clean_encrypts_tag_shaped_plaintext_protected_file ... ok
+test tests::test_decrypt_v2_fails_with_wrong_identity ... ok
+test tests::test_decrypt_v2_requires_master_identity ... ok
+test tests::test_demon_security_once_cell_caching ... ok
+test tests::test_encrypt_v2_binary_data ... ok
+test tests::test_encrypt_v2_decrypt_v2_roundtrip ... ok
+test tests::test_encrypt_v2_empty_data ... ok
+test tests::test_encrypt_v2_for_all_empty_data ... ok
+test tests::test_encrypt_v2_for_all_roundtrip ... ok
+test tests::test_env_reencryption_preserves_body_whitespace ... ok
+test tests::test_env_versioning_increment_flow ... ok
+test tests::test_fresh_env_with_warden_comment_gets_v1_header ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_key_directory ... ok
+test tests::test_gather_all_recipients_rejects_symlinked_repo_recipient_file ... ok
+test tests::test_gather_all_recipients_separates_overlapping_home_repo ... ok
+test tests::test_gather_all_recipients_separates_symlinked_home_repo ... ok
+test tests::test_gather_all_recipients_validates_recipient_files ... ok
+test tests::test_get_env_version_edge_cases ... ok
+test tests::test_get_env_version_extracts_version ... ok
+test tests::test_git_seal_v1_rejects_ascii_prefix_binary_tail ... ok
+test tests::test_git_seal_v1_rejects_short_valid_text_wrong_key ... ok
+test tests::test_github_token_patterns_accept_variable_length ... ok
+test tests::test_hex_secret_quoted_requires_context ... ok
+test tests::test_high_entropy_secret_quoted_requires_context ... ok
+test tests::test_inline_roundtrip_arbitrary_unicode_context ... ok
+test tests::test_inline_tag_still_uses_smart_smudge ... ok
+test tests::test_is_env_version_managed ... ok
+test tests::test_is_inside_secret_tag_detection ... ok
+test tests::test_mailgun_key_accepts_variable_length ... ok
+test tests::test_make_env_version_header_increments_version ... ok
+test tests::test_managed_env_body_version_line_does_not_drive_increment ... ok
+test tests::test_managed_patterns_override_roundtrip ... ok
+test tests::test_marker_migration_in_place ... ok
+test tests::test_merge_clean_inline_ancestor_stays_inline ... ok
+test tests::test_merge_clean_whole_file_ancestor_stays_encrypted ... ok
+test tests::test_normalize_secret_marker_invalid ... ok
+test tests::test_normalize_secret_marker_valid ... ok
+test tests::test_path_is_protected_directory_prefix ... ok
+test tests::test_path_is_protected_doublestar_components ... ok
+test tests::test_path_is_protected_env_pattern ... ok
+test tests::test_path_is_protected_legacy_empty_passes_everything ... ok
+test tests::test_path_is_protected_path_patterns_are_repository_relative ... ok
+test tests::test_path_is_protected_single_star_matches_one_component ... ok
+test tests::test_path_is_protected_source_code_excluded ... ok
+test tests::test_protection_exemptions ... ok
+test tests::test_slack_bot_token_compact ... ok
+test tests::test_slack_bot_token_compact_has_length_cap ... ok
+test tests::test_smart_clean_skips_unprotected_large_input_when_patterns_set ... ok
+test tests::test_smart_clean_with_path_honors_single_star_attributes ... ok
+test tests::test_smart_clean_with_path_tier1_covers_unprotected_source_code ... ok
+test tests::test_smudge_entrypoint_binary_roundtrip_byte_identical ... ok
+test tests::test_smudge_passes_binary_unchanged ... ok
+test tests::test_smudge_passes_through_tag_shaped_plaintext ... ok
+test tests::test_smudge_preserves_invalid_utf8_with_literal_marker ... ok
+test tests::test_smudge_robustness ... ok
+test tests::test_smudge_roundtrips_inline_secret_with_nul ... ok
+test tests::test_strip_env_version_header_only_strips_top_marker ... ok
+test tests::test_strip_env_version_header_passthrough_when_no_header ... ok
+test tests::test_strip_env_version_header_preserves_body_whitespace ... ok
+test tests::test_strip_env_version_header_removes_header ... ok
+test tests::test_tag_shaped_plaintext_is_not_recognized ... ok
+test tests::test_unlock_payload_error_has_no_ciphertext_dump ... ok
+test tests::test_unlock_payload_v2_roundtrip ... ok
+test tests::test_whole_file_tag_binary_roundtrip_byte_identical ... ok
+test tests::test_whole_file_tag_tolerates_crlf_and_multiple_newlines ... ok
+
+test result: ok. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.67s
+
+     Running tests/atomic_write_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/atomic_write_test-a7fa696d55baa1ff)
+
+running 4 tests
+test test_accept_team_invite_rejects_nonexistent_path ... ok
+test test_backup_file_recursion_guard_rejects_arcane_backups ... ok
+test test_backup_file_recursion_guard_rejects_backups_dir ... ok
+test test_restore_rejects_nonexistent_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/backup_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/backup_test-e0286c408c043c9e)
+
+running 2 tests
+test test_backup_and_restore ... ok
+test test_backup_does_not_overwrite_same_second_backup ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/common.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/common-2816d964b2c56d85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/comprehensive_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/comprehensive_test-9bab31949fc85814)
+
+running 5 tests
+test test_auto_key_generation ... ok
+test test_backup_functionality ... ok
+test test_corpus_roundtrip ... ok
+test test_dracon_security_singleton_same_instance ... ok
+test test_encrypt_decrypt_multiple_recipients ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.70s
+
+     Running tests/creds_json_full_encrypt.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/creds_json_full_encrypt-cc0c3a3bdc4ff813)
+
+running 3 tests
+test creds_json_at_any_depth_gets_whole_file_encryption ... ok
+test creds_json_gets_whole_file_encryption ... ok
+test creds_json_round_trips_through_smudge ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/github_format_review.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/github_format_review-8ce861a80431d0b5)
+
+running 2 tests
+test github_invalid_boundaries_and_lengths_do_not_match ... ok
+test github_supported_formats_are_replaced_in_full ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+     Running tests/index_reuse.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/index_reuse-44a571a4c8031e7e)
+
+running 3 tests
+test newly_detected_secrets_in_index_force_reencryption ... ok
+test policy_upgrade_does_not_reuse_partially_protected_index ... ok
+test unchanged_ciphertext_is_reused_but_edits_and_plaintext_are_not ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests/keys_json_full_encrypt.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/keys_json_full_encrypt-18eacc696485b0c1)
+
+running 2 tests
+test keys_json_gets_whole_file_encryption ... ok
+test keys_json_round_trips_through_smudge ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/leak_prevention_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/leak_prevention_test-c5adee15c5e8ba96)
+
+running 2 tests
+test prop_test_binary_passthrough_integrity ... ok
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 60.15s
+
+     Running tests/massive_secret_scan.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/massive_secret_scan-91ebf43fb88eaa7d)
+
+running 1 test
+test test_massive_dataset_permutations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.52s
+
+     Running tests/pattern_integrity.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/pattern_integrity-59d13deccef816e4)
+
+running 2 tests
+test test_no_nested_quantifiers_in_patterns ... ok
+test test_patterns_compile_and_have_reasonable_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/plaintext_sibling_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/plaintext_sibling_test-4ebfb063562161f6)
+
+running 8 tests
+test clean_encrypts_normally_without_plaintext_sibling ... ok
+test clean_skips_encryption_when_plaintext_sibling_exists ... ok
+test clean_with_empty_sibling_path_is_a_noop ... ok
+test clean_with_plaintext_sibling_does_not_add_env_version_header ... ok
+test clean_with_plaintext_sibling_preserves_binary_content ... ok
+test is_hatched_returns_false_for_empty_path ... ok
+test is_hatched_returns_false_when_sibling_missing ... ok
+test is_hatched_returns_true_when_sibling_exists ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
+
+     Running tests/redos_stress_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/redos_stress_test-1c5b4c1e7eb391e3)
+
+running 6 tests
+test test_azure_sas_scan ... ok
+test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
+test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
+test test_scanner_detects_known_secret_patterns ... ok
+test test_scanner_performance_mixed_secret_and_filler ... ok
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.25s
+
+     Running tests/registry_credentials_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/registry_credentials_test-b76ce43da2b9b119)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/restore_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/restore_test-d1921e0e505b2afa)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scanner_edge_cases_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/scanner_edge_cases_test-554c3def49311ba6)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... ok
+test test_scanner_detects_aws_access_key ... ok
+test test_scanner_detects_github_token ... ok
+test test_scanner_detects_private_key_formats_by_specific_name ... ok
+test test_scanner_detects_stripe_key ... ok
+test test_scanner_detects_unquoted_padded_generic_secret ... ok
+test test_scanner_detects_unquoted_padded_password ... ok
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.89s
+
+     Running tests/scanner_stress.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/scanner_stress-7c28589d6b0c5550)
+
+running 1 test
+test test_scanner_stress_1000 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.96s
+
+     Running tests/security_critical_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/security_critical_test-075ec81442cf6d05)
+
+running 44 tests
+test test_authorize_recipient_writes_verified_direct_pair ... ok
+test test_create_team_creates_private_key_without_overwrite ... ok
+test test_create_team_name_validation_rejects_backslash ... ok
+test test_create_team_name_validation_rejects_colon ... ok
+test test_create_team_name_validation_rejects_slash ... ok
+test test_decrypt_with_repo_key_too_short_ciphertext ... ok
+test test_encrypt_decrypt_repo_key_roundtrip ... ok
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_encrypt_v2_for_all_uses_global_mesh_pub_without_master_identity ... ok
+test test_encrypt_with_repo_key_empty_plaintext ... ok
+test test_encrypt_with_repo_key_random_nonce_per_call ... ok
+test test_env_manager_combined ... ok
+test test_env_manager_load_from_env_file ... ok
+test test_env_manager_load_from_env_file_nonexistent ... ok
+test test_env_manager_load_from_env_file_with_embedded_equals ... ok
+test test_env_manager_load_from_env_file_with_single_quotes ... ok
+test test_env_manager_to_env_file_escapes_quotes ... ok
+test test_env_manager_to_env_file_secrets ... ok
+test test_env_manager_to_env_file_variables ... ok
+test test_gather_all_recipients_includes_global_mesh_pub_without_master_identity ... ok
+test test_gather_rejects_forged_repo_key_authorization_without_owner_proof ... ok
+test test_generate_master_identity_refuses_dedicated_master_private ... ok
+test test_generate_master_identity_refuses_dedicated_master_public ... ok
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_list_authorized_recipients_rejects_symlink_aliases ... ok
+test test_load_repo_key_empty_keys_directory ... ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ok
+test test_load_repo_key_no_keys_directory ... ok
+test test_load_repo_key_team_key ... ignored
+test test_load_repo_key_with_master_identity_in_keys_dir ... ok
+test test_machine_and_team_recipients_require_authenticated_sidecars ... ok
+test test_machine_only_repo_key_requires_owner_authenticated_proof ... ok
+test test_repokey_from_file_empty ... ok
+test test_repokey_from_file_nonexistent ... ok
+test test_repokey_from_file_overlength ... ok
+test test_repokey_from_file_truncated ... ok
+test test_unlock_payload_empty ... ignored
+test test_unlock_payload_too_short ... ok
+test test_unlock_payload_v1_format ... ok
+test test_unlock_payload_v1_format_roundtrip ... ok
+test test_unlock_payload_wrong_key ... ok
+
+test result: ok. 38 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 2.87s
+
+     Running tests/team_key_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/team_key_test-8779dc9ca5b9f708)
+
+running 2 tests
+test test_add_team_member_rejects_invalid_key ... ok
+test test_create_team_invite_requires_existing_team ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/tier1_source_encrypt.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/tier1_source_encrypt-bb94ae85a404b7e6)
+
+running 9 tests
+test tier1_binary_passthrough_unprotected ... ok
+test tier1_ignores_ordinary_code ... ok
+test tier1_is_subset_of_get_patterns ... ok
+test tier1_openai_boundaries_and_source_roundtrip ... ok
+test tier1_pem_block_in_source_is_caught ... ok
+test tier1_pkcs8_and_gcp_source_roundtrip ... ok
+test tier1_scanner_catches_structured_tokens ... ok
+test tier1_source_file_clean_and_roundtrip ... ok
+test tier1_square_requires_exact_body_length ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+
+     Running tests/tier_inventory.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/tier_inventory-86c365d439550ac4)
+
+running 2 tests
+test inventory_covers_every_builtin_family_and_tier ... ok
+test promoted_provider_tokens_replace_completely ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+     Running unittests src/lib.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-576385279248606d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_sync-d10d6462d58633ca)
+
+running 1060 tests
+test bump::tests::test_extract_version_from_cargo_ignorefile ... ok
+test bump::tests::test_extract_version_from_cargo_no_version ... ok
+test bump::tests::test_extract_version_from_cargo_package ... ok
+test bump::tests::test_extract_version_from_cargo_with_inline_comment ... ok
+test bump::tests::test_extract_version_from_cargo_with_trailing_semicolon ... ok
+test bump::tests::test_extract_version_from_cargo_workspace_package ... ok
+test bump::tests::test_extract_version_from_json ... ok
+test bump::tests::test_extract_version_from_json_escaped_quotes ... ok
+test bump::tests::test_extract_version_from_json_multiple_keys ... ok
+test bump::tests::test_extract_version_from_json_not_found ... ok
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) f4d8191] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpmn9Uw4/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main fba21c8] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpmn9Uw4/remote.git
+   f4d8191..fba21c8  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) c65ca8e] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpgO8Eat/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 4721f36] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) 4e13d84] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::daemon_tests::test_is_repo_ready_nonexistent_path ... ok
+test daemon::daemon_tests::test_is_repo_stuck_false ... ok
+test daemon::daemon_tests::test_list_stuck_repos_empty ... ok
+test daemon::daemon_tests::test_load_stuck_push_repos_nonexistent ... ok
+test daemon::daemon_tests::test_no_redispatch_invariant ... ok
+test daemon::daemon_tests::test_policy_clone_at_repo_iteration ... ok
+test daemon::daemon_tests::test_sem_max_concurrent_sync_default_is_four ... ok
+test daemon::daemon_tests::test_skips_nonexistent_repo ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format_full ... ok
+test daemon::daemon_tests::test_stuck_repos_path_home ... ok
+test daemon::daemon_tests::test_trailing_drain_clears_stuck_in_flight ... ok
+test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... ok
+test daemon::test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age ... ok
+test daemon::test_ownership_detection_end_to_end ... ok
+test daemon::test_ownership_needs_redetect_ttl ... ok
+test daemon::test_ownership_per_repo_override_forces_unowned ... ok
+test daemon::test_push_failure_notification_requires_persistent_budget_exhaustion ... ok
+test daemon::test_record_push_failure_accumulates_across_calls ... ok
+test daemon::test_settling_max_delay_default_is_60 ... ok
+test daemon::test_stale_dirty_alert_due_throttle_and_disable ... ok
+test daemon::test_stale_dirty_alert_policy_default_and_serde ... ok
+test daemon::test_stuck_decision_backoff_inside_window ... ok
+test daemon::test_stuck_decision_exhausted_at_budget ... ok
+test daemon::test_stuck_decision_retry_after_window ... ok
+test daemon::test_stuck_decision_retry_respects_last_retry_stamp ... ok
+test daemon::test_sustained_threshold_met ... ok
+test daemon::tests::classifier_completed_during_scan_is_available_at_repo_boundary ... ok
+test daemon::tests::eligibility_uses_dispatch_clock_and_bounds_continuous_work ... ok
+test daemon::tests::needs_classification_dirty_repo_with_ahead_override_classifies ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::pending_result_collection_does_not_block_next_repo ... ok
+test daemon::tests::pre_start_dirty_activity_reaches_exact_quiet_boundary_once ... ok
+test daemon::tests::pulse_accounts_for_scan_work_and_overruns ... ok
+test daemon::tests::push_aggregation_cancellation_does_not_arm_backoff ... ok
+test daemon::tests::push_aggregation_mixed_failure_still_arms_backoff ... ok
+test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... ok
+test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
+test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
+test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... ok
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) 318c0c8] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+branch 'main' set up to track 'origin/main'.
+ok
+test daemon::tests::stalled_worker_retains_exclusive_dispatch_ownership_across_cycles ... ok
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) c8206fa] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) c8206fa] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) a625cc7] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_standard_remotes_if_missing_adds_remotes ... ok
+test daemon::tests::test_configure_standard_remotes_if_missing_preserves_existing_remote ... ok
+test daemon::tests::test_count_unpushed_vs_configured_remotes_detects_new_remote_head ... ok
+test daemon::tests::test_fuser_failure_is_not_treated_as_unused ... ok
+test daemon::tests::test_m1_discard_matches_only_corresponding_generation ... ok
+test daemon::tests::test_m4_helper_structurally_unified ... ok
+test daemon::tests::test_record_push_failure_increments_counter ... ok
+test daemon::tests::test_record_push_failure_redacts_url_credentials ... ok
+test daemon::tests::test_record_push_failure_returns_repo_state ... ok
+test daemon::tests::test_record_push_success_clears_entry ... ok
+test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 76862aa] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+To /tmp/.tmpZl1q4c/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'github/main'.
+ok
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 9067da6] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_stage_cooldown_remaining_missing_is_none ... ok
+test daemon::tests::test_stage_cooldown_remaining_removes_expired_and_keeps_active ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_linked_worktree_gitdir ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_nested_submodule_gitdir ... ok
+test daemon::tests::test_stuck_repo_entry_clone ... ok
+test daemon::tests::test_stuck_repo_entry_debug ... ok
+test daemon::tests::test_stuck_repo_entry_deserialization ... ok
+test daemon::tests::test_stuck_repo_entry_equality ... ok
+test daemon::tests::test_stuck_repo_entry_path_stored_correctly ... ok
+test daemon::tests::test_stuck_repo_entry_serialization ... ok
+test daemon::tests::test_stuck_repo_entry_timestamp_ordering ... ok
+test daemon::tests::test_stuck_repo_expiry_constant ... ok
+test daemon::tests::test_stuck_repo_expiry_not_zero ... ok
+test daemon::tests::test_stuck_repo_expiry_one_day ... ok
+test daemon::tests::test_unavailable_fuser_cannot_remove_index_lock ... ok
+test daemon::tests::wedge_cancellation_waits_for_worker_teardown_before_redispatch ... ok
+test exclude::m28_tests::test_basename_patterns_still_work ... ok
+test exclude::m28_tests::test_glob_dir_prefix_forms ... ok
+test exclude::m28_tests::test_single_slash_relative_patterns_no_longer_dead ... ok
+test exclude::m28_tests::test_trailing_starstar_name_forms ... ok
+test exclude::tests::test_append_to_gitignore_creates_new_file ... ok
+test exclude::tests::test_append_to_gitignore_deduplicates ... ok
+test exclude::tests::test_append_to_gitignore_empty_patterns ... ok
+test exclude::tests::test_can_restore_entry_added ... ok
+test exclude::tests::test_can_restore_entry_deleted ... ok
+test exclude::tests::test_can_restore_entry_modified ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_empty ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_excluded_dir_ignored ... ok
+test exclude::tests::test_has_sync_relevant_dirty_entries_modified ... ok
+test exclude::tests::test_is_excluded_change_path_simple ... ok
+test exclude::tests::test_is_excluded_dir_name_case_insensitive_matching ... ok
+test exclude::tests::test_is_excluded_dir_name_empty_excluded_set ... ok
+test exclude::tests::test_is_excluded_dir_name_exact ... ok
+test exclude::tests::test_is_excluded_dir_name_pattern ... ok
+test exclude::tests::test_is_excluded_dir_name_star_prefix ... ok
+test exclude::tests::test_is_excluded_dir_name_trailing_hyphen ... ok
+test exclude::tests::test_is_excluded_file_empty_path ... ok
+test exclude::tests::test_is_excluded_file_no_match ... ok
+test exclude::tests::test_is_excluded_file_pattern_matching ... ok
+test exclude::tests::test_is_excluded_file_simple ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_missing_path ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_regular_file ... ok
+test exclude::tests::test_is_gitlink_returns_false_for_untracked_dir_with_dotgit ... ok
+test exclude::tests::test_is_gitlink_returns_true_for_tracked_gitlink ... ok
+test exclude::tests::test_is_gitlink_unchanged_false_when_shared_main_ahead_of_parent ... ok
+test exclude::tests::test_is_large_untracked_added_file ... ok
+test exclude::tests::test_is_large_untracked_modified_file ... ok
+test exclude::tests::test_is_large_untracked_nonexistent_file ... ok
+test exclude::tests::test_matches_file_pattern_exact ... ok
+test exclude::tests::test_matches_file_pattern_exact_match ... ok
+test exclude::tests::test_matches_file_pattern_extension ... ok
+test exclude::tests::test_matches_file_pattern_extension_wildcard ... ok
+test exclude::tests::test_matches_file_pattern_glob ... ok
+test exclude::tests::test_matches_file_pattern_middle_wildcard ... ok
+test exclude::tests::test_matches_file_pattern_prefix ... ok
+test exclude::tests::test_matches_file_pattern_prefix_wildcard ... ok
+test exclude::tests::test_matches_untracked_exclude_mid_glob ... ok
+test exclude::tests::test_matches_untracked_exclude_mid_glob_double ... ok
+test exclude::tests::test_matches_untracked_exclude_multi_segment_tail ... ok
+test exclude::tests::test_matches_untracked_exclude_tail_with_glob ... ok
+test exclude::tests::test_normalized_dir_name_various ... ok
+test exclude::tests::test_remove_tracked_excluded_paths_none_found ... ok
+test exclude::tests::test_should_stage_entry_empty_patterns_list ... ok
+test exclude::tests::test_should_stage_entry_tracked_modified_excluded_by_pattern ... ok
+test exclude::tests::test_should_stage_entry_tracked_modified_no_match ... ok
+test exclude::tests::test_stale_gitlink_paths_returns_stale_path ... ok
+test exclude::tests::test_stale_gitlink_paths_skips_when_no_submodules ... ok
+test git::auto_gc_tests::test_maybe_auto_gc_disabled_and_below_threshold ... ok
+test git::branch::tests::missing_remote_branch_deletion_is_idempotent ... ok
+test git::branch::tests::test_current_branch_rejects_git_cli_head_string ... ok
+test git::branch::tests::test_old_tracking_from_status_line_handles_missing_marker ... ok
+test git::branch::tests::test_old_tracking_from_status_line_parses_real_ref ... ok
+test git::branch::tests::test_old_tracking_from_status_line_rejects_empty_ref ... ok
+test git::branch::tests::test_repair_broken_tracking_repairs_checked_out_branch ... branch 'main' set up to track 'origin/main'.
+ok
+test git::config::tests::shell_quote_handles_spaces_and_single_quotes ... ok
+test git::diff::f33_tests::classification_applies_filter_once_and_preserves_refusals ... ok
+test git::diff::f33_tests::classification_cancellation_terminates_git_process_group ... ok
+test git::diff::f33_tests::classification_preserves_unborn_untracked_files ... ok
+test git::diff::f33_tests::parse_name_status_basic_statuses ... ok
+test git::diff::f33_tests::parse_name_status_empty_line_returns_none ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_empty_paths_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_non_digit_suffix_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_score ... ok
+test git::diff::f33_tests::parse_name_status_rename_without_score_rejected ... ok
+test git::diff::f33_tests::parse_name_status_unknown_status_returns_none ... ok
+test git::diff::f33_tests::staged_and_tracked_paths_propagate_git_failure ... ok
+test git::diff::f33_tests::test_parse_name_status_z_consumes_copy_and_unmerged_records ... ok
+test git::diff::f33_tests::test_parse_name_status_z_non_ascii_and_basic ... ok
+test git::diff::f33_tests::test_parse_name_status_z_rename ... ok
+test git::diff::f33_tests::untracked_entries_propagates_git_failure ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_counts_nested_repo_dirs ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_counts_submodule_dot_git_file ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_handles_trailing_slash ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_keeps_plain_untracked_dirs ... ok
+test git::discovery::nested_repo_tests::count_nested_repo_untracked_entries_zero_when_no_entries ... ok
+test git::discovery::nested_repo_tests::is_nested_repo_path_rejects_unsafe_paths ... ok
+test git::discovery::safe_path_tests::test_is_safe_git_path_rejects_parent_dir_at_any_depth ... ok
+test git::discovery::submodule_tests::discover_git_repos_dedups_standalone_with_nested_submodule ... ok
+test git::discovery::submodule_tests::discover_git_repos_exclude_repos_suppresses_submodule_fallback_candidate ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_no_submodule_candidates_when_no_gitmodules ... ok
+test git::discovery::submodule_tests::discover_git_repos_finds_submodule_candidates ... ok
+test git::discovery::submodule_tests::list_submodules_handles_broken_gitmodules ... ok
+test git::discovery::submodule_tests::list_submodules_ignores_unknown_sections ... ok
+test git::discovery::submodule_tests::list_submodules_parses_gitmodules_with_index_shas ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_sha_when_not_in_index ... ok
+test git::discovery::submodule_tests::list_submodules_returns_empty_when_no_gitmodules ... ok
+test git::github_pack_tests::cache_hit_performs_no_remeasurement ... ok
+test git::github_pack_tests::cache_hit_survives_packed_refs ... ok
+test git::github_pack_tests::compressible_over_limit_clears_via_compressed_second_chance ... ok
+test git::github_pack_tests::delta_is_empty_when_github_already_has_the_branch ... ok
+test git::github_pack_tests::detached_head_is_not_cached ... ok
+test git::github_pack_tests::different_limit_remeasures ... ok
+test git::github_pack_tests::incompressible_over_limit_stays_flagged ... ok
+test git::github_pack_tests::missing_tracking_ref_measures_whole_branch ... ok
+test git::github_pack_tests::moved_branch_tip_remeasures ... ok
+test git::github_pack_tests::moved_tracking_tip_remeasures ... ok
+test git::github_pack_tests::multiple_github_remotes_take_the_worst_case ... ok
+test git::github_pack_tests::no_github_remote_measures_whole_branch ... ok
+test git::github_pack_tests::non_ancestor_tracking_tip_is_not_trusted ... ok
+test git::github_pack_tests::precomputed_large_size_falls_back_when_branch_unmeasurable ... ok
+test git::github_pack_tests::precomputed_small_size_short_circuits_without_git ... ok
+test git::github_pack_tests::pushed_branch_size_is_reported_for_small_repo ... ok
+test git::github_pack_tests::small_repo_is_not_too_big_for_github ... ok
+test git::janitor_tests::aborts_when_bundle_fails ... ok
+test git::janitor_tests::disabled_is_noop ... ok
+test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... ok
+test git::janitor_tests::prunes_orphaned_tracking_refs ... ok
+test git::janitor_tests::skips_remote_delete_when_tracking_tip_differs ... ok
+test git::multi_remote::tests::cancelled_mirror_parent_terminates_push_process_group ... ok
+test git::multi_remote::tests::concurrent_forge_confirmations_preserve_every_pair ... ok
+test git::multi_remote::tests::test_codeberg_excluded_no_codeberg_remote_in_policy ... ok
+test git::multi_remote::tests::test_codeberg_excluded_via_push_url_autodetect ... ok
+test git::multi_remote::tests::test_codeberg_excluded_when_auto_create_off_and_no_tracking_ref ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_global_auto_create_on ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_opted_in ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_tracking_ref_exists ... ok
+test git::multi_remote::tests::test_configure_all_remotes_bootstraps_origin_when_missing ... ok
+test git::multi_remote::tests::test_configure_all_remotes_does_not_overwrite_existing_origin ... ok
+test git::multi_remote::tests::test_configure_all_remotes_no_origin_when_no_github_in_policy ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_branch_config ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_remote_add ... ok
+test git::multi_remote::tests::test_evict_forge_existence_absent_key ... ok
+test git::multi_remote::tests::test_evict_without_persisted_file_writes_nothing ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_matching_remote ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_multiple_remotes ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_empty_exclude_is_noop ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_is_per_call_not_global ... ok
+test git::multi_remote::tests::test_forge_confirmed_helpers_cycle ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_absent_for_fresh_repo ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_follows_non_main_branch ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_present_after_update_ref ... ok
+test git::multi_remote::tests::test_ls_remote_indicates_missing_classification ... ok
+test git::multi_remote::tests::test_persistent_forge_exists_roundtrip_and_eviction ... ok
+test git::multi_remote::tests::test_private_or_unknown_visibility_blocks_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_public_visibility_allows_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_push_err_indicates_repo_missing ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_continues_after_failure ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_empty_list_returns_empty ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_respects_priority_order ... ok
+test git::multi_remote::tests::test_remote_repo_exists_checks_remote_head ... ok
+test git::ops::tests::cancellation_after_leader_exit_kills_stderr_holder ... ok
+test git::ops::tests::child_exit_wakes_runner_without_poll_interval ... ok
+test git::ops::tests::progress_timeout_has_a_bounded_hard_ceiling ... ok
+test git::ops::tests::test_f48_tightened_progress_predicate ... ok
+test git::ops::tests::test_git_askpass_script_atomic_0o700_create_and_cleanup ... ok
+test git::ops::tests::test_git_askpass_script_rejects_single_quote ... ok
+test git::ops::tests::test_git_push_progress_predicate_detects_pack_progress ... ok
+test git::push::tests::test_classify_push_failure_maps_every_mode ... ok
+test git::push::tests::test_is_pack_too_large_case_insensitive ... ok
+test git::push::tests::test_is_pack_too_large_ignores_transient_errors ... ok
+test git::push::tests::test_is_pack_too_large_recognises_github_gh001 ... ok
+test git::push::tests::test_is_pack_too_large_recognises_pack_exceeds ... ok
+test git::push::tests::test_is_permanent_push_rejection_ignores_transient_errors ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_github_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_gitlab_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_repo_gone ... ok
+test git::push::tests::test_is_push_rejected_still_works ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at 5e464d6 init
+
+New history written in 0.11 seconds...
+Completely finished after 0.28 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsParsed 1 commitsHEAD is now at bd99665 c1
+
+New history written in 0.20 seconds...
+Completely finished after 0.33 seconds.
+ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_ref_exists ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) bda6714] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmpK8TJ8C/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main 38357ca] main commit
+To /tmp/.tmpK8TJ8C/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Deleted branch master (was bda6714).
+ok
+test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
+test git::tests::test_create_repo_on_codeberg_success_201 ... ok
+test git::tests::test_create_repo_on_codeberg_unauthorized_401 ... ok
+test git::tests::test_create_repo_on_codeberg_unprocessable_422 ... ok
+test git::tests::test_create_repo_on_github_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_github_pat_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_github_public_flag_when_private_false ... ok
+test git::tests::test_create_repo_on_github_success ... ok
+test git::tests::test_create_repo_on_gitlab_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_gitlab_network_error ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_success ... ok
+test git::tests::test_create_repo_on_gitlab_token_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_detect_orphan_origin_detects_single_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_version ... ok
+test git::tests::test_detect_orphan_origin_ignores_multi_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_no_suffix ... ok
+test git::tests::test_diagnose_divergence_divergent ... [master (root-commit) 3903e3a] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+[master 08e95ac] other commit
+HEAD is now at 3903e3a init
+ok
+test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root-commit) 9d2a573] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_ensure_remote_adds_new ... ok
+test git::tests::test_ensure_remote_idempotent ... ok
+test git::tests::test_ensure_remote_updates_url ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) 9d2a573] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) 661a903] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmp9pWqzx/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+ok
+test git::tests::test_get_remote_url_nonexistent_remote ... ok
+test git::tests::test_gh_cmd_disables_prompts_without_token ... ok
+test git::tests::test_gh_cmd_uses_configured_pat_and_disables_prompts ... ok
+test git::tests::test_git_ssh_hardening_contains_key_flags ... ok
+test git::tests::test_github_https_url_non_github_returns_none ... ok
+test git::tests::test_github_https_url_ssh_with_colon_path ... ok
+test git::tests::test_github_https_url_with_embedded_newline ... ok
+test git::tests::test_gitlab_https_url_already_https ... ok
+test git::tests::test_gitlab_https_url_non_gitlab ... ok
+test git::tests::test_gitlab_https_url_ssh_colon_path ... ok
+test git::tests::test_gitlab_https_url_ssh_protocol ... ok
+test git::tests::test_has_only_master_branch_detects_master_only ... [master (root-commit) 0e31d9c] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_has_only_master_branch_ignores_main_and_master ... Switched to a new branch 'master'
+fatal: not a valid object name: 'master'
+ok
+test git::tests::test_is_git_worktree_file_gitdir_prefix ... ok
+test git::tests::test_is_git_worktree_file_nonexistent ... ok
+test git::tests::test_is_git_worktree_file_regular_git_dir ... ok
+test git::tests::test_is_git_worktree_file_with_whitespace ... ok
+test git::tests::test_is_repo_ready_empty_commit ... [main (root-commit) 6a803c4] init
+ok
+test git::tests::test_is_repo_ready_empty_head ... ok
+test git::tests::test_is_repo_ready_no_commits ... ok
+test git::tests::test_is_repo_ready_no_head ... ok
+test git::tests::test_is_repo_ready_normal_repo ... [main (root-commit) ff8e390] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 hello.txt
+ok
+test git::tests::test_list_remotes_empty ... ok
+test git::tests::test_list_remotes_one_remote ... ok
+test git::tests::test_load_secret_empty_env_var ... ok
+test git::tests::test_load_secret_env_takes_precedence_over_file ... ok
+test git::tests::test_load_secret_falls_back_to_lexicographic_non_preferred_env_files ... ok
+test git::tests::test_load_secret_file_with_comments_and_blank_lines ... ok
+test git::tests::test_load_secret_from_env ... ok
+test git::tests::test_load_secret_from_file ... ok
+test git::tests::test_load_secret_missing ... ok
+test git::tests::test_load_secret_or_legacy_pat_falls_back_to_legacy_dir ... ok
+test git::tests::test_load_secret_prefers_named_github_env_file ... ok
+test git::tests::test_parse_name_status_line_invalid_status ... ok
+test git::tests::test_parse_name_status_line_renamed ... ok
+test git::tests::test_parse_name_status_line_valid_lines ... ok
+test git::tests::test_prune_other_default_branch_deletes_main_when_on_master ... [master (root-commit) 74df033] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+Switched to a new branch 'main'
+Switched to branch 'master'
+ok
+test git::tests::test_prune_other_default_branch_deletes_master_when_on_main ... [main (root-commit) 74df033] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+Switched to a new branch 'master'
+Switched to branch 'main'
+ok
+test git::tests::test_push_mirror_remotes_empty_when_no_remotes ... ok
+test git::tests::test_push_to_all_remotes_returns_all_results ... ok
+test git::tests::test_push_to_named_remote_auto_force_when_behind ... ok
+test git::tests::test_push_to_named_remote_fails_on_invalid_remote ... ok
+test git::tests::test_push_to_named_remote_https_fallback_failure_still_retries_ssh ... ok
+test git::tests::test_push_to_named_remote_no_auto_force_when_disabled ... [master (root-commit) 8c8e3fe] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+[master 28a545c] other commit
+HEAD is now at 8c8e3fe init
+ok
+test git::tests::test_push_to_named_remote_no_auto_force_when_divergent ... [master (root-commit) 3204ac6] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+[master 0d19def] other commit
+HEAD is now at 3204ac6 init
+ok
+test git::tests::test_push_to_named_remote_ssh_fails_https_fallback ... ok
+test git::tests::test_push_to_named_remote_ssh_success ... ok
+test git::tests::test_push_to_named_remote_unsafe_branch_skips_https_fallback ... ok
+test git::tests::test_push_with_retries_exhausts_retries_and_fails ... ok
+test git::tests::test_push_with_retries_includes_stderr_on_failure ... ok
+test git::tests::test_push_with_retries_retries_then_succeeds ... ok
+test git::tests::test_push_with_retries_returns_immediately_on_permanent_rejection ... ok
+test git::tests::test_push_with_retries_succeeds_first_attempt ... ok
+test git::tests::test_push_with_transport_fallbacks_both_fail ... ok
+test git::tests::test_push_with_transport_fallbacks_skips_fallback_on_permanent_rejection ... ok
+test git::tests::test_push_with_transport_fallbacks_ssh_fails_https_fallback_succeeds ... ok
+test git::tests::test_push_with_transport_fallbacks_ssh_succeeds_no_fallback ... ok
+test git::tests::test_remove_stale_remotes_idempotent_when_empty ... ok
+test git::tests::test_remove_stale_remotes_preserves_operator_remotes ... ok
+test git::tests::test_remove_stale_remotes_preserves_origin ... ok
+test git::tests::test_remove_stale_remotes_removes_marker_stamped_remote ... ok
+test git::tests::test_remove_stale_remotes_removes_nonkept ... ok
+test git::tests::test_rename_master_to_main_renames_and_deletes_remote_master ... [master (root-commit) a3e24df] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmp3oQN9Y/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test git::tests::test_restore_paths_reverts_modified_file ... [master (root-commit) 4cebee2] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_child_includes_stderr_on_failure ... ok
+test git::tests::test_run_git_with_timeout_env_injects_env_vars ... [master (root-commit) 4999ab6] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_run_git_with_timeout_succeeds ... [master (root-commit) 4999ab6] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_strip_url_credentials_git_url ... ok
+test git::tests::test_strip_url_credentials_https_with_creds ... ok
+test git::tests::test_strip_url_credentials_https_without_creds ... ok
+test git::tests::test_strip_url_credentials_no_credentials ... ok
+test git::tests::test_strip_url_credentials_with_at_sign ... ok
+test git::tests::test_top_level_dir_empty ... ok
+test git::tests::test_top_level_dir_path_with_multiple_slashes ... ok
+test git::tests::test_top_level_dir_simple ... ok
+test git::tests::test_top_level_dir_single_component ... ok
+test git::tests::test_valid_object_id_accepts_sha1_and_sha256_only ... ok
+test git::urls::tests::canonical_repository_url_accepts_any_scp_username ... ok
+test git::urls::tests::canonical_repository_url_keeps_distinct_repositories_distinct ... ok
+test git::urls::tests::canonical_repository_url_normalizes_transport_and_suffix ... ok
+test git::urls::tests::canonical_repository_url_parses_scp_style_ipv6_literal ... ok
+test nix::tests::test_flake_has_hardcoded_version_false ... ok
+test nix::tests::test_flake_has_hardcoded_version_true ... ok
+test nix::tests::test_has_flake_nix_false_for_no_file ... ok
+test nix::tests::test_has_flake_nix_true_for_file ... ok
+test nix::tests::test_update_flake_version_disk_round_trip ... ok
+test nix::tests::test_update_flake_version_no_change_when_already_current ... ok
+test nix::tests::test_update_version_in_flake_nix_basic ... ok
+test nix::tests::test_update_version_in_flake_nix_multiple_packages ... ok
+test nix::tests::test_update_version_in_flake_nix_no_package_section ... ok
+test nix::tests::test_update_version_in_flake_nix_skips_version_in_comment ... ok
+test nix::tests::test_update_version_in_flake_nix_tiles_style ... ok
+test nix::tests::test_update_version_merged_src_closing_detection ... ok
+test nix::tests::test_update_version_merged_src_style ... ok
+test nix::tests::test_update_version_no_extra_newline ... ok
+test nix::tests::test_update_version_preserves_semicolon ... ok
+test ownership::tests::test_classify_f44_asymmetric_trust_flags_unowned ... ok
+test ownership::tests::test_classify_path_owned_false_override_remains_hard_opt_out ... ok
+test ownership::tests::test_classify_path_owned_untrusted_identity_is_warning_only ... ok
+test ownership::tests::test_classify_per_repo_override_owned ... ok
+test ownership::tests::test_classify_per_repo_override_unowned ... ok
+test ownership::tests::test_classify_trusted_email_matches ... ok
+test ownership::tests::test_classify_trusted_origin_only ... ok
+test ownership::tests::test_classify_unknown_no_signals ... ok
+test ownership::tests::test_classify_unowned_head_author ... ok
+test ownership::tests::test_classify_unowned_origin_url ... ok
+test ownership::tests::test_classify_unowned_user_email ... ok
+test ownership::tests::test_is_trusted_origin_empty_hosts ... ok
+test ownership::tests::test_is_trusted_origin_ssh_schemes ... ok
+test ownership::tests::test_is_trusted_origin_substring ... ok
+test ownership::tests::test_is_trusted_origin_unparseable ... ok
+test ownership::tests::test_label_format ... ok
+test ownership::tests::test_parse_origin_direct ... ok
+test ownership::tests::test_redact_origin_credentials ... ok
+test ownership::tests::test_redact_url_credentials_in_text ... ok
+test policy::override_coverage_dump::dump_field_sets ... ok
+test policy::tests::test_apply_deadline_derived_from_pulse_interval ... ok
+test policy::tests::test_auto_harden_with_warden_defaults_true ... ok
+test policy::tests::test_build_artifact_cleanup_default_true_and_opt_out ... ok
+test policy::tests::test_debug_enabled ... ok
+test policy::tests::test_debug_enabled_accepts_1 ... ok
+test policy::tests::test_debug_enabled_rejects_empty ... ok
+test policy::tests::test_default_codeberg_public_only_is_true ... ok
+test policy::tests::test_default_dirty_max_age_action_is_commit ... ok
+test policy::tests::test_default_exclude_dir_names ... ok
+test policy::tests::test_default_exclude_file_patterns ... ok
+test policy::tests::test_default_inactivity_push_delay_secs ... ok
+test policy::tests::test_default_incident_ledger_max_age_days ... ok
+test policy::tests::test_default_incident_ledger_max_lines ... ok
+test policy::tests::test_default_max_push_blob_bytes ... ok
+test policy::tests::test_default_max_stage_file_bytes ... ok
+test policy::tests::test_default_min_commit_interval_secs_is_5 ... ok
+test policy::tests::test_default_policy_does_not_force_funding_yml ... ok
+test policy::tests::test_default_pull_op_timeout_secs ... ok
+test policy::tests::test_default_pulse_interval ... ok
+test policy::tests::test_default_push_op_timeout_secs ... ok
+test policy::tests::test_default_push_retries ... ok
+test policy::tests::test_default_repair_cooldown_secs ... ok
+test policy::tests::test_default_repo_sync_timeout_secs ... ok
+test policy::tests::test_default_sem_max_concurrent_sync_is_four ... ok
+test policy::tests::test_default_settling_max_delay_secs_is_60 ... ok
+test policy::tests::test_default_stage_cooldown_secs ... ok
+test policy::tests::test_default_stage_op_timeout_secs ... ok
+test policy::tests::test_default_true ... ok
+test policy::tests::test_default_trusted_authors ... ok
+test policy::tests::test_default_trusted_emails ... ok
+test policy::tests::test_default_trusted_remote_hosts_includes_three_platforms ... ok
+test policy::tests::test_default_untracked_exclude_patterns_is_commit_all_unless_scratch ... ok
+test policy::tests::test_default_untracked_exclude_patterns_preserves_intentional_content ... ok
+test policy::tests::test_dirty_max_age_action_default_is_commit ... ok
+test policy::tests::test_dirty_max_age_action_serde_kebab_case ... ok
+test policy::tests::test_env_freeze_enabled_accepts_on ... ok
+test policy::tests::test_env_freeze_enabled_accepts_yes ... ok
+test policy::tests::test_env_freeze_enabled_ignores_case ... ok
+test policy::tests::test_env_freeze_enabled_rejects_empty ... ok
+test policy::tests::test_env_freeze_enabled_rejects_false ... ok
+test policy::tests::test_example_toml_matches_policy_defaults ... ok
+test policy::tests::test_expand_tilde_resolves_under_home ... ok
+test policy::tests::test_freeze_marker_paths ... ok
+test policy::tests::test_freeze_marker_paths_includes_dracondir ... ok
+test policy::tests::test_freeze_reason_env_takes_precedence ... ok
+test policy::tests::test_freeze_reason_none_when_not_frozen ... ok
+test policy::tests::test_git_host_blob_limit ... ok
+test policy::tests::test_license_only_policy_does_not_force_funding_yml ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_default_none ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_some_false ... ok
+test policy::tests::test_load_repo_override_codeberg_public_only_some_true ... ok
+test policy::tests::test_load_repo_override_exclude_remotes ... ok
+test policy::tests::test_load_repo_override_exclude_remotes_default_empty ... ok
+test policy::tests::test_load_repo_override_intentional_no_upstream ... ok
+test policy::tests::test_load_repo_override_intentional_no_upstream_default_false ... ok
+test policy::tests::test_load_repo_override_nonexistent ... ok
+test policy::tests::test_repo_auto_repair_enabled_merge ... ok
+test policy::tests::test_repo_override_auto_repair_concerns_round_trip ... ok
+test policy::tests::test_repo_override_build_artifact_cleanup_round_trip ... ok
+test policy::tests::test_repo_override_field_coverage_tripwire ... ok
+test policy::tests::test_repo_override_missing_new_fields_defaults_none ... ok
+test policy::tests::test_repo_override_parses_new_fields ... ok
+test policy::tests::test_repo_policy_override_default ... ok
+test policy::tests::test_resolve_policy_path_env_override ... ok
+test policy::tests::test_resolve_push_url_account_only ... ok
+test policy::tests::test_resolve_push_url_no_template ... ok
+test policy::tests::test_resolve_push_url_template_substitution ... ok
+test policy::tests::test_resolve_push_url_with_name_mapping ... ok
+test policy::tests::test_resolve_repo_name_with_mapping ... ok
+test policy::tests::test_resolve_repo_name_without_mapping ... ok
+test policy::tests::test_standard_files_auto_default_true ... ok
+test policy::tests::test_standard_files_auto_explicit_true ... ok
+test policy::tests::test_standard_files_default_empty ... ok
+test policy::tests::test_standard_files_empty ... ok
+test policy::tests::test_standard_files_funding_yml_github_subdir_long_form ... ok
+test policy::tests::test_standard_files_long_form ... ok
+test policy::tests::test_standard_files_mixed_form ... ok
+test policy::tests::test_standard_files_short_form ... ok
+test policy::tests::test_standard_files_short_form_funding_yml ... ok
+test policy::tests::test_sync_policy_codeberg_public_only_explicit_false ... ok
+test policy::tests::test_sync_policy_codeberg_public_only_field_default_true ... ok
+test policy::tests::test_sync_policy_defaults_produce_valid_values ... ok
+test policy::tests::test_sync_policy_watch_roots_filters_nonexistent ... ok
+test policy::tests::test_test_sync_policy_has_new_fields ... ok
+test policy::tests::test_timestamp_secs_returns_increasing_values ... ok
+test policy::tests::test_timestamp_secs_returns_reasonable_value ... ok
+test policy::tests::test_validate_config_empty_auto_create_account_is_silent ... ok
+test policy::tests::test_validate_config_empty_remote_push_url ... ok
+test policy::tests::test_validate_config_invalid_webhook_url ... ok
+test policy::tests::test_validate_config_missing_watch_root ... ok
+test policy::tests::test_validate_config_no_watch_roots_error ... ok
+test policy::tests::test_validate_config_rejects_absolute_source_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_parent_dir_source_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_path_traversal_in_standard_files ... ok
+test policy::tests::test_validate_config_rejects_root_equivalent_standard_file_targets ... ok
+test policy::tests::test_validate_config_valid_policy ... ok
+test policy::tests::test_validate_config_warns_on_no_remotes ... ok
+test policy::tests::test_validate_config_warns_on_short_stage_cooldown_and_timeouts ... ok
+test policy::tests::test_validate_toml_field_ordering_ok_with_all_fields_before_sections ... ok
+test policy::tests::test_validate_toml_field_ordering_warns_on_post_section_fields ... ok
+test print::tests::format_bytes_gib ... ok
+test print::tests::format_bytes_kib ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_bytes_under_kib ... ok
+test print::tests::format_bytes_zero ... ok
+test print::tests::format_secs_units ... ok
+test print::tests::no_color_disables ... ok
+test release::tests::test_create_github_release_uses_configured_pat_without_prompt ... ok
+test release::tests::test_detect_project_version_cargo_takes_priority_over_version_txt ... ok
+test release::tests::test_detect_project_version_pubspec_yaml ... ok
+test release::tests::test_detect_project_version_rust ... ok
+test release::tests::test_detect_project_version_unknown ... ok
+test release::tests::test_detect_project_version_version_file ... ok
+test release::tests::test_detect_project_version_version_txt ... ok
+test release::tests::test_extract_package_name_cargo ... ok
+test release::tests::test_extract_package_name_npm ... ok
+test release::tests::test_extract_package_name_pypi ... ok
+test release::tests::test_extract_repo_name_from_https_url ... ok
+test release::tests::test_extract_repo_name_from_ssh_url ... ok
+test release::tests::test_extract_repo_name_from_ssh_url_with_port ... ok
+test release::tests::test_publish_registry_as_str ... ok
+test release::tests::test_publish_registry_default ... ok
+test release::tests::test_read_cargo_version ... ok
+test release::tests::test_read_npm_version ... ok
+test release::tests::test_release_pipeline_no_release_on_minor_even_if_auto_release_true ... ok
+test release::tests::test_release_pipeline_no_tag_when_auto_tag_false ... ok
+test release::tests::test_release_pipeline_release_on_major_when_auto_release_true ... ok
+test release::tests::test_release_pipeline_tag_only_when_auto_tag_true ... ok
+test release::tests::test_release_step_skipped_display ... ok
+test report::codeberg_public_only_tests::effective_does_not_exclude_codeberg_when_public ... ok
+test report::codeberg_public_only_tests::effective_excludes_codeberg_when_private ... ok
+test report::codeberg_public_only_tests::effective_excludes_codeberg_when_visibility_unknown_safe_default ... ok
+test report::codeberg_public_only_tests::effective_global_disabled_disables_gate_globally ... ok
+test report::codeberg_public_only_tests::effective_manual_exclude_remotes_is_preserved ... ok
+test report::codeberg_public_only_tests::effective_no_double_add_when_already_excluded ... ok
+test report::codeberg_public_only_tests::effective_per_repo_override_false_disables_gate ... ok
+test report::codeberg_public_only_tests::effective_per_repo_override_true_is_noop_when_global_true ... ok
+test report::codeberg_public_only_tests::effective_per_repo_override_true_overrides_global_false ... ok
+test report::size_cache_tests::cache_path_sits_next_to_policy ... ok
+test report::size_cache_tests::cache_roundtrip_preserves_cached_at_secs ... ok
+test report::size_cache_tests::cache_roundtrips_through_json ... ok
+test report::size_cache_tests::gitdir_signature_nonzero_with_gitdir ... ok
+test report::size_cache_tests::gitdir_signature_zero_without_gitdir ... ok
+test report::size_cache_tests::measure_git_size_bytes_returns_none_for_missing_repo ... ok
+test report::size_cache_tests::measure_git_size_bytes_works_via_count_objects_or_du_fallback ... ok
+test report::size_cache_tests::measure_git_size_via_count_objects_works_on_real_repo ... ok
+test report::tests::build_daemon_last_action_map_keeps_most_recent_per_repo ... ok
+test report::tests::build_daemon_last_action_map_missing_ledger_returns_none ... ok
+test report::tests::build_recent_push_failure_map_missing_ledger ... ok
+test report::tests::build_recent_push_failure_map_populated ... ok
+test report::tests::compute_cold_size_entry_populates_cache_record ... ok
+test report::tests::concerns_ledger_insert_if_absent ... ok
+test report::tests::concerns_retry_softening ... ok
+test report::tests::concerns_retry_softening_really_gone ... ok
+test report::tests::ever_pushed_reads_linked_worktree_common_gitdir ... ok
+test report::tests::ever_pushed_reads_resolved_nested_gitdir ... ok
+test report::tests::probe_history_retry_still_reports_genuinely_invalid_head_as_failed ... ok
+test report::tests::read_tail_lines_empty_file ... ok
+test report::tests::read_tail_lines_handles_oversized_line ... ok
+test report::tests::read_tail_lines_handles_trailing_newline ... ok
+test report::tests::read_tail_lines_respects_window ... ok
+test report::tests::read_tail_lines_small_file ... ok
+test report::tests::run_git_bounded_feeds_large_stdin_without_pipe_block ... ok
+test report::tests::test_activity_label_clean_cold ... ok
+test report::tests::test_activity_label_clean_idle ... ok
+test report::tests::test_activity_label_clean_recent_synced ... ok
+test report::tests::test_activity_label_dirty_old_commit_dirty ... ok
+test report::tests::test_activity_label_dirty_recent_commit_dirty ... ok
+test report::tests::test_activity_label_push_pending_includes_ahead_count ... ok
+test report::tests::test_activity_label_push_pending_is_waiting_without_inflight_marker ... ok
+test report::tests::test_activity_label_push_stuck_state ... ok
+test report::tests::test_activity_label_suppresses_in_flight_for_clean_state ... ok
+test report::tests::test_activity_label_unparseable_time ... ok
+test report::tests::test_ansi_colors ... ok
+test report::tests::test_apply_intentional_no_upstream_idempotent ... ok
+test report::tests::test_apply_intentional_no_upstream_no_op_when_absent ... ok
+test report::tests::test_apply_intentional_no_upstream_replaces_flag ... ok
+test report::tests::test_branch_color_for_main_master ... ok
+test report::tests::test_branch_color_for_other ... ok
+test report::tests::test_branch_upstream_gone_when_remote_tracking_ref_missing ... [main (root-commit) afa818f] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test report::tests::test_branch_upstream_missing_when_no_config ... [main (root-commit) afa818f] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test report::tests::test_broken_history_is_not_active ... ok
+test report::tests::test_choose_layout_tier_compact ... ok
+test report::tests::test_choose_layout_tier_fallback_no_env_no_tty_yields_compact_or_smaller ... ok
+test report::tests::test_choose_layout_tier_full ... ok
+test report::tests::test_choose_layout_tier_vertical ... ok
+test report::tests::test_classify_state_cause_cold_beyond_threshold ... ok
+test report::tests::test_classify_state_cause_dirty_within_committing_window_is_dirty ... ok
+test report::tests::test_classify_state_cause_failed_takes_precedence ... ok
+test report::tests::test_classify_state_cause_idle_within_cold_window ... ok
+test report::tests::test_classify_state_cause_intentional_flag ... ok
+test report::tests::test_classify_state_cause_old_dirty_is_stalled ... ok
+test report::tests::test_classify_state_cause_pushing_takes_precedence ... ok
+test report::tests::test_classify_state_cause_recent_dirty_is_dirty_not_stalled ... ok
+test report::tests::test_classify_state_cause_stalled_is_the_users_pain ... ok
+test report::tests::test_classify_state_cause_synced_clean_recent_but_not_working ... ok
+test report::tests::test_classify_state_cause_untracked_only ... ok
+test report::tests::test_classify_state_cause_uses_global_when_no_override ... ok
+test report::tests::test_classify_state_cause_uses_per_repo_overrides ... ok
+test report::tests::test_classify_state_cause_working_is_freshly_synced ... ok
+test report::tests::test_colorize_passthrough_when_no_color ... ok
+test report::tests::test_compact_table_min_width_within_250 ... ok
+test report::tests::test_concern_repair_filter_variants ... ok
+test report::tests::test_create_github_private_remote_already_exists_reuses_without_suffix ... ok
+test report::tests::test_create_github_private_remote_no_gh_installed_returns_none ... ok
+test report::tests::test_create_github_private_remote_origin_already_exists_does_not_add_duplicate ... ok
+test report::tests::test_create_github_private_remote_success ... ok
+test report::tests::test_empty_repo_push_status_is_empty_not_fail ... ok
+test report::tests::test_format_commit_subject_for_display_drops_pipe_metrics ... ok
+test report::tests::test_format_commit_subject_for_display_falls_back_to_truncate ... ok
+test report::tests::test_format_commit_subject_for_display_fits_deep_path_goal_id ... ok
+test report::tests::test_format_commit_subject_for_display_no_truncation_when_fits ... ok
+test report::tests::test_format_commit_subject_for_display_non_structured ... ok
+test report::tests::test_format_push_to_remotes_cell ... ok
+test report::tests::test_full_table_headers_fit_columns ... ok
+test report::tests::test_full_table_min_width_within_300 ... ok
+test report::tests::test_incident_ledger_path_custom_env ... ok
+test report::tests::test_incident_ledger_path_default ... ok
+test report::tests::test_incident_record_serialization ... ok
+test report::tests::test_index_column_fits_two_digit_row_number ... ok
+test report::tests::test_last_push_for_branch_skips_unsafe_branch_names ... ok
+test report::tests::test_last_push_for_branch_uses_log_not_reflog ... ok
+test report::tests::test_legend_glossary_lines_fit_requested_width ... ok
+test report::tests::test_load_in_flight_for_path_10s_old_is_stale ... ok
+test report::tests::test_load_in_flight_for_path_recent_file_honoured ... ok
+test report::tests::test_load_in_flight_for_path_stale_file_treated_as_empty ... ok
+test report::tests::test_long_commit_subject_truncated_to_last_commit_width ... ok
+test report::tests::test_nested_repo_untracked_count_mixed_subrepo_and_plain_file ... ok
+test report::tests::test_nested_repo_untracked_count_returns_zero_when_git_fails ... ok
+test report::tests::test_nested_repo_untracked_count_subtracts_sibling_subrepos ... ok
+test report::tests::test_nested_repo_untracked_count_zero_for_clean_parent ... ok
+test report::tests::test_pack_too_large_forces_concern ... ok
+test report::tests::test_pack_too_large_skips_repair ... ok
+test report::tests::test_parse_git_log_meta_line_preserves_subject_with_separator ... ok
+test report::tests::test_parse_git_log_meta_line_rejects_blank ... ok
+test report::tests::test_parse_git_log_meta_line_rejects_too_few_fields ... ok
+test report::tests::test_parse_git_log_meta_line_simple_subject ... ok
+test report::tests::test_parse_relative_minutes_sentinel ... ok
+test report::tests::test_parse_relative_minutes_to_u64_handles_weeks_months_years ... ok
+test report::tests::test_parse_relative_minutes_units ... ok
+test report::tests::test_print_repos_summary_renders_as_table ... ok
+test report::tests::test_probe_history_invalid_head_is_failure_not_empty ... ok
+test report::tests::test_publish_cell_label_marks_missing_and_gone ... ok
+test report::tests::test_push_cell_fits_column ... ok
+test report::tests::test_push_cell_label_fail ... ok
+test report::tests::test_push_cell_label_ok ... ok
+test report::tests::test_push_cell_label_pending ... ok
+test report::tests::test_push_cell_label_push_stuck ... ok
+test report::tests::test_push_failure_cooldown_dedup ... ok
+test report::tests::test_push_large_blob_threshold_bytes ... ok
+test report::tests::test_push_large_blob_threshold_bytes_custom ... ok
+test report::tests::test_push_large_blob_threshold_bytes_uses_min_of_all ... ok
+test report::tests::test_push_large_blob_threshold_caps_at_git_limit ... ok
+test report::tests::test_push_large_blob_threshold_min_limit ... ok
+test report::tests::test_push_status_calculation_from_flags ... ok
+test report::tests::test_record_sync_alert_appends_jsonl ... ok
+test report::tests::test_repair_summary_debug ... ok
+test report::tests::test_repair_summary_default ... ok
+test report::tests::test_repo_failure_message_for_status_failed ... ok
+test report::tests::test_repo_failure_message_includes_context ... ok
+test report::tests::test_repo_filter_variants ... ok
+test report::tests::test_repo_hint_ahead_concern ... ok
+test report::tests::test_repo_hint_behind ... ok
+test report::tests::test_repo_hint_concern ... ok
+test report::tests::test_repo_hint_healthy ... ok
+test report::tests::test_repo_hint_intentional_no_upstream ... ok
+test report::tests::test_repo_hint_no_origin ... ok
+test report::tests::test_repo_hint_no_upstream ... ok
+test report::tests::test_repo_hint_warn ... ok
+test report::tests::test_repo_hint_warn_with_pending_push ... ok
+test report::tests::test_repo_is_active ... ok
+test report::tests::test_repo_is_concern_ahead ... ok
+test report::tests::test_repo_is_concern_behind ... ok
+test report::tests::test_repo_is_concern_clean_healthy ... ok
+test report::tests::test_repo_is_concern_no_origin ... ok
+test report::tests::test_repo_is_concern_no_origin_but_has_remote ... ok
+test report::tests::test_repo_is_concern_no_upstream ... ok
+test report::tests::test_repo_is_concern_no_upstream_with_remotes ... ok
+test report::tests::test_repo_is_concern_not_unbacked_when_has_commits ... ok
+test report::tests::test_repo_is_concern_unbacked_up_content_no_commits ... ok
+test report::tests::test_repo_is_warn_dirty ... ok
+test report::tests::test_repo_is_warn_not_concern ... ok
+test report::tests::test_repo_is_warn_untracked_only_is_not_warn ... ok
+test report::tests::test_repo_report_json_structure ... ok
+test report::tests::test_repo_report_row_push_status_fields ... ok
+test report::tests::test_repo_report_row_structure ... ok
+test report::tests::test_repo_state_flags_ahead ... ok
+test report::tests::test_repo_state_flags_behind ... ok
+test report::tests::test_repo_state_flags_dirty ... ok
+test report::tests::test_repo_state_flags_empty_repo ... ok
+test report::tests::test_repo_state_flags_multiple ... ok
+test report::tests::test_repo_state_flags_no_origin ... ok
+test report::tests::test_repo_state_flags_no_origin_but_has_remote ... ok
+test report::tests::test_repo_state_flags_no_upstream ... ok
+test report::tests::test_repo_state_flags_ok ... ok
+test report::tests::test_repo_state_flags_stuck_pull ... ok
+test report::tests::test_repo_state_flags_stuck_push ... ok
+test report::tests::test_repo_stuck_filters_require_dry_run ... ok
+test report::tests::test_repos_legend_covers_all_push_cell_labels ... ok
+test report::tests::test_repos_legend_covers_all_rich_columns ... ok
+test report::tests::test_repos_legend_lines_fit_min_width ... ok
+test report::tests::test_rich_table_fits_narrow_terminal ... ok
+test report::tests::test_rich_table_headers_fit_columns ... ok
+test report::tests::test_role_cell_truncates_long_submod_labels ... ok
+test report::tests::test_severity_tier_ordering ... ok
+test report::tests::test_shorten_when ... ok
+test report::tests::test_size_label_units_and_colors ... ok
+test report::tests::test_state_plus_act_cell_drops_activity_when_tight ... ok
+test report::tests::test_state_plus_act_cell_handles_dash_activity ... ok
+test report::tests::test_state_plus_act_cell_keeps_activity_when_it_fits ... ok
+test report::tests::test_status_json_structure ... ok
+test report::tests::test_stuck_pull_is_failed_not_actively_pushing ... ok
+test report::tests::test_summary_what_clean_idle_repo ... ok
+test report::tests::test_summary_what_dirty_repo_includes_dirty_counts_and_hint ... ok
+test report::tests::test_summary_what_handles_long_hint_with_word_boundary ... ok
+test report::tests::test_summary_what_pending_push_drops_redundant_ahead_note ... ok
+test report::tests::test_summary_what_stuck_push_shows_status ... ok
+test report::tests::test_sync_alert_ledger_path_uses_state_dir ... ok
+test report::tests::test_terminal_width_columns_env_var ... ok
+test report::tests::test_terminal_width_fallback_is_compact ... ok
+test report::tests::test_timestamp_secs_returns_reasonable_value ... ok
+test report::tests::test_touched_label_renders_author_and_when ... ok
+test report::tests::test_truncate_empty ... ok
+test report::tests::test_truncate_empty_string ... ok
+test report::tests::test_truncate_exact_length ... ok
+test report::tests::test_truncate_exact_length_no_ellipsis ... ok
+test report::tests::test_truncate_longer ... ok
+test report::tests::test_truncate_shorter ... ok
+test report::tests::test_truncate_three_chars ... ok
+test report::tests::test_truncate_unicode_emoji ... ok
+test report::tests::test_truncate_unicode_truncation ... ok
+test report::tests::test_truncate_unicode_width_cjk ... ok
+test report::tests::test_truncate_unicode_width_emoji_safe ... ok
+test report::tests::test_truncate_unicode_width_no_truncation ... ok
+test report::tests::test_unowned_label_fits_activity_column ... ok
+test report::tests::test_unowned_pending_is_blocked_not_active ... ok
+test report::tests::test_verify_resolution_still_concern ... ok
+test report::tests::test_wrap_legend_text_respects_unicode_width ... ok
+test report::v011313_tests::activity_label_appends_excl_marker ... ok
+test report::v011313_tests::classify_committable_modified_and_staged ... ok
+test report::v011313_tests::classify_excluded_tracked_pattern_is_not_committable ... ok
+test report::v011313_tests::classify_submodule_worktree_dirt_excluded_gitlink_drift_committable ... ok
+test report::v011313_tests::classify_untracked_never_committable_but_excludable ... ok
+test report::v011313_tests::parse_porcelain_z_handles_renames_and_untracked ... ok
+test report::v011315_tests::push_cell_appends_age_on_success_only ... ok
+test report::v011315_tests::rem_cell_fits_column_budget ... ok
+test report::v011315_tests::rem_cell_shows_only_active_push_remotes ... ok
+test report::v011315_tests::rem_cell_unknown_remote_renders_letters_not_dropped ... ok
+test report::v011315_tests::remote_icon_maps_canonical_hosts ... ok
+test report::v011316_tests::quota_rule_excludes_codeberg_without_tracking_ref ... ok
+test report::v011316_tests::quota_rule_keeps_codeberg_with_tracking_ref ... ok
+test report::v011316_tests::too_big_for_github_excludes_github ... ok
+test report::v011318_tests::dynamic_rem_column_covers_rendered_remote_labels ... ok
+test report::v011318_tests::five_digit_commit_pulse_counts_fit_column_budget ... ok
+test report::v011318_tests::table_icons_are_width_two ... ok
+test report::v011318_tests::three_digit_change_counts_fit_column_budget ... ok
+test report::v011318b_tests::repo_cell_leading_marker_and_alignment ... ok
+test report::v011318b_tests::repo_cell_truncates_long_names_after_marker ... ok
+test report::v011320_tests::measure_modules_size_bytes_counts_modules_dir ... ok
+test report::v011320_tests::size_cell_color_follows_own_pack ... ok
+test report::v011320_tests::size_cell_plain_repo_uses_adaptive_label ... ok
+test report::v011320_tests::size_cell_superproject_shows_own_plus_modules ... ok
+test report::v011320_tests::size_compact_formats_units ... ok
+test report::v011321_tests::push_marker_token_only_for_relevant_forges ... ok
+test report::v011321_tests::push_markers_broken_history_and_token ... ok
+test report::v011321_tests::rem_cell_active_only_no_excluded ... ok
+test report::v011321_tests::repo_cell_nested_badge_after_lock ... ok
+test role::tests::classify_role_for_parent_repo ... ok
+test role::tests::classify_role_for_standalone_repo ... ok
+test role::tests::classify_role_for_submod_repo ... ok
+test role::tests::f55_full_path_distinguishes_same_basename_repos ... ok
+test role::tests::full_path_match_beats_earlier_basename_fallback ... ok
+test role::tests::label_compact_submod_falls_back_when_no_web_games_prefix ... ok
+test role::tests::label_compact_submod_keeps_released_tier ... ok
+test role::tests::label_compact_submod_strips_web_games_prefix ... ok
+test role::tests::label_parent_unchanged ... ok
+test role::tests::label_standalone_unchanged ... ok
+test role::tests::priority_submod_over_parent_when_dual_role ... ok
+test secrets::tests::test_load_secret_from_dir_loads_clean_value ... ok
+test secrets::tests::test_load_secret_from_dir_refuses_control_chars ... ok
+test standard_files::tests::test_absolute_source_path ... ok
+test standard_files::tests::test_copies_file_when_missing ... ok
+test standard_files::tests::test_dry_run_does_not_copy_files ... ok
+test standard_files::tests::test_funding_yml_in_dot_github_subdir ... ok
+test standard_files::tests::test_funding_yml_skip_standard_files_optout ... ok
+test standard_files::tests::test_overwrite_directory_target ... ok
+test standard_files::tests::test_overwrites_when_configured ... ok
+test standard_files::tests::test_parent_dir_source_rejected_at_point_of_use ... ok
+test standard_files::tests::test_root_equivalent_target_cannot_delete_repo_on_overwrite ... ok
+test standard_files::tests::test_short_form_source_resolution ... ok
+test standard_files::tests::test_skips_from_repo_override ... ok
+test standard_files::tests::test_skips_when_target_exists ... ok
+test standard_files::tests::test_subdirectory_target_creates_parent ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_delete_external_directory ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_write_or_delete_external ... ok
+test standard_files::tests::test_tilde_source_rejected ... ok
+test standard_files::tests::test_warns_when_template_missing ... ok
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) b2bec71] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) b2bec71] init
+ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_budget_caps_pathological_subject ... ok
+test sync::tests::test_cap_batch_union_caps_the_union_not_each_list ... ok
+test sync::tests::test_cap_batch_union_gitlink_priority ... ok
+test sync::tests::test_cap_batch_union_single_class_behavior_unchanged ... ok
+test sync::tests::test_cap_batch_union_under_limit_is_unchanged ... ok
+test sync::tests::test_check_untracked_threshold_above ... ok
+test sync::tests::test_check_untracked_threshold_below ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_check_untracked_threshold_keeps_plain_untracked_dirs ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_multiple_nested_repos ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_nested_repo ... ok
+test sync::tests::test_check_untracked_threshold_zero_disables ... ok
+test sync::tests::test_classify_failing_remotes_dedupes_divergence ... ok
+test sync::tests::test_classify_failing_remotes_empty_map ... ok
+test sync::tests::test_commit_guard_allows_path_owned_untrusted_identity ... ok
+test sync::tests::test_commit_guard_allows_trusted_identity ... ok
+test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
+test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) b791ad3] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) b791ad3] init
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) d49a4b0] c1
+[main 68193ac] c2
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) a022a33] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) c91e681] init
+ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) 3d093f3] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) c7acb0d] init
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) f798ab9] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 4889a60] init
+To /tmp/.tmpZlseJm/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 44073e2] init
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) 6f04227] init
+[main b428784] ahead
+HEAD is now at b428784 ahead
+To /tmp/.tmpEd2trw/origin.git
+   6f04227..b428784  HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmphbGHc4/remote.git/
+[master (root-commit) ecd71f0] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... ok
+test sync::tests::test_repo_has_warden_filter_probe ... ok
+test sync::tests::test_safety_metric_predicate ... ok
+test sync::tests::test_sanitize_task_name_drops_explanatory_clauses ... ok
+test sync::tests::test_sanitize_task_name_limits_plain_text ... ok
+test sync::tests::test_scale_push_timeout_absurd_base_saturates ... ok
+test sync::tests::test_scale_push_timeout_huge_push_sextuples ... ok
+test sync::tests::test_scale_push_timeout_large_push_quadruples ... ok
+test sync::tests::test_scale_push_timeout_medium_push_doubles ... ok
+test sync::tests::test_scale_push_timeout_never_truncates_live_base ... ok
+test sync::tests::test_scale_push_timeout_small_push_uses_base ... ok
+test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
+test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
+test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
+test sync::tests::test_scope_root_files_backcompat ... ok
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) b6630ce] init
+[main db49f3e] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) d7929cc] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) d7929cc] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) d7929cc] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) d7929cc] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) a06b42d] init
+ok
+test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_stage_gitlink_updates_no_op_for_empty_input ... ok
+test sync::tests::test_stage_gitlink_updates_propagates_sibling_subrepo_pointer ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) aa25e1f] init
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 3fc7645] init
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 04072aa] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 04072aa] init
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 395492a] init
+ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) 395492a] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) b262ee8] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmp5riz4R/origin.git'
+[master 03004b9] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 4d1e08b] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 4d1e08b] init
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) cbe6e3b] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) cbe6e3b] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) cbe6e3b] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 9c91feb] init
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) 2d33468] init
+To /tmp/.tmpfAvoDK/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) b709f0a] init
+To /tmp/.tmpRwhFEo/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 5bf5502] init
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 1365f43] init
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) 1754bf1] init
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) d2b0357] init
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) d2b0357] init
+[main 7256588] ahead
+HEAD is now at 7256588 ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 840e18e] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 840e18e] init
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 840e18e] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) 840e18e] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) 840e18e] init
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) 19c4d16] init
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) 19c4d16] init
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) 19c4d16] init
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) 19c4d16] init
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) f1d7506] init
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) 9995b79] init
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) 9995b79] init
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) f61a500] init
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
+test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
+test test_helpers::tests::test_env_restorer_round_trip ... ok
+test tests::test_env_freeze_takes_precedence ... ok
+test tests::test_freeze_marker_paths ... ok
+test tests::test_freeze_reason_none_when_no_marker ... ok
+test tests::test_metrics_contains_all_expected_metrics ... ok
+test tests::test_metrics_output_has_expected_format ... ok
+test tests::test_run_maintenance_pauses_runs_resumes ... ok
+test tests::test_run_maintenance_preserves_existing_freeze ... ok
+test tests::test_run_maintenance_resumes_even_on_failure ... ok
+test tests::test_run_maintenance_spawn_failure_returns_127_and_resumes ... ok
+test tests::test_scaffold_does_not_delete_symlinked_external_directory ... ok
+test tests::test_scaffold_rejects_root_target_without_deleting_repo ... ok
+test tests::test_scaffold_rejects_symlink_directory_escape ... ok
+test vanished::tests::detect_is_sorted_by_path_for_deterministic_reports ... ok
+test vanished::tests::detect_reports_only_unexpired_vanished_entries ... ok
+test vanished::tests::ledger_roundtrips_through_json ... ok
+test vanished::tests::mark_seen_adds_and_clears_vanished_stamp ... ok
+test vanished::tests::update_stamps_newly_absent_and_clears_returned ... ok
+test visibility::tests::test_cache_not_written_on_unparseable_origin ... ok
+test visibility::tests::test_cache_not_written_when_gh_visibility_unknown ... ok
+test visibility::tests::test_cache_prevents_repeated_api_calls ... ok
+test visibility::tests::test_cached_repo_visibility_returns_none_when_no_file ... ok
+test visibility::tests::test_cached_repo_visibility_returns_private ... ok
+test visibility::tests::test_cached_repo_visibility_returns_public ... ok
+test visibility::tests::test_cached_repo_visibility_treats_legacy_format_as_unknown ... ok
+test visibility::tests::test_cached_repo_visibility_window_follows_interval_hours ... ok
+test visibility::tests::test_codeberg_api_url_construction ... ok
+test visibility::tests::test_get_github_metadata_returns_empty_on_error ... ok
+test visibility::tests::test_get_github_visibility_returns_safe_default_on_error ... ok
+test visibility::tests::test_github_visibility_at_creation_disabled ... ok
+test visibility::tests::test_github_visibility_at_creation_enabled_private ... ok
+test visibility::tests::test_gitlab_api_url_construction ... ok
+test visibility::tests::test_last_known_visibility_survives_stale_cache_for_display_only ... ok
+test visibility::tests::test_parse_github_owner_repo_empty_string ... ok
+test visibility::tests::test_parse_github_owner_repo_gitlab_url ... ok
+test visibility::tests::test_parse_github_owner_repo_https ... ok
+test visibility::tests::test_parse_github_owner_repo_invalid_url ... ok
+test visibility::tests::test_parse_github_owner_repo_no_git_suffix ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh_scheme_and_userinfo ... ok
+test visibility::tests::test_parse_github_owner_repo_with_dots ... ok
+test visibility::tests::test_parse_github_owner_repo_with_hyphens ... ok
+test visibility::tests::test_parse_github_owner_repo_with_name_mapping ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+test result: ok. 1057 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 149.43s
+
+     Running tests/integration_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/integration_test-2a6b942d7177dc4d)
+
+running 10 tests
+test test_sync_repo_basic ... ok
+test test_sync_repo_branch_operations ... ok
+test test_sync_repo_commit ... ok
+test test_sync_repo_conflict_detection ... ok
+test test_sync_repo_diff ... ok
+test test_sync_repo_merge ... ok
+test test_sync_repo_multiple_commits ... ok
+test test_sync_repo_push_to_bare ... ok
+test test_sync_repo_stash ... ok
+test test_sync_repo_tag ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_system-bd185c0f305cbd12)
+
+running 184 tests
+test doctor::tests::doctor_checks_show_system_root_and_failure_status ... ok
+test events::tests::concurrent_persistence_keeps_each_record_as_a_json_line ... ok
+test events::tests::oversized_event_is_truncated_to_a_valid_bounded_record ... ok
+test events::tests::oversized_legacy_segments_are_discarded_before_new_events ... ok
+test events::tests::persistence_failure_is_reported_without_writing_outside_the_log ... ok
+test events::tests::persistent_event_log_rotates_before_append ... ok
+test events::tests::rotated_segment_is_included_in_chronological_tail ... ok
+test events::tests::tail_reader_retains_requested_lines_without_loading_the_file ... ok
+test events::tests::tail_reader_skips_oversized_lines_and_keeps_memory_bounded ... ok
+test events_tests::dracon_event_all_severity_levels ... ok
+test events_tests::dracon_event_debug ... ok
+test events_tests::dracon_event_via_new_constructor ... ok
+test events_tests::dracon_event_with_empty_path ... ok
+test events_tests::emit_event_does_not_panic ... ok
+test events_tests::event_severity_debug ... ok
+test events_tests::shorten_event_time_non_ascii_is_safe ... ok
+test events_tests::shorten_event_time_non_rfc3339 ... ok
+test events_tests::shorten_event_time_relative ... ok
+test guard_tests::auto_cleanup_result_default ... ok
+test guard_tests::clean_node_modules_flag_defaults_true_and_gates_toml_off ... ok
+test guard_tests::disk_fill_rate_gbph_computes_sustained_rate ... ok
+test guard_tests::disk_fill_rate_gbph_requires_minimum_samples_and_span ... ok
+test guard_tests::disk_fill_rate_gbph_returns_none_when_disk_shrinks ... ok
+test guard_tests::disk_state_action_between_action_and_critical ... ok
+test guard_tests::disk_state_critical_at_or_above_critical ... ok
+test guard_tests::disk_state_ok_below_warn ... ok
+test guard_tests::disk_state_warn_between_warn_and_action ... ok
+test guard_tests::graduated_nice_value_below_all_tiers_uses_base ... ok
+test guard_tests::graduated_nice_value_cpu_tier_180_percent ... ok
+test guard_tests::graduated_nice_value_cpu_tier_300_percent ... ok
+test guard_tests::graduated_nice_value_cpu_tier_500_percent ... ok
+test guard_tests::graduated_nice_value_high_base_clamped_to_max ... ok
+test guard_tests::graduated_nice_value_memory_4gb ... ok
+test guard_tests::graduated_nice_value_memory_8gb ... ok
+test guard_tests::graduated_nice_value_negative_base_clamped_to_zero ... ok
+test guard_tests::graduated_nice_value_preserves_current_nice ... ok
+test guard_tests::guard_policy_disk_thresholds_are_public ... ok
+test guard_tests::guard_report_can_be_created_with_alerts ... ok
+test guard_tests::guard_runtime_state_default_is_empty ... ok
+test guard_tests::guard_runtime_state_insert_and_retrieve_heavy_process ... ok
+test guard_tests::looks_credential_like_ignores_benign_names ... ok
+test guard_tests::looks_credential_like_matches_known_patterns ... ok
+test guard_tests::memory_limiter_policy_defaults_are_safe ... ok
+test guard_tests::memory_pressure_ignores_swap_occupancy_without_active_pressure ... ok
+test guard_tests::memory_pressure_requires_persistence_before_transition ... ok
+test guard_tests::nice_restore_privilege_requires_root_or_cap_sys_nice ... ok
+test guard_tests::normalize_guard_policy_clamps_cpu_cap_percent ... ok
+test guard_tests::oom_bias_target_boundaries ... ok
+test guard_tests::oom_bias_target_never_raises_already_biased_or_protected ... ok
+test guard_tests::oom_bias_target_raises_neutral_values_to_250 ... ok
+test guard_tests::oom_descendant_candidates_only_select_new_untracked_user_processes ... ok
+test guard_tests::parse_df_use_percent_no_matching_line ... ok
+test guard_tests::parse_df_use_percent_parses_without_percent_sign ... ok
+test guard_tests::parse_df_use_percent_works ... ok
+test guard_tests::parse_meminfo_garbage_returns_none ... ok
+test guard_tests::parse_meminfo_missing_swap_reports_zero_used ... ok
+test guard_tests::parse_meminfo_reads_all_four_fields ... ok
+test guard_tests::parse_pressure_memory_extracts_full_and_some ... ok
+test guard_tests::parse_pressure_memory_no_full_line_returns_none ... ok
+test guard_tests::parse_proc_stat_zombie_detects_z_state ... ok
+test guard_tests::parse_proc_stat_zombie_ignores_non_zombies ... ok
+test guard_tests::parse_ps_output_empty_input ... ok
+test guard_tests::parse_ps_output_extracts_all_fields ... ok
+test guard_tests::parse_ps_output_malformed_lines_skipped ... ok
+test guard_tests::parse_vmstat_swap_reads_counters ... ok
+test guard_tests::policy_load_roundtrip_memory_limiter_knobs ... ok
+test guard_tests::predict_fill_time_estimates_for_filling_disk ... ok
+test guard_tests::predict_fill_time_requires_minimum_samples ... ok
+test guard_tests::predict_fill_time_returns_none_for_stable_disk ... ok
+test guard_tests::record_swap_counters_preserves_pswpout ... ok
+test guard_tests::report_state_transition_suppresses_unchanged_events ... ok
+test guard_tests::runtime_adjustment_plan_includes_every_reversible_limiter ... ok
+test guard_tests::should_notify_first_time_allowed ... ok
+test guard_tests::should_notify_respects_cooldown ... ok
+test links_tests::apply_link_policy_creates_missing_link ... ok
+test links_tests::apply_link_policy_fixes_drifted_symlink_and_is_idempotent ... ok
+test links_tests::backup_path_for_never_reuses_an_occupied_backup_name ... ok
+test links_tests::evaluate_link_accepts_equivalent_noncanonical_target ... ok
+test links_tests::evaluate_link_missing_link_returns_missing ... ok
+test links_tests::force_replace_preserves_two_same_second_backups ... ok
+test links_tests::lexical_normalize_collapses_dot_components ... ok
+test links_tests::link_entry_status_debug ... ok
+test links_tests::link_entry_stores_link_and_target ... ok
+test links_tests::link_policy_empty_by_default ... ok
+test links_tests::link_status_report_debug ... ok
+test links_tests::scan_broken_symlinks_detects_broken_chains ... ok
+test links_tests::system_policy_has_link_section ... ok
+test links_tests::unique_backup_path_bumps_suffix_until_free ... ok
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test tests::action_cleanup_age_gate_lingering_definition ... ok
+test tests::action_cleanup_age_gate_zero_disables ... ok
+test tests::active_package_operations_skip_matching_cache_estimates_in_dry_run ... ok
+test tests::auto_cleanup_cadence_is_stateful ... ok
+test tests::build_link_report_counts_states ... ok
+test tests::check_path_str_blocks_descendants ... ok
+test tests::check_safe_to_delete_rejects_log_symlink_before_truncate ... ok
+test tests::clean_old_node_modules_counts_nested_tree_once ... ok
+test tests::clean_tmp_paths_keeps_old_process_cwd_directory ... ok
+test tests::clean_tmp_paths_rejects_home_search_root_before_apply ... ok
+test tests::clean_tmp_paths_respects_age_dry_run_and_open_fds ... ok
+test tests::defaults_are_expected ... ok
+test tests::disk_state_transitions_at_thresholds ... ok
+test tests::docker_prune_returns_zero_on_dry_run ... ok
+test tests::empty_trash_credential_guard_blocks_dry_run_estimate ... ok
+test tests::empty_trash_min_age_keeps_recent_entries ... ok
+test tests::empty_trash_zero_age_empties_everything ... ok
+test tests::evaluate_link_handles_missing_and_sync_cases ... ok
+test tests::expand_tilde_resolves_to_home_dir ... ok
+test tests::expand_tilde_with_home_unset_falls_back_to_dot ... ok
+test tests::filter_selectable_cleanup_kinds_drops_git_db_and_keeps_artifact_kinds ... ok
+test tests::guard_clean_bare_command_selects_all_targets ... ok
+test tests::guard_clean_target_flags_remain_selective_and_all_overrides_them ... ok
+test tests::guard_log_example_path_writes_and_startup_rotates_in_isolated_home ... ok
+test tests::guard_log_path_expands_the_example_configuration ... ok
+test tests::guard_never_removes_or_overwrites_operator_freeze_marker ... ok
+test tests::guard_policy_defaults_cover_tmp_and_trash_age_fields ... ok
+test tests::guard_removes_only_its_own_freeze_marker ... ok
+test tests::guard_report_completes_for_ok_disk ... ok
+test tests::guard_runtime_state_default_cycle_zero ... ok
+test tests::guard_safe_delete_allows_paths_under_system_protected ... ok
+test tests::guard_safe_delete_blocks_user_protected ... ok
+test tests::guard_safe_delete_rejects_exact_system_roots ... ok
+test tests::guard_safe_delete_rejects_symlink ... ok
+test tests::guard_startup_config_errors_use_non_restarting_status ... ok
+test tests::human_bytes_formats_units ... ok
+test tests::is_protected_ancestor_descendant_match ... ok
+test tests::is_protected_ancestor_exact_match ... ok
+test tests::is_protected_ancestor_rejects_partial_prefix ... ok
+test tests::is_protected_ancestor_root_matches_exact_only ... ok
+test tests::nix_cleanup_apply_preserves_configured_profile_generations ... ok
+test tests::nix_delete_generations_arg_means_keep_last_n ... ok
+test tests::non_unicode_policy_override_is_authoritative ... ok
+test tests::normalize_auto_cleanup_interval_min_60 ... ok
+test tests::normalize_early_warn_clamped_to_warn ... ok
+test tests::normalize_proactive_cleanup_percent_bounded_by_action ... ok
+test tests::normalize_proactive_interval_min_1 ... ok
+test tests::normalize_rust_target_max_age_days_min_1 ... ok
+test tests::package_cache_apply_refuses_all_cache_deletion ... ok
+test tests::package_cache_apply_refuses_uncoordinated_start_after_snapshot ... ok
+test tests::package_cache_process_detection_covers_direct_and_wrapped_tools ... ok
+test tests::package_cache_process_detection_fails_closed_on_missing_cmdline ... ok
+test tests::package_cache_process_detection_fails_closed_on_unreadable_cmdline ... ok
+test tests::package_cache_process_detection_rejects_malformed_ps_output ... ok
+test tests::package_cache_process_listing_failure_is_an_error ... ok
+test tests::parse_and_format_repeated_scenarios ... ok
+test tests::parse_df_use_percent_works ... ok
+test tests::parse_kinds_trims_and_dedupes ... ok
+test tests::parse_ps_output_extracts_all_fields ... ok
+test tests::parse_ps_output_works ... ok
+test tests::predict_fill_time_estimates_for_filling_disk ... ok
+test tests::predict_fill_time_requires_minimum_samples ... ok
+test tests::predict_fill_time_returns_none_for_stable_disk ... ok
+test tests::proactive_cleanup_defaults ... ok
+test tests::process_cmdline_is_bounded ... ok
+test tests::process_cmdline_is_sanitized_for_logs ... ok
+test tests::renice_process_with_bin_reports_success_and_failure ... ok
+test tests::restore_runtime_adjustments_composes_overlapping_nice_limiters ... ok
+test tests::restore_runtime_adjustments_preserves_current_pid_incarnation ... ok
+test tests::restore_runtime_adjustments_restores_renice_and_oom ... ok
+test tests::restore_runtime_adjustments_retains_failed_cpu_cap ... ok
+test tests::restore_runtime_adjustments_retains_overlapping_nice_limiters_on_failure ... ok
+test tests::rust_build_process_detection_covers_long_lived_tooling ... ok
+test tests::safe_tmp_root_policy_allows_tmp_descendants_and_rejects_home ... ok
+test tests::shipped_guard_service_exposes_host_tmp_for_clean_tmp ... ok
+test tests::shipped_guard_service_restart_policy_handles_disabled_and_bad_config ... ok
+test tests::should_notify_respects_cooldown ... ok
+test tests::stale_nice_state_does_not_override_current_pid_incarnation ... ok
+test tests::storage_cache_hotspots_share_package_apply_safety_gate ... ok
+test tests::storage_cleanup_apply_accepts_home_artifact_dirs_and_refuses_system_roots ... ok
+test tests::storage_cleanup_apply_refuses_git_database_dirs ... ok
+test tests::storage_cleanup_apply_refuses_git_database_subpaths ... ok
+test tests::sweep_stranded_oom_descendants_restores_only_post_bias_children ... ok
+test tests::sweep_stranded_oom_descendants_uses_nearest_biased_ancestor ... ok
+test tests::target_dir_info_has_mtime ... ok
+test tests::test_graduated_nice_value_clamped ... ok
+test tests::test_graduated_nice_value_cpu_plus_memory ... ok
+test tests::test_graduated_nice_value_cpu_tiers ... ok
+test tests::test_graduated_nice_value_high_base_clamped ... ok
+test tests::test_graduated_nice_value_memory_boundary ... ok
+test tests::test_graduated_nice_value_memory_tiers ... ok
+test tests::test_graduated_nice_value_negative_base_clamped ... ok
+test tests::tmp_entry_must_remain_under_validated_root ... ok
+test tests::truncate_log_preserves_open_writer_inode ... ok
+
+test result: ok. 184 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.34s
+
+     Running tests/events_cli.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/events_cli-d75a5a85944ba107)
+
+running 4 tests
+test events_json_includes_rotated_segment_before_active_segment ... ok
+test events_json_with_empty_log_emits_empty_jsonl ... ok
+test events_json_with_filter_matching_nothing_emits_empty_jsonl ... ok
+test events_json_with_missing_log_emits_empty_jsonl ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/guard_service.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/guard_service-2ef71abf3bbea7e4)
+
+running 7 tests
+test disabled_policy_exits_cleanly_without_restart_trigger ... ok
+test malformed_policy_exits_with_config_status ... ok
+test missing_explicit_policy_exits_with_config_status ... ok
+test status_reports_canonical_fallback_when_no_policy_exists ... ok
+test status_reports_explicit_policy_override_in_human_and_json_modes ... ok
+test status_reports_first_discovered_policy_in_human_and_json_modes ... ok
+test status_reports_missing_explicit_policy_override ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+     Running unittests src/main.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/dracon_warden-ff2af6cd916b035b)
+
+running 132 tests
+test print::tests::format_bytes_mib ... ok
+test print::tests::format_secs_units ... ok
+test tests::tests::apply_managed_file_creates_parent_dirs ... ok
+test tests::tests::apply_managed_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_creates_new_file ... ok
+test tests::tests::apply_overwrite_file_detects_noop_second_write ... ok
+test tests::tests::apply_overwrite_file_overwrites_existing ... ok
+test tests::tests::backfill_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::build_gitattributes_block_includes_expected_lines ... ok
+test tests::tests::build_gitattributes_block_sets_filter_for_env ... ok
+test tests::tests::build_gitignore_block_emits_managed_header ... ok
+test tests::tests::build_gitignore_block_includes_overrides ... ok
+test tests::tests::build_globset_empty_patterns_returns_empty_set ... ok
+test tests::tests::build_globset_invalid_pattern_returns_error ... ok
+test tests::tests::build_globset_multiple_patterns ... ok
+test tests::tests::build_globset_normalizes_backslash ... ok
+test tests::tests::build_globset_single_pattern_matches ... ok
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_7/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_8/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_9/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_10/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_11/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_12/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_13/repo/.git/
+ok
+test tests::tests::discover_git_repos_finds_all_git_dirs ... ok
+test tests::tests::discover_git_repos_local_finds_basic_repos ... ok
+test tests::tests::discover_git_repos_local_finds_nested_repositories ... ok
+test tests::tests::discover_git_repos_rejects_symlinked_git_marker ... ok
+test tests::tests::effective_discovery_roots_handles_empty_policy ... ok
+test tests::tests::effective_discovery_roots_merges_watch_and_discover_deduped ... ok
+test tests::tests::effective_repo_roots_handles_empty_policy ... ok
+test tests::tests::effective_repo_roots_merges_and_dedupes ... ok
+test tests::tests::ensure_repo_filter_config_registers_diff_and_merge_drivers ... ok
+test tests::tests::filter_clean_encrypts_content_with_secret_marker ... ok
+test tests::tests::filter_clean_passes_plaintext_unchanged ... ok
+test tests::tests::filter_clean_refusal_reason_fails_closed_for_clean_only ... ok
+test tests::tests::filter_configured_bounds_preserve_default_and_reject_unbounded_limits ... ok
+test tests::tests::filter_smudge_handles_empty_input ... ok
+test tests::tests::filter_smudge_passes_plaintext_unchanged ... ok
+test tests::tests::generated_gitattributes_and_filter_gate_match_single_star_paths ... ok
+test tests::tests::global_hook_install_preserves_and_chains_foreign_hooks ... ok
+test tests::tests::harden_repo_changes_files_and_writes_key ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_23/repo/.git/
+ok
+test tests::tests::harden_repo_preserves_operator_content_outside_managed_block ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_preserve_24/repo/.git/
+ok
+test tests::tests::harden_repo_rejects_symlinked_dotfiles_without_republishing_target ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_symlink_dotfiles_25/repo/.git/
+ok
+test tests::tests::harden_repo_sets_local_dracon_filter_config ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_harden_repo_filter_cfg_26/repo/.git/
+ok
+test tests::tests::harden_repo_surfaces_hook_install_failure ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_error_27/repo/.git/
+ok
+test tests::tests::hook_replacement_is_atomic_and_executable ... ok
+test tests::tests::install_hooks_for_repo_skips_shadowed_git_hooks ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_hooks_shadowed_29/repo/.git/
+ok
+test tests::tests::is_encrypted_env_content_detects_markers ... ok
+test tests::tests::is_env_file_name_detects_common_variants ... ok
+test tests::tests::is_marker_string_detects_both_markers ... ok
+test tests::tests::is_marker_string_edge_cases ... ok
+test tests::tests::linked_worktree_gitfile_uses_real_gitdir_for_checkout_lock ... ok
+test tests::tests::marker_prefix_at_edge_cases ... ok
+test tests::tests::marker_prefix_at_finds_correct_positions ... ok
+test tests::tests::merge_driver_encrypted_roundtrip_clean_merge ... ok
+test tests::tests::merge_driver_text_merge_clean_and_conflict ... ok
+test tests::tests::merge_driver_untagged_files_clean_and_conflict ... ok
+test tests::tests::newest_file_picks_newest_existing ... ok
+test tests::tests::omitted_hygiene_patterns_use_product_defaults ... ok
+test tests::tests::owner_pubkeys_in_filters_only_owner_pub ... ok
+test tests::tests::plaintext_cannot_overlap_protected_or_disable_env_encryption ... ok
+test tests::tests::policy_roots_expand_tilde_before_existence_filtering ... ok
+test tests::tests::pre_commit_hook_allows_unmanaged_repo ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_drift ... ok
+test tests::tests::pre_commit_hook_blocks_managed_repo_with_only_global_filter_config ... ok
+test tests::tests::pre_commit_hook_chains_to_foreign_repo_local_hook ... ok
+test tests::tests::pre_commit_hook_does_not_recurse_into_warden_seeded_local_hook ... ok
+test tests::tests::pre_commit_hook_propagates_foreign_hook_failure ... ok
+test tests::tests::pre_push_hook_allows_delete_only ... ok
+test tests::tests::pre_push_hook_blocks_added_secret ... ok
+test tests::tests::pre_push_hook_blocks_begin_private_key_branch ... ok
+test tests::tests::pre_push_hook_blocks_password_secret_api_key_double_quoted_branches ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_added_binary ... ok
+test tests::tests::pre_push_hook_blocks_secret_in_space_filename ... ok
+test tests::tests::pre_push_hook_blocks_single_quoted_secret_warden_m2_idiom ... ok
+test tests::tests::pre_push_hook_blocks_unquoted_padded_password ... ok
+test tests::tests::pre_push_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_push_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_push_hook_passes_on_clean_binary ... ok
+test tests::tests::pre_push_hook_passes_on_clean_commit ... ok
+test tests::tests::pre_push_hook_passes_trusted_author ... ok
+test tests::tests::pre_push_hook_rejects_test_identity_author ... ok
+test tests::tests::pre_push_hook_scan_survives_local_hook_stdin_consumption ... ok
+test tests::tests::pre_push_hook_tag_does_not_rescan_published_history ... ok
+test tests::tests::pre_push_hook_test_identity_on_non_first_parent_merge_passes ... ok
+test tests::tests::pre_rebase_hook_allows_unpublished_commits ... ok
+test tests::tests::pre_rebase_hook_blocks_published_boundary_commit ... ok
+test tests::tests::pre_rebase_hook_blocks_published_commit_deeper_than_100 ... ok
+test tests::tests::pre_rebase_hook_chains_and_propagates_local_hook_failure ... ok
+test tests::tests::pre_rebase_hook_chains_to_repo_local_hook ... ok
+test tests::tests::pre_rebase_hook_two_arg_form_checks_branch_tip ... ok
+test tests::tests::publish_repo_pubkey_no_churn_different_valid_key ... ok
+test tests::tests::publish_repo_pubkey_rejects_non_owner_or_secret_key_material ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlink_target_without_modifying_external ... ok
+test tests::tests::publish_repo_pubkey_rejects_symlinked_target_directory ... ok
+test tests::tests::publish_repo_pubkey_writes_and_is_idempotent ... ok
+test tests::tests::repeated_local_hook_install_keeps_collision_suffixed_foreign_hook ... ok
+test tests::tests::repeated_replace_block_scenarios_are_stable ... ok
+test tests::tests::replace_managed_block_appends_when_missing ... ok
+test tests::tests::replace_managed_block_empty_current_string ... ok
+test tests::tests::replace_managed_block_multiple_blocks_replaces_all ... ok
+test tests::tests::replace_managed_block_preserves_leading_whitespace ... ok
+test tests::tests::replace_managed_block_preserves_tail_after_malformed_marker ... ok
+test tests::tests::replace_managed_block_replaces_existing_and_keeps_tail ... ok
+test tests::tests::resmudge_rejects_tracked_symlink_without_modifying_target ... ok
+test tests::tests::resolve_policy_path_local_falls_back_to_default_locations ... ok
+test tests::tests::resolve_policy_path_local_finds_temp_config ... ok
+test tests::tests::run_keygen_generates_keypair_successfully ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_pubkey ... ok
+test tests::tests::run_keygen_refuses_to_overwrite_existing_secret_key ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_private_exists ... ok
+test tests::tests::run_keygen_refuses_when_dedicated_master_pub_exists ... ok
+test tests::tests::salvage_invalid_json_handles_nested_markers ... ok
+test tests::tests::salvage_invalid_json_marker_at_end_of_string ... ok
+test tests::tests::salvage_invalid_json_markers_multiple_in_sequence ... ok
+test tests::tests::salvage_invalid_json_no_marker_returns_none ... ok
+test tests::tests::salvage_invalid_json_preserves_unicode_before_marker ... ok
+test tests::tests::salvage_invalid_json_replaces_marker_tokens_and_parses ... ok
+test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_hook ... ok
+test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
+test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+
+test result: ok. 132 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.81s
+
+     Running tests/integration_test.rs (/home/dracon/Dev/dracon-utilities/target/debug/deps/integration_test-e57d68abff8ae055)
+
+running 11 tests
+test test_warden_cli_help ... ok
+test test_warden_filter_clean ... ok
+test test_warden_filter_smudge ... ok
+test test_warden_keygen ... ok
+test test_warden_once_single_repo ... ok
+test test_warden_repair_dry_run ... ok
+test test_warden_repair_rejects_tracked_symlinks_end_to_end ... ok
+test test_warden_resmudge_dry_run ... ok
+test test_warden_scrub_markers ... ok
+test test_warden_setup_hooks_local ... ok
+test test_warden_status ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+   Doc-tests dracon_security
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dracon_sync
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   $ cargo build --release --locked
+   Compiling dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `release` profile [optimized] target(s) in 2m 23s
+   $ cargo deny check
+warning[license-not-encountered]: license was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:72:6
+   │
+72 │     "BSD-2-Clause",
+   │      ━━━━━━━━━━━━ unmatched license allowance
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:77:6
+   │
+77 │     "CDLA-Permissive-2.0",
+   │      ━━━━━━━━━━━━━━━━━━━ unmatched license allowance
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:74:6
+   │
+74 │     "ISC",
+   │      ━━━ unmatched license allowance
+
+warning[unmatched-skip]: skipped crate 'block-buffer = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:23:16
+   │
+23 │     { crate = "block-buffer@0.10", reason = "age's authenticated crypto stack uses digest 0.10; rust-embed uses digest 0.11" },
+   │                ━━━━━━━━━━━━━━━━━             ────────────────────────────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'block-buffer = =0.12' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:24:16
+   │
+24 │     { crate = "block-buffer@0.12", reason = "rust-embed's sha2 0.11 stack; age remains on digest 0.10" },
+   │                ━━━━━━━━━━━━━━━━━             ──────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'base64 = =0.21' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:25:16
+   │
+25 │     { crate = "base64@0.21", reason = "age (encryption) uses old version" },
+   │                ━━━━━━━━━━━             ───────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'bech32 = =0.9' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:26:16
+   │
+26 │     { crate = "bech32@0.9", reason = "age 0.10 uses the older Bech32 API while dracon-security uses 0.11" },
+   │                ━━━━━━━━━━             ────────────────────────────────────────────────────────────────── reason
+   │                │                       
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'cpufeatures = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:27:16
+   │
+27 │     { crate = "cpufeatures@0.2", reason = "age/aes-gcm crypto stack uses cpufeatures 0.2; sha2 0.11 uses 0.3" },
+   │                ━━━━━━━━━━━━━━━             ───────────────────────────────────────────────────────────────── reason
+   │                │                            
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'cpufeatures = =0.3' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:28:16
+   │
+28 │     { crate = "cpufeatures@0.3", reason = "sha2 0.11 transitive stack; age/aes-gcm remains on 0.2" },
+   │                ━━━━━━━━━━━━━━━             ────────────────────────────────────────────────────── reason
+   │                │                            
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'crypto-common = =0.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:29:16
+   │
+29 │     { crate = "crypto-common@0.1", reason = "age/aead 0.5 crypto stack uses crypto-common 0.1; sha2 0.11 uses 0.2" },
+   │                ━━━━━━━━━━━━━━━━━             ──────────────────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'crypto-common = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:30:16
+   │
+30 │     { crate = "crypto-common@0.2", reason = "sha2 0.11 transitive stack; age/aead 0.5 remains on 0.1" },
+   │                ━━━━━━━━━━━━━━━━━             ─────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'digest = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:31:16
+   │
+31 │     { crate = "digest@0.10", reason = "age and the authenticated encryption stack use digest 0.10; rust-embed uses 0.11" },
+   │                ━━━━━━━━━━━             ──────────────────────────────────────────────────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'digest = =0.11' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:32:16
+   │
+32 │     { crate = "digest@0.11", reason = "rust-embed's sha2 0.11 stack; age remains on digest 0.10" },
+   │                ━━━━━━━━━━━             ──────────────────────────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'getrandom = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:33:16
+   │
+33 │     { crate = "getrandom@0.2", reason = "age/rand 0.8 crypto stack requires getrandom 0.2" },
+   │                ━━━━━━━━━━━━━             ──────────────────────────────────────────────── reason
+   │                │                          
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'getrandom = =0.4' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:34:16
+   │
+34 │     { crate = "getrandom@0.4", reason = "tempfile 3.27 and uuid 1.23 use the newest getrandom API" },
+   │                ━━━━━━━━━━━━━             ──────────────────────────────────────────────────────── reason
+   │                │                          
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'hashbrown = =0.14' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:35:16
+   │
+35 │     { crate = "hashbrown@0.14", reason = "age/i18n-embed-fl 0.7 pulls dashmap 5" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unnecessary-skip]: skip 'hashbrown = =0.17' applied to a crate with only one version
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:36:16
+   │
+36 │     { crate = "hashbrown@0.17", reason = "reqwest/zbus stack pulls newer indexmap 2" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                           
+   │                unnecessary skip configuration
+
+warning[unmatched-skip]: skipped crate 'rustc-hash = =1.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:39:16
+   │
+39 │     { crate = "rustc-hash@1.1", reason = "fluent/i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'rustc-hash = =2.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:40:16
+   │
+40 │     { crate = "rustc-hash@2.1", reason = "fluent/intl-memoizer dependency chain" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'sha2 = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:41:16
+   │
+41 │     { crate = "sha2@0.10", reason = "age and dracon-security use the 0.10 API; rust-embed uses 0.11" },
+   │                ━━━━━━━━━             ────────────────────────────────────────────────────────────── reason
+   │                │                      
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'sha2 = =0.11' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:42:16
+   │
+42 │     { crate = "sha2@0.11", reason = "rust-embed's utility stack; age and dracon-security remain on 0.10" },
+   │                ━━━━━━━━━             ────────────────────────────────────────────────────────────────── reason
+   │                │                      
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'strsim = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:43:16
+   │
+43 │     { crate = "strsim@0.10", reason = "i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━━━━━             ────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unnecessary-skip]: skip 'strsim = =0.11' applied to a crate with only one version
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:44:16
+   │
+44 │     { crate = "strsim@0.11", reason = "clap 4 dependency chain" },
+   │                ━━━━━━━━━━━             ─────────────────────── reason
+   │                │                        
+   │                unnecessary skip configuration
+
+warning[unmatched-skip]: skipped crate 'syn = =1.0' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:45:16
+   │
+45 │     { crate = "syn@1.0", reason = "proc-macro-error/i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━             ─────────────────────────────────────────────────── reason
+   │                │                    
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'toml = =0.5' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:47:16
+   │
+47 │     { crate = "toml@0.5", reason = "i18n-embed-fl/find-crate dependency chain" },
+   │                ━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                     
+   │                unmatched skip configuration
+
+advisories ok, bans ok, licenses ok, sources ok
+   $ cargo clippy --workspace --locked -- -D warnings
+   Compiling unicode-ident v1.0.26
+    Checking cfg-if v1.0.5
+    Checking smallvec v1.16.1
+    Checking bitflags v2.13.2
+    Checking futures-sink v0.3.34
+    Checking mio v1.2.3
+   Compiling cc v1.4.6
+    Checking crossbeam-utils v0.8.23
+    Checking log v0.4.34
+    Checking litemap v0.8.3
+    Checking writeable v0.6.4
+   Compiling indexmap v2.14.2
+   Compiling hybrid-array v0.4.15
+    Checking icu_properties_data v2.3.0
+    Checking getrandom v0.2.17
+   Compiling proc-macro2 v1.0.107
+    Checking parking_lot_core v0.9.12
+    Checking futures-channel v0.3.34
+    Checking rustix v1.1.5
+    Checking icu_normalizer_data v2.3.0
+    Checking rand_core v0.6.4
+   Compiling cpufeatures v0.3.1
+    Checking getrandom v0.4.3
+    Checking parking_lot v0.12.5
+    Checking ipnet v2.12.2
+    Checking concurrent-queue v2.5.0
+    Checking crossbeam-epoch v0.9.21
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+    Checking uuid v1.26.1
+    Checking zerocopy v0.8.57
+    Checking crypto-common v0.1.7
+   Compiling quote v1.0.47
+   Compiling toml_edit v0.25.15+spec-1.1.0
+    Checking async-channel v2.5.0
+    Checking digest v0.10.7
+    Checking universal-hash v0.5.1
+    Checking crossbeam-deque v0.8.8
+    Checking blocking v1.7.0
+    Checking aead v0.5.2
+    Checking async-executor v1.14.0
+    Checking http-body-util v0.1.5
+    Checking clap_lex v1.1.1
+    Checking core_detect v1.0.0
+    Checking rayon-core v1.13.0
+    Checking either v1.18.0
+    Checking hmac v0.12.1
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+    Checking sha2 v0.10.9
+   Compiling proc-macro-crate v3.5.0
+    Checking simdutf8 v0.1.5
+    Checking clap_builder v4.6.7
+   Compiling proc-macro-error-attr v1.0.4
+    Checking console v0.16.6
+    Checking poly1305 v0.8.0
+   Compiling syn v1.0.109
+   Compiling digest v0.11.3
+    Checking rayon v1.12.0
+   Compiling dashmap v5.5.3
+    Checking hkdf v0.12.4
+    Checking sha2 v0.11.0
+    Checking pbkdf2 v0.12.2
+   Compiling proc-macro-error v1.0.4
+    Checking polyval v0.6.2
+    Checking bstr v1.13.1
+    Checking hostname v0.4.2
+    Checking ghash v0.5.1
+   Compiling openssl-sys v0.9.117
+   Compiling libz-sys v1.1.29
+   Compiling ring v0.17.14
+   Compiling libssh2-sys v0.3.3
+   Compiling libgit2-sys v0.18.8+1.9.7
+    Checking globset v0.4.20
+    Checking rust-embed-utils v8.12.0
+   Compiling openssl v0.10.81
+   Compiling native-tls v0.2.18
+    Checking sysinfo v0.32.1
+   Compiling rustls v0.23.45
+    Checking ppv-lite86 v0.2.21
+   Compiling synstructure v0.14.0
+   Compiling zeroize_derive v1.5.0
+   Compiling thiserror-impl v1.0.69
+   Compiling enumflags2_derive v0.7.12
+   Compiling tracing-attributes v0.1.31
+   Compiling openssl-macros v0.1.1
+   Compiling rust-embed-impl v8.12.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling async-recursion v1.1.1
+    Checking rand_chacha v0.3.1
+    Checking polling v3.11.0
+    Checking async-io v2.6.0
+    Checking crossterm v0.29.0
+   Compiling pin-project-internal v1.1.13
+    Checking rand v0.8.8
+    Checking comfy-table v7.2.2
+    Checking ssh2 v0.9.6
+    Checking async-signal v0.2.14
+    Checking async-process v2.5.0
+   Compiling serde_derive v1.0.229
+   Compiling displaydoc v0.2.7
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling zerovec-derive v0.11.6
+    Checking zeroize v1.9.0
+   Compiling futures-macro v0.3.34
+   Compiling tokio-macros v2.7.2
+   Compiling multiversion-macros v0.9.0
+    Checking cipher v0.4.4
+    Checking rustls-pki-types v1.15.1
+   Compiling serde_repr v0.1.21
+   Compiling async-trait v0.1.92
+    Checking tracing v0.1.44
+   Compiling thiserror v1.0.69
+    Checking rustls-webpki v0.103.15
+   Compiling fluent-syntax v0.11.1
+   Compiling tinystr v0.8.4
+    Checking webpki-roots v1.0.9
+    Checking chacha20 v0.9.1
+    Checking curve25519-dalek v4.1.3
+   Compiling rust-embed v8.12.0
+   Compiling clap_derive v4.6.7
+    Checking futures-util v0.3.34
+    Checking salsa20 v0.10.2
+    Checking tokio v1.53.1
+    Checking chacha20poly1305 v0.10.1
+    Checking pin-project v1.1.13
+    Checking scrypt v0.11.0
+    Checking ctr v0.9.2
+    Checking aes v0.8.4
+    Checking terminal_size v0.4.4
+    Checking tempfile v3.27.0
+    Checking multiversion v0.9.0
+    Checking encoding_rs v0.8.41
+    Checking zerofrom v0.1.8
+    Checking yoke v0.8.3
+    Checking x25519-dalek v2.0.1
+    Checking ed25519-dalek v2.2.0
+    Checking zerovec v0.11.8
+    Checking zerotrie v0.2.5
+    Checking aes-gcm v0.10.3
+    Checking potential_utf v0.1.6
+    Checking icu_collections v2.3.0
+    Checking icu_locale_core v2.3.0
+    Checking unic-langid-impl v0.9.6
+    Checking unic-langid v0.9.6
+    Checking fluent-langneg v0.13.1
+    Checking intl_pluralrules v7.0.2
+    Checking intl-memoizer v0.5.3
+    Checking clap v4.6.7
+    Checking fluent-bundle v0.15.3
+   Compiling serde v1.0.229
+    Checking icu_provider v2.3.1
+    Checking futures-executor v0.3.34
+    Checking fluent v0.16.1
+    Checking futures v0.3.34
+    Checking icu_normalizer v2.3.0
+    Checking icu_properties v2.3.0
+    Checking cookie-factory v0.3.3
+    Checking zvariant_utils v4.2.0
+   Compiling enumflags2 v0.7.12
+   Compiling zcheapstr v1.1.0
+   Compiling basic-toml v0.1.10
+   Compiling toml v0.5.11
+    Checking serde_spanned v0.6.9
+    Checking toml_datetime v0.6.11
+    Checking serde_urlencoded v0.7.1
+    Checking secrecy v0.8.0
+    Checking toml_edit v0.22.27
+    Checking age-core v0.10.0
+   Compiling i18n-config v0.4.8
+   Compiling zvariant_derive v5.15.0
+   Compiling find-crate v0.6.3
+    Checking idna_adapter v1.2.2
+    Checking idna v1.1.0
+    Checking url v2.5.8
+   Compiling zvariant v5.15.0
+   Compiling i18n-embed-impl v0.8.4
+    Checking tokio-util v0.7.19
+    Checking tokio-native-tls v0.3.1
+    Checking tower v0.5.3
+    Checking tokio-rustls v0.26.5
+    Checking h2 v0.4.19
+   Compiling i18n-embed v0.14.1
+    Checking tower-http v0.6.11
+    Checking toml v0.8.23
+    Checking zbus_names v4.3.4
+   Compiling i18n-embed-fl v0.7.0
+    Checking age v0.10.1
+    Checking git2 v0.21.0
+    Checking dracon-security v0.3.7 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+    Checking hyper v1.11.1
+   Compiling zbus_macros v5.19.0
+    Checking hyper-util v0.1.20
+    Checking dracon-warden v0.113.12 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Checking dracon-git v94.7.2
+    Checking hyper-tls v0.6.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.12.28
+    Checking zbus v5.19.0
+    Checking notify-rust v4.18.0
+    Checking dracon-system-lib v94.2.7
+    Checking dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Checking dracon-system v0.112.41 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 56.41s
+✓   all gates passed
+step 2/8: bumping Cargo.toml to 0.113.64
+✓   /home/dracon/Dev/dracon-utilities/dracon-sync/Cargo.toml: 0.113.63 → 0.113.64
+✓   Cargo.lock synchronized for dracon-sync@0.113.64
+step 3/8: closing CHANGELOG.md [Unreleased] → [0.113.64]
+✓   /home/dracon/Dev/dracon-utilities/dracon-sync/CHANGELOG.md: [Unreleased] closed as [0.113.64] - 2026-09-18 (or already closed)
+step 4/8: creating release-notes-v0.113.64.md
+✓   release-notes-v0.113.64.md created
+step 5/8: cargo publish --dry-run (sanity check)
+   $ cargo publish -p dracon-sync --dry-run --allow-dirty
+    Updating crates.io index
+   Packaging dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Updating crates.io index
+    Packaged 277 files, 4.2MiB (856.3KiB compressed)
+   Verifying dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+   Compiling syn v2.0.119
+   Compiling zerovec v0.11.8
+   Compiling crossbeam-utils v0.8.23
+   Compiling uuid v1.26.1
+   Compiling concurrent-queue v2.5.0
+   Compiling async-channel v2.5.0
+   Compiling async-io v2.6.0
+   Compiling async-executor v1.14.0
+   Compiling blocking v1.7.0
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling async-signal v0.2.14
+   Compiling async-process v2.5.0
+   Compiling icu_provider v2.3.1
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling tower-http v0.6.11
+   Compiling git2 v0.21.0
+   Compiling tracing-attributes v0.1.31
+   Compiling enumflags2_derive v0.7.12
+   Compiling openssl-macros v0.1.1
+   Compiling async-recursion v1.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling openssl v0.10.81
+   Compiling enumflags2 v0.7.12
+   Compiling zvariant v5.15.0
+   Compiling thiserror v1.0.69
+   Compiling tracing v0.1.44
+   Compiling h2 v0.4.19
+   Compiling dracon-git v94.7.2
+   Compiling zbus_names v4.3.4
+   Compiling native-tls v0.2.18
+   Compiling tokio-native-tls v0.3.1
+   Compiling zbus_macros v5.19.0
+   Compiling hyper v1.11.1
+   Compiling hyper-util v0.1.20
+   Compiling zbus v5.19.0
+   Compiling hyper-tls v0.6.0
+   Compiling reqwest v0.12.28
+   Compiling notify-rust v4.18.0
+   Compiling dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.64)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 04s
+   Uploading dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: aborting upload due to dry run
+✓   dry-run package clean
+step 6/8: cargo publish -p dracon-sync
+   $ cargo publish -p dracon-sync --allow-dirty
+step 7/8: fixture check on packaged artifact (phantom-untracked guard)
+   $ cargo install --path /home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.64 --root /home/dracon/Dev/dracon-utilities/dracon-sync/target/fixture-bin --force
+  Installing dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.64)
+    Updating crates.io index
+     Locking 296 packages to latest compatible versions
+      Adding comfy-table v7.2.2 (available: v8.0.0)
+      Adding dirs v6.0.0 (available: v7.0.0)
+      Adding reqwest v0.12.28 (available: v0.13.5)
+      Adding toml v0.8.23 (available: v1.1.6+spec-1.1.0)
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling libc v0.2.189
+   Compiling pin-project-lite v0.2.17
+   Compiling serde_core v1.0.229
+   Compiling futures-core v0.3.34
+   Compiling serde v1.0.229
+   Compiling cfg-if v1.0.5
+   Compiling find-msvc-tools v0.1.12
+   Compiling shlex v2.0.1
+   Compiling pkg-config v0.3.34
+   Compiling smallvec v1.16.1
+   Compiling vcpkg v0.2.15
+   Compiling bitflags v2.13.2
+   Compiling stable_deref_trait v1.2.1
+   Compiling futures-io v0.3.34
+   Compiling memchr v2.8.3
+   Compiling slab v0.4.12
+   Compiling parking_lot_core v0.9.12
+   Compiling scopeguard v1.2.0
+   Compiling bytes v1.12.1
+   Compiling parking v2.2.1
+   Compiling futures-sink v0.3.34
+   Compiling winnow v1.0.4
+   Compiling writeable v0.6.4
+   Compiling lock_api v0.4.14
+   Compiling crossbeam-utils v0.8.23
+   Compiling itoa v1.0.18
+   Compiling litemap v0.8.3
+   Compiling rustix v1.1.5
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling linux-raw-sys v0.12.1
+   Compiling utf8_iter v1.0.4
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling indexmap v2.14.2
+   Compiling futures-channel v0.3.34
+   Compiling atomic-waker v1.1.2
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+   Compiling percent-encoding v2.3.2
+   Compiling once_cell v1.21.4
+   Compiling fastrand v2.5.0
+   Compiling jobserver v0.1.35
+   Compiling concurrent-queue v2.5.0
+   Compiling cc v1.4.6
+   Compiling toml_edit v0.25.15+spec-1.1.0
+   Compiling tracing-core v0.1.36
+   Compiling http v1.5.0
+   Compiling event-listener v5.4.2
+   Compiling rustversion v1.0.23
+   Compiling futures-task v0.3.34
+   Compiling futures-lite v2.6.1
+   Compiling event-listener-strategy v0.5.4
+   Compiling autocfg v1.5.1
+   Compiling log v0.4.34
+   Compiling form_urlencoded v1.2.2
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling mio v1.2.3
+   Compiling synstructure v0.14.0
+   Compiling parking_lot v0.12.5
+   Compiling socket2 v0.6.5
+   Compiling proc-macro-crate v3.5.0
+   Compiling async-io v2.6.0
+   Compiling http-body v1.1.0
+   Compiling openssl v0.10.81
+   Compiling httparse v1.10.1
+   Compiling foreign-types-shared v0.1.1
+   Compiling tower-service v0.3.3
+   Compiling openssl-sys v0.9.117
+   Compiling libz-sys v1.1.29
+   Compiling libssh2-sys v0.3.3
+   Compiling foreign-types v0.3.2
+   Compiling endi v1.1.1
+   Compiling async-task v4.7.1
+   Compiling fnv v1.0.7
+   Compiling try-lock v0.2.5
+   Compiling native-tls v0.2.18
+   Compiling libgit2-sys v0.18.8+1.9.7
+   Compiling async-channel v2.5.0
+   Compiling want v0.3.1
+   Compiling utf8parse v0.2.2
+   Compiling arrayvec v0.7.8
+   Compiling openssl-probe v0.2.1
+   Compiling zmij v1.0.23
+   Compiling minimal-lexical v0.2.1
+   Compiling vte v0.14.1
+   Compiling anstyle-parse v1.0.0
+   Compiling encoding_rs v0.8.41
+   Compiling async-lock v3.4.2
+   Compiling nom v7.1.3
+   Compiling piper v0.2.5
+   Compiling sync_wrapper v1.0.2
+   Compiling thiserror v1.0.69
+   Compiling litrs v1.0.0
+   Compiling anyhow v1.0.104
+   Compiling anstyle-query v1.1.5
+   Compiling tower-layer v0.3.3
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling colorchoice v1.0.5
+   Compiling anstyle v1.0.14
+   Compiling serde_json v1.0.151
+   Compiling ipnet v2.12.2
+   Compiling base64 v0.22.1
+   Compiling blocking v1.7.0
+   Compiling document-features v0.2.12
+   Compiling anstream v1.0.0
+   Compiling async-executor v1.14.0
+   Compiling http-body-util v0.1.5
+   Compiling uuid v1.26.1
+   Compiling async-broadcast v0.7.2
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling tokio-macros v2.7.2
+   Compiling futures-macro v0.3.34
+   Compiling multiversion-macros v0.9.0
+   Compiling polling v3.11.0
+   Compiling tokio v1.53.1
+   Compiling serde_repr v0.1.21
+   Compiling futures-util v0.3.34
+   Compiling async-signal v0.2.14
+   Compiling async-trait v0.1.92
+   Compiling multiversion v0.9.0
+   Compiling ansitok v0.3.0
+   Compiling aho-corasick v1.1.5
+   Compiling async-process v2.5.0
+   Compiling ordered-stream v0.2.0
+   Compiling regex-syntax v0.8.11
+   Compiling option-ext v0.2.0
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling clap_lex v1.1.1
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling enumflags2_derive v0.7.12
+   Compiling tracing-attributes v0.1.31
+   Compiling openssl-macros v0.1.1
+   Compiling async-recursion v1.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling hex v0.4.3
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_collections v2.3.0
+   Compiling core_detect v1.0.0
+   Compiling unicode-width v0.2.2
+   Compiling openssl-probe v0.1.6
+   Compiling ryu v1.0.23
+   Compiling tracing v0.1.44
+   Compiling icu_provider v2.3.1
+   Compiling simdutf8 v0.1.5
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling winnow v0.7.15
+   Compiling toml_write v0.1.2
+   Compiling multiversion_no_op v1.0.0
+   Compiling heck v0.5.0
+   Compiling strsim v0.11.1
+   Compiling zeroize v1.9.0
+   Compiling zvariant_utils v4.2.0
+   Compiling zcheapstr v1.1.0
+   Compiling enumflags2 v0.7.12
+   Compiling clap_derive v4.6.7
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling clap_builder v4.6.7
+   Compiling serde_urlencoded v0.7.1
+   Compiling zvariant_derive v5.15.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling futures-executor v0.3.34
+   Compiling console v0.16.6
+   Compiling zvariant v5.15.0
+   Compiling tokio-util v0.7.19
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling url v2.5.8
+   Compiling h2 v0.4.19
+   Compiling tower v0.5.3
+   Compiling toml_edit v0.22.27
+   Compiling zbus_names v4.3.4
+   Compiling tower-http v0.6.11
+   Compiling regex-automata v0.4.18
+   Compiling dirs-sys v0.5.0
+   Compiling ansi-str v0.9.0
+   Compiling crossterm v0.29.0
+   Compiling zbus_macros v5.19.0
+   Compiling mime v0.3.17
+   Compiling unicode-segmentation v1.13.3
+   Compiling hyper v1.11.1
+   Compiling comfy-table v7.2.2
+   Compiling toml v0.8.23
+   Compiling dirs v6.0.0
+   Compiling clap v4.6.7
+   Compiling futures v0.3.34
+   Compiling terminal_size v0.4.4
+   Compiling urlencoding v2.1.3
+   Compiling regex v1.13.1
+   Compiling zbus v5.19.0
+   Compiling hyper-util v0.1.20
+   Compiling hyper-tls v0.6.0
+   Compiling reqwest v0.12.28
+   Compiling notify-rust v4.18.0
+   Compiling git2 v0.21.0
+   Compiling dracon-git v94.7.2
+   Compiling dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.64)
+    Finished `release` profile [optimized] target(s) in 2m 35s
+   Replacing /home/dracon/Dev/dracon-utilities/dracon-sync/target/fixture-bin/bin/dracon-sync
+    Replaced package `dracon-sync v0.113.63 (/home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.63)` with `dracon-sync v0.113.64 (/home/dracon/Dev/dracon-utilities/target/package/dracon-sync-0.113.64)` (executable `dracon-sync`)
+warning: be sure to add `/home/dracon/Dev/dracon-utilities/dracon-sync/target/fixture-bin/bin` to your PATH to be able to run the installed binaries
+✓ OK: '/home/dracon/Dev/dracon-utilities/dracon-sync/target/fixture-bin/bin/dracon-sync' reports untracked=0 — gitignore handling intact.
+step 8/8: commit + tag + push + gh release
+   $ git add -f -- Cargo.toml CHANGELOG.md release-notes-v0.113.64.md Cargo.lock
+   $ git commit --no-verify -m release: v0.113.64
+[main 703f91b] release: v0.113.64
+ 3 files changed, 28 insertions(+), 1 deletion(-)
+ create mode 100644 release-notes-v0.113.64.md
+   $ git tag dracon-sync-v0.113.64
+   $ git push origin main dracon-sync-v0.113.64
+To github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git
+   ffb05ee..703f91b  main -> main
+ * [new tag]         dracon-sync-v0.113.64 -> dracon-sync-v0.113.64
+   $ gh release create dracon-sync-v0.113.64
+https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/releases/tag/dracon-sync-v0.113.64
+⚠ 
+⚠ mirror remotes get main from the daemon, but tags are operator-pushed:
+⚠     git push gitlab dracon-sync-v0.113.64
+⚠     git push github dracon-sync-v0.113.64
+✓ 
+✓ ════════════════════════════════════════════
+✓ ✓ dracon-sync v0.113.64 released
+✓   crates.io:  https://crates.io/crates/dracon-sync
+✓   github:     https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/releases/tag/dracon-sync-v0.113.64
+✓ ════════════════════════════════════════════
+⚠ 
+⚠ after 'cargo install dracon-sync --version 0.113.64', run the fixture check:
+⚠     scripts/verify-install.sh
