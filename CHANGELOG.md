@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.73] - 2026-09-18
+
+### Added
+
+- **Forge-degraded mode (full-program P1-4)**: cross-repo per-forge
+  outage signal with stretched backoffs + coalesced alerts, in new
+  `src/forge.rs` (persisted `dracon-sync-forge-health.json` so the
+  signal survives restarts — the in-memory per-remote pause counters
+  do not, and every restart re-hammered a sick forge 3 times before
+  the pause re-armed). When ≥2 repos report transient-class errors
+  (Gitaly/5xx/timeouts) for one host within 10 min, an incident
+  declares (🔥 alert once): sick-remote re-probes stretch 15 min →
+  60 min, fully incident-covered failures record visibility-only
+  instead of burning the stuck budget (🛡️, no per-repo webhook),
+  and per-repo Stuck-Retry/Exhausted alerts coalesce into the
+  incident alert until the window goes quiet (✅ recovery alert,
+  polled once per scan). Single-repo transient still burns (one
+  sick repo is indistinguishable from one stuck repo); real
+  (non-transient) failures burn regardless of incidents.
+  Fail-before/pass-after: `test_forge_incident_declares_and_shields`
+  drives two repos against an in-process HTTP-503 fake forge — A
+  burns once pre-incident (PushFailed), B's corroborating failure
+  declares + shields (PushPaused, budget frozen), A's next failure
+  stays shielded, recovery clears on window expiry. Also fixed the
+  matcher gap the e2e exposed: git's numeric `returned error:
+  500/502/503/504` now classifies transient (previously only
+  spelled-out phrases matched, so an empty-body 5xx read as
+  transport/auth).
+
 ## [0.113.72] - 2026-09-18
 
 ### Fixed

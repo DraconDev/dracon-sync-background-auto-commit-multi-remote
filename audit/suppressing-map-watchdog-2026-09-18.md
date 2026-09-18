@@ -27,6 +27,8 @@ fixed (v0.113.68); one earlier claim corrected.
 | freeze marker | whole-daemon pause | 1h hard TTL + 30m watchdog auto-clear | freeze warnings | ✅ bounded |
 | `remote_notify_cooldowns` | alert throttle only | cleared on SIGHUP; keys bounded by repos×alerts | — | ✅ benign |
 | `empty_bootstrap/auto_create/ls_remote_cooldowns`, `pending_repos`, forge cache | bootstrap pacing | cleared on SIGHUP; per-op TTLs | — | ✅ bounded |
+| forge health (`dracon-sync-forge-health.json`, v0.113.73) | incident re-probe stretch (15m→60m); alert coalescing; stuck-budget shield | hits pruned to 10-min window, 50/host cap; incident clears on quiet window via per-cycle `poll_forge_recovery` | 🔥 declare / ✅ recover / 🛡️ shield lines | ✅ bounded (persisted SUPPRESSOR: survives restarts by design — that is the fix for restart amnesia; staleness bounded by the window) |
+| `commit_only_repos` (v0.113.69–72) | Backoff/Exhausted dispatch commit-only; clean+commit-only skips dispatch (v0.113.70 throttle) | cleared on Retry/unstuck/success; retry stamp at dispatch (v0.113.71); degraded-PushPaused retains (v0.113.72) | commit-only + throttle skip lines | ✅ bounded (no timer: membership follows the stuck ledger) |
 
 ## Record correction
 
