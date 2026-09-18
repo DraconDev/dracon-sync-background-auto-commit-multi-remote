@@ -133,9 +133,8 @@ const DISPATCH_STARVED_THRESHOLD_SECS: u64 = 600;
 
 fn dispatch_starved(dirty_since_age: Duration, last_dispatch_age: Option<Duration>) -> bool {
     dirty_since_age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS)
-        && last_dispatch_age.is_none_or(|age| {
-            age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS)
-        })
+        && last_dispatch_age
+            .is_none_or(|age| age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS))
 }
 
 /// Prune per-repo hold/liveness maps to the live activity set. `activity`
@@ -143,7 +142,10 @@ fn dispatch_starved(dirty_since_age: Duration, last_dispatch_age: Option<Duratio
 /// for a repo outside it describes a previous window and must not linger
 /// (stale holds would page forever; stale dispatch stamps would mask a
 /// fresh stall). Pure helper for test.
-fn prune_repo_liveness<Map>(map: &mut HashMap<PathBuf, Map>, activity: &HashMap<PathBuf, RepoActivity>) {
+fn prune_repo_liveness<Map>(
+    map: &mut HashMap<PathBuf, Map>,
+    activity: &HashMap<PathBuf, RepoActivity>,
+) {
     map.retain(|repo, _| activity.contains_key(repo));
 }
 
@@ -6126,7 +6128,11 @@ pub(crate) async fn run_daemon(
                         .entry(repo.clone())
                         .or_insert_with(|| (hold_reason.to_string(), now));
                     if debug_enabled() {
-                        eprintln!("scheduler: skip repo={} reason={}", repo.display(), hold_reason);
+                        eprintln!(
+                            "scheduler: skip repo={} reason={}",
+                            repo.display(),
+                            hold_reason
+                        );
                     }
                     book_provisional_activity(
                         &mut activity,
@@ -6910,8 +6916,9 @@ pub(crate) async fn run_daemon(
             // never trip. Rate-limited to 30 min like the other alerts.
             if let Some(dirty_at) = entry.dirty_since {
                 let dirty_age = notification_now.saturating_duration_since(dirty_at);
-                let dispatch_age =
-                    last_dispatch.get(repo).map(|t| notification_now.saturating_duration_since(*t));
+                let dispatch_age = last_dispatch
+                    .get(repo)
+                    .map(|t| notification_now.saturating_duration_since(*t));
                 if dispatch_starved(dirty_age, dispatch_age) {
                     let notify_key = format!("dispatch-starved-{}", repo.display());
                     if notify_throttled(
