@@ -1030,6 +1030,21 @@ async fn maybe_auto_harden_with_warden(repo: &Path, policy: &SyncPolicy, dry_run
 /// rejected by `should_stage_entry`, violating the documented
 /// 100 MiB hard exclusion (AGENTS.md) and every per-file pattern
 /// exclusion.
+///
+/// Drop stage-list paths that no longer exist on disk, returning
+/// how many were dropped. A path counts as present when it exists
+/// OR its symlink metadata reads (a dangling symlink still stages
+/// fine — only truly-missing paths fail `git add` with
+/// `fatal: unable to stat ...`, exit 128, discarding the whole
+/// batch). ADDED 2026-09-19 (v0.113.77, firehose TOCTOU).
+pub(crate) fn retain_existing_stage_paths(repo: &Path, paths: &mut Vec<String>) -> usize {
+    let before = paths.len();
+    paths.retain(|p| {
+        let full = repo.join(p);
+        full.exists() || std::fs::symlink_metadata(&full).is_ok()
+    });
+    before - paths.len()
+}
 async fn stage_existing_files_filtered(
     repo: &Path,
     existing: &[String],
