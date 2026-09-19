@@ -8101,26 +8101,26 @@ pub(crate) async fn run_daemon(
                     Duration::from_secs(1800),
                     NOTIFY_ESCALATION_CAP,
                 ) {
-                        let hold = dispatch_holds
-                            .get(repo)
-                            .map(|(reason, since)| {
-                                format!(
-                                    "{} for {}s",
-                                    reason,
-                                    notification_now.saturating_duration_since(*since).as_secs()
-                                )
-                            })
-                            .unwrap_or_else(|| "no hold recorded (check journal)".to_string());
-                        crate::report::send_sync_conflict_notification(
-                            repo,
-                            "Dispatch Starved (>10 min)",
-                            &format!(
-                                "dirty but undispatched for {}s — hold: {}",
-                                dirty_age.as_secs(),
-                                hold
-                            ),
-                        );
-                    }
+                    let hold = dispatch_holds
+                        .get(repo)
+                        .map(|(reason, since)| {
+                            format!(
+                                "{} for {}s",
+                                reason,
+                                notification_now.saturating_duration_since(*since).as_secs()
+                            )
+                        })
+                        .unwrap_or_else(|| "no hold recorded (check journal)".to_string());
+                    crate::report::send_sync_conflict_notification(
+                        repo,
+                        "Dispatch Starved (>10 min)",
+                        &format!(
+                            "dirty but undispatched for {}s — hold: {}",
+                            dirty_age.as_secs(),
+                            hold
+                        ),
+                    );
+                }
             }
 
             // Mirror degraded (one mirror consistently failing)
