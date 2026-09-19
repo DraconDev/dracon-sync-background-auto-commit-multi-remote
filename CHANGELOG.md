@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.79] - 2026-09-19
+
+### Fixed
+
+- **Notification spam — throttle survives restarts**: cooldowns
+  and streaks were purely in-memory, so every restart re-armed
+  ALL alerts — each deploy produced a full re-page storm. State
+  now persists to `dracon-sync-notify-state.json` (atomic write
+  once per cycle, expired entries dropped on load, corrupt files
+  fail open). Regression:
+  `test_notify_state_round_trip_and_expiry`.
+- **Notification spam — transient statistical pages**: the
+  dispatch-starved notice is informational, but it popped as a
+  sticky Critical desktop notification that sat in the center
+  until manually cleared (old resolved pages looked like fresh
+  spam). It now uses Normal urgency with 15s expiry; genuine
+  action-required conflicts keep Critical. (`Changes Piling Up`
+  / `Pile Growing` never pop up — ledger + journal only.)
+
 ## [0.113.78] - 2026-09-19
 
 ### Fixed

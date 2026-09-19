@@ -15,6 +15,7 @@ fixed (v0.113.68); one earlier claim corrected.
 | `classification_pending` + `_since` | spawn gate (no result → no dispatch) | 30s job timeout + 90s pending watchdog + re-probe | `classification_job_done`, watchdog warn | ✅ bounded (v0.113.65) |
 | `classification_cooldowns` | spawn gate | 500ms–1s, then re-probe | skip reason | ✅ bounded |
 | `remote_notify_streaks` | n/a (notification backoff input) | keys mirror `remote_notify_cooldowns` 1:1; cleared conditions remove keys | — | ✅ bounded (v0.113.77 escalating throttle: 30m→8h cap) |
+| `dracon-sync-notify-state.json` | persists both maps across restarts | atomic write per cycle; expired dropped on load; corrupt fails open | state dir | ✅ bounded (v0.113.79: restarts no longer re-page everything) |
 | `classification_results` (+taken_at stamp) | n/a (authorizes dispatch) | consumed at dispatch; staleness pass drops empty-dirty/failures AND non-empty results past 120s max-age on dirty repos (`classification_stale_refresh` + 500ms re-probe) | stale-refresh line | ✅ bounded (v0.113.76 fixed the stale-result pin: kept 815-entry snapshot filter-clean-skipped real dirt 30+ min) |
 | `dispatch_holds` | n/a (observability) | pruned to live `activity` every cycle | snapshot file | ✅ self-cleaning (v0.113.67) |
 | `last_dispatch` | n/a (starvation alert input) | pruned to live `activity` every cycle | — | ✅ self-cleaning (v0.113.67) |
