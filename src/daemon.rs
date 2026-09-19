@@ -3851,19 +3851,72 @@ fn test_settling_max_delay_default_is_60() {
 fn test_stale_dirty_alert_due_throttle_and_disable() {
     use crate::daemon::stale_dirty_alert_due;
     let mut cooldowns = HashMap::new();
+    let mut streaks = HashMap::new();
     let repo = PathBuf::from("/tmp/test-repo");
-    // Below threshold → never fires.
-    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns));
-    // Over threshold → fires.
-    assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns));
-    // Re-alert within the 30-min cooldown → throttled.
-    assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns));
+    // Below threshold → never fires, no streak armed.
+    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns, &mut streaks));
+    assert!(!streaks.contains_key(&format!("stale-dirty-{}", repo.display())));
+    // Over threshold → fires, streak starts.
+    assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns, &mut streaks));
+    // Re-alert within the (escalated) cooldown → throttled.
+    assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns, &mut streaks));
     // Disabled (0) → never, even far over the threshold.
     let mut c2 = HashMap::new();
-    assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2));
+    let mut s2 = HashMap::new();
+    assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2, &mut s2));
     // Different repo → independent cooldown.
     let repo2 = PathBuf::from("/tmp/other-repo");
-    assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns));
+    assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns, &mut streaks));
+    // Condition cleared (back under threshold) → streak resets so
+    // the next incident pages promptly instead of backed-off.
+    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns, &mut streaks));
+    assert!(
+        !streaks.contains_key(&format!("stale-dirty-{}", repo.display())),
+        "cleared condition must reset the streak"
+    );
+}
+
+/// Escalation math: base on the first consecutive fire, doubling
+/// per consecutive fire, capped. v0.113.77.
+#[test]
+fn test_escalating_cooldown_matrix() {
+    use crate::daemon::escalating_cooldown;
+    use std::time::Duration;
+    assert_eq!(escalating_cooldown(Duration::from_secs(30), 1, Duration::from_secs(100)), Duration::from_secs(30));
+    assert_eq!(escalating_cooldown(Duration::from_secs(30), 2, Duration::from_secs(100)), Duration::from_secs(60));
+    assert_eq!(escalating_cooldown(Duration::from_secs(30), 3, Duration::from_secs(100)), Duration::from_secs(100));
+    assert_eq!(escalating_cooldown(Duration::from_secs(30), 9, Duration::from_secs(100)), Duration::from_secs(100));
+    // Production shape: 30m → 1h → 2h → 4h → 8h cap.
+    let cap = Duration::from_secs(28_800);
+    let seq: Vec<u64> = (1..=6).map(|n| escalating_cooldown(Duration::from_secs(1800), n, cap).as_secs()).collect();
+    assert_eq!(seq, vec![1800, 3600, 7200, 14400, 28800, 28800]);
+}
+
+/// The escalating throttle: consecutive fires advance the streak
+/// (even across expired cooldowns), an active cooldown suppresses
+/// without touching the streak, and reset restores base cadence.
+#[test]
+fn test_notify_throttled_escalating_streak_and_reset() {
+    use crate::daemon::{notify_throttled_escalating, reset_notify_streak};
+    use std::time::{Duration, Instant};
+    let mut cooldowns: HashMap<String, Instant> = HashMap::new();
+    let mut streaks: HashMap<String, usize> = HashMap::new();
+    let key = "stale-dirty-/tmp/r";
+    // First fire → true, streak 1.
+    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert_eq!(streaks.get(key), Some(&1));
+    // Active cooldown → suppressed, streak untouched.
+    assert!(!notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert_eq!(streaks.get(key), Some(&1));
+    // Expire the cooldown manually → fires again, streak 2.
+    cooldowns.insert(key.to_string(), Instant::now());
+    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert_eq!(streaks.get(key), Some(&2));
+    // Reset (condition cleared) → next fire starts back at streak 1.
+    reset_notify_streak(&mut streaks, key);
+    cooldowns.insert(key.to_string(), Instant::now());
+    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert_eq!(streaks.get(key), Some(&1));
 }
 
 /// The age computation must be mtime-based (oldest file wins),
@@ -3898,9 +3951,10 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
         DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
     ];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-    let age = oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    let (age, count) = oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
     // The oldest file (old.txt) drives the age; tolerate skew.
     assert!((110..=130).contains(&age), "expected ~120s, got {age}");
+    assert_eq!(count, 2, "both stageable files must be counted");
     // Deletions have no mtime → no age → None (caller stays silent).
     let del = vec![DiffFile::new(PathBuf::from("old.txt"), FileStatus::Deleted)];
     assert_eq!(
@@ -4000,12 +4054,67 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
 
     let entries = vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-    let age =
+    let (age, count) =
         oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[]).unwrap();
     assert!(
         (260..=340).contains(&age),
         "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
     );
+    assert_eq!(count, 1);
+}
+
+/// A never-committed nested standalone repo (dir with `.git`, no
+/// parent history) must NOT age the parent's pile-up alert: the
+/// worker never absorbs it, so paging on its dir mtime spams
+/// forever (observed live: `.dracon/convos/` paged a 70h pile-up
+/// every 30 min). Tracked submodules keep gitlink-age behavior
+/// (previous test). v0.113.77.
+#[test]
+fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
+    use crate::daemon::oldest_dirty_change_secs_core;
+    use dracon_git::types::{DiffFile, FileStatus};
+    use std::time::{Duration as StdDuration, SystemTime};
+    let td = tempfile::tempdir().unwrap();
+    // Plain tempdir parent: NOT a git repo, mirroring "no parent
+    // history for this path" (`git log -- <path>` fails).
+    let parent = td.path();
+    // Nested standalone repo with ANCIENT content — if counted,
+    // the age would be huge; the fix must skip it entirely.
+    let nested = parent.join("nested");
+    std::fs::create_dir_all(nested.join(".git")).unwrap();
+    let old_file = nested.join("old-notes.md");
+    std::fs::write(&old_file, b"stale").unwrap();
+    let past = SystemTime::now() - StdDuration::from_secs(250_000);
+    File::options()
+        .write(true)
+        .open(&old_file)
+        .unwrap()
+        .set_modified(past)
+        .unwrap();
+    let entries = vec![DiffFile::new(PathBuf::from("nested"), FileStatus::Added)];
+    let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
+    assert_eq!(
+        oldest_dirty_change_secs_core(parent, &entries, &names, &[], 100_000_000, &[]),
+        None,
+        "never-committed nested repo must not age the parent alert"
+    );
+    // Control: a plain old file alongside is still counted.
+    let top = parent.join("top.txt");
+    std::fs::write(&top, b"t").unwrap();
+    File::options()
+        .write(true)
+        .open(&top)
+        .unwrap()
+        .set_modified(past)
+        .unwrap();
+    let entries2 = vec![
+        DiffFile::new(PathBuf::from("nested"), FileStatus::Added),
+        DiffFile::new(PathBuf::from("top.txt"), FileStatus::Modified),
+    ];
+    let (age, count) =
+        oldest_dirty_change_secs_core(parent, &entries2, &names, &[], 100_000_000, &[]).unwrap();
+    assert!(age > 249_000, "plain old file must still age, got {age}");
+    assert_eq!(count, 1, "only the stageable file counts, not the nested repo");
 }
 
 /// The policy knob must default to 600 and round-trip through
