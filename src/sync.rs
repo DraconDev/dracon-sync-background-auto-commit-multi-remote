@@ -1335,7 +1335,25 @@ async fn stage_existing_files_filtered(
                 staging_started.elapsed().as_millis()
             );
         }
-        let (force_paths, normal_paths) = partition_gitignored(repo, &existing).await;
+        let (mut force_paths, mut normal_paths) = partition_gitignored(repo, &existing).await;
+        // ADDED 2026-09-19 (v0.113.77, firehose TOCTOU): drop paths
+        // that vanished between listing and staging. Observed live:
+        // the generator deleted a `_generating.partial.md` after
+        // classification, and the whole `git add -A` failed with
+        // `fatal: unable to stat ...` (exit 128), discarding the
+        // entire batch for that cycle. The bootstrap path
+        // (`stage_existing_files_filtered`) already prunes this
+        // way; the main path never did. Same predicate (a dangling
+        // symlink still stages fine — only truly-missing paths go).
+        let dropped_normal = retain_existing_stage_paths(repo, &mut normal_paths);
+        let dropped_force = retain_existing_stage_paths(repo, &mut force_paths);
+        if dropped_normal + dropped_force > 0 && debug_enabled() {
+            eprintln!(
+                "🐛 {} stage prune: dropped {} vanished paths before git add",
+                repo.display(),
+                dropped_normal + dropped_force,
+            );
+        }
         if debug_enabled() {
             eprintln!(
                 "scheduler: stage_prepare repo={} phase=partition elapsed_ms={}",

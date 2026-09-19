@@ -5490,6 +5490,11 @@ pub(crate) async fn run_daemon(
         );
     }
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
+// ADDED 2026-09-19 (v0.113.77, notification spam): consecutive-fire
+// streaks for the escalating notification throttle. Keys mirror
+// `remote_notify_cooldowns` 1:1 (per repo × alert kind); a cleared
+// condition removes its key, so the map is bounded by live alerts.
+let mut remote_notify_streaks: HashMap<String, usize> = HashMap::new();
     // ADDED 2026-07-30 (v0.113.25): periodic visibility SWEEP state.
     // Visibility refresh historically ran only inside `sync_repo`
     // (maybe_sync_visibility_and_metadata) — but the daemon's fast
@@ -6634,23 +6639,31 @@ pub(crate) async fn run_daemon(
             let (curr, arrival, drain, since) =
                 pile_watch_sample(&mut pile_watch, &repo, status.untracked_files as u64, now);
             let window_secs = now.saturating_duration_since(since).as_secs();
-            if let Some((arrival_per_min, drain_per_min)) =
-                pile_alert_due(curr, arrival, drain, window_secs)
-            {
-                if notify_throttled(
-                    &mut remote_notify_cooldowns,
-                    &format!("pile-rate-{}", repo.display()),
-                    Duration::from_secs(1800),
-                ) {
-                    crate::report::record_sync_alert(
-                        &repo,
-                        "Pile Growing",
-                        &format!(
-                            "{} untracked files (+{:.1}/min arrival vs {:.1}/min drain over {}s); generator outruns commits — throttle the producer or the pile keeps growing",
-                            curr, arrival_per_min, drain_per_min, window_secs,
-                        ),
-                    );
-                    pile_watch.insert(repo.clone(), (curr, 0, 0, now));
+            // CHANGED 2026-09-19 (v0.113.77, notification spam): the
+            // pile alert uses the escalating throttle (30m → 1h → …
+            // → 8h cap) instead of a flat 30 min; a drained pile
+            // resets its streak so the next surge pages promptly.
+            let pile_key = format!("pile-rate-{}", repo.display());
+            match pile_alert_due(curr, arrival, drain, window_secs) {
+                None => reset_notify_streak(&mut remote_notify_streaks, &pile_key),
+                Some((arrival_per_min, drain_per_min)) => {
+                    if notify_throttled_escalating(
+                        &mut remote_notify_cooldowns,
+                        &mut remote_notify_streaks,
+                        &pile_key,
+                        Duration::from_secs(1800),
+                        NOTIFY_ESCALATION_CAP,
+                    ) {
+                        crate::report::record_sync_alert(
+                            &repo,
+                            "Pile Growing",
+                            &format!(
+                                "{} untracked files (+{:.1}/min arrival vs {:.1}/min drain over {}s); generator outruns commits — throttle the producer or the pile keeps growing",
+                                curr, arrival_per_min, drain_per_min, window_secs,
+                            ),
+                        );
+                        pile_watch.insert(repo.clone(), (curr, 0, 0, now));
+                    }
                 }
             }
 
@@ -7134,7 +7147,7 @@ pub(crate) async fn run_daemon(
                     if let Some(extra) = &repo_override.auto_commit_exclude_patterns {
                         effective_excludes.extend(extra.iter().cloned());
                     }
-                    if let Some(oldest_secs) = oldest_dirty_change_secs(
+                    match oldest_dirty_change_secs(
                         &repo,
                         &entries,
                         &excluded_dir_names,
@@ -7144,22 +7157,27 @@ pub(crate) async fn run_daemon(
                     )
                     .await
                     {
-                        if stale_dirty_alert_due(
-                            &repo,
-                            oldest_secs,
-                            threshold,
-                            &mut remote_notify_cooldowns,
-                        ) {
-                            crate::report::record_sync_alert(
+                        None => reset_notify_streak(
+                            &mut remote_notify_streaks,
+                            &format!("stale-dirty-{}", repo.display()),
+                        ),
+                        Some((oldest_secs, committable)) => {
+                            if stale_dirty_alert_due(
                                 &repo,
-                                "Changes Piling Up",
-                                &format!(
-                                    "oldest committable change is {}s old (threshold {}s); {} committable entries; the daemon will keep committing as usual — this alert marks a pile-up that already exceeded the threshold",
-                                    oldest_secs,
-                                    threshold,
-                                    entries.len(),
-                                ),
-                            );
+                                oldest_secs,
+                                threshold,
+                                &mut remote_notify_cooldowns,
+                                &mut remote_notify_streaks,
+                            ) {
+                                crate::report::record_sync_alert(
+                                    &repo,
+                                    "Changes Piling Up",
+                                    &format!(
+                                        "oldest committable change is {}s old (threshold {}s); {} committable entries; the daemon will keep committing as usual — this alert marks a pile-up that already exceeded the threshold",
+                                        oldest_secs, threshold, committable,
+                                    ),
+                                );
+                            }
                         }
                     }
                 }
