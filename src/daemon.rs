@@ -4073,8 +4073,9 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
         DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
     ];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-    let (age, count) =
+    let (age, count, oldest_rel, _) =
         oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    assert_eq!(oldest_rel, PathBuf::from("old.txt"));
     // The oldest file (old.txt) drives the age; tolerate skew.
     assert!((110..=130).contains(&age), "expected ~120s, got {age}");
     assert_eq!(count, 2, "both stageable files must be counted");
@@ -4103,6 +4104,31 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
         None
     );
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Same-entry persistence gate: the same oldest entry across
+/// evaluations persists its window; rotation or mtime change
+/// resets; unknown repos start fresh. v0.113.80.
+#[test]
+fn test_stale_entry_persisted_matrix() {
+    use crate::daemon::stale_entry_persisted;
+    use std::time::Instant;
+    let mut seen: HashMap<PathBuf, (PathBuf, u64, Instant)> = HashMap::new();
+    let repo = PathBuf::from("/tmp/r");
+    let a = PathBuf::from("a.txt");
+    let b = PathBuf::from("b.txt");
+    // First sight → None (fresh, caller stays silent).
+    assert!(stale_entry_persisted(&mut seen, &repo, &a, 100, Instant::now()).is_none());
+    // Same entry again → Some (window persists).
+    assert!(stale_entry_persisted(&mut seen, &repo, &a, 100, Instant::now()).is_some());
+    // Rotation to another path → None (new incident).
+    assert!(stale_entry_persisted(&mut seen, &repo, &b, 200, Instant::now()).is_none());
+    // Same path, new mtime (re-edited) → None.
+    assert!(stale_entry_persisted(&mut seen, &repo, &b, 201, Instant::now()).is_none());
+    // Other repos are independent.
+    let repo2 = PathBuf::from("/tmp/r2");
+    assert!(stale_entry_persisted(&mut seen, &repo2, &a, 100, Instant::now()).is_none());
+    assert!(stale_entry_persisted(&mut seen, &repo, &b, 201, Instant::now()).is_some());
 }
 
 /// Submodule entries must be aged by the parent's last gitlink
@@ -4177,8 +4203,9 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
 
     let entries = vec![DiffFile::new(PathBuf::from("sub"), FileStatus::Modified)];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-    let (age, count) =
+    let (age, count, oldest_rel, _) =
         oldest_dirty_change_secs_core(&parent, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    assert_eq!(oldest_rel, PathBuf::from("sub"));
     assert!(
         (260..=340).contains(&age),
         "expected gitlink age ~300s (not dir mtime ~0s), got {age}"
@@ -4235,8 +4262,9 @@ fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
         DiffFile::new(PathBuf::from("nested"), FileStatus::Added),
         DiffFile::new(PathBuf::from("top.txt"), FileStatus::Modified),
     ];
-    let (age, count) =
+    let (age, count, oldest_rel, _) =
         oldest_dirty_change_secs_core(parent, &entries2, &names, &[], 100_000_000, &[]).unwrap();
+    assert_eq!(oldest_rel, PathBuf::from("top.txt"));
     assert!(age > 249_000, "plain old file must still age, got {age}");
     assert_eq!(
         count, 1,
