@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.78] - 2026-09-19
+
+### Fixed
+
+- **Notification spam — starvation boot grace**: after a restart
+  the fleet queues behind the re-inspection storm while
+  `last_dispatch` starts empty, so ANY repo dirty-through-restart
+  paged "Dispatch Starved" at the 10-min mark even while the
+  scheduler worked normally (observed live: two repos, identical
+  681s ages, 11 min after boot). No starvation page inside the
+  first 15 min of uptime. Regression:
+  `test_dispatch_starved_boot_grace`.
+- **Notification spam — starvation throttle**: the starvation
+  page joins the escalating throttle (30m → 1h → … → 8h cap)
+  with streak reset on clear, like the pile-up and pile-rate
+  alerts (was a flat 30 min forever).
+
 ## [0.113.77] - 2026-09-19
 
 ### Fixed
