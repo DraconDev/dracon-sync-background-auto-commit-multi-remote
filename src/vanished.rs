@@ -16,7 +16,7 @@
 //! The ledger is bookkeeping only — it never gates syncing or repair.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// Ledger file name; lives next to the policy file (same pattern as
@@ -38,7 +38,15 @@ pub(crate) struct SeenRepo {
     pub(crate) first_vanished_secs: Option<u64>,
 }
 
-pub(crate) type SeenLedger = HashMap<String, SeenRepo>;
+/// Key-sorted map (v0.113.82): deterministic serialization order.
+/// `save_seen_ledger` skips byte-identical writes to keep the hosting
+/// repo quiet — that compare only works when identical logical content
+/// serializes identically, which a `HashMap` (per-instance random order)
+/// never guarantees. A fresh load→no-op-update→save round-trip must be
+/// byte-stable, or the ledger rewrites every pass and the daemon burns
+/// a commit cycle per tick on machine state (observed 2026-09-20:
+/// per-minute `.dracon` commits with zero entry diffs).
+pub(crate) type SeenLedger = BTreeMap<String, SeenRepo>;
 
 /// A repo that was previously synced but whose path no longer exists.
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -292,6 +300,42 @@ mod tests {
         );
         mark_seen(&mut ledger, Path::new("/w/b"), secs(0));
         assert!(save_seen_ledger(&p, &ledger), "changed content writes");
+    }
+
+    #[test]
+    fn save_stable_across_reload_round_trip() {
+        // The 0.113.82 regression: a load → no-op-update → save cycle
+        // must be byte-identical, or the hosting repo dirties every
+        // pass on key ORDER alone (HashMap's per-instance random
+        // iteration defeated the 0.113.81 write-skip: per-minute
+        // `.dracon` commits with zero entry diffs).
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let p = dir.path().join("ledger.json");
+        let mut ledger = SeenLedger::new();
+        for r in ["/w/zeta", "/w/alpha", "/w/mid"] {
+            mark_seen(&mut ledger, Path::new(r), secs(0));
+        }
+        assert!(save_seen_ledger(&p, &ledger));
+        let before = std::fs::read(&p).expect("read");
+        let mut reloaded = load_seen_ledger(&p);
+        update_seen_ledger(
+            &mut reloaded,
+            &[
+                PathBuf::from("/w/zeta"),
+                PathBuf::from("/w/alpha"),
+                PathBuf::from("/w/mid"),
+            ],
+            secs(10),
+        );
+        assert!(
+            !save_seen_ledger(&p, &reloaded),
+            "steady reload round-trip must skip the write"
+        );
+        let after = std::fs::read(&p).expect("read");
+        assert_eq!(
+            before, after,
+            "reload round-trip inside the quantum must be byte-stable"
+        );
     }
 
     #[test]

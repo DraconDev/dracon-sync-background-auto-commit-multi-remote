@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.82] - 2026-09-20
+
+### Fixed
+
+- **Seen-ledger write-skip defeated by `HashMap` ordering (0.113.81 follow-up)**: `save_seen_ledger`'s compare-before-write never matched because each pass loads a fresh `HashMap` with a new random iteration order — identical logical content serialized to different bytes every time. Production proof: per-minute `.dracon` commits whose ledgers diffed with zero entry changes. `SeenLedger` is now a `BTreeMap` (deterministic key order); new `save_stable_across_reload_round_trip` test locks the byte-stability invariant.
+
 ## [0.113.81] - 2026-09-20
 
 ### Fixed
