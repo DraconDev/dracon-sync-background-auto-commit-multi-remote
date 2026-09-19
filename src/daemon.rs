@@ -8237,7 +8237,10 @@ pub(crate) async fn run_daemon(
                             )
                         })
                         .unwrap_or_else(|| "no hold recorded (check journal)".to_string());
-                    crate::report::send_sync_conflict_notification(
+                    // CHANGED 2026-09-19 (v0.113.79): statistical
+                    // notice, not an action-required conflict —
+                    // transient popup instead of sticky Critical.
+                    crate::report::send_sync_stat_notification(
                         repo,
                         "Dispatch Starved (>10 min)",
                         &format!(
