@@ -4787,8 +4787,8 @@ fn oldest_dirty_change_secs_core(
     excluded_file_patterns: &[String],
     max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
-) -> Option<(u64, usize)> {
-    let mut oldest: Option<std::time::SystemTime> = None;
+) -> Option<(u64, usize, PathBuf, u64)> {
+    let mut oldest: Option<(std::time::SystemTime, PathBuf, u64)> = None;
     let mut committable = 0usize;
     for entry in entries {
         if matches!(entry.status, dracon_git::types::FileStatus::Deleted) {
@@ -4871,16 +4871,27 @@ fn oldest_dirty_change_secs_core(
             modified
         };
         committable += 1;
-        if oldest.is_none_or(|o| modified < o) {
-            oldest = Some(modified);
+        // v0.113.80: the oldest entry's IDENTITY (path + mtime)
+        // feeds the same-entry persistence gate — a rotating queue
+        // must not page, only a stuck entry. For dir/gitlink
+        // entries `modified` is the absorption anchor, so the
+        // identity is stable until the parent absorbs (which is
+        // exactly the progress the gate watches for).
+        let mtime_unix = modified
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let is_older = oldest.as_ref().is_none_or(|(o, _, _)| modified < *o);
+        if is_older {
+            oldest = Some((modified, rel.clone(), mtime_unix));
         }
     }
-    let oldest = oldest?;
+    let (oldest, rel, mtime_unix) = oldest?;
     let age = std::time::SystemTime::now()
         .duration_since(oldest)
         .unwrap_or(Duration::ZERO)
         .as_secs();
-    Some((age, committable))
+    Some((age, committable, rel, mtime_unix))
 }
 
 /// Backoff for a repeatedly-firing notification: `base` on the
