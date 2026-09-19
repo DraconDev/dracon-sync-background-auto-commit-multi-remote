@@ -4737,7 +4737,7 @@ fn oldest_dirty_change_secs_core(
                     std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
                 });
             match (repo.join(rel).join(".git").exists(), logged) {
-                (true, None) => modified, // TEMP-FAIL-CHECK
+                (true, None) => continue,
                 (_, Some(t)) => t,
                 (false, None) => modified,
             }
