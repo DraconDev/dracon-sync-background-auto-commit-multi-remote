@@ -5831,7 +5831,12 @@ pub(crate) async fn run_daemon(
     // `remote_notify_cooldowns` 1:1 (per repo × alert kind); a cleared
     // condition removes its key, so the map is bounded by live alerts.
     let mut remote_notify_streaks: HashMap<String, usize> = HashMap::new();
-    // ADDED 2026-07-30 (v0.113.25): periodic visibility SWEEP state.
+    // ADDED 2026-09-19 (v0.113.79): restore persisted throttle
+    // state so a restart does not re-arm (and re-page) every
+    // alert. Expired entries are dropped by the loader.
+    let (saved_cooldowns, saved_streaks) = load_notify_state();
+    remote_notify_cooldowns.extend(saved_cooldowns);
+    remote_notify_streaks.extend(saved_streaks);
     // Visibility refresh historically ran only inside `sync_repo`
     // (maybe_sync_visibility_and_metadata) — but the daemon's fast
     // path skips dispatch entirely for clean+synced repos, so an
@@ -8327,6 +8332,11 @@ pub(crate) async fn run_daemon(
                 }
             }
         }
+        // ADDED 2026-09-19 (v0.113.79): persist throttle state so
+        // the next restart resumes backoff instead of re-paging.
+        // Tiny JSON, same once-per-cycle cadence as the in-flight
+        // file — negligible cost.
+        save_notify_state(&remote_notify_cooldowns, &remote_notify_streaks);
 
         // ADDED 2026-07-30 (v0.113.25): periodic visibility sweep.
         // Spawned (non-blocking) once per sync_visibility_interval_hours;
