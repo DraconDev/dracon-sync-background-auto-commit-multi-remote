@@ -5903,6 +5903,10 @@ pub(crate) async fn run_daemon(
     let (saved_cooldowns, saved_streaks) = load_notify_state();
     remote_notify_cooldowns.extend(saved_cooldowns);
     remote_notify_streaks.extend(saved_streaks);
+    // ADDED 2026-09-19 (v0.113.80): same-entry persistence gate
+    // for the pile-up alert. Keyed by repo; pruned to live
+    // activity with the other liveness maps.
+    let mut stale_oldest_seen: HashMap<PathBuf, (PathBuf, u64, Instant)> = HashMap::new();
     // Visibility refresh historically ran only inside `sync_repo`
     // (maybe_sync_visibility_and_metadata) — but the daemon's fast
     // path skips dispatch entirely for clean+synced repos, so an
@@ -7568,8 +7572,27 @@ pub(crate) async fn run_daemon(
                             &mut remote_notify_streaks,
                             &format!("stale-dirty-{}", repo.display()),
                         ),
-                        Some((oldest_secs, committable)) => {
-                            if stale_dirty_alert_due(
+                        Some((oldest_secs, committable, oldest_rel, oldest_mtime)) => {
+                            // v0.113.80: page only when the SAME entry
+                            // persists as oldest past the threshold — a
+                            // rotating queue is progress, not a pile-up.
+                            // First sight / rotation resets the streak
+                            // (new incident) and stays silent.
+                            let stale_key = format!("stale-dirty-{}", repo.display());
+                            let persisted = stale_entry_persisted(
+                                &mut stale_oldest_seen,
+                                &repo,
+                                &oldest_rel,
+                                oldest_mtime,
+                                Instant::now(),
+                            );
+                            let persist_met = persisted.is_some_and(|since| {
+                                Instant::now().saturating_duration_since(since)
+                                    >= Duration::from_secs(threshold)
+                            });
+                            if !persist_met {
+                                reset_notify_streak(&mut remote_notify_streaks, &stale_key);
+                            } else if stale_dirty_alert_due(
                                 &repo,
                                 oldest_secs,
                                 threshold,
@@ -7580,8 +7603,11 @@ pub(crate) async fn run_daemon(
                                     &repo,
                                     "Changes Piling Up",
                                     &format!(
-                                        "oldest committable change is {}s old (threshold {}s); {} committable entries; the daemon will keep committing as usual — this alert marks a pile-up that already exceeded the threshold",
-                                        oldest_secs, threshold, committable,
+                                        "oldest committable change is {}s old (threshold {}s); {} committable entries; oldest: {}; the daemon will keep committing as usual — this alert marks a pile-up that already exceeded the threshold",
+                                        oldest_secs,
+                                        threshold,
+                                        committable,
+                                        oldest_rel.display(),
                                     ),
                                 );
                             }
@@ -8209,6 +8235,10 @@ pub(crate) async fn run_daemon(
         // here; only currently-held dirty repos persist.
         prune_repo_liveness(&mut dispatch_holds, &activity);
         prune_repo_liveness(&mut last_dispatch, &activity);
+        // ADDED 2026-09-19 (v0.113.80): same-entry persistence
+        // observations follow activity — a clean repo restarts
+        // its persistence window fresh.
+        prune_repo_liveness(&mut stale_oldest_seen, &activity);
         // ADDED 2026-09-18 (v0.113.74, firehose fairness): pile-watch
         // windows follow the same activity-prune rule — a repo that
         // went clean or succeeded restarts its rate window fresh.
