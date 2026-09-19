@@ -266,18 +266,11 @@ mod tests {
         let mut ledger = SeenLedger::new();
         mark_seen(&mut ledger, Path::new("/w/steady"), secs(0));
         // 599 s later: no change.
-        update_seen_ledger(
-            &mut ledger,
-            &[PathBuf::from("/w/steady")],
-            secs(599),
-        );
+        update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(599));
         assert_eq!(ledger["/w/steady"].last_seen_secs, secs(0));
         // Vanish stamps immediately even inside the quantum.
         update_seen_ledger(&mut ledger, &[], secs(600));
-        assert_eq!(
-            ledger["/w/steady"].first_vanished_secs,
-            Some(secs(600))
-        );
+        assert_eq!(ledger["/w/steady"].first_vanished_secs, Some(secs(600)));
         // Return clears immediately even inside the quantum.
         update_seen_ledger(&mut ledger, &[PathBuf::from("/w/steady")], secs(601));
         assert_eq!(ledger["/w/steady"].first_vanished_secs, None);
@@ -300,7 +293,9 @@ mod tests {
         mark_seen(&mut ledger, Path::new("/w/b"), secs(0));
         assert!(save_seen_ledger(&p, &ledger), "changed content writes");
     }
-}
+
+    #[test]
+    fn detect_reports_only_unexpired_vanished_entries() {
         let mut ledger = SeenLedger::new();
         ledger.insert(
             "/w/gone".to_string(),
