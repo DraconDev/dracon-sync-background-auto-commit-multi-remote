@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+## [0.113.81] - 2026-09-20
+
+### Fixed
+
+- **Machine-state churn starving user commits — seen-ledger quantum**: `update_seen_ledger` stamped fresh `last_seen_secs` every discovery pass, so the ledger file changed every ~25s and the hosting repo (`.dracon`) burned a full status/classify/commit/push cycle per tick (~142 commits/hr), eating scheduler slots fleet-wide (ai-auto-writer canary: 83s dirty-to-commit for one small file). Steady-state heartbeats are now quantized to 600s (`SEEN_LAST_SEEN_QUANTUM_SECS`); vanish stamping AND clearing still land on the very first pass observed (signal, never delayed); `save_seen_ledger` compares before writing and skips identical content (returns whether it wrote). Vanish detection (day-scale TTLs, human response) cannot tell a 10-minute-quantized heartbeat from a live one.
 ## [0.113.80] - 2026-09-19
 
 ### Fixed
