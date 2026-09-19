@@ -4747,7 +4747,10 @@ const STALE_DIRTY_ALERT_COOLDOWN: Duration = Duration::from_secs(1800);
 /// only, or only never-committed nested repos) — no age can be
 /// measured, so the caller stays silent. The `usize` is the count
 /// of entries that actually contributed (v0.113.77: the caller
-/// reports this truthful count instead of `entries.len()`).
+/// reports this truthful count instead of `entries.len()`); the
+/// trailing `(PathBuf, u64)` identifies the oldest entry (relative
+/// path + mtime unix) for the v0.113.80 same-entry persistence
+/// gate.
 ///
 /// v0.113.42: the age is mtime-based (not observation-based) so a
 /// frozen daemon or a wedged cycle is surfaced on the first cycle
@@ -4759,7 +4762,7 @@ pub(crate) async fn oldest_dirty_change_secs(
     excluded_file_patterns: &[String],
     max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
-) -> Option<(u64, usize)> {
+) -> Option<(u64, usize, PathBuf, u64)> {
     let repo_owned = repo.to_path_buf();
     let entries_owned = entries.to_vec();
     let names = excluded_dir_names.clone();
@@ -4939,6 +4942,32 @@ pub(crate) fn notify_throttled_escalating(
 /// cadence instead of inheriting a backed-off wait.
 pub(crate) fn reset_notify_streak(streaks: &mut HashMap<String, usize>, key: &str) {
     streaks.remove(key);
+}
+
+/// Same-entry persistence gate for the pile-up alert (v0.113.80).
+/// A repo whose oldest committable entry ROTATES (firehose queue,
+/// gitlinks absorbing in turn) is making progress and must not
+/// page; only the SAME entry sitting oldest across evaluations is
+/// a genuine stall. `seen` maps repo → (oldest rel path, oldest
+/// mtime unix, first-seen Instant). Returns `Some(first_seen)`
+/// when this exact entry was already oldest, `None` on first
+/// sight or rotation (caller resets the streak: new incident).
+/// In-memory only: a restart must re-observe persistence before
+/// paging (conservative, consistent with the boot-grace rule).
+pub(crate) fn stale_entry_persisted(
+    seen: &mut HashMap<PathBuf, (PathBuf, u64, Instant)>,
+    repo: &Path,
+    rel: &Path,
+    mtime_unix: u64,
+    now: Instant,
+) -> Option<Instant> {
+    match seen.get(repo) {
+        Some((p, m, since)) if p.as_path() == rel && *m == mtime_unix => Some(*since),
+        _ => {
+            seen.insert(repo.to_path_buf(), (rel.to_path_buf(), mtime_unix, now));
+            None
+        }
+    }
 }
 
 /// Cap for the escalating notification backoff: a permanently
