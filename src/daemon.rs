@@ -3854,22 +3854,52 @@ fn test_stale_dirty_alert_due_throttle_and_disable() {
     let mut streaks = HashMap::new();
     let repo = PathBuf::from("/tmp/test-repo");
     // Below threshold → never fires, no streak armed.
-    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns, &mut streaks));
+    assert!(!stale_dirty_alert_due(
+        &repo,
+        90,
+        600,
+        &mut cooldowns,
+        &mut streaks
+    ));
     assert!(!streaks.contains_key(&format!("stale-dirty-{}", repo.display())));
     // Over threshold → fires, streak starts.
-    assert!(stale_dirty_alert_due(&repo, 601, 600, &mut cooldowns, &mut streaks));
+    assert!(stale_dirty_alert_due(
+        &repo,
+        601,
+        600,
+        &mut cooldowns,
+        &mut streaks
+    ));
     // Re-alert within the (escalated) cooldown → throttled.
-    assert!(!stale_dirty_alert_due(&repo, 3600, 600, &mut cooldowns, &mut streaks));
+    assert!(!stale_dirty_alert_due(
+        &repo,
+        3600,
+        600,
+        &mut cooldowns,
+        &mut streaks
+    ));
     // Disabled (0) → never, even far over the threshold.
     let mut c2 = HashMap::new();
     let mut s2 = HashMap::new();
     assert!(!stale_dirty_alert_due(&repo, 3600, 0, &mut c2, &mut s2));
     // Different repo → independent cooldown.
     let repo2 = PathBuf::from("/tmp/other-repo");
-    assert!(stale_dirty_alert_due(&repo2, 601, 600, &mut cooldowns, &mut streaks));
+    assert!(stale_dirty_alert_due(
+        &repo2,
+        601,
+        600,
+        &mut cooldowns,
+        &mut streaks
+    ));
     // Condition cleared (back under threshold) → streak resets so
     // the next incident pages promptly instead of backed-off.
-    assert!(!stale_dirty_alert_due(&repo, 90, 600, &mut cooldowns, &mut streaks));
+    assert!(!stale_dirty_alert_due(
+        &repo,
+        90,
+        600,
+        &mut cooldowns,
+        &mut streaks
+    ));
     assert!(
         !streaks.contains_key(&format!("stale-dirty-{}", repo.display())),
         "cleared condition must reset the streak"
@@ -3882,13 +3912,27 @@ fn test_stale_dirty_alert_due_throttle_and_disable() {
 fn test_escalating_cooldown_matrix() {
     use crate::daemon::escalating_cooldown;
     use std::time::Duration;
-    assert_eq!(escalating_cooldown(Duration::from_secs(30), 1, Duration::from_secs(100)), Duration::from_secs(30));
-    assert_eq!(escalating_cooldown(Duration::from_secs(30), 2, Duration::from_secs(100)), Duration::from_secs(60));
-    assert_eq!(escalating_cooldown(Duration::from_secs(30), 3, Duration::from_secs(100)), Duration::from_secs(100));
-    assert_eq!(escalating_cooldown(Duration::from_secs(30), 9, Duration::from_secs(100)), Duration::from_secs(100));
+    assert_eq!(
+        escalating_cooldown(Duration::from_secs(30), 1, Duration::from_secs(100)),
+        Duration::from_secs(30)
+    );
+    assert_eq!(
+        escalating_cooldown(Duration::from_secs(30), 2, Duration::from_secs(100)),
+        Duration::from_secs(60)
+    );
+    assert_eq!(
+        escalating_cooldown(Duration::from_secs(30), 3, Duration::from_secs(100)),
+        Duration::from_secs(100)
+    );
+    assert_eq!(
+        escalating_cooldown(Duration::from_secs(30), 9, Duration::from_secs(100)),
+        Duration::from_secs(100)
+    );
     // Production shape: 30m → 1h → 2h → 4h → 8h cap.
     let cap = Duration::from_secs(28_800);
-    let seq: Vec<u64> = (1..=6).map(|n| escalating_cooldown(Duration::from_secs(1800), n, cap).as_secs()).collect();
+    let seq: Vec<u64> = (1..=6)
+        .map(|n| escalating_cooldown(Duration::from_secs(1800), n, cap).as_secs())
+        .collect();
     assert_eq!(seq, vec![1800, 3600, 7200, 14400, 28800, 28800]);
 }
 
@@ -3903,19 +3947,43 @@ fn test_notify_throttled_escalating_streak_and_reset() {
     let mut streaks: HashMap<String, usize> = HashMap::new();
     let key = "stale-dirty-/tmp/r";
     // First fire → true, streak 1.
-    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert!(notify_throttled_escalating(
+        &mut cooldowns,
+        &mut streaks,
+        key,
+        Duration::from_secs(60),
+        Duration::from_secs(3600)
+    ));
     assert_eq!(streaks.get(key), Some(&1));
     // Active cooldown → suppressed, streak untouched.
-    assert!(!notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert!(!notify_throttled_escalating(
+        &mut cooldowns,
+        &mut streaks,
+        key,
+        Duration::from_secs(60),
+        Duration::from_secs(3600)
+    ));
     assert_eq!(streaks.get(key), Some(&1));
     // Expire the cooldown manually → fires again, streak 2.
     cooldowns.insert(key.to_string(), Instant::now());
-    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert!(notify_throttled_escalating(
+        &mut cooldowns,
+        &mut streaks,
+        key,
+        Duration::from_secs(60),
+        Duration::from_secs(3600)
+    ));
     assert_eq!(streaks.get(key), Some(&2));
     // Reset (condition cleared) → next fire starts back at streak 1.
     reset_notify_streak(&mut streaks, key);
     cooldowns.insert(key.to_string(), Instant::now());
-    assert!(notify_throttled_escalating(&mut cooldowns, &mut streaks, key, Duration::from_secs(60), Duration::from_secs(3600)));
+    assert!(notify_throttled_escalating(
+        &mut cooldowns,
+        &mut streaks,
+        key,
+        Duration::from_secs(60),
+        Duration::from_secs(3600)
+    ));
     assert_eq!(streaks.get(key), Some(&1));
 }
 
@@ -3951,7 +4019,8 @@ fn test_oldest_dirty_change_secs_core_mtime_based() {
         DiffFile::new(PathBuf::from("new.txt"), FileStatus::Added),
     ];
     let names = crate::exclude::excluded_dir_names_set(&crate::policy::test_sync_policy());
-    let (age, count) = oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
+    let (age, count) =
+        oldest_dirty_change_secs_core(&dir, &entries, &names, &[], 100_000_000, &[]).unwrap();
     // The oldest file (old.txt) drives the age; tolerate skew.
     assert!((110..=130).contains(&age), "expected ~120s, got {age}");
     assert_eq!(count, 2, "both stageable files must be counted");
@@ -4115,7 +4184,10 @@ fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
     let (age, count) =
         oldest_dirty_change_secs_core(parent, &entries2, &names, &[], 100_000_000, &[]).unwrap();
     assert!(age > 249_000, "plain old file must still age, got {age}");
-    assert_eq!(count, 1, "only the stageable file counts, not the nested repo");
+    assert_eq!(
+        count, 1,
+        "only the stageable file counts, not the nested repo"
+    );
 }
 
 /// The policy knob must default to 600 and round-trip through
@@ -5600,11 +5672,11 @@ pub(crate) async fn run_daemon(
         );
     }
     let mut remote_notify_cooldowns: HashMap<String, Instant> = HashMap::new();
-// ADDED 2026-09-19 (v0.113.77, notification spam): consecutive-fire
-// streaks for the escalating notification throttle. Keys mirror
-// `remote_notify_cooldowns` 1:1 (per repo × alert kind); a cleared
-// condition removes its key, so the map is bounded by live alerts.
-let mut remote_notify_streaks: HashMap<String, usize> = HashMap::new();
+    // ADDED 2026-09-19 (v0.113.77, notification spam): consecutive-fire
+    // streaks for the escalating notification throttle. Keys mirror
+    // `remote_notify_cooldowns` 1:1 (per repo × alert kind); a cleared
+    // condition removes its key, so the map is bounded by live alerts.
+    let mut remote_notify_streaks: HashMap<String, usize> = HashMap::new();
     // ADDED 2026-07-30 (v0.113.25): periodic visibility SWEEP state.
     // Visibility refresh historically ran only inside `sync_repo`
     // (maybe_sync_visibility_and_metadata) — but the daemon's fast
