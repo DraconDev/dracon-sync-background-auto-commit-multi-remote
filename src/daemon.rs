@@ -8121,7 +8121,6 @@ pub(crate) async fn run_daemon(
                             ),
                         );
                     }
-                }
             }
 
             // Mirror degraded (one mirror consistently failing)
