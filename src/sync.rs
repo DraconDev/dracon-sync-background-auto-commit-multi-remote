@@ -670,6 +670,29 @@ struct DiffResult {
 #[cfg(test)]
 mod diff_tests {
 
+    /// Vanished stage-list paths must be pruned before `git add`
+    /// (firehose TOCTOU: the generator deletes a listed file before
+    /// the add runs, and one missing pathspec fails the whole batch
+    /// with exit 128). Dangling symlinks still stage fine, so only
+    /// truly-missing paths go. v0.113.77.
+    #[test]
+    fn test_retain_existing_stage_paths_drops_vanished() {
+        use crate::sync::retain_existing_stage_paths;
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        std::fs::write(repo.join("alive.txt"), b"x").unwrap();
+        let mut paths = vec![
+            "alive.txt".to_string(),
+            "gone/_generating.partial.md".to_string(),
+            "never-existed.md".to_string(),
+        ];
+        let dropped = retain_existing_stage_paths(repo, &mut paths);
+        assert_eq!(dropped, 2);
+        assert_eq!(paths, vec!["alive.txt".to_string()]);
+        // Idempotent: nothing left to drop.
+        assert_eq!(retain_existing_stage_paths(repo, &mut paths), 0);
+    }
+
     #[test]
     fn test_fallback_entries_recalculate_staged_files() {
         // When cli_diff_entries fallback is used, staged_files must be
