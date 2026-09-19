@@ -4073,6 +4073,7 @@ fn test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age() {
 fn test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo() {
     use crate::daemon::oldest_dirty_change_secs_core;
     use dracon_git::types::{DiffFile, FileStatus};
+    use std::fs::File;
     use std::time::{Duration as StdDuration, SystemTime};
     let td = tempfile::tempdir().unwrap();
     // Plain tempdir parent: NOT a git repo, mirroring "no parent
