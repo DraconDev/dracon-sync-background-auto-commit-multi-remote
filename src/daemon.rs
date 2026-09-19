@@ -4002,6 +4002,31 @@ fn test_notify_throttled_escalating_streak_and_reset() {
         Duration::from_secs(3600)
     ));
     assert_eq!(streaks.get(key), Some(&2));
+    // Persisted state round-trips live entries, drops expired
+    // deadlines and orphan streaks, and fails open on garbage.
+    // v0.113.79 (restart must not re-arm throttled alerts).
+    #[test]
+    fn test_notify_state_round_trip_and_expiry() {
+        use crate::daemon::{build_notify_state_json, parse_notify_state};
+        use std::time::{Duration, Instant};
+        let now = Instant::now();
+        let mut cds: HashMap<String, Instant> = HashMap::new();
+        cds.insert("a".to_string(), now + Duration::from_secs(3600));
+        cds.insert("dead".to_string(), now);
+        let mut sts: HashMap<String, usize> = HashMap::new();
+        sts.insert("a".to_string(), 2);
+        sts.insert("orphan".to_string(), 5);
+        let raw = build_notify_state_json(&cds, &sts, 1_000_000, now);
+        let (cds2, sts2) = parse_notify_state(&raw, 1_000_000, now);
+        assert_eq!(cds2.len(), 1);
+        assert!(cds2.contains_key("a"));
+        assert_eq!(sts2.get("a"), Some(&2));
+        assert!(!sts2.contains_key("orphan"));
+        assert!(parse_notify_state("not json", 0, now).0.is_empty());
+        let (cds3, sts3) = parse_notify_state(&raw, 1_000_000 + 7200, now);
+        assert!(cds3.is_empty());
+        assert!(sts3.is_empty());
+    }
     // Reset (condition cleared) → next fire starts back at streak 1.
     reset_notify_streak(&mut streaks, key);
     cooldowns.insert(key.to_string(), Instant::now());
