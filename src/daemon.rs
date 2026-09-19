@@ -4508,7 +4508,10 @@ const STALE_DIRTY_ALERT_COOLDOWN: Duration = Duration::from_secs(1800);
 /// per-repo auto-commit excludes) contribute an mtime; `Deleted`
 /// entries and entries whose worktree file is missing are skipped.
 /// Returns `None` when no entry yields an mtime (e.g. deletions
-/// only) — no age can be measured, so the caller stays silent.
+/// only, or only never-committed nested repos) — no age can be
+/// measured, so the caller stays silent. The `usize` is the count
+/// of entries that actually contributed (v0.113.77: the caller
+/// reports this truthful count instead of `entries.len()`).
 ///
 /// v0.113.42: the age is mtime-based (not observation-based) so a
 /// frozen daemon or a wedged cycle is surfaced on the first cycle
@@ -4520,7 +4523,7 @@ pub(crate) async fn oldest_dirty_change_secs(
     excluded_file_patterns: &[String],
     max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
-) -> Option<u64> {
+) -> Option<(u64, usize)> {
     let repo_owned = repo.to_path_buf();
     let entries_owned = entries.to_vec();
     let names = excluded_dir_names.clone();
@@ -4644,24 +4647,83 @@ fn oldest_dirty_change_secs_core(
     Some((age, committable))
 }
 
-/// Returns `true` (and arms the per-repo cooldown) when a
-/// "Changes Piling Up" alert should be emitted for `repo`: the
+/// Backoff for a repeatedly-firing notification: `base` on the
+/// first consecutive fire, doubling per consecutive fire, capped
+/// at `cap`. Pure function so the matrix is unit-testable.
+pub(crate) fn escalating_cooldown(base: Duration, consecutive: usize, cap: Duration) -> Duration {
+    let mut d = base;
+    for _ in 1..consecutive.max(1) {
+        d = d.saturating_mul(2);
+        if d >= cap {
+            return cap;
+        }
+    }
+    d.min(cap)
+}
+
+/// Streak-aware `notify_throttled`: the first fire for `key`
+/// re-arms after `base`; each CONSECUTIVE fire doubles the wait
+/// up to `cap`. A cleared condition must call
+/// `reset_notify_streak` so the next incident pages promptly.
+/// New keys for `streaks` mirror `map` keys 1:1 (per repo ×
+/// alert kind), so the map stays as bounded as the cooldowns.
+pub(crate) fn notify_throttled_escalating(
+    map: &mut HashMap<String, Instant>,
+    streaks: &mut HashMap<String, usize>,
+    key: &str,
+    base: Duration,
+    cap: Duration,
+) -> bool {
+    let now = Instant::now();
+    if map.get(key).is_some_and(|until| now < *until) {
+        return false;
+    }
+    let streak = streaks.get(key).copied().unwrap_or(0) + 1;
+    streaks.insert(key.to_string(), streak);
+    map.insert(
+        key.to_string(),
+        now + escalating_cooldown(base, streak, cap),
+    );
+    true
+}
+
+/// Clear a notification streak when its condition clears (pile
+/// drained, dirt committed) so the next incident pages at `base`
+/// cadence instead of inheriting a backed-off wait.
+pub(crate) fn reset_notify_streak(streaks: &mut HashMap<String, usize>, key: &str) {
+    streaks.remove(key);
+}
+
+/// Cap for the escalating notification backoff: a permanently
+/// unfixable pile pages ~4×/day (30m → 1h → 2h → 4h → 8h)
+/// instead of every 30 min forever.
+const NOTIFY_ESCALATION_CAP: Duration = Duration::from_secs(28_800);
+
+/// Returns `true` (and arms the per-repo escalating cooldown) when
+/// a "Changes Piling Up" alert should be emitted for `repo`: the
 /// oldest committable change is older than `threshold_secs`
-/// (`0` disables the alert entirely) and the per-repo cooldown
-/// has expired. v0.113.42.
+/// (`0` disables the alert entirely). Repeat fires back off
+/// (30m → 1h → … → 8h cap); a cleared condition resets the
+/// streak so the next incident pages promptly. v0.113.42;
+/// escalating throttle v0.113.77.
 pub(crate) fn stale_dirty_alert_due(
     repo: &Path,
     oldest_secs: u64,
     threshold_secs: u64,
     cooldowns: &mut HashMap<String, Instant>,
+    streaks: &mut HashMap<String, usize>,
 ) -> bool {
+    let key = format!("stale-dirty-{}", repo.display());
     if threshold_secs == 0 || oldest_secs <= threshold_secs {
+        reset_notify_streak(streaks, &key);
         return false;
     }
-    notify_throttled(
+    notify_throttled_escalating(
         cooldowns,
-        &format!("stale-dirty-{}", repo.display()),
+        streaks,
+        &key,
         STALE_DIRTY_ALERT_COOLDOWN,
+        NOTIFY_ESCALATION_CAP,
     )
 }
 
