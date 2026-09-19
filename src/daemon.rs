@@ -4548,8 +4548,9 @@ fn oldest_dirty_change_secs_core(
     excluded_file_patterns: &[String],
     max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
-) -> Option<u64> {
+) -> Option<(u64, usize)> {
     let mut oldest: Option<std::time::SystemTime> = None;
+    let mut committable = 0usize;
     for entry in entries {
         if matches!(entry.status, dracon_git::types::FileStatus::Deleted) {
             // Deletions have no worktree mtime — nothing to age.
@@ -4594,11 +4595,23 @@ fn oldest_dirty_change_secs_core(
         // submodule work: the commit time of the parent's last
         // commit that touched this gitlink path. A stalled gitlink
         // still ages correctly (endless-td's real 46.8h catch,
-        // v0.113.42, keeps firing). Fall back to the dir mtime when
-        // git cannot answer (path never committed, non-repo dir) —
-        // conservative: may over-alert, never under-alert.
+        // v0.113.42, keeps firing).
+        //
+        // ADDED 2026-09-19 (v0.113.77, notification spam): skip a
+        // directory that contains `.git` but has NO committed
+        // history in the parent (`git log -- <path>` fails). That
+        // is a never-committed nested standalone repo (observed
+        // live: `.dracon/convos/`, `pi-plugins/…-audit/`, both
+        // separately watched): the worker's stage path skips every
+        // dir containing `.git` (sync.rs `stage_existing_files…`),
+        // so the parent will NEVER absorb it — but the old code
+        // fell back to the dir mtime and paged a 70h/18h "pile-up"
+        // every 30 min forever. Tracked submodules (git log
+        // succeeds) keep the absorption-age behavior above; plain
+        // never-committed dirs without `.git` keep the conservative
+        // dir-mtime fallback.
         let modified = if meta.is_dir() {
-            crate::git::git_cmd()
+            let logged = crate::git::git_cmd()
                 .current_dir(repo)
                 .args(["log", "-1", "--format=%ct", "--"])
                 .arg(rel)
@@ -4609,11 +4622,16 @@ fn oldest_dirty_change_secs_core(
                     let s = String::from_utf8_lossy(&o.stdout);
                     let secs: u64 = s.trim().parse().ok()?;
                     std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
-                })
-                .unwrap_or(modified)
+                });
+            match (repo.join(rel).join(".git").exists(), logged) {
+                (true, None) => continue,
+                (_, Some(t)) => t,
+                (false, None) => modified,
+            }
         } else {
             modified
         };
+        committable += 1;
         if oldest.is_none_or(|o| modified < o) {
             oldest = Some(modified);
         }
@@ -4623,7 +4641,7 @@ fn oldest_dirty_change_secs_core(
         .duration_since(oldest)
         .unwrap_or(Duration::ZERO)
         .as_secs();
-    Some(age)
+    Some((age, committable))
 }
 
 /// Returns `true` (and arms the per-repo cooldown) when a
