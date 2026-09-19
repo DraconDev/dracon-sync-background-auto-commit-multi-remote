@@ -3006,6 +3006,20 @@ mod tests {
         assert!(dispatch_starved(mins(600), Some(mins(600))));
     }
 
+    /// Starvation must not page inside the post-restart grace
+    /// window (2026-09-19: fleet-wide re-inspection storm paged
+    /// two repos with identical 681s ages 11 min after boot).
+    #[test]
+    fn test_dispatch_starved_boot_grace() {
+        use crate::daemon::dispatch_starved_past_boot_grace;
+        let secs = Duration::from_secs;
+        assert!(!dispatch_starved_past_boot_grace(secs(0)));
+        assert!(!dispatch_starved_past_boot_grace(secs(600)));
+        assert!(!dispatch_starved_past_boot_grace(secs(899)));
+        assert!(dispatch_starved_past_boot_grace(secs(900)));
+        assert!(dispatch_starved_past_boot_grace(secs(3600)));
+    }
+
     /// ADDED 2026-09-18 (v0.113.74, firehose fairness): the scan
     /// must collect a ready status without waiting for a slow
     /// repo's task. Fails on the pre-fix architecture (inline await
