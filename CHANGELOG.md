@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.77] - 2026-09-19
+
+### Fixed
+
+- **Notification spam — never-committed nested repos**: `convos/`
+  inside `.dracon` and the audit dir inside `pi-plugins` are
+  separately-watched standalone repos the parent worker correctly
+  never stages — but the "Changes Piling Up" age computation
+  counted them via the dir-mtime fallback and paged a 70h/18h
+  pile-up every 30 min forever. Directory entries that contain
+  `.git` with no parent history are now excluded from aging, and
+  the alert reports the truthful committable count (was
+  `entries.len()`). Regression:
+  `test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo`
+  (fail-before verified).
+- **Notification spam — escalating throttle**: repeat "Changes
+  Piling Up" / "Pile Growing" alerts backed off 30m → 1h → 2h
+  → 4h → 8h cap per repo instead of every 30 min forever; a
+  cleared condition resets the streak so the next incident pages
+  promptly. Regressions: `test_escalating_cooldown_matrix`,
+  `test_notify_throttled_escalating_streak_and_reset`.
+- **Firehose TOCTOU on the main stage path**: the generator
+  deleted a `_generating.partial.md` between classification and
+  `git add`, and one missing pathspec failed the whole batch
+  (exit 128). The bootstrap path already pruned vanished paths;
+  the main path now does too (`retain_existing_stage_paths`).
+  Regression: `test_retain_existing_stage_paths_drops_vanished`.
+
 ## [0.113.76] - 2026-09-19
 
 ### Fixed
