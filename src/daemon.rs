@@ -166,6 +166,20 @@ fn classification_result_expired(taken_at: Instant, now: Instant) -> bool {
 /// how old its dirt is.
 const DISPATCH_STARVED_THRESHOLD_SECS: u64 = 600;
 
+/// Boot grace for the starvation page: after a restart the whole
+/// fleet legitimately queues behind the re-inspection storm
+/// (observed 2026-09-19: every repo `status-pending` at once, two
+/// repos still undispatched 681s after boot → false "Starved"
+/// pages with identical ages). `last_dispatch` starts empty at
+/// boot, so without a grace ANY repo dirty-through-restart pages
+/// at the 10-min mark even while the scheduler works normally.
+/// Pure helper for test.
+const DISPATCH_STARVED_BOOT_GRACE_SECS: u64 = 900;
+
+fn dispatch_starved_past_boot_grace(uptime: Duration) -> bool {
+    uptime >= Duration::from_secs(DISPATCH_STARVED_BOOT_GRACE_SECS)
+}
+
 fn dispatch_starved(dirty_since_age: Duration, last_dispatch_age: Option<Duration>) -> bool {
     dirty_since_age >= Duration::from_secs(DISPATCH_STARVED_THRESHOLD_SECS)
         && last_dispatch_age
@@ -8049,19 +8063,30 @@ pub(crate) async fn run_daemon(
             // pages WITH the current hold reason (classification-pending /
             // filter-clean / in-flight / reserve-race) instead of sitting
             // silent. Steady-but-slow repos (dispatch inside the window)
-            // never trip. Rate-limited to 30 min like the other alerts.
+            // never trip.
+            // CHANGED 2026-09-19 (v0.113.78, notification spam):
+            // (1) boot grace — post-restart the fleet queues behind
+            // the re-inspection storm, so starving inside the first
+            // 15 min of uptime is expected backlog, not a stall;
+            // (2) escalating throttle (30m → 8h cap) like the other
+            // alerts, with streak reset on clear.
+            let starved_key = format!("dispatch-starved-{}", repo.display());
             if let Some(dirty_at) = entry.dirty_since {
                 let dirty_age = notification_now.saturating_duration_since(dirty_at);
                 let dispatch_age = last_dispatch
                     .get(repo)
                     .map(|t| notification_now.saturating_duration_since(*t));
-                if dispatch_starved(dirty_age, dispatch_age) {
-                    let notify_key = format!("dispatch-starved-{}", repo.display());
-                    if notify_throttled(
-                        &mut remote_notify_cooldowns,
-                        &notify_key,
-                        Duration::from_secs(1800),
-                    ) {
+                if !dispatch_starved_past_boot_grace(scheduler_epoch.elapsed())
+                    || !dispatch_starved(dirty_age, dispatch_age)
+                {
+                    reset_notify_streak(&mut remote_notify_streaks, &starved_key);
+                } else if notify_throttled_escalating(
+                    &mut remote_notify_cooldowns,
+                    &mut remote_notify_streaks,
+                    &starved_key,
+                    Duration::from_secs(1800),
+                    NOTIFY_ESCALATION_CAP,
+                ) {
                         let hold = dispatch_holds
                             .get(repo)
                             .map(|(reason, since)| {
