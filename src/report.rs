@@ -106,6 +106,39 @@ pub(crate) fn send_sync_conflict_notification(repo_path: &Path, reason: &str, de
     });
 }
 
+/// Transient desktop notification for statistical alerts
+/// (dispatch-starved, pile-up class): informational pages the
+/// operator never has to act on directly. Normal urgency with a
+/// 15s expiry so resolved pages auto-dismiss instead of stacking
+/// in the notification center until manually cleared (Critical
+/// notifications are sticky on most desktops — the 2026-09-19
+/// spam reports were largely already-resolved pages still
+/// visible). Genuine action-required conflicts keep Critical via
+/// `send_sync_conflict_notification`. v0.113.79.
+pub(crate) fn send_sync_stat_notification(repo_path: &Path, reason: &str, details: &str) {
+    record_sync_alert(repo_path, reason, details);
+    let repo_name = repo_path
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| repo_path.display().to_string());
+    let title = format!("Dracon Sync: {}", reason);
+    let body = format!(
+        "Repository '{}' — statistical notice (no action required).\nReason: {}\nDetails: {}",
+        repo_name, reason, details
+    );
+    tokio::spawn(async move {
+        if let Err(e) = notify_rust::Notification::new()
+            .summary(&title)
+            .body(&body)
+            .urgency(notify_rust::Urgency::Normal)
+            .timeout(notify_rust::Timeout::Milliseconds(15_000))
+            .show()
+        {
+            eprintln!("⚠️ failed to send desktop notification: {}", e);
+        }
+    });
+}
+
 /// Send a desktop notification when a push operation fails persistently.
 /// Rate-limited to max 1 notification per repo per 5 minutes.
 #[allow(dead_code)]

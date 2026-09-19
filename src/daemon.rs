@@ -4966,6 +4966,132 @@ fn in_flight_path() -> std::path::PathBuf {
     std::path::PathBuf::from("/tmp/dracon-sync-in-flight.json")
 }
 
+/// ADDED 2026-09-19 (v0.113.79, notification spam): persisted
+/// notification throttle state. Cooldowns and streaks were purely
+/// in-memory, so every restart re-armed ALL alerts — each of the
+/// .76/.77/.78 deploys produced a full re-page storm (observed:
+/// pre-fix alerts re-firing minutes after boot despite being
+/// throttled before the restart).
+///
+/// File: `~/.local/state/dracon/dracon-sync-notify-state.json`
+/// (`{"cooldowns": {key: deadline_unix}, "streaks": {key: n}}`),
+/// written atomically (write-temp + rename), loaded once at boot
+/// with expired deadlines dropped. Same location convention as
+/// `in_flight_path`. The map is tiny (one key per live repo ×
+/// alert kind); saving once per cycle is negligible.
+fn notify_state_path() -> std::path::PathBuf {
+    if let Ok(custom) = std::env::var("DRACON_SYNC_LEDGER") {
+        let p = std::path::PathBuf::from(custom);
+        if !p.as_os_str().is_empty() {
+            if let Some(parent) = p.parent() {
+                return parent.join("dracon-sync-notify-state.json");
+            }
+        }
+    }
+    if let Some(home) = dirs::home_dir() {
+        return home
+            .join(".local")
+            .join("state")
+            .join("dracon")
+            .join("dracon-sync-notify-state.json");
+    }
+    std::path::PathBuf::from("/tmp/dracon-sync-notify-state.json")
+}
+
+/// Serialize throttle state with an explicit `now` pair so the
+/// round-trip is unit-testable without sleeping. Expired
+/// deadlines are dropped (never persist a dead throttle).
+pub(crate) fn build_notify_state_json(
+    cooldowns: &HashMap<String, Instant>,
+    streaks: &HashMap<String, usize>,
+    now_unix: u64,
+    now: Instant,
+) -> String {
+    let mut cds = serde_json::Map::new();
+    for (k, until) in cooldowns {
+        if let Some(rem) = until.checked_duration_since(now) {
+            cds.insert(k.clone(), serde_json::json!(now_unix + rem.as_secs()));
+        }
+    }
+    serde_json::json!({ "cooldowns": cds, "streaks": streaks }).to_string()
+}
+
+/// Parse persisted throttle state with an explicit `now` pair.
+/// Unknown keys and expired deadlines are dropped; malformed
+/// input yields empty maps (fail-open: a corrupt state file must
+/// never suppress a genuine page).
+pub(crate) fn parse_notify_state(
+    raw: &str,
+    now_unix: u64,
+    now: Instant,
+) -> (HashMap<String, Instant>, HashMap<String, usize>) {
+    let mut cooldowns = HashMap::new();
+    let mut streaks = HashMap::new();
+    let v: serde_json::Value = match serde_json::from_str(raw) {
+        Ok(v) => v,
+        Err(_) => return (cooldowns, streaks),
+    };
+    if let Some(st) = v.get("streaks").and_then(|s| s.as_object()) {
+        for (k, n) in st {
+            if let Some(n) = n.as_u64() {
+                streaks.insert(k.clone(), n as usize);
+            }
+        }
+    }
+    if let Some(cd) = v.get("cooldowns").and_then(|s| s.as_object()) {
+        for (k, dl) in cd {
+            if let Some(dl) = dl.as_u64() {
+                if dl > now_unix {
+                    cooldowns.insert(k.clone(), now + Duration::from_secs(dl - now_unix));
+                }
+            }
+        }
+    }
+    // A streak without a live cooldown is stale backoff: drop it
+    // so the next incident pages at base cadence.
+    streaks.retain(|k, _| cooldowns.contains_key(k));
+    (cooldowns, streaks)
+}
+
+/// Write the current throttle state to disk (atomic). Called once
+/// per cycle after the notification pass.
+pub(crate) fn save_notify_state(
+    cooldowns: &HashMap<String, Instant>,
+    streaks: &HashMap<String, usize>,
+) {
+    let now_unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let content = build_notify_state_json(cooldowns, streaks, now_unix, Instant::now());
+    let path = notify_state_path();
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+    }
+    let tmp_path = path.with_extension("tmp");
+    if std::fs::write(&tmp_path, &content).is_ok() {
+        let _ = std::fs::rename(&tmp_path, &path);
+    } else {
+        let _ = std::fs::remove_file(&tmp_path);
+    }
+}
+
+/// Load persisted throttle state at boot. Missing/corrupt files
+/// yield empty maps (fail-open).
+pub(crate) fn load_notify_state() -> (HashMap<String, Instant>, HashMap<String, usize>) {
+    let now_unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let raw = match std::fs::read_to_string(notify_state_path()) {
+        Ok(s) => s,
+        Err(_) => return (HashMap::new(), HashMap::new()),
+    };
+    parse_notify_state(&raw, now_unix, Instant::now())
+}
+
 /// Atomically write the current `in_flight` set to disk. Used by the
 /// `repos` command to display whether a row is actively being processed
 /// (`now`) or has been quiet for a while (`stalled Xm`).
