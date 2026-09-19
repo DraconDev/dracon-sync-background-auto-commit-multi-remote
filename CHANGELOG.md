@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.80] - 2026-09-19
+
+### Fixed
+
+- **Notification spam — same-entry persistence gate**: the
+  pile-up alert fired on mtime age alone, so a healthy repo
+  with a rotating queue paged at threshold-edge (observed live:
+  dracon-platform, 1 entry, 632s vs 600s threshold, absorbed
+  minutes later). The alert now pages only when the SAME entry
+  (path + mtime) persists as oldest past the threshold — rotation
+  means progress and resets silently. The message names the
+  stalled path. Regressions: `test_stale_entry_persisted_matrix`
+  plus oldest-identity asserts on the three age tests.
+
 ## [0.113.79] - 2026-09-19
 
 ### Fixed
