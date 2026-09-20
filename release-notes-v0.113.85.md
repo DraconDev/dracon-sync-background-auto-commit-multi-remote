@@ -23,4 +23,4 @@ systemctl --user daemon-reload
 systemctl --user enable --now dracon-sync.service
 ```
 
-**Full Changelog**: https://github.com/DraconDev/dracon-utilities/compare/dracon-sync-v0.113.84...v0.113.85
+**Full Changelog**: https://github.com/DraconDev/dracon-utilities/compare/dracon-sync-v0.113.84...dracon-sync-v0.113.85
