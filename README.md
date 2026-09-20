@@ -92,6 +92,15 @@ When `auto_github_private = true`, newly initialized repos without an origin rem
 Deterministic facts extracted from the diff. No AI, no LLM, no prose. Routing
 keys are grep-searchable via `git log --grep=`.
 
+### Notifications
+One tray item, never a pile. Action-required states (stuck pushes, degraded
+mirrors, blocked/unowned repos) feed a single "Dracon Sync: N issues" notification,
+updated in place when the set changes, silent when it doesn't, and auto-replaced
+with an all-clear when everything resolves. Declared forge/network outages are
+named first in the body. The alerts log (`dracon-sync-alerts.jsonl`) keeps the full
+per-repo paper trail; statistical notices (pile growth, dispatch starvation) are
+transient popups, never sticky.
+
 ## Installation
 
 ### Quick Install (User Service)
