@@ -137,6 +137,59 @@ fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> boo
         >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
 }
 
+/// Bound for a STATUS task without a result (ADDED 2026-09-20,
+/// v0.113.85): at most one status task runs per repo and the boundary
+/// only collects ready results, so a wedged `git status` pins its repo
+/// in `status-pending` with zero info-level trace — observed live:
+/// freeport dirty 34 min, one Starved page, zero failure lines.
+/// Past 2x the result max-age the task is wedged by definition (a
+/// result that old would be stale-dropped on arrival anyway): abort
+/// it, free the slot, re-probe next cycle. Pure helper for test.
+const STATUS_TASK_TIMEOUT_SECS: u64 = 60;
+
+fn status_inspection_wedged(spawned_at: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(spawned_at)
+        >= Duration::from_secs(STATUS_TASK_TIMEOUT_SECS)
+}
+
+/// Silence bound for dispatch holds (ADDED 2026-09-20, v0.113.85):
+/// every skip site records its hold, but recording is debug-gated —
+/// a repo can sit undispatched with zero journal trace until the
+/// 600s Starved page (freeport 2026-09-20). Past this age the hold
+/// warns (throttled by the cooldown below): one line per repo per
+/// 5 min while held, silent otherwise. Pure decision helper — the
+/// warn itself goes through `notify_throttled` so episodes re-arm.
+const HOLD_WARN_AFTER_SECS: u64 = 60;
+const HOLD_WARN_COOLDOWN_SECS: u64 = 300;
+
+fn hold_warn_due(since: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(since) >= Duration::from_secs(HOLD_WARN_AFTER_SECS)
+}
+
+fn warn_aging_hold(
+    holds: &HashMap<PathBuf, (String, Instant)>,
+    cooldowns: &mut HashMap<String, Instant>,
+    repo: &Path,
+    now: Instant,
+) {
+    if let Some((reason, since)) = holds.get(repo) {
+        if hold_warn_due(*since, now)
+            && notify_throttled(
+                cooldowns,
+                &format!("holdwarn-{}-{}", repo.display(), reason),
+                Duration::from_secs(HOLD_WARN_COOLDOWN_SECS),
+            )
+        {
+            eprintln!(
+                "⚠️ {} held '{}' for {}s — still undispatched (starves at 600s)",
+                repo.display(),
+                reason,
+                now.saturating_duration_since(*since).as_secs()
+            );
+        }
+    }
+}
+
 /// Max age of a KEPT classification result for a dirty repo.
 /// Results are kept across pulses so a quiet-window pulse never
 /// forces a filter re-run — but a kept non-empty result can
@@ -6136,6 +6189,18 @@ pub(crate) async fn run_daemon(
     let mut status_jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
     let mut status_pending: HashSet<PathBuf> = HashSet::new();
     let mut status_spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
+    // ADDED 2026-09-20 (v0.113.85): abort handles for wedged status /
+    // classification tasks. Dropping a reservation without aborting
+    // the task leaks it (slot logic frees, the `git` child runs on,
+    // and the next probe piles on top). Pruned against the pending
+    // sets at the pulse boundary below.
+    let mut status_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> =
+        HashMap::new();
+    let mut classification_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> =
+        HashMap::new();
+    // ADDED 2026-09-20 (v0.113.85): throttle map for aging-hold
+    // warnings (one line per repo per 5 min while held past 60s).
+    let mut hold_warn_cooldowns: HashMap<String, Instant> = HashMap::new();
     let mut status_results: HashMap<
         PathBuf,
         (
@@ -6374,6 +6439,11 @@ pub(crate) async fn run_daemon(
             &mut status_spawned_at,
             &mut status_results,
         );
+        // v0.113.85: abort handles track only live reservations;
+        // anything else is a completed-or-aborted orphan whose join
+        // already resolved (or will resolve repo-less and harmless).
+        status_abort_handles.retain(|repo, _| status_pending.contains(repo));
+        classification_abort_handles.retain(|repo, _| classification_pending.contains(repo));
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
         cycle_count += 1;
@@ -7132,17 +7202,46 @@ pub(crate) async fn run_daemon(
             // repo immediately. Stale results (>30s old) are dropped
             // and re-probed; task failures keep the old
             // `status_failed` skip semantics.
+            // ADDED 2026-09-20 (v0.113.85): wedged-inspector sweep.
+            // A status task older than 2x the result max-age will
+            // never produce a usable result — abort it and free the
+            // slot so the spawn below re-probes next cycle. Without
+            // this, one hung `git status` pins its repo silent
+            // forever (freeport 2026-09-20: 34 min status-pending,
+            // zero failure lines). The orphaned cancelled join
+            // resolves repo-less in `collect_ready_status` (log-only).
+            if status_pending.contains(&repo) {
+                if let Some(spawned) = status_spawned_at.get(&repo).copied() {
+                    if status_inspection_wedged(spawned, now) {
+                        if let Some(handle) = status_abort_handles.remove(&repo) {
+                            handle.abort();
+                        }
+                        status_pending.remove(&repo);
+                        status_spawned_at.remove(&repo);
+                        eprintln!(
+                            "⚠️ {} status inspection wedged over {}s without result — aborted, re-probing next cycle",
+                            repo.display(),
+                            STATUS_TASK_TIMEOUT_SECS
+                        );
+                    }
+                }
+            }
             if !status_pending.contains(&repo) && !status_results.contains_key(&repo) {
                 let repo_for_status = repo.clone();
                 status_pending.insert(repo.clone());
                 status_spawned_at.insert(repo.clone(), now);
-                status_jobs.push(tokio::spawn(async move {
+                let status_handle = tokio::spawn(async move {
                     let outcome = match GitService::new(&repo_for_status) {
                         Ok(svc) => svc.get_status().await.map_err(|e| anyhow::anyhow!("{}", e)),
                         Err(e) => Err(anyhow::anyhow!("{}", e)),
                     };
                     (repo_for_status, outcome)
-                }));
+                });
+                // v0.113.85: retain the abort handle so the wedge
+                // sweep above can kill a hung inspection (pruned at
+                // the pulse boundary once the reservation clears).
+                status_abort_handles.insert(repo.clone(), status_handle.abort_handle());
+                status_jobs.push(status_handle);
             }
             collect_ready_status(
                 &mut status_jobs,
@@ -7154,6 +7253,11 @@ pub(crate) async fn run_daemon(
                 dispatch_holds
                     .entry(repo.clone())
                     .or_insert_with(|| ("status-pending".to_string(), now));
+                // v0.113.85: the hold alone is debug-gated — a repo
+                // can sit here silent until the 600s Starved page.
+                // Warn past 60s (throttled): the journal names the
+                // hold long before it pages.
+                warn_aging_hold(&dispatch_holds, &mut hold_warn_cooldowns, &repo, now);
                 if debug_enabled() {
                     eprintln!(
                         "scheduler: skip repo={} reason=status-pending",
@@ -7473,15 +7577,25 @@ pub(crate) async fn run_daemon(
                 // without a join error surfacing. Drop it so the gate
                 // below re-probes instead of suppressing this repo's
                 // dispatches silently forever.
+                // EXTENDED 2026-09-20 (v0.113.85): abort the wedged
+                // task too. Dropping the reservation without killing
+                // the job leaks it — the `git diff` child runs on and
+                // every re-probe piles another hung task on top while
+                // the cause persists. Abort is safe: the job carries
+                // no locks, and its orphaned cancelled join resolves
+                // repo-less (log-only) in `collect_ready_classifications`.
                 if classification_pending.contains(&repo)
                     && classification_pending_since
                         .get(&repo)
                         .is_some_and(|spawned| classification_pending_watchdog_due(*spawned, now))
                 {
+                    if let Some(handle) = classification_abort_handles.remove(&repo) {
+                        handle.abort();
+                    }
                     classification_pending.remove(&repo);
                     classification_pending_since.remove(&repo);
                     eprintln!(
-                        "⚠️ {} classification pending over 90s without result — dropping stale reservation and re-probing",
+                        "⚠️ {} classification pending over 90s without result — aborted wedged job, dropping stale reservation and re-probing",
                         repo.display()
                     );
                 }
@@ -7504,7 +7618,7 @@ pub(crate) async fn run_daemon(
                         );
                     }
                     let repo_for_job = repo.clone();
-                    classification_jobs.push(tokio::task::spawn(async move {
+                    let classification_handle = tokio::task::spawn(async move {
                         let started = Instant::now();
                         let outcome = tokio::time::timeout(
                             CLASSIFICATION_TIMEOUT,
