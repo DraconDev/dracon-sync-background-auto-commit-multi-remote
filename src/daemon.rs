@@ -8355,19 +8355,19 @@ pub(crate) async fn run_daemon(
                             repo.display()
                         );
                     }
-                } else if {
+                } else {
                     let notify_key = format!("stuck-ahead-{}", repo.display());
-                    notify_throttled(
+                    if notify_throttled(
                         &mut remote_notify_cooldowns,
                         &notify_key,
                         Duration::from_secs(1800),
-                    )
-                } {
-                    crate::report::send_sync_conflict_notification(
-                        repo,
-                        "Stuck Ahead (Unpushed)",
-                        "commits not reaching origin for >10 min — push may be failing",
-                    );
+                    ) {
+                        crate::report::send_sync_conflict_notification(
+                            repo,
+                            "Stuck Ahead (Unpushed)",
+                            "commits not reaching origin for >10 min — push may be failing",
+                        );
+                    }
                 }
             }
 
