@@ -1275,6 +1275,41 @@ pub(crate) enum StuckDecision {
     Exhausted,
 }
 
+/// ADDED 2026-09-20 (v0.113.83): Stuck Ahead must not re-page a repo
+/// whose push is already Exhausted-paused — the Push Stuck page (with
+/// the repair command) is already in the tray; re-paging every 30 min
+/// while the pause the daemon itself imposed holds is pure noise.
+/// Under-budget retries keep the early warning (returns false).
+pub(crate) fn stuck_ahead_covered_by_pause(consecutive_failures: u32, max_retries: u32) -> bool {
+    push_failure_is_persistent(consecutive_failures, max_retries)
+}
+
+/// ADDED 2026-09-20 (v0.113.83): resolve a `repair stuck-unstuck`
+/// argument that may be a bare repo name (what the daemon's own 🛑
+/// message suggests) instead of the full path the ledger is keyed by.
+/// Exact path hits pass through; otherwise match ledger keys by
+/// file_name. Unique match resolves; ambiguous lists candidates;
+/// no match passes through unchanged (preserves the "not in stuck
+/// repos" behavior for genuinely unknown input).
+pub(crate) fn resolve_stuck_repo_arg(keys: &[PathBuf], raw: &Path) -> Result<PathBuf, Vec<PathBuf>> {
+    if keys.iter().any(|k| k == raw) {
+        return Ok(raw.to_path_buf());
+    }
+    let wanted = raw.to_string_lossy();
+    let matches: Vec<PathBuf> = keys
+        .iter()
+        .filter(|k| {
+            k.file_name().map(|f| f.to_string_lossy() == wanted).unwrap_or(false)
+        })
+        .cloned()
+        .collect();
+    match matches.len() {
+        1 => Ok(matches.into_iter().next().expect("len == 1")),
+        0 => Ok(raw.to_path_buf()),
+        _ => Err(matches),
+    }
+}
+
 /// Whether a push failure has persisted long enough to warrant a
 /// user-facing failure notification. A failed attempt is intentionally not
 /// enough: transient forge/network errors are expected to recover through
@@ -8302,8 +8337,25 @@ pub(crate) async fn run_daemon(
         for (repo, entry) in &activity {
             // Repo stuck ahead (unpushed commits piling up)
             if sustained_threshold_met(entry.ahead_since, notification_now, STUCK_AHEAD_THRESHOLD) {
-                let notify_key = format!("stuck-ahead-{}", repo.display());
-                if notify_throttled(
+                // ADDED 2026-09-20 (v0.113.83): while the repo is
+                // Exhausted-paused the Push Stuck page (with repair
+                // command) is already in the tray — skip the duplicate.
+                // The throttle slot is NOT burned, so unpausing pages
+                // promptly. Under-budget retries keep the early warning.
+                let paused = get_stuck_push_info(repo).is_some_and(|info| {
+                    stuck_ahead_covered_by_pause(
+                        info.consecutive_failures,
+                        policy.push_max_retries,
+                    )
+                });
+                if paused {
+                    if debug_enabled() {
+                        eprintln!(
+                            "🐛 {} stuck-ahead alert suppressed (push already Exhausted-paused; Push Stuck page stands)",
+                            repo.display()
+                        );
+                    }
+                } else if notify_throttled(
                     &mut remote_notify_cooldowns,
                     &notify_key,
                     Duration::from_secs(1800),
