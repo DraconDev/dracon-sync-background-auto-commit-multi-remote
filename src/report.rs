@@ -8831,6 +8831,52 @@ pub(crate) async fn nested_repo_untracked_count(repo: &Path) -> usize {
 mod tests {
     use super::*;
     #[test]
+    fn test_render_summary_notification_shapes() {
+        // v0.113.84: single tray item — title counts, body caps at 5
+        // lines with an overflow tail, render is order-insensitive
+        // (input permutation must not re-pop the notification).
+        let issues = vec![
+            ("/r/b".to_string(), "Mirror Degraded: origin".to_string()),
+            ("/r/a".to_string(), "Push Stuck (budget exhausted)".to_string()),
+        ];
+        let (title, body) = render_summary_notification(&issues);
+        assert_eq!(title, "Dracon Sync: 2 issues");
+        assert!(body.starts_with("/r/a — Push Stuck"), "sorted, got: {body}");
+        let rev: Vec<(String, String)> = issues.iter().rev().cloned().collect();
+        assert_eq!(render_summary_notification(&rev), (title.clone(), body.clone()));
+        let one = vec![("/r/a".to_string(), "X".to_string())];
+        assert_eq!(render_summary_notification(&one).0, "Dracon Sync: 1 issue");
+        let many: Vec<(String, String)> = (0..8)
+            .map(|i| (format!("/r/{i}"), "Y".to_string()))
+            .collect();
+        let (mtitle, mbody) = render_summary_notification(&many);
+        assert_eq!(mtitle, "Dracon Sync: 8 issues");
+        assert!(mbody.contains("…and 3 more"), "got: {mbody}");
+        assert_eq!(mbody.lines().count(), 6, "5 lines + tail, got: {mbody}");
+    }
+
+    #[test]
+    fn test_summary_state_round_trip_and_fail_open() {
+        // State persists id+render (not in-memory) so a restart
+        // replaces rather than stacks; corrupt state fails open.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("s.json");
+        let st = SummaryNotifyState {
+            id: 42,
+            title: "T".to_string(),
+            body: "B".to_string(),
+        };
+        std::fs::write(&path, serde_json::to_vec(&st).unwrap()).unwrap();
+        let back: SummaryNotifyState =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!((back.id, back.title, back.body), (42, "T".to_string(), "B".to_string()));
+        std::fs::write(&path, b"{corrupt").unwrap();
+        assert!(serde_json::from_slice::<SummaryNotifyState>(
+            &std::fs::read(&path).unwrap()
+        )
+        .is_err());
+    }
+    #[test]
     fn test_remote_project_identity_shapes() {
         // scp-like SSH.
         assert_eq!(
