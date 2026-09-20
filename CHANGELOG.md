@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Silent-hold starvation: a repo could sit dirty-but-undispatched with zero journal trace until the 600s Starved page**: observed live 2026-09-20 — freeport dirty 34 min, one `Dispatch Starved ... hold: classification-pending` page, zero failure/watchdog lines. Three gaps closed: (1) the status pipeline had NO wedge bound (max-1-in-flight + ready-only collect, so one hung `git status` pinned its repo in `status-pending` forever) — new 60s `STATUS_TASK_TIMEOUT_SECS` sweep aborts the wedged task and frees the slot (`abort_wedged_status_inspection`; abort-side cleanup, the orphaned cancelled join resolves repo-less and inserts nothing); (2) the classification 90s watchdog dropped the reservation but never killed the task — it now aborts the wedged `git diff` too, so re-probes stop piling hung tasks; (3) every silent hold now warns past 60s (throttled to one line per repo per 5 min): `status-pending`, `classification-{pending,cooldown,missing}`, and `reserve-race` (a leaked in-flight owner fails that gate forever on a debug line). The previously log-free empty-classification-on-dirty drop also warns (throttled; a racing worktree re-arms every ~500ms). Fail-before: the production alerts log (600s+ classification-pending hold, no preceding failure or watchdog line) plus the pre-fix code shape (no status timeout existed anywhere in the file). Also fixed two clippy-drift lints (`summary.append`, report.rs doc list) so gates stay green on the current toolchain.
+
 ## [0.113.84] - 2026-09-20
 
 ### Fixed
