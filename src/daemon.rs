@@ -8459,8 +8459,9 @@ pub(crate) async fn run_daemon(
                         // spam storm; the incident record covers them and
                         // per-repo pages resume on recovery (the throttle
                         // slot behaves exactly like the sibling
-                        // stuck-retry/exhausted sites). Journal line
-                        // below still logs.
+                        // stuck-retry/exhausted sites). The alerts-log /
+                        // journal record still lands — only the DESKTOP
+                        // page is coalesced.
                         if crate::forge::forge_incident_covers_repo(&repo.to_string_lossy()) {
                             if debug_enabled() {
                                 eprintln!(
@@ -8469,6 +8470,15 @@ pub(crate) async fn run_daemon(
                                     mirror_name
                                 );
                             }
+                            crate::report::record_sync_alert(
+                                repo,
+                                &format!("Mirror Degraded: {}", mirror_name),
+                                &format!(
+                                    "{} consecutive push failures — {} (coalesced: incident covers this repo)",
+                                    fail_info.consecutive,
+                                    crate::git::classify_push_failure(&fail_info.last_error)
+                                ),
+                            );
                             continue;
                         }
                         // CHANGED 2026-08-09 (v0.113.50, pi-goal-loop-audit
