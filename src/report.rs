@@ -240,7 +240,9 @@ pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
     let replaces = prev.map(|s| s.id);
     tokio::spawn(async move {
         let mut n = notify_rust::Notification::new();
-        n.summary(&title).body(&body).urgency(notify_rust::Urgency::Critical);
+        n.summary(&title)
+            .body(&body)
+            .urgency(notify_rust::Urgency::Critical);
         if let Some(id) = replaces {
             n.id(id);
         }
@@ -8837,13 +8839,19 @@ mod tests {
         // (input permutation must not re-pop the notification).
         let issues = vec![
             ("/r/b".to_string(), "Mirror Degraded: origin".to_string()),
-            ("/r/a".to_string(), "Push Stuck (budget exhausted)".to_string()),
+            (
+                "/r/a".to_string(),
+                "Push Stuck (budget exhausted)".to_string(),
+            ),
         ];
         let (title, body) = render_summary_notification(&issues);
         assert_eq!(title, "Dracon Sync: 2 issues");
         assert!(body.starts_with("/r/a — Push Stuck"), "sorted, got: {body}");
         let rev: Vec<(String, String)> = issues.iter().rev().cloned().collect();
-        assert_eq!(render_summary_notification(&rev), (title.clone(), body.clone()));
+        assert_eq!(
+            render_summary_notification(&rev),
+            (title.clone(), body.clone())
+        );
         let one = vec![("/r/a".to_string(), "X".to_string())];
         assert_eq!(render_summary_notification(&one).0, "Dracon Sync: 1 issue");
         let many: Vec<(String, String)> = (0..8)
@@ -8869,12 +8877,14 @@ mod tests {
         std::fs::write(&path, serde_json::to_vec(&st).unwrap()).unwrap();
         let back: SummaryNotifyState =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-        assert_eq!((back.id, back.title, back.body), (42, "T".to_string(), "B".to_string()));
+        assert_eq!(
+            (back.id, back.title, back.body),
+            (42, "T".to_string(), "B".to_string())
+        );
         std::fs::write(&path, b"{corrupt").unwrap();
-        assert!(serde_json::from_slice::<SummaryNotifyState>(
-            &std::fs::read(&path).unwrap()
-        )
-        .is_err());
+        assert!(
+            serde_json::from_slice::<SummaryNotifyState>(&std::fs::read(&path).unwrap()).is_err()
+        );
     }
     #[test]
     fn test_remote_project_identity_shapes() {

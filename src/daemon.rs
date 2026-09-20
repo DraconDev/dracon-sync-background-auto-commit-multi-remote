@@ -7967,7 +7967,7 @@ pub(crate) async fn run_daemon(
                     summary_issues.push((
                         repo.display().to_string(),
                         "Sync Failures (backing off)".to_string(),
-                    );
+                    ));
                 } else if debug_enabled() {
                     eprintln!(
                         "🔄 {} re-probing after max-failures backoff",
