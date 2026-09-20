@@ -1291,7 +1291,10 @@ pub(crate) fn stuck_ahead_covered_by_pause(consecutive_failures: u32, max_retrie
 /// file_name. Unique match resolves; ambiguous lists candidates;
 /// no match passes through unchanged (preserves the "not in stuck
 /// repos" behavior for genuinely unknown input).
-pub(crate) fn resolve_stuck_repo_arg(keys: &[PathBuf], raw: &Path) -> Result<PathBuf, Vec<PathBuf>> {
+pub(crate) fn resolve_stuck_repo_arg(
+    keys: &[PathBuf],
+    raw: &Path,
+) -> Result<PathBuf, Vec<PathBuf>> {
     if keys.iter().any(|k| k == raw) {
         return Ok(raw.to_path_buf());
     }
@@ -1299,7 +1302,9 @@ pub(crate) fn resolve_stuck_repo_arg(keys: &[PathBuf], raw: &Path) -> Result<Pat
     let matches: Vec<PathBuf> = keys
         .iter()
         .filter(|k| {
-            k.file_name().map(|f| f.to_string_lossy() == wanted).unwrap_or(false)
+            k.file_name()
+                .map(|f| f.to_string_lossy() == wanted)
+                .unwrap_or(false)
         })
         .cloned()
         .collect();
@@ -4534,6 +4539,71 @@ fn test_record_push_failure_accumulates_across_calls() {
 /// deadline. The previous `Entry::Vacant` pattern never expired —
 /// (c) is the regression this guards.
 #[test]
+fn test_transient_dns_does_not_burn_stuck_budget() {
+    // v0.113.83 fail-before: a DNS outage error incremented
+    // consecutive_failures (fell through to record_push_failure);
+    // post-fix it records visibility-only with the budget untouched.
+    let state_dir = tempfile::tempdir().unwrap();
+    let _guard = crate::test_helpers::EnvRestorer::new(
+        "DRACON_SYNC_STATE_DIR",
+        state_dir.path().to_string_lossy().as_ref(),
+    );
+    let repo = std::path::Path::new("/tmp/dns-budget-test-repo");
+    let err = anyhow::anyhow!(
+        "git push-to-github failed with status exit status: 128: ssh: Could not resolve hostname github.com: Temporary failure in name resolution"
+    );
+    record_push_attempt_error(repo, &err);
+    record_push_attempt_error(repo, &err);
+    let entry = load_stuck_push_repos()
+        .get(repo)
+        .cloned()
+        .expect("entry must exist");
+    assert_eq!(entry.consecutive_failures, 0, "DNS must not burn budget");
+    assert!(entry.last_error.contains("Could not resolve hostname"));
+    assert!(entry.last_error_at > 0, "backoff anchor still stamped");
+}
+
+#[test]
+fn test_stuck_ahead_covered_by_pause_matrix() {
+    // v0.113.83: Exhausted-paused repos skip the Stuck Ahead
+    // duplicate; under-budget retries keep the early warning.
+    assert!(!stuck_ahead_covered_by_pause(0, 5));
+    assert!(!stuck_ahead_covered_by_pause(4, 5));
+    assert!(stuck_ahead_covered_by_pause(5, 5));
+    assert!(stuck_ahead_covered_by_pause(9, 5));
+    assert!(
+        !stuck_ahead_covered_by_pause(100, 0),
+        "never-give-up has no pause"
+    );
+}
+
+#[test]
+fn test_resolve_stuck_repo_arg_matrix() {
+    // v0.113.83: bare names (what the 🛑 message suggests) resolve
+    // against ledger keys by file_name.
+    let keys = vec![
+        PathBuf::from("/home/dracon/Dev/dracon-platform/web/games/wip/deathrun"),
+        PathBuf::from("/home/dracon/Dev/dracon-platform/web/games/released/come-get-me"),
+    ];
+    // Exact path passes through.
+    assert_eq!(resolve_stuck_repo_arg(&keys, &keys[0]).unwrap(), keys[0]);
+    // Unique bare name resolves.
+    assert_eq!(
+        resolve_stuck_repo_arg(&keys, Path::new("deathrun")).unwrap(),
+        keys[0]
+    );
+    // Unknown input passes through (preserves "not in stuck repos").
+    assert_eq!(
+        resolve_stuck_repo_arg(&keys, Path::new("nope")).unwrap(),
+        PathBuf::from("nope")
+    );
+    // Ambiguous names list candidates instead of guessing.
+    let dupes = vec![PathBuf::from("/a/deathrun"), PathBuf::from("/b/deathrun")];
+    let err = resolve_stuck_repo_arg(&dupes, Path::new("deathrun")).unwrap_err();
+    assert_eq!(err.len(), 2);
+}
+
+#[test]
 fn test_notify_throttled_fires_then_suppresses_then_refires() {
     let mut map: HashMap<String, Instant> = HashMap::new();
     let cooldown = Duration::from_secs(1800);
@@ -4700,8 +4770,7 @@ pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
     // (DNS) outages — a dead LAN must never latch repos into manual
     // repair (observed: 02:20–02:28 DNS outage burned 5-fail budgets on
     // two repos → latched pause + tray storm for a self-healed cause).
-    if crate::git::is_transient_forge_outage(&msg)
-        || crate::git::is_transient_network_outage(&msg)
+    if crate::git::is_transient_forge_outage(&msg) || crate::git::is_transient_network_outage(&msg)
     {
         record_push_transient_outage(repo, &msg);
         return;
@@ -8343,10 +8412,7 @@ pub(crate) async fn run_daemon(
                 // The throttle slot is NOT burned, so unpausing pages
                 // promptly. Under-budget retries keep the early warning.
                 let paused = get_stuck_push_info(repo).is_some_and(|info| {
-                    stuck_ahead_covered_by_pause(
-                        info.consecutive_failures,
-                        policy.push_max_retries,
-                    )
+                    stuck_ahead_covered_by_pause(info.consecutive_failures, policy.push_max_retries)
                 });
                 if paused {
                     if debug_enabled() {
