@@ -3234,11 +3234,9 @@ mod tests {
         let mut pending = HashSet::new();
         let mut spawned_at = HashMap::new();
         let mut results = HashMap::new();
-        let handle = tokio::spawn(async {
+        let handle: StatusJoin = tokio::spawn(async {
             std::future::pending::<()>().await;
-            let status: dracon_git::types::RepoStatus =
-                unreachable!("wedged task must never complete");
-            (PathBuf::from("orphan-repo"), Ok::<_, anyhow::Error>(status))
+            unreachable!("wedged task must never complete")
         });
         handle.abort();
         jobs.push(handle);

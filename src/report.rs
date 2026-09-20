@@ -209,12 +209,11 @@ pub(crate) fn render_summary_notification(issues: &[(String, String)]) -> (Strin
 }
 
 /// Sync the single daemon tray item to the current issue set.
-///
-/// - Empty set + stored item → replace the stale sticky with an
-///   auto-dismissing (15s, Normal) all-clear, then drop state.
-/// - Unchanged render → silent (no re-show: re-popping every cycle
-///   would be the spam this replaces).
-/// - Changed → show Critical with replaces_id (first show: no id).
+/// An empty set plus a stored item replaces the stale sticky with an
+/// auto-dismissing (15s, Normal) all-clear, then drops state. An
+/// unchanged render stays silent (no re-show: re-popping every cycle
+/// would be the spam this replaces). A changed set shows Critical
+/// with replaces_id (first show: no id).
 /// Send failures only log (headless/CI must never break the cycle).
 pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
     let prev = load_summary_state();
