@@ -190,6 +190,37 @@ fn warn_aging_hold(
     }
 }
 
+/// Wedged-inspector sweep (ADDED 2026-09-20, v0.113.85): abort one
+/// repo's status task when it exceeds `STATUS_TASK_TIMEOUT_SECS` and
+/// free its slot. Returns true when it aborted. Abort-side cleanup
+/// (pending/spawned-at/abort-map removal) happens HERE — the
+/// orphaned cancelled join resolves repo-less in
+/// `collect_ready_status` and cannot release the slot itself.
+/// Pure over the maps (the task kill is via the stored AbortHandle).
+fn abort_wedged_status_inspection(
+    pending: &mut HashSet<PathBuf>,
+    spawned_at: &mut HashMap<PathBuf, Instant>,
+    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    repo: &Path,
+    now: Instant,
+) -> bool {
+    if !pending.contains(repo) {
+        return false;
+    }
+    let wedged = spawned_at
+        .get(repo)
+        .is_some_and(|spawned| status_inspection_wedged(*spawned, now));
+    if !wedged {
+        return false;
+    }
+    if let Some(handle) = aborts.remove(repo) {
+        handle.abort();
+    }
+    pending.remove(repo);
+    spawned_at.remove(repo);
+    true
+}
+
 /// Max age of a KEPT classification result for a dirty repo.
 /// Results are kept across pulses so a quiet-window pulse never
 /// forces a filter re-run — but a kept non-empty result can
@@ -3078,6 +3109,145 @@ mod tests {
         assert!(!classification_pending_watchdog_due(ago(89), now));
         assert!(classification_pending_watchdog_due(ago(90), now));
         assert!(classification_pending_watchdog_due(ago(3600), now));
+    }
+
+    // ADDED 2026-09-20 (v0.113.85, freeport 34-min stall): the
+    // status pipeline had no wedge bound at all — max-1-in-flight
+    // plus ready-only collect meant one hung `git status` pinned
+    // its repo in status-pending with zero info-level trace.
+    #[test]
+    fn test_status_inspection_wedged_bound() {
+        let now = Instant::now();
+        let ago = |secs: u64| now - Duration::from_secs(secs);
+        // Results older than 30s are stale-dropped on arrival; the
+        // 60s abort bound is 2x headroom.
+        assert!(!status_inspection_wedged(ago(10), now));
+        assert!(!status_inspection_wedged(ago(59), now));
+        assert!(status_inspection_wedged(ago(60), now));
+        assert!(status_inspection_wedged(ago(3600), now));
+    }
+
+    #[test]
+    fn test_hold_warn_due_gates_on_sixty_seconds() {
+        let now = Instant::now();
+        let ago = |secs: u64| now - Duration::from_secs(secs);
+        assert!(!hold_warn_due(ago(10), now));
+        assert!(!hold_warn_due(ago(59), now));
+        assert!(hold_warn_due(ago(60), now));
+        assert!(hold_warn_due(ago(599), now));
+    }
+
+    #[test]
+    fn test_warn_aging_hold_throttles_per_episode() {
+        let repo = PathBuf::from("held-repo");
+        let now = Instant::now();
+        let mut holds = HashMap::new();
+        let mut cooldowns: HashMap<String, Instant> = HashMap::new();
+        // Fresh hold: silent, no throttle key.
+        holds.insert(repo.clone(), ("status-pending".to_string(), now));
+        warn_aging_hold(&holds, &mut cooldowns, &repo, now);
+        assert!(cooldowns.is_empty(), "fresh hold must not warn");
+        // Aged hold: warns once, then throttled for 5 min.
+        holds.insert(
+            repo.clone(),
+            ("status-pending".to_string(), now - Duration::from_secs(61)),
+        );
+        warn_aging_hold(&holds, &mut cooldowns, &repo, now);
+        assert_eq!(cooldowns.len(), 1, "aged hold must warn once");
+        warn_aging_hold(&holds, &mut cooldowns, &repo, now);
+        assert_eq!(cooldowns.len(), 1, "warn must throttle within cooldown");
+        // Unknown repo: no hold, no warn, no key.
+        warn_aging_hold(
+            &holds,
+            &mut cooldowns,
+            &PathBuf::from("other-repo"),
+            now,
+        );
+        assert_eq!(cooldowns.len(), 1, "missing hold must stay silent");
+    }
+
+    #[tokio::test]
+    async fn wedged_status_task_aborted_and_slot_freed() {
+        // Fail-before shape (pre-0.113.85): a status task that never
+        // returns pins its repo — no timeout existed, so the pending
+        // reservation survived every cycle and the repo never
+        // re-probed. Post-fix the sweep aborts the task and frees
+        // the slot (abort-side cleanup; the orphaned cancelled join
+        // is repo-less and harmless).
+        let repo = PathBuf::from("wedged-repo");
+        let now = Instant::now();
+        let mut pending = HashSet::new();
+        let mut spawned_at = HashMap::new();
+        let mut aborts = HashMap::new();
+        let handle = tokio::spawn(async {
+            std::future::pending::<()>().await;
+        });
+        aborts.insert(repo.clone(), handle.abort_handle());
+        pending.insert(repo.clone());
+        spawned_at.insert(repo.clone(), now - Duration::from_secs(61));
+        assert!(abort_wedged_status_inspection(
+            &mut pending,
+            &mut spawned_at,
+            &mut aborts,
+            &repo,
+            now
+        ));
+        assert!(pending.is_empty(), "slot must free on abort");
+        assert!(spawned_at.is_empty());
+        assert!(aborts.is_empty());
+        tokio::task::yield_now().await;
+        assert!(handle.is_finished(), "wedged task must be aborted");
+        let err = handle.await.unwrap_err();
+        assert!(err.is_cancelled(), "abort must be typed cancellation");
+    }
+
+    #[tokio::test]
+    async fn healthy_status_task_spared_by_sweep() {
+        let repo = PathBuf::from("healthy-repo");
+        let now = Instant::now();
+        let mut pending = HashSet::new();
+        let mut spawned_at = HashMap::new();
+        let mut aborts = HashMap::new();
+        let handle = tokio::spawn(async { 42u8 });
+        aborts.insert(repo.clone(), handle.abort_handle());
+        pending.insert(repo.clone());
+        spawned_at.insert(repo.clone(), now);
+        assert!(!abort_wedged_status_inspection(
+            &mut pending,
+            &mut spawned_at,
+            &mut aborts,
+            &repo,
+            now
+        ));
+        assert!(pending.contains(&repo), "healthy slot must survive");
+        assert_eq!(handle.await.unwrap(), 42u8);
+    }
+
+    #[tokio::test]
+    async fn orphan_cancelled_status_join_inserts_no_result() {
+        // Locks the orphan contract the sweep relies on: an aborted
+        // task's join resolves repo-less (Err), inserts nothing into
+        // results, and must never pin a slot — slot release happens
+        // abort-side in `abort_wedged_status_inspection`.
+        use futures::stream::FuturesUnordered;
+        let repo = PathBuf::from("orphan-repo");
+        let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
+        let mut pending = HashSet::new();
+        let mut spawned_at = HashMap::new();
+        let mut results = HashMap::new();
+        let handle = tokio::spawn(async move {
+            std::future::pending::<()>().await;
+            let status: dracon_git::types::RepoStatus =
+                unreachable!("wedged task must never complete");
+            (repo, Ok::<_, anyhow::Error>(status))
+        });
+        handle.abort();
+        jobs.push(handle);
+        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        tokio::task::yield_now().await;
+        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        assert!(results.is_empty(), "cancelled join must insert no result");
+        assert!(pending.is_empty());
     }
 
     #[test]
@@ -7202,29 +7372,23 @@ pub(crate) async fn run_daemon(
             // repo immediately. Stale results (>30s old) are dropped
             // and re-probed; task failures keep the old
             // `status_failed` skip semantics.
-            // ADDED 2026-09-20 (v0.113.85): wedged-inspector sweep.
-            // A status task older than 2x the result max-age will
-            // never produce a usable result — abort it and free the
-            // slot so the spawn below re-probes next cycle. Without
-            // this, one hung `git status` pins its repo silent
-            // forever (freeport 2026-09-20: 34 min status-pending,
-            // zero failure lines). The orphaned cancelled join
-            // resolves repo-less in `collect_ready_status` (log-only).
-            if status_pending.contains(&repo) {
-                if let Some(spawned) = status_spawned_at.get(&repo).copied() {
-                    if status_inspection_wedged(spawned, now) {
-                        if let Some(handle) = status_abort_handles.remove(&repo) {
-                            handle.abort();
-                        }
-                        status_pending.remove(&repo);
-                        status_spawned_at.remove(&repo);
-                        eprintln!(
-                            "⚠️ {} status inspection wedged over {}s without result — aborted, re-probing next cycle",
-                            repo.display(),
-                            STATUS_TASK_TIMEOUT_SECS
-                        );
-                    }
-                }
+            // ADDED 2026-09-20 (v0.113.85): wedged-inspector sweep
+            // (see `abort_wedged_status_inspection`). Without this,
+            // one hung `git status` pins its repo silent forever
+            // (freeport 2026-09-20: 34 min status-pending, zero
+            // failure lines).
+            if abort_wedged_status_inspection(
+                &mut status_pending,
+                &mut status_spawned_at,
+                &mut status_abort_handles,
+                &repo,
+                now,
+            ) {
+                eprintln!(
+                    "⚠️ {} status inspection wedged over {}s without result — aborted, re-probing next cycle",
+                    repo.display(),
+                    STATUS_TASK_TIMEOUT_SECS
+                );
             }
             if !status_pending.contains(&repo) && !status_results.contains_key(&repo) {
                 let repo_for_status = repo.clone();
