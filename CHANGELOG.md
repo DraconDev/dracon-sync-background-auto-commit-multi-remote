@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.83] - 2026-09-20
+
+### Fixed
+
+- **DNS outage latched repos into manual repair + tray storm**: during the 02:20–02:28 dead-DNS window every repo x every remote failed with `Could not resolve hostname ...: Temporary failure in name resolution`, which was not transient-class — so it burned the 5-fail stuck budget on two repos (Exhausted → auto-push latched paused until manual `repair stuck-unstuck` for a self-healed cause) and paged per-repo/per-remote through the window. New `is_transient_network_outage` predicate (DNS-resolution strings; bare client timeouts still count) wired into all four transient sites: no budget burn (`record_push_attempt_error`), distinct DNS cause string, incident corroboration + shield. Fail-before: the production stuck ledger (consecutive=5, last_error 02:33, all DNS).
+- **Mirror Degraded paged through declared incidents**: the one alert site without the v0.113.73 coalescing guard — during a fleet outage it is the spam storm. Now coalesced like the stuck-retry/exhausted sites (alerts-log record still lands; only the desktop page is held).
+- **Stuck Ahead re-paged Exhausted-paused repos**: the Push Stuck page (with repair command) already stands; re-paging every 30 min for a pause the daemon imposed is noise. Skipped while `consecutive >= push_max_retries` (throttle slot unburned, so unpausing pages promptly); under-budget retries keep the early warning.
+- **`repair stuck-unstuck` rejected bare repo names**: the ledger is keyed by full path but the daemon's own message suggests the name form. Now resolves unique file_name matches (ambiguity lists candidates; unknown input preserves the old message).
+
 ## [0.113.82] - 2026-09-20
 
 ### Fixed
