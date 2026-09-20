@@ -139,6 +139,122 @@ pub(crate) fn send_sync_stat_notification(repo_path: &Path, reason: &str, detail
     });
 }
 
+/// Summary-notification state (ADDED 2026-09-20, v0.113.84): the daemon
+/// keeps at most ONE tray item, updated in place via freedesktop
+/// replaces_id and replaced with an auto-dismissing all-clear on
+/// resolve. Persisted (not in-memory) so a restart replaces the
+/// pre-restart item instead of stacking a second one. Lives under
+/// ~/.local/state (never inside a watched repo); tiny, atomic write,
+/// fails open (corrupt/missing → post fresh).
+#[derive(Serialize, Deserialize)]
+struct SummaryNotifyState {
+    id: u32,
+    title: String,
+    body: String,
+}
+
+fn summary_state_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".local/state/dracon/dracon-sync-summary-notify.json")
+}
+
+fn load_summary_state() -> Option<SummaryNotifyState> {
+    let bytes = std::fs::read(summary_state_path()).ok()?;
+    serde_json::from_slice(&bytes).ok()
+}
+
+fn save_summary_state(state: &SummaryNotifyState) {
+    let path = summary_state_path();
+    if let Some(parent) = path.parent() {
+        if std::fs::create_dir_all(parent).is_err() {
+            return;
+        }
+    }
+    let bytes = match serde_json::to_vec(state) {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+    let tmp = path.with_extension("json.tmp");
+    if std::fs::write(&tmp, &bytes).is_ok() {
+        let _ = std::fs::rename(&tmp, &path);
+    }
+}
+
+/// Pure render of the single summary item: sorted (order-insensitive),
+/// capped at 5 lines with an overflow tail. Tested below.
+pub(crate) fn render_summary_notification(issues: &[(String, String)]) -> (String, String) {
+    let mut sorted = issues.to_vec();
+    sorted.sort();
+    let n = sorted.len();
+    let title = if n == 1 {
+        "Dracon Sync: 1 issue".to_string()
+    } else {
+        format!("Dracon Sync: {n} issues")
+    };
+    let mut body = String::new();
+    for (repo, reason) in sorted.iter().take(5) {
+        body.push_str(&format!("{repo} — {reason}\n"));
+    }
+    if n > 5 {
+        body.push_str(&format!("…and {} more — see `dracon-sync repos`", n - 5));
+    }
+    (title, body.trim_end().to_string())
+}
+
+/// Sync the single daemon tray item to the current issue set.
+///
+/// - Empty set + stored item → replace the stale sticky with an
+///   auto-dismissing (15s, Normal) all-clear, then drop state.
+/// - Unchanged render → silent (no re-show: re-popping every cycle
+///   would be the spam this replaces).
+/// - Changed → show Critical with replaces_id (first show: no id).
+/// Send failures only log (headless/CI must never break the cycle).
+pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
+    let prev = load_summary_state();
+    if issues.is_empty() {
+        if let Some(st) = prev {
+            let replaces = st.id;
+            tokio::spawn(async move {
+                if let Err(e) = notify_rust::Notification::new()
+                    .summary("Dracon Sync: all clear")
+                    .body("previously reported issues resolved — converging normally")
+                    .urgency(notify_rust::Urgency::Normal)
+                    .timeout(notify_rust::Timeout::Milliseconds(15_000))
+                    .id(replaces)
+                    .show()
+                {
+                    eprintln!("⚠️ failed to send all-clear notification: {}", e);
+                }
+            });
+            let _ = std::fs::remove_file(summary_state_path());
+        }
+        return;
+    }
+    let (title, body) = render_summary_notification(issues);
+    if let Some(st) = &prev {
+        if st.title == title && st.body == body {
+            return;
+        }
+    }
+    let replaces = prev.map(|s| s.id);
+    tokio::spawn(async move {
+        let mut n = notify_rust::Notification::new();
+        n.summary(&title).body(&body).urgency(notify_rust::Urgency::Critical);
+        if let Some(id) = replaces {
+            n.id(id);
+        }
+        match n.show() {
+            Ok(handle) => save_summary_state(&SummaryNotifyState {
+                id: handle.id(),
+                title,
+                body,
+            }),
+            Err(e) => eprintln!("⚠️ failed to send summary notification: {}", e),
+        }
+    });
+}
+
 /// Send a desktop notification when a push operation fails persistently.
 /// Rate-limited to max 1 notification per repo per 5 minutes.
 #[allow(dead_code)]
