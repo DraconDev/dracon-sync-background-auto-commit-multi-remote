@@ -8451,6 +8451,26 @@ pub(crate) async fn run_daemon(
                         &notify_key,
                         Duration::from_secs(1800),
                     ) {
+                        // ADDED 2026-09-20 (v0.113.83): coalesce while a
+                        // declared incident covers this repo — same shape
+                        // as the stuck-retry/exhausted sites. During a
+                        // fleet-wide outage (dead DNS 2026-09-20: every
+                        // repo × every remote) per-mirror pages are the
+                        // spam storm; the incident record covers them and
+                        // per-repo pages resume on recovery (the throttle
+                        // slot behaves exactly like the sibling
+                        // stuck-retry/exhausted sites). Journal line
+                        // below still logs.
+                        if crate::forge::forge_incident_covers_repo(&repo.to_string_lossy()) {
+                            if debug_enabled() {
+                                eprintln!(
+                                    "🐛 {} mirror-{} alert coalesced (forge incident covers this repo)",
+                                    repo.display(),
+                                    mirror_name
+                                );
+                            }
+                            continue;
+                        }
                         // CHANGED 2026-08-09 (v0.113.50, pi-goal-loop-audit
                         // divergence incident): the pre-fix text "mirror may
                         // be unreachable" misdirected the operator to
