@@ -1205,7 +1205,27 @@ async fn main() -> Result<()> {
                 list_stuck_repos();
             }
             RepairCommands::StuckUnstuck { repo } => {
-                unstuck_repo(&repo);
+                // v0.113.83: accept a bare repo name (what the daemon's
+                // own 🛑 message suggests) as well as the full path the
+                // ledger is keyed by — resolve against stuck keys by
+                // file_name before falling back to the raw argument.
+                let keys: Vec<PathBuf> =
+                    daemon::load_stuck_push_repos().keys().cloned().collect();
+                match daemon::resolve_stuck_repo_arg(&keys, &repo) {
+                    Ok(resolved) => {
+                        unstuck_repo(&resolved);
+                    }
+                    Err(candidates) => {
+                        eprintln!(
+                            "⚠️ '{}' matches multiple stuck repos:",
+                            repo.display()
+                        );
+                        for c in candidates {
+                            eprintln!("  {}", c.display());
+                        }
+                        eprintln!("rerun with the full path.");
+                    }
+                }
             }
             RepairCommands::DualBranchList => {
                 let policy = SyncPolicy::load(&policy_path)?;
