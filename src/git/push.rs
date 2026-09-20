@@ -347,7 +347,30 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
     }
 }
 
-/// Check if an error message indicates a transient forge-side infrastructure
+/// Check if an error message indicates a transient LOCAL-NETWORK outage
+/// (DNS resolution failure), as opposed to a forge-side problem or a repo
+/// policy decision.
+///
+/// ADDED 2026-09-20 (v0.113.83): during a dead-LAN/DNS window every repo
+/// × every remote fails with `Could not resolve hostname ...: Temporary
+/// failure in name resolution`. Observed live 2026-09-20 02:20–02:28:
+/// the DNS outage was not transient-class, so it burned the stuck budget
+/// on two repos (5 consecutive → Exhausted → auto-push latched paused →
+/// manual `repair stuck-unstuck` for a condition that self-healed in
+/// minutes) and paged per-repo/per-remote through the whole window.
+/// These share the transient handling contract (no budget burn, backoff,
+/// corroborate the outage, shield while covered) even though they are
+/// client-side, not forge-side — hence a SEPARATE predicate from
+/// [`is_transient_forge_outage`]: callers must OR both. Matching stays
+/// narrow to DNS-resolution strings; bare `Connection timed out` and
+/// op-timeout kills still count (a locally wedged push must escalate).
+pub(crate) fn is_transient_network_outage(err_msg: &str) -> bool {
+    let lower = err_msg.to_lowercase();
+    // `could not resolve host` covers both `host` and `hostname` forms.
+    lower.contains("could not resolve host")
+        || lower.contains("temporary failure in name resolution")
+        || lower.contains("name or service not known")
+}
 /// outage (NOT a repo policy decision): GitLab's Gitaly storage backend
 /// unavailable, HTTP 5xx from the forge, explicit try-again-later replies.
 /// Observed live 2026-09-18: `web-games-doomtap` pack receipt failed with
