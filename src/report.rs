@@ -79,6 +79,12 @@ pub(crate) fn record_sync_alert(repo_path: &Path, reason: &str, details: &str) {
     eprintln!("🔔 sync alert: {} — {}: {}", entry.repo, reason, details);
 }
 
+/// One-shot action-required desktop page (Critical, sticky).
+///
+/// CHANGED 2026-09-20 (v0.113.84): the daemon sweep no longer calls
+/// this — its sites record log-only and feed the single cycle-end
+/// summary (`sync_summary_notification`). Remaining caller is the
+/// interactive `repair` CLI path (user-triggered, single page).
 pub(crate) fn send_sync_conflict_notification(repo_path: &Path, reason: &str, details: &str) {
     record_sync_alert(repo_path, reason, details);
 

@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.84] - 2026-09-20
+
+### Fixed
+
+- **Single summary tray item replaces per-repo desktop pages**: the daemon sweep's 7 Critical-class sites (Push Stuck, backing-off, Stuck Ahead/Behind, Mirror Degraded, Blocked, Unowned) now record log-only and feed one per-cycle issue set, synced once via `sync_summary_notification` — at most ONE daemon notification exists, updated in place by freedesktop replaces_id (persisted id+render, restart-safe), silent when unchanged, replaced with an auto-dismissing all-clear on resolve. Declared forge incidents are named first in the body. Fail-before: the 2026-09-20 DNS window stacked dozens of sticky per-repo items with no retraction mechanism.
+
 ## [0.113.83] - 2026-09-20
 
 ### Fixed
