@@ -334,7 +334,13 @@ pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
 /// to network/credentials when the true cause was a history fork).
 /// Mirrors the predicate set above; keep the arms in the same order.
 pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
-    if is_transient_forge_outage(err_msg) {
+    // ADDED 2026-09-20 (v0.113.83): DNS failures get their own cause
+    // string (local network, not forge infra) but share the transient
+    // handling — keep this arm FIRST so the message names DNS, while
+    // the predicate order below is unchanged.
+    if is_transient_network_outage(err_msg) {
+        "local network/DNS failure (name resolution; retrying with backoff, excluded from stuck budget)"
+    } else if is_transient_forge_outage(err_msg) {
         "forge-side outage (transient infra: Gitaly/5xx; retrying with backoff, excluded from stuck budget)"
     } else if is_pack_too_large(err_msg) {
         "pack exceeds forge size limit (needs history rewrite)"
@@ -371,6 +377,7 @@ pub(crate) fn is_transient_network_outage(err_msg: &str) -> bool {
         || lower.contains("temporary failure in name resolution")
         || lower.contains("name or service not known")
 }
+/// Check if an error message indicates a transient forge-side infrastructure
 /// outage (NOT a repo policy decision): GitLab's Gitaly storage backend
 /// unavailable, HTTP 5xx from the forge, explicit try-again-later replies.
 /// Observed live 2026-09-18: `web-games-doomtap` pack receipt failed with
