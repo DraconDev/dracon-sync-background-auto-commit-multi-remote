@@ -7509,6 +7509,29 @@ pub(crate) async fn run_daemon(
                                 classification_cooldowns
                                     .insert(repo.clone(), now + Duration::from_millis(500));
                             }
+                            // ADDED 2026-09-20 (v0.113.85): this arm was
+                            // fully silent — an empty verdict on a
+                            // status-dirty repo contradicts the status
+                            // and, repeated, pins the repo below the
+                            // dispatch gate with zero journal trace
+                            // (prime suspect in the 2026-09-20 freeport
+                            // 34-min stall: no failures, no watchdog
+                            // trips, just perpetual re-probe). Throttled:
+                            // a genuinely-racing worktree re-arms every
+                            // ~500ms, so unthrottled this would spam.
+                            if notify_throttled(
+                                &mut hold_warn_cooldowns,
+                                &format!("emptydrop-{}", repo.display()),
+                                Duration::from_secs(HOLD_WARN_COOLDOWN_SECS),
+                            ) {
+                                eprintln!(
+                                    "⚠️ {} classification returned empty on status-dirty worktree (modified={} staged={} untracked={}) — dropped, re-probing",
+                                    repo.display(),
+                                    status.modified_files,
+                                    status.staged_files,
+                                    status.untracked_files
+                                );
+                            }
                         }
                         Ok(entries) => {
                             // ADDED 2026-09-19 (v0.113.76, stale-result
@@ -7640,7 +7663,14 @@ pub(crate) async fn run_daemon(
                             );
                         }
                         (repo_for_job, outcome)
-                    }));
+                    });
+                    // v0.113.85: retain the abort handle so the
+                    // watchdog above kills (not just forgets) a hung
+                    // job — otherwise every re-probe piles another
+                    // wedged `git diff` on top while the cause holds.
+                    classification_abort_handles
+                        .insert(repo.clone(), classification_handle.abort_handle());
+                    classification_jobs.push(classification_handle);
                 }
             }
             // Provisional dirtiness from the STATUS transition: the quiet
@@ -7722,6 +7752,10 @@ pub(crate) async fn run_daemon(
                     dispatch_holds
                         .entry(repo.clone())
                         .or_insert_with(|| (hold_reason.to_string(), now));
+                    // v0.113.85: warn past 60s (throttled) — the hold
+                    // alone is debug-gated, and a repo can sit here
+                    // silent until the 600s Starved page.
+                    warn_aging_hold(&dispatch_holds, &mut hold_warn_cooldowns, &repo, now);
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: skip repo={} reason={}",
@@ -7918,7 +7952,8 @@ pub(crate) async fn run_daemon(
             };
             // Track when the repo first became dirty in this activity window.
             // This persists across fingerprint changes so that actively-edited
-            // repos still get synced after a maximum delay (30s).
+            // repos still get synced after a maximum delay (5s dirty cap in
+            // `dispatch_due` — quiet 2s is the fast path, the cap is absolute).
             if effective_dirty && entry.dirty_since.is_none() {
                 entry.dirty_since = Some(now);
             } else if !effective_dirty {
@@ -8105,6 +8140,10 @@ pub(crate) async fn run_daemon(
                 dispatch_holds
                     .entry(repo.clone())
                     .or_insert_with(|| ("reserve-race".to_string(), now));
+                // v0.113.85: a LEAKED in-flight owner fails this gate
+                // forever with only a debug line — warn past 60s so a
+                // leaked reservation is journal-visible.
+                warn_aging_hold(&dispatch_holds, &mut hold_warn_cooldowns, &repo, now);
                 // ADDED 2026-09-18 (v0.113.65): skip-reason logging. A
                 // lost reservation race here means a concurrent dispatch
                 // won the slot; the repo stays scheduled, not dropped.
