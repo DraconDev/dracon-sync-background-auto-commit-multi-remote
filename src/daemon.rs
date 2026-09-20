@@ -4661,7 +4661,13 @@ pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
     // on its own. Record the outage for visibility + backoff anchoring
     // (last_error_at drives the 300s retry throttle) without incrementing
     // consecutive_failures, so auto-push pauses never trigger on infra.
-    if crate::git::is_transient_forge_outage(&msg) {
+    // EXTENDED 2026-09-20 (v0.113.83): same for transient local-network
+    // (DNS) outages — a dead LAN must never latch repos into manual
+    // repair (observed: 02:20–02:28 DNS outage burned 5-fail budgets on
+    // two repos → latched pause + tray storm for a self-healed cause).
+    if crate::git::is_transient_forge_outage(&msg)
+        || crate::git::is_transient_network_outage(&msg)
+    {
         record_push_transient_outage(repo, &msg);
         return;
     }

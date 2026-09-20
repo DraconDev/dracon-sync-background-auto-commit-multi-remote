@@ -2020,7 +2020,12 @@ fn observe_round_transient_hits(
         if info.last_attempt_unix < round_start_unix {
             continue;
         }
-        if !crate::git::is_transient_forge_outage(&info.last_error) {
+        // v0.113.83: DNS outages corroborate like forge outages (a dead
+        // LAN fails every repo × every remote — exactly the incident
+        // shape this detector exists for).
+        if !crate::git::is_transient_forge_outage(&info.last_error)
+            && !crate::git::is_transient_network_outage(&info.last_error)
+        {
             continue;
         }
         let Some(host) = host_of(name) else {
@@ -2091,7 +2096,10 @@ fn incident_shield_hosts(
         {
             continue;
         }
-        if crate::git::is_transient_forge_outage(&info.last_error) {
+        // v0.113.83: DNS outages shield like forge outages.
+        if crate::git::is_transient_forge_outage(&info.last_error)
+            || crate::git::is_transient_network_outage(&info.last_error)
+        {
             match host_of(name) {
                 Some(h) => transient_hosts.push(h),
                 None => veto = true,
