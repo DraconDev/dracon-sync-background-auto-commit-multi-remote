@@ -664,6 +664,41 @@ mod tests {
     }
 
     #[test]
+    fn test_transient_network_outage_dns_resolution() {
+        // Live 2026-09-20 02:21: dead DNS failed every repo x every
+        // remote with ssh `Could not resolve hostname ...: Temporary
+        // failure in name resolution`. Pre-fix this fell through to
+        // transport/auth, burned the 5-fail stuck budget on two repos
+        // (latched pause + tray storm for a self-healed cause).
+        // Fail-before: all three asserts failed (all returned false /
+        // transport-auth) before the v0.113.83 predicate existed.
+        let ssh_dns = "git push-to-github failed in /home/dracon/.dracon with status exit status: 128: ssh: Could not resolve hostname github.com: Temporary failure in name resolution";
+        assert!(is_transient_network_outage(ssh_dns));
+        assert!(
+            !is_transient_forge_outage(ssh_dns),
+            "forge predicate stays precise; DNS is network-class"
+        );
+        assert!(
+            classify_push_failure(ssh_dns).contains("DNS"),
+            "got: {}",
+            classify_push_failure(ssh_dns)
+        );
+        // Alternate resolver wordings.
+        assert!(is_transient_network_outage(
+            "fatal: unable to access 'https://gitlab.com/x.git/': Could not resolve host: gitlab.com"
+        ));
+        assert!(is_transient_network_outage(
+            "ssh: Could not resolve hostname gitlab.com: Name or service not known"
+        ));
+        // Deliberate exclusions hold: bare client timeouts still count
+        // (local wedge must escalate), policy rejections stay permanent.
+        assert!(!is_transient_network_outage("Connection timed out"));
+        assert!(!is_transient_network_outage(
+            "! [remote rejected] HEAD -> main (pre-receive hook declined)"
+        ));
+    }
+
+    #[test]
     fn test_transient_forge_outage_does_not_swallow_policy() {
         // A real rule decision must stay permanent: retrying it forever
         // instead of pausing for the operator would be the wrong call.
