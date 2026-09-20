@@ -8613,7 +8613,6 @@ pub(crate) async fn run_daemon(
             // ownership guard, or another needs-human guard) for
             // >30 min. The darklord M10 block sat for ~a day with
             // zero desktop notifications.
-            // Repo continuously Blocked (guards / manual intervention).
             if sustained_threshold_met(
                 entry.blocked_since,
                 notification_now,
@@ -8637,17 +8636,6 @@ pub(crate) async fn run_daemon(
                         "blocked by a guard or needs manual intervention (merge/rebase in progress, or ownership/identity check) — run: dracon-sync repos -s",
                     );
                 }
-                // v0.113.84: condition-held → summary (ungated).
-                if sustained_threshold_met(
-                    entry.blocked_since,
-                    notification_now,
-                    BLOCKED_NOTIFY_THRESHOLD,
-                ) {
-                    summary_issues.push((
-                        repo.display().to_string(),
-                        "Sync Blocked (>30 min)".to_string(),
-                    ));
-                }
             }
 
             // ADDED 2026-07-22 (v0.112.37): repo continuously
@@ -8659,6 +8647,12 @@ pub(crate) async fn run_daemon(
                 notification_now,
                 UNOWNED_NOTIFY_THRESHOLD,
             ) {
+                // v0.113.84: condition-held → summary (ungated by the
+                // record throttle below).
+                summary_issues.push((
+                    repo.display().to_string(),
+                    "Repo Unowned (>15 min)".to_string(),
+                ));
                 let notify_key = format!("unowned-{}", repo.display());
                 if notify_throttled(
                     &mut remote_notify_cooldowns,
@@ -8670,17 +8664,6 @@ pub(crate) async fn run_daemon(
                         "Repo Unowned (>15 min)",
                         "daemon is skipping this repo (untrusted identity) — run: dracon-sync ownership --explain",
                     );
-                }
-                // v0.113.84: condition-held → summary (ungated).
-                if sustained_threshold_met(
-                    entry.unowned_since,
-                    notification_now,
-                    UNOWNED_NOTIFY_THRESHOLD,
-                ) {
-                    summary_issues.push((
-                        repo.display().to_string(),
-                        "Repo Unowned (>15 min)".to_string(),
-                    ));
                 }
             }
         }
