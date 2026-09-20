@@ -8355,11 +8355,14 @@ pub(crate) async fn run_daemon(
                             repo.display()
                         );
                     }
-                } else if notify_throttled(
-                    &mut remote_notify_cooldowns,
-                    &notify_key,
-                    Duration::from_secs(1800),
-                ) {
+                } else if {
+                    let notify_key = format!("stuck-ahead-{}", repo.display());
+                    notify_throttled(
+                        &mut remote_notify_cooldowns,
+                        &notify_key,
+                        Duration::from_secs(1800),
+                    )
+                } {
                     crate::report::send_sync_conflict_notification(
                         repo,
                         "Stuck Ahead (Unpushed)",
