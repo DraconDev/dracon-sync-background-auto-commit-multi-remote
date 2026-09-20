@@ -6457,6 +6457,13 @@ pub(crate) async fn run_daemon(
                     .collect::<Vec<_>>()
             );
         }
+        // ADDED 2026-09-20 (v0.113.84): per-cycle summary-issue set.
+        // Every alert site below pushes (repo, reason) here whenever its
+        // CONDITION holds — ungated by throttle/coalesce (those gate only
+        // the alerts-log record). The set is re-derived each cycle and
+        // synced once at cycle end, so the tray shows live conditions
+        // with no flap and the content-hash gate suppresses re-shows.
+        let mut summary_issues: Vec<(String, String)> = Vec::new();
         for repo in repos {
             // Clone policy at each repo iteration for a consistent snapshot.
             // If the policy is reloaded mid-cycle (SIGHUP), this repo still
@@ -6964,7 +6971,7 @@ pub(crate) async fn run_daemon(
                                     );
                                 }
                             } else {
-                                crate::report::send_sync_conflict_notification(
+                                crate::report::record_sync_alert(
                                     &repo,
                                     "Push Stuck (budget exhausted)",
                                     &format!(
@@ -6972,6 +6979,13 @@ pub(crate) async fn run_daemon(
                                         info.consecutive_failures, cause
                                     ),
                                 );
+                                // v0.113.84: desktop moved to the cycle-end
+                                // summary; the log record above preserves
+                                // the paper trail.
+                                summary_issues.push((
+                                    repo.display().to_string(),
+                                    "Push Stuck (budget exhausted)".to_string(),
+                                ));
                             }
                         }
                         // CHANGED 2026-09-18 (v0.113.69,
@@ -7942,12 +7956,18 @@ pub(crate) async fn run_daemon(
                         &notify_key,
                         Duration::from_secs(1800),
                     ) {
-                        crate::report::send_sync_conflict_notification(
+                        crate::report::record_sync_alert(
                             &repo,
                             "Sync Failures (backing off)",
                             "5 consecutive sync failures; probing every 15 min",
                         );
                     }
+                    // v0.113.84: condition-held → summary (ungated; the
+                    // record above keeps its throttle).
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        "Sync Failures (backing off)".to_string(),
+                    );
                 } else if debug_enabled() {
                     eprintln!(
                         "🔄 {} re-probing after max-failures backoff",
@@ -8423,12 +8443,18 @@ pub(crate) async fn run_daemon(
                     }
                 } else {
                     let notify_key = format!("stuck-ahead-{}", repo.display());
+                    // v0.113.84: condition-held → summary (ungated by the
+                    // pause-suppress and the record throttle alike).
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        "Stuck Ahead (Unpushed)".to_string(),
+                    ));
                     if notify_throttled(
                         &mut remote_notify_cooldowns,
                         &notify_key,
                         Duration::from_secs(1800),
                     ) {
-                        crate::report::send_sync_conflict_notification(
+                        crate::report::record_sync_alert(
                             repo,
                             "Stuck Ahead (Unpushed)",
                             "commits not reaching origin for >10 min — push may be failing",
@@ -8446,11 +8472,19 @@ pub(crate) async fn run_daemon(
                     &notify_key,
                     Duration::from_secs(1800),
                 ) {
-                    crate::report::send_sync_conflict_notification(
+                    crate::report::record_sync_alert(
                         repo,
                         "Stuck Behind (Unpulled)",
                         "upstream has unmerged changes for >30 min — pull may be failing",
                     );
+                }
+                // v0.113.84: condition-held → summary (ungated).
+                if sustained_threshold_met(entry.behind_since, notification_now, STUCK_BEHIND_THRESHOLD)
+                {
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        "Stuck Behind (Unpulled)".to_string(),
+                    ));
                 }
             }
 
@@ -8511,6 +8545,14 @@ pub(crate) async fn run_daemon(
             // Mirror degraded (one mirror consistently failing)
             for (mirror_name, fail_info) in &entry.mirror_consecutive_fails {
                 if fail_info.consecutive >= MIRROR_DEGRADED_THRESHOLD {
+                    // v0.113.84: condition-held → summary (ungated by
+                    // throttle and incident-coalescing alike — the
+                    // summary names live conditions; coalescing now only
+                    // gates which RECORD wording lands).
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        format!("Mirror Degraded: {}", mirror_name),
+                    ));
                     let notify_key = format!("mirror-{}-{}", repo.display(), mirror_name);
                     if notify_throttled(
                         &mut remote_notify_cooldowns,
@@ -8554,7 +8596,9 @@ pub(crate) async fn run_daemon(
                         // history fork (non-fast-forward rejection). Name
                         // the classified cause instead.
                         let cause = crate::git::classify_push_failure(&fail_info.last_error);
-                        crate::report::send_sync_conflict_notification(
+                        // v0.113.84: desktop moved to the cycle-end
+                        // summary; record keeps the paper trail.
+                        crate::report::record_sync_alert(
                             repo,
                             &format!("Mirror Degraded: {}", mirror_name),
                             &format!(
@@ -8582,11 +8626,22 @@ pub(crate) async fn run_daemon(
                     &notify_key,
                     Duration::from_secs(1800),
                 ) {
-                    crate::report::send_sync_conflict_notification(
+                    crate::report::record_sync_alert(
                         repo,
                         "Sync Blocked (>30 min)",
                         "blocked by a guard or needs manual intervention (merge/rebase in progress, or ownership/identity check) — run: dracon-sync repos -s",
                     );
+                }
+                // v0.113.84: condition-held → summary (ungated).
+                if sustained_threshold_met(
+                    entry.blocked_since,
+                    notification_now,
+                    BLOCKED_NOTIFY_THRESHOLD,
+                ) {
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        "Sync Blocked (>30 min)".to_string(),
+                    ));
                 }
             }
 
@@ -8605,11 +8660,22 @@ pub(crate) async fn run_daemon(
                     &notify_key,
                     Duration::from_secs(1800),
                 ) {
-                    crate::report::send_sync_conflict_notification(
+                    crate::report::record_sync_alert(
                         repo,
                         "Repo Unowned (>15 min)",
                         "daemon is skipping this repo (untrusted identity) — run: dracon-sync ownership --explain",
                     );
+                }
+                // v0.113.84: condition-held → summary (ungated).
+                if sustained_threshold_met(
+                    entry.unowned_since,
+                    notification_now,
+                    UNOWNED_NOTIFY_THRESHOLD,
+                ) {
+                    summary_issues.push((
+                        repo.display().to_string(),
+                        "Repo Unowned (>15 min)".to_string(),
+                    ));
                 }
             }
         }
@@ -8618,6 +8684,24 @@ pub(crate) async fn run_daemon(
         // Tiny JSON, same once-per-cycle cadence as the in-flight
         // file — negligible cost.
         save_notify_state(&remote_notify_cooldowns, &remote_notify_streaks);
+
+        // ADDED 2026-09-20 (v0.113.84): single tray item, re-derived
+        // every cycle. Replaces the per-repo desktop pages above (now
+        // log-only): at most one daemon notification exists, updated in
+        // place on change, auto-cleared with an all-clear on resolve.
+        // Declared forge incidents are named first — during an outage
+        // the summary says WHAT is happening, not just which repos.
+        {
+            let mut summary = Vec::with_capacity(summary_issues.len() + 2);
+            for host in crate::forge::forge_incident_hosts() {
+                summary.push((
+                    "fleet".to_string(),
+                    format!("outage: {} (auto-retrying)", host),
+                ));
+            }
+            summary.extend(summary_issues.drain(..));
+            crate::report::sync_summary_notification(&summary);
+        }
 
         // ADDED 2026-07-30 (v0.113.25): periodic visibility sweep.
         // Spawned (non-blocking) once per sync_visibility_interval_hours;
