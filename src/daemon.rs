@@ -3230,16 +3230,15 @@ mod tests {
         // results, and must never pin a slot — slot release happens
         // abort-side in `abort_wedged_status_inspection`.
         use futures::stream::FuturesUnordered;
-        let repo = PathBuf::from("orphan-repo");
         let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
         let mut pending = HashSet::new();
         let mut spawned_at = HashMap::new();
         let mut results = HashMap::new();
-        let handle = tokio::spawn(async move {
+        let handle = tokio::spawn(async {
             std::future::pending::<()>().await;
             let status: dracon_git::types::RepoStatus =
                 unreachable!("wedged task must never complete");
-            (repo, Ok::<_, anyhow::Error>(status))
+            (PathBuf::from("orphan-repo"), Ok::<_, anyhow::Error>(status))
         });
         handle.abort();
         jobs.push(handle);
@@ -9004,7 +9003,7 @@ pub(crate) async fn run_daemon(
                     format!("outage: {} (auto-retrying)", host),
                 ));
             }
-            summary.extend(summary_issues.drain(..));
+            summary.append(&mut summary_issues);
             crate::report::sync_summary_notification(&summary);
         }
 
