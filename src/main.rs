@@ -38,6 +38,109 @@ fn pause_marker_path(home: &Path) -> PathBuf {
     home.join(".dracon").join("dracon-sync.freeze")
 }
 
+/// Body of the freeze marker written by `dracon-sync pause`.
+///
+/// v0.113.88: records WHO paused, not just WHEN. Two unexplained pauses
+/// landed on 2026-09-27 (15:14:59 and 20:10:47) and the marker said
+/// only "paused at <epoch>": no surviving process, no journal line, and
+/// nothing in shell history — because a `pause` issued from an agent's
+/// bash tool appears in none of those three. The parent process's
+/// comm/argv, our tty and cwd make the caller identifiable from the
+/// marker file alone, which is the only artifact guaranteed to survive.
+///
+/// Format contract: line 1 stays byte-compatible (`paused at <epoch>`).
+/// Everything after it is additive provenance; the daemon and the
+/// watchdog only ever check existence and mtime, so no reader breaks.
+/// Provenance is best-effort: every field degrades to "omitted" rather
+/// than failing the pause.
+fn pause_marker_contents() -> String {
+    let mut out = format!("paused at {}\n", timestamp_secs());
+    let ppid = parent_pid();
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(ppid) = ppid {
+        // The caller is the PARENT, not this short-lived process: by the
+        // time anyone investigates, `dracon-sync pause` itself is gone.
+        if let Some(comm) = read_proc_field(ppid, "comm") {
+            let argv = read_proc_cmdline(ppid).unwrap_or_default();
+            parts.push(if argv.is_empty() {
+                format!("{comm} (pid {ppid})")
+            } else {
+                format!("{comm} (pid {ppid}): {argv}")
+            });
+        } else {
+            parts.push(format!("pid {ppid}"));
+        }
+    }
+    if let Some(tty) = tty_name() {
+        parts.push(format!("tty {tty}"));
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        parts.push(format!("cwd {}", cwd.display()));
+    }
+    if !parts.is_empty() {
+        out.push_str(&format!("paused by {}\n", parts.join(" · ")));
+    }
+    out
+}
+
+/// This process's parent pid, read from `/proc/self/stat`. Returns `None`
+/// where procfs is unavailable (non-Linux) rather than guessing.
+fn parent_pid() -> Option<u32> {
+    let stat = std::fs::read_to_string("/proc/self/stat").ok()?;
+    // `comm` is parenthesized and may itself contain spaces/parens, so
+    // split on the LAST ')' — everything after it is space-separated and
+    // field 2 of that tail is ppid.
+    let tail = &stat[stat.rfind(')')? + 1..];
+    tail.split_whitespace().nth(1)?.parse().ok()
+}
+
+/// One small text file under `/proc/<pid>/` (`comm`, `cmdline`, ...).
+fn read_proc_field(pid: u32, field: &str) -> Option<String> {
+    let raw = std::fs::read_to_string(format!("/proc/{pid}/{field}")).ok()?;
+    Some(raw.trim().to_string())
+}
+
+/// `/proc/<pid>/cmdline` is NUL-separated; render it space-separated and
+/// cap the length so a huge argv cannot bloat the marker.
+fn read_proc_cmdline(pid: u32) -> Option<String> {
+    let raw = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
+    let joined = raw
+        .split(|b| *b == 0)
+        .filter(|s| !s.is_empty())
+        .map(|s| String::from_utf8_lossy(s).to_string())
+        .collect::<Vec<_>>()
+        .join(" ");
+    if joined.is_empty() {
+        return None;
+    }
+    const MAX: usize = 200;
+    Some(if joined.chars().count() > MAX {
+        let head: String = joined.chars().take(MAX).collect();
+        format!("{head}…")
+    } else {
+        joined
+    })
+}
+
+/// The controlling terminal, e.g. `pts/7`. `ps` is asked rather than
+/// decoding `tty_nr` from `/proc/self/stat` — this runs once, on a
+/// human-initiated pause, so clarity beats avoiding a subprocess.
+fn tty_name() -> Option<String> {
+    let out = std::process::Command::new("ps")
+        .args(["-o", "tty=", "-p", &std::process::id().to_string()])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let name = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if name.is_empty() || name == "?" {
+        None
+    } else {
+        Some(name)
+    }
+}
+
 /// Run a command with sync paused; ALWAYS resumes afterwards (even on
 /// failure), unless sync was already paused before this invocation — in
 /// that case the pre-existing freeze state is left untouched. Returns the
@@ -914,7 +1017,7 @@ async fn main() -> Result<()> {
         Command::Pause => {
             if let Some(home) = dirs::home_dir() {
                 let marker = home.join(".dracon").join("dracon-sync.freeze");
-                std::fs::write(&marker, format!("paused at {}\n", timestamp_secs()))?;
+                std::fs::write(&marker, pause_marker_contents())?;
                 println!("⏸️  Sync paused (freeze marker: {})", marker.display());
             } else {
                 anyhow::bail!("cannot determine home directory");
