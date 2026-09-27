@@ -126,6 +126,35 @@ fn collect_ready_classifications(
     }
 }
 
+/// Global cap on in-flight status inspections (v0.113.89).
+///
+/// The per-repo gate below ("at most one status task per repo") is NOT a
+/// global bound: on a fully dirty fleet the daemon opened ~34 libgit2
+/// repository handles and index/worktree walks simultaneously, every
+/// pulse. Each one is individually trivial — measured by hand on
+/// 2026-09-27, `git status` on dracon-platform took 0.885s and on one
+/// game submodule 0.018s — but 34 concurrent page-cache-hungry walks
+/// on a loaded host starve each other. The signature was unmistakable:
+/// the ENTIRE dracon-platform family (11 submodules + the monorepo)
+/// logged `status inspection wedged over 60s` at the *same second*,
+/// which is a stampede, not 11 independent hangs. Concurrency, not a
+/// per-repo fault.
+///
+/// 4 keeps the IO queue short while still overlapping the cheap work
+/// with the monorepo's expensive walk. This is a bound on how much work
+/// is in flight — NOT a timeout: raising the 60s task timeout instead
+/// would only make the daemon wait longer for tasks that never get
+/// CPU, and would delay the sweep that frees genuinely wedged slots.
+const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
+
+/// Global cap on in-flight classification jobs (v0.113.89).
+///
+/// Same stampede, worse per job: each classification is a filter-aware
+/// `git diff` that runs warden's clean filter (one `age` decrypt
+/// subprocess per changed file) plus an untracked listing. Lower cap
+/// than status because per-job cost is an order of magnitude higher.
+const MAX_INFLIGHT_CLASSIFICATION_JOBS: usize = 2;
+
 /// Bound for a STATUS task without a result (ADDED 2026-09-20,
 /// v0.113.85): at most one status task runs per repo and the boundary
 /// only collects ready results, so a wedged `git status` pins its repo
@@ -3110,6 +3139,35 @@ mod tests {
         assert_eq!(get_stuck_push_info(&repo).unwrap().consecutive_failures, 1);
 
         let _ = crate::daemon::unstuck_repo(&repo);
+    }
+
+    /// v0.113.89: the per-repo gates are not global bounds. On 2026-09-27
+    /// the whole dracon-platform family logged `status inspection wedged
+    /// over 60s` at the same second while a hand-run `git status` on the
+    /// same repos took 0.885s / 0.018s — a concurrency stampede, not 11
+    /// independent hangs. These caps bound work in flight; they are NOT
+    /// timeouts.
+    #[test]
+    fn v011389_inflight_caps_are_pinned_and_ordered() {
+        // Values are pinned deliberately (a constant assertion is what
+        // this replaces): a reviewer changing a cap should have to come
+        // here and say why. Invariants, not tuning knobs.
+        assert_eq!(
+            crate::daemon::MAX_INFLIGHT_STATUS_TASKS,
+            4,
+            "cheap libgit2 status walks: 4 overlaps the monorepo's expensive \
+             walk without stampeding a 34-repo fleet"
+        );
+        assert_eq!(
+            crate::daemon::MAX_INFLIGHT_CLASSIFICATION_JOBS,
+            2,
+            "filter-aware diff + one warden decrypt per changed file is ~10x \
+             a status walk, so it gets half the slots"
+        );
+        // The expensive pipeline gets fewer slots than the cheap one —
+        // that relationship is carried by the two pinned values above, so
+        // it needs no assertion of its own (and clippy rejects one on
+        // constants anyway).
     }
 
     #[test]
@@ -7413,7 +7471,13 @@ pub(crate) async fn run_daemon(
                     STATUS_TASK_TIMEOUT_SECS
                 );
             }
-            if !status_pending.contains(&repo) && !status_results.contains_key(&repo) {
+            if !status_pending.contains(&repo)
+                && !status_results.contains_key(&repo)
+                // v0.113.89: global in-flight cap (see
+                // MAX_INFLIGHT_STATUS_TASKS). Per-repo dedup alone let the
+                // whole dirty fleet walk its index at once.
+                && status_pending.len() < MAX_INFLIGHT_STATUS_TASKS
+            {
                 let repo_for_status = repo.clone();
                 status_pending.insert(repo.clone());
                 status_spawned_at.insert(repo.clone(), now);
@@ -7822,6 +7886,10 @@ pub(crate) async fn run_daemon(
                 }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
+                    // v0.113.89: global in-flight cap (see
+                    // MAX_INFLIGHT_CLASSIFICATION_JOBS) — each of these
+                    // jobs is a filter-aware diff plus warden decrypts.
+                    && classification_pending.len() < MAX_INFLIGHT_CLASSIFICATION_JOBS
                     // FIXED 2026-09-27 (audit rework round 4, F84):
                     // `!x.is_some_and(..)` is `x.is_none_or(..)`; clippy
                     // flags the double negative as `nonminimal_bool` on the
