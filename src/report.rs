@@ -911,6 +911,42 @@ pub(crate) fn measure_modules_size_bytes(repo: &std::path::Path) -> u64 {
     du_bytes(&modules).unwrap_or(0)
 }
 
+/// Cheap own-size probe for the INTERACTIVE (`!deep`) report path:
+/// `git count-objects -v` only — no `du -sb` fallback, no submodule
+/// walk, no `pack-objects`, no history probe.
+///
+/// v0.113.55 (2026-09-01) made the default `repos` report skip the
+/// whole cold-path compute, which silently killed the SIZE column:
+/// the non-deep branch returned `None` for every repo and — because
+/// it never wrote a cache entry — left `repos-size-cache.json` at `{}`
+/// forever, so no later run could recover either. Every row rendered
+/// `?` until an explicit `repos --deep`.
+///
+/// The expensive part of the cold path is NOT the size measure, it is
+/// `github_pack_too_large` (multi-GiB `pack-objects`) and
+/// `probe_history` (`rev-list --objects` + `cat-file --batch-check`).
+/// Measured 2026-09-27 across the live 40-repo fleet,
+/// `count-objects -v` totals 1.3s sequentially (~30ms/repo) and the
+/// report already runs these on the blocking pool with 16-way
+/// concurrency, so restoring the SIZE cell costs ~0.2s of wall time —
+/// not the 36-50s cold render v0.113.55 was fixing.
+pub(crate) fn measure_git_size_bytes_fast(repo: &std::path::Path) -> Option<u64> {
+    let git_dir = resolve_git_dir(repo)?;
+    measure_git_size_via_count_objects(&git_dir)
+}
+
+/// Does this repo carry submodule gitdirs (`<gitdir>/modules/`)?
+///
+/// Used by the interactive report path to decide whether the SIZE
+/// cell's `+N submodule gitdirs` suffix is genuinely zero or merely
+/// unmeasured. The `du -sb` walk that produces those bytes stays
+/// behind `repos --deep`; a bare `is_dir()` stat does not.
+fn has_module_gitdirs(repo: &std::path::Path) -> bool {
+    resolve_git_dir(repo)
+        .map(|git_dir| git_dir.join("modules").is_dir())
+        .unwrap_or(false)
+}
+
 /// `du -sb` on a single path, parsed to bytes. Shared by the
 /// git-size fallback and its `modules/` subtraction.
 fn du_bytes(path: &std::path::Path) -> Option<u64> {
@@ -1438,7 +1474,14 @@ pub(crate) struct RepoReportRow {
     /// ADDED 2026-07-30 (v0.113.20): combined size of submodule
     /// gitdirs (`<gitdir>/modules/`) for superprojects; 0 otherwise.
     /// Rendered in the SIZE cell as `own+mods` when non-zero.
-    git_modules_bytes: u64,
+    ///
+    /// CHANGED 2026-09-27 (v0.113.86): `None` means "this repo HAS
+    /// submodule gitdirs but their size was not measured" — the
+    /// interactive report path skips the `du -sb` module walk, and
+    /// dropping the suffix silently would render a superproject's
+    /// size as if it had no submodules at all. `Some(0)` still means
+    /// "measured: no module gitdirs".
+    git_modules_bytes: Option<u64>,
     /// Per-forge token health summary. Shows whether each forge's token
     /// file is present on disk, so the operator can spot auth-side
     /// issues BEFORE they cause push failures. Always present (not
@@ -3796,7 +3839,7 @@ pub(crate) async fn run_repos_report(
             let c = cached_entry.expect("fresh cache entry must be present");
             (
                 Some(c.git_size_bytes),
-                c.git_modules_bytes,
+                Some(c.git_modules_bytes),
                 (c.pack_too_large, c.pack_pushable_bytes),
                 c.missing_objects.unwrap_or(0),
                 c.history_probe_failed.unwrap_or(false),
@@ -3809,17 +3852,69 @@ pub(crate) async fn run_repos_report(
             // path. Probe values are intentionally not persisted from this
             // fallback, so a deep run still knows it needs to refresh stale
             // data.
+            //
+            // CHANGED 2026-09-27 (v0.113.86): v0.113.55 deferred the
+            // WHOLE cold-path compute, not just the expensive probes,
+            // and the SIZE column has read `?` for every repo ever
+            // since — the `None` arm returned no size, and because this
+            // path never wrote a cache entry, `repos-size-cache.json`
+            // stayed `{}` so no subsequent run could recover either.
+            // Now only the genuinely expensive halves are deferred:
+            //
+            //   - own size: `git count-objects -v`, ~30ms/repo
+            //     (~1.3s for the live 40-repo fleet, run 16-way on the
+            //     blocking pool → ~0.2s wall). MEASURED.
+            //   - submodule gitdirs: `du -sb` over `<gitdir>/modules`
+            //     (1.2s for dracon-platform alone). DEFERRED, reported
+            //     as `own+?` when the repo has them.
+            //   - `github_pack_too_large` + `probe_history`: DEFERRED.
+            //
+            // The last-known probe values are still served from the
+            // cache so an oversized pack or broken history keeps its
+            // warning; only the size is re-measured live.
             report_checks_deferred = true;
-            match cached_entry {
-                Some(c) => (
-                    Some(c.git_size_bytes),
-                    c.git_modules_bytes,
+            let last_known = cached_entry.map(|c| {
+                (
                     (c.pack_too_large, c.pack_pushable_bytes),
                     c.missing_objects.unwrap_or(0),
                     c.history_probe_failed.unwrap_or(false),
-                ),
-                None => (None, 0, (false, 0), 0, false),
-            }
+                    c.git_modules_bytes,
+                )
+            });
+            let repo_for_size = repo.clone();
+            // Blocking pool: `count-objects` is a synchronous subprocess
+            // with no await point, so inlining it would pin a tokio
+            // worker for its whole duration (the v0.113.44 stall class).
+            let (own_bytes, has_module_gitdirs) = tokio::task::spawn_blocking(move || {
+                (
+                    measure_git_size_bytes_fast(&repo_for_size),
+                    has_module_gitdirs(&repo_for_size),
+                )
+            })
+            .await
+            .unwrap_or((None, false));
+            let (
+                (pack_too_large, pack_pushable_bytes),
+                missing_objects,
+                history_probe_failed,
+                last_known_modules,
+            ) = last_known.unwrap_or(((false, 0), 0, false, 0));
+            let git_modules_bytes = match last_known_modules {
+                // A previous `--deep` already measured them; reuse it
+                // (free, and the module walk is the deferred part).
+                m if m > 0 => Some(m),
+                // Repo has module gitdirs, size unknown until `--deep`.
+                _ if has_module_gitdirs => None,
+                // Measured (implicitly): no module gitdirs at all.
+                _ => Some(0),
+            };
+            (
+                own_bytes,
+                git_modules_bytes,
+                (pack_too_large, pack_pushable_bytes),
+                missing_objects,
+                history_probe_failed,
+            )
         } else {
             // CHANGED 2026-07-24 (v0.112.40): the TTL is the primary
             // freshness check. If the entry was written within
@@ -3864,7 +3959,7 @@ pub(crate) async fn run_repos_report(
                     },
                 ))
             };
-            (size, modules, pack, history.missing_objects, history.failed)
+            (size, Some(modules), pack, history.missing_objects, history.failed)
         };
         let history_broken = history_probe_failed || missing_objects > 0;
 
@@ -5974,17 +6069,18 @@ fn size_compact(bytes: u64) -> String {
 /// the combined number doubles as the would-this-get-stuck-on-a-
 /// wholesale-push gauge). Color always follows the OWN pack (that
 /// is what actually pushes per-push); the suffix is informational.
-fn size_cell_text(own: Option<u64>, modules: u64, pack_too_large: bool) -> (String, Color) {
+fn size_cell_text(own: Option<u64>, modules: Option<u64>, pack_too_large: bool) -> (String, Color) {
     let (label, color) = size_label(own, pack_too_large);
-    if modules == 0 {
-        return (label, color);
-    }
-    match own {
-        Some(b) => (
-            format!("{}+{}", size_compact(b), size_compact(modules)),
-            color,
-        ),
-        None => (label, color),
+    match (own, modules) {
+        // v0.113.86: `own+?` = this repo has submodule gitdirs whose
+        // size only `repos --deep` measures. Uses the compact own-size
+        // form so the marker fits the same 9-content-cell budget as
+        // the measured `own+mods` form (worst case `1024G+?` = 6).
+        (Some(b), None) => (format!("{}+?", size_compact(b)), color),
+        (Some(b), Some(m)) if m > 0 => {
+            (format!("{}+{}", size_compact(b), size_compact(m)), color)
+        }
+        _ => (label, color),
     }
 }
 
@@ -6045,7 +6141,7 @@ impl crate::report::RepoReportRow {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: crate::report::TokenHealthSummary::default(),
             concern: false,
             warn: false,
@@ -6430,6 +6526,10 @@ fn print_repos_rich_table(
     // v0.113.20: 10 → 11 so the superproject `own+mods` form
     // (`12G+7.7G` = 8 content) fits with headroom for MiB-scale
     // combos (`446M+713M` = 9).
+    // v0.113.86: the unmeasured-modules form `own+?` reuses the
+    // COMPACT own-size form (`12G+?` = 5, worst case `1024G+?` = 6),
+    // so it stays inside the same 9-content-cell budget and the
+    // 165-column rich-tier floor is unchanged.
     const SIZE_COL: usize = 11;
     // TOUCHED column: `<10-char author> <when>` = up to 14 chars +
     // 2 padding = 16; absolute 16 fits `Virtual-Pet 14m` cleanly.
@@ -10906,7 +11006,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary {
                 codeberg_present: true,
                 github_present: true,
@@ -11419,7 +11519,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: Some(34_476_847),
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary {
                 codeberg_present: true,
                 github_present: true,
@@ -12058,7 +12158,7 @@ mod tests {
             excluded_remotes: vec!["github".to_string(), "gitlab".to_string()],
             codeberg_skip_reason: None,
             git_size_bytes: Some(20_518_397_949),
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary {
                 codeberg_present: true,
                 github_present: true,
@@ -13031,7 +13131,7 @@ mod tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary::default(),
             concern: false,
             warn: false,
@@ -13902,7 +14002,7 @@ mod v011313_tests {
             branch: "main".to_string(),
             upstream: "-".to_string(),
             git_size_bytes: None,
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary::default(),
             concern: false,
             warn: false,
@@ -14191,8 +14291,37 @@ mod v011320_tests {
     #[test]
     fn size_cell_plain_repo_uses_adaptive_label() {
         const MIB: u64 = 1024 * 1024;
-        let (text, _) = size_cell_text(Some(713 * MIB), 0, false);
+        let (text, _) = size_cell_text(Some(713 * MIB), Some(0), false);
         assert_eq!(text, "713 MiB", "no modules → unchanged label");
+    }
+
+    #[test]
+    fn size_cell_unmeasured_modules_marks_question_mark() {
+        const GIB: u64 = 1024 * 1024 * 1024;
+        // v0.113.86: the interactive report path measures the own size
+        // but defers the `du -sb` module walk, so a superproject must
+        // say so instead of silently rendering as if it had no
+        // submodules (dracon-platform ground truth: own 12 GiB).
+        let (text, _) = size_cell_text(Some(12 * GIB + 380 * 1024 * 1024), None, false);
+        assert_eq!(text, "12G+?", "{text}");
+        assert!(
+            UnicodeWidthStr::width(text.as_str()) <= 9,
+            "fits the SIZE_COL content budget (11 − 2): {text}"
+        );
+        // Color still follows the OWN pack, not the missing measurement.
+        let (warn_text, color) = size_cell_text(Some(3 * GIB), None, true);
+        assert_eq!(warn_text, "3.0G+?");
+        assert!(matches!(color, comfy_table::Color::Red));
+    }
+
+    #[test]
+    fn size_cell_own_unmeasured_never_appends_suffix() {
+        // No own size at all → plain `?`; a `+?` there would read as
+        // "unknown size, unknown submodules" instead of "unmeasured".
+        let (text, _) = size_cell_text(None, None, false);
+        assert_eq!(text, "?");
+        let (text, _) = size_cell_text(None, Some(42), false);
+        assert_eq!(text, "?");
     }
 
     #[test]
@@ -14201,7 +14330,7 @@ mod v011320_tests {
         // dracon-platform ground truth: own 12 GiB, modules 7.7 GiB
         let (text, _) = size_cell_text(
             Some(12 * GIB + 380 * 1024 * 1024),
-            7 * GIB + 717 * 1024 * 1024,
+            Some(7 * GIB + 717 * 1024 * 1024),
             false,
         );
         assert_eq!(text, "12G+7.7G", "{text}");
@@ -14215,7 +14344,7 @@ mod v011320_tests {
     fn size_cell_color_follows_own_pack() {
         const GIB: u64 = 1024 * 1024 * 1024;
         // own pack over the limit → red even though modules are small
-        let (_, color) = size_cell_text(Some(3 * GIB), 100, true);
+        let (_, color) = size_cell_text(Some(3 * GIB), Some(100), true);
         assert!(matches!(color, comfy_table::Color::Red));
     }
 
@@ -14273,7 +14402,7 @@ mod v011321_tests {
             excluded_remotes: vec![],
             codeberg_skip_reason: None,
             git_size_bytes: None,
-            git_modules_bytes: 0,
+            git_modules_bytes: Some(0),
             token_health: TokenHealthSummary {
                 codeberg_present: true,
                 github_present: true,
