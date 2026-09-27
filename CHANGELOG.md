@@ -13,6 +13,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.89] - 2026-09-27
+
+### Fixed
+
+Two independent bounds made the fleet's biggest repo permanently
+unsyncable, found live on 2026-09-27 while `dracon-platform` sat at
+`↑23` / `🟣 PENDING` / 29 commits absent from **every** forge.
+
+- **The filter-aware diff cap was a SIZE bound dressed as a hang
+  bound.** `git diff HEAD --name-only` must run the CLEAN filter over
+  every changed file, so on a warden-managed repo each `filter=dracon`
+  file costs one `age` decryption subprocess. The cap was a flat 30s.
+  Measured the same day:
+
+  | repo | modified | age-filtered | filter-aware diff |
+  |---|---|---|---|
+  | monster-minecraft | 3 | 0 | 6.6s |
+  | pi-plugins | 2 | 0 | 8.6s |
+  | ai-auto-video | 7 | 0 | 14.3s |
+  | **dracon-platform** | **65** | **25** | **67.7s** (91.7s under load) |
+
+  A 2.3x overrun meant dracon-platform failed classification EVERY
+  cycle (`git diff HEAD timed out`, `dirty classification timed out
+  after 30s`), was therefore never dispatched, and its commits never
+  left. The budget is now `30s + 3s per modified file`, clamped at
+  180s (2x the worst measurement), and is the single place the bound is
+  computed. Repos with a handful of changed files keep the exact 30s
+  they had before.
+- **The pending watchdog is derived from that budget (3x) instead of
+  being a separate constant**, so the two cannot drift apart again. A
+  small repo still loses a wedged job after exactly 90s; the
+  monorepo gets 540s — headroom without a global bump, which would
+  have pushed the watchdog past the 600s dispatch-starvation paging
+  threshold. `CLASSIFICATION_RESULT_MAX_AGE_SECS` deliberately does
+  NOT scale: its timestamp is stamped at job COMPLETION, so it
+  measures post-completion staleness, not job duration.
+- **No global cap on in-flight work (concurrency stampede).** Both
+  pipelines were bounded only per repo, so on a fully dirty fleet the
+  daemon opened ~34 libgit2 index walks and N filter-aware diffs
+  simultaneously, every pulse. Each is individually trivial — measured
+  by hand, `git status` on dracon-platform took 0.885s and on one game
+  submodule 0.018s — but they starve each other. The signature was
+  unmistakable: the ENTIRE dracon-platform family (11 submodules plus
+  the monorepo) logged `status inspection wedged over 60s` at the
+  *same second*, which is a stampede, not 11 independent hangs. Now
+  capped at 4 status tasks and 2 classification jobs in flight. These
+  are bounds on work in flight, NOT timeouts: raising the 60s status
+  timeout instead would only make the daemon wait longer for tasks
+  that never get CPU, and would delay the sweep that frees genuinely
+  wedged slots.
+
+Net effect: `dracon-platform` went from 29 commits unpushed across all
+three forges to `0/0`, and the fleet from 10 PENDING rows to 1.
+
 ## [0.113.88] - 2026-09-27
 
 ### Fixed
