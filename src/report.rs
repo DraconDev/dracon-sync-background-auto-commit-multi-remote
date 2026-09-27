@@ -6091,9 +6091,7 @@ fn size_cell_text(own: Option<u64>, modules: Option<u64>, pack_too_large: bool) 
         // form so the marker fits the same 9-content-cell budget as
         // the measured `own+mods` form (worst case `1024G+?` = 6).
         (Some(b), None) => (format!("{}+?", size_compact(b)), color),
-        (Some(b), Some(m)) if m > 0 => {
-            (format!("{}+{}", size_compact(b), size_compact(m)), color)
-        }
+        (Some(b), Some(m)) if m > 0 => (format!("{}+{}", size_compact(b), size_compact(m)), color),
         _ => (label, color),
     }
 }
@@ -14469,7 +14467,10 @@ mod v011386_tests {
         // cell can render `own+?` instead of dropping the suffix.
         assert_eq!(resolve_modules_bytes(0, true), None);
         // A previous `--deep` measurement wins over the unknown state.
-        assert_eq!(resolve_modules_bytes(8_244_177_664, true), Some(8_244_177_664));
+        assert_eq!(
+            resolve_modules_bytes(8_244_177_664, true),
+            Some(8_244_177_664)
+        );
         // ... and over a stale zero from before the fix.
         assert_eq!(resolve_modules_bytes(1024, false), Some(1024));
     }
