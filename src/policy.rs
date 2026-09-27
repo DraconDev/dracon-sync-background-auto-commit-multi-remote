@@ -3097,6 +3097,76 @@ auto_bump_versions = false
     }
 
     #[test]
+    fn test_freeze_state_reports_marker_age() {
+        // v0.113.87: `freeze_state` carries the age so the report can
+        // say how long the fleet has been down and when the watchdog
+        // will clear it. Same stale-marker auto-clear as
+        // `freeze_reason`; only the env-var case has age 0.
+        let _guard = VarGuard::set_temp("DRACON_SYNC_FREEZE", "");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let orig_home = std::env::var("HOME").ok();
+        std::env::set_var("HOME", tmp.path());
+        let marker = tmp.path().join(".dracon").join("dracon-sync.freeze");
+        std::fs::create_dir_all(marker.parent().unwrap()).unwrap();
+
+        // No marker → not frozen.
+        assert!(freeze_state(std::path::Path::new("/fake/policy.toml")).is_none());
+
+        std::fs::write(&marker, "paused at 0\n").unwrap();
+        let state = freeze_state(std::path::Path::new("/fake/policy.toml"))
+            .expect("marker present → frozen");
+        assert!(
+            state.reason.contains("dracon-sync.freeze"),
+            "{}",
+            state.reason
+        );
+        assert!(
+            state.age_secs < 60,
+            "a just-written marker is ~0s old, got {}",
+            state.age_secs
+        );
+
+        // Backdate the mtime: age must follow, and `freeze_reason`
+        // (the back-compat wrapper) must agree with it. `touch -d` is
+        // coreutils (no new dev-dependency just to set an mtime); skip
+        // the backdate assertion where it is unavailable.
+        let backdated = std::process::Command::new("touch")
+            .args(["-d", "12 minutes ago"])
+            .arg(&marker)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if backdated {
+            let state = freeze_state(std::path::Path::new("/fake/policy.toml")).unwrap();
+            assert!(
+                (11 * 60..13 * 60).contains(&state.age_secs),
+                "backdated 12m marker reports ~720s, got {}",
+                state.age_secs
+            );
+            assert_eq!(
+                freeze_reason(std::path::Path::new("/fake/policy.toml")),
+                Some(state.reason)
+            );
+        }
+
+        match orig_home {
+            Some(h) => std::env::set_var("HOME", h),
+            None => std::env::remove_var("HOME"),
+        }
+    }
+
+    #[test]
+    fn test_freeze_state_env_case_has_zero_age() {
+        // An env-var freeze has no marker, so there is no start time to
+        // measure; the report renders the no-age variant instead of
+        // claiming the fleet just froze.
+        let _guard = VarGuard::set_temp("DRACON_SYNC_FREEZE", "1");
+        let state = freeze_state(std::path::Path::new("/fake/policy.toml")).unwrap();
+        assert_eq!(state.reason, "env DRACON_SYNC_FREEZE");
+        assert_eq!(state.age_secs, 0);
+    }
+
+    #[test]
     fn test_freeze_marker_paths_includes_dracondir() {
         let paths = freeze_marker_paths(std::path::Path::new("/fake.toml"));
         assert!(paths

@@ -3319,6 +3319,11 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
             "ACTIVITY",
             "🔄 now · 🟡 waiting · ⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold",
         ),
+        // v0.113.87: `⏸️ frozen` replaces `🟡 waiting` on every PENDING
+        // row while the daemon is frozen — the queue is not moving
+        // because the dispatcher is switched off, not because a push is
+        // slow. Documented here because the legend is the column key.
+        ("", "⏸️ frozen = waiting, but the daemon is FROZEN (see the notice)"),
         ("", ""),
         ("REPO", "🔒 private (last known) · public/unknown · > submodule · name⚡branch"),
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
@@ -4884,9 +4889,7 @@ fn print_freeze_footer(state: &crate::policy::FreezeState) {
 /// without capturing stdout.
 fn freeze_notice_text(state: &crate::policy::FreezeState) -> String {
     let mins = state.age_secs / 60;
-    let clear_in = crate::policy::FREEZE_WATCHDOG_CLEAR_SECS
-        .saturating_sub(state.age_secs)
-        / 60;
+    let clear_in = crate::policy::FREEZE_WATCHDOG_CLEAR_SECS.saturating_sub(state.age_secs) / 60;
     if state.age_secs == 0 {
         // env-var freeze has no marker, so no measurable start.
         return format!(
@@ -6196,6 +6199,7 @@ impl crate::report::RepoReportRow {
     #[cfg(test)]
     pub(crate) fn for_tests(repo_path: &str) -> Self {
         Self {
+            frozen_secs: None,
             repo: repo_path.to_string(),
             state_flags: vec![],
             branch: String::new(),
@@ -11057,6 +11061,7 @@ mod tests {
     #[test]
     fn test_repo_report_row_structure() {
         let row = RepoReportRow {
+            frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["OK".to_string()],
             branch: "main".to_string(),
@@ -11570,6 +11575,7 @@ mod tests {
     ) -> RepoReportRow {
         let label = state_cause.as_str().to_string();
         RepoReportRow {
+            frozen_secs: None,
             repo: "/tmp/test-activity-repo".to_string(),
             state_flags: vec![],
             branch: "main".to_string(),
@@ -12213,6 +12219,7 @@ mod tests {
     #[test]
     fn test_repo_report_row_push_status_fields() {
         let row = RepoReportRow {
+            frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["STUCK_PUSH".to_string()],
             branch: "main".to_string(),
@@ -13186,6 +13193,7 @@ mod tests {
     #[test]
     fn test_touched_label_renders_author_and_when() {
         let row = |last_hash: &str, last_author: &str, last_when: &str| RepoReportRow {
+            frozen_secs: None,
             repo: "/tmp/test".into(),
             state_flags: vec![],
             branch: "main".into(),
@@ -14057,6 +14065,7 @@ mod v011313_tests {
     #[test]
     fn activity_label_appends_excl_marker() {
         let mk = |excluded: usize| RepoReportRow {
+            frozen_secs: None,
             publish_state: PublishState::Ok,
             modified: 0,
             staged: 0,
@@ -14545,6 +14554,123 @@ mod v011386_tests {
     }
 }
 
+/// ADDED 2026-09-27 (v0.113.87): the freeze must be visible from the
+/// rows and from the bottom of the report, not only from the banner on
+/// line 2. Live incident: a forgotten `pause` held 8 repos at
+/// `🟡 waiting` for 32 minutes and nobody could tell why from the table.
+#[cfg(test)]
+mod v011387_tests {
+    use super::*;
+    use unicode_width::UnicodeWidthStr;
+
+    fn pending_row() -> RepoReportRow {
+        let mut row = RepoReportRow::for_tests("/tmp/example");
+        row.push_status = "PENDING".to_string();
+        row.ahead = 2;
+        // `activity_label` parses the human string, not a unix stamp.
+        row.last_when = "9 minutes ago".to_string();
+        row
+    }
+
+    #[test]
+    fn activity_says_frozen_instead_of_waiting() {
+        let mut row = pending_row();
+        let waiting = activity_label(&row);
+        assert_eq!(waiting, "🟡 waiting 9m (2 ahead)", "{waiting}");
+        row.frozen_secs = Some(12 * 60);
+        let label = activity_label(&row);
+        assert_eq!(label, "⏸️ frozen 9m (2 ahead)", "{label}");
+        // The number is still the ROW's own wait age, not the freeze
+        // age (the freeze age lives on the banner/footer), and the
+        // frozen wording must never be WIDER than the waiting wording
+        // it replaces — otherwise the swap could squeeze the column.
+        assert!(
+            UnicodeWidthStr::width(label.as_str()) <= UnicodeWidthStr::width(waiting.as_str()),
+            "frozen label must not widen ACTIVITY: {label} vs {waiting}"
+        );
+        // The no-ahead case (the common frozen row) must fit the rich
+        // tier's 16-column ACTIVITY budget outright.
+        let mut plain = pending_row();
+        plain.ahead = 0;
+        plain.frozen_secs = Some(12 * 60);
+        let label = activity_label(&plain);
+        assert_eq!(label, "⏸️ frozen 9m", "{label}");
+        assert!(
+            UnicodeWidthStr::width(label.as_str()) <= 16,
+            "fits the rich-tier ACTIVITY budget: {label}"
+        );
+    }
+
+    #[test]
+    fn activity_frozen_marker_does_not_leak_into_other_states() {
+        // A frozen daemon must not relabel rows that are not PENDING —
+        // "frozen" is only the reason a queued push is not moving.
+        let mut row = RepoReportRow::for_tests("/tmp/example");
+        row.frozen_secs = Some(600);
+        row.modified = 0;
+        row.staged = 0;
+        row.last_when = "5 minutes ago".to_string();
+        let label = activity_label(&row);
+        assert!(
+            !label.contains("frozen"),
+            "clean row must not claim to be frozen: {label}"
+        );
+        let mut dirty = RepoReportRow::for_tests("/tmp/example");
+        dirty.frozen_secs = Some(600);
+        dirty.last_when = "5 minutes ago".to_string();
+        dirty.modified = 3;
+        assert!(!activity_label(&dirty).contains("frozen"));
+    }
+
+    #[test]
+    fn freeze_notice_reports_age_and_autoclear_window() {
+        let state = crate::policy::FreezeState {
+            reason: "marker /home/u/.dracon/dracon-sync.freeze".to_string(),
+            age_secs: 12 * 60,
+        };
+        let line = freeze_notice_text(&state);
+        assert!(line.contains("FROZEN 12m"), "{line}");
+        assert!(line.contains("marker /home/u/.dracon"), "{line}");
+        assert!(
+            line.contains("watchdog clears in 18m"),
+            "12m into a 30m window leaves 18m: {line}"
+        );
+        assert!(line.contains("dracon-sync resume"), "{line}");
+    }
+
+    #[test]
+    fn freeze_notice_handles_the_env_freeze_case() {
+        // No marker → no start time; claiming "FROZEN 0m" would read
+        // as "it just froze", so the age is omitted entirely.
+        let state = crate::policy::FreezeState {
+            reason: "env DRACON_SYNC_FREEZE".to_string(),
+            age_secs: 0,
+        };
+        let line = freeze_notice_text(&state);
+        assert!(line.contains("env DRACON_SYNC_FREEZE"), "{line}");
+        assert!(!line.contains("FROZEN 0m"), "{line}");
+        assert!(!line.contains("watchdog clears"), "{line}");
+    }
+
+    #[test]
+    fn freeze_notice_stays_within_190_columns() {
+        // The notice is padded to min(width, 190); an overlong reason
+        // must not push the rule negative (saturating_sub already
+        // guarantees no panic — pin the bound so it stays readable).
+        let state = crate::policy::FreezeState {
+            reason: format!("marker {}", "/very/long/path/".repeat(12)),
+            age_secs: 59,
+        };
+        let line = freeze_notice_text(&state);
+        assert!(line.contains("FROZEN 0m"), "sub-minute age floors: {line}");
+        assert!(
+            UnicodeWidthStr::width(line.as_str()) < 400,
+            "pathological reason stays bounded: {} cols",
+            UnicodeWidthStr::width(line.as_str())
+        );
+    }
+}
+
 /// ADDED 2026-07-30 (v0.113.21): submodule marker, PUSH risk
 /// markers, dim-excluded REM tests.
 #[cfg(test)]
@@ -14554,6 +14680,7 @@ mod v011321_tests {
 
     fn base_row() -> RepoReportRow {
         RepoReportRow {
+            frozen_secs: None,
             repo: String::new(),
             state_flags: vec![],
             branch: "main".into(),

@@ -13,6 +13,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.87] - 2026-09-27
+
+### Fixed
+
+- **A frozen daemon now says so on the rows you are looking at**
+  (live incident, 2026-09-27 15:14–15:46): a `dracon-sync pause` that was
+  never resumed froze 8 repos at `🟣 PENDING` / `🟡 waiting` for 32
+  minutes. The freeze banner (v0.113.32) did print — on **line 2 of a
+  59-line report**, above a 20-line legend and a 34-row table, i.e.
+  exactly where a scrolled-to-the-bottom operator is not looking. The
+  finding was "why is nothing pushing", answered by reading the journal,
+  and the marker carried no age so even the banner could not say how
+  long the fleet had been down. Three changes:
+  - `RepoReportRow::frozen_secs` + `policy::freeze_state()` (with the
+    marker's age, same stale-marker auto-clear side effect as before;
+    `freeze_reason()` is now a wrapper, so no call site changed).
+  - ACTIVITY renders `⏸️ frozen Nm` instead of `🟡 waiting Nm` on PENDING
+    rows while frozen — the queue is not slow, the dispatcher is off.
+    The number stays the row's own wait age, and the wording is never
+    wider than what it replaces, so the column budget is unchanged.
+  - The freeze notice now prints **under the table too**, with the age
+    and the watchdog's remaining window (`watchdog clears in 18m`), and
+    the top banner uses the same text so the two cannot disagree. Only
+    prints while frozen — the normal report is byte-identical.
+  - The legend documents the new `⏸️ frozen` form (it is the column key).
+- **`dracon-freeze-watchdog` 10-minute warning now notifies** (operator
+  script, not the daemon): the `notify-send` call was wired only to the
+  auto-clear branch, so the operator was notified when the problem was
+  already being fixed and never notified when a notification could still
+  help. `AGENTS.md` already claimed this branch notifies. Verified
+  live-path: an 11m marker warns and keeps the marker, a 9m marker is
+  silent, a 31m marker auto-clears.
+
+Context for the incident above: the freeze itself was a *forgotten
+pause*, not a daemon fault — the watchdog auto-cleared it at 30m
+(15:46:44) and the daemon flushed all 8 repos within ~2 minutes. One
+repo's github push had also been skipped by the 2 GiB pack guard on an
+earlier pass because the compressed-pack measurement failed and the
+guard fell back to the conservative uncompressed figure (6.81 GiB); the
+retry measured the compressed pack (text/JSON, well under 2 GiB) and
+pushed successfully. No repo was actually too large for github.
+
 ## [0.113.86] - 2026-09-27
 
 ### Fixed
