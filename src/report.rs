@@ -14381,6 +14381,100 @@ mod v011320_tests {
     }
 }
 
+/// ADDED 2026-09-27 (v0.113.86): the interactive `repos` report path
+/// must measure the own `.git` size again (v0.113.55 deferred the whole
+/// cold-path compute, so every SIZE cell read `?` forever), while still
+/// deferring the expensive `du -sb` / `pack-objects` / history probes.
+#[cfg(test)]
+mod v011386_tests {
+    use super::*;
+
+    fn init_repo_at(path: &std::path::Path) {
+        std::fs::create_dir_all(path).unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--quiet"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+        std::fs::write(path.join("blob.bin"), vec![7u8; 8192]).unwrap();
+        std::process::Command::new("git")
+            .args(["add", "blob.bin"])
+            .current_dir(path)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args([
+                "-c",
+                "user.email=dracon-sync-test@dracon.local",
+                "-c",
+                "user.name=dracon-sync test",
+                "commit",
+                "--quiet",
+                "-m",
+                "seed",
+            ])
+            .current_dir(path)
+            .output()
+            .unwrap();
+    }
+
+    #[test]
+    fn measure_git_size_bytes_fast_measures_a_real_repo() {
+        let dir = std::env::temp_dir().join("dracon-v011386-fast-size");
+        let _ = std::fs::remove_dir_all(&dir);
+        init_repo_at(&dir);
+        let size = measure_git_size_bytes_fast(&dir)
+            .expect("fast path must measure a healthy repo (v0.113.86)");
+        assert!(size > 0, "non-zero size, got {size}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn measure_git_size_bytes_fast_is_none_without_a_repo() {
+        let dir = std::env::temp_dir().join("dracon-v011386-fast-none");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(measure_git_size_bytes_fast(&dir), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn has_module_gitdirs_detects_modules_dir() {
+        let dir = std::env::temp_dir().join("dracon-v011386-modules");
+        let _ = std::fs::remove_dir_all(&dir);
+        init_repo_at(&dir);
+        assert!(
+            !has_module_gitdirs(&dir),
+            "a plain repo has no submodule gitdirs"
+        );
+        std::fs::create_dir_all(dir.join(".git/modules/web-games-x")).unwrap();
+        assert!(
+            has_module_gitdirs(&dir),
+            "modules/ dir is the superproject marker"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        // No .git at all → no marker, no panic.
+        let bare = std::env::temp_dir().join("dracon-v011386-modules-bare");
+        let _ = std::fs::remove_dir_all(&bare);
+        std::fs::create_dir_all(&bare).unwrap();
+        assert!(!has_module_gitdirs(&bare));
+        let _ = std::fs::remove_dir_all(&bare);
+    }
+
+    #[test]
+    fn resolve_modules_bytes_keeps_unmeasured_explicit() {
+        // No module gitdirs → measured zero (the common case).
+        assert_eq!(resolve_modules_bytes(0, false), Some(0));
+        // Module gitdirs present, never measured → unknown, so the
+        // cell can render `own+?` instead of dropping the suffix.
+        assert_eq!(resolve_modules_bytes(0, true), None);
+        // A previous `--deep` measurement wins over the unknown state.
+        assert_eq!(resolve_modules_bytes(8_244_177_664, true), Some(8_244_177_664));
+        // ... and over a stale zero from before the fix.
+        assert_eq!(resolve_modules_bytes(1024, false), Some(1024));
+    }
+}
+
 /// ADDED 2026-07-30 (v0.113.21): submodule marker, PUSH risk
 /// markers, dim-excluded REM tests.
 #[cfg(test)]
