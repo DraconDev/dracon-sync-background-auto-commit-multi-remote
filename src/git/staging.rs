@@ -213,6 +213,19 @@ pub(crate) async fn detect_large_blobs_ahead(
             stdin_file
                 .flush()
                 .with_context(|| format!("failed to flush stdin tmpfile in {}", r.display()))?;
+            // REWIND before handing the fd to the child. The write above
+            // advanced the file offset, and `Stdio::from(File)` hands the
+            // child the SAME descriptor, which shares that offset — so the
+            // child would start reading at EOF and see nothing. The
+            // pre-F89 code called `File::open(...)` again, which created a
+            // fresh descriptor at offset 0; replacing that reopen with a
+            // bare O_EXCL create lost the rewind and silently disabled the
+            // guard. Seeking to 0 keeps the O_EXCL + 0600 hardening AND
+            // restores the rewind.
+            use std::io::Seek as _;
+            stdin_file
+                .seek(std::io::SeekFrom::Start(0))
+                .with_context(|| format!("failed to rewind stdin tmpfile in {}", r.display()))?;
             struct StdinTmpCleanup(std::path::PathBuf);
             impl Drop for StdinTmpCleanup {
                 fn drop(&mut self) {
