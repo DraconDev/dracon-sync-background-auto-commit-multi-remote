@@ -148,8 +148,7 @@ fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> boo
 const STATUS_TASK_TIMEOUT_SECS: u64 = 60;
 
 fn status_inspection_wedged(spawned_at: Instant, now: Instant) -> bool {
-    now.saturating_duration_since(spawned_at)
-        >= Duration::from_secs(STATUS_TASK_TIMEOUT_SECS)
+    now.saturating_duration_since(spawned_at) >= Duration::from_secs(STATUS_TASK_TIMEOUT_SECS)
 }
 
 /// Silence bound for dispatch holds (ADDED 2026-09-20, v0.113.85):
@@ -3157,12 +3156,7 @@ mod tests {
         warn_aging_hold(&holds, &mut cooldowns, &repo, now);
         assert_eq!(cooldowns.len(), 1, "warn must throttle within cooldown");
         // Unknown repo: no hold, no warn, no key.
-        warn_aging_hold(
-            &holds,
-            &mut cooldowns,
-            &PathBuf::from("other-repo"),
-            now,
-        );
+        warn_aging_hold(&holds, &mut cooldowns, &PathBuf::from("other-repo"), now);
         assert_eq!(cooldowns.len(), 1, "missing hold must stay silent");
     }
 
@@ -6361,8 +6355,7 @@ pub(crate) async fn run_daemon(
     // the task leaks it (slot logic frees, the `git` child runs on,
     // and the next probe piles on top). Pruned against the pending
     // sets at the pulse boundary below.
-    let mut status_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> =
-        HashMap::new();
+    let mut status_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
     let mut classification_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> =
         HashMap::new();
     // ADDED 2026-09-20 (v0.113.85): throttle map for aging-hold
