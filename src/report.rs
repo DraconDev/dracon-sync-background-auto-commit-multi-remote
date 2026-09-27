@@ -8622,7 +8622,12 @@ pub(crate) async fn run_repair_warns(
                 continue;
             }
         };
-        let entries = match repo_diff_entries(&repo).await {
+        // v0.113.89: this is an interactive, one-repo-at-a-time path with
+        // no scheduler status to size the budget from, so it gets the
+        // ceiling. A human waiting on `repair warns` is better served by a
+        // slow correct answer than by a 30s timeout on a 25-file
+        // age-filtered monorepo.
+        let entries = match repo_diff_entries(&repo, crate::git::FILTER_AWARE_MAX_BUDGET).await {
             Ok(entries) => entries,
             Err(e) => {
                 eprintln!("⚠️ {} diff inspection failed: {}", repo.display(), e);

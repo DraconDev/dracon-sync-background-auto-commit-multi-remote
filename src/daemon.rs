@@ -81,7 +81,8 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
 fn collect_ready_classifications(
     jobs: &mut FuturesUnordered<ClassificationJoin>,
     pending: &mut HashSet<PathBuf>,
-    pending_since: &mut HashMap<PathBuf, Instant>,
+    // (spawn instant, that job's scaled budget) — v0.113.89
+    pending_since: &mut HashMap<PathBuf, (Instant, Duration)>,
     results: &mut HashMap<
         PathBuf,
         (
@@ -123,18 +124,6 @@ fn collect_ready_classifications(
             }
         }
     }
-}
-
-/// Bound for a classification reservation without a result. Jobs carry a
-/// 30s internal timeout (`CLASSIFICATION_TIMEOUT`); a reservation older
-/// than this bound means the result path desynced (job lost without a
-/// join error surfacing) and the repo would otherwise sit dirty with no
-/// spawn and no eligibility log forever. Pure decision helper for test.
-const CLASSIFICATION_PENDING_WATCHDOG_SECS: u64 = 90;
-
-fn classification_pending_watchdog_due(spawned_at: Instant, now: Instant) -> bool {
-    now.saturating_duration_since(spawned_at)
-        >= Duration::from_secs(CLASSIFICATION_PENDING_WATCHDOG_SECS)
 }
 
 /// Bound for a STATUS task without a result (ADDED 2026-09-20,
@@ -231,6 +220,13 @@ fn abort_wedged_status_inspection(
 /// 120s is far above the 2s quiet window + 1s pulse (the keep's
 /// purpose) and far below the 600s starvation threshold. Pure
 /// decision helper for test.
+///
+/// v0.113.89: this bound deliberately does NOT scale with the job
+/// budget, unlike the other two. `taken_at` is stamped when the job
+/// COMPLETES (`results.insert(repo, (outcome, Instant::now()))`), so
+/// this measures post-completion staleness, not job duration — a
+/// 200s job still lands a fresh result. Raising it would only widen
+/// the v0.113.76 "kept result pins the repo" window.
 const CLASSIFICATION_RESULT_MAX_AGE_SECS: u64 = 120;
 
 fn classification_result_expired(taken_at: Instant, now: Instant) -> bool {
@@ -417,9 +413,26 @@ fn pile_alert_due(
     }
 }
 
-/// Hard wall-clock cap for one classification job (filter-aware diff +
-/// untracked listing). Matches the prior inline git_diff_head_files cap.
-const CLASSIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
+/// Bound for a classification reservation without a result. The job's
+/// own wall clock is [`crate::git::filter_aware_budget_secs`] (30s for a
+/// small repo — the value the flat cap used to be), and this is 3x that.
+/// A reservation older than the bound means the result path desynced (job
+/// lost without a join error surfacing) and the repo would otherwise sit
+/// dirty with no spawn and no eligibility log forever. Pure decision
+/// helper for test.
+///
+/// v0.113.89: was a flat 90s tied to the old flat 30s job, and is now
+/// derived per repo so that 3x ratio survives the budget scaling. A
+/// small repo still loses a wedged job after exactly 90s; a 65-file
+/// monorepo gets 540s — headroom without a global bump, which would
+/// have pushed this past the 600s dispatch-starvation paging threshold.
+fn classification_pending_watchdog_due(
+    spawned_at: Instant,
+    now: Instant,
+    job_budget: Duration,
+) -> bool {
+    now.saturating_duration_since(spawned_at) >= job_budget * 3
+}
 
 const STUCK_REPO_EXPIRY_SECS: u64 = 24 * 60 * 60; // 24 hours
 
@@ -6329,7 +6342,7 @@ pub(crate) async fn run_daemon(
     // A reservation that outlives the job's 30s internal timeout by 3x
     // means the result path desynced; the watchdog drops it and the
     // gate re-probes instead of suppressing the repo forever.
-    let mut classification_pending_since: HashMap<PathBuf, Instant> = HashMap::new();
+    let mut classification_pending_since: HashMap<PathBuf, (Instant, Duration)> = HashMap::new();
     // ADDED 2026-09-18 (v0.113.67): dispatch-hold snapshot + last-dispatch
     // liveness. `dispatch_holds` records (reason, since) at each silent
     // skip site so the per-cycle snapshot file and the starved alert can
@@ -7764,16 +7777,27 @@ pub(crate) async fn run_daemon(
                 if classification_pending.contains(&repo)
                     && classification_pending_since
                         .get(&repo)
-                        .is_some_and(|spawned| classification_pending_watchdog_due(*spawned, now))
+                        .is_some_and(|(spawned, budget)| {
+                            classification_pending_watchdog_due(*spawned, now, *budget)
+                        })
                 {
+                    // Read the budget BEFORE dropping the reservation: the
+                    // log line quotes the real bound, which is 3x the job
+                    // budget (90s for a small repo, 540s for a 65-file
+                    // monorepo) rather than the old hardcoded 90s.
+                    let watchdog_secs = classification_pending_since
+                        .get(&repo)
+                        .map(|(_, budget)| (*budget * 3).as_secs())
+                        .unwrap_or(0);
                     if let Some(handle) = classification_abort_handles.remove(&repo) {
                         handle.abort();
                     }
                     classification_pending.remove(&repo);
                     classification_pending_since.remove(&repo);
                     eprintln!(
-                        "⚠️ {} classification pending over 90s without result — aborted wedged job, dropping stale reservation and re-probing",
-                        repo.display()
+                        "⚠️ {} classification pending over {}s without result — aborted wedged job, dropping stale reservation and re-probing",
+                        repo.display(),
+                        watchdog_secs
                     );
                 }
                 if !classification_pending.contains(&repo)
@@ -7788,7 +7812,22 @@ pub(crate) async fn run_daemon(
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());
-                    classification_pending_since.insert(repo.clone(), now);
+                    // v0.113.89: the classification budget scales with the
+                    // work this repo actually has (dracon-platform: 65
+                    // modified, 25 age-filtered → 67.7s measured against a
+                    // flat 30s cap, so it could never classify and its
+                    // commits never left). This single value is both the
+                    // job's wall clock and the diff's inner cap — exactly
+                    // the relationship the flat 30s pair had — and the
+                    // pending watchdog above is derived from it as 3x.
+                    // Computed BEFORE the reservation insert so the
+                    // watchdog can scale its bound from the same number.
+                    let budget_for_job = crate::git::filter_aware_budget_secs(
+                        status.modified_files + status.staged_files,
+                    );
+                    let budget_for_reservation = budget_for_job;
+                    classification_pending_since
+                        .insert(repo.clone(), (now, budget_for_reservation));
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: classification_spawn repo={} cycle_ms={} pending={} results={}",
@@ -7802,14 +7841,14 @@ pub(crate) async fn run_daemon(
                     let classification_handle = tokio::task::spawn(async move {
                         let started = Instant::now();
                         let outcome = tokio::time::timeout(
-                            CLASSIFICATION_TIMEOUT,
-                            repo_diff_entries(&repo_for_job),
+                            budget_for_job,
+                            repo_diff_entries(&repo_for_job, budget_for_job),
                         )
                         .await
                         .unwrap_or_else(|_| {
                             Err(anyhow::anyhow!(
                                 "dirty classification timed out after {}s",
-                                CLASSIFICATION_TIMEOUT.as_secs()
+                                budget_for_job.as_secs()
                             ))
                         });
                         if debug_enabled() {

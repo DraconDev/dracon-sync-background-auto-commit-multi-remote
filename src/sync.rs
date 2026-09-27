@@ -774,7 +774,12 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
         // is clean. Propagating the error keeps a transient git failure from
         // being misclassified as FilterOnly (which would suppress the
         // commit and install a cooldown with no actionable error).
-        let diff_output = crate::git::git_diff_head_files(repo).await?;
+        // v0.113.89: budget scales with the work — see
+        // `filter_aware_budget_secs`. `entries` is the status-derived
+        // candidate set, the same input the daemon's scheduler uses.
+        let diff_budget =
+            crate::git::filter_aware_budget_secs(entries.len());
+        let diff_output = crate::git::git_diff_head_files(repo, diff_budget).await?;
         if diff_output.is_empty() && !entries.is_empty() {
             let has_non_modified = entries
                 .iter()
@@ -805,7 +810,9 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
         );
     }
     if entries.is_empty() && !filter_only_cleared {
-        let fallback_entries = cli_diff_entries(repo).await?;
+        let fallback_budget =
+            crate::git::filter_aware_budget_secs(status.modified_files + status.staged_files);
+        let fallback_entries = cli_diff_entries(repo, fallback_budget).await?;
         if !fallback_entries.is_empty() {
             status.is_clean = false;
             status.modified_files = fallback_entries.len();

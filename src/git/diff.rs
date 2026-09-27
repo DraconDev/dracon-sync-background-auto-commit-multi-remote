@@ -5,11 +5,65 @@ use dracon_git::types::{DiffFile, FileStatus};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+/// Base wall-clock budget for one filter-aware classification pass.
+/// Unchanged from the original flat cap, so a repo with a handful of
+/// modified files behaves EXACTLY as it did before this budget existed.
+pub(crate) const FILTER_AWARE_BASE_SECS: u64 = 30;
+/// Added per modified file. warden `filter=dracon` (age) files each cost
+/// one clean-filter subprocess inside `git diff`, so the cost is linear
+/// in the number of changed files, not in repo size.
+pub(crate) const FILTER_AWARE_PER_FILE_SECS: u64 = 3;
+/// Ceiling, so a pathological repo cannot pin a classification slot
+/// indefinitely. Still 2.6x the worst measurement below.
+pub(crate) const FILTER_AWARE_MAX_SECS: u64 = 180;
+/// [`FILTER_AWARE_MAX_SECS`] as a `Duration`, for call sites that have no
+/// file count to scale from (interactive one-repo commands).
+pub(crate) const FILTER_AWARE_MAX_BUDGET: std::time::Duration =
+    std::time::Duration::from_secs(FILTER_AWARE_MAX_SECS);
+
+/// Wall-clock budget for one filter-aware pass, scaled to the work.
+///
+/// ADDED 2026-09-27 (v0.113.89): the flat 30s cap was a SIZE bound
+/// dressed as a hang bound. `git diff HEAD --name-only` must run the
+/// CLEAN filter over every changed file, so on a warden-managed repo
+/// each `filter=dracon` file is a decryption subprocess. Measured the
+/// same day:
+///
+/// | repo | modified | of those age-filtered | filter-aware diff |
+/// |---|---|---|---|
+/// | monster-minecraft | 3 | 0 | 6.6s |
+/// | pi-plugins | 2 | 0 | 8.6s |
+/// | ai-auto-video | 7 | 0 | 14.3s |
+/// | **dracon-platform** | **65** | **25** | **67.7s** |
+///
+/// So dracon-platform overran the 30s ceiling by 2.3x, failed
+/// classification EVERY cycle (`git diff HEAD timed out`,
+/// `dirty classification timed out after 30s`), was never dispatched,
+/// and its 29 commits never reached any forge — the report showed
+/// `↑23` / `🟣 PENDING` / `🟡 waiting 20m` with no actionable error
+/// anywhere. This function is the only place the cap is computed, and
+/// the daemon derives its other two classification bounds from it so
+/// they cannot drift apart again.
+pub(crate) fn filter_aware_budget_secs(modified_files: usize) -> std::time::Duration {
+    let secs = FILTER_AWARE_BASE_SECS
+        .saturating_add(
+            (modified_files as u64).saturating_mul(FILTER_AWARE_PER_FILE_SECS),
+        )
+        .min(FILTER_AWARE_MAX_SECS);
+    std::time::Duration::from_secs(secs)
+}
+
 /// Get the list of files that actually differ from HEAD (filter-aware).
 /// Unlike `git status`, `git diff HEAD` applies clean filters and correctly
 /// ignores files that only differ due to smudge filter decryption.
-pub(crate) async fn git_diff_head_files(repo: &Path) -> Result<HashSet<PathBuf>> {
-    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+///
+/// `budget` bounds this pass; see [`filter_aware_budget_secs`] for why it
+/// scales and why it must not be a flat 30s.
+pub(crate) async fn git_diff_head_files(
+    repo: &Path,
+    budget: std::time::Duration,
+) -> Result<HashSet<PathBuf>> {
+    tokio::time::timeout(budget, async {
         let child = crate::git::spawn_git_command_cancellable(
             repo,
             &["diff", "HEAD", "--name-only", "-z"],
@@ -21,7 +75,12 @@ pub(crate) async fn git_diff_head_files(repo: &Path) -> Result<HashSet<PathBuf>>
         Ok(parse_z_paths(&stdout).into_iter().collect())
     })
     .await
-    .context("git diff HEAD timed out")?
+    .with_context(|| {
+        format!(
+            "git diff HEAD timed out after {}s (filter-aware pass over a warden-filtered repo; budget scales with modified files)",
+            budget.as_secs()
+        )
+    })?
 }
 
 /// Parse a single line from `git status --porcelain` or `git diff --name-status`.
@@ -224,7 +283,10 @@ impl Drop for ClassificationPhase<'_> {
 }
 
 /// Get diff entries via `git diff` CLI (fallback when libgit2 fails).
-pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
+pub(crate) async fn cli_diff_entries(
+    repo: &Path,
+    budget: std::time::Duration,
+) -> Result<Vec<DiffFile>> {
     let mut phase = ClassificationPhase::start(repo, "filter-aware-diff");
     // CHANGED 2026-07-21 (v0.112.33, audit M17/F2.8): `-z` + exit
     // status checked (was: status unchecked — a failed diff read as
@@ -239,8 +301,17 @@ pub(crate) async fn cli_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
         &["diff", "--name-status", "-z", "HEAD"],
         "diff --name-status -z HEAD",
     )?;
-    let (status, stdout, _stderr) =
-        crate::git::run_git_captured_output(child, repo, "diff --name-status -z HEAD").await?;
+    let (status, stdout, _stderr) = tokio::time::timeout(
+        budget,
+        crate::git::run_git_captured_output(child, repo, "diff --name-status -z HEAD"),
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "git diff --name-status -z HEAD timed out after {}s (filter-aware pass over a warden-filtered repo)",
+            budget.as_secs()
+        )
+    })??;
     if !status.success() {
         phase.outcome = "nonzero-exit";
         return Err(anyhow::anyhow!(
@@ -295,11 +366,14 @@ fn parse_z_paths(stdout: &[u8]) -> Vec<PathBuf> {
 /// Get diff entries from both repo status, diff, and untracked files.
 /// This ensures untracked files are included in the diff entries so the
 /// daemon can detect and commit them.
-pub(crate) async fn repo_diff_entries(repo: &Path) -> Result<Vec<DiffFile>> {
+pub(crate) async fn repo_diff_entries(
+    repo: &Path,
+    budget: std::time::Duration,
+) -> Result<Vec<DiffFile>> {
     // A failed required clean filter must never become "no tracked changes".
     // Only an explicitly absent symbolic HEAD ref permits the unborn fallback;
     // corrupt objects, detached HEAD failures and filter refusals propagate.
-    let diff = match cli_diff_entries(repo).await {
+    let diff = match cli_diff_entries(repo, budget).await {
         Ok(d) => d,
         Err(e) => {
             let symbolic = crate::git::tokio_git_cmd()
