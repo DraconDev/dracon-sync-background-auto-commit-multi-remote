@@ -2579,6 +2579,50 @@ standard_files = [{ source = "templates/FUNDING.yml", target = ".github", overwr
     }
 
     #[test]
+    fn test_pause_marker_records_caller_provenance() {
+        // v0.113.88: line 1 must stay byte-compatible (the age/TTL logic
+        // and every human reader key off `paused at <epoch>`), and the
+        // provenance must be an ADDITIVE line below it. Two pauses on
+        // 2026-09-27 were unattributable because the marker recorded
+        // only a timestamp.
+        let body = crate::pause_marker_contents();
+        let mut lines = body.lines();
+        let first = lines.next().expect("marker must have a first line");
+        assert!(
+            first.starts_with("paused at ") && first.len() > "paused at ".len(),
+            "line 1 keeps the historical format: {first}"
+        );
+        let prov = lines
+            .find(|l| l.starts_with("paused by "))
+            .expect("provenance line present on a live procfs host");
+        // procfs may be absent (sandboxed CI), in which case the
+        // provenance is legitimately omitted — but if it IS written it
+        // must not be empty and must not contain a newline (a multi-line
+        // provenance would break the one-fact-per-line contract).
+        assert!(
+            prov.len() > "paused by ".len(),
+            "provenance not empty: {prov}"
+        );
+        assert!(!prov.contains('\n'), "provenance is one line: {prov}");
+    }
+
+    #[test]
+    fn test_parent_pid_is_readable_on_procfs() {
+        // Skips silently where procfs is absent; on Linux this must
+        // return OUR parent's pid, and it must not equal our own (that
+        // would mean the field offset is wrong — a silent regression
+        // that would attribute every pause to the pause process itself,
+        // which is long gone by the time anyone looks).
+        match crate::parent_pid() {
+            Some(ppid) => {
+                assert_ne!(ppid, std::process::id(), "ppid must not be self");
+                assert!(ppid > 0, "ppid {ppid}");
+            }
+            None => { /* non-procfs host: nothing to assert */ }
+        }
+    }
+
+    #[test]
     fn test_run_maintenance_spawn_failure_returns_127_and_resumes() {
         let tmp = TempDir::new().unwrap();
         std::fs::create_dir_all(tmp.path().join(".dracon")).unwrap();

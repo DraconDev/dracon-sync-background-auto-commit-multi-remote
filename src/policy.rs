@@ -1952,6 +1952,13 @@ pub(crate) struct FreezeState {
     /// Seconds the freeze has been held. `0` for the env-var case (no
     /// marker, so no measurable start).
     pub(crate) age_secs: u64,
+    /// ADDED 2026-09-27 (v0.113.88): the `paused by …` line the
+    /// `pause` command now records — caller process, tty, cwd. `None`
+    /// for markers written before this change (and for the env-var
+    /// case, which has no marker at all). Best-effort: the whole point
+    /// is that a pause leaves the only artifact that survives its own
+    /// investigation trail.
+    pub(crate) provenance: Option<String>,
 }
 
 /// The freeze watchdog (`~/.dracon/sync-notify/dracon-freeze-watchdog.sh`)
@@ -1959,6 +1966,24 @@ pub(crate) struct FreezeState {
 /// [`FREEZE_MARKER_TTL_SECS`] (1h). The report quotes the 30m figure
 /// because that is what actually recovers first.
 pub(crate) const FREEZE_WATCHDOG_CLEAR_SECS: u64 = 30 * 60;
+
+/// Read the optional `paused by …` provenance line a `dracon-sync pause`
+/// writes below the `paused at <epoch>` line (v0.113.88).
+///
+/// Bounded on purpose: the marker's first line is what the age/TTL logic
+/// depends on, and this file lives in the operator's home — a huge or
+/// malformed marker must not become a memory-pressure input to the
+/// report. Anything unparseable is treated as "no provenance" rather
+/// than an error, because the freeze itself is the important fact.
+fn read_freeze_provenance(marker: &Path) -> Option<String> {
+    const MAX_PROVENANCE: usize = 300;
+    let content = std::fs::read_to_string(marker).ok()?;
+    content
+        .lines()
+        .skip(1)
+        .find_map(|line| line.trim().strip_prefix("paused by "))
+        .map(|value| value.trim().chars().take(MAX_PROVENANCE).collect())
+}
 
 /// Current freeze state, with the same stale-marker auto-clear side
 /// effect [`freeze_reason`] has always had. `None` when sync is not
@@ -1968,6 +1993,7 @@ pub(crate) fn freeze_state(policy_path: &Path) -> Option<FreezeState> {
         return Some(FreezeState {
             reason: "env DRACON_SYNC_FREEZE".to_string(),
             age_secs: 0,
+            provenance: None,
         });
     }
 
@@ -1995,6 +2021,7 @@ pub(crate) fn freeze_state(policy_path: &Path) -> Option<FreezeState> {
             return Some(FreezeState {
                 reason: format!("marker {}", marker.display()),
                 age_secs,
+                provenance: read_freeze_provenance(&marker),
             });
         }
     }
@@ -3164,6 +3191,47 @@ auto_bump_versions = false
         let state = freeze_state(std::path::Path::new("/fake/policy.toml")).unwrap();
         assert_eq!(state.reason, "env DRACON_SYNC_FREEZE");
         assert_eq!(state.age_secs, 0);
+        assert_eq!(state.provenance, None);
+    }
+
+    #[test]
+    fn test_freeze_state_reads_pause_provenance() {
+        // v0.113.88: the `paused by …` line is the only surviving trace
+        // of WHO froze the fleet. A pre-0.113.88 marker (line 1 only)
+        // must degrade to None, not to an error.
+        let _guard = VarGuard::set_temp("DRACON_SYNC_FREEZE", "");
+        let tmp = tempfile::TempDir::new().unwrap();
+        let orig_home = std::env::var("HOME").ok();
+        std::env::set_var("HOME", tmp.path());
+        let marker = tmp.path().join(".dracon").join("dracon-sync.freeze");
+        std::fs::create_dir_all(marker.parent().unwrap()).unwrap();
+        let probe = std::path::Path::new("/fake/policy.toml");
+
+        std::fs::write(
+            &marker,
+            "paused at 1790536247\npaused by bash (pid 612276): bash -lc dracon-sync pause · tty pts/7 · cwd /home/dracon/Dev\n",
+        )
+        .unwrap();
+        let state = freeze_state(probe).expect("marker present → frozen");
+        assert_eq!(
+            state.provenance.as_deref(),
+            Some(
+                "bash (pid 612276): bash -lc dracon-sync pause · tty pts/7 · cwd /home/dracon/Dev"
+            )
+        );
+
+        // Legacy marker: timestamp only → no provenance, still frozen.
+        std::fs::write(&marker, "paused at 1790536247\n").unwrap();
+        assert_eq!(freeze_state(probe).unwrap().provenance, None);
+
+        // Garbage must not panic or invent provenance.
+        std::fs::write(&marker, "paused at 1\npaused by \nunrelated junk\n").unwrap();
+        assert_eq!(freeze_state(probe).unwrap().provenance, None);
+
+        match orig_home {
+            Some(h) => std::env::set_var("HOME", h),
+            None => std::env::remove_var("HOME"),
+        }
     }
 
     #[test]

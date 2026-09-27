@@ -13,6 +13,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.88] - 2026-09-27
+
+### Fixed
+
+- **`dracon-sync pause` now records WHO paused** (live incident: two
+  unexplained freezes in one evening). On 2026-09-27 the fleet froze at
+  15:14:59 and again at 20:10:47. Both markers read
+  `paused at <epoch>` and nothing else, and neither could be attributed:
+  no surviving process, no `maintenance` line in the journal, nothing in
+  interactive shell history — a `pause` issued from an agent's bash tool
+  appears in none of those three. The marker is the only artifact that
+  outlives the investigation, so that is where the answer now lives:
+
+  ```
+  paused at 1790536247
+  paused by bash (pid 612276): bash -lc dracon-sync pause · tty pts/7 · cwd /home/dracon/Dev
+  ```
+
+  The caller is the **parent** process (comm + argv), not the
+  short-lived `pause` process itself, plus the controlling tty and cwd.
+  `FreezeState::provenance` carries it and the `repos` freeze notice
+  names it: `⏸️ DAEMON FROZEN 4m (paused by bash (pid 612276): … · tty
+  pts/7)`. Line 1 stays byte-compatible (`paused at <epoch>`) and the
+  provenance is purely additive, so every existing reader (daemon TTL
+  check, freeze watchdog, humans) is unaffected. Provenance is
+  best-effort: no procfs, no tty, or an unparseable marker all degrade
+  to "omitted" rather than failing the pause, and the read is bounded to
+  300 chars so a hostile/oversized marker cannot become a memory
+  pressure input to the report.
+
 ## [0.113.87] - 2026-09-27
 
 ### Fixed

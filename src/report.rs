@@ -4890,16 +4890,23 @@ fn print_freeze_footer(state: &crate::policy::FreezeState) {
 fn freeze_notice_text(state: &crate::policy::FreezeState) -> String {
     let mins = state.age_secs / 60;
     let clear_in = crate::policy::FREEZE_WATCHDOG_CLEAR_SECS.saturating_sub(state.age_secs) / 60;
+    // v0.113.88: when the marker carries a `paused by …` line, name the
+    // caller in the notice. Two unexplained pauses on 2026-09-27 could
+    // not be attributed to anything; the marker is now the only
+    // artifact that outlives the process, so it is the only place the
+    // answer can come from.
+    let who = match state.provenance.as_deref() {
+        Some(p) if !p.is_empty() => format!("paused by {p}"),
+        _ => state.reason.clone(),
+    };
     if state.age_secs == 0 {
         // env-var freeze has no marker, so no measurable start.
         return format!(
-            "── ⏸️ DAEMON FROZEN ({}) — nothing is committing or pushing · resume: dracon-sync resume ",
-            state.reason
+            "── ⏸️ DAEMON FROZEN ({who}) — nothing is committing or pushing · resume: dracon-sync resume "
         );
     }
     format!(
-        "── ⏸️ DAEMON FROZEN {mins}m ({}) — nothing is committing or pushing · watchdog clears in {clear_in}m · resume: dracon-sync resume ",
-        state.reason
+        "── ⏸️ DAEMON FROZEN {mins}m ({who}) — nothing is committing or pushing · watchdog clears in {clear_in}m · resume: dracon-sync resume "
     )
 }
 
@@ -14625,6 +14632,7 @@ mod v011387_tests {
     #[test]
     fn freeze_notice_reports_age_and_autoclear_window() {
         let state = crate::policy::FreezeState {
+            provenance: None,
             reason: "marker /home/u/.dracon/dracon-sync.freeze".to_string(),
             age_secs: 12 * 60,
         };
@@ -14639,10 +14647,47 @@ mod v011387_tests {
     }
 
     #[test]
+    fn freeze_notice_names_the_caller_when_the_marker_has_provenance() {
+        // v0.113.88: two pauses on 2026-09-27 (15:14:59, 20:10:47)
+        // were unattributable — no surviving process, no journal line,
+        // nothing in shell history. The marker is the only artifact that
+        // outlives the pause, so the notice must surface its
+        // `paused by …` line.
+        let state = crate::policy::FreezeState {
+            reason: "marker /home/u/.dracon/dracon-sync.freeze".to_string(),
+            age_secs: 4 * 60,
+            provenance: Some(
+                "bash (pid 612276): bash -lc dracon-sync pause · tty pts/7".to_string(),
+            ),
+        };
+        let line = freeze_notice_text(&state);
+        assert!(line.contains("FROZEN 4m"), "{line}");
+        assert!(line.contains("paused by bash (pid 612276)"), "{line}");
+        assert!(line.contains("pts/7"), "{line}");
+        // The marker PATH is redundant once the caller is named.
+        assert!(!line.contains("dracon-sync.freeze"), "{line}");
+    }
+
+    #[test]
+    fn freeze_notice_falls_back_to_marker_path_without_provenance() {
+        // Markers written before v0.113.88 (and malformed ones) carry no
+        // provenance — the path must still identify the freeze.
+        let state = crate::policy::FreezeState {
+            reason: "marker /home/u/.dracon/dracon-sync.freeze".to_string(),
+            age_secs: 4 * 60,
+            provenance: None,
+        };
+        let line = freeze_notice_text(&state);
+        assert!(line.contains("marker /home/u/.dracon"), "{line}");
+        assert!(!line.contains("paused by"), "{line}");
+    }
+
+    #[test]
     fn freeze_notice_handles_the_env_freeze_case() {
         // No marker → no start time; claiming "FROZEN 0m" would read
         // as "it just froze", so the age is omitted entirely.
         let state = crate::policy::FreezeState {
+            provenance: None,
             reason: "env DRACON_SYNC_FREEZE".to_string(),
             age_secs: 0,
         };
@@ -14658,6 +14703,7 @@ mod v011387_tests {
         // must not push the rule negative (saturating_sub already
         // guarantees no panic — pin the bound so it stays readable).
         let state = crate::policy::FreezeState {
+            provenance: None,
             reason: format!("marker {}", "/very/long/path/".repeat(12)),
             age_secs: 59,
         };
