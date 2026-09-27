@@ -116,9 +116,12 @@ TOTAL_STEPS=8
 # ----- colors (only on a tty) ---------------------------------------------
 if [[ -t 1 ]]; then
     C_RED=$'\033[31m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'
-    C_BLUE=$'\033[34m'; C_BOLD=$'\033[1m'; C_RESET=$'\033[0m'
+    # FIXED 2026-09-27 (audit rework round 3, F86): C_BOLD was assigned in
+    # both branches and never read (shellcheck SC2034). Removed rather than
+    # allow-listed so the colour set matches what the script actually uses.
+    C_BLUE=$'\033[34m'; C_RESET=$'\033[0m'
 else
-    C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_BOLD=""; C_RESET=""
+    C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_RESET=""
 fi
 
 # ----- helpers -------------------------------------------------------------

@@ -51,7 +51,12 @@ for n in "${names[@]}"; do
 done
 
 # Otherwise: deterministic choice (sorted first), loud about ambiguity.
-IFS=$'\n' sorted=($(printf '%s\n' "${names[@]}" | sort)); unset IFS
+# FIXED 2026-09-27 (audit rework round 3, F86): the previous
+# `IFS=$'\n' sorted=($(...))` split command output by unquoted expansion
+# (shellcheck SC2207), which also word-splits any remote name containing
+# whitespace. `mapfile -t` reads the sorted lines one-per-element with no
+# splitting and no subshell.
+mapfile -t sorted < <(printf '%s\n' "${names[@]}" | sort)
 if [[ ${#sorted[@]} -gt 1 ]]; then
     printf '⚠ multiple github remotes (%s); using %s\n' "${sorted[*]}" "${sorted[0]}" >&2
 fi
