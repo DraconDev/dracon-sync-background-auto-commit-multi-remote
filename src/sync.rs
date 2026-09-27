@@ -755,7 +755,10 @@ mod diff_tests {
         // The fallback code path: cli_diff_entries should find it
         let rt = tokio::runtime::Runtime::new().unwrap();
         let entries = rt
-            .block_on(crate::git::cli_diff_entries(&repo_path))
+            .block_on(crate::git::cli_diff_entries(
+                &repo_path,
+                crate::git::filter_aware_budget_secs(0),
+            ))
             .unwrap();
         assert!(
             !entries.is_empty(),
@@ -777,8 +780,7 @@ async fn compute_diff_entries(svc: &GitService, repo: &Path) -> Result<DiffResul
         // v0.113.89: budget scales with the work — see
         // `filter_aware_budget_secs`. `entries` is the status-derived
         // candidate set, the same input the daemon's scheduler uses.
-        let diff_budget =
-            crate::git::filter_aware_budget_secs(entries.len());
+        let diff_budget = crate::git::filter_aware_budget_secs(entries.len());
         let diff_output = crate::git::git_diff_head_files(repo, diff_budget).await?;
         if diff_output.is_empty() && !entries.is_empty() {
             let has_non_modified = entries

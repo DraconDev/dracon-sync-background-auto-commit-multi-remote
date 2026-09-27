@@ -46,9 +46,7 @@ pub(crate) const FILTER_AWARE_MAX_BUDGET: std::time::Duration =
 /// they cannot drift apart again.
 pub(crate) fn filter_aware_budget_secs(modified_files: usize) -> std::time::Duration {
     let secs = FILTER_AWARE_BASE_SECS
-        .saturating_add(
-            (modified_files as u64).saturating_mul(FILTER_AWARE_PER_FILE_SECS),
-        )
+        .saturating_add((modified_files as u64).saturating_mul(FILTER_AWARE_PER_FILE_SECS))
         .min(FILTER_AWARE_MAX_SECS);
     std::time::Duration::from_secs(secs)
 }
@@ -468,6 +466,74 @@ pub(crate) async fn tracked_paths(repo: &Path) -> Result<HashSet<PathBuf>> {
         .collect())
 }
 
+/// ADDED 2026-09-27 (v0.113.89): the filter-aware classification budget
+/// must scale, because the flat 30s cap made one big monorepo
+/// permanently unsyncable. Numbers are from live measurement, not theory.
+#[cfg(test)]
+mod v011389_budget_tests {
+    use super::{filter_aware_budget_secs, FILTER_AWARE_MAX_BUDGET};
+    use std::time::Duration;
+
+    #[test]
+    fn small_repos_keep_the_original_30s_budget() {
+        // Bit-for-bit the pre-v0.113.89 behavior: nothing about the other
+        // 33 repos on the fleet may change.
+        assert_eq!(filter_aware_budget_secs(0), Duration::from_secs(30));
+        assert_eq!(filter_aware_budget_secs(1), Duration::from_secs(33));
+        assert_eq!(filter_aware_budget_secs(3), Duration::from_secs(39));
+    }
+
+    #[test]
+    fn budget_scales_linearly_with_modified_files() {
+        assert_eq!(filter_aware_budget_secs(10), Duration::from_secs(60));
+        assert_eq!(filter_aware_budget_secs(50), Duration::from_secs(180));
+    }
+
+    #[test]
+    fn budget_is_clamped_so_a_slot_cannot_be_pinned_forever() {
+        assert_eq!(filter_aware_budget_secs(1000), FILTER_AWARE_MAX_BUDGET);
+        assert_eq!(
+            filter_aware_budget_secs(usize::MAX),
+            FILTER_AWARE_MAX_BUDGET
+        );
+    }
+
+    #[test]
+    fn dracon_platform_measurement_fits_its_budget() {
+        // THE regression. Measured 2026-09-27 on the live repo: 65
+        // modified files, 25 of them `filter=dracon` → the
+        // filter-aware `git diff HEAD --name-only -z` took 67.7s against
+        // a 30s ceiling (2.3x overrun), so classification failed EVERY
+        // cycle, the repo was never dispatched, and 29 commits never
+        // reached any forge. The budget must now cover that, with
+        // margin.
+        const MEASURED_SECS: u64 = 68;
+        let budget = filter_aware_budget_secs(65);
+        assert!(
+            budget >= Duration::from_secs(MEASURED_SECS * 2),
+            "budget {}s must keep >=2x headroom over the measured {MEASURED_SECS}s",
+            budget.as_secs()
+        );
+    }
+
+    #[test]
+    fn fleet_measurements_still_fit_comfortably() {
+        // The other direction: repos that were succeeding before must
+        // keep a budget well clear of their measured cost.
+        for (name, modified, measured) in [
+            ("monster-minecraft", 3usize, 7u64),
+            ("pi-plugins", 2, 9),
+            ("ai-auto-video", 7, 15),
+        ] {
+            let budget = filter_aware_budget_secs(modified).as_secs();
+            assert!(
+                budget > measured,
+                "{name}: budget {budget}s vs measured {measured}s"
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod f33_tests {
     use super::{parse_name_status_line, parse_name_status_z, FileStatus};
@@ -620,7 +686,12 @@ mod f33_tests {
         git(&["config", "filter.probe.required", "true"]);
         // Different size avoids Git's same-size/same-mtime stat-cache shortcut.
         std::fs::write(repo.join("sample.txt"), "SEED   \n").unwrap();
-        assert!(super::repo_diff_entries(repo).await.unwrap().is_empty());
+        assert!(
+            super::repo_diff_entries(repo, crate::git::filter_aware_budget_secs(0))
+                .await
+                .unwrap()
+                .is_empty()
+        );
         assert_eq!(
             std::fs::read_to_string(repo.join(".git/filter-calls"))
                 .unwrap()
@@ -629,12 +700,16 @@ mod f33_tests {
             1
         );
         std::fs::write(repo.join("sample.txt"), "CHANGED\n").unwrap();
-        let entries = super::repo_diff_entries(repo).await.unwrap();
+        let entries = super::repo_diff_entries(repo, crate::git::filter_aware_budget_secs(0))
+            .await
+            .unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].path, PathBuf::from("sample.txt"));
         git(&["config", "filter.probe.clean", "exit 1"]);
         assert!(
-            super::repo_diff_entries(repo).await.is_err(),
+            super::repo_diff_entries(repo, crate::git::filter_aware_budget_secs(0))
+                .await
+                .is_err(),
             "required filter failure must not look clean"
         );
     }
@@ -691,7 +766,13 @@ mod f33_tests {
         // loaded host (2026-09-27 full-workspace run) and never on an
         // idle one: a load-dependent flake, not a real regression.
         let pid_file = repo.join(".git/filter-pid");
-        let mut classification = Box::pin(super::cli_diff_entries(repo));
+        let mut classification = Box::pin(super::cli_diff_entries(
+            repo,
+            // Generous, matching the 10s readiness wait below: this
+            // fixture's filter is a `sleep`, not a decryption, so the
+            // scaled budget is pure headroom here.
+            std::time::Duration::from_secs(60),
+        ));
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
             loop {
                 tokio::select! {
@@ -759,7 +840,9 @@ mod f33_tests {
             .unwrap()
             .success());
         std::fs::write(tmp.path().join("new.txt"), "new\n").unwrap();
-        let entries = super::repo_diff_entries(tmp.path()).await.unwrap();
+        let entries = super::repo_diff_entries(tmp.path(), crate::git::filter_aware_budget_secs(0))
+            .await
+            .unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].path, PathBuf::from("new.txt"));
     }

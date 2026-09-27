@@ -1479,7 +1479,7 @@ mod tests {
         jobs.push(slow);
         // At pulse start neither result exists.
         let mut pending_since = HashMap::new();
-        pending_since.insert(repo.clone(), Instant::now());
+        pending_since.insert(repo.clone(), (Instant::now(), Duration::from_secs(30)));
         collect_ready_classifications(
             &mut jobs,
             &mut pending,
@@ -3116,11 +3116,31 @@ mod tests {
     fn test_classification_pending_watchdog_due() {
         let now = Instant::now();
         let ago = |secs: u64| now - Duration::from_secs(secs);
-        // Jobs self-timeout at 30s; the 90s bound is 3x headroom.
-        assert!(!classification_pending_watchdog_due(ago(30), now));
-        assert!(!classification_pending_watchdog_due(ago(89), now));
-        assert!(classification_pending_watchdog_due(ago(90), now));
-        assert!(classification_pending_watchdog_due(ago(3600), now));
+        // v0.113.89: the bound is 3x the job's OWN (scaled) budget. A
+        // small repo's budget is still 30s, so its 90s bound is
+        // unchanged from the flat constant this replaced.
+        let small = Duration::from_secs(30);
+        assert!(!classification_pending_watchdog_due(ago(30), now, small));
+        assert!(!classification_pending_watchdog_due(ago(89), now, small));
+        assert!(classification_pending_watchdog_due(ago(90), now, small));
+        assert!(classification_pending_watchdog_due(ago(3600), now, small));
+
+        // The live incident: dracon-platform (65 modified, 25
+        // age-filtered, 67.7s measured) gets a 180s budget, so the
+        // watchdog must NOT kill its job at 90s — that abort was one
+        // of the reasons its classification never completed.
+        let big = crate::git::filter_aware_budget_secs(65);
+        assert_eq!(big, Duration::from_secs(180));
+        assert!(!classification_pending_watchdog_due(ago(120), now, big));
+        assert!(!classification_pending_watchdog_due(ago(539), now, big));
+        assert!(classification_pending_watchdog_due(ago(540), now, big));
+        // ... and the bound stays under the 600s dispatch-starvation
+        // paging threshold, which is why this scales per repo rather
+        // than being bumped globally.
+        assert!(
+            (big * 3) < Duration::from_secs(600),
+            "watchdog bound must stay below the 600s starvation page"
+        );
     }
 
     // ADDED 2026-09-20 (v0.113.85, freeport 34-min stall): the
