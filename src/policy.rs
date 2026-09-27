@@ -1935,12 +1935,45 @@ pub(crate) const FREEZE_MARKER_TTL_SECS: u64 = 60 * 60;
 /// auto-clear it and log a warning. Returns `Some(reason)` if sync should
 /// still be frozen (marker is fresh or no marker).
 pub(crate) fn freeze_reason(policy_path: &Path) -> Option<String> {
+    freeze_state(policy_path).map(|s| s.reason)
+}
+
+/// A freeze's reason plus how long it has been held.
+///
+/// ADDED 2026-09-27 (v0.113.87): `freeze_reason` alone could not tell an
+/// operator how long the fleet had been down or when it would self-heal,
+/// and the report printed it on line 2 of a 59-line output — i.e. exactly
+/// the thing you do not see while reading the PENDING column. The age also
+/// lets the table say `⏸️ frozen 32m` on the affected rows themselves.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FreezeState {
+    /// `marker <path>` or `env DRACON_SYNC_FREEZE`, as before.
+    pub(crate) reason: String,
+    /// Seconds the freeze has been held. `0` for the env-var case (no
+    /// marker, so no measurable start).
+    pub(crate) age_secs: u64,
+}
+
+/// The freeze watchdog (`~/.dracon/sync-notify/dracon-freeze-watchdog.sh`)
+/// auto-clears a marker at 30 minutes; the daemon hard-clears at
+/// [`FREEZE_MARKER_TTL_SECS`] (1h). The report quotes the 30m figure
+/// because that is what actually recovers first.
+pub(crate) const FREEZE_WATCHDOG_CLEAR_SECS: u64 = 30 * 60;
+
+/// Current freeze state, with the same stale-marker auto-clear side
+/// effect [`freeze_reason`] has always had. `None` when sync is not
+/// frozen.
+pub(crate) fn freeze_state(policy_path: &Path) -> Option<FreezeState> {
     if env_freeze_enabled() {
-        return Some("env DRACON_SYNC_FREEZE".to_string());
+        return Some(FreezeState {
+            reason: "env DRACON_SYNC_FREEZE".to_string(),
+            age_secs: 0,
+        });
     }
 
     for marker in freeze_marker_paths(policy_path) {
         if marker.exists() {
+            let mut age_secs = 0u64;
             // Check TTL — auto-expire stale markers
             if let Ok(meta) = std::fs::metadata(&marker) {
                 if let Ok(modified) = meta.modified() {
@@ -1955,10 +1988,14 @@ pub(crate) fn freeze_reason(policy_path: &Path) -> Option<String> {
                             let _ = std::fs::remove_file(&marker);
                             continue;
                         }
+                        age_secs = age.as_secs();
                     }
                 }
             }
-            return Some(format!("marker {}", marker.display()));
+            return Some(FreezeState {
+                reason: format!("marker {}", marker.display()),
+                age_secs,
+            });
         }
     }
 

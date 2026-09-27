@@ -172,6 +172,21 @@ pub(crate) async fn detect_large_blobs_ahead(
                     attempt
                 ));
                 match std::fs::OpenOptions::new()
+                    // REGRESSION FIXED 2026-09-27 (audit rework round 3):
+                    // the F89 fix opened this handle WRITE-ONLY and handed
+                    // the raw fd to `Stdio::from(...)` for the
+                    // `git cat-file --batch-check` child. Stdio::from(File)
+                    // is a raw fd hand-off, NOT a reopen — so the child
+                    // inherited an O_WRONLY fd 0 and could never read the
+                    // object list. cat-file exits 0 with no output, the
+                    // code took the silent `Ok(Vec::new())` path, and
+                    // `detect_large_blobs_ahead` always reported nothing:
+                    // the 100 MiB push guard was silently dead. Measured on
+                    // this repo: the write-only sequence yielded 0 records
+                    // where the previous read-only reopen yielded 6440.
+                    // The handle must be READ-AND-WRITE: we write the
+                    // rev-list through it, then the child reads it.
+                    .read(true)
                     .write(true)
                     .create_new(true)
                     .mode(0o600)
@@ -880,5 +895,66 @@ mod tests {
     fn test_build_filter_branch_args_escapes_single_quotes() {
         let args = build_filter_branch_args(&["we'ird.bin".to_string()]);
         assert!(args[3].contains("'we'\\''ird.bin'"), "got: {}", args[3]);
+    }
+}
+
+/// REGRESSION (audit rework round 3): the F89 fix opened the cat-file
+/// stdin temp file WRITE-ONLY and handed the raw fd to `Stdio::from`,
+/// so `git cat-file --batch-check` inherited an O_WRONLY fd 0, read
+/// nothing, and `detect_large_blobs_ahead` silently returned an empty
+/// vec on every call — disabling the large-blob rewrite guard at
+/// `report.rs:7670` while every test stayed green because nothing
+/// covered this function.
+///
+/// This test builds a repo with an upstream (`@{u}` must resolve for
+/// `rev-list --objects @{u}..HEAD`), commits a blob above the
+/// threshold, and asserts the blob is actually reported. With the
+/// write-only handle it reports 0 records and fails.
+#[cfg(test)]
+mod detect_large_blobs_ahead_regression {
+    use super::*;
+    use crate::test_helpers::{create_test_repo_with_remote, test_commit_cmd, test_git_cmd};
+
+    #[tokio::test]
+    async fn reports_a_blob_committed_ahead_of_upstream() {
+        let (repo, _bare) = create_test_repo_with_remote();
+        // Publish the initial commit so @{u} resolves.
+        test_git_cmd()
+            .args(["push", "-q", "-u", "origin", "HEAD"])
+            .current_dir(&repo)
+            .output()
+            .expect("push init");
+
+        // A blob comfortably above the 1 MiB threshold used here.
+        let big = vec![b'x'; 2 * 1024 * 1024];
+        std::fs::write(repo.join("big.bin"), &big).expect("write big blob");
+        test_git_cmd()
+            .args(["add", "big.bin"])
+            .current_dir(&repo)
+            .output()
+            .expect("git add big");
+        test_commit_cmd()
+            .args(["-m", "add big blob"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit big");
+
+        let found = detect_large_blobs_ahead(&repo, 1024 * 1024)
+            .await
+            .expect("detect_large_blobs_ahead");
+
+        assert!(
+            !found.is_empty(),
+            "detect_large_blobs_ahead returned no records for a 2 MiB blob \
+             committed ahead of upstream — the cat-file stdin handle is not \
+             readable, so the large-blob guard is silently dead"
+        );
+        let (size, path) = &found[0];
+        assert!(
+            *size >= 2 * 1024 * 1024,
+            "reported size {} is smaller than the committed blob",
+            size
+        );
+        assert_eq!(path, "big.bin");
     }
 }

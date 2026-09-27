@@ -525,6 +525,13 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         } else {
             String::new()
         };
+        // v0.113.87: while the daemon is frozen, "waiting" is the wrong
+        // word — nothing is waiting to be dispatched, the dispatcher is
+        // switched off. Name the cause on the row. The number stays the
+        // ROW's own wait age; the freeze's age is on the banner/footer.
+        if row.frozen_secs.is_some() {
+            return format!("⏸️ frozen{duration}{ahead_suffix}");
+        }
         return format!("🟡 waiting{}{}", duration, ahead_suffix);
     }
 
@@ -1562,6 +1569,18 @@ pub(crate) struct RepoReportRow {
     /// full rationale + the deathrun CLEAN-vs-red contradiction
     /// this fix prevents.
     pack_too_large: bool,
+    /// ADDED 2026-09-27 (v0.113.87): seconds the sync daemon has been
+    /// frozen, or `None` when it is running normally.
+    ///
+    /// A frozen daemon leaves every row stale — PENDING pushes never
+    /// complete, ↑N accumulates fleet-wide — and nothing in the row says
+    /// so. The freeze banner does say it, but the banner prints on line
+    /// 2 of a 59-line report: exactly where a scrolled-to-the-bottom
+    /// operator is not looking. Live 2026-09-27: a forgotten `pause`
+    /// held 8 repos at `🟡 waiting` for 32 minutes and was only found by
+    /// asking why. With this field the affected rows carry the reason
+    /// themselves (`⏸️ frozen 9m` instead of `🟡 waiting 9m`).
+    frozen_secs: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -3695,6 +3714,11 @@ pub(crate) async fn run_repos_report(
     let mut size_cache = load_repo_size_cache(&cache_path);
     let cache_lookup = std::sync::Arc::new(size_cache.clone());
     let cache_record = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+    // v0.113.87: resolve the freeze ONCE and stamp it on every row, so
+    // the affected rows carry the reason themselves. `freeze_state`
+    // keeps `freeze_reason`'s stale-marker auto-clear side effect.
+    let freeze_state = crate::policy::freeze_state(policy_path);
+    let frozen_secs = freeze_state.as_ref().map(|s| s.age_secs);
     let _rows: Vec<RepoReportRow> = Vec::new();
     // CHANGED 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
     // CONCERN #6): drop the initial `= 0usize`; the variable is
@@ -4535,6 +4559,7 @@ pub(crate) async fn run_repos_report(
             // not the raw gitdir size. See `size_label` for the
             // deathrun CLEAN-vs-red contradiction this prevents.
             pack_too_large: pack_too_large.0,
+            frozen_secs,
         })
             }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
@@ -4726,16 +4751,16 @@ pub(crate) async fn run_repos_report(
     // stale — PENDING pushes never complete, ↑N accumulates across
     // the fleet — and nothing in the table said why. Surface the
     // freeze front-and-center, right under the banner.
-    if let Some(reason) = crate::policy::freeze_reason(policy_path) {
-        let pause_plain = format!(
-            "── ⏸️ DAEMON PAUSED ({reason}) — nothing is committing or pushing · resume: dracon-sync resume "
-        );
+    if let Some(state) = freeze_state.as_ref() {
+        // v0.113.87: same text as the footer under the table (one
+        // source of truth), so the top and the bottom never disagree
+        // about how long the fleet has been down.
+        let pause_plain = freeze_notice_text(state);
         let pause_pad = pad_target
             .saturating_sub(unicode_width::UnicodeWidthStr::width(pause_plain.as_str()) + 1);
         println!("{} {}", ansi("1;33", &pause_plain), "─".repeat(pause_pad));
         println!();
     }
-
     // ---- Layout tier dispatch (operator's preference: tiered output, not single fixed) ----
     // PUSH_STUCK used to render as letter-wrapped cells (P/U/S/H/_/S/T/U/C/K on separate
     // lines) because `ContentArrangement::Dynamic` shrinks 22 columns to ~3 chars each at
@@ -4828,7 +4853,51 @@ pub(crate) async fn run_repos_report(
     // form). v0.113.18: rich tier only (moved into the match arm
     // above — audit M3).
 
+    // v0.113.87: freeze notice AFTER the table. The top banner
+    // (v0.113.32) already carries this, but it prints on line 2 of a
+    // 59-line report, so an operator reading the PENDING column at the
+    // bottom never saw it — the exact reason a 32-minute forgotten
+    // pause went unnoticed on 2026-09-27. One line below the table is
+    // the only place an operator is guaranteed to look. Only prints
+    // while frozen, so the normal report is unchanged.
+    if let Some(state) = freeze_state.as_ref() {
+        print_freeze_footer(state);
+    }
+
     Ok(())
+}
+
+/// One-line freeze notice printed directly under the repos table.
+///
+/// v0.113.87. Quoted clear time is the watchdog's 30m figure (it
+/// recovers before the daemon's own 1h hard TTL), because that is what
+/// actually ends the freeze first.
+fn print_freeze_footer(state: &crate::policy::FreezeState) {
+    let line = freeze_notice_text(state);
+    let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
+    let pad = pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(line.as_str()) + 1);
+    println!();
+    println!("{} {}", ansi("1;33", &line), "─".repeat(pad));
+}
+
+/// The freeze notice text, as data so tests can assert the content
+/// without capturing stdout.
+fn freeze_notice_text(state: &crate::policy::FreezeState) -> String {
+    let mins = state.age_secs / 60;
+    let clear_in = crate::policy::FREEZE_WATCHDOG_CLEAR_SECS
+        .saturating_sub(state.age_secs)
+        / 60;
+    if state.age_secs == 0 {
+        // env-var freeze has no marker, so no measurable start.
+        return format!(
+            "── ⏸️ DAEMON FROZEN ({}) — nothing is committing or pushing · resume: dracon-sync resume ",
+            state.reason
+        );
+    }
+    format!(
+        "── ⏸️ DAEMON FROZEN {mins}m ({}) — nothing is committing or pushing · watchdog clears in {clear_in}m · resume: dracon-sync resume ",
+        state.reason
+    )
 }
 
 // ---------------------------------------------------------------------------
