@@ -1115,7 +1115,10 @@ fn rel_matches_doublestar(rel: &str, pattern: &str) -> bool {
         match pat {
             [] => rel.is_empty(),
             [p, rest @ ..] if *p == "**" => (0..=rel.len()).any(|k| go(&rel[k..], rest)),
-            [p, rest @ ..] if rel.is_empty() => false,
+            // FIXED 2026-09-27 (audit rework round 4, F84): `p`/`rest`
+            // were bound but unused (clippy `unused_variables` on the
+            // pinned MSRV toolchain). The arm ignores them, so bind `_`.
+            [_, _] if rel.is_empty() => false,
             [p, rest @ ..] => matches_file_pattern(rel[0], p) && go(&rel[1..], rest),
         }
     }

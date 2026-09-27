@@ -1131,7 +1131,10 @@ async fn stage_existing_files_filtered(
             continue;
         }
         let full = repo.join(&p);
-        if !full.exists() && !std::fs::symlink_metadata(&full).is_ok() {
+        // FIXED 2026-09-27 (audit rework round 4, F84): `!x.is_ok()`
+        // is `x.is_err()`; clippy flags the double negative as
+        // `nonminimal_bool` on the pinned MSRV toolchain.
+        if !full.exists() && std::fs::symlink_metadata(&full).is_err() {
             continue;
         }
         // A symlink that is itself the reported path is safe to stage as a

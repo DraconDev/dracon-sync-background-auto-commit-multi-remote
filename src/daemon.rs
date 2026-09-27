@@ -7785,9 +7785,13 @@ pub(crate) async fn run_daemon(
                 }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
-                    && !classification_cooldowns
+                    // FIXED 2026-09-27 (audit rework round 4, F84):
+                    // `!x.is_some_and(..)` is `x.is_none_or(..)`; clippy
+                    // flags the double negative as `nonminimal_bool` on the
+                    // pinned MSRV toolchain. Same predicate, clearer name.
+                    && classification_cooldowns
                         .get(&repo)
-                        .is_some_and(|until| now < *until)
+                        .is_none_or(|until| now < *until)
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());
