@@ -4755,7 +4755,23 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         for p in chunk {
             cmd.arg(p);
         }
-        cmd.status().await?;
+        // FIXED 2026-09-27 (audit F87): the previous `cmd.status().await?`
+        // discarded the exit status. On any non-zero exit (index.lock
+        // contention, a pathspec the unborn branch cannot resolve) the
+        // sweep silently no-op'd and the very next step committed exactly
+        // the oversized/excluded content the sweep exists to keep out.
+        // Both sibling helpers were fixed for this class in v0.112.33
+        // (`unstage_oversized_paths` in git/staging.rs, `unstage_excluded_
+        // paths` in sync.rs); the bootstrap twin was missed.
+        let status = cmd.status().await?;
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "git rm --cached ({} paths) failed in {}: exit {}",
+                chunk.len(),
+                repo.display(),
+                status
+            ));
+        }
     }
 
     // Re-verify after the hygiene sweep.

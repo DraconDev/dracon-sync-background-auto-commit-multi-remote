@@ -145,16 +145,59 @@ pub(crate) async fn detect_large_blobs_ahead(
             // never applied here.) NOTE: `tempfile` is a dev-only
             // dependency in this crate — use a std-only temp file
             // with a Drop-guard cleanup.
-            let tmp_path = std::env::temp_dir().join(format!(
-                "dracon-sync-blob-stdin-{}-{}.txt",
-                std::process::id(),
-                std::time::SystemTime::now()
+            //
+            // FIXED 2026-09-27 (audit F89): the pre-fix name was
+            // `pid` + nanoseconds and the file was created with
+            // `std::fs::write` (O_CREAT|O_TRUNC, follows symlinks,
+            // mode from umask) in the world-writable `temp_dir()`. A
+            // local attacker who won the name race got an arbitrary
+            // file truncated/overwritten as the daemon user. It is now
+            // created with `create_new(true)` (O_EXCL|O_CREAT) and
+            // mode 0600, retried on a name collision, and opened for
+            // writing through the same handle the reader later uses.
+            use std::io::Write as _;
+            use std::os::unix::fs::OpenOptionsExt as _;
+            let tmp_dir = std::env::temp_dir();
+            let mut tmp_path = std::path::PathBuf::new();
+            let mut stdin_file = None;
+            for attempt in 0..8u32 {
+                let nonce = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_nanos())
-                    .unwrap_or(0)
-            ));
-            std::fs::write(&tmp_path, &rev_list.stdout)
+                    .unwrap_or(0);
+                let candidate = tmp_dir.join(format!(
+                    "dracon-sync-blob-stdin-{}-{}-{}.txt",
+                    std::process::id(),
+                    nonce,
+                    attempt
+                ));
+                match std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .mode(0o600)
+                    .open(&candidate)
+                {
+                    Ok(handle) => {
+                        tmp_path = candidate;
+                        stdin_file = Some(handle);
+                        break;
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                    Err(e) => {
+                        return Err(e).with_context(|| {
+                            format!("failed to create stdin tmpfile in {}", r.display())
+                        });
+                    }
+                }
+            }
+            let mut stdin_file = stdin_file
+                .with_context(|| format!("failed to create stdin tmpfile in {}", r.display()))?;
+            stdin_file
+                .write_all(&rev_list.stdout)
                 .with_context(|| format!("failed to write stdin tmpfile in {}", r.display()))?;
+            stdin_file
+                .flush()
+                .with_context(|| format!("failed to flush stdin tmpfile in {}", r.display()))?;
             struct StdinTmpCleanup(std::path::PathBuf);
             impl Drop for StdinTmpCleanup {
                 fn drop(&mut self) {
@@ -162,8 +205,7 @@ pub(crate) async fn detect_large_blobs_ahead(
                 }
             }
             let _tmp_cleanup = StdinTmpCleanup(tmp_path.clone());
-            let stdin_fd = std::fs::File::open(&tmp_path)
-                .with_context(|| format!("failed to reopen stdin tmpfile in {}", r.display()))?;
+            let stdin_fd = stdin_file;
             let cat_file = cat_file_cmd
                 .stdin(std::process::Stdio::from(stdin_fd))
                 .spawn()
@@ -461,9 +503,18 @@ pub(crate) fn rewrite_ahead_paths(
 /// as a REVISION and dies with "bad revision". The fallback could
 /// never succeed. The filter is now a single shell-quoted string
 /// (paths inside the command), followed by `--` and an explicit
-/// `--all` rev range (parity with the filter-repo arm, which also
-/// rewrites all refs). Extracted as a pure function so the argv
+/// `--all` rev range. Extracted as a pure function so the argv
 /// shape is unit-testable without env shims.
+///
+/// FIXED 2026-09-27 (audit F88): the rev range was left as `--all`
+/// under a comment claiming "parity with the filter-repo arm, which
+/// also rewrites all refs". That stopped being true at SYNC-H6
+/// (v0.113.3), which limited the filter-repo arm to `--refs HEAD`.
+/// The caller only force-pushes the CURRENT branch, so on the
+/// fallback path every other local branch was silently rewritten and
+/// never published — it diverged from its remote with no incident
+/// recorded anywhere. Both arms now rewrite exactly the same rev as
+/// the caller will publish: HEAD.
 fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
     let quoted: Vec<String> = paths_to_remove
         .iter()
@@ -479,7 +530,10 @@ fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
         "--index-filter".to_string(),
         filter_expr,
         "--".to_string(),
-        "--all".to_string(),
+        // Same rev as the filter-repo arm's `--refs HEAD`. NEVER `--all`:
+        // the caller force-pushes only the current branch, so rewriting
+        // every ref would silently diverge the unpublished ones.
+        "HEAD".to_string(),
     ]
 }
 
@@ -809,7 +863,13 @@ mod tests {
         assert!(filter.contains("'docs/my file.pdf'"));
         // No bare positional paths between the filter string and `--`.
         assert_eq!(args[4], "--");
-        assert_eq!(args[5], "--all");
+        // FIXED 2026-09-27 (audit F88): the rev range is `HEAD`, matching
+        // the filter-repo arm's `--refs HEAD` (SYNC-H6). It must NEVER be
+        // `--all`: the caller force-pushes only the current branch, so
+        // rewriting every ref would silently diverge the unpublished ones
+        // from their remotes with no incident recorded.
+        assert_eq!(args[5], "HEAD");
+        assert_ne!(args[5], "--all", "filter-branch must not rewrite all refs");
         assert_eq!(args.len(), 6);
     }
 

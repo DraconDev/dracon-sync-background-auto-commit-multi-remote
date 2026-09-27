@@ -545,19 +545,88 @@ fn read_npm_version(repo: &Path) -> Result<String> {
 }
 
 /// Read the current version from pyproject.toml.
+///
+/// FIXED 2026-09-27 (audit F90): the pre-fix loop accepted ANY line
+/// starting with `version` and took `split('=').nth(1)` trimmed of
+/// quotes. Three concrete breakages:
+///   * a legal trailing inline comment (`version = "1.2.3"  # keep`)
+///     yielded `1.2.3"  # keep`, and `create_and_push_tag` then built a
+///     tag `git tag -a` rejects on the embedded space, aborting the
+///     whole release pipeline with a misleading error;
+///   * `version_file = "x"` matched the prefix and was taken as the
+///     version;
+///   * a `version = "…"` line inside an unrelated table, or inside a
+///     multi-line TOML string, was accepted.
+///
+/// Now the key must be exactly `version` (whitespace/`=` boundary), the
+/// value must be a single-line quoted string, a trailing `#` comment is
+/// stripped, and the key is only honoured inside the tables that can
+/// legally carry it.
 fn read_pypi_version(repo: &Path) -> Result<String> {
     let pyproject = repo.join("pyproject.toml");
     if pyproject.exists() {
         let content = std::fs::read_to_string(&pyproject)?;
+        let mut section = String::new();
+        // Track multi-line basic (`"""`) and literal (`'''`) strings so a
+        // `version = "…"` line that merely lives INSIDE one (e.g. inside a
+        // long `description`) is not mined for a version.
+        let mut in_multiline: Option<&str> = None;
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("version") && trimmed.contains('=') {
-                if let Some(ver) = trimmed.split('=').nth(1) {
-                    let ver = ver.trim().trim_matches('"').trim();
-                    if !ver.is_empty() {
-                        return Ok(ver.to_string());
-                    }
+            if let Some(delim) = in_multiline {
+                if trimmed.contains(delim) {
+                    in_multiline = None;
                 }
+                continue;
+            }
+            if trimmed.starts_with('[') && trimmed.ends_with(']') {
+                section = trimmed.trim_matches(&['[', ']'][..]).trim().to_string();
+                continue;
+            }
+            // PEP 621 puts the version in [project]; poetry uses
+            // [tool.poetry]. Nothing else can legally declare one.
+            if section != "project" && section != "tool.poetry" {
+                continue;
+            }
+            // A line that OPENS a multi-line string is not a key/value pair;
+            // record the delimiter and skip the rest of the line.
+            for delim in ["\"\"\"", "'''"] {
+                if let Some(open) = trimmed.find(delim) {
+                    if !trimmed[open + 3..].contains(delim) {
+                        in_multiline = Some(delim);
+                    }
+                    break;
+                }
+            }
+            if in_multiline.is_some() {
+                continue;
+            }
+            let Some(rest) = trimmed.strip_prefix("version") else {
+                continue;
+            };
+            // Reject a key such as `version_file` or `versioning`.
+            if rest
+                .chars()
+                .next()
+                .is_some_and(|ch| !ch.is_whitespace() && ch != '=')
+            {
+                continue;
+            }
+            let rest = rest.trim_start();
+            let Some(value) = rest.strip_prefix('=') else {
+                continue;
+            };
+            let value = value.trim();
+            let Some(literal) = value.strip_prefix('"') else {
+                // Single-quoted or bare values are not a PEP 440 version.
+                continue;
+            };
+            let Some(ver) = literal.split('"').next() else {
+                continue;
+            };
+            let ver = ver.trim();
+            if !ver.is_empty() {
+                return Ok(ver.to_string());
             }
         }
     }
@@ -1241,5 +1310,67 @@ exit 22
         fs::write(dir.path().join("version.txt"), "9.9.9\n").unwrap();
         let result = detect_project_version(dir.path());
         assert_eq!(result, Some(("0.1.0".to_string(), "rust")));
+    }
+}
+
+/// ADDED 2026-09-27 (audit F90): regression coverage for the pyproject
+/// version parser. Every case below produced a WRONG version before the
+/// fix (and a trailing-comment case produced a tag `git tag -a` rejects).
+#[cfg(test)]
+mod pypi_version_parser_tests {
+    use super::*;
+    use std::fs;
+
+    fn parsed(body: &str) -> Result<String> {
+        let dir = tempfile::TempDir::new()?;
+        fs::write(dir.path().join("pyproject.toml"), body)?;
+        read_pypi_version(dir.path())
+    }
+
+    #[test]
+    fn pep621_project_version_is_read() {
+        let v = parsed("[project]\nname = \"app\"\nversion = \"1.2.3\"\n").unwrap();
+        assert_eq!(v, "1.2.3");
+    }
+
+    #[test]
+    fn poetry_tool_table_version_is_read() {
+        let v = parsed("[tool.poetry]\nname = \"app\"\nversion = \"0.9.1\"\n").unwrap();
+        assert_eq!(v, "0.9.1");
+    }
+
+    /// The headline F90 break: a legal trailing inline comment used to
+    /// yield `1.2.3"  # comment`, and the tag step then failed on the
+    /// embedded space, aborting the release pipeline.
+    #[test]
+    fn trailing_inline_comment_is_stripped() {
+        let v = parsed("[project]\nversion = \"1.2.3\"  # keep in sync\n").unwrap();
+        assert_eq!(v, "1.2.3");
+    }
+
+    #[test]
+    fn version_file_key_is_not_mistaken_for_version() {
+        assert!(parsed("[project]\nversion_file = \"version.txt\"\n").is_err());
+        assert!(parsed("[project]\nversioning = \"2.0.0\"\n").is_err());
+    }
+
+    #[test]
+    fn version_outside_a_legal_table_is_ignored() {
+        assert!(parsed("[build-system]\nversion = \"9.9.9\"\n").is_err());
+        assert!(parsed("version = \"9.9.9\"\n").is_err());
+    }
+
+    #[test]
+    fn single_quoted_and_bare_values_are_rejected() {
+        assert!(parsed("[project]\nversion = '1.2.3'\n").is_err());
+        assert!(parsed("[project]\nversion = 1.2.3\n").is_err());
+    }
+
+    /// A multi-line string containing a `version = "…"` line must not be
+    /// mined for a version.
+    #[test]
+    fn version_inside_a_multiline_string_is_ignored() {
+        let body = "[project]\ndescription = \"\"\"\nversion = \"7.7.7\"\n\"\"\"\n";
+        assert!(parsed(body).is_err());
     }
 }
