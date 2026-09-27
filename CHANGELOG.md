@@ -13,6 +13,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.86] - 2026-09-27
+
+### Fixed
+
+- **`repos` SIZE column read `?` for every repo since v0.113.55**: the
+  2026-09-01 "fast default report" deferred the whole cold-path size
+  compute, not just the expensive part, so the non-deep branch returned
+  no size — and because that path also never wrote a cache entry,
+  `repos-size-cache.json` stayed `{}` on the live fleet, meaning no
+  later run (and no `repos --deep` within the hour) could recover it.
+  Observed live 2026-09-27: all 34 rows rendered `?`. Only the
+  genuinely expensive halves are now deferred:
+
+  | probe | cost | status |
+  |---|---|---|
+  | `git count-objects -v` (own `.git`) | ~30ms/repo (1.3s over the live 40-repo fleet, 16-way on the blocking pool) | **measured again** |
+  | `du -sb` over `<gitdir>/modules` | 1.2s for dracon-platform alone | deferred |
+  | `github_pack_too_large` (`pack-objects`) | multi-GiB | deferred |
+  | `probe_history` (`rev-list --objects` + `cat-file --batch-check`) | seconds on multi-GiB repos | deferred |
+
+  Measured cost of the restoration on the live fleet: `repos` 3.6s →
+  4.2s wall for 34 repos (the v0.113.55 regression it fixes was
+  36-50s). Last-known pack/history probe values are still served from
+  the cache, so an oversized pack or broken history keeps its warning.
+- **A superproject's deferred submodule size is now marked, not
+  dropped**: `RepoReportRow::git_modules_bytes` is `Option<u64>` and
+  `None` means "this repo HAS module gitdirs, size unmeasured", which
+  the SIZE cell renders as `own+?` (`12G+?`) instead of rendering as
+  if the repo had no submodules at all. `Some(0)` still means
+  "measured: none". A previous `--deep` measurement is reused when
+  present. The marker uses the compact own-size form so it fits the
+  existing 9-content-cell SIZE budget — the 165-column rich-tier floor
+  is unchanged. JSON reports `null` for the same distinction.
+
 ## [0.113.85] - 2026-09-20
 
 ### Fixed
