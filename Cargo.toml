@@ -2,6 +2,11 @@
 name = "dracon-sync"
 version = "0.113.85"
 edition = "2021"
+# FIXED 2026-09-27 (audit F84): the CI "Minimum Toolchain" job
+# installed `stable` and therefore enforced no MSRV at all. This is the
+# real floor, verified by building the whole workspace (--all-targets)
+# on 1.89.0; 1.88.0 fails on notify-rust 4.18 (requires 1.89.0).
+rust-version = "1.89"
 license = "AGPL-3.0-only"
 description = "Invisible git sync daemon for deterministic AI-assisted development"
 readme = "README.md"
