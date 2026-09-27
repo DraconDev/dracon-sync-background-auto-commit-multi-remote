@@ -947,6 +947,28 @@ fn has_module_gitdirs(repo: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
+/// How the SIZE cell should report a repo's SUBMODULE gitdirs on the
+/// interactive (non-`--deep`) path, where the `du -sb` module walk is
+/// deferred:
+///
+/// - `last_known_modules > 0` → `Some(m)`: a previous `repos --deep`
+///   measured them; reuse the number (free, and it is the deferred
+///   half we are not recomputing).
+/// - repo has module gitdirs, nothing measured → `None`: the cell
+///   renders `own+?` instead of silently pretending the repo has no
+///   submodules.
+/// - no module gitdirs → `Some(0)`: genuinely zero.
+///
+/// Split out from the report body so the three-way contract is unit
+/// testable without standing up a full report run.
+fn resolve_modules_bytes(last_known_modules: u64, has_module_gitdirs: bool) -> Option<u64> {
+    match last_known_modules {
+        m if m > 0 => Some(m),
+        _ if has_module_gitdirs => None,
+        _ => Some(0),
+    }
+}
+
 /// `du -sb` on a single path, parsed to bytes. Shared by the
 /// git-size fallback and its `modules/` subtraction.
 fn du_bytes(path: &std::path::Path) -> Option<u64> {
@@ -3899,15 +3921,7 @@ pub(crate) async fn run_repos_report(
                 history_probe_failed,
                 last_known_modules,
             ) = last_known.unwrap_or(((false, 0), 0, false, 0));
-            let git_modules_bytes = match last_known_modules {
-                // A previous `--deep` already measured them; reuse it
-                // (free, and the module walk is the deferred part).
-                m if m > 0 => Some(m),
-                // Repo has module gitdirs, size unknown until `--deep`.
-                _ if has_module_gitdirs => None,
-                // Measured (implicitly): no module gitdirs at all.
-                _ => Some(0),
-            };
+            let git_modules_bytes = resolve_modules_bytes(last_known_modules, has_module_gitdirs);
             (
                 own_bytes,
                 git_modules_bytes,
