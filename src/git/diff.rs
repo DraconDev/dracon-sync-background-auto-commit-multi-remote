@@ -607,20 +607,34 @@ mod f33_tests {
 
         // Poll the classifier and readiness together: a loaded test host
         // must not accidentally time out before the filter has even run.
+        //
+        // FIXED 2026-09-27: readiness is "filter-pid is present AND
+        // parseable", not merely "present". The fixture is
+        // `sh -c 'echo $$ > .git/filter-pid; ...'` — the redirection
+        // CREATES the file before `echo` writes the pid, so `exists()`
+        // went true on a 0-byte file and the read below died with
+        // `ParseIntError { kind: Empty }`. Reproduced 1-in-3 on a
+        // loaded host (2026-09-27 full-workspace run) and never on an
+        // idle one: a load-dependent flake, not a real regression.
+        let pid_file = repo.join(".git/filter-pid");
         let mut classification = Box::pin(super::cli_diff_entries(repo));
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
             loop {
                 tokio::select! {
                     result = &mut classification => panic!("filter exited early: {result:?}"),
                     _ = tokio::time::sleep(std::time::Duration::from_millis(10)) => {
-                        if repo.join(".git/filter-pid").exists() { break; }
+                        if std::fs::read_to_string(&pid_file)
+                            .is_ok_and(|s| s.trim().parse::<i32>().is_ok())
+                        {
+                            break;
+                        }
                     }
                 }
             }
         })
         .await
         .expect("filter must start within fixture budget");
-        let pid: i32 = std::fs::read_to_string(repo.join(".git/filter-pid"))
+        let pid: i32 = std::fs::read_to_string(&pid_file)
             .unwrap()
             .trim()
             .parse()

@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Load-dependent flake in the classification-cancellation test**:
+  `classification_cancellation_terminates_git_process_group` polled
+  `.git/filter-pid` with `exists()`, but the fixture is
+  `sh -c 'echo $$ > .git/filter-pid; ...'` — the redirection CREATES
+  the file before `echo` writes the pid. On a loaded host the test read
+  a 0-byte file and died with `ParseIntError { kind: Empty }`
+  (reproduced 1-in-3 on the 2026-09-27 workspace run under daemon
+  load, never on an idle host). Readiness is now "present AND
+  parseable"; 6/6 consecutive runs green on the same loaded host.
 - **A frozen daemon now says so on the rows you are looking at**
   (live incident, 2026-09-27 15:14–15:46): a `dracon-sync pause` that was
   never resumed froze 8 repos at `🟣 PENDING` / `🟡 waiting` for 32
