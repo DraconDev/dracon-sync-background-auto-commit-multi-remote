@@ -1305,7 +1305,13 @@ async fn classify_dirty_entries(
     untracked_excludes: &[String],
 ) -> DirtyClassification {
     const PORCELAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
-    let run = |extra: &str| {
+    /// One `git status --porcelain -z` pass, spawned cancellable so an
+    /// abandoned call cannot leave `git` (or its warden filter children)
+    /// running to compete with the retry.
+    async fn run_porcelain(
+        repo: &Path,
+        extra: &str,
+    ) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>)> {
         // Built conditionally: an empty `&str` would be handed to git as
         // an argument, not skipped.
         let mut args: Vec<&str> = vec!["status", "--porcelain", "-z"];
@@ -1316,15 +1322,20 @@ async fn classify_dirty_entries(
             crate::git::spawn_git_command_cancellable(repo, &args, "status --porcelain -z")?;
         let (status, stdout, _) =
             crate::git::run_git_captured_output(child, repo, "status --porcelain -z").await?;
-        Ok::<_, anyhow::Error>((status, stdout))
-    };
+        Ok((status, stdout))
+    }
     // `--ignore-submodules=dirty` drops submodule-worktree-only entries
     // (unchanged gitlink) — the exact semantics the sync loop's
     // `is_gitlink_unchanged` applies at staging time. Gitlink SHA drift
     // still shows in BOTH passes and therefore stays committable.
     let (plain, base) = match tokio::time::timeout(
         PORCELAIN_BUDGET,
-        async { (run("").await, run("--ignore-submodules=dirty").await) },
+        async {
+            (
+                run_porcelain(repo, "").await,
+                run_porcelain(repo, "--ignore-submodules=dirty").await,
+            )
+        },
     )
     .await
     {
