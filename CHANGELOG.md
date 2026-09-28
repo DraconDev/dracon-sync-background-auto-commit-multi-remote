@@ -13,6 +13,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- **The committer was resource-starved by its own push-path pack-size
+  guard, not by any repo being slow** (operator report 2026-09-28: "if you
+  look at the commiter then its stuck"; `doomtap` dirty 14 h,
+  `dracon-strategy` dirty 2 h). The proactive oversized-pack guard
+  (`github_pack_too_large`, called from the push path on every push
+  attempt) skips its cheap whole-`.git` fast path for any repo at or above
+  the 2 GiB limit *by construction*, and `github_push_basis_bytes` then
+  re-derived the object set per attempt. Two defects made that object set
+  enormous:
+  - **A duplicate-URL github remote poisoned the verdict.** The daemon
+    configures a named `github` mirror alongside an `origin` pointing at the
+    same repository (the fleet's SSH-mirror pattern), and the old code took
+    the **max** across one scenario per remote name. A missing tracking ref
+    on either is a FRESH-remote placeholder meaning "the whole branch
+    ships", so one remote whose local ref happened to be absent forced a
+    whole-history measurement even when its duplicate-URL sibling was valid
+    and converged. Measured on the fleet: `darklord` 5.66 GiB and
+    `endless-td` 4.62 GiB of objects measured to decide whether to push
+    **0 bytes**. Scenarios are now deduped by canonical repository URL
+    (`same_repository_url`'s `canonical_repository_url`), and within a
+    duplicate-URL group the informed exclusion set wins over the
+    fresh-remote placeholder — sound rather than merely cheaper, because
+    two remotes with the same URL address the same remote, so an absent
+    tracking ref on one is a gap in local bookkeeping, not a fact about the
+    remote.
+  - **A converged repo re-measured on every commit.** The verdict cache key
+    contains the branch tip, so each new commit is a guaranteed miss, and
+    the guard answered "nothing to push" by deriving the full object set. A
+    converged repo is now recognised from the ref files alone (every github
+    remote's tracking tip equals the branch tip) and short-circuits to
+    `(false, 0)` with no `.git` walk, no `rev-list`, no `cat-file` and no
+    `pack-objects`. The verdict is cached like any other, so cache
+    population is unchanged.
+
+  The cost of the old path, all measured on the fleet: two `git
+  pack-objects --stdout` children running concurrently at 155% and 44% CPU
+  and 1.14 GB / 184 MB RSS; the daemon's cgroup throttled in **441 of 451
+  CPU periods (97.8%)** with 106 CPU-seconds of demand refused per 45 s
+  wall, and pinned at `MemoryHigh`; classifications that take **1.19 s**
+  (`ai-auto-writer`) and **4.97 s** (`monster-minecraft`) by hand timing out
+  *inside* the daemon at 33 s and 36 s. Repos that lost the scheduler
+  lottery sat dirty for hours.
+
+  After the change, **0 repos** are forced into the multi-GiB
+  `pack-objects` probe (was 2), and the daemon holds ~87% of one core with
+  **0% throttled periods** and 0 CPU-seconds of refused demand.
+
+  Two proposals from the original analysis were **deliberately not
+  implemented**, and the reasons are part of the record:
+  - *A TTL on the verdict cache* — unnecessary. The key already encodes
+    every input that can change the verdict (limit, branch tip, remote
+    names, tracking tips), so a TTL could only add staleness.
+  - *Bounding the compressed "second chance" probe* — rejected as
+    verdict-risking. The probe exists because github receives a
+    **compressed** pack, so a large uncompressed delta can still fit; any
+    cutoff that skips it flips the verdict from "fits" to "too big" for a
+    repo that genuinely would have fit. The whole-history case that made it
+    pathological is removed by the dedupe above, so the bound is not needed
+    to get the win.
+
+  **Behaviour change, stated explicitly:** the basis reported for a
+  **converged** repo is now `0` (what a push actually ships) where the
+  `.git` fast path previously reported the whole `.git` as a proxy. The
+  delta path already returned `0` for the same case, so this makes the two
+  paths agree. `small_repo_is_not_too_big_for_github` was updated to assert
+  the invariant it protects (a small repo's basis stays far under the 2 GiB
+  limit, so github is never skipped) rather than the incidental `size > 0`.
+  **Tests:** 1735 workspace tests pass (was 1729); 6 new, all in
+  `git::github_pack_tests` — duplicate-URL remote does not force
+  whole-branch, distinct github repos still take the max, converged
+  short-circuits a whole `.git` over the limit, the converged verdict is
+  cached, no-github-remote is not converged, and a single behind remote is
+  not converged. `cargo clippy --workspace --locked -- -D warnings` and
+  `cargo deny check` clean.
+
 ## [0.113.90] - 2026-09-28
 
 ### Fixed
