@@ -240,7 +240,6 @@ fn guard_cache_store(repo: &std::path::Path, key: String, verdict: (bool, u64)) 
 /// layout) so a parser limitation can never produce a wrong answer — the
 /// caller then falls through to the measured path.
 struct DirectRefState {
-    branch: String,
     branch_tip: String,
     /// (github remote name, its tracking tip; `None` when the ref is absent)
     github_remotes: Vec<(String, Option<String>)>,
@@ -264,7 +263,6 @@ fn direct_ref_state(repo: &std::path::Path) -> Option<DirectRefState> {
         })
         .collect();
     Some(DirectRefState {
-        branch,
         branch_tip,
         github_remotes,
     })
