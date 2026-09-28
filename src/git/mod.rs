@@ -467,8 +467,8 @@ fn github_push_basis_bytes(repo: &std::path::Path, limit: u64) -> Option<u64> {
 /// Measured 2026-09-28 on darklord, where `origin` and `github` are the
 /// same URL and only `origin/main` existed locally: the guard derived a
 /// 5.7 GiB object set on every push attempt (600s `pack-objects` ceiling,
-/// >700 MB RSS) to decide whether to push 0 bytes, and that job held the
-/// daemon's whole CPU/memory allowance.
+/// more than 700 MB RSS) to decide whether to push 0 bytes, and that job
+/// held the daemon's whole CPU/memory allowance.
 ///
 /// Deduplicating by canonical URL is sound, not merely cheaper: two remotes
 /// with the same repository URL address the same remote, so the objects it
