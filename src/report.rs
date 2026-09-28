@@ -1315,7 +1315,7 @@ async fn classify_dirty_entries(
         let child =
             crate::git::spawn_git_command_cancellable(repo, &args, "status --porcelain -z")?;
         let (status, stdout, _) =
-            crate::git::run_git_captured_output(child, repo, "status --porcelain -z");
+            crate::git::run_git_captured_output(child, repo, "status --porcelain -z").await?;
         Ok::<_, anyhow::Error>((status, stdout))
     };
     // `--ignore-submodules=dirty` drops submodule-worktree-only entries
