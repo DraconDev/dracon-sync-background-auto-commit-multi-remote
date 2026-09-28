@@ -1280,26 +1280,56 @@ fn parse_porcelain_z(stdout: &[u8]) -> Vec<(u8, u8, String)> {
 /// `untracked_excludes` are the global `untracked_exclude_patterns` (daemon
 /// won't stage those either); `auto_commit_excludes` are the effective
 /// per-repo (fallback global) `auto_commit_exclude_patterns`.
+///
+/// v0.113.89 (b): the "fast: no clean-filter pass" claim in the comment
+/// above is FALSE and cost the operator the whole `repos` command. `git
+/// status --porcelain` DOES run the clean filter whenever the stat
+/// cache cannot prove a file unchanged, so on a warden-hardened repo it
+/// spawns `dracon-warden filter-process` per candidate file. Measured
+/// live 2026-09-28 on `doomtap` (40 of the first 40 tracked files carry
+/// `filter=dracon`): a plain `git status` took **>40s** and timed out,
+/// while the same command with the filter bypassed took **0.041s**.
+/// Because this function runs for every repo with tracked dirt, one
+/// `repos` invocation walked 34 repos and took **over 10 minutes**
+/// (measured 3x, consistently).
+///
+/// The port is now BOUNDED, and a timeout degrades to the pre-v0.113.13
+/// defensive answer (treat everything as committable) so real dirt is
+/// never hidden — the same posture the non-zero-exit branch below
+/// already takes. The child is spawned cancellable/kill-on-drop, so an
+/// abandoned call cannot leave a `git status` (or its warden children)
+/// running to compete with the retry.
 async fn classify_dirty_entries(
     repo: &Path,
     auto_commit_excludes: &[String],
     untracked_excludes: &[String],
 ) -> DirtyClassification {
+    const PORCELAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
     let run = |extra: &str| {
-        let mut cmd = crate::git::git_cmd();
-        cmd.args(["status", "--porcelain", "-z"]).current_dir(repo);
+        // Built conditionally: an empty `&str` would be handed to git as
+        // an argument, not skipped.
+        let mut args: Vec<&str> = vec!["status", "--porcelain", "-z"];
         if !extra.is_empty() {
-            cmd.arg(extra);
+            args.push(extra);
         }
-        cmd.output()
+        let child =
+            crate::git::spawn_git_command_cancellable(repo, &args, "status --porcelain -z")?;
+        let (status, stdout, _) =
+            crate::git::run_git_captured_output(child, repo, "status --porcelain -z");
+        Ok::<_, anyhow::Error>((status, stdout))
     };
     // `--ignore-submodules=dirty` drops submodule-worktree-only entries
     // (unchanged gitlink) — the exact semantics the sync loop's
     // `is_gitlink_unchanged` applies at staging time. Gitlink SHA drift
     // still shows in BOTH passes and therefore stays committable.
-    let (plain, base) = match (run(""), run("--ignore-submodules=dirty")) {
-        (Ok(p), Ok(b)) if p.status.success() && b.status.success() => {
-            (parse_porcelain_z(&p.stdout), parse_porcelain_z(&b.stdout))
+    let (plain, base) = match tokio::time::timeout(
+        PORCELAIN_BUDGET,
+        async { (run("").await, run("--ignore-submodules=dirty").await) },
+    )
+    .await
+    {
+        Ok((Ok(p), Ok(b))) if p.0.success() && b.0.success() => {
+            (parse_porcelain_z(&p.1), parse_porcelain_z(&b.1))
         }
         // Defensive: porcelain unavailable → treat everything as
         // committable (pre-v0.113.13 behavior) so we never hide real dirt.
