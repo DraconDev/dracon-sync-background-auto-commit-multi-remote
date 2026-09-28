@@ -867,6 +867,132 @@ mod github_pack_tests {
         current_branch(repo).expect("fixture repo has a branch")
     }
 
+    /// darklord's exact shape: `origin` and a daemon-managed `github`
+    /// mirror pointing at the SAME repository, with only origin's tracking
+    /// ref populated. Both URLs are github.com, so the guard must measure
+    /// one scenario, not two.
+    fn fixture_repo_with_duplicate_github_remotes() -> PathBuf {
+        let repo = crate::test_helpers::create_test_repo();
+        for (name, url) in [
+            ("origin", "git@github.com:Test/fixture.git"),
+            ("github", "git@github.com:Test/fixture.git"),
+        ] {
+            crate::test_helpers::test_git_cmd()
+                .args(["remote", "add", name, url])
+                .current_dir(&repo)
+                .output()
+                .expect("git remote add");
+        }
+        repo
+    }
+
+    /// ADDED 2026-09-28: the duplicate-URL pair must NOT be measured as
+    /// "the whole branch ships". Before the fix, `github` had no tracking
+    /// ref, so it produced an empty exclusion set, the guard took the max
+    /// across scenarios, and the verdict came from a whole-history object
+    /// set — the 5.7 GiB `pack-objects` job measured on the fleet.
+    #[test]
+    fn duplicate_url_github_remote_without_tracking_ref_does_not_force_whole_branch() {
+        let repo = fixture_repo_with_duplicate_github_remotes();
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "origin", &branch, &head_sha(&repo));
+        // `github/main` deliberately absent: the fresh-remote placeholder.
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(
+            !too_big,
+            "a converged duplicate-URL sibling must not read as a whole-branch push, basis={basis}"
+        );
+        assert_eq!(basis, 0, "the informed sibling's empty delta is the verdict");
+    }
+
+    /// The dedupe must NOT extend across distinct repositories: two
+    /// different github repos are two different remotes and the max still
+    /// applies, so a fresh one can still make the verdict "too big".
+    #[test]
+    fn distinct_github_repos_still_take_the_max_across_scenarios() {
+        let repo = crate::test_helpers::create_test_repo();
+        for (name, url) in [
+            ("origin", "git@github.com:Test/one.git"),
+            ("github", "git@github.com:Test/two.git"),
+        ] {
+            crate::test_helpers::test_git_cmd()
+                .args(["remote", "add", name, url])
+                .current_dir(&repo)
+                .output()
+                .expect("git remote add");
+        }
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "origin", &branch, &head_sha(&repo));
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        assert!(
+            too_big,
+            "a distinct fresh github repo still ships the whole branch, basis={basis}"
+        );
+        assert!(basis > 0, "whole-branch basis must be nonzero");
+    }
+
+    /// ADDED 2026-09-28: the converged short-circuit is the whole point for
+    /// a multi-GiB repo, and it must be FREE — no `rev-list`, no
+    /// `cat-file`, no `pack-objects`. The fixture is far below 2 GiB, so
+    /// proving the counter did not advance proves the short-circuit fired
+    /// BEFORE the size fast path, which is the ordering that makes it
+    /// useful for the repos that can never take that fast path.
+    #[test]
+    fn converged_repo_short_circuits_before_any_git_subprocess() {
+        let repo = fixture_repo_with_github_remote();
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
+        let before = guard_measure_count(&repo);
+        let (too_big, basis) =
+            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
+        assert!(!too_big, "converged means nothing to push");
+        assert_eq!(basis, 0, "a converged push ships zero bytes");
+        assert_eq!(
+            guard_measure_count(&repo),
+            before,
+            "the converged short-circuit must spawn no measurement subprocess"
+        );
+    }
+
+    /// A repo with NO github remote must not be short-circuited: the daemon
+    /// auto-creates the github repo on first push, so the whole branch
+    /// really would ship.
+    #[test]
+    fn no_github_remote_is_not_treated_as_converged() {
+        let repo = crate::test_helpers::create_test_repo();
+        assert_ne!(
+            all_github_remotes_converged(&repo),
+            Some(true),
+            "no github remote must fall through to measurement"
+        );
+    }
+
+    /// One remote behind the branch tip is NOT converged — the guard must
+    /// still measure, because that push ships real objects.
+    #[test]
+    fn a_single_behind_remote_is_not_converged() {
+        let repo = fixture_repo_with_github_remote();
+        let branch = fixture_branch(&repo);
+        let head = head_sha(&repo);
+        // Point the tracking ref at HEAD's parent so the branch is ahead.
+        let parent = {
+            let out = crate::test_helpers::test_git_cmd()
+                .args(["rev-parse", "HEAD~1"])
+                .current_dir(&repo)
+                .output()
+                .expect("rev-parse HEAD~1");
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        };
+        set_tracking_ref(&repo, "gh", &branch, &parent);
+        assert_ne!(
+            all_github_remotes_converged(&repo),
+            Some(true),
+            "an outstanding commit means the repo is not converged (head={head})"
+        );
+    }
+
     #[test]
     fn delta_is_empty_when_github_already_has_the_branch() {
         // junk-runner class: the branch's objects are ALL on github already
