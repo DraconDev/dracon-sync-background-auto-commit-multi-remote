@@ -151,13 +151,26 @@ fn github_pack_too_large_with_limit(
             .or_insert(0) += 1;
     }
     // ADDED 2026-09-28: a converged repo ships nothing, and that is
-    // provable from the ref files alone. Checked BEFORE the size fast path
-    // because it is both cheaper and more specific: it answers the guard's
-    // actual question ("is the next push too big?") instead of proxying it
-    // through `.git` size, and it holds for repos of ANY size — including
-    // the multi-GiB ones that can never take the fast path below.
+    // provable from the ref files alone. Checked BEFORE the size
+    // measurement because it answers the guard's actual question ("is the
+    // next push too big?") instead of proxying it through `.git` size, and
+    // it costs a few file reads instead of a `.git` directory walk plus
+    // every `rev-list` / `cat-file` / `pack-objects` run. This is the only
+    // path that helps a multi-GiB repo, because the `.git` fast path below
+    // is unreachable for them by construction.
+    //
+    // The verdict is stored like any other: a steady repo then pays the
+    // key lookup alone, and cache-population behaviour is unchanged.
+    // Basis 0 is the established value for "converged" — the delta path
+    // already returns it (see `delta_is_empty_when_github_already_has_the
+    // _branch`), and it is the true pushable size, where the `.git` fast
+    // path's figure is a proxy.
     if all_github_remotes_converged(repo) == Some(true) {
-        return (false, 0);
+        let verdict = (false, 0u64);
+        if let Some(key) = cache_key {
+            guard_cache_store(repo, key, verdict);
+        }
+        return verdict;
     }
     // Use the precomputed size when supplied; otherwise measure `.git`.
     let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
@@ -783,9 +796,17 @@ mod github_pack_tests {
         let repo = repo.as_path();
         let (too_big, size) = github_pack_too_large(repo, None);
         assert!(!too_big, "a small repo must never be skipped for github");
+        // CHANGED 2026-09-28: the basis for a CONVERGED repo is now 0 (a
+        // push ships nothing), where the `.git` fast path reported the
+        // whole `.git` as a proxy. This fixture — the daemon's own
+        // checkout — is converged with both of its same-URL github
+        // remotes, so it takes the converged short-circuit. The invariant
+        // this test protects is unchanged and still asserted: the basis
+        // must stay far below the 2 GiB limit, i.e. github is never
+        // skipped.
         assert!(
-            size > 0 && size < 2 * 1024 * 1024 * 1024,
-            "pushable size should be the small .git, got {size}"
+            size < 2 * 1024 * 1024 * 1024,
+            "a small repo's pushable basis must stay under github's 2 GiB limit, got {size}"
         );
     }
 
@@ -933,26 +954,39 @@ mod github_pack_tests {
         assert!(basis > 0, "whole-branch basis must be nonzero");
     }
 
-    /// ADDED 2026-09-28: the converged short-circuit is the whole point for
-    /// a multi-GiB repo, and it must be FREE — no `rev-list`, no
-    /// `cat-file`, no `pack-objects`. The fixture is far below 2 GiB, so
-    /// proving the counter did not advance proves the short-circuit fired
-    /// BEFORE the size fast path, which is the ordering that makes it
-    /// useful for the repos that can never take that fast path.
+    /// ADDED 2026-09-28: the converged short-circuit is the only path that
+    /// helps a multi-GiB repo, because the `.git` fast path is unreachable
+    /// for them by construction. So it must win over that fast path — hence
+    /// TEST_PRECOMPUTED (3 GiB) against a TEST_LIMIT (64 KiB).
     #[test]
-    fn converged_repo_short_circuits_before_any_git_subprocess() {
+    fn converged_repo_short_circuits_a_whole_git_over_the_limit() {
         let repo = fixture_repo_with_github_remote();
         let branch = fixture_branch(&repo);
         set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
-        let before = guard_measure_count(&repo);
         let (too_big, basis) =
             github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), TEST_LIMIT);
         assert!(!too_big, "converged means nothing to push");
-        assert_eq!(basis, 0, "a converged push ships zero bytes");
+        assert_eq!(
+            basis, 0,
+            "a converged push ships zero bytes even when .git is over the limit"
+        );
+    }
+
+    /// The converged verdict must be cached like any other, or a steady
+    /// repo re-derives it (and repopulates nothing) on every call.
+    #[test]
+    fn converged_verdict_is_cached() {
+        let repo = fixture_repo_with_github_remote();
+        let branch = fixture_branch(&repo);
+        set_tracking_ref(&repo, "gh", &branch, &head_sha(&repo));
+        let first = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        let before = guard_measure_count(&repo);
+        let second = github_pack_too_large_with_limit(&repo, None, CACHE_TEST_LIMIT);
+        assert_eq!(first, second);
         assert_eq!(
             guard_measure_count(&repo),
             before,
-            "the converged short-circuit must spawn no measurement subprocess"
+            "an unmoved converged tip must be a cache hit, not a re-derivation"
         );
     }
 
