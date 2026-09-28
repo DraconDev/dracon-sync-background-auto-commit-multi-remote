@@ -150,6 +150,15 @@ fn github_pack_too_large_with_limit(
             .entry(repo.to_path_buf())
             .or_insert(0) += 1;
     }
+    // ADDED 2026-09-28: a converged repo ships nothing, and that is
+    // provable from the ref files alone. Checked BEFORE the size fast path
+    // because it is both cheaper and more specific: it answers the guard's
+    // actual question ("is the next push too big?") instead of proxying it
+    // through `.git` size, and it holds for repos of ANY size — including
+    // the multi-GiB ones that can never take the fast path below.
+    if all_github_remotes_converged(repo) == Some(true) {
+        return (false, 0);
+    }
     // Use the precomputed size when supplied; otherwise measure `.git`.
     let measured = precomputed_size.or_else(|| crate::report::measure_git_size_bytes(repo));
     let (result, clean) = if let Some(size) = measured.filter(|s| *s < limit) {
