@@ -225,12 +225,19 @@ fn guard_cache_store(repo: &std::path::Path, key: String, verdict: (bool, u64)) 
     }
 }
 
-/// Build the cache key WITHOUT spawning git: read the worktree HEAD file,
-/// resolve refs from loose files / packed-refs, and scan the config file
-/// for github remotes. Returns None on ANY irregularity (detached HEAD,
-/// unreadable files, exotic layout) — the caller then takes the uncached
-/// path, so a key-parser limitation can never produce a wrong hit.
-fn guard_cache_key(repo: &std::path::Path, limit: u64) -> Option<String> {
+/// Direct (no-subprocess) view of the refs the pack guard reasons about,
+/// read from loose ref files / packed-refs and the config file. Returns
+/// `None` on ANY irregularity (detached HEAD, unreadable files, exotic
+/// layout) so a parser limitation can never produce a wrong answer — the
+/// caller then falls through to the measured path.
+struct DirectRefState {
+    branch: String,
+    branch_tip: String,
+    /// (github remote name, its tracking tip; `None` when the ref is absent)
+    github_remotes: Vec<(String, Option<String>)>,
+}
+
+fn direct_ref_state(repo: &std::path::Path) -> Option<DirectRefState> {
     let gitdir = resolve_gitdir_direct(repo)?;
     let commondir = resolve_commondir_direct(&gitdir);
     let head = std::fs::read_to_string(gitdir.join("HEAD")).ok()?;
@@ -239,23 +246,70 @@ fn guard_cache_key(repo: &std::path::Path, limit: u64) -> Option<String> {
     let branch_tip = resolve_ref_direct(&commondir, &branch_ref)?;
     let mut remotes = github_remote_names_direct(&commondir);
     remotes.sort();
-    let tips: Vec<String> = remotes
-        .iter()
+    let github_remotes = remotes
+        .into_iter()
         .map(|name| {
-            // A missing tracking ref is a FRESH remote (whole branch
-            // ships); encode it explicitly so adding/fetching the ref
-            // changes the key and forces a re-measure.
-            resolve_ref_direct(&commondir, &format!("refs/remotes/{}/{}", name, branch))
-                .unwrap_or_else(|| "-".to_string())
+            let tip =
+                resolve_ref_direct(&commondir, &format!("refs/remotes/{}/{}", name, branch));
+            (name, tip)
         })
+        .collect();
+    Some(DirectRefState {
+        branch,
+        branch_tip,
+        github_remotes,
+    })
+}
+
+/// Build the cache key WITHOUT spawning git. See `direct_ref_state` for
+/// the `None` contract.
+fn guard_cache_key(repo: &std::path::Path, limit: u64) -> Option<String> {
+    let st = direct_ref_state(repo)?;
+    let names: Vec<String> = st.github_remotes.iter().map(|(n, _)| n.clone()).collect();
+    let tips: Vec<String> = st
+        .github_remotes
+        .iter()
+        // A missing tracking ref is a FRESH remote (whole branch ships);
+        // encode it explicitly so adding/fetching the ref changes the key
+        // and forces a re-measure.
+        .map(|(_, tip)| tip.clone().unwrap_or_else(|| "-".to_string()))
         .collect();
     Some(format!(
         "{}:{}:{}:{}",
         limit,
-        branch_tip,
-        remotes.join(","),
+        st.branch_tip,
+        names.join(","),
         tips.join(","),
     ))
+}
+
+/// ADDED 2026-09-28: does every github remote already hold the branch tip?
+///
+/// This is the common case for a converged repo and it is the case the
+/// guard used to pay the most for. `github_pack_too_large` skips its cheap
+/// whole-`.git` fast path for ANY repo at or above the 2 GiB limit, then
+/// re-derives the delta on every push attempt — and the cache key contains
+/// the branch tip, so each new commit is a guaranteed miss. For a
+/// converged multi-GiB repo that meant a full object-set measurement per
+/// commit to conclude "nothing to push" (measured 2026-09-28: 5.7 GiB for
+/// darklord, 24.1 GiB for dracon-platform, 224.3 GiB of blobs for
+/// dracon-strategy, against a real push pack of 0 bytes).
+///
+/// When every github remote's tracking tip EQUALS the branch tip, a push
+/// provably ships nothing, so the answer is (false, 0) with zero git
+/// subprocesses — no `rev-list`, no `cat-file`, no `pack-objects`. Sound
+/// because it is the remote's own recorded tip that is compared, not an
+/// estimate. `None` means "not proven"; the caller measures as before.
+fn all_github_remotes_converged(repo: &std::path::Path) -> Option<bool> {
+    let st = direct_ref_state(repo)?;
+    if st.github_remotes.is_empty() {
+        return Some(false);
+    }
+    Some(
+        st.github_remotes
+            .iter()
+            .all(|(_, tip)| tip.as_deref() == Some(st.branch_tip.as_str())),
+    )
 }
 
 /// Resolve a repo's real gitdir: `.git` directory, or the `gitdir: <path>`
@@ -359,14 +413,7 @@ fn github_push_basis_bytes(repo: &std::path::Path, limit: u64) -> Option<u64> {
     // remote with no usable tracking ref — and the no-github-remote case
     // (daemon auto-creates the repo on first push) — is a FRESH remote: the
     // whole branch ships, no exclusions.
-    let scenarios: Vec<Vec<String>> = if remotes.is_empty() {
-        vec![Vec::new()]
-    } else {
-        remotes
-            .iter()
-            .map(|name| github_delta_excludes(repo, name, &branch))
-            .collect()
-    };
+    let scenarios: Vec<Vec<String>> = github_push_scenarios(repo, &remotes, &branch);
     let mut best: u64 = 0;
     for excludes in scenarios {
         let shas = branch_object_shas(repo, &branch, &excludes)?;
@@ -382,6 +429,71 @@ fn github_push_basis_bytes(repo: &std::path::Path, limit: u64) -> Option<u64> {
         best = best.max(basis);
     }
     Some(best)
+}
+
+/// The exclusion-tip sets the push-path guard should measure, one per
+/// DISTINCT github repository rather than one per remote name.
+///
+/// ADDED 2026-09-28: the daemon commonly configures a named `github`
+/// mirror alongside an `origin` that points at the same repository (the
+/// fleet's SSH-mirror pattern). Those two remotes receive an identical
+/// push, so they must not produce two independent verdicts — but the old
+/// code did, and took the MAX across them. A missing tracking ref on
+/// either one is a FRESH-remote placeholder ("the whole branch ships"),
+/// so one remote whose local ref happened to be absent forced a
+/// whole-history measurement even when its duplicate-URL sibling's
+/// tracking ref was valid and converged.
+///
+/// Measured 2026-09-28 on darklord, where `origin` and `github` are the
+/// same URL and only `origin/main` existed locally: the guard derived a
+/// 5.7 GiB object set on every push attempt (600s `pack-objects` ceiling,
+/// >700 MB RSS) to decide whether to push 0 bytes, and that job held the
+/// daemon's whole CPU/memory allowance.
+///
+/// Deduplicating by canonical URL is sound, not merely cheaper: two remotes
+/// with the same repository URL address the same remote, so the objects it
+/// already holds are the same. An absent tracking ref on one of them is a
+/// gap in LOCAL bookkeeping, not a fact about the remote — so within a
+/// duplicate-URL group the informed exclusion set (non-empty = the remote
+/// demonstrably has objects) is the correct one to measure, and an empty
+/// placeholder never overrides it.
+///
+/// Residual, stated rather than hidden: if two duplicates carry DIFFERENT
+/// non-empty tracking tips, the first in `github_remote_names` order wins
+/// instead of the max. They should not differ (same remote), and choosing
+/// deterministically is preferable to measuring both.
+fn github_push_scenarios(
+    repo: &std::path::Path,
+    remotes: &[String],
+    branch: &str,
+) -> Vec<Vec<String>> {
+    if remotes.is_empty() {
+        return vec![Vec::new()];
+    }
+    // (canonical repository URL, exclusion tips). `None` URL = unknown, and
+    // unknown URLs are never grouped: two unparsed URLs are not evidence of
+    // sameness, so they keep their own scenarios.
+    let mut groups: Vec<(Option<String>, Vec<String>)> = Vec::new();
+    for name in remotes {
+        let url = crate::git::multi_remote::get_remote_url(repo, name);
+        let canonical = url.as_deref().and_then(urls::canonical_repository_url);
+        let excludes = github_delta_excludes(repo, name, branch);
+        let existing = groups.iter_mut().find(|(known, _)| match (known, &canonical) {
+            (Some(a), Some(b)) => a == b,
+            _ => false,
+        });
+        match existing {
+            // Same repository: keep the informed set, never let the
+            // fresh-remote placeholder win.
+            Some((_, kept)) => {
+                if kept.is_empty() && !excludes.is_empty() {
+                    *kept = excludes;
+                }
+            }
+            None => groups.push((canonical, excludes)),
+        }
+    }
+    groups.into_iter().map(|(_, excludes)| excludes).collect()
 }
 
 /// Names of the repo's remotes whose URL points at github.com (the forge
