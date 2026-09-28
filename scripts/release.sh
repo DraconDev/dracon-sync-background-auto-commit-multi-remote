@@ -311,9 +311,29 @@ run_gate() {
     printf '   $ %s\n' "$*"
     "$@"
 }
+# ADDED 2026-09-28 (audit decision D5 follow-up): `cargo deny check` does
+# NOT fail when it cannot find a config. cargo-deny 0.19.9 logs
+#   [WARN] unable to find a config path, falling back to default config
+# and then silently applies its BUILT-IN policy, which is neither this
+# repo's nor the workspace's (its default allow-list rejects dual
+# expressions such as `MIT OR Apache-2.0` that our configs permit). This
+# repo has never shipped a `deny.toml`, so in a bare standalone clone the
+# gate was running that third policy. A release gate that can quietly
+# enforce something other than the intended policy is worse than no gate,
+# so the fallback is now an explicit, fatal error.
+run_deny_gate() {
+    printf '   $ cargo deny check\n'
+    local out rc=0
+    out="$(cargo deny check 2>&1)" || rc=$?
+    printf '%s\n' "$out"
+    if grep -q "falling back to default config" <<<"$out"; then
+        die_pre "no cargo-deny config in scope: cargo-deny fell back to its BUILT-IN default policy, which is not this repository's policy. Run the release from the parent workspace (where deny.toml resolves upward), or pass --config explicitly."
+    fi
+    [ "$rc" -eq 0 ] || die "cargo deny check failed (exit $rc)"
+}
 run_gate cargo test --workspace --locked
 run_gate cargo build --release --locked
-run_gate cargo deny check
+run_deny_gate
 run_gate cargo clippy --workspace --locked -- -D warnings
 ok "  all gates passed"
 
