@@ -1304,7 +1304,15 @@ async fn classify_dirty_entries(
     auto_commit_excludes: &[String],
     untracked_excludes: &[String],
 ) -> DirtyClassification {
-    const PORCELAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
+    // 8s, not 20s: a HEALTHY `git status` on the worst repo in this
+    // fleet measured 0.885s (dracon-platform) and 0.018s (a game
+    // submodule) on 2026-09-28, so 8s is a 9x margin on the honest cost
+    // while bounding the deadlocking-filter case to a fraction of the
+    // old 10-minute run. This classification only refines the 🚫
+    // excluded-count display; the authoritative dirty counts come from
+    // the libgit2 status pass above, so degrading it costs display
+    // precision, never correctness.
+    const PORCELAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(8);
     /// One `git status --porcelain -z` pass, spawned cancellable so an
     /// abandoned call cannot leave `git` (or its warden filter children)
     /// running to compete with the retry.
@@ -1328,15 +1336,12 @@ async fn classify_dirty_entries(
     // (unchanged gitlink) — the exact semantics the sync loop's
     // `is_gitlink_unchanged` applies at staging time. Gitlink SHA drift
     // still shows in BOTH passes and therefore stays committable.
-    let (plain, base) = match tokio::time::timeout(
-        PORCELAIN_BUDGET,
-        async {
-            (
-                run_porcelain(repo, "").await,
-                run_porcelain(repo, "--ignore-submodules=dirty").await,
-            )
-        },
-    )
+    let (plain, base) = match tokio::time::timeout(PORCELAIN_BUDGET, async {
+        (
+            run_porcelain(repo, "").await,
+            run_porcelain(repo, "--ignore-submodules=dirty").await,
+        )
+    })
     .await
     {
         Ok((Ok(p), Ok(b))) if p.0.success() && b.0.success() => {

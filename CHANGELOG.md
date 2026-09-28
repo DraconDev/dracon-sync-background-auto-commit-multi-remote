@@ -13,6 +13,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.90] - 2026-09-28
+
+### Fixed
+
+- **`dracon-sync repos` could no longer complete at all** (operator
+  report, 2026-09-28: "taking forever, in fact doesn't now"). Measured
+  **three consecutive runs over the 10-minute mark**, and the process
+  tree showed why: the report was blocked on `git status --porcelain
+  -z` in warden-hardened repos, waiting on a `dracon-warden
+  filter-process` child that deadlocks in a futex within milliseconds
+  (0–2 ticks of CPU, `futex_do_wait`, 18 threads). A plain `git status`
+  in `doomtap` took **>40 s and timed out**; the same command with the
+  filter bypassed took **0.041 s**. Walking 34 repos that way is the
+  10-minute hang.
+  - The report's dirty classifier is now BOUNDED (8 s, both porcelain
+    passes together) and spawned cancellable, so an abandoned call
+    cannot leave `git` and its warden children running to compete with
+    the retry. On timeout it degrades to the pre-v0.113.13 defensive
+    answer (treat everything as committable), which is the same posture
+    the non-zero-exit branch already takes.
+  - 8 s is a 9x margin on the honest cost: a healthy `git status` on
+    the worst repo in this fleet measures 0.885 s, and 0.018 s on a game
+    submodule. The classifier only refines the 🚫 excluded-count
+    display; authoritative dirty counts come from the libgit2 status
+    pass, so degrading it costs display precision, never correctness.
+  - The comment claiming this path is "fast: no clean-filter pass" was
+    **wrong** and is corrected at the call site: `git status` does run
+    the clean filter whenever the stat cache cannot prove a file
+    unchanged, which on an actively-edited warden repo is most of them.
+  - Net: `repos` went from >600 s (never finishing) to ~80 s on the
+    same fleet state. The residual is the warden deadlock itself.
+
 ## [0.113.89] - 2026-09-27
 
 ### Fixed
