@@ -360,6 +360,64 @@ mod tests {
             .unwrap();
         panic!("security crash injection did not fire");
     }
+
+    #[tokio::test]
+    async fn completed_unapproved_output_after_crash_is_not_adopted() {
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "storage_core::security::tests::security_crash_child",
+                "--ignored",
+            ])
+            .env("DRACON_STORAGE_CRASH_ROOT", temp.path())
+            .env("DRACON_STORAGE_CRASH_JOB", job.id())
+            .env("DRACON_STORAGE_CRASH_POINT", "before-security-approval")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(73));
+        let lease = journal.lease(job.id()).unwrap();
+        assert!(lease.load().unwrap().prepared_candidate().is_none());
+        std::fs::write(temp.path().join("warden-fixture"), "#!/bin/sh\nexit 71\n").unwrap();
+        assert!(adapter.prepare(&lease, 2).await.is_err());
+        assert_eq!(lease.load().unwrap().phase(), Phase::Captured);
+        assert!(lease.load().unwrap().payload().is_none());
+        assert!(lease.source_snapshot().is_ok());
+    }
+
+    #[tokio::test]
+    async fn bad_recovery_representation_records_failure_on_the_latest_revision() {
+        use std::os::unix::fs::OpenOptionsExt;
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job, adapter) = fixture(temp.path(), "exit 71", Limits::default());
+        let lease = journal.lease(job.id()).unwrap();
+        let bytes = b"incorrect approved representation fixture";
+        let identity =
+            Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+        let mut captured = lease.load().unwrap();
+        captured.select_prepared_payload(identity).unwrap();
+        lease.save(&mut captured).unwrap();
+        let path = temp
+            .path()
+            .join("journal")
+            .join("a".repeat(64))
+            .join(format!("{}.security-output", job.id()));
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(path)
+            .unwrap();
+        file.write_all(bytes).unwrap();
+        file.sync_all().unwrap();
+        drop(file);
+        assert!(adapter.prepare(&lease, 2).await.is_err());
+        assert_eq!(lease.load().unwrap().failure(), Some(FailureCode::Security));
+        assert!(lease.source_snapshot().is_ok());
+        assert!(lease.payload_snapshot().is_ok());
+    }
+
     #[tokio::test]
     #[ignore = "operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary"]
     async fn real_warden_large_payload_copies_and_cold_restore_use_fixture_keys() {
