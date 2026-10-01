@@ -9581,6 +9581,48 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn test_git_log_meta_resolves_mailmap_without_changing_commit() {
+        let repo = tempfile::tempdir().unwrap();
+        let run = |args: &[&str]| {
+            let out = crate::git::git_cmd()
+                .current_dir(repo.path())
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8(out.stdout).unwrap().trim().to_string()
+        };
+        run(&["init", "-q"]);
+        run(&[
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "user.name=Legacy Loop",
+            "-c",
+            "user.email=legacy-loop@dracon.local",
+            "commit",
+            "--allow-empty",
+            "-m",
+            "real work",
+        ]);
+        let before = run(&["rev-parse", "HEAD"]);
+        std::fs::write(
+            repo.path().join(".mailmap"),
+            "DraconDev <dracsharp@gmail.com> Legacy Loop <legacy-loop@dracon.local>\n",
+        )
+        .unwrap();
+        let mapped = git_log_meta(repo.path()).await.unwrap();
+        assert_eq!(mapped.0, before);
+        assert_eq!(mapped.1, "DraconDev");
+        assert_eq!(run(&["log", "-1", "--format=%an"]), "Legacy Loop");
+        assert_eq!(run(&["rev-parse", "HEAD"]), before);
+    }
+
     #[test]
     fn test_parse_git_log_meta_line_preserves_subject_with_separator() {
         // Commit subject that itself contains the unit-separator character
