@@ -3118,7 +3118,8 @@ pub(crate) fn choose_layout_tier() -> LayoutTier {
 /// the wall-clock time on repos with many entries.
 pub(crate) async fn git_log_meta(repo: &Path) -> Option<(String, String, String, i64, String)> {
     let repo_str = repo.to_str()?;
-    // %H = hash, %an = author, %ar = relative, %ct = unix, %s = subject
+    // %aN resolves confirmed aliases through Git's mailmap without rewriting commits.
+    // %H = hash, %aN = author, %ar = relative, %ct = unix, %s = subject
     // Separator `\x1f` (unit separator) is unlikely in commit fields.
     let out = crate::git::git_cmd()
         .args([
@@ -3126,7 +3127,7 @@ pub(crate) async fn git_log_meta(repo: &Path) -> Option<(String, String, String,
             repo_str,
             "log",
             "-1",
-            "--format=%H%x1f%an%x1f%ar%x1f%ct%x1f%s",
+            "--format=%H%x1f%aN%x1f%ar%x1f%ct%x1f%s",
         ])
         .output()
         .ok()?;
@@ -3380,7 +3381,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
         ("SIZE", "own .git · +N submodule gitdirs · 🟡 ≥1 GiB · 🔴 ≥2 GiB github limit"),
-        ("TOUCHED", "latest commit author"),
+        ("TOUCHED", "latest commit author (mailmap identity)"),
         ("", ""),
         ("hint", "`dracon-sync repos <name>` = detail · `repos --legend` = this key"),
     ]
