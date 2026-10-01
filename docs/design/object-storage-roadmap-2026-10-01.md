@@ -1,6 +1,7 @@
 # Dracon Sync: general Git and object-storage implementation plan
 
-Status: proposed implementation plan. Writing this document does not enable
+Status: implementation underway; see the [delivery ledger](storage-delivery-ledger-2026-10-01.md).
+Writing this document does not enable
 uploads, change file placement, alter retention, or authorize history rewrites.
 Date: 2026-10-01. Operator: DraconDev.
 
@@ -572,3 +573,13 @@ composition, journal format, capability-based verification, and atomic groups.
 The first implementation deliverable is work package A's read-only inventory,
 policy simulator design, and representation/security prototype; no live
 migration or bucket upload is implied by accepting this roadmap.
+
+
+## Implementation evidence
+
+Read-only rule validation and inventory commands now exist in source builds;
+see [preview usage](../storage-planning.md). The [representation decision](storage-representation-decision-2026-10-01.md)
+selects standard LFS pointer encoding based on isolated experiments, with
+Warden/filter/manifest production gates still outstanding. The [delivery ledger](storage-delivery-ledger-2026-10-01.md)
+tracks completed evidence separately from remaining work. No automatic storage
+routing, live uploads, retention changes, or history rewrites are enabled.

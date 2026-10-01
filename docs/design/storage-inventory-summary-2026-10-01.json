@@ -1,0 +1,98 @@
+{
+  "profile": "illustrative simulation only; not approved enrollment",
+  "repositories": [
+    {
+      "repo": "dracon-sync",
+      "file_count": 350,
+      "proposed_git_bytes": 5775131,
+      "proposed_external_bytes": 0,
+      "external_file_count": 0,
+      "filters": {
+        "dracon": 346
+      },
+      "concerns": {},
+      "history": {
+        "reachable_blob_count": 2223,
+        "reachable_raw_blob_bytes": 336078257,
+        "git_object_database_bytes": 54463488,
+        "scope": "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes"
+      }
+    },
+    {
+      "repo": "dracon-platform",
+      "file_count": 15654,
+      "proposed_git_bytes": 630572259,
+      "proposed_external_bytes": 0,
+      "external_file_count": 0,
+      "filters": {
+        "dracon": 14827,
+        "dracon-assets": 92
+      },
+      "concerns": {
+        "symlink: never traverse for external preservation": 33,
+        "nested repository: apply its own storage policy": 15
+      },
+      "history": {
+        "reachable_blob_count": 54157,
+        "reachable_raw_blob_bytes": 22452993937,
+        "git_object_database_bytes": 8863661056,
+        "scope": "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes"
+      }
+    },
+    {
+      "repo": "ai-auto-music",
+      "file_count": 758,
+      "proposed_git_bytes": 64951292,
+      "proposed_external_bytes": 0,
+      "external_file_count": 0,
+      "filters": {
+        "dracon": 650
+      },
+      "concerns": {
+        "nested repository: apply its own storage policy": 6,
+        "symlink: never traverse for external preservation": 1
+      },
+      "history": {
+        "reachable_blob_count": 11683,
+        "reachable_raw_blob_bytes": 246085113327,
+        "git_object_database_bytes": 2760378368,
+        "scope": "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes"
+      }
+    },
+    {
+      "repo": "ai-auto-video",
+      "file_count": 599,
+      "proposed_git_bytes": 124663078,
+      "proposed_external_bytes": 0,
+      "external_file_count": 0,
+      "filters": {
+        "dracon": 493
+      },
+      "concerns": {},
+      "history": {
+        "reachable_blob_count": 6022,
+        "reachable_raw_blob_bytes": 1476369003,
+        "git_object_database_bytes": 1145274368,
+        "scope": "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes"
+      }
+    },
+    {
+      "repo": "doomtap",
+      "file_count": 1577,
+      "proposed_git_bytes": 327083673,
+      "proposed_external_bytes": 0,
+      "external_file_count": 0,
+      "filters": {
+        "dracon": 804,
+        "dracon-assets": 772
+      },
+      "concerns": {},
+      "history": {
+        "reachable_blob_count": 8977,
+        "reachable_raw_blob_bytes": 817034540,
+        "git_object_database_bytes": 3667348480,
+        "scope": "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes"
+      }
+    }
+  ]
+}
