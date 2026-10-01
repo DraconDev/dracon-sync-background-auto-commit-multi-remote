@@ -280,6 +280,26 @@ impl MetadataStore {
         Ok(file)
     }
 
+    /// Check that retained ciphertext was prepared from this exact decoded manifest.
+    /// Returns verified ciphertext without exposing the private source fingerprint.
+    /// This is content correspondence, not authorization of enrollment/policy.
+    pub fn check_manifest(
+        &self,
+        prepared: &PreparedMetadata,
+        manifest: &Manifest,
+    ) -> Result<File> {
+        if manifest.repo_id() != self.repo_id || prepared.repo_id != self.repo_id {
+            bail!(BackendFailure::Security);
+        }
+        let record = self.read(prepared.id())?;
+        let raw = manifest.encode_private()?;
+        let actual = Fingerprint::new(format!("{:x}", Sha256::digest(&raw)), raw.len() as u64)?;
+        if actual != record.spec.source {
+            bail!(BackendFailure::Integrity);
+        }
+        self.open_prepared(prepared)
+    }
+
     /// Clear a failed preparation explicitly; this does not establish new evidence.
     pub fn clear_failure(&self, id: &str) -> Result<()> {
         validate_sha256(id)?;

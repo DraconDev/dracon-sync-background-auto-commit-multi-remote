@@ -12,4 +12,5 @@ pub mod manifest;
 pub mod metadata;
 pub mod reference;
 pub mod security;
+pub mod staging;
 pub mod transfer;
