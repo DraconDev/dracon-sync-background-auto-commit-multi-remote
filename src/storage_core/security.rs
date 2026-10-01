@@ -65,7 +65,13 @@ impl WardenAdapter {
             bail!("encrypted job is not eligible for security preparation");
         }
         match lease.recover_security_output() {
-            Ok(Some(recovered)) => return Ok(recovered),
+            Ok(Some(mut recovered)) => {
+                let mut payload = lease.payload_snapshot()?;
+                if require_age_header(&mut payload).is_err() {
+                    return fail(lease, &mut recovered, FailureCode::Security, now);
+                }
+                return Ok(recovered);
+            }
             Ok(None) => {}
             Err(_) => return fail(lease, &mut job, FailureCode::Integrity, now),
         }
@@ -353,5 +359,152 @@ mod tests {
             .await
             .unwrap();
         panic!("security crash injection did not fire");
+    }
+    #[tokio::test]
+    #[ignore = "operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary"]
+    async fn real_warden_large_payload_copies_and_cold_restore_use_fixture_keys() {
+        use crate::storage_core::backend::{ImmutableBackend, LocalBackend};
+        use crate::storage_core::transfer::transfer_copies;
+        use std::collections::BTreeMap;
+        let binary = PathBuf::from(
+            std::env::var_os("DRACON_STORAGE_TEST_WARDEN")
+                .expect("source-built Warden binary required"),
+        );
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("home");
+        let repo = temp.path().join("repo");
+        std::fs::create_dir_all(home.join(".dracon/keys")).unwrap();
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let keys = home.join(".dracon/keys/identity.age");
+        assert!(std::process::Command::new("age-keygen")
+            .arg("-o")
+            .arg(&keys)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success());
+        std::fs::set_permissions(&keys, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let chunk = [0x39u8; 64 * 1024];
+        let bytes = 101 * 1024 * 1024u64;
+        let mut hash = Sha256::new();
+        for _ in 0..(bytes / chunk.len() as u64) {
+            hash.update(chunk);
+        }
+        let source = Fingerprint::new(format!("{:x}", hash.finalize()), bytes).unwrap();
+        let spec = JobSpec {
+            repo_id: "a".repeat(64),
+            path_hex: encode_relative_path(b"large-private.bin").unwrap(),
+            source: source.clone(),
+            policy_sha256: "c".repeat(64),
+            primary: "primary".into(),
+            required_copies: vec!["primary".into(), "recovery".into()],
+            required_git_targets: vec!["github".into()],
+            encryption: Encryption::WardenAge,
+        };
+        let journal = Journal::open(
+            &temp.path().join("journal"),
+            &spec.repo_id,
+            Limits::default(),
+        )
+        .unwrap();
+        let job = journal.create(spec).unwrap();
+        struct Synthetic {
+            remaining: u64,
+            largest_read: usize,
+        }
+        impl Read for Synthetic {
+            fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
+                self.largest_read = self.largest_read.max(output.len());
+                let count = output.len().min(self.remaining as usize);
+                output[..count].fill(0x39);
+                self.remaining -= count as u64;
+                Ok(count)
+            }
+        }
+        let lease = journal.lease(job.id()).unwrap();
+        let mut synthetic = Synthetic {
+            remaining: bytes,
+            largest_read: 0,
+        };
+        lease.capture_snapshot(&mut synthetic).unwrap();
+        assert!(synthetic.largest_read <= 64 * 1024);
+        let adapter = WardenAdapter::new(&binary, &repo, Duration::from_secs(180))
+            .unwrap()
+            .with_identity_home(&home)
+            .unwrap();
+        let prepared = adapter.prepare(&lease, 1).await.unwrap();
+        let identity = prepared.payload().unwrap().clone();
+        assert_ne!(identity.sha256(), source.sha256());
+        let primary_root = temp.path().join("primary");
+        let recovery_root = temp.path().join("recovery");
+        let primary = LocalBackend::open(&primary_root, bytes * 2).unwrap();
+        let recovery = LocalBackend::open(&recovery_root, bytes * 2).unwrap();
+        let backends = BTreeMap::from([
+            ("primary".into(), &primary as &dyn ImmutableBackend),
+            ("recovery".into(), &recovery as &dyn ImmutableBackend),
+        ]);
+        assert_eq!(
+            transfer_copies(&lease, &backends, 2).unwrap().phase(),
+            Phase::ReadyToStage
+        );
+        drop(lease);
+        drop(journal);
+        drop(backends);
+        drop(primary);
+        drop(recovery);
+        // Cold restoration opens only the recovery backend and independent
+        // fixture keys, with no local capture/preparation records required.
+        let cold = LocalBackend::open_existing(&recovery_root, bytes * 2).unwrap();
+        let ciphertext = temp.path().join("cold-ciphertext");
+        let mut options = std::fs::OpenOptions::new();
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut saved = options
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&ciphertext)
+            .unwrap();
+        cold.get_verified(&identity, &mut saved).unwrap();
+        saved.seek(SeekFrom::Start(0)).unwrap();
+        let plaintext = temp.path().join("restored-source");
+        let output = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&plaintext)
+            .unwrap();
+        assert!(std::process::Command::new(&binary)
+            .arg("storage-decrypt")
+            .arg("--repo")
+            .arg(&repo)
+            .arg("--max-bytes")
+            .arg(bytes.to_string())
+            .env("HOME", &home)
+            .env_remove("ARCANE_MACHINE_KEY")
+            .stdin(Stdio::from(saved))
+            .stdout(Stdio::from(output))
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success());
+        let mut restored = File::open(&plaintext).unwrap();
+        let mut actual_hash = Sha256::new();
+        let mut actual_bytes = 0u64;
+        let mut buffer = [0u8; 64 * 1024];
+        loop {
+            let count = restored.read(&mut buffer).unwrap();
+            if count == 0 {
+                break;
+            }
+            actual_hash.update(&buffer[..count]);
+            actual_bytes += count as u64;
+        }
+        assert_eq!(actual_bytes, bytes);
+        assert_eq!(format!("{:x}", actual_hash.finalize()), source.sha256());
+        assert!(!repo.join(".gitattributes").exists());
+        assert!(!repo.join(".arcane").exists());
     }
 }
