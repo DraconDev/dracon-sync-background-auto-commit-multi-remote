@@ -934,7 +934,9 @@ impl JobLease {
                 let file = open_private(&temporary, false, false)?;
                 if file.metadata()?.len() == expected.bytes() {
                     // A process may have died after a complete fsync but before publish.
-                    verify_snapshot(&temporary, expected)?;
+                    // A previous attempt might have completed its writes but
+                    // failed fsync. Re-establish durability before adoption.
+                    verify_snapshot(&temporary, expected)?.sync_all()?;
                     true
                 } else {
                     false
