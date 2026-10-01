@@ -415,7 +415,7 @@ fn inventory(
         schema_version: 1, mode: "read-only-placement-preview", repository: repo.to_owned(),
         storage_enabled: policy.policy.enabled,
         eligibility: "placement preview only; ownership, secret classification, filter compatibility and enrollment must pass before transfer",
-        proposed_git_bytes: 0, proposed_external_bytes: 0, files: Vec::new(),
+        proposed_git_bytes: 0, proposed_external_bytes: 0, files: Vec::new(), history: None,
     };
     for path in all {
         if path
