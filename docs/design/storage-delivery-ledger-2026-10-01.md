@@ -62,7 +62,8 @@ prove the current milestone, not absent S3/worker/daemon integration.
 Focused shared-library checks passed 21 tests; three external-tool/subprocess
 helpers were ignored by the ordinary run. Crash helpers are invoked explicitly
 by the recovery tests. The two isolated Warden CLI integration tests passed,
-including the 101 MiB encryption/decryption round trip. Strict all-target
+including the 101 MiB encryption/decryption round trip. The isolated local
+backend age/cold-reopen check was explicitly rerun and passed. Strict all-target
 workspace Clippy, `cargo deny check`, and the locked release build passed.
 
 The built release CLI was also exercised in an isolated fresh Git repo:
@@ -73,9 +74,11 @@ An initial full workspace run overlapped another process using Warden's old
 counter-based temporary directory names. Ten Warden tests failed as those
 shared fixtures were removed or changed. The helper now uses unique owned
 `tempfile` directories, retaining its quote/space path cases. The independent
-Warden rerun passed all 167 tests while the new workspace run was active; the
-full workspace result is pending. The initial failure is not counted as a
-passing gate.
+Warden rerun passed all 167 tests while the new workspace run was active. The
+full workspace rerun passed 1962 tests (12 ignored), including both
+Warden streaming integration tests. The final complete-spool fsync hardening
+also passed all 21 shared-library tests and strict all-target workspace Clippy.
+The initial failed run is not counted as a passing gate.
 
 ## Current inventory findings
 
