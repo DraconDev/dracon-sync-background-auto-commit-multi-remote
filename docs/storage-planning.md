@@ -132,9 +132,11 @@ being committed when state lives inside a watched repository. Read-only commands
 do not create or change those ignore files.
 
 The [restore manifest codec](design/storage-manifest-contract-2026-10-01.md)
-currently produces only private plaintext for a future approved metadata-security
-transaction. It validates sticky enrollment and exact pointer identities but
-does not publish metadata, install filters or authorize backend access.
+produces private plaintext for an approved metadata-security transaction. The
+shared metadata store now retains Warden-encrypted Git-blob candidates with
+crash recovery and unchanged-version reuse. It does not publish metadata,
+install filters or authorize backend access; production configuration and Git
+transactions remain pending.
 
 ## Implementation checks
 

@@ -122,9 +122,9 @@ assuming a 20 MiB media threshold alone will solve history growth.
 | --- | --- | --- |
 | A: contracts/inventory | Partial | Private manifest schema specified; per-path churn attribution, producer/service review, full threat model and group contracts remain |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
-| C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, operator binding integration, protected restore metadata remain |
+| C: storage/security | Partial | Local streaming, Warden and retained protected metadata checked; S3 capability conformance and production operator/security integration remain |
 | D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention/copy execution checked; production reconciliation and operator resource policy remain |
-| E: Git bridge | Partial | Strict pointer/private manifest codecs checked; protected metadata preparation, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
+| E: Git bridge | Partial | Strict pointer/private manifest codecs and retained Warden metadata preparation checked; Git metadata integration, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
 | G: daemon/status | Partial | Read-only redacted journal status checked; worker scheduling, live backend verification, fairness, grouping and outage isolation remain |
 | H: live pilots/release | Not started | Approved backend/recovery cost and exact pilot paths, real provider drills, clean-machine fixtures, final gates/release |
@@ -262,3 +262,29 @@ Dependency policy remains green; these guards add no dependencies or policy
 knobs. The final expanded workspace run passed 1986 tests (15 ignored), including
 both actual Warden streaming integration checks. Unreleased changelog entries
 now distinguish checked infrastructure from pending automatic preservation.
+
+## Protected manifest preparation (2026-10-02)
+
+The dedicated metadata store captures a bounded manifest, runs the repo-bound
+Warden adapter, approves fsynced verified ciphertext and retains it for future
+Git staging. Its records do not invent object destinations or Git receipts.
+Unchanged versions reuse the exact ciphertext without invoking Warden or
+rewriting the record. Capture/approval/publication recover across process death;
+unapproved output cannot be adopted, approved corrupt bytes are not reencrypted,
+and limits preserve earlier versions. Corrupt partial source proof is a permanent
+integrity concern. Deadline failures kill/reap the child and respect backoff.
+
+The actual source-build Warden check encrypted a non-UTF-8-path manifest, saved
+its ciphertext, removed only the test-owned temporary metadata store and restored
+the exact manifest with separately retained fixture keys. It passed in 2.99
+seconds; no live keys, buckets, filters or source repos were used. The shared
+Warden transform and private capture/atomic-write primitives are reused rather
+than implementing a second subprocess or filesystem protocol. Snapshot budget
+and digest failures now have typed capacity/integrity categories.
+
+The initial expanded core run passed 52 tests (eight ignored); final validation
+including the added corrupt-prefix regression is running. All-target Clippy and
+formatting passed after replacing equivalent manual saturation arithmetic.
+No dependencies or configuration knobs were added. Production policy derivation,
+root separation/approval, manifest group consistency, atomic Git staging,
+historical-key drills, packaged restoration and daemon wiring remain gates.
