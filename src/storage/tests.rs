@@ -369,3 +369,45 @@ fn history_inventory_handles_unborn_repository() {
     assert_eq!(history.reachable_blob_count, 0);
     assert_eq!(history.reachable_raw_blob_bytes, 0);
 }
+
+#[test]
+fn batched_attribute_inventory_drains_large_pipes_and_keeps_literal_names() {
+    let dir = git_fixture();
+    std::fs::write(dir.path().join(".gitattributes"), "* filter=prepared\n").unwrap();
+    let mut paths = BTreeSet::new();
+    for index in 0..3000 {
+        paths.insert(PathBuf::from(format!(
+            "assets/{index:04}-{}.png",
+            "x".repeat(120)
+        )));
+    }
+    paths.insert(PathBuf::from("assets/tab\tand\nnewline.png"));
+    let result = inventory_filters(dir.path(), &paths).unwrap();
+    assert_eq!(result.len(), paths.len());
+    assert!(result.values().all(|filter| filter == "prepared"));
+    assert!(result.contains_key(Path::new("assets/tab\tand\nnewline.png")));
+}
+
+#[test]
+fn parent_inventory_does_not_follow_nested_standalone_repository() {
+    let parent = git_fixture();
+    let nested = parent.path().join("child");
+    std::fs::create_dir(&nested).unwrap();
+    git_fixture_command(&nested, &["-c", "init.templateDir=", "init", "--quiet"]);
+    std::fs::write(nested.join("asset.png"), [7u8; 30]).unwrap();
+    let plan = inventory(
+        parent.path(),
+        &crate::policy::test_sync_policy(),
+        &RepoPolicyOverride::default(),
+        &CompiledPolicy::new(policy()).unwrap(),
+    )
+    .unwrap();
+    assert!(!plan
+        .files
+        .iter()
+        .any(|file| file.path.ends_with("asset.png")));
+    assert!(plan.files.iter().any(|file| file
+        .concerns
+        .iter()
+        .any(|concern| concern.contains("nested repository"))));
+}
