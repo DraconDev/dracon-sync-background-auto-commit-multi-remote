@@ -92,13 +92,42 @@ impl WardenAdapter {
             Ok(spool) => spool,
             Err(error) => return fail(lease, &mut job, super::transfer::classify(&error), now),
         };
+        let identity = match self
+            .transform(source, job.spec().source.bytes(), &mut spool.file, spool.capacity)
+            .await
+        {
+            Ok(identity) => identity,
+            Err(error) => return fail(lease, &mut job, super::transfer::classify(&error), now),
+        };
+        // Exit success, valid protocol header and bounded output precede approval.
+        if lease.source_snapshot().is_err() {
+            return fail(lease, &mut job, FailureCode::Integrity, now);
+        }
+        lease.approve_security_output(spool, identity)
+    }
+    pub(crate) fn require_repo(&self, repo_id: &str) -> Result<()> {
+        if repo_id != self.repo_id {
+            bail!(BackendFailure::Security);
+        }
+        Ok(())
+    }
+
+    // The caller supplies a verified private captured source and owns durable
+    // approval/publication. This primitive never chooses a source or destination.
+    pub(crate) async fn transform(
+        &self,
+        source: File,
+        source_bytes: u64,
+        output_file: &mut File,
+        capacity: u64,
+    ) -> Result<Fingerprint> {
         let mut command = tokio::process::Command::new(&self.executable);
         command
             .arg("storage-encrypt")
             .arg("--repo")
             .arg(&self.repo)
             .arg("--max-bytes")
-            .arg(job.spec().source.bytes().max(1).to_string())
+            .arg(source_bytes.max(1).to_string())
             .current_dir(&self.repo)
             .stdin(Stdio::from(source))
             .stdout(Stdio::piped())
@@ -107,40 +136,31 @@ impl WardenAdapter {
         if let Some(home) = &self.identity_home {
             command.env("HOME", home).env_remove("ARCANE_MACHINE_KEY");
         }
-        let mut child = match command.spawn() {
-            Ok(child) => child,
-            Err(_) => return fail(lease, &mut job, FailureCode::Security, now),
-        };
+        let mut child = command.spawn().map_err(|_| BackendFailure::Security)?;
         let result = tokio::time::timeout(self.timeout, async {
-            let mut output = child.stdout.take().context("missing Warden output pipe")?;
-            let identity = stream_output(&mut output, &mut spool.file, spool.capacity).await?;
+            let mut output = child.stdout.take().ok_or(BackendFailure::Security)?;
+            let identity = stream_output(&mut output, output_file, capacity).await?;
             if !child.wait().await?.success() {
-                bail!("Warden did not approve output");
+                bail!(BackendFailure::Security);
             }
-            require_age_header(&mut spool.file)?;
+            require_age_header(output_file).map_err(|_| BackendFailure::Security)?;
             Ok::<_, anyhow::Error>(identity)
-        })
-        .await;
-        let identity = match result {
-            Ok(Ok(identity)) => identity,
+        }).await;
+        match result {
+            Ok(Ok(identity)) => Ok(identity),
             outcome => {
                 let _ = child.kill().await;
-                let code = match outcome {
-                    Err(_) => FailureCode::Transient,
-                    Ok(Err(error)) if error.downcast_ref::<BackendFailure>().is_some() => {
-                        super::transfer::classify(&error)
-                    }
-                    _ => FailureCode::Security,
-                };
-                return fail(lease, &mut job, code, now);
+                match outcome {
+                    Err(_) => Err(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut, "security processing deadline exceeded"
+                    ).into()),
+                    Ok(Err(error)) => Err(error),
+                    _ => unreachable!(),
+                }
             }
-        };
-        // Exit success, valid protocol header and bounded output precede approval.
-        if lease.source_snapshot().is_err() {
-            return fail(lease, &mut job, FailureCode::Integrity, now);
         }
-        lease.approve_security_output(spool, identity)
     }
+
 }
 
 async fn stream_output(
@@ -168,7 +188,7 @@ async fn stream_output(
     Fingerprint::new(format!("{:x}", digest.finalize()), total)
 }
 
-fn require_age_header(file: &mut File) -> Result<()> {
+pub(crate) fn require_age_header(file: &mut File) -> Result<()> {
     let mut header = [0u8; 22];
     file.seek(SeekFrom::Start(0))?;
     file.read_exact(&mut header)?;

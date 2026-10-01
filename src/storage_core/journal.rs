@@ -697,7 +697,7 @@ pub(super) fn private_directory(path: &Path, create: bool) -> Result<()> {
     Ok(())
 }
 
-fn exists_without_symlink(path: &Path) -> Result<bool> {
+pub(crate) fn exists_without_symlink(path: &Path) -> Result<bool> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
             bail!("journal path must not be a symlink")
@@ -708,7 +708,7 @@ fn exists_without_symlink(path: &Path) -> Result<bool> {
     }
 }
 
-fn open_private(path: &Path, write: bool, create: bool) -> Result<File> {
+pub(crate) fn open_private(path: &Path, write: bool, create: bool) -> Result<File> {
     let mut options = OpenOptions::new();
     options
         .read(true)
@@ -740,7 +740,7 @@ fn open_private(path: &Path, write: bool, create: bool) -> Result<File> {
     Ok(file)
 }
 
-fn try_lock(path: &Path) -> Result<File> {
+pub(crate) fn try_lock(path: &Path) -> Result<File> {
     let file = open_private(path, true, true)?;
     file.try_lock()
         .map_err(|_| anyhow::anyhow!("journal lease is busy or unavailable"))?;
@@ -770,6 +770,10 @@ fn atomic_write(directory: &Path, path: &Path, job: &Job, create_only: bool) -> 
     if raw.len() as u64 > MAX_RECORD_BYTES {
         bail!("journal record exceeds limit");
     }
+    atomic_bytes(directory, path, &raw, create_only)
+}
+
+pub(crate) fn atomic_bytes(directory: &Path, path: &Path, raw: &[u8], create_only: bool) -> Result<()> {
     let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
@@ -787,7 +791,7 @@ fn atomic_write(directory: &Path, path: &Path, job: &Job, create_only: bool) -> 
     }
     let mut file = options.open(&temporary)?;
     let result = (|| -> Result<()> {
-        file.write_all(&raw)?;
+        file.write_all(raw)?;
         file.sync_all()?;
         crash_point("before-publish");
         // The caller holds the per-job lease, so no cooperating writer can
@@ -1078,12 +1082,12 @@ impl JobLease {
 }
 
 #[derive(Clone, Copy)]
-enum SnapshotKind {
+pub(crate) enum SnapshotKind {
     Source,
     Payload,
 }
 
-fn retain_snapshot(
+pub(crate) fn retain_snapshot(
     directory: &Path,
     id: &str,
     kind: SnapshotKind,
@@ -1111,7 +1115,7 @@ fn retain_snapshot(
             ),
         };
     if expected.bytes() > per_version {
-        bail!("version exceeds snapshot byte budget");
+        bail!(super::backend::BackendFailure::Capacity);
     }
     let _budget = try_lock(&directory.join(format!("{final_suffix}-budget.lock")))?;
     let destination = directory.join(format!("{id}.{final_suffix}"));
@@ -1133,7 +1137,7 @@ fn retain_snapshot(
             .context("capture byte overflow")?
             > aggregate
         {
-            bail!("retained snapshot budget exhausted; source data was not deleted");
+            bail!(super::backend::BackendFailure::Capacity);
         }
         let complete = if exists_without_symlink(&temporary)? {
             let file = open_private(&temporary, false, false)?;
@@ -1198,7 +1202,7 @@ fn retain_snapshot(
     Ok(())
 }
 
-fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
+pub(crate) fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
     let mut file = open_private(path, false, false)?;
     if file.metadata()?.len() != expected.bytes() {
         bail!("snapshot length mismatch");
@@ -1218,7 +1222,7 @@ fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
     Ok(file)
 }
 
-fn snapshot_bytes(directory: &Path, temporary: &Path, extensions: &[&str]) -> Result<(u64, u64)> {
+pub(crate) fn snapshot_bytes(directory: &Path, temporary: &Path, extensions: &[&str]) -> Result<(u64, u64)> {
     let mut retained = 0u64;
     let mut previous = 0u64;
     for entry in std::fs::read_dir(directory)? {
