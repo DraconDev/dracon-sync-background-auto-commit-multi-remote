@@ -32,7 +32,7 @@ pub(super) fn protect(directory: &Path) -> Result<()> {
 }
 
 fn verify_ignore(path: &Path) -> Result<()> {
-    let mut file = open_private(path, false, false)?;
+    let file = open_private(path, false, false)?;
     let mut bytes = Vec::new();
     file.take(IGNORE.len() as u64 + 1).read_to_end(&mut bytes)?;
     if bytes != IGNORE {
