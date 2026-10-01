@@ -539,6 +539,16 @@ fn inventory(
                     &path,
                     &global.untracked_exclude_patterns,
                 ));
+        if decision.placement == Placement::External
+            && filters
+                .get(&path)
+                .is_some_and(|filter| filter != "unspecified" && filter != "unset")
+        {
+            concerns.push(
+                "existing Git filter: compatibility must be verified before external enrollment"
+                    .into(),
+            );
+        }
         if excluded {
             concerns
                 .push("excluded by existing Sync policy; placement does not override this".into());
