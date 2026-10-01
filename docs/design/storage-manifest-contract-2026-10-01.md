@@ -1,7 +1,7 @@
 # Portable restore manifest and sticky enrollment contract
 
-Status: bounded private codec implemented; protected publication and Git bridge
-remain gated. Date: 2026-10-01.
+Status: bounded private codec and retained Warden preparation implemented;
+production publication and Git bridge remain gated. Date: 2026-10-01.
 
 ## Trust and protection
 
@@ -103,5 +103,48 @@ produce a failing result without overwriting a modified working file.
 Key rotation must preserve the identities required by historical manifest and
 asset ciphertext. Never put recovery private keys in the manifest or assume the
 current machine identity can decrypt every historical version. Packaged restore,
-historical-key drills, independent-copy failover, protected metadata preparation
+historical-key drills, independent-copy failover, production metadata integration
 and real Git atomic-staging tests remain outstanding.
+
+## Retained protected metadata preparation (2026-10-02)
+
+`storage_core::metadata::MetadataStore` now prepares a bounded manifest with the
+operator-bound Warden adapter in a dedicated private namespace. Its record binds
+the stable repo ID, private decoded-manifest fingerprint and approved metadata
+policy digest. Policy derivation/authorization remains the trusted caller's
+responsibility, including authorized-recipient changes. The root must be reserved
+separately from asset journals, object stores and source checkouts; production
+configuration resolution must validate those bindings and root separation.
+
+This record has capture/preparation states, not fabricated object destinations
+or Git receipts. The plaintext is captured privately and verified before Warden
+reads it. Bounded ciphertext output, protocol checks and successful child exit
+precede fsync and durable approval. Publication/recovery verifies the approved
+fingerprint before adopting the ciphertext. A complete unapproved spool cannot
+become an approved candidate. Source snapshots and approved ciphertext remain
+retained; only unapproved transform output can be reset after source verification.
+
+Unchanged manifest/policy versions reuse the exact ciphertext without invoking
+Warden or rewriting the prepared record. Approved missing/corrupt bytes fail
+closed rather than selecting new randomness. Transient deadlines kill/reap the
+child and retain a 30-second retry deadline. Permanent failures need explicit
+intervention; clearing a failure is not evidence of repaired content.
+
+The store uses existing private-file checks, managed runtime ignore protection,
+atomic JSON replacement, process-backed leases and resumable source capture.
+Caller-provided record/source/payload budgets apply, with additional format caps
+of 4 MiB decoded and 8 MiB protected metadata. No eviction or working-file
+deletion is implemented. A failed budget does not authorize an unprotected
+manifest or raw asset fallback.
+
+`open_prepared` provides a verified ciphertext file for the future Git transaction.
+It does not stage anything or mark metadata committed/preserved. The actual Git
+blob OID is computed by Git; the prepared SHA-256 checks the blob's content and
+must not be substituted for Git's object ID.
+
+Synthetic tests cover publication, reuse, foreign bindings, process death on
+both sides of approval/publication, corrupt approved output, resource exhaustion
+and retry deadlines. A separately run real Warden fixture encrypted a manifest
+with a non-UTF-8 asset path, saved the ciphertext, removed only its test-owned
+temporary metadata store and restored the exact decoded manifest using separately
+retained fixture keys. No live keys, filters, repositories or buckets were changed.

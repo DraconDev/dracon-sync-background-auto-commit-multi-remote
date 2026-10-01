@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared preservation infrastructure: strict standard LFS pointers, durable
   private job records and resumable snapshots, bounded Warden preparation,
   immutable verified local copies, repository/security-bound adapter grants,
-  and a bounded private restore-manifest codec with sticky enrollment tombstones.
+  and a bounded private restore-manifest codec with sticky enrollment tombstones
+  and crash-resumable Warden metadata preparation.
   Production configuration resolution, protected metadata publication, S3,
   Git filters/staging, packaged restoration and daemon transfers remain gated;
   this infrastructure is not automatic bucket migration.
