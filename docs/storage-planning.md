@@ -126,9 +126,15 @@ do not invoke that executor. Exhaustion refuses capture and retains bytes; no
 automatic eviction exists. Unix ownership/permission checks are required by this adapter.
 Reserved journal and writable local-backend directories receive managed private
 ignore protection. Previously tracked runtime paths and project Git roots are
-refused; modified protection blocks writes. This prevents private captures from
+refused; unmarked nonempty directories are refused to protect existing operator
+files from a blanket ignore. Modified protection blocks writes. This prevents private captures from
 being committed when state lives inside a watched repository. Read-only commands
 do not create or change those ignore files.
+
+The [restore manifest codec](design/storage-manifest-contract-2026-10-01.md)
+currently produces only private plaintext for a future approved metadata-security
+transaction. It validates sticky enrollment and exact pointer identities but
+does not publish metadata, install filters or authorize backend access.
 
 ## Implementation checks
 
