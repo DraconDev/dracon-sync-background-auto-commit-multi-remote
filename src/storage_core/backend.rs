@@ -19,6 +19,8 @@ pub enum BackendFailure {
     Capacity,
     /// Stored bytes fail exact length/digest verification.
     Integrity,
+    /// Access permissions or private runtime isolation could not be established.
+    Security,
 }
 
 impl std::fmt::Display for BackendFailure {
@@ -26,6 +28,7 @@ impl std::fmt::Display for BackendFailure {
         f.write_str(match self {
             Self::Capacity => "backend capacity requirement failed",
             Self::Integrity => "backend object integrity requirement failed",
+            Self::Security => "storage security requirement failed",
         })
     }
 }

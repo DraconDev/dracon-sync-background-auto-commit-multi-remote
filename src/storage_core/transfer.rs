@@ -63,6 +63,7 @@ pub(super) fn classify(error: &anyhow::Error) -> FailureCode {
         return match kind {
             BackendFailure::Capacity => FailureCode::Capacity,
             BackendFailure::Integrity => FailureCode::Integrity,
+            BackendFailure::Security => FailureCode::Security,
         };
     }
     #[cfg(unix)]
