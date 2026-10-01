@@ -259,4 +259,6 @@ Warden preparation/two-local-copy/cold-decryption test was explicitly rerun with
 these repository/security grants and passed in 96.56 seconds. The copies are
 still same-machine fixtures, not independent failure-domain certification.
 Dependency policy remains green; these guards add no dependencies or policy
-knobs. The final expanded workspace run is still finishing.
+knobs. The final expanded workspace run passed 1986 tests (15 ignored), including
+both actual Warden streaming integration checks. Unreleased changelog entries
+now distinguish checked infrastructure from pending automatic preservation.
