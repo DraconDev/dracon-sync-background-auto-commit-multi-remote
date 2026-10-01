@@ -46,7 +46,8 @@ impl<'a> StageBundle<'a> {
             {
                 bail!("staging jobs do not have unique owned verified versions");
             }
-            let enrollment = manifest.enrollment(&job.spec().path_hex)
+            let enrollment = manifest
+                .enrollment(&job.spec().path_hex)
                 .ok_or(BackendFailure::Integrity)?;
             let mut copies = job.spec().required_copies.clone();
             copies.sort();
@@ -69,8 +70,12 @@ impl<'a> StageBundle<'a> {
         }
         pointers.sort_by(|left, right| left.0.cmp(&right.0));
         Ok(Self {
-            repo_id: manifest.repo_id().into(), manifest: manifest.clone(), metadata,
-            prepared: prepared.clone(), jobs: leases, pointers,
+            repo_id: manifest.repo_id().into(),
+            manifest: manifest.clone(),
+            metadata,
+            prepared: prepared.clone(),
+            jobs: leases,
+            pointers,
         })
     }
 
@@ -108,7 +113,8 @@ impl<'a> StageBundle<'a> {
 
 pub(crate) fn decode_path(hex: &str) -> Result<Vec<u8>> {
     validate_path_hex(hex)?;
-    hex.as_bytes().chunks_exact(2)
+    hex.as_bytes()
+        .chunks_exact(2)
         .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
         .collect()
 }

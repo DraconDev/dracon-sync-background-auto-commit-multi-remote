@@ -283,11 +283,7 @@ impl MetadataStore {
     /// Check that retained ciphertext was prepared from this exact decoded manifest.
     /// Returns verified ciphertext without exposing the private source fingerprint.
     /// This is content correspondence, not authorization of enrollment/policy.
-    pub fn check_manifest(
-        &self,
-        prepared: &PreparedMetadata,
-        manifest: &Manifest,
-    ) -> Result<File> {
+    pub fn check_manifest(&self, prepared: &PreparedMetadata, manifest: &Manifest) -> Result<File> {
         if manifest.repo_id() != self.repo_id || prepared.repo_id != self.repo_id {
             bail!(BackendFailure::Security);
         }
