@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -554,12 +554,18 @@ impl Job {
 pub struct Limits {
     /// Maximum records in a single repository namespace.
     pub max_records: usize,
+    /// Maximum plaintext bytes in one captured version.
+    pub max_snapshot_bytes: u64,
+    /// Maximum retained source/capture bytes in the repository namespace.
+    pub max_retained_snapshot_bytes: u64,
 }
 
 impl Default for Limits {
     fn default() -> Self {
         Self {
             max_records: 10_000,
+            max_snapshot_bytes: 1024 * 1024 * 1024,
+            max_retained_snapshot_bytes: 4 * 1024 * 1024 * 1024,
         }
     }
 }
@@ -577,6 +583,7 @@ pub struct JobLease {
     repo_id: String,
     id: String,
     _lock: File,
+    limits: Limits,
 }
 
 pub(super) fn private_directory(path: &Path, create: bool) -> Result<()> {
@@ -760,7 +767,10 @@ impl Journal {
     /// Create/open a private namespace. No existing records or payloads are deleted.
     pub fn open(root: &Path, repo_id: &str, limits: Limits) -> Result<Self> {
         validate_sha256(repo_id)?;
-        if limits.max_records == 0 {
+        if limits.max_records == 0
+            || limits.max_snapshot_bytes == 0
+            || limits.max_retained_snapshot_bytes < limits.max_snapshot_bytes
+        {
             bail!("journal record limit must be positive");
         }
         private_directory(root, true)?;
@@ -782,6 +792,7 @@ impl Journal {
             repo_id: self.repo_id.clone(),
             id: id.into(),
             _lock: lock,
+            limits: self.limits,
         })
     }
 
@@ -887,6 +898,116 @@ impl JobLease {
         Ok(job)
     }
 
+    /// Capture exactly the selected source bytes into a durable private snapshot.
+    ///
+    /// Complete spools survive process death and are adopted after hashing.
+    /// Partial spools resume only when their prefix matches the supplied input.
+    /// A different source/version is refused rather than overwriting the spool.
+    /// This operation holds a repository capture-budget lease for local I/O only;
+    /// no network operation or Git index lock is involved.
+    pub fn capture_snapshot(&self, input: &mut dyn Read) -> Result<Job> {
+        let mut job = self.load()?;
+        job.require_phase(&[Phase::PendingCapture, Phase::Captured])?;
+        let expected = &job.spec.source;
+        if expected.bytes() > self.limits.max_snapshot_bytes {
+            bail!("source exceeds snapshot byte budget");
+        }
+        let _budget = try_lock(&self.directory.join("capture-budget.lock"))?;
+        let destination = self.directory.join(format!("{}.source", self.id));
+        let temporary = self.directory.join(format!("{}.capture", self.id));
+        if exists_without_symlink(&destination)? {
+            verify_snapshot(&destination, expected)?;
+        } else {
+            let (retained, previous_capture) = snapshot_bytes(&self.directory, &temporary)?;
+            let extra = expected
+                .bytes()
+                .checked_sub(previous_capture)
+                .context("capture exceeds selected source length")?;
+            if retained
+                .checked_add(extra)
+                .context("capture byte overflow")?
+                > self.limits.max_retained_snapshot_bytes
+            {
+                bail!("retained snapshot budget exhausted; source data was not deleted");
+            }
+            let complete = if exists_without_symlink(&temporary)? {
+                let file = open_private(&temporary, false, false)?;
+                if file.metadata()?.len() == expected.bytes() {
+                    // A process may have died after a complete fsync but before publish.
+                    verify_snapshot(&temporary, expected)?;
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            if !complete {
+                let mut file = open_private(&temporary, true, true)?;
+                let previous = file.metadata()?.len();
+                let mut total = 0u64;
+                let mut digest = Sha256::new();
+                let mut input_buffer = [0u8; 64 * 1024];
+                let mut existing_buffer = [0u8; 64 * 1024];
+                loop {
+                    let count = match input.read(&mut input_buffer) {
+                        Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                        result => result?,
+                    };
+                    if count == 0 {
+                        break;
+                    }
+                    let next = total
+                        .checked_add(count as u64)
+                        .context("capture length overflow")?;
+                    if next > expected.bytes() {
+                        bail!("source changed during capture");
+                    }
+                    let compare = previous.saturating_sub(total).min(count as u64) as usize;
+                    if compare > 0 {
+                        file.read_exact(&mut existing_buffer[..compare])?;
+                        if existing_buffer[..compare] != input_buffer[..compare] {
+                            bail!("source does not match retained capture prefix");
+                        }
+                    }
+                    if compare < count {
+                        file.write_all(&input_buffer[compare..count])?;
+                    }
+                    digest.update(&input_buffer[..count]);
+                    total = next;
+                }
+                if total != expected.bytes()
+                    || format!("{:x}", digest.finalize()) != expected.sha256()
+                {
+                    bail!("captured bytes do not match selected source version");
+                }
+                file.sync_all()?;
+                crash_point("before-snapshot-publish");
+            }
+            // Exclusive job lease prevents concurrent writers of this snapshot.
+            std::fs::rename(&temporary, &destination)?;
+            File::open(&self.directory)?.sync_all()?;
+            crash_point("after-snapshot-publish");
+        }
+        if job.phase == Phase::PendingCapture {
+            job.record_capture(job.spec.source.clone())?;
+            self.save(&mut job)?;
+        }
+        Ok(job)
+    }
+
+    /// Open and reverify the captured source, positioned at its first byte.
+    pub fn source_snapshot(&self) -> Result<File> {
+        let job = self.load()?;
+        if job.capture.is_none() {
+            bail!("source snapshot has not been captured");
+        }
+        let path = self.directory.join(format!("{}.source", self.id));
+        let mut file = verify_snapshot(&path, &job.spec.source)?;
+        file.seek(SeekFrom::Start(0))?;
+        Ok(file)
+    }
+
     /// Atomically save the next revision, rejecting stale or retargeted records.
     pub fn save(&self, job: &mut Job) -> Result<()> {
         let current = self.load()?;
@@ -907,6 +1028,50 @@ impl JobLease {
         }
         result
     }
+}
+
+fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
+    let mut file = open_private(path, false, false)?;
+    if file.metadata()?.len() != expected.bytes() {
+        bail!("snapshot length mismatch");
+    }
+    let mut digest = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    if format!("{:x}", digest.finalize()) != expected.sha256() {
+        bail!("snapshot digest mismatch");
+    }
+    Ok(file)
+}
+
+fn snapshot_bytes(directory: &Path, temporary: &Path) -> Result<(u64, u64)> {
+    let mut retained = 0u64;
+    let mut previous = 0u64;
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        if !entry
+            .path()
+            .extension()
+            .is_some_and(|extension| extension == "source" || extension == "capture")
+        {
+            continue;
+        }
+        let file = open_private(&entry.path(), false, false)?;
+        let bytes = file.metadata()?.len();
+        retained = retained
+            .checked_add(bytes)
+            .context("retained snapshot byte overflow")?;
+        if entry.path() == temporary {
+            previous = bytes;
+        }
+    }
+    Ok((retained, previous))
 }
 
 fn validate_update(current: &Job, next: &Job) -> Result<()> {

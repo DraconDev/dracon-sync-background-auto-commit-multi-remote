@@ -230,7 +230,10 @@ fn record_budget_and_read_only_status_never_delete_or_create_state() {
     let journal = Journal::open(
         &temp.path().join("journal"),
         &spec().repo_id,
-        Limits { max_records: 1 },
+        Limits {
+            max_records: 1,
+            ..Limits::default()
+        },
     )
     .unwrap();
     let old = journal.create(spec()).unwrap();
