@@ -144,7 +144,7 @@ pub fn encode_relative_path(bytes: &[u8]) -> Result<String> {
 }
 
 fn validate_path_hex(hex: &str) -> Result<()> {
-    if hex.len() > 8192 || hex.len() % 2 != 0 {
+    if hex.len() > 8192 || !hex.len().is_multiple_of(2) {
         bail!("invalid encoded path");
     }
     let mut bytes = Vec::with_capacity(hex.len() / 2);
