@@ -112,7 +112,7 @@ pub struct JobSpec {
     pub encryption: Encryption,
 }
 
-fn identifier(value: &str) -> Result<()> {
+pub(crate) fn identifier(value: &str) -> Result<()> {
     if value.is_empty()
         || value.len() > 128
         || !value
@@ -146,7 +146,7 @@ pub fn encode_relative_path(bytes: &[u8]) -> Result<String> {
     Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 
-fn validate_path_hex(hex: &str) -> Result<()> {
+pub(crate) fn validate_path_hex(hex: &str) -> Result<()> {
     if hex.len() > 8192 || !hex.len().is_multiple_of(2) {
         bail!("invalid encoded path");
     }
