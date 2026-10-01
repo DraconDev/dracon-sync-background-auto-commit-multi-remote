@@ -4,5 +4,6 @@
 //! The caller must enforce ownership/security policy and verify evidence before
 //! recording successful capture, transfer, Git commit, or push operations.
 
+pub mod backend;
 pub mod journal;
 pub mod reference;

@@ -854,8 +854,5 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
     Ok(())
 }
 
-// The immutable backend is still a prototype, exercised without live enrollment.
-#[cfg(test)]
-mod backend;
 #[cfg(test)]
 mod tests;

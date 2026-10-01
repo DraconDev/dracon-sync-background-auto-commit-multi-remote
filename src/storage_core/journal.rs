@@ -579,7 +579,7 @@ pub struct JobLease {
     _lock: File,
 }
 
-fn private_directory(path: &Path, create: bool) -> Result<()> {
+pub(super) fn private_directory(path: &Path, create: bool) -> Result<()> {
     if !path.is_absolute()
         || path
             .components()
@@ -648,7 +648,11 @@ fn exists_without_symlink(path: &Path) -> Result<bool> {
 
 fn open_private(path: &Path, write: bool, create: bool) -> Result<File> {
     let mut options = OpenOptions::new();
-    options.read(true).write(write).create(create);
+    options
+        .read(true)
+        .write(write)
+        .create(create)
+        .truncate(false);
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
