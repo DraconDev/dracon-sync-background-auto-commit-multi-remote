@@ -19,7 +19,12 @@ fn spec() -> JobSpec {
 
 fn fixture() -> (tempfile::TempDir, Journal, Job) {
     let temp = tempfile::tempdir().unwrap();
-    let journal = Journal::open(temp.path(), &spec().repo_id, Limits::default()).unwrap();
+    let journal = Journal::open(
+        &temp.path().join("journal"),
+        &spec().repo_id,
+        Limits::default(),
+    )
+    .unwrap();
     let job = journal.create(spec()).unwrap();
     (temp, journal, job)
 }
@@ -47,7 +52,7 @@ fn exact_version_identity_separates_source_policy_path_and_repository() {
         assert_ne!(base.id(), Job::new(input).unwrap().id());
     }
     let debug = format!("{base:?}");
-    assert!(!debug.contains(&base.spec.source.sha256().repeat(1)));
+    assert!(!debug.contains(base.spec.source.sha256()));
     assert!(!debug.contains("private.bin"));
 }
 
@@ -90,13 +95,13 @@ fn required_copies_and_git_destinations_gate_preservation() {
     lease.save(&mut job).unwrap();
     assert_eq!(job.phase(), Phase::Preserved);
     assert!(job.cancel().is_err());
-    let summary = Journal::inspect(temp.path(), &spec().repo_id).unwrap();
+    let summary = Journal::inspect(&temp.path().join("journal"), &spec().repo_id).unwrap();
     assert_eq!(summary.recorded_preserved, 1);
     assert_eq!(summary.pending_source_bytes, 0);
     job.note_failure(FailureCode::Integrity, None).unwrap();
     lease.save(&mut job).unwrap();
     assert_eq!(
-        Journal::inspect(temp.path(), &spec().repo_id)
+        Journal::inspect(&temp.path().join("journal"), &spec().repo_id)
             .unwrap()
             .recorded_preserved,
         0
@@ -115,7 +120,12 @@ fn restart_preserves_upload_evidence_and_retry_backoff() {
     lease.save(&mut job).unwrap();
     drop(lease);
     drop(journal);
-    let reopened = Journal::open(temp.path(), &spec().repo_id, Limits::default()).unwrap();
+    let reopened = Journal::open(
+        &temp.path().join("journal"),
+        &spec().repo_id,
+        Limits::default(),
+    )
+    .unwrap();
     let lease = reopened.lease(job.id()).unwrap();
     let mut restored = lease.load().unwrap();
     assert_eq!(restored.phase(), Phase::PrimaryVerified);
@@ -195,7 +205,7 @@ fn corrupt_unknown_or_unsafe_records_are_retained_and_not_green() {
     std::fs::write(&path, serde_json::to_vec(&decoded).unwrap()).unwrap();
     assert!(lease.load().is_err());
     assert!(journal.create(spec()).is_err());
-    let summary = Journal::inspect(temp.path(), &spec().repo_id).unwrap();
+    let summary = Journal::inspect(&temp.path().join("journal"), &spec().repo_id).unwrap();
     assert_eq!(summary.invalid_records, 1);
     assert_eq!(summary.recorded_preserved, 0);
     assert!(path.is_file());
@@ -217,14 +227,19 @@ fn record_budget_and_read_only_status_never_delete_or_create_state() {
             .initialized
     );
     assert!(!absent.exists());
-    let journal = Journal::open(temp.path(), &spec().repo_id, Limits { max_records: 1 }).unwrap();
+    let journal = Journal::open(
+        &temp.path().join("journal"),
+        &spec().repo_id,
+        Limits { max_records: 1 },
+    )
+    .unwrap();
     let old = journal.create(spec()).unwrap();
     assert_eq!(journal.create(spec()).unwrap().id(), old.id());
     let mut second = spec();
     second.source = fingerprint('e', 101);
     assert!(journal.create(second).is_err());
     assert_eq!(
-        Journal::inspect(temp.path(), &spec().repo_id)
+        Journal::inspect(&temp.path().join("journal"), &spec().repo_id)
             .unwrap()
             .records,
         1
@@ -293,7 +308,7 @@ fn process_death_releases_lease_and_atomic_write_has_old_or_new_record() {
                 "storage_core::journal::tests::crash_child",
                 "--ignored",
             ])
-            .env("DRACON_STORAGE_CRASH_ROOT", temp.path())
+            .env("DRACON_STORAGE_CRASH_ROOT", temp.path().join("journal"))
             .env("DRACON_STORAGE_CRASH_JOB", job.id())
             .env("DRACON_STORAGE_CRASH_POINT", phase)
             .output()
@@ -312,7 +327,7 @@ fn process_death_releases_lease_and_atomic_write_has_old_or_new_record() {
         );
         assert_eq!(recovered.spec.source, job.spec.source);
         assert_eq!(
-            Journal::inspect(temp.path(), &spec().repo_id)
+            Journal::inspect(&temp.path().join("journal"), &spec().repo_id)
                 .unwrap()
                 .invalid_records,
             0
