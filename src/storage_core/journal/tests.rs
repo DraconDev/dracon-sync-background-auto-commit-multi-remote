@@ -595,11 +595,15 @@ fn prepared_payload_recovers_process_death_without_repeating_security_processing
         let job = journal
             .create(real_source_spec(b"crash payload source"))
             .unwrap();
-        journal
-            .lease(job.id())
-            .unwrap()
+        let lease = journal.lease(job.id()).unwrap();
+        let mut captured = lease
             .capture_snapshot(&mut &b"crash payload source"[..])
             .unwrap();
+        captured
+            .select_prepared_payload(digest_bytes(b"approved crash payload"))
+            .unwrap();
+        lease.save(&mut captured).unwrap();
+        drop(lease);
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
@@ -613,9 +617,8 @@ fn prepared_payload_recovers_process_death_without_repeating_security_processing
             .unwrap();
         assert_eq!(output.status.code(), Some(73));
         let lease = journal.lease(job.id()).unwrap();
-        let recovered = lease
-            .retain_payload(&mut &b""[..], &digest_bytes(b"approved crash payload"))
-            .unwrap();
+        let selected = lease.load().unwrap().prepared_candidate().unwrap().clone();
+        let recovered = lease.retain_payload(&mut &b""[..], &selected).unwrap();
         assert_eq!(recovered.phase(), Phase::Prepared);
         let mut actual = Vec::new();
         lease

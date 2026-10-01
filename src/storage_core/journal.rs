@@ -215,6 +215,8 @@ pub struct Job {
     spec: JobSpec,
     phase: Phase,
     capture: Option<Fingerprint>,
+    #[serde(default)]
+    prepared_candidate: Option<Fingerprint>,
     payload: Option<Fingerprint>,
     copies: BTreeMap<String, Receipt>,
     commit: Option<String>,
@@ -255,6 +257,7 @@ impl Job {
             spec,
             phase: Phase::PendingCapture,
             capture: None,
+            prepared_candidate: None,
             payload: None,
             copies: BTreeMap::new(),
             commit: None,
@@ -280,6 +283,12 @@ impl Job {
     pub fn payload(&self) -> Option<&Fingerprint> {
         self.payload.as_ref()
     }
+    /// Approved candidate identity persisted before payload capture starts.
+    /// This is not a receipt that its bytes are durably retained or uploaded.
+    pub fn prepared_candidate(&self) -> Option<&Fingerprint> {
+        self.prepared_candidate.as_ref()
+    }
+
     /// Typed failure, without raw secrets/path/server details.
     pub fn failure(&self) -> Option<FailureCode> {
         self.failure.as_ref().map(|f| f.code)
@@ -304,10 +313,26 @@ impl Job {
         Ok(())
     }
 
+    /// Bind a successfully security-processed representation before retaining it.
+    /// The caller must preserve its encrypted input artifact until capture completes.
+    pub fn select_prepared_payload(&mut self, payload: Fingerprint) -> Result<()> {
+        self.require_phase(&[Phase::Captured])?;
+        self.validate_payload(&payload)?;
+        if self
+            .prepared_candidate
+            .as_ref()
+            .is_some_and(|selected| selected != &payload)
+        {
+            bail!("approved prepared candidate cannot change");
+        }
+        self.prepared_candidate = Some(payload);
+        Ok(())
+    }
+
     /// Record an approved representation after security processing succeeds.
     pub fn record_prepared(&mut self, payload: Fingerprint) -> Result<()> {
         self.require_phase(&[Phase::Captured])?;
-        self.validate_payload(&payload)?;
+        self.select_prepared_payload(payload.clone())?;
         self.payload = Some(payload);
         self.phase = Phase::Prepared;
         self.failure = None;
@@ -482,6 +507,17 @@ impl Job {
         if self.phase != Phase::Cancelled && self.phase >= Phase::Captured && self.capture.is_none()
         {
             bail!("capture evidence missing");
+        }
+        if let Some(candidate) = &self.prepared_candidate {
+            self.validate_payload(candidate)?;
+            if self.capture.is_none()
+                || self
+                    .payload
+                    .as_ref()
+                    .is_some_and(|payload| payload != candidate)
+            {
+                bail!("approved candidate does not match captured/prepared evidence");
+            }
         }
         if let Some(payload) = &self.payload {
             self.validate_payload(payload)?;
@@ -962,6 +998,12 @@ impl JobLease {
         }
         // Never substitute a representation for an unverified captured source.
         self.source_snapshot()?;
+        if job.prepared_candidate.is_none() {
+            job.select_prepared_payload(expected.clone())?;
+            self.save(&mut job)?;
+        } else if job.prepared_candidate.as_ref() != Some(expected) {
+            bail!("approved prepared candidate cannot change");
+        }
         retain_snapshot(
             &self.directory,
             &self.id,
@@ -1046,7 +1088,7 @@ fn retain_snapshot(
             ),
         };
     if expected.bytes() > per_version {
-        bail!("source exceeds snapshot byte budget");
+        bail!("version exceeds snapshot byte budget");
     }
     let _budget = try_lock(&directory.join(format!("{final_suffix}-budget.lock")))?;
     let destination = directory.join(format!("{id}.{final_suffix}"));
@@ -1192,7 +1234,8 @@ fn validate_update(current: &Job, next: &Job) -> Result<()> {
     if !permitted {
         bail!("journal phase transition would skip or discard proven progress");
     }
-    if current.capture.is_some() && current.capture != next.capture
+    if current.prepared_candidate.is_some() && current.prepared_candidate != next.prepared_candidate
+        || current.capture.is_some() && current.capture != next.capture
         || current.payload.is_some() && current.payload != next.payload
         || current.commit.is_some() && current.commit != next.commit
         || next.attempts < current.attempts
