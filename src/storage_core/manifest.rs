@@ -6,6 +6,7 @@
 
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
+use std::io::{self, Write};
 
 use super::journal::{identifier, validate_path_hex, Encryption};
 use super::reference::{validate_sha256, Fingerprint, Pointer};
@@ -15,6 +16,22 @@ pub const MAX_MANIFEST_BYTES: usize = 4 * 1024 * 1024;
 /// Maximum sticky path enrollments, including deleted-path tombstones.
 pub const MAX_ENROLLMENTS: usize = 10_000;
 const VERSION: u32 = 1;
+
+struct BoundedEncoding(Vec<u8>);
+
+impl Write for BoundedEncoding {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if bytes.len() > MAX_MANIFEST_BYTES.saturating_sub(self.0.len()) {
+            return Err(io::Error::other("restore manifest byte limit exceeded"));
+        }
+        self.0.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 /// A path's sticky external-placement contract and current immutable payload.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -149,11 +166,10 @@ impl Manifest {
     /// Repeated encodings of unchanged metadata produce identical bytes.
     pub fn encode_private(&self) -> Result<Vec<u8>> {
         self.validate()?;
-        let bytes = serde_json::to_vec(self)?;
-        if bytes.len() > MAX_MANIFEST_BYTES {
-            bail!("restore manifest byte limit exceeded");
-        }
-        Ok(bytes)
+        let mut encoded = BoundedEncoding(Vec::new());
+        serde_json::to_writer(&mut encoded, self)
+            .map_err(|_| anyhow::anyhow!("restore manifest byte limit exceeded"))?;
+        Ok(encoded.0)
     }
 
     /// Decode bounded private plaintext after authenticated decryption.
@@ -198,9 +214,8 @@ mod tests {
         assert!(!restored.matches_pointer(
             &Pointer::new(Fingerprint::new("d".repeat(64), 101 * 1024 * 1024).unwrap()).unwrap()
         ));
-        assert!(!restored.matches_pointer(
-            &Pointer::new(Fingerprint::new("c".repeat(64), 1).unwrap()).unwrap()
-        ));
+        assert!(!restored
+            .matches_pointer(&Pointer::new(Fingerprint::new("c".repeat(64), 1).unwrap()).unwrap()));
         assert_eq!(decoded.repo_id(), "a".repeat(64));
         assert!(decoded.enrollment("not-enrolled").is_none());
     }
@@ -239,10 +254,19 @@ mod tests {
             text.replace("\"version\":1", "\"version\":1,\"version\":1"),
             text.replace("preserve-all", "expire"),
             text.replace("warden-age", "PRIVATE-SECRET"),
-            text.replace("\"primary\":\"primary\"", "\"primary\":\"https://PRIVATE-SECRET\""),
-            text.replace("\"version\":1", "\"version\":1,\"token\":\"PRIVATE-SECRET\""),
+            text.replace(
+                "\"primary\":\"primary\"",
+                "\"primary\":\"https://PRIVATE-SECRET\"",
+            ),
+            text.replace(
+                "\"version\":1",
+                "\"version\":1,\"token\":\"PRIVATE-SECRET\"",
+            ),
             text.replace(&"c".repeat(64), &"C".repeat(64)),
-            text.replace(&encode_relative_path(b"asset.mp4").unwrap(), "2e2e2f736563726574"),
+            text.replace(
+                &encode_relative_path(b"asset.mp4").unwrap(),
+                "2e2e2f736563726574",
+            ),
         ] {
             let error = Manifest::parse_private(bad.as_bytes()).err().unwrap();
             assert!(!format!("{error:#}").contains("PRIVATE-SECRET"));
@@ -259,10 +283,28 @@ mod tests {
         assert!(Manifest::new("a".repeat(64), vec![b, a.clone()]).is_err());
         assert!(Manifest::new("a".repeat(64), vec![a.clone(), a.clone()]).is_err());
         assert!(Manifest::new("a".repeat(64), vec![a.clone(); MAX_ENROLLMENTS + 1]).is_err());
-        for copies in [vec![], vec!["recovery".into()], vec!["primary".into(), "primary".into()], vec!["recovery".into(), "primary".into()]] {
+        for copies in [
+            vec![],
+            vec!["recovery".into()],
+            vec!["primary".into(), "primary".into()],
+            vec!["recovery".into(), "primary".into()],
+        ] {
             let mut malformed = a.clone();
             malformed.required_copies = copies;
             assert!(Manifest::new("a".repeat(64), vec![malformed]).is_err());
         }
+    }
+
+    #[test]
+    fn encoding_stops_at_metadata_budget_before_producing_oversized_output() {
+        let entries = (0..600)
+            .map(|index| entry(format!("{index:04}/{}", "x".repeat(4000)).as_bytes()))
+            .collect();
+        let manifest = Manifest::new("a".repeat(64), entries).unwrap();
+        assert!(manifest.encode_private().is_err());
+        let mut bounded = BoundedEncoding(Vec::new());
+        bounded.write_all(&vec![0; MAX_MANIFEST_BYTES]).unwrap();
+        assert!(bounded.write_all(b"extra").is_err());
+        assert_eq!(bounded.0.len(), MAX_MANIFEST_BYTES);
     }
 }
