@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Added
+
+- Optional storage policy and read-only `storage plan`, `storage validate`, and
+  redacted `storage status` previews for generic repositories. External placement
+  remains disabled by default; these commands do not upload or change Git data.
+- Shared preservation infrastructure: strict standard LFS pointers, durable
+  private job records and resumable snapshots, bounded Warden preparation,
+  immutable verified local copies, repository/security-bound adapter grants,
+  and a bounded private restore-manifest codec with sticky enrollment tombstones.
+  Production configuration resolution, protected metadata publication, S3,
+  Git filters/staging, packaged restoration and daemon transfers remain gated;
+  this infrastructure is not automatic bucket migration.
+- Private runtime isolation for journal/local-store writes, including refusal
+  of tracked paths, project roots, unmarked nonempty directories and tampered
+  protection. Operator files and existing project ignore rules are preserved.
+
+### Fixed
+
+- Repository size legends and push-guard guidance distinguish the per-push
+  capacity concern from total `.git` disk usage.
+
 ## [0.113.92] - 2026-10-01
 
 ### Fixed
