@@ -117,8 +117,12 @@ directory. Otherwise the command uses `DRACON_SYNC_STATE_DIR` or
 The shared-library journal has private per-job leases, atomic durable records,
 exact-version snapshots and typed retry gates. Its current per-repo defaults
 are 10,000 records, 1 GiB per source snapshot and 4 GiB retained source/capture
-bytes. These library defaults are not an enrolled operator storage policy.
-Exhaustion refuses new capture and retains existing bytes; no automatic eviction
+bytes, plus 2 GiB per prepared payload and 8 GiB retained payload/spool bytes.
+These library defaults are not an enrolled operator storage policy.
+Prepared candidates bind approved representation identities; complete payloads
+are retained and reused across retries. The shared copy executor verifies every
+required copy using operator-resolved adapters. Preview commands and the daemon
+do not invoke that executor. Exhaustion refuses capture and retains bytes; no automatic eviction
 exists. Unix ownership/permission checks are required by this adapter.
 
 ## Implementation checks

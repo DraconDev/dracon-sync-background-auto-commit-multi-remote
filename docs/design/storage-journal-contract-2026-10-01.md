@@ -14,8 +14,9 @@ Raw source hashes and path identities stay in private local state.
 These structures validate evidence consistency. They do not perform secret
 classification, authorize a backend, prove recipient approval, or inspect the
 Git index. Callers must establish those facts before recording receipts. The
-Warden streaming adapter and local object backend exist separately; connecting
-them to a worker remains required before production use.
+Warden streaming adapter and copy executor exist separately; binding recipient
+authorization and completed encryption artifacts to the executor remains
+required before production use.
 
 ## Durable progress
 
@@ -41,6 +42,24 @@ capacity, integrity, security and source-change failures require intervention.
 Clearing a failure is an explicit API operation, not proof the problem vanished.
 Cancellation before publication preserves the record and captured bytes.
 
+## Approved representation and copy execution
+
+The job records the caller-approved ciphertext fingerprint before retaining its
+bytes. This candidate is immutable and is not yet a durability receipt. The
+caller must preserve its successfully encrypted input artifact until capture
+completes. A full verified payload spool can be recovered from its recorded
+identity without repeating encryption. Partial payload capture resumes only
+from the same matching representation; new ciphertext randomness cannot replace
+an already selected candidate. Payload publication precedes the prepared phase.
+
+The copy executor reads only the retained prepared payload and rechecks every
+required destination on each run, including those with old receipts. It saves
+the upload attempt before I/O and each successful readback before advancing.
+An apparent upload success without readback cannot create a receipt. Structured
+integrity/capacity failures block progress and retain bytes. Transient I/O
+failures keep proof and establish a 30-second retry deadline. The daemon's fair
+scheduler and provider-specific classification remain pending.
+
 ## Source capture and exhaustion
 
 Capture streams through a 64 KiB buffer into a private version-specific spool.
@@ -51,10 +70,11 @@ Complete spools left by process death are verified and adopted before reading
 new input. Corrupt or conflicting snapshots are retained and refused.
 
 The current library limits are per repository: 10,000 job records, 1 GiB per
-source version, 4 GiB aggregate source/capture bytes. A local capture-budget
+source version, 4 GiB aggregate source/capture bytes, 2 GiB per prepared payload and 8 GiB
+aggregate payload/spool bytes. A local capture-budget
 lease prevents simultaneous captures from exceeding the aggregate limit.
-Exhaustion blocks capture without deleting retained data. Prepared ciphertext,
-cache, global disk reserve and operator policy limits still need integration.
+Exhaustion blocks capture without deleting retained data. Source and prepared-payload budgets are separate; cache, global disk reserve
+and operator policy limits still need integration.
 
 The Unix adapter requires private operator-owned directories/files and rejects
 symlink components and hard-linked journal entries. The journal contains
@@ -71,6 +91,6 @@ not repair corrupted records, delete old versions, or start a transfer.
 Tests exercise exclusive leases, stale revisions, forbidden regressions,
 copy/Git acknowledgment gates, typed retry backoff, corrupt records, byte
 budgets, partial captures, changed inputs and process death on both sides of
-record and snapshot publication. Actual worker/index/network reconciliation,
-prepared representation retention and independent recovery drills remain
+record and snapshot publication. Production worker/index/network reconciliation, security subprocess
+composition and independent recovery drills remain
 release gates in the [delivery ledger](storage-delivery-ledger-2026-10-01.md).

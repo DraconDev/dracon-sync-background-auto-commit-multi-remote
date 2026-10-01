@@ -31,6 +31,13 @@ This ledger records actual evidence and preserves the remaining scope.
   complete-spool adoption after process death, record/count/byte budgets, and
   no automatic deletion of retained source versions. See the
   [journal contract](storage-journal-contract-2026-10-01.md).
+- Durable approved-payload candidate identities and bounded private payload
+  snapshots; same-representation prefix resume, exact-byte reuse, independent
+  byte budgets, and recovery on both sides of payload and job publication.
+- Shared-library copy executor uses retained bytes, verifies every required
+  destination despite historical receipts, saves attempts/receipts, and retains
+  snapshots on typed integrity/capacity/transient failures. Transient readback
+  tests exercise backoff; apparent upload success alone cannot mark a copy saved.
 - `storage status` inspects local journal evidence without creating state or
   claiming current backend availability. Uninitialized repos need no enrollment.
 - Warden source-build `storage-encrypt`/`storage-decrypt` stream whole-payload
@@ -108,7 +115,7 @@ assuming a 20 MiB media threshold alone will solve history growth.
 | A: contracts/inventory | Partial | Per-path churn attribution, producer/service review, threat model, manifest/security/group contracts |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
 | C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, worker composition, protected restore metadata remain |
-| D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention, worker reconciliation and operator resource policy remain |
+| D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention/copy execution checked; production reconciliation and operator resource policy remain |
 | E: Git bridge | Partial | Strict pointer codec checked; protected manifest, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
 | G: daemon/status | Partial | Read-only redacted journal status checked; worker scheduling, live backend verification, fairness, grouping and outage isolation remain |
@@ -117,8 +124,8 @@ assuming a 20 MiB media threshold alone will solve history growth.
 
 ## Next implementation sequence
 
-Continue with retained prepared payloads, the protected restore manifest and
-worker reconciliation around the journal and Warden streaming adapter. Add
+Continue with security subprocess composition, the protected restore manifest
+and production reconciliation around the journal and copy executor. Add
 S3 backend capability checks and independent-copy verification. Wire the Git bridge only after exact-version and
 security gates pass. Continue with hydration, daemon scheduling/status, pilots,
 and packaged release validation. Keep the whole roadmap active; a green preview
@@ -126,3 +133,17 @@ build does not mean automatic preservation exists.
 
 No production storage enrollment, bucket writes, independent-copy policy,
 retention changes, or history rewrites were performed for this milestone.
+
+## Prepared-payload/copy executor milestone
+
+Focused shared-library tests passed 28 tests (four ignored helpers/external-tool
+checks), including candidate binding, restart identity reuse, four payload/job
+publication crash points, independent payload budgets, required-copy readback,
+corrupt old receipts, quota failure and transient readback retry. No source bytes
+or new ciphertext can be substituted by the copy executor. Strict all-target
+workspace Clippy passed before the final local failure-classification refinement.
+The current full workspace/release reruns are pending and will be recorded here.
+
+This remains library infrastructure: no new `storage prepare` command, production
+Warden subprocess orchestration, S3 adapter, manifest, filters or daemon worker
+is present. No live storage paths/backends have been enrolled.
