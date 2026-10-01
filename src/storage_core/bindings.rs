@@ -50,10 +50,7 @@ pub struct CopyBindings<'a> {
 impl<'a> CopyBindings<'a> {
     /// Bind operator-authorized adapters to the stable owning repository identity.
     /// The caller must establish the trusted ID-to-checkout/config mapping.
-    pub fn new(
-        repo_id: String,
-        backends: BTreeMap<String, ApprovedBackend<'a>>,
-    ) -> Result<Self> {
+    pub fn new(repo_id: String, backends: BTreeMap<String, ApprovedBackend<'a>>) -> Result<Self> {
         validate_sha256(&repo_id)?;
         if backends.len() > 64 {
             bail!("approved copy binding limit exceeded");

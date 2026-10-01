@@ -461,6 +461,7 @@ mod tests {
     #[ignore = "operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary"]
     async fn real_warden_large_payload_copies_and_cold_restore_use_fixture_keys() {
         use crate::storage_core::backend::{ImmutableBackend, LocalBackend};
+        use crate::storage_core::bindings::{ApprovedBackend, CopyBindings};
         use crate::storage_core::transfer::transfer_copies;
         use std::collections::BTreeMap;
         let binary = PathBuf::from(
@@ -537,10 +538,14 @@ mod tests {
         let recovery_root = temp.path().join("recovery");
         let primary = LocalBackend::open(&primary_root, bytes * 2).unwrap();
         let recovery = LocalBackend::open(&recovery_root, bytes * 2).unwrap();
-        let backends = BTreeMap::from([
-            ("primary".into(), &primary as &dyn ImmutableBackend),
-            ("recovery".into(), &recovery as &dyn ImmutableBackend),
-        ]);
+        let backends = CopyBindings::new(
+            "a".repeat(64),
+            BTreeMap::from([
+                ("primary".into(), ApprovedBackend::encrypted(&primary)),
+                ("recovery".into(), ApprovedBackend::encrypted(&recovery)),
+            ]),
+        )
+        .unwrap();
         assert_eq!(
             transfer_copies(&lease, &backends, 2).unwrap().phase(),
             Phase::ReadyToStage

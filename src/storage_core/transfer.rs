@@ -1,9 +1,9 @@
 //! Exact-payload copy execution, independent of Git staging and daemon scheduling.
 
-use anyhow::{bail, Context, Result};
 use super::backend::BackendFailure;
 use super::bindings::CopyBindings;
 use super::journal::{FailureCode, Job, JobLease};
+use anyhow::{bail, Context, Result};
 
 /// Upload/read back every required copy using operator-resolved backend adapters.
 ///
@@ -12,11 +12,7 @@ use super::journal::{FailureCode, Job, JobLease};
 /// encrypted again, staged, committed or deleted here. Retries always use the
 /// same private prepared snapshot and reverify every required copy, even when
 /// historical receipts exist. This holds only the job lease, never a Git lock.
-pub fn transfer_copies(
-    lease: &JobLease,
-    backends: &CopyBindings<'_>,
-    now: u64,
-) -> Result<Job> {
+pub fn transfer_copies(lease: &JobLease, backends: &CopyBindings<'_>, now: u64) -> Result<Job> {
     let mut job = lease.load()?;
     if now == 0 {
         bail!("positive transfer timestamp required");
@@ -105,16 +101,23 @@ mod tests {
     };
     use crate::storage_core::reference::Fingerprint;
     use sha2::{Digest, Sha256};
-    use std::io::{Read, Write};
     use std::collections::BTreeMap;
+    use std::io::{Read, Write};
 
     fn approved<'a>(backends: BTreeMap<String, &'a dyn ImmutableBackend>) -> CopyBindings<'a> {
         CopyBindings::new(
             "a".repeat(64),
-            backends.into_iter().map(|(id, backend)| {
-                (id, ApprovedBackend::for_security(backend, vec![Encryption::None]).unwrap())
-            }).collect(),
-        ).unwrap()
+            backends
+                .into_iter()
+                .map(|(id, backend)| {
+                    (
+                        id,
+                        ApprovedBackend::for_security(backend, vec![Encryption::None]).unwrap(),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap()
     }
 
     fn fixture(temp: &std::path::Path) -> (Journal, Job) {
@@ -146,10 +149,10 @@ mod tests {
         let (journal, job) = fixture(temp.path());
         let primary = LocalBackend::open(&temp.path().join("primary"), 1024).unwrap();
         let recovery = LocalBackend::open(&temp.path().join("recovery"), 1024).unwrap();
-        let backends = BTreeMap::from([
+        let backends = approved(BTreeMap::from([
             ("primary".into(), &primary as &dyn ImmutableBackend),
             ("recovery".into(), &recovery as &dyn ImmutableBackend),
-        ]);
+        ]));
         let lease = journal.lease(job.id()).unwrap();
         let ready = transfer_copies(&lease, &backends, 1).unwrap();
         assert_eq!(ready.phase(), Phase::ReadyToStage);
@@ -174,19 +177,80 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let (journal, job) = fixture(temp.path());
         let lease = journal.lease(job.id()).unwrap();
-        assert!(transfer_copies(&lease, &BTreeMap::new(), 1).is_err());
+        assert!(transfer_copies(&lease, &approved(BTreeMap::new()), 1).is_err());
         assert_eq!(lease.load().unwrap().phase(), Phase::Prepared);
         let primary = LocalBackend::open(&temp.path().join("primary"), 1024).unwrap();
         let recovery = LocalBackend::open(&temp.path().join("recovery"), 1).unwrap();
-        let backends = BTreeMap::from([
+        let backends = approved(BTreeMap::from([
             ("primary".into(), &primary as &dyn ImmutableBackend),
             ("recovery".into(), &recovery as &dyn ImmutableBackend),
-        ]);
+        ]));
         assert!(transfer_copies(&lease, &backends, 2).is_err());
         let failed = lease.load().unwrap();
         assert_eq!(failed.phase(), Phase::PrimaryVerified);
         assert_eq!(failed.failure(), Some(FailureCode::Capacity));
         assert!(lease.payload_snapshot().is_ok());
+    }
+
+    #[test]
+    fn foreign_or_unapproved_security_bindings_refuse_before_backend_io() {
+        struct NoIo;
+        impl ImmutableBackend for NoIo {
+            fn put(&self, _input: &mut dyn Read) -> Result<Fingerprint> {
+                panic!("unapproved binding performed an upload");
+            }
+            fn get_verified(&self, _identity: &Fingerprint, _output: &mut dyn Write) -> Result<()> {
+                panic!("unapproved binding performed a readback");
+            }
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job) = fixture(temp.path());
+        let lease = journal.lease(job.id()).unwrap();
+        for repo_id in ["a".repeat(64), "b".repeat(64)] {
+            let bindings = CopyBindings::new(
+                repo_id,
+                BTreeMap::from([
+                    ("primary".into(), ApprovedBackend::encrypted(&NoIo)),
+                    ("recovery".into(), ApprovedBackend::encrypted(&NoIo)),
+                ]),
+            )
+            .unwrap();
+            // This fixture is explicitly non-sensitive. Encrypted-only grants
+            // must refuse it, even with correct identifiers and repo identity.
+            assert!(transfer_copies(&lease, &bindings, 1).is_err());
+            let unchanged = lease.load().unwrap();
+            assert_eq!(unchanged.phase(), Phase::Prepared);
+            assert!(unchanged.failure().is_none());
+            assert!(lease.payload_snapshot().is_ok());
+        }
+        let foreign = CopyBindings::new(
+            "b".repeat(64),
+            BTreeMap::from([
+                (
+                    "primary".into(),
+                    ApprovedBackend::for_security(&NoIo, vec![Encryption::None]).unwrap(),
+                ),
+                (
+                    "recovery".into(),
+                    ApprovedBackend::for_security(&NoIo, vec![Encryption::None]).unwrap(),
+                ),
+            ]),
+        )
+        .unwrap();
+        assert!(transfer_copies(&lease, &foreign, 1).is_err());
+        assert!(ApprovedBackend::for_security(&NoIo, vec![]).is_err());
+        assert!(
+            ApprovedBackend::for_security(&NoIo, vec![Encryption::None, Encryption::None]).is_err()
+        );
+        assert!(CopyBindings::new("PRIVATE-SECRET".into(), BTreeMap::new()).is_err());
+        assert!(CopyBindings::new(
+            "a".repeat(64),
+            BTreeMap::from([(
+                "https://PRIVATE-SECRET".into(),
+                ApprovedBackend::encrypted(&NoIo)
+            ),])
+        )
+        .is_err());
     }
 
     #[test]
@@ -206,10 +270,10 @@ mod tests {
         let (journal, job) = fixture(temp.path());
         let lease = journal.lease(job.id()).unwrap();
         let backend = Unverified;
-        let backends = BTreeMap::from([
+        let backends = approved(BTreeMap::from([
             ("primary".into(), &backend as &dyn ImmutableBackend),
             ("recovery".into(), &backend as &dyn ImmutableBackend),
-        ]);
+        ]));
         assert!(transfer_copies(&lease, &backends, 1).is_err());
         assert_eq!(lease.load().unwrap().phase(), Phase::Uploading);
         assert_eq!(
@@ -244,10 +308,10 @@ mod tests {
             local: LocalBackend::open(&temp.path().join("objects"), 1024).unwrap(),
             fail_readback: AtomicBool::new(true),
         };
-        let backends = BTreeMap::from([
+        let backends = approved(BTreeMap::from([
             ("primary".into(), &backend as &dyn ImmutableBackend),
             ("recovery".into(), &backend as &dyn ImmutableBackend),
-        ]);
+        ]));
         assert!(transfer_copies(&lease, &backends, 1).is_err());
         assert_eq!(
             lease.load().unwrap().failure(),
