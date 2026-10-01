@@ -276,6 +276,9 @@ pub(crate) enum StorageCommand {
         policy: Option<PathBuf>,
         #[arg(long)]
         json: bool,
+        /// Scan reachable blob bytes and object-store disk usage (can be slow).
+        #[arg(long)]
+        history: bool,
     },
     /// Validate effective storage rules and operator backend bindings, without I/O to backends.
     Validate {
@@ -375,6 +378,7 @@ struct Plan {
     proposed_git_bytes: u64,
     proposed_external_bytes: u64,
     files: Vec<FilePlan>,
+    history: Option<HistoryInventory>,
 }
 
 fn inventory(
@@ -519,6 +523,99 @@ fn inventory(
     Ok(plan)
 }
 
+#[derive(Debug, Serialize)]
+struct HistoryInventory {
+    reachable_blob_count: u64,
+    reachable_raw_blob_bytes: u64,
+    git_object_database_bytes: u64,
+    scope: &'static str,
+}
+
+fn history_inventory(repo: &Path) -> Result<HistoryInventory> {
+    use std::io::BufRead;
+    use std::process::Stdio;
+    let mut rev_list = crate::policy::std_git_command()
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .args(["rev-list", "--objects", "--all", "--no-object-names"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+    let input = rev_list
+        .stdout
+        .take()
+        .context("missing object inventory pipe")?;
+    let spawn = crate::policy::std_git_command()
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .args(["cat-file", "--batch-check=%(objecttype) %(objectsize)"])
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn();
+    let mut cat = match spawn {
+        Ok(cat) => cat,
+        Err(error) => {
+            let _ = rev_list.kill();
+            let _ = rev_list.wait();
+            return Err(error.into());
+        }
+    };
+    let mut result = HistoryInventory {
+        reachable_blob_count: 0, reachable_raw_blob_bytes: 0, git_object_database_bytes: 0,
+        scope: "all local refs; unique reachable raw blobs; database disk includes unreachable objects and excludes nested gitdirs; not push bytes",
+    };
+    let read_result = (|| -> Result<()> {
+        for line in
+            std::io::BufReader::new(cat.stdout.take().context("missing blob inventory pipe")?)
+                .lines()
+        {
+            let line = line?;
+            let (kind, size) = line
+                .split_once(' ')
+                .context("invalid object inventory result")?;
+            let bytes: u64 = size
+                .parse()
+                .context("missing or invalid object inventory")?;
+            if kind == "blob" {
+                result.reachable_blob_count += 1;
+                result.reachable_raw_blob_bytes = result
+                    .reachable_raw_blob_bytes
+                    .checked_add(bytes)
+                    .context("history byte overflow")?;
+            }
+        }
+        Ok(())
+    })();
+    if read_result.is_err() {
+        let _ = cat.kill();
+        let _ = rev_list.kill();
+    }
+    let cat_status = cat.wait()?;
+    let rev_status = rev_list.wait()?;
+    read_result?;
+    if !cat_status.success() || !rev_status.success() {
+        bail!("history inventory failed");
+    }
+    let raw = git_read(repo, &["count-objects", "-v"])?;
+    for line in std::str::from_utf8(&raw)?.lines() {
+        if let Some(kib) = line
+            .strip_prefix("size: ")
+            .or_else(|| line.strip_prefix("size-pack: "))
+        {
+            let bytes = kib
+                .parse::<u64>()?
+                .checked_mul(1024)
+                .context("database byte overflow")?;
+            result.git_object_database_bytes = result
+                .git_object_database_bytes
+                .checked_add(bytes)
+                .context("database byte overflow")?;
+        }
+    }
+    Ok(result)
+}
+
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
     let (repo, policy_path, json) = match command {
         StorageCommand::Plan { repo, policy, json }
@@ -540,7 +637,10 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         }
         return Ok(());
     }
-    let plan = inventory(&repo, &global, &local, &compiled)?;
+    let mut plan = inventory(&repo, &global, &local, &compiled)?;
+    if matches!(command, StorageCommand::Plan { history: true, .. }) {
+        plan.history = Some(history_inventory(&repo)?);
+    }
     if json {
         println!("{}", serde_json::to_string_pretty(&plan)?);
     } else {
@@ -550,6 +650,15 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         );
         println!("Proposed working-tree bytes: Git {}, external {}. These are not history or push-size estimates.", plan.proposed_git_bytes, plan.proposed_external_bytes);
         println!("{}", plan.eligibility);
+        if let Some(history) = &plan.history {
+            println!(
+                "Reachable raw blobs: {} bytes ({} blobs); own Git object database: {} bytes. {}",
+                history.reachable_raw_blob_bytes,
+                history.reachable_blob_count,
+                history.git_object_database_bytes,
+                history.scope
+            );
+        }
         for file in &plan.files {
             println!(
                 "{:?}\t{}\t{:?}\trule {:?}\t{}",
