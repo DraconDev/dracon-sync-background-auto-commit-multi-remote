@@ -74,6 +74,13 @@ fn classify(error: &anyhow::Error) -> FailureCode {
     }) {
         return FailureCode::Capacity;
     }
+    #[cfg(unix)]
+    if error
+        .downcast_ref::<std::io::Error>()
+        .is_some_and(|error| error.raw_os_error() == Some(libc::ELOOP))
+    {
+        return FailureCode::Security;
+    }
     if let Some(error) = error.downcast_ref::<std::io::Error>() {
         return match error.kind() {
             std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidData => {

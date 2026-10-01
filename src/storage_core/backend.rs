@@ -177,7 +177,7 @@ impl ImmutableBackend for LocalBackend {
             .open(path)
             .context("object missing or inaccessible")?;
         if !input.metadata()?.is_file() {
-            bail!("object is not a regular file");
+            bail!(BackendFailure::Integrity);
         }
         let actual = stream_digest(&mut input, output, self.max_object_bytes)?;
         if actual != *identity {
