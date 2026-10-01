@@ -171,3 +171,187 @@ fn fail(lease: &JobLease, job: &mut Job, code: FailureCode, now: u64) -> Result<
     lease.save(job)?;
     bail!("security preparation failed: {code:?}")
 }
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use crate::storage_core::journal::{encode_relative_path, JobSpec, Journal, Limits};
+    use std::os::unix::fs::PermissionsExt;
+
+    fn fixture(temp: &Path, script: &str, limits: Limits) -> (Journal, Job, WardenAdapter) {
+        let repo = temp.join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let binary = temp.join("warden-fixture");
+        std::fs::write(&binary, format!("#!/bin/sh\n{script}\n")).unwrap();
+        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let bytes = b"selected private source";
+        let spec = JobSpec {
+            repo_id: "a".repeat(64),
+            path_hex: encode_relative_path(b"private.bin").unwrap(),
+            source: Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64)
+                .unwrap(),
+            policy_sha256: "c".repeat(64),
+            primary: "primary".into(),
+            required_copies: vec!["primary".into()],
+            required_git_targets: vec!["github".into()],
+            encryption: Encryption::WardenAge,
+        };
+        let journal = Journal::open(&temp.join("journal"), &spec.repo_id, limits).unwrap();
+        let job = journal.create(spec).unwrap();
+        journal
+            .lease(job.id())
+            .unwrap()
+            .capture_snapshot(&mut &bytes[..])
+            .unwrap();
+        let adapter = WardenAdapter::new(&binary, &repo, Duration::from_secs(5)).unwrap();
+        (journal, job, adapter)
+    }
+
+    // Synthetic executables test subprocess/publication mechanics only. Real
+    // encryption and recipient trust are checked by the operational test below.
+    const APPROVED: &str =
+        "cat >/dev/null\nprintf 'age-encryption.org/v1\\napproved opaque fixture\\n'";
+
+    #[tokio::test]
+    async fn success_publishes_once_and_restart_does_not_spawn_again() {
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let lease = journal.lease(job.id()).unwrap();
+        let prepared = adapter.prepare(&lease, 1).await.unwrap();
+        assert_eq!(prepared.phase(), Phase::Prepared);
+        let identity = prepared.payload().unwrap().clone();
+        drop(lease);
+        // Invocation after preparation must not run this failing replacement.
+        std::fs::write(temp.path().join("warden-fixture"), "#!/bin/sh\nexit 71\n").unwrap();
+        let lease = journal.lease(job.id()).unwrap();
+        assert_eq!(
+            adapter.prepare(&lease, 2).await.unwrap().payload(),
+            Some(&identity)
+        );
+        assert!(lease.source_snapshot().is_ok());
+        assert!(lease.payload_snapshot().is_ok());
+    }
+
+    #[tokio::test]
+    async fn failed_exit_and_plaintext_stdout_cannot_approve_a_payload() {
+        for script in ["cat\n", "printf 'age-encryption.org/v1\\npartial\\n'\nprintf 'private-diagnostic-sentinel' >&2\nexit 9"] {
+            let temp = tempfile::tempdir().unwrap();
+            let (journal, job, adapter) = fixture(temp.path(), script, Limits::default());
+            let lease = journal.lease(job.id()).unwrap();
+            let error = adapter.prepare(&lease, 1).await.unwrap_err().to_string();
+            assert!(!error.contains("private-diagnostic-sentinel"));
+            let failed = lease.load().unwrap();
+            assert_eq!(failed.phase(), Phase::Captured);
+            assert_eq!(failed.failure(), Some(FailureCode::Security));
+            assert!(failed.prepared_candidate().is_none());
+            assert!(lease.payload_snapshot().is_err());
+            assert!(lease.source_snapshot().is_ok());
+        }
+    }
+
+    #[tokio::test]
+    async fn deadline_kills_child_and_retry_respects_backoff() {
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job, mut adapter) = fixture(temp.path(), "exec sleep 10", Limits::default());
+        adapter.timeout = Duration::from_millis(100);
+        let lease = journal.lease(job.id()).unwrap();
+        let started = std::time::Instant::now();
+        assert!(adapter.prepare(&lease, 1).await.is_err());
+        assert!(started.elapsed() < Duration::from_secs(3));
+        assert_eq!(
+            lease.load().unwrap().failure(),
+            Some(FailureCode::Transient)
+        );
+        std::fs::write(
+            temp.path().join("warden-fixture"),
+            format!("#!/bin/sh\n{APPROVED}\n"),
+        )
+        .unwrap();
+        adapter.timeout = Duration::from_secs(5);
+        assert!(adapter.prepare(&lease, 30).await.is_err());
+        assert_eq!(
+            adapter.prepare(&lease, 31).await.unwrap().phase(),
+            Phase::Prepared
+        );
+    }
+
+    #[tokio::test]
+    async fn oversized_stdout_and_unapproved_orphan_do_not_escape_capacity() {
+        let temp = tempfile::tempdir().unwrap();
+        let limits = Limits {
+            max_payload_bytes: 8,
+            max_retained_payload_bytes: 16,
+            ..Limits::default()
+        };
+        let (journal, job, adapter) = fixture(temp.path(), APPROVED, limits);
+        let lease = journal.lease(job.id()).unwrap();
+        assert!(adapter.prepare(&lease, 1).await.is_err());
+        assert_eq!(lease.load().unwrap().failure(), Some(FailureCode::Capacity));
+        assert!(lease.load().unwrap().prepared_candidate().is_none());
+        assert!(lease.source_snapshot().is_ok());
+        // A process may disappear before selecting an approved candidate. A
+        // private unapproved spool is reset only after the source reverifies.
+        let temp2 = tempfile::tempdir().unwrap();
+        let (journal, job, adapter) = fixture(temp2.path(), APPROVED, Limits::default());
+        let lease = journal.lease(job.id()).unwrap();
+        let mut spool = lease.security_spool().unwrap();
+        spool
+            .file
+            .write_all(b"unfinished unapproved transform")
+            .unwrap();
+        spool.file.sync_all().unwrap();
+        drop(spool);
+        assert_eq!(
+            adapter.prepare(&lease, 1).await.unwrap().phase(),
+            Phase::Prepared
+        );
+    }
+
+    #[tokio::test]
+    async fn approval_and_publication_survive_process_death_without_reencrypting() {
+        for phase in ["after-security-approval", "after-security-publish"] {
+            let temp = tempfile::tempdir().unwrap();
+            let (journal, job, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "storage_core::security::tests::security_crash_child",
+                    "--ignored",
+                ])
+                .env("DRACON_STORAGE_CRASH_ROOT", temp.path())
+                .env("DRACON_STORAGE_CRASH_JOB", job.id())
+                .env("DRACON_STORAGE_CRASH_POINT", phase)
+                .output()
+                .unwrap();
+            assert_eq!(output.status.code(), Some(73));
+            std::fs::write(temp.path().join("warden-fixture"), "#!/bin/sh\nexit 71\n").unwrap();
+            let lease = journal.lease(job.id()).unwrap();
+            let expected = lease.load().unwrap().prepared_candidate().unwrap().clone();
+            assert_eq!(
+                adapter.prepare(&lease, 2).await.unwrap().payload(),
+                Some(&expected)
+            );
+            assert!(lease.payload_snapshot().is_ok());
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "subprocess helper, invoked by security crash recovery test"]
+    async fn security_crash_child() {
+        let root = PathBuf::from(std::env::var_os("DRACON_STORAGE_CRASH_ROOT").unwrap());
+        let id = std::env::var("DRACON_STORAGE_CRASH_JOB").unwrap();
+        let journal =
+            Journal::open(&root.join("journal"), &"a".repeat(64), Limits::default()).unwrap();
+        let adapter = WardenAdapter::new(
+            &root.join("warden-fixture"),
+            &root.join("repo"),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        adapter
+            .prepare(&journal.lease(&id).unwrap(), 1)
+            .await
+            .unwrap();
+        panic!("security crash injection did not fire");
+    }
+}
