@@ -192,17 +192,21 @@ already excluded. No live journal/payload files were created. The framework
 now installs exact private managed ignore protection in reserved journal
 roots/namespaces and writable local stores before writing data. It refuses
 project Git roots, already tracked runtime paths and modified ignore content.
+Unmarked nonempty directories are also refused: unrelated operator notes or
+source files cannot be hidden by installing a blanket ignore. Bootstrap uses
+create-only private temporary files containing only the public ignore rule.
 A real fresh-Git-repo test with a literal bracket/space path proves job records
 and plaintext captures leave Git status empty; a tracked-path/tamper test proves
 capture is refused without deleting existing bytes. Source commit-all policy
 and existing project ignore rules are unchanged.
 
-The current focused core run passed all 37 tests (six ignored). Local backend
+The current focused core run passed all 38 tests (six ignored). Local backend
 failure assertions now distinguish private guard metadata from published
 objects and still require interrupted upload spools to be removed. The latest
-full workspace run passed 1978 tests (15 ignored); that run predates the final
-local-backend guard, which is covered by the subsequent 37-test core run.
-Final all-target Clippy/release rebuilds are pending.
+full workspace run passed 1979 tests (15 ignored), including the final
+local-backend guard and unmarked-directory regression. All-target workspace
+Clippy and the locked release rebuild passed. A read-only smoke check of the
+built release's `repos --legend` confirmed the corrected capacity wording.
 
 `repos` capacity wording now describes the push-size guard and avoids implying
 that total `.git` size triggers automatic bucket migration. The size-color and
@@ -211,3 +215,19 @@ five legend coverage/wrapping tests passed. GitHub's current
 confirm the enforced push limit is separate from its total on-disk guidance.
 The cap concern's action text is provider-neutral. No history or asset placement
 was changed by this wording update.
+
+## Portable manifest codec milestone
+
+The [manifest contract](storage-manifest-contract-2026-10-01.md) specifies bounded
+private decoded metadata, sticky enrollments/tombstones, portable approved-copy
+identifiers and exact pointer agreement. The shared codec validates sorted unique
+paths/copies, rejects unknown schema/security/retention fields, redacts parse
+diagnostics, and bounds both input and encoding to 4 MiB/10,000 entries.
+Five focused tests passed, including non-UTF-8 paths, changed pointer bytes,
+tombstones, contract drift, malformed untrusted fields and bounded encoding.
+
+This is not protected manifest publication: the codec returns private plaintext
+for a future metadata-security transaction. It installs no files/filters and
+performs no network operations. Production contract derivation, authorization,
+metadata encryption/reuse, exact index transactions and packaged historical
+recovery remain outstanding. Final checks for this additional codec are pending.

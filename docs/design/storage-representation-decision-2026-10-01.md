@@ -82,3 +82,8 @@ Before implementing production pointers/manifests, specify and test schema
 versioning, atomic staging, historical key recovery, sticky enrollment, reference
 validation, and missing-object exit behavior. Live provider capability checks,
 independent recovery-copy drills, and packaged-install tests remain release gates.
+
+The [manifest contract](storage-manifest-contract-2026-10-01.md) now specifies
+version-one decoded metadata and provides a bounded private codec. Its plaintext
+encoding is not a publishable manifest. Protected preparation and atomic Git
+staging remain outstanding.
