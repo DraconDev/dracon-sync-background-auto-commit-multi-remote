@@ -411,3 +411,39 @@ fn parent_inventory_does_not_follow_nested_standalone_repository() {
         .iter()
         .any(|concern| concern.contains("nested repository"))));
 }
+
+#[test]
+fn journal_status_is_read_only_and_redacts_source_metadata() {
+    use dracon_sync::storage_core::journal::{
+        encode_relative_path, Encryption, JobSpec, Journal, Limits,
+    };
+    use dracon_sync::storage_core::reference::Fingerprint;
+    let repo = git_fixture();
+    let state = tempfile::tempdir().unwrap();
+    let id = "a".repeat(64);
+    let report = journal_status(repo.path(), Some(state.path()), Some(&id)).unwrap();
+    assert!(!report.summary.initialized);
+    assert!(!state.path().join("storage-journal").exists());
+    let root = state.path().join("storage-journal");
+    let journal = Journal::open(&root, &id, Limits::default()).unwrap();
+    journal
+        .create(JobSpec {
+            repo_id: id.clone(),
+            path_hex: encode_relative_path(b"secret-session-name.bin").unwrap(),
+            source: Fingerprint::new("b".repeat(64), 200).unwrap(),
+            policy_sha256: "c".repeat(64),
+            primary: "primary".into(),
+            required_copies: vec!["primary".into()],
+            required_git_targets: vec!["github".into()],
+            encryption: Encryption::WardenAge,
+        })
+        .unwrap();
+    let report = journal_status(repo.path(), Some(state.path()), Some(&id)).unwrap();
+    assert_eq!(report.summary.records, 1);
+    assert_eq!(report.summary.pending_source_bytes, 200);
+    let json = serde_json::to_string(&report).unwrap();
+    assert!(!json.contains("secret-session-name"));
+    assert!(!json.contains(&"b".repeat(64)));
+    assert!(!report.live_backend_verified);
+    assert!(!report.transfers_available);
+}
