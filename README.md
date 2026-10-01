@@ -477,3 +477,12 @@ AGPL-3.0-only — see [LICENSE](LICENSE).
 ---
 
 *Part of the [Dracon](https://dracon.uk) developer workspace.*
+
+
+### External-storage planning (unreleased preview)
+
+Source builds now provide read-only `storage plan` and `storage validate`
+commands. They explain configurable placement rules, operator-approved backend
+bindings, existing filters, and optional Git history measurements. They do not
+automatically upload or migrate files. See [preview usage](docs/storage-planning.md)
+and the [implementation roadmap](docs/design/object-storage-roadmap-2026-10-01.md).
