@@ -19,18 +19,28 @@ impl Fingerprint {
     }
 
     /// The SHA-256 identity; callers must not expose private source fingerprints.
-    pub fn sha256(&self) -> &str { &self.sha256 }
+    pub fn sha256(&self) -> &str {
+        &self.sha256
+    }
 
     /// Exact payload length in bytes.
-    pub fn bytes(&self) -> u64 { self.bytes }
+    pub fn bytes(&self) -> u64 {
+        self.bytes
+    }
 
     /// Revalidate a decoded identity before trusting persistent data.
-    pub fn validate(&self) -> Result<()> { validate_sha256(&self.sha256) }
+    pub fn validate(&self) -> Result<()> {
+        validate_sha256(&self.sha256)
+    }
 }
 
 /// Validate an exact lowercase hexadecimal SHA-256 identity.
 pub fn validate_sha256(value: &str) -> Result<()> {
-    if value.len() != 64 || !value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
         bail!("invalid SHA-256 identity");
     }
     Ok(())
@@ -48,11 +58,17 @@ impl Pointer {
     }
 
     /// Immutable payload identity encoded by this pointer.
-    pub fn payload(&self) -> &Fingerprint { &self.0 }
+    pub fn payload(&self) -> &Fingerprint {
+        &self.0
+    }
 
     /// Encode the canonical three-line representation with a final newline.
     pub fn encode(&self) -> Vec<u8> {
-        format!("version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n", self.0.sha256, self.0.bytes).into_bytes()
+        format!(
+            "version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n",
+            self.0.sha256, self.0.bytes
+        )
+        .into_bytes()
     }
 
     /// Parse a bounded canonical pointer, refusing unsupported versions/extensions.
@@ -60,19 +76,35 @@ impl Pointer {
     /// Failure never includes payload contents in its diagnostic. This deliberately
     /// does not reinterpret arbitrary data or silently accept unknown LFS extensions.
     pub fn parse(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() > 1024 { bail!("pointer exceeds size limit"); }
+        if bytes.len() > 1024 {
+            bail!("pointer exceeds size limit");
+        }
         let text = std::str::from_utf8(bytes).context("pointer is not UTF-8")?;
         let mut lines = text.split('\n');
         if lines.next() != Some("version https://git-lfs.github.com/spec/v1") {
             bail!("unsupported pointer version");
         }
-        let oid = lines.next().and_then(|line| line.strip_prefix("oid sha256:")).context("unsupported pointer object identity")?;
-        let size = lines.next().and_then(|line| line.strip_prefix("size ")).context("missing pointer length")?;
-        if size.is_empty() || !size.bytes().all(|b| b.is_ascii_digit()) || (size.len() > 1 && size.starts_with('0')) {
+        let oid = lines
+            .next()
+            .and_then(|line| line.strip_prefix("oid sha256:"))
+            .context("unsupported pointer object identity")?;
+        let size = lines
+            .next()
+            .and_then(|line| line.strip_prefix("size "))
+            .context("missing pointer length")?;
+        if size.is_empty()
+            || !size.bytes().all(|b| b.is_ascii_digit())
+            || (size.len() > 1 && size.starts_with('0'))
+        {
             bail!("invalid pointer length");
         }
-        if lines.next() != Some("") || lines.next().is_some() { bail!("noncanonical or extended pointer"); }
-        Self::new(Fingerprint::new(oid.to_owned(), size.parse().context("pointer length overflow")?)?)
+        if lines.next() != Some("") || lines.next().is_some() {
+            bail!("noncanonical or extended pointer");
+        }
+        Self::new(Fingerprint::new(
+            oid.to_owned(),
+            size.parse().context("pointer length overflow")?,
+        )?)
     }
 }
 
@@ -90,16 +122,27 @@ mod tests {
 
     #[test]
     fn unsupported_or_malformed_pointers_fail_closed() {
-        let canonical = Pointer::new(Fingerprint::new("a".repeat(64), 20).unwrap()).unwrap().encode();
+        let canonical = Pointer::new(Fingerprint::new("a".repeat(64), 20).unwrap())
+            .unwrap()
+            .encode();
         let canonical = String::from_utf8(canonical).unwrap();
-        for text in [canonical.replace("https:", "http:"), canonical.replace("sha256:", "sha1:"),
-            canonical.replace("size 20", "size +20"), canonical.replace("size 20", "size 020"),
-            canonical.replace("size 20", "size 18446744073709551616"), canonical.replace('\n', "\r\n"),
-            canonical.trim_end().to_owned(), format!("{canonical}extra private content\n"),
-            canonical.replace(&"a".repeat(64), &"A".repeat(64))] {
+        for text in [
+            canonical.replace("https:", "http:"),
+            canonical.replace("sha256:", "sha1:"),
+            canonical.replace("size 20", "size +20"),
+            canonical.replace("size 20", "size 020"),
+            canonical.replace("size 20", "size 18446744073709551616"),
+            canonical.replace('\n', "\r\n"),
+            canonical.trim_end().to_owned(),
+            format!("{canonical}extra private content\n"),
+            canonical.replace(&"a".repeat(64), &"A".repeat(64)),
+        ] {
             assert!(Pointer::parse(text.as_bytes()).is_err());
         }
         assert!(Pointer::parse(&[0u8; 1025]).is_err());
-        assert!(Pointer::parse(b"private token, not a pointer").unwrap_err().to_string().contains("version"));
+        assert!(Pointer::parse(b"private token, not a pointer")
+            .unwrap_err()
+            .to_string()
+            .contains("version"));
     }
 }
