@@ -19,3 +19,10 @@ dependency is the published `dracon-git` crate from crates.io; no sibling
    when used from the parent workspace or with `cargo test --locked` here.
 3. The daemon's history rules in the parent `AGENTS.md` apply to this repo:
    agent loops do not rewrite published history.
+
+## Proposed object-storage feature
+
+The [general object-storage roadmap](design/object-storage-roadmap-2026-10-01.md)
+defines the proposed reusable Dracon Sync feature, integration work packages,
+recovery contract, and release gates. It is a design proposal, not a claim that
+storage commands or automatic offloading exist in the current release.
