@@ -17,8 +17,7 @@ parent repo — a regular nested repo, not a submodule.
 cargo install dracon-sync
 ```
 
-The binary lands at `~/.cargo/bin/dracon-sync` (version 0.113.55 on
-crates.io). The shipped systemd unit runs `%h/.local/bin/dracon-sync`, so
+The binary lands at `~/.cargo/bin/dracon-sync`. The shipped systemd unit runs `%h/.local/bin/dracon-sync`, so
 for service use either copy it there or install from a checkout:
 
 ```bash
@@ -137,6 +136,21 @@ systemctl --user start dracon-sync.service
 ```
 
 ## Usage
+
+### Author identities in TOUCHED
+
+`dracon-sync repos` displays the latest commit author through Git's mailmap.
+Use a repository `.mailmap` or Git's `mailmap.file` setting to map your
+confirmed aliases to one identity. For example:
+
+```text
+DraconDev <dracsharp@gmail.com> endless-td-dev <endless-td@dracon.local>
+```
+
+This changes the displayed name while preserving the original commit author,
+hash, and timestamp. Configure `user.name` and `user.email` for new commits;
+those settings do not change previous authors. Mailmaps are display mappings;
+the sync policy's trusted identities are configured separately.
 
 ### Commands
 

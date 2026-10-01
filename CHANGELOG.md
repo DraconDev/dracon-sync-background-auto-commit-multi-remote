@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Fixed
+
+- Correct classification cooldown scheduling: failed classifiers wait until
+  their retry deadline, then resume. The reversed comparison caused rapid
+  retry storms during backoff and indefinite stalls after expiry.
+- Resolve TOUCHED authors through Git mailmaps (`%aN`) so confirmed aliases
+  display their canonical identity without changing commit hashes or times.
+- Release tooling now records the verified package lockfile in the nested
+  standalone repository; workspace Cargo commands had left that lock stale.
+
 ## [0.113.91] - 2026-09-28
 
 ### Fixed

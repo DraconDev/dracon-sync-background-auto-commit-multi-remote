@@ -442,6 +442,11 @@ log "step 7/${TOTAL_STEPS}: fixture check on packaged artifact (phantom-untracke
 # release must not proceed.
 PKG_DIR="$(cargo metadata --no-deps --format-version 1 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["workspace_root"])' 2>/dev/null || echo "$REPO_ROOT")/target/package/${CRATE_NAME}-${VERSION}"
 if [[ -d "$PKG_DIR" ]]; then
+    # Nested Cargo invocations update the parent's workspace lock, leaving
+    # this standalone repo's tracked lock stale. Keep the lock verified by
+    # Cargo's package build so a bare clone can also build with --locked.
+    [[ -s "$PKG_DIR/Cargo.lock" ]] || die_pub "packaged Cargo.lock missing"
+    cp "$PKG_DIR/Cargo.lock" "$LOCKFILE"
     FIXTURE_ROOT="$REPO_ROOT/target/fixture-bin"
     if [[ $DRY_RUN -eq 1 ]]; then
         printf '   $ cargo install --path %s --root %s --force  (skipped: --dry-run)\n' "$PKG_DIR" "$FIXTURE_ROOT"

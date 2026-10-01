@@ -70,6 +70,8 @@ case "${1:-}" in
         version=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$root/Cargo.toml")
         if [[ " $* " == *" --dry-run "* ]]; then
             mkdir -p "$root/target/package/dracon-sync-$version"
+            cp "$root/Cargo.lock" "$root/target/package/dracon-sync-$version/Cargo.lock"
+            printf '\n# verified package lock\n' >> "$root/target/package/dracon-sync-$version/Cargo.lock"
             touch "$root/.publish-dry-run"
         else
             touch "$root/.publish-real"
@@ -98,6 +100,7 @@ grep -F 'Cargo.toml: 0.1.0 → 0.1.1' "$work/dry-run.out" >/dev/null
 test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.1
 test "$(awk -F'"' '/^name = "dracon-sync"$/{getline; print $2; exit}' "$repo/Cargo.lock")" = 0.1.1
 test -e "$repo/.publish-dry-run"
+grep -F '# verified package lock' "$repo/Cargo.lock" >/dev/null
 test ! -e "$repo/.publish-real"
 test -z "$(git -C "$repo" tag --list)"
 if git -C "$repo" diff --quiet -- Cargo.lock; then
