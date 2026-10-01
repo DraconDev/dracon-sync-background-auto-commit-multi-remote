@@ -242,7 +242,7 @@ compares that ID with the leased job before source access or child execution.
 A foreign binding cannot encrypt a captured job or adopt an already prepared
 representation, and rejection does not modify the other repository's failure
 state. The caller still must establish the trusted ID-to-checkout mapping;
-manifest/config strings do not constitute authorization. Validation is underway.
+manifest/config strings do not constitute authorization.
 
 The copy executor now requires typed operator-resolved bindings carrying the
 owning repo ID and each backend's allowed representation classes. It refuses
@@ -252,3 +252,11 @@ non-sensitive approval is required for that representation. The types cannot
 be deserialized from a committed manifest and do not resolve operator config,
 certify credentials/provider access, or prove independent-copy durability.
 The added refusal test uses panic-on-I/O adapters to verify this ordering.
+
+The combined core run passed 45 tests (six ignored). Strict all-target workspace
+Clippy, the locked release build and formatting checks passed. The real 101 MiB
+Warden preparation/two-local-copy/cold-decryption test was explicitly rerun with
+these repository/security grants and passed in 96.56 seconds. The copies are
+still same-machine fixtures, not independent failure-domain certification.
+Dependency policy remains green; these guards add no dependencies or policy
+knobs. The final expanded workspace run is still finishing.
