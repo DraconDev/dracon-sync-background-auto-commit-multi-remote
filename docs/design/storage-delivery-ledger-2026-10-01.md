@@ -29,7 +29,8 @@ This ledger records actual evidence and preserves the remaining scope.
   required object-copy and Git-push receipts, and redacted read-only inspection.
 - Durable bounded source snapshots with digest checks, matching-prefix resume,
   complete-spool adoption after process death, record/count/byte budgets, and
-  no automatic deletion of retained source versions.
+  no automatic deletion of retained source versions. See the
+  [journal contract](storage-journal-contract-2026-10-01.md).
 - `storage status` inspects local journal evidence without creating state or
   claiming current backend availability. Uninitialized repos need no enrollment.
 - Warden source-build `storage-encrypt`/`storage-decrypt` stream whole-payload
@@ -71,9 +72,10 @@ caused a nonzero result while preserving its bytes. No installed binary changed.
 An initial full workspace run overlapped another process using Warden's old
 counter-based temporary directory names. Ten Warden tests failed as those
 shared fixtures were removed or changed. The helper now uses unique owned
-`tempfile` directories, retaining its quote/space path cases. Full workspace
-and concurrent Warden reruns are pending; the initial failure is not counted
-as a passing gate.
+`tempfile` directories, retaining its quote/space path cases. The independent
+Warden rerun passed all 167 tests while the new workspace run was active; the
+full workspace result is pending. The initial failure is not counted as a
+passing gate.
 
 ## Current inventory findings
 
