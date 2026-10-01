@@ -16,20 +16,56 @@ pub(crate) fn protect(directory: &Path) -> Result<()> {
     if exists_without_symlink(&path)? {
         return verify_ignore(&path);
     }
+    verify_unprotected_directory(directory)?;
     let _bootstrap = try_lock(&directory.join(".runtime-ignore.lock"))?;
     if exists_without_symlink(&path)? {
         return verify_ignore(&path);
     }
+    verify_unprotected_directory(directory)?;
     // The bootstrap spool contains only a public ignore rule, never a source,
     // hash, key or job record. Payload creation starts after its durable rename.
-    let temporary = directory.join(".runtime-ignore.tmp");
-    let mut file = open_private(&temporary, true, true)?;
-    file.set_len(0)?;
+    let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let temporary = directory.join(format!(
+        ".runtime-ignore-{}-{sequence}.tmp",
+        std::process::id()
+    ));
+    let mut options = OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+    }
+    let mut file = options.open(&temporary)?;
     file.write_all(IGNORE)?;
     file.sync_all()?;
     std::fs::rename(temporary, &path)?;
     File::open(directory)?.sync_all()?;
     verify_ignore(&path)
+}
+
+fn verify_unprotected_directory(directory: &Path) -> Result<()> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let raw = name.as_encoded_bytes();
+        let allowed = raw == b".runtime-ignore.lock"
+            || raw == b".runtime-ignore.tmp"
+            || raw.starts_with(b".runtime-ignore-") && raw.ends_with(b".tmp");
+        if !allowed {
+            bail!(BackendFailure::Security);
+        }
+        let mut bytes = Vec::new();
+        open_private(&entry.path(), false, false)?
+            .take(IGNORE.len() as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        if raw == b".runtime-ignore.lock" && !bytes.is_empty()
+            || raw != b".runtime-ignore.lock" && !IGNORE.starts_with(&bytes)
+        {
+            bail!(BackendFailure::Security);
+        }
+    }
+    Ok(())
 }
 
 fn verify_ignore(path: &Path) -> Result<()> {

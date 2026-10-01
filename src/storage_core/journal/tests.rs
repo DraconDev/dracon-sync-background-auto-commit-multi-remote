@@ -731,3 +731,19 @@ fn previously_tracked_runtime_and_changed_ignore_fail_before_private_capture() {
     assert!(!namespace.join(format!("{}.capture", job.id())).exists());
     assert_eq!(lease.load().unwrap().phase(), Phase::PendingCapture);
 }
+
+#[test]
+fn unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("not-a-runtime-store");
+    private_directory(&root, true).unwrap();
+    let note = root.join("operator-note.md");
+    std::fs::write(&note, b"preserve this unrelated note").unwrap();
+    assert!(Journal::open(&root, &spec().repo_id, Limits::default()).is_err());
+    assert_eq!(
+        std::fs::read(note).unwrap(),
+        b"preserve this unrelated note"
+    );
+    assert!(!root.join(".gitignore").exists());
+    assert!(!root.join(".runtime-ignore.lock").exists());
+}
