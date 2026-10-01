@@ -1,9 +1,8 @@
 //! Exact-payload copy execution, independent of Git staging and daemon scheduling.
 
 use anyhow::{bail, Context, Result};
-use std::collections::BTreeMap;
-
-use super::backend::{BackendFailure, ImmutableBackend};
+use super::backend::BackendFailure;
+use super::bindings::CopyBindings;
 use super::journal::{FailureCode, Job, JobLease};
 
 /// Upload/read back every required copy using operator-resolved backend adapters.
@@ -15,20 +14,14 @@ use super::journal::{FailureCode, Job, JobLease};
 /// historical receipts exist. This holds only the job lease, never a Git lock.
 pub fn transfer_copies(
     lease: &JobLease,
-    backends: &BTreeMap<String, &dyn ImmutableBackend>,
+    backends: &CopyBindings<'_>,
     now: u64,
 ) -> Result<Job> {
     let mut job = lease.load()?;
-    if now == 0
-        || backends.len() != job.spec().required_copies.len()
-        || job
-            .spec()
-            .required_copies
-            .iter()
-            .any(|id| !backends.contains_key(id))
-    {
-        bail!("exact required backend bindings and a positive timestamp are required");
+    if now == 0 {
+        bail!("positive transfer timestamp required");
     }
+    backends.validate_job(job.spec())?;
     let expected = job
         .payload()
         .context("payload has not been prepared")?
@@ -36,7 +29,7 @@ pub fn transfer_copies(
     job.begin_upload(now)?;
     lease.save(&mut job)?;
     for id in job.spec().required_copies.clone() {
-        let backend = backends[&id];
+        let backend = backends.backend(&id);
         let mut input = match lease.payload_snapshot() {
             Ok(input) => input,
             Err(_) => return fail(lease, &mut job, FailureCode::Integrity, now),
@@ -105,13 +98,24 @@ fn fail(lease: &JobLease, job: &mut Job, code: FailureCode, now: u64) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage_core::backend::LocalBackend;
+    use crate::storage_core::backend::{ImmutableBackend, LocalBackend};
+    use crate::storage_core::bindings::ApprovedBackend;
     use crate::storage_core::journal::{
         encode_relative_path, Encryption, JobSpec, Journal, Limits, Phase,
     };
     use crate::storage_core::reference::Fingerprint;
     use sha2::{Digest, Sha256};
     use std::io::{Read, Write};
+    use std::collections::BTreeMap;
+
+    fn approved<'a>(backends: BTreeMap<String, &'a dyn ImmutableBackend>) -> CopyBindings<'a> {
+        CopyBindings::new(
+            "a".repeat(64),
+            backends.into_iter().map(|(id, backend)| {
+                (id, ApprovedBackend::for_security(backend, vec![Encryption::None]).unwrap())
+            }).collect(),
+        ).unwrap()
+    }
 
     fn fixture(temp: &std::path::Path) -> (Journal, Job) {
         let bytes = b"approved retained representation";

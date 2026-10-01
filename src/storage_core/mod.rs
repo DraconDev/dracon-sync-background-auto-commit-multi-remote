@@ -6,6 +6,7 @@
 //! recording successful capture, transfer, Git commit, or push operations.
 
 pub mod backend;
+pub mod bindings;
 pub mod journal;
 pub mod manifest;
 pub mod reference;
