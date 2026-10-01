@@ -433,3 +433,285 @@ fn metadata_crash(point: &str) {
         std::process::exit(74);
     }
 }
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    const APPROVED: &str = "printf x >> calls\ncat >/dev/null\nprintf 'age-encryption.org/v1\\napproved metadata fixture\\n'";
+
+    fn fixture(
+        root: &Path,
+        script: &str,
+        limits: Limits,
+    ) -> (MetadataStore, Manifest, WardenAdapter) {
+        let repo = root.join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let binary = root.join("warden-fixture");
+        std::fs::write(&binary, format!("#!/bin/sh\n{script}\n")).unwrap();
+        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let manifest = Manifest::new("a".repeat(64), vec![]).unwrap();
+        let store =
+            MetadataStore::open(&root.join("metadata"), manifest.repo_id(), limits).unwrap();
+        let adapter =
+            WardenAdapter::new(&binary, &repo, manifest.repo_id(), Duration::from_secs(5)).unwrap();
+        (store, manifest, adapter)
+    }
+
+    fn id(manifest: &Manifest) -> String {
+        let raw = manifest.encode_private().unwrap();
+        Spec {
+            version: 1,
+            repo_id: manifest.repo_id().into(),
+            source: Fingerprint::new(format!("{:x}", Sha256::digest(&raw)), raw.len() as u64)
+                .unwrap(),
+            policy_sha256: "b".repeat(64),
+        }
+        .id()
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn unchanged_manifest_reuses_ciphertext_after_reopen_without_record_churn() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let prepared = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let before = std::fs::read(store.path(prepared.id(), "json")).unwrap();
+        let mut bytes = Vec::new();
+        store
+            .open_prepared(&prepared)
+            .unwrap()
+            .read_to_end(&mut bytes)
+            .unwrap();
+        assert!(bytes.starts_with(b"age-encryption.org/v1\n"));
+        let root = temp.path().join("metadata");
+        drop(store);
+        std::fs::write(temp.path().join("warden-fixture"), "#!/bin/sh\nexit 90\n").unwrap();
+        let reopened = MetadataStore::open(&root, manifest.repo_id(), Limits::default()).unwrap();
+        let again = reopened
+            .prepare(&manifest, &"b".repeat(64), &adapter, 2)
+            .await
+            .unwrap();
+        assert_eq!(again.payload(), prepared.payload());
+        assert_eq!(
+            std::fs::read(reopened.path(again.id(), "json")).unwrap(),
+            before
+        );
+        assert_eq!(std::fs::read(temp.path().join("repo/calls")).unwrap(), b"x");
+    }
+
+    #[tokio::test]
+    async fn bad_exit_plain_output_and_budget_failure_keep_source_unapproved() {
+        for (script, max_payload, expected) in [
+            ("cat", 1024, FailureCode::Security),
+            (
+                "printf 'private-diagnostic' >&2\nprintf 'age-encryption.org/v1\\n'\nexit 9",
+                1024,
+                FailureCode::Security,
+            ),
+            (APPROVED, 23, FailureCode::Capacity),
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let (store, manifest, adapter) = fixture(
+                temp.path(),
+                script,
+                Limits {
+                    max_payload_bytes: max_payload,
+                    ..Limits::default()
+                },
+            );
+            let error = store
+                .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+                .await
+                .err()
+                .unwrap();
+            assert!(!format!("{error:#}").contains("private-diagnostic"));
+            let record = store.read(&id(&manifest)).unwrap();
+            assert!(record.phase == Phase::Captured);
+            assert_eq!(record.failure.as_ref().unwrap().code, expected);
+            assert!(record.approved.is_none());
+            assert!(store.source(&record).is_ok());
+            assert!(!store.path(&id(&manifest), "payload").exists());
+        }
+    }
+
+    #[tokio::test]
+    async fn foreign_binding_and_held_version_lease_refuse_before_capture() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, _) = fixture(temp.path(), APPROVED, Limits::default());
+        let foreign = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            &"c".repeat(64),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &foreign, 1)
+            .await
+            .is_err());
+        let version = id(&manifest);
+        assert!(!store.path(&version, "json").exists());
+        assert!(!temp.path().join("repo/calls").exists());
+        let owning = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            manifest.repo_id(),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        let _held = journal::try_lock(&store.path(&version, "lock")).unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &owning, 1)
+            .await
+            .is_err());
+        assert!(!store.path(&version, "json").exists());
+    }
+
+    #[tokio::test]
+    async fn corrupted_approved_ciphertext_is_permanent_and_never_reencrypted() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let prepared = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        std::fs::write(
+            store.path(prepared.id(), "payload"),
+            b"corrupt approved bytes",
+        )
+        .unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 2)
+            .await
+            .is_err());
+        let record = store.read(prepared.id()).unwrap();
+        assert_eq!(record.approved.as_ref(), Some(prepared.payload()));
+        assert_eq!(
+            record.failure.as_ref().unwrap().code,
+            FailureCode::Integrity
+        );
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 100)
+            .await
+            .is_err());
+        assert!(store.open_prepared(&prepared).is_err());
+        assert_eq!(std::fs::read(temp.path().join("repo/calls")).unwrap(), b"x");
+        assert!(store.source(&record).is_ok());
+    }
+
+    #[tokio::test]
+    async fn source_record_and_aggregate_limits_never_evict_previous_versions() {
+        for limits in [
+            Limits {
+                max_records: 1,
+                ..Limits::default()
+            },
+            Limits {
+                max_snapshot_bytes: 1,
+                max_retained_snapshot_bytes: 1,
+                ..Limits::default()
+            },
+            Limits {
+                max_payload_bytes: 64,
+                max_retained_payload_bytes: 64,
+                ..Limits::default()
+            },
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let (store, manifest, adapter) = fixture(temp.path(), APPROVED, limits);
+            let first = store.prepare(&manifest, &"b".repeat(64), &adapter, 1).await;
+            if limits.max_snapshot_bytes == 1 {
+                assert!(first.is_err());
+                assert_eq!(
+                    store
+                        .read(&id(&manifest))
+                        .unwrap()
+                        .failure
+                        .as_ref()
+                        .unwrap()
+                        .code,
+                    FailureCode::Capacity
+                );
+            } else {
+                let first = first.unwrap();
+                assert!(store
+                    .prepare(&manifest, &"c".repeat(64), &adapter, 2)
+                    .await
+                    .is_err());
+                assert!(store.open_prepared(&first).is_ok());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn approval_publication_crashes_preserve_exact_manifest_ciphertext() {
+        for point in [
+            "before-metadata-approval",
+            "after-metadata-approval",
+            "after-metadata-publish",
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let (store, manifest, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "storage_core::metadata::tests::metadata_crash_child",
+                    "--ignored",
+                ])
+                .env("DRACON_METADATA_CRASH_POINT", point)
+                .env("DRACON_METADATA_FIXTURE", temp.path())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .unwrap();
+            assert_eq!(status.code(), Some(74));
+            if point != "before-metadata-approval" {
+                std::fs::write(temp.path().join("warden-fixture"), "#!/bin/sh\nexit 91\n").unwrap();
+            }
+            let saved = store.read(&id(&manifest)).unwrap().approved;
+            let prepared = store
+                .prepare(&manifest, &"b".repeat(64), &adapter, 2)
+                .await
+                .unwrap();
+            if let Some(saved) = saved {
+                assert_eq!(prepared.payload(), &saved);
+            }
+            assert!(store.open_prepared(&prepared).is_ok());
+            assert_eq!(
+                std::fs::read(temp.path().join("repo/calls")).unwrap().len(),
+                if point == "before-metadata-approval" {
+                    2
+                } else {
+                    1
+                }
+            );
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "subprocess helper, invoked by metadata crash test"]
+    async fn metadata_crash_child() {
+        let root = PathBuf::from(std::env::var_os("DRACON_METADATA_FIXTURE").unwrap());
+        let store = MetadataStore::open(&root.join("metadata"), &"a".repeat(64), Limits::default())
+            .unwrap();
+        let manifest = Manifest::new("a".repeat(64), vec![]).unwrap();
+        let adapter = WardenAdapter::new(
+            &root.join("warden-fixture"),
+            &root.join("repo"),
+            manifest.repo_id(),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        panic!("metadata crash injection did not fire");
+    }
+}
