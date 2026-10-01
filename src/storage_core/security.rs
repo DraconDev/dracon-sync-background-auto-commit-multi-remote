@@ -10,7 +10,7 @@ use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
 use super::backend::BackendFailure;
-use super::journal::{Encryption, FailureCode, Job, JobLease};
+use super::journal::{Encryption, FailureCode, Job, JobLease, Phase};
 use super::reference::Fingerprint;
 
 /// Operator-selected Warden executable and owning repository, never manifest commands.
@@ -57,7 +57,11 @@ impl WardenAdapter {
     /// No working-tree file, Git index, backend, key creation, or recipient override is used.
     pub async fn prepare(&self, lease: &JobLease, now: u64) -> Result<Job> {
         let mut job = lease.load()?;
-        if job.spec().encryption != Encryption::WardenAge || now == 0 || !job.retry_eligible(now) {
+        if job.spec().encryption != Encryption::WardenAge
+            || !matches!(job.phase(), Phase::Captured | Phase::Prepared)
+            || now == 0
+            || !job.retry_eligible(now)
+        {
             bail!("encrypted job is not eligible for security preparation");
         }
         match lease.recover_security_output() {
@@ -117,6 +121,9 @@ impl WardenAdapter {
             }
         };
         // Exit success, valid protocol header and bounded output precede approval.
+        if lease.source_snapshot().is_err() {
+            return fail(lease, &mut job, FailureCode::Integrity, now);
+        }
         lease.approve_security_output(spool, identity)
     }
 }
