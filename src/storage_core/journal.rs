@@ -18,6 +18,8 @@ const VERSION: u32 = 1;
 const MAX_RECORD_BYTES: u64 = 64 * 1024;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+mod security;
+
 /// Representation expected for a prepared payload.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -292,6 +294,13 @@ impl Job {
     /// Typed failure, without raw secrets/path/server details.
     pub fn failure(&self) -> Option<FailureCode> {
         self.failure.as_ref().map(|f| f.code)
+    }
+
+    /// Whether a new attempt may run without clearing an intervention failure.
+    pub fn retry_eligible(&self, now: u64) -> bool {
+        self.failure.as_ref().is_none_or(|failure| {
+            failure.code.retryable() && failure.retry_at.is_none_or(|at| now >= at)
+        })
     }
 
     fn require_phase(&self, phases: &[Phase]) -> Result<()> {
