@@ -13,7 +13,9 @@ use crate::policy::{RepoPolicyOverride, SyncPolicy};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum BackendBinding {
-    Local { root: PathBuf },
+    Local {
+        root: PathBuf,
+    },
     S3 {
         endpoint: String,
         bucket: String,
@@ -86,7 +88,9 @@ fn compile_pattern(pattern: &str) -> Result<GlobMatcher> {
     if pattern.is_empty()
         || pattern.starts_with('/')
         || pattern.contains('\\')
-        || pattern.split('/').any(|part| part == ".." || part == ".git")
+        || pattern
+            .split('/')
+            .any(|part| part == ".." || part == ".git")
     {
         bail!("storage path pattern must be relative and exclude Git internals: {pattern:?}");
     }
@@ -101,7 +105,11 @@ fn compile_pattern(pattern: &str) -> Result<GlobMatcher> {
 /// Strict validation uses only configuration, without reading credentials/network.
 pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
     for (name, backend) in &policy.backends {
-        if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
+        if name.is_empty()
+            || !name
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+        {
             bail!("backend identifiers must contain only letters, digits, '-' or '_'");
         }
         match backend {
@@ -110,10 +118,18 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
                     bail!("local backend {name:?} root must be absolute");
                 }
             }
-            BackendBinding::S3 { endpoint, bucket, credential_ref } => {
+            BackendBinding::S3 {
+                endpoint,
+                bucket,
+                credential_ref,
+            } => {
                 let url = reqwest::Url::parse(endpoint).context("invalid S3 endpoint")?;
-                if url.scheme() != "https" || url.host_str().is_none() || !url.username().is_empty()
-                    || url.password().is_some() || url.query().is_some() || url.fragment().is_some()
+                if url.scheme() != "https"
+                    || url.host_str().is_none()
+                    || !url.username().is_empty()
+                    || url.password().is_some()
+                    || url.query().is_some()
+                    || url.fragment().is_some()
                 {
                     bail!("S3 backend {name:?} requires HTTPS without embedded credentials, query or fragment");
                 }
@@ -130,7 +146,10 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
         }
         match rule.placement {
             Placement::External => {
-                let backend = rule.backend.as_ref().context("external rule requires a backend binding")?;
+                let backend = rule
+                    .backend
+                    .as_ref()
+                    .context("external rule requires a backend binding")?;
                 if !policy.backends.contains_key(backend) {
                     bail!("storage rule {index} selects unapproved backend {backend:?}");
                 }
@@ -171,15 +190,24 @@ struct Decision {
 impl CompiledPolicy {
     fn new(policy: StoragePolicy) -> Result<Self> {
         validate_policy(&policy)?;
-        let matchers = policy.rules.iter().map(|rule| {
-            rule.paths.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>>>()
-        }).collect::<Result<Vec<_>>>()?;
+        let matchers = policy
+            .rules
+            .iter()
+            .map(|rule| {
+                rule.paths
+                    .iter()
+                    .map(|p| compile_pattern(p))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .collect::<Result<Vec<_>>>()?;
         Ok(Self { policy, matchers })
     }
 
     fn decide(&self, path: &Path, bytes: u64) -> Decision {
         if self.policy.enabled {
-            for (index, (rule, matchers)) in self.policy.rules.iter().zip(&self.matchers).enumerate() {
+            for (index, (rule, matchers)) in
+                self.policy.rules.iter().zip(&self.matchers).enumerate()
+            {
                 if rule.min_bytes.is_none_or(|min| bytes >= min)
                     && matchers.iter().any(|matcher| matcher.is_match(path))
                 {
@@ -188,7 +216,8 @@ impl CompiledPolicy {
                         rule: Some(index),
                         backend: rule.backend.clone(),
                         security: rule.security,
-                        reason: "first matching path and size condition; proposed placement only".into(),
+                        reason: "first matching path and size condition; proposed placement only"
+                            .into(),
                     };
                 }
             }
@@ -198,7 +227,12 @@ impl CompiledPolicy {
             rule: None,
             backend: None,
             security: None,
-            reason: if self.policy.enabled { "no matching storage rule" } else { "external storage disabled" }.into(),
+            reason: if self.policy.enabled {
+                "no matching storage rule"
+            } else {
+                "external storage disabled"
+            }
+            .into(),
         }
     }
 }
@@ -243,7 +277,9 @@ fn git_read(repo: &Path, args: &[&str]) -> Result<Vec<u8>> {
 fn root(repo: &Path) -> Result<PathBuf> {
     let raw = git_read(repo, &["rev-parse", "--show-toplevel"])?;
     let raw = raw.strip_suffix(b"\n").unwrap_or(&raw);
-    path_from_bytes(raw)?.canonicalize().context("cannot resolve repository root")
+    path_from_bytes(raw)?
+        .canonicalize()
+        .context("cannot resolve repository root")
 }
 
 fn path_from_bytes(raw: &[u8]) -> Result<PathBuf> {
@@ -254,12 +290,19 @@ fn path_from_bytes(raw: &[u8]) -> Result<PathBuf> {
     }
     #[cfg(not(unix))]
     {
-        Ok(PathBuf::from(std::str::from_utf8(raw).context("non-UTF8 path unsupported on this platform")?))
+        Ok(PathBuf::from(
+            std::str::from_utf8(raw).context("non-UTF8 path unsupported on this platform")?,
+        ))
     }
 }
 
-fn load_configuration(repo: &Path, explicit: Option<&Path>) -> Result<(SyncPolicy, RepoPolicyOverride)> {
-    let global_path = explicit.map(PathBuf::from).or_else(|| crate::policy::resolve_policy_path().ok());
+fn load_configuration(
+    repo: &Path,
+    explicit: Option<&Path>,
+) -> Result<(SyncPolicy, RepoPolicyOverride)> {
+    let global_path = explicit
+        .map(PathBuf::from)
+        .or_else(|| crate::policy::resolve_policy_path().ok());
     let global = match global_path {
         Some(path) => SyncPolicy::load(&path)?,
         None => toml::from_str::<SyncPolicy>("")?,
@@ -296,15 +339,36 @@ struct Plan {
     files: Vec<FilePlan>,
 }
 
-fn inventory(repo: &Path, global: &SyncPolicy, local: &RepoPolicyOverride, policy: &CompiledPolicy) -> Result<Plan> {
+fn inventory(
+    repo: &Path,
+    global: &SyncPolicy,
+    local: &RepoPolicyOverride,
+    policy: &CompiledPolicy,
+) -> Result<Plan> {
     let tracked: BTreeSet<PathBuf> = git_read(repo, &["ls-files", "--cached", "-z"])?
-        .split(|b| *b == 0).filter(|p| !p.is_empty())
-        .map(path_from_bytes).collect::<Result<_>>()?;
-    let all: BTreeSet<PathBuf> = git_read(repo, &["ls-files", "--cached", "--others", "--exclude-standard", "-z"])?
-        .split(|b| *b == 0).filter(|p| !p.is_empty())
-        .map(path_from_bytes).collect::<Result<_>>()?;
+        .split(|b| *b == 0)
+        .filter(|p| !p.is_empty())
+        .map(path_from_bytes)
+        .collect::<Result<_>>()?;
+    let all: BTreeSet<PathBuf> = git_read(
+        repo,
+        &[
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ],
+    )?
+    .split(|b| *b == 0)
+    .filter(|p| !p.is_empty())
+    .map(path_from_bytes)
+    .collect::<Result<_>>()?;
     let exclusions = crate::exclude::excluded_dir_names_set(global);
-    let auto_exclusions = local.auto_commit_exclude_patterns.as_ref().unwrap_or(&global.auto_commit_exclude_patterns);
+    let auto_exclusions = local
+        .auto_commit_exclude_patterns
+        .as_ref()
+        .unwrap_or(&global.auto_commit_exclude_patterns);
     let mut plan = Plan {
         schema_version: 1, mode: "read-only-placement-preview", repository: repo.to_owned(),
         storage_enabled: policy.policy.enabled,
@@ -312,7 +376,10 @@ fn inventory(repo: &Path, global: &SyncPolicy, local: &RepoPolicyOverride, polic
         proposed_git_bytes: 0, proposed_external_bytes: 0, files: Vec::new(),
     };
     for path in all {
-        if path.components().any(|c| !matches!(c, Component::Normal(_))) {
+        if path
+            .components()
+            .any(|c| !matches!(c, Component::Normal(_)))
+        {
             bail!("Git returned a non-relative inventory path");
         }
         let mut concerns = Vec::new();
@@ -321,70 +388,139 @@ fn inventory(repo: &Path, global: &SyncPolicy, local: &RepoPolicyOverride, polic
         for part in path.components() {
             current.push(part.as_os_str());
             match std::fs::symlink_metadata(&current) {
-                Ok(meta) if meta.file_type().is_symlink() => { safe = false; concerns.push("symlink: never traverse for external preservation".into()); break; }
-                Ok(meta) if meta.is_dir() && current.join(".git").exists() => { safe = false; concerns.push("nested repository: apply its own storage policy".into()); break; }
+                Ok(meta) if meta.file_type().is_symlink() => {
+                    safe = false;
+                    concerns.push("symlink: never traverse for external preservation".into());
+                    break;
+                }
+                Ok(meta) if meta.is_dir() && current.join(".git").exists() => {
+                    safe = false;
+                    concerns.push("nested repository: apply its own storage policy".into());
+                    break;
+                }
                 Ok(_) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => { safe = false; concerns.push("missing from working tree".into()); break; }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    safe = false;
+                    concerns.push("missing from working tree".into());
+                    break;
+                }
                 Err(e) => return Err(e).context("cannot inspect inventory path"),
             }
         }
         let bytes = if safe {
             let metadata = std::fs::symlink_metadata(&current)?;
-            if metadata.is_file() { Some(metadata.len()) } else { concerns.push("not a regular payload file".into()); None }
-        } else { None };
+            if metadata.is_file() {
+                Some(metadata.len())
+            } else {
+                concerns.push("not a regular payload file".into());
+                None
+            }
+        } else {
+            None
+        };
         let decision = policy.decide(&path, bytes.unwrap_or(0));
         let excluded = crate::exclude::is_excluded_change_path(&path, &exclusions)
             || crate::exclude::is_excluded_file(&path, &global.exclude_file_patterns)
             || crate::exclude::matches_untracked_exclude(repo, &path, auto_exclusions)
-            || (!tracked.contains(&path) && crate::exclude::matches_untracked_exclude(repo, &path, &global.untracked_exclude_patterns));
-        if excluded { concerns.push("excluded by existing Sync policy; placement does not override this".into()); }
+            || (!tracked.contains(&path)
+                && crate::exclude::matches_untracked_exclude(
+                    repo,
+                    &path,
+                    &global.untracked_exclude_patterns,
+                ));
+        if excluded {
+            concerns
+                .push("excluded by existing Sync policy; placement does not override this".into());
+        }
         if let Some(bytes) = bytes {
             if decision.placement == Placement::Git && bytes > global.max_stage_file_bytes {
                 concerns.push("above existing Git staging limit".into());
             }
             if decision.placement == Placement::External && tracked.contains(&path) {
-                concerns.push("tracked Git content: reviewed forward migration required; history remains".into());
+                concerns.push(
+                    "tracked Git content: reviewed forward migration required; history remains"
+                        .into(),
+                );
             }
             if !excluded {
                 match decision.placement {
-                    Placement::Git => plan.proposed_git_bytes = plan.proposed_git_bytes.saturating_add(bytes),
-                    Placement::External => plan.proposed_external_bytes = plan.proposed_external_bytes.saturating_add(bytes),
+                    Placement::Git => {
+                        plan.proposed_git_bytes = plan.proposed_git_bytes.saturating_add(bytes)
+                    }
+                    Placement::External => {
+                        plan.proposed_external_bytes =
+                            plan.proposed_external_bytes.saturating_add(bytes)
+                    }
                 }
             }
         }
         #[cfg(unix)]
         let path_bytes_hex = if path.to_str().is_none() {
             use std::os::unix::ffi::OsStrExt;
-            Some(path.as_os_str().as_bytes().iter().map(|b| format!("{b:02x}")).collect())
-        } else { None };
+            Some(
+                path.as_os_str()
+                    .as_bytes()
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect(),
+            )
+        } else {
+            None
+        };
         #[cfg(not(unix))]
         let path_bytes_hex = None;
-        plan.files.push(FilePlan { path: path.to_string_lossy().into_owned(), path_bytes_hex,
-            tracked: tracked.contains(&path), bytes, decision, concerns });
+        plan.files.push(FilePlan {
+            path: path.to_string_lossy().into_owned(),
+            path_bytes_hex,
+            tracked: tracked.contains(&path),
+            bytes,
+            decision,
+            concerns,
+        });
     }
     Ok(plan)
 }
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
     let (repo, policy_path, json) = match command {
-        StorageCommand::Plan { repo, policy, json } | StorageCommand::Validate { repo, policy, json } => (repo, policy.as_deref(), *json),
+        StorageCommand::Plan { repo, policy, json }
+        | StorageCommand::Validate { repo, policy, json } => (repo, policy.as_deref(), *json),
     };
     let repo = root(repo)?;
     let (global, local) = load_configuration(&repo, policy_path)?;
     let compiled = CompiledPolicy::new(effective_policy(&global.storage, local.storage.as_ref()))?;
     if matches!(command, StorageCommand::Validate { .. }) {
-        if json { println!("{}", serde_json::json!({"schema_version":1,"valid":true,"mode":"read-only","storage_enabled":compiled.policy.enabled,"transfers_available":false})); }
-        else { println!("Storage policy valid. Read-only planning; transfers are not implemented yet."); }
+        if json {
+            println!(
+                "{}",
+                serde_json::json!({"schema_version":1,"valid":true,"mode":"read-only","storage_enabled":compiled.policy.enabled,"transfers_available":false})
+            );
+        } else {
+            println!(
+                "Storage policy valid. Read-only planning; transfers are not implemented yet."
+            );
+        }
         return Ok(());
     }
     let plan = inventory(&repo, &global, &local, &compiled)?;
-    if json { println!("{}", serde_json::to_string_pretty(&plan)?); }
-    else {
-        println!("Read-only placement preview for {} (no uploads or index changes)", repo.display());
+    if json {
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+    } else {
+        println!(
+            "Read-only placement preview for {} (no uploads or index changes)",
+            repo.display()
+        );
         println!("Proposed working-tree bytes: Git {}, external {}. These are not history or push-size estimates.", plan.proposed_git_bytes, plan.proposed_external_bytes);
         println!("{}", plan.eligibility);
         for file in &plan.files {
-            println!("{:?}\t{}\t{:?}\trule {:?}\t{}", file.decision.placement, file.path.escape_debug(), file.bytes, file.decision.rule, file.concerns.join("; "));
+            println!(
+                "{:?}\t{}\t{:?}\trule {:?}\t{}",
+                file.decision.placement,
+                file.path.escape_debug(),
+                file.bytes,
+                file.decision.rule,
+                file.concerns.join("; ")
+            );
         }
     }
     Ok(())
