@@ -588,6 +588,7 @@ fn private_directory(path: &Path, create: bool) -> Result<()> {
         bail!("journal root must be absolute and normalized");
     }
     let mut current = PathBuf::new();
+    let mut missing = Vec::new();
     for component in path.components() {
         current.push(component.as_os_str());
         match std::fs::symlink_metadata(&current) {
@@ -595,7 +596,9 @@ fn private_directory(path: &Path, create: bool) -> Result<()> {
                 bail!("journal directories must not follow symlinks")
             }
             Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                missing.push(current.clone());
+            }
             Err(e) => return Err(e.into()),
         }
     }
@@ -608,6 +611,13 @@ fn private_directory(path: &Path, create: bool) -> Result<()> {
             builder.mode(0o700);
         }
         builder.create(path)?;
+        // Persist newly created namespace entries as well as later record renames.
+        for directory in missing.iter().rev() {
+            File::open(directory)?.sync_all()?;
+            if let Some(parent) = directory.parent() {
+                File::open(parent)?.sync_all()?;
+            }
+        }
     }
     let metadata = std::fs::symlink_metadata(path)?;
     if !metadata.is_dir() || metadata.file_type().is_symlink() {
