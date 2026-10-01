@@ -143,7 +143,10 @@ corrupt old receipts, quota failure and transient readback retry. No source byte
 or new ciphertext can be substituted by the copy executor. Strict all-target
 workspace Clippy passed, followed by a final Sync all-target check after the
 local failure-classification refinement. The locked release build passed. The
-current full workspace rerun is pending and will be recorded here.
+full workspace rerun passed 1969 tests (13 ignored), including the
+28 shared-library tests and both actual Warden streaming integration tests.
+Dependency policy remains green from the preceding milestone; this change
+added no dependencies.
 
 This remains library infrastructure: no new `storage prepare` command, production
 Warden subprocess orchestration, S3 adapter, manifest, filters or daemon worker
