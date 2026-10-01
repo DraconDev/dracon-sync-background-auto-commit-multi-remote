@@ -120,11 +120,11 @@ assuming a 20 MiB media threshold alone will solve history growth.
 
 | Package | Status | Required next evidence |
 | --- | --- | --- |
-| A: contracts/inventory | Partial | Per-path churn attribution, producer/service review, threat model, manifest/security/group contracts |
+| A: contracts/inventory | Partial | Private manifest schema specified; per-path churn attribution, producer/service review, full threat model and group contracts remain |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
 | C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, operator binding integration, protected restore metadata remain |
 | D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention/copy execution checked; production reconciliation and operator resource policy remain |
-| E: Git bridge | Partial | Strict pointer codec checked; protected manifest, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
+| E: Git bridge | Partial | Strict pointer/private manifest codecs checked; protected metadata preparation, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
 | G: daemon/status | Partial | Read-only redacted journal status checked; worker scheduling, live backend verification, fairness, grouping and outage isolation remain |
 | H: live pilots/release | Not started | Approved backend/recovery cost and exact pilot paths, real provider drills, clean-machine fixtures, final gates/release |
