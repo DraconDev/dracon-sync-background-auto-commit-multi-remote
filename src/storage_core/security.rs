@@ -26,12 +26,7 @@ impl WardenAdapter {
     /// Bind an absolute existing executable/repo and a positive processing deadline.
     /// Callers must authorize these bindings and establish the repo's stable identity.
     /// Every preparation/recovery checks that identity against the leased job.
-    pub fn new(
-        executable: &Path,
-        repo: &Path,
-        repo_id: &str,
-        timeout: Duration,
-    ) -> Result<Self> {
+    pub fn new(executable: &Path, repo: &Path, repo_id: &str, timeout: Duration) -> Result<Self> {
         validate_sha256(repo_id)?;
         if !executable.is_absolute() || !repo.is_absolute() || timeout.is_zero() {
             bail!("absolute operator bindings and positive Warden deadline required");
@@ -394,6 +389,7 @@ mod tests {
         let adapter = WardenAdapter::new(
             &root.join("warden-fixture"),
             &root.join("repo"),
+            &"a".repeat(64),
             Duration::from_secs(5),
         )
         .unwrap();
@@ -530,7 +526,7 @@ mod tests {
         };
         lease.capture_snapshot(&mut synthetic).unwrap();
         assert!(synthetic.largest_read <= 64 * 1024);
-        let adapter = WardenAdapter::new(&binary, &repo, Duration::from_secs(180))
+        let adapter = WardenAdapter::new(&binary, &repo, &"a".repeat(64), Duration::from_secs(180))
             .unwrap()
             .with_identity_home(&home)
             .unwrap();
