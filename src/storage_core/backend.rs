@@ -68,6 +68,7 @@ impl LocalBackend {
             bail!("absolute root and positive object budget required");
         }
         super::journal::private_directory(root, true)?;
+        super::journal::runtime::protect(root)?;
         Ok(Self {
             root: root.canonicalize()?,
             max_object_bytes,
@@ -150,6 +151,7 @@ fn stream_digest(
 
 impl ImmutableBackend for LocalBackend {
     fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
+        super::journal::runtime::protect(&self.root)?;
         let mut spool = self.spool()?;
         let identity = stream_digest(input, &mut spool.file, self.max_object_bytes)?;
         spool.file.sync_all()?;
@@ -207,6 +209,9 @@ mod tests {
         assert_eq!(
             std::fs::read_dir(root.path().join("objects"))
                 .unwrap()
+                .filter(|entry| entry
+                    .as_ref()
+                    .is_ok_and(|entry| !entry.file_name().as_encoded_bytes().starts_with(b".")))
                 .count(),
             1
         );

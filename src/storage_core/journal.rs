@@ -18,7 +18,7 @@ const VERSION: u32 = 1;
 const MAX_RECORD_BYTES: u64 = 64 * 1024;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
-mod runtime;
+pub(super) mod runtime;
 mod security;
 
 /// Representation expected for a prepared payload.

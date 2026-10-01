@@ -6,7 +6,7 @@ use std::process::Stdio;
 
 const IGNORE: &[u8] = b"# Dracon Sync private runtime state; never commit.\n*\n";
 
-pub(super) fn protect(directory: &Path) -> Result<()> {
+pub(crate) fn protect(directory: &Path) -> Result<()> {
     // Never write a blanket ignore into a project's own root.
     if std::fs::symlink_metadata(directory.join(".git")).is_ok() {
         bail!(BackendFailure::Security);
