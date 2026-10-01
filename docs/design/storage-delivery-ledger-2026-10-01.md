@@ -39,12 +39,12 @@ This ledger records actual evidence and preserves the remaining scope.
   and plaintext byte budgets. Caller publication still requires successful exit.
 - Pointer encoding decision recorded in `storage-representation-decision-2026-10-01.md`.
 
-Commands checked on 2026-10-01:
+Validation commands used on 2026-10-01 (latest results below):
 
 ```sh
 cargo test --workspace --locked
 cargo build --release --locked
-cargo clippy --workspace --locked -- -D warnings
+cargo clippy --workspace --locked --all-targets -- -D warnings
 cargo deny check
 cargo test -p dracon-sync encrypted_payload_round_trip --locked -- --ignored
 nix shell nixpkgs#git-lfs --command python3 dracon-sync/scripts/storage-representation-prototype.py
@@ -55,6 +55,25 @@ standalone invocation is documented in `docs/storage-planning.md`. The age test
 is normally ignored because it requires external tools; it was explicitly run
 and passed. Workspace checks include the normal storage tests. These checks
 prove the current milestone, not absent S3/worker/daemon integration.
+
+## Journal/security milestone validation
+
+Focused shared-library checks passed 21 tests; three external-tool/subprocess
+helpers were ignored by the ordinary run. Crash helpers are invoked explicitly
+by the recovery tests. The two isolated Warden CLI integration tests passed,
+including the 101 MiB encryption/decryption round trip. Strict all-target
+workspace Clippy, `cargo deny check`, and the locked release build passed.
+
+The built release CLI was also exercised in an isolated fresh Git repo:
+unenrolled and explicit-ID inspection created no state, and a corrupt record
+caused a nonzero result while preserving its bytes. No installed binary changed.
+
+An initial full workspace run overlapped another process using Warden's old
+counter-based temporary directory names. Ten Warden tests failed as those
+shared fixtures were removed or changed. The helper now uses unique owned
+`tempfile` directories, retaining its quote/space path cases. Full workspace
+and concurrent Warden reruns are pending; the initial failure is not counted
+as a passing gate.
 
 ## Current inventory findings
 
