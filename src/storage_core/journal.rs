@@ -1210,7 +1210,7 @@ pub(crate) fn retain_snapshot(
 pub(crate) fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
     let mut file = open_private(path, false, false)?;
     if file.metadata()?.len() != expected.bytes() {
-        bail!("snapshot length mismatch");
+        bail!(super::backend::BackendFailure::Integrity);
     }
     let mut digest = Sha256::new();
     let mut buffer = [0u8; 64 * 1024];
@@ -1222,7 +1222,7 @@ pub(crate) fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<Fil
         digest.update(&buffer[..count]);
     }
     if format!("{:x}", digest.finalize()) != expected.sha256() {
-        bail!("snapshot digest mismatch");
+        bail!(super::backend::BackendFailure::Integrity);
     }
     Ok(file)
 }

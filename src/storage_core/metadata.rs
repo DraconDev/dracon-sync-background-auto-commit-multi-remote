@@ -215,7 +215,10 @@ impl MetadataStore {
             }
             return record.prepared();
         }
-        let mut source = self.source(&record)?;
+        let mut source = match self.source(&record) {
+            Ok(source) => source,
+            Err(error) => return self.fail(&mut record, super::transfer::classify(&error), now),
+        };
         source.seek(SeekFrom::Start(0))?;
         let _budget = journal::try_lock(&self.directory.join("payload-budget.lock"))?;
         let spool_path = self.path(&id, "security-output");
@@ -247,7 +250,9 @@ impl MetadataStore {
             Ok(identity) => identity,
             Err(error) => return self.fail(&mut record, super::transfer::classify(&error), now),
         };
-        self.source(&record)?;
+        if let Err(error) = self.source(&record) {
+            return self.fail(&mut record, super::transfer::classify(&error), now);
+        }
         spool.sync_all()?;
         journal::verify_snapshot(&spool_path, &identity)?;
         record.approved = Some(identity);
@@ -402,9 +407,12 @@ impl MetadataStore {
         }
         File::open(&self.directory)?.sync_all()?;
         metadata_crash("after-metadata-publish");
-        record.phase = Phase::Prepared;
-        record.failure = None;
-        self.save(record)
+        if record.phase != Phase::Prepared || record.failure.is_some() {
+            record.phase = Phase::Prepared;
+            record.failure = None;
+            self.save(record)?;
+        }
+        Ok(())
     }
 
     fn fail(&self, record: &mut Record, code: FailureCode, now: u64) -> Result<PreparedMetadata> {
