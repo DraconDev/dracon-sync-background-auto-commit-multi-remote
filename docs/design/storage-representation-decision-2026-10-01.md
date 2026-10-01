@@ -52,17 +52,19 @@ The comparison's custom reference was fixture-only JSON. It is not the selected
 production pointer format. Its preparation/race experiment establishes a useful
 Git interaction pattern without requiring a second pointer encoding.
 
-The Rust local-backend prototype separately passed create-only publication,
+The shared Rust local backend separately passed create-only publication,
 readback digest/length checks, corruption refusal, interrupted capture, and a
 101 MiB cold-reopen round trip using 64 KiB read buffers. Its explicit operational
 age test also passed with isolated fixture keys.
 
 ## Security boundaries and incomplete gates
 
-The experiments prove opaque encrypted-byte recovery. They do not prove Warden
-classification, streaming encryption through Warden's current key/trust model,
-metadata confidentiality, or large-payload filter composition. Those remain
-mandatory before production enrollment. Do not interpret the pointer encoding
+The experiments prove opaque encrypted-byte recovery. Subsequent isolated
+Warden CLI tests also prove bounded whole-payload age encryption/decryption
+through existing authorized recipients and identity discovery, including an
+untrusted repo recipient refusal and a 101 MiB exact round trip. Production
+classification, metadata confidentiality, and large-payload Git filter/worker
+composition remain mandatory before enrollment. Do not interpret the pointer encoding
 choice as permission to weaken the Warden adapter or lift its current bounds.
 
 Plaintext hashes used to match prepared source versions stay in protected local
