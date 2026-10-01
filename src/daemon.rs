@@ -155,6 +155,11 @@ const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
 /// than status because per-job cost is an order of magnitude higher.
 const MAX_INFLIGHT_CLASSIFICATION_JOBS: usize = 2;
 
+/// A failed classifier may run again only after its backoff expires.
+fn classification_cooldown_elapsed(until: Option<&Instant>, now: Instant) -> bool {
+    until.is_none_or(|until| now >= *until)
+}
+
 /// Bound for a STATUS task without a result (ADDED 2026-09-20,
 /// v0.113.85): at most one status task runs per repo and the boundary
 /// only collects ready results, so a wedged `git status` pins its repo
@@ -1484,6 +1489,23 @@ pub(crate) fn stuck_decision(
 mod tests {
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
+
+    #[test]
+    fn classification_cooldown_waits_then_releases_repo() {
+        let now = Instant::now();
+        let until = now + Duration::from_secs(300);
+        assert!(classification_cooldown_elapsed(None, now));
+        assert!(!classification_cooldown_elapsed(Some(&until), now));
+        assert!(!classification_cooldown_elapsed(
+            Some(&until),
+            until - Duration::from_nanos(1)
+        ));
+        assert!(classification_cooldown_elapsed(Some(&until), until));
+        assert!(classification_cooldown_elapsed(
+            Some(&until),
+            until + Duration::from_secs(1)
+        ));
+    }
 
     #[tokio::test]
     async fn classifier_completed_during_scan_is_available_at_repo_boundary() {
@@ -7890,13 +7912,9 @@ pub(crate) async fn run_daemon(
                     // MAX_INFLIGHT_CLASSIFICATION_JOBS) — each of these
                     // jobs is a filter-aware diff plus warden decrypts.
                     && classification_pending.len() < MAX_INFLIGHT_CLASSIFICATION_JOBS
-                    // FIXED 2026-09-27 (audit rework round 4, F84):
-                    // `!x.is_some_and(..)` is `x.is_none_or(..)`; clippy
-                    // flags the double negative as `nonminimal_bool` on the
-                    // pinned MSRV toolchain. Same predicate, clearer name.
-                    && classification_cooldowns
-                        .get(&repo)
-                        .is_none_or(|until| now < *until)
+                    && classification_cooldown_elapsed(
+                        classification_cooldowns.get(&repo), now
+                    )
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());

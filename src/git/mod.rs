@@ -270,8 +270,7 @@ fn direct_ref_state(repo: &std::path::Path) -> Option<DirectRefState> {
     let github_remotes = remotes
         .into_iter()
         .map(|name| {
-            let tip =
-                resolve_ref_direct(&commondir, &format!("refs/remotes/{}/{}", name, branch));
+            let tip = resolve_ref_direct(&commondir, &format!("refs/remotes/{}/{}", name, branch));
             (name, tip)
         })
         .collect();
@@ -498,10 +497,12 @@ fn github_push_scenarios(
         let url = crate::git::multi_remote::get_remote_url(repo, name);
         let canonical = url.as_deref().and_then(urls::canonical_repository_url);
         let excludes = github_delta_excludes(repo, name, branch);
-        let existing = groups.iter_mut().find(|(known, _)| match (known, &canonical) {
-            (Some(a), Some(b)) => a == b,
-            _ => false,
-        });
+        let existing = groups
+            .iter_mut()
+            .find(|(known, _)| match (known, &canonical) {
+                (Some(a), Some(b)) => a == b,
+                _ => false,
+            });
         match existing {
             // Same repository: keep the informed set, never let the
             // fresh-remote placeholder win.
@@ -918,13 +919,15 @@ mod github_pack_tests {
         let branch = fixture_branch(&repo);
         set_tracking_ref(&repo, "origin", &branch, &head_sha(&repo));
         // `github/main` deliberately absent: the fresh-remote placeholder.
-        let (too_big, basis) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, basis) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(
             !too_big,
             "a converged duplicate-URL sibling must not read as a whole-branch push, basis={basis}"
         );
-        assert_eq!(basis, 0, "the informed sibling's empty delta is the verdict");
+        assert_eq!(
+            basis, 0,
+            "the informed sibling's empty delta is the verdict"
+        );
     }
 
     /// The dedupe must NOT extend across distinct repositories: two
@@ -945,8 +948,7 @@ mod github_pack_tests {
         }
         let branch = fixture_branch(&repo);
         set_tracking_ref(&repo, "origin", &branch, &head_sha(&repo));
-        let (too_big, basis) =
-            github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
+        let (too_big, basis) = github_pack_too_large_with_limit(&repo, Some(TEST_PRECOMPUTED), 1);
         assert!(
             too_big,
             "a distinct fresh github repo still ships the whole branch, basis={basis}"
