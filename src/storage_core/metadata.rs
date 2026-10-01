@@ -202,7 +202,7 @@ impl MetadataStore {
                 &mut raw.as_slice(),
                 &record.spec.source,
             ) {
-                return self.fail(&mut record, super::transfer::classify(&error), now);
+                return self.fail(&mut record, metadata_failure(&error), now);
             }
             record.phase = Phase::Captured;
             record.failure = None;
@@ -211,13 +211,13 @@ impl MetadataStore {
         drop(raw);
         if record.approved.is_some() {
             if let Err(error) = self.finish(&mut record) {
-                return self.fail(&mut record, super::transfer::classify(&error), now);
+                return self.fail(&mut record, metadata_failure(&error), now);
             }
             return record.prepared();
         }
         let mut source = match self.source(&record) {
             Ok(source) => source,
-            Err(error) => return self.fail(&mut record, super::transfer::classify(&error), now),
+            Err(error) => return self.fail(&mut record, metadata_failure(&error), now),
         };
         source.seek(SeekFrom::Start(0))?;
         let _budget = journal::try_lock(&self.directory.join("payload-budget.lock"))?;
@@ -247,10 +247,10 @@ impl MetadataStore {
             .await
         {
             Ok(identity) => identity,
-            Err(error) => return self.fail(&mut record, super::transfer::classify(&error), now),
+            Err(error) => return self.fail(&mut record, metadata_failure(&error), now),
         };
         if let Err(error) = self.source(&record) {
-            return self.fail(&mut record, super::transfer::classify(&error), now);
+            return self.fail(&mut record, metadata_failure(&error), now);
         }
         spool.sync_all()?;
         journal::verify_snapshot(&spool_path, &identity)?;
@@ -421,6 +421,18 @@ impl MetadataStore {
         });
         self.save(record)?;
         bail!("protected metadata preparation failed: {code:?}")
+    }
+}
+
+fn metadata_failure(error: &anyhow::Error) -> FailureCode {
+    if error.downcast_ref::<BackendFailure>().is_some()
+        || error.downcast_ref::<std::io::Error>().is_some()
+    {
+        super::transfer::classify(error)
+    } else {
+        // Metadata input is already a fixed bounded encoding: mismatching
+        // retained prefixes and other failed proof checks cannot heal by retry.
+        FailureCode::Integrity
     }
 }
 
@@ -602,6 +614,35 @@ mod tests {
         assert!(store.open_prepared(&prepared).is_err());
         assert_eq!(std::fs::read(temp.path().join("repo/calls")).unwrap(), b"x");
         assert!(store.source(&record).is_ok());
+    }
+
+    #[tokio::test]
+    async fn corrupted_partial_source_requires_intervention_and_preserves_existing_bytes() {
+        use std::io::Write;
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let version = id(&manifest);
+        let path = store.path(&version, "capture");
+        journal::open_private(&path, true, true)
+            .unwrap()
+            .write_all(b"wrong prefix")
+            .unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .is_err());
+        let record = store.read(&version).unwrap();
+        assert!(record.phase == Phase::PendingCapture);
+        assert_eq!(
+            record.failure.as_ref().unwrap().code,
+            FailureCode::Integrity
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), b"wrong prefix");
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 100)
+            .await
+            .is_err());
+        assert!(!temp.path().join("repo/calls").exists());
     }
 
     #[tokio::test]
