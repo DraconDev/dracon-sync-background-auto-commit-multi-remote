@@ -15,12 +15,33 @@ use crate::policy::{RepoPolicyOverride, SyncPolicy};
 pub(crate) enum BackendBinding {
     Local {
         root: PathBuf,
+        #[serde(default = "encrypted_only")]
+        allowed_security: Vec<Security>,
     },
     S3 {
         endpoint: String,
         bucket: String,
         credential_ref: String,
+        #[serde(default = "encrypted_only")]
+        allowed_security: Vec<Security>,
     },
+}
+
+fn encrypted_only() -> Vec<Security> {
+    vec![Security::WardenEncrypted]
+}
+
+impl BackendBinding {
+    fn allowed_security(&self) -> &[Security] {
+        match self {
+            Self::Local {
+                allowed_security, ..
+            }
+            | Self::S3 {
+                allowed_security, ..
+            } => allowed_security,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -113,7 +134,7 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
             bail!("backend identifiers must contain only letters, digits, '-' or '_'");
         }
         match backend {
-            BackendBinding::Local { root } => {
+            BackendBinding::Local { root, .. } => {
                 if !root.is_absolute() {
                     bail!("local backend {name:?} root must be absolute");
                 }
@@ -122,6 +143,7 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
                 endpoint,
                 bucket,
                 credential_ref,
+                ..
             } => {
                 let url = reqwest::Url::parse(endpoint).context("invalid S3 endpoint")?;
                 if url.scheme() != "https"
@@ -153,8 +175,14 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
                 if !policy.backends.contains_key(backend) {
                     bail!("storage rule {index} selects unapproved backend {backend:?}");
                 }
-                if rule.security.is_none() {
-                    bail!("storage rule {index} requires explicit security classification");
+                let security = rule
+                    .security
+                    .context("external rule requires explicit security classification")?;
+                if !policy.backends[backend]
+                    .allowed_security()
+                    .contains(&security)
+                {
+                    bail!("storage rule {index} selects a security class not approved for backend {backend:?}");
                 }
             }
             Placement::Git => {

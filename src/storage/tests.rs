@@ -133,6 +133,7 @@ fn reject_invalid_rules_and_secret_bearing_endpoints() {
                 endpoint: endpoint.into(),
                 bucket: "assets".into(),
                 credential_ref: "approved".into(),
+                allowed_security: encrypted_only(),
             },
         );
         assert!(validate_policy(&global).is_err());
@@ -282,4 +283,23 @@ fn malformed_repo_storage_policy_is_a_hard_error_for_planning() {
     let operator = dir.path().join("operator.toml");
     std::fs::write(&operator, "").unwrap();
     assert!(load_configuration(dir.path(), Some(&operator)).is_err());
+}
+
+#[test]
+fn repository_cannot_downgrade_operator_backend_encryption() {
+    let global = policy();
+    let mut local = StorageOverride {
+        rules: Some(global.rules.clone()),
+        ..Default::default()
+    };
+    local.rules.as_mut().unwrap()[1].security = Some(Security::NonSensitive);
+    assert!(validate_policy(&effective_policy(&global, Some(&local))).is_err());
+    let mut approved = global;
+    if let BackendBinding::Local {
+        allowed_security, ..
+    } = approved.backends.get_mut("archive").unwrap()
+    {
+        allowed_security.push(Security::NonSensitive);
+    }
+    assert!(validate_policy(&effective_policy(&approved, Some(&local))).is_ok());
 }
