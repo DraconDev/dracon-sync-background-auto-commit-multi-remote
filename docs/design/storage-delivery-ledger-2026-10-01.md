@@ -17,11 +17,26 @@ This ledger records actual evidence and preserves the remaining scope.
   non-UTF8 path identities, config/payload symlink refusal, nested repo isolation.
 - Explicit history inventory separates unique reachable raw blob bytes across
   all local refs from own object-database bytes and from push-size estimates.
-- Test-only immutable local backend with bounded streaming, create-only
+- Shared-library immutable local backend with bounded streaming, create-only
   publication, readback checks, cold reopen, corruption/missing-object failure,
   interrupted capture, and symlink object refusal.
 - Isolated encrypted-byte and Git LFS/prepared-filter experiments; exact restore,
   single effective driver, stale preparation refusal, and cold reference clone.
+- Strict canonical Git LFS v1 pointer codec in the shared library; malformed,
+  oversized, noncanonical, or unsupported extended pointers fail closed.
+- Versioned transactional journal with exact-source job identities, private
+  files, per-job OS leases, compare-and-swap revisions, typed retry failures,
+  required object-copy and Git-push receipts, and redacted read-only inspection.
+- Durable bounded source snapshots with digest checks, matching-prefix resume,
+  complete-spool adoption after process death, record/count/byte budgets, and
+  no automatic deletion of retained source versions.
+- `storage status` inspects local journal evidence without creating state or
+  claiming current backend availability. Uninitialized repos need no enrollment.
+- Warden source-build `storage-encrypt`/`storage-decrypt` stream whole-payload
+  age representations through existing authorized recipients and identity
+  discovery, independently of Git filter limits. Isolated CLI tests cover
+  101 MiB payloads, exact restoration, an untrusted recipient, corruption,
+  and plaintext byte budgets. Caller publication still requires successful exit.
 - Pointer encoding decision recorded in `storage-representation-decision-2026-10-01.md`.
 
 Commands checked on 2026-10-01:
@@ -39,7 +54,7 @@ The last command was run from the parent workspace. The prototype's ordinary
 standalone invocation is documented in `docs/storage-planning.md`. The age test
 is normally ignored because it requires external tools; it was explicitly run
 and passed. Workspace checks include the normal storage tests. These checks
-prove the current milestone, not absent S3/journal/daemon integration.
+prove the current milestone, not absent S3/worker/daemon integration.
 
 ## Current inventory findings
 
@@ -68,19 +83,19 @@ assuming a 20 MiB media threshold alone will solve history growth.
 | --- | --- | --- |
 | A: contracts/inventory | Partial | Per-path churn attribution, producer/service review, threat model, manifest/security/group contracts |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
-| C: storage/security | Prototype only | Production backend interface, S3 capability conformance, Warden streaming/trust adapter, protected restore metadata |
-| D: durable journal | Not implemented | Versioned transactional journal, per-job leases, crashes/restarts, reconciliation and resource limits |
-| E: Git bridge | Prototype only | Production pointer/manifest schema, required local filter composition, manual-index races, all staging entry points, outgoing-ref validation |
+| C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, worker composition, protected restore metadata remain |
+| D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention, worker reconciliation and operator resource policy remain |
+| E: Git bridge | Partial | Strict pointer codec checked; protected manifest, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
-| G: daemon/status | Not implemented | Fair retries, source/asset grouping, actual durability/concern JSON, unrelated-source syncing during outages |
+| G: daemon/status | Partial | Read-only redacted journal status checked; worker scheduling, live backend verification, fairness, grouping and outage isolation remain |
 | H: live pilots/release | Not started | Approved backend/recovery cost and exact pilot paths, real provider drills, clean-machine fixtures, final gates/release |
 | I: legacy maintenance | Separate proposal pending | Measured exact paths, verified backup/rollback, explicit sanctioned authorization |
 
 ## Next implementation sequence
 
-Specify the manifest and durable journal around the selected pointer encoding.
-Implement journal/reconciliation tests and the Warden security adapter, then
-production local/S3 backends. Wire the Git bridge only after exact-version and
+Continue with retained prepared payloads, the protected restore manifest and
+worker reconciliation around the journal and Warden streaming adapter. Add
+S3 backend capability checks and independent-copy verification. Wire the Git bridge only after exact-version and
 security gates pass. Continue with hydration, daemon scheduling/status, pilots,
 and packaged release validation. Keep the whole roadmap active; a green preview
 build does not mean automatic preservation exists.

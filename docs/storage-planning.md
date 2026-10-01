@@ -11,6 +11,7 @@ From a source checkout, build `cargo build --locked`, then run the built binary:
 dracon-sync storage validate --repo /path/to/repo --policy /path/to/operator.toml
 dracon-sync storage plan --repo /path/to/repo --policy /path/to/operator.toml --json
 dracon-sync storage plan --repo /path/to/repo --history --json
+dracon-sync storage status --repo /path/to/repo --json
 ```
 
 `--policy` selects an operator policy without changing it. When omitted, the
@@ -99,10 +100,31 @@ settings. Those roadmap fields are proposals and are rejected if supplied to
 this preview. Enrollment persistence, retries, hydration, and production filter
 composition are pending implementation.
 
-## Prototype checks
+## Local journal evidence
 
-The immutable local backend is test-only until the representation/security
-integration gate passes. Its tests exercise bounded streaming above 100 MiB,
+`storage status` reports validated local job records and their recorded phases,
+failures, pending bytes, and completed preservation receipts. It performs no
+network requests, starts no transfers, and creates no journal paths. A recorded
+receipt is historical evidence, not a current probe of backend availability.
+Malformed records and failed jobs produce a concern report and nonzero exit.
+
+The repo ID comes from local Git config `dracon.storageRepoId`, or explicit
+`--repo-id` for inspection. Missing enrollment reports an uninitialized journal.
+`--state-dir` selects a state base; records live below its `storage-journal`
+directory. Otherwise the command uses `DRACON_SYNC_STATE_DIR` or
+`~/.dracon/utilities/sync`. Paths and payload hashes are omitted from status.
+
+The shared-library journal has private per-job leases, atomic durable records,
+exact-version snapshots and typed retry gates. Its current per-repo defaults
+are 10,000 records, 1 GiB per source snapshot and 4 GiB retained source/capture
+bytes. These library defaults are not an enrolled operator storage policy.
+Exhaustion refuses new capture and retains existing bytes; no automatic eviction
+exists. Unix ownership/permission checks are required by this adapter.
+
+## Implementation checks
+
+The immutable local backend is available in the shared library; the daemon and
+preview commands do not call it to preserve files automatically. Its tests exercise bounded streaming above 100 MiB,
 create-only publication, readback verification, cold reopen, corruption,
 interrupted capture, and object symlink refusal. The encrypted operational
 check requires `age` and `age-keygen`:
@@ -117,5 +139,18 @@ repositories, independent fixture keys, disabled hooks, and no operator global
 Git configuration. It compares a standard LFS ciphertext pointer with a local
 prepared-reference filter; both restore exact plaintext bytes. It proves stale
 source preparation is refused and a cold clone retains the reference. It does
-not prove Warden classification/composition, provider guarantees, or real
+not prove production filter composition, provider guarantees, or real
 bucket recovery. No production pointer format has been enrolled.
+
+The Warden source-build streaming adapter is separate from these experiments:
+
+```sh
+dracon-warden storage-encrypt --repo /path/to/repo --max-bytes 4294967296 < input > private-ciphertext-spool
+dracon-warden storage-decrypt --repo /path/to/repo --max-bytes 4294967296 < private-ciphertext-spool > private-plaintext-spool
+```
+
+Use private destinations, and publish them only after exit status zero. Streamed
+output can be partial on failure, including a damaged final authentication tag.
+These commands use existing authorized recipients/keys; they do not enroll a
+repo, install Git filters, generate keys, or upload. Classification and Sync's
+production subprocess/manifest composition remain pending.
