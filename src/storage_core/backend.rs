@@ -12,6 +12,26 @@ use super::reference::Fingerprint;
 const BUFFER_BYTES: usize = 64 * 1024;
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+/// Redacted failures that require operator intervention rather than blind retry.
+#[derive(Debug, Clone, Copy)]
+pub enum BackendFailure {
+    /// An object exceeds its configured byte budget.
+    Capacity,
+    /// Stored bytes fail exact length/digest verification.
+    Integrity,
+}
+
+impl std::fmt::Display for BackendFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Capacity => "backend capacity requirement failed",
+            Self::Integrity => "backend object integrity requirement failed",
+        })
+    }
+}
+
+impl std::error::Error for BackendFailure {}
+
 /// Backend operations preserve immutable bytes; receipts require successful readback.
 pub trait ImmutableBackend {
     /// Stream a representation into immutable storage and verify its actual bytes.
@@ -66,7 +86,7 @@ impl LocalBackend {
     fn object_path(&self, identity: &Fingerprint) -> Result<PathBuf> {
         identity.validate()?;
         if identity.bytes() > self.max_object_bytes {
-            bail!("object exceeds configured backend budget");
+            bail!(BackendFailure::Capacity);
         }
         Ok(self.root.join(identity.sha256()))
     }
@@ -117,7 +137,7 @@ fn stream_digest(
             .checked_add(read as u64)
             .context("object length overflow")?;
         if bytes > max_bytes {
-            bail!("object exceeds configured backend budget");
+            bail!(BackendFailure::Capacity);
         }
         digest.update(&buffer[..read]);
         output.write_all(&buffer[..read])?;
@@ -161,7 +181,7 @@ impl ImmutableBackend for LocalBackend {
         }
         let actual = stream_digest(&mut input, output, self.max_object_bytes)?;
         if actual != *identity {
-            bail!("object failed length/digest verification");
+            bail!(BackendFailure::Integrity);
         }
         // Callers must publish their destination only after success; this is a streamed API.
         Ok(())

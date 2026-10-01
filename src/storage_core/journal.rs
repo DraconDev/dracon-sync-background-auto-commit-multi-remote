@@ -354,7 +354,12 @@ impl Job {
 
     /// Start/resume upload; permanent failures need explicit intervention first.
     pub fn begin_upload(&mut self, now: u64) -> Result<()> {
-        self.require_phase(&[Phase::Prepared, Phase::Uploading, Phase::PrimaryVerified])?;
+        self.require_phase(&[
+            Phase::Prepared,
+            Phase::Uploading,
+            Phase::PrimaryVerified,
+            Phase::ReadyToStage,
+        ])?;
         if let Some(failure) = &self.failure {
             if !failure.code.retryable() || failure.retry_at.is_some_and(|at| now < at) {
                 bail!("job is not eligible for automatic retry");
