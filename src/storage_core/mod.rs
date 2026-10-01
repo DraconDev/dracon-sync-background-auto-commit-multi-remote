@@ -9,6 +9,7 @@ pub mod backend;
 pub mod bindings;
 pub mod journal;
 pub mod manifest;
+pub mod metadata;
 pub mod reference;
 pub mod security;
 pub mod transfer;

@@ -773,7 +773,12 @@ fn atomic_write(directory: &Path, path: &Path, job: &Job, create_only: bool) -> 
     atomic_bytes(directory, path, &raw, create_only)
 }
 
-pub(crate) fn atomic_bytes(directory: &Path, path: &Path, raw: &[u8], create_only: bool) -> Result<()> {
+pub(crate) fn atomic_bytes(
+    directory: &Path,
+    path: &Path,
+    raw: &[u8],
+    create_only: bool,
+) -> Result<()> {
     let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
@@ -1222,7 +1227,11 @@ pub(crate) fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<Fil
     Ok(file)
 }
 
-pub(crate) fn snapshot_bytes(directory: &Path, temporary: &Path, extensions: &[&str]) -> Result<(u64, u64)> {
+pub(crate) fn snapshot_bytes(
+    directory: &Path,
+    temporary: &Path,
+    extensions: &[&str],
+) -> Result<(u64, u64)> {
     let mut retained = 0u64;
     let mut previous = 0u64;
     for entry in std::fs::read_dir(directory)? {

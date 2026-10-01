@@ -93,7 +93,12 @@ impl WardenAdapter {
             Err(error) => return fail(lease, &mut job, super::transfer::classify(&error), now),
         };
         let identity = match self
-            .transform(source, job.spec().source.bytes(), &mut spool.file, spool.capacity)
+            .transform(
+                source,
+                job.spec().source.bytes(),
+                &mut spool.file,
+                spool.capacity,
+            )
             .await
         {
             Ok(identity) => identity,
@@ -145,22 +150,24 @@ impl WardenAdapter {
             }
             require_age_header(output_file).map_err(|_| BackendFailure::Security)?;
             Ok::<_, anyhow::Error>(identity)
-        }).await;
+        })
+        .await;
         match result {
             Ok(Ok(identity)) => Ok(identity),
             outcome => {
                 let _ = child.kill().await;
                 match outcome {
                     Err(_) => Err(std::io::Error::new(
-                        std::io::ErrorKind::TimedOut, "security processing deadline exceeded"
-                    ).into()),
+                        std::io::ErrorKind::TimedOut,
+                        "security processing deadline exceeded",
+                    )
+                    .into()),
                     Ok(Err(error)) => Err(error),
                     _ => unreachable!(),
                 }
             }
         }
     }
-
 }
 
 async fn stream_output(
