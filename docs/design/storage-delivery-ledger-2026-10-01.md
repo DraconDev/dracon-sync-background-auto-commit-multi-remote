@@ -285,7 +285,8 @@ and digest failures now have typed capacity/integrity categories.
 The final expanded core run passed 53 tests (eight ignored), including the
 corrupt-prefix regression. The full workspace run passed 1994 tests (17 ignored).
 Strict all-target Clippy, formatting and the final locked release rebuild passed
-after replacing equivalent manual saturation arithmetic.
+after replacing equivalent manual saturation arithmetic. Dependency policy
+checks passed for advisories, bans, licenses and sources.
 No dependencies or configuration knobs were added. Production policy derivation,
 root separation/approval, manifest group consistency, atomic Git staging,
 historical-key drills, packaged restoration and daemon wiring remain gates.
