@@ -230,12 +230,11 @@ impl MetadataStore {
         let capacity = self
             .limits
             .max_retained_payload_bytes
-            .checked_sub(
+            .saturating_sub(
                 retained
                     .checked_sub(previous)
                     .context("metadata spool accounting")?,
             )
-            .unwrap_or(0)
             .min(self.limits.max_payload_bytes);
         if capacity == 0 {
             return self.fail(&mut record, FailureCode::Capacity, now);
