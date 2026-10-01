@@ -418,6 +418,9 @@ pub(crate) fn timestamp_secs() -> u64 {
 
 #[derive(Debug, Default, Deserialize, serde::Serialize, Clone)]
 pub(crate) struct SyncPolicy {
+    /// External-storage planning policy. Transfers are not enabled by this field.
+    #[serde(default)]
+    pub(crate) storage: crate::storage::StoragePolicy,
     #[serde(default)]
     pub(crate) system_repo: String,
     #[serde(default = "default_pulse_interval")]
@@ -870,6 +873,9 @@ fn default_cold_commit_minutes() -> u64 {
 
 #[derive(Debug, Deserialize, serde::Serialize, Default, Clone)]
 pub(crate) struct RepoPolicyOverride {
+    /// Repo storage rules can select only operator-defined backend bindings.
+    #[serde(default)]
+    pub(crate) storage: Option<crate::storage::StorageOverride>,
     /// Optional per-repo override for `auto_bump_versions`.
     pub(crate) auto_bump_versions: Option<bool>,
     /// Optional per-repo override for `build_artifact_cleanup`
@@ -1535,6 +1541,10 @@ pub(crate) fn validate_config(policy_path: &Path) -> ValidateResult {
         }
     };
 
+    if let Err(error) = crate::storage::validate_policy(&policy.storage) {
+        result.error(format!("storage policy: {error:#}"));
+    }
+
     for root in &policy.watch_roots {
         let path = Path::new(root);
         if !path.exists() {
@@ -2076,6 +2086,7 @@ pub(crate) fn open_policy_in_editor(policy_path: &Path) -> Result<()> {
 #[cfg(test)]
 pub(crate) fn test_sync_policy() -> SyncPolicy {
     SyncPolicy {
+        storage: crate::storage::StoragePolicy::default(),
         auto_prune_stale_backup_branches: false,
         system_repo: String::new(),
         pulse_interval_secs: 1,

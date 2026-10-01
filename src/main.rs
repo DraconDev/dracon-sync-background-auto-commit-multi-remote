@@ -19,6 +19,7 @@ mod report;
 mod role;
 mod secrets;
 mod standard_files;
+mod storage;
 mod sync;
 mod test_helpers;
 mod vanished;
@@ -222,6 +223,11 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    /// Read-only external-storage policy simulation and validation.
+    Storage {
+        #[command(subcommand)]
+        cmd: storage::StorageCommand,
+    },
     /// Show resolved policy path and sync scope.
     Status {
         /// Emit machine-readable JSON.
@@ -739,9 +745,13 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     daemon::VERBOSITY.store(cli.verbose, Ordering::SeqCst);
+    if let Command::Storage { cmd } = &cli.cmd {
+        return storage::run(cmd);
+    }
     let policy_path = resolve_policy_path()?;
 
     match cli.cmd {
+        Command::Storage { .. } => unreachable!("handled before policy resolution"),
         Command::Status { json } => {
             let policy = SyncPolicy::load(&policy_path)?;
             let roots = policy.watch_root_paths();
