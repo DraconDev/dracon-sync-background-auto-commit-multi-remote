@@ -369,10 +369,8 @@ impl Job {
             Phase::PrimaryVerified,
             Phase::ReadyToStage,
         ])?;
-        if let Some(failure) = &self.failure {
-            if !failure.code.retryable() || failure.retry_at.is_some_and(|at| now < at) {
-                bail!("job is not eligible for automatic retry");
-            }
+        if !self.retry_eligible(now) {
+            bail!("job is not eligible for automatic retry");
         }
         self.attempts = self
             .attempts

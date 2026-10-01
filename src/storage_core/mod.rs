@@ -1,6 +1,7 @@
 //! Portable payload identity and durable exact-version job records.
 //!
-//! This layer contains no repository policy, backend credentials, or network I/O.
+//! This layer does not resolve repository policy or backend credentials.
+//! Operator-approved adapters own external I/O and security processing.
 //! The caller must enforce ownership/security policy and verify evidence before
 //! recording successful capture, transfer, Git commit, or push operations.
 
