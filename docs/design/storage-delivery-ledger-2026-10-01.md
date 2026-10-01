@@ -183,3 +183,31 @@ identity/security policy. The adapter does not classify non-sensitive uploads
 or accept commands/recipients from an asset reference. CLI preparation,
 protected restore manifests, historical-key recovery drills, S3 conformance,
 Git staging and daemon scheduling remain release gates.
+
+## Private runtime isolation and capacity wording
+
+The default state base is inside the watched `.dracon` checkout; a read-only
+`git check-ignore` confirmed the prospective storage-journal path was not
+already excluded. No live journal/payload files were created. The framework
+now installs exact private managed ignore protection in reserved journal
+roots/namespaces and writable local stores before writing data. It refuses
+project Git roots, already tracked runtime paths and modified ignore content.
+A real fresh-Git-repo test with a literal bracket/space path proves job records
+and plaintext captures leave Git status empty; a tracked-path/tamper test proves
+capture is refused without deleting existing bytes. Source commit-all policy
+and existing project ignore rules are unchanged.
+
+The current focused core run passed all 37 tests (six ignored). Local backend
+failure assertions now distinguish private guard metadata from published
+objects and still require interrupted upload spools to be removed. The latest
+full workspace run passed 1978 tests (15 ignored); that run predates the final
+local-backend guard, which is covered by the subsequent 37-test core run.
+Final all-target Clippy/release rebuilds are pending.
+
+`repos` capacity wording now describes the push-size guard and avoids implying
+that total `.git` size triggers automatic bucket migration. The size-color and
+five legend coverage/wrapping tests passed. GitHub's current
+[repository limits](https://docs.github.com/en/repositories/creating-and-managing-repositories/repository-limits)
+confirm the enforced push limit is separate from its total on-disk guidance.
+The cap concern's action text is provider-neutral. No history or asset placement
+was changed by this wording update.

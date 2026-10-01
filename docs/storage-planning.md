@@ -124,6 +124,11 @@ are retained and reused across retries. The shared copy executor verifies every
 required copy using operator-resolved adapters. Preview commands and the daemon
 do not invoke that executor. Exhaustion refuses capture and retains bytes; no
 automatic eviction exists. Unix ownership/permission checks are required by this adapter.
+Reserved journal and writable local-backend directories receive managed private
+ignore protection. Previously tracked runtime paths and project Git roots are
+refused; modified protection blocks writes. This prevents private captures from
+being committed when state lives inside a watched repository. Read-only commands
+do not create or change those ignore files.
 
 ## Implementation checks
 

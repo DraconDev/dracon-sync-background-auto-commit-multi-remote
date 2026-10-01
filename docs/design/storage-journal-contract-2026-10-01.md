@@ -103,7 +103,14 @@ limits still need integration.
 The Unix adapter requires private operator-owned directories/files and rejects
 symlink components and hard-linked journal entries. The journal contains
 plaintext source snapshots; it must remain private and must never be committed
-or sent to an object backend as the encrypted representation.
+or sent to an object backend as the encrypted representation. Constructors install
+an exact private managed `.gitignore` in each reserved journal root/namespace.
+Mutations verify that protection and use literal Git pathspecs to refuse any
+already tracked runtime paths. A project's own Git root cannot be runtime
+storage, and its ignore rules are never overwritten. Changed ignore protection
+blocks writes. This is separate from ordinary source commit-all coverage.
+Writable local object stores use the same reserved-root protection. Read-only
+inspection/cold opening does not create ignore files or change Git state.
 
 ## Inspection and tested recovery
 
