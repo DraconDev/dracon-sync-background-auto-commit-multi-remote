@@ -269,9 +269,21 @@ mod tests {
         assert_eq!(
             std::fs::read_dir(root.path().join("objects"))
                 .unwrap()
+                .filter(|entry| entry
+                    .as_ref()
+                    .is_ok_and(|entry| !entry.file_name().as_encoded_bytes().starts_with(b".")))
                 .count(),
             0
         );
+        assert!(std::fs::read_dir(root.path().join("objects"))
+            .unwrap()
+            .all(|entry| {
+                !entry
+                    .unwrap()
+                    .file_name()
+                    .as_encoded_bytes()
+                    .starts_with(b".upload-")
+            }));
     }
 
     #[cfg(unix)]
