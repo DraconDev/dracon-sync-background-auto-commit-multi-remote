@@ -315,3 +315,52 @@ fn repo_policy_symlinks_cannot_read_outside_repository() {
     std::fs::write(&operator, "").unwrap();
     assert!(load_configuration(dir.path(), Some(&operator)).is_err());
 }
+
+#[test]
+fn history_inventory_counts_unique_reachable_blobs_not_current_tree_bytes() {
+    let dir = git_fixture();
+    let repo = dir.path();
+    std::fs::write(repo.join("version.txt"), b"first-version").unwrap();
+    git_fixture_command(repo, &["add", "--", "version.txt"]);
+    git_fixture_command(
+        repo,
+        &[
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "first",
+        ],
+    );
+    std::fs::write(repo.join("version.txt"), b"second-version").unwrap();
+    git_fixture_command(repo, &["add", "--", "version.txt"]);
+    git_fixture_command(
+        repo,
+        &[
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "second",
+        ],
+    );
+    let history = history_inventory(repo).unwrap();
+    assert_eq!(history.reachable_blob_count, 2);
+    assert_eq!(history.reachable_raw_blob_bytes, 27);
+    assert!(history.git_object_database_bytes > 0);
+    assert!(history.scope.contains("not push bytes"));
+}
+
+#[test]
+fn history_inventory_handles_unborn_repository() {
+    let dir = git_fixture();
+    let history = history_inventory(dir.path()).unwrap();
+    assert_eq!(history.reachable_blob_count, 0);
+    assert_eq!(history.reachable_raw_blob_bytes, 0);
+}

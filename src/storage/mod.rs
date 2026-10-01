@@ -618,7 +618,9 @@ fn history_inventory(repo: &Path) -> Result<HistoryInventory> {
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
     let (repo, policy_path, json) = match command {
-        StorageCommand::Plan { repo, policy, json }
+        StorageCommand::Plan {
+            repo, policy, json, ..
+        }
         | StorageCommand::Validate { repo, policy, json } => (repo, policy.as_deref(), *json),
     };
     let repo = root(repo)?;
