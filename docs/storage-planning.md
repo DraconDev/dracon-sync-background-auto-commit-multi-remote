@@ -122,13 +122,14 @@ These library defaults are not an enrolled operator storage policy.
 Prepared candidates bind approved representation identities; complete payloads
 are retained and reused across retries. The shared copy executor verifies every
 required copy using operator-resolved adapters. Preview commands and the daemon
-do not invoke that executor. Exhaustion refuses capture and retains bytes; no automatic eviction
-exists. Unix ownership/permission checks are required by this adapter.
+do not invoke that executor. Exhaustion refuses capture and retains bytes; no
+automatic eviction exists. Unix ownership/permission checks are required by this adapter.
 
 ## Implementation checks
 
 The immutable local backend is available in the shared library; the daemon and
-preview commands do not call it to preserve files automatically. Its tests exercise bounded streaming above 100 MiB,
+preview commands do not call it to preserve files automatically. Its tests
+exercise bounded streaming above 100 MiB,
 create-only publication, readback verification, cold reopen, corruption,
 interrupted capture, and object symlink refusal. The encrypted operational
 check requires `age` and `age-keygen`:

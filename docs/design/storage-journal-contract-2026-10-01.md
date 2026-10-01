@@ -70,11 +70,12 @@ Complete spools left by process death are verified and adopted before reading
 new input. Corrupt or conflicting snapshots are retained and refused.
 
 The current library limits are per repository: 10,000 job records, 1 GiB per
-source version, 4 GiB aggregate source/capture bytes, 2 GiB per prepared payload and 8 GiB
-aggregate payload/spool bytes. A local capture-budget
-lease prevents simultaneous captures from exceeding the aggregate limit.
-Exhaustion blocks capture without deleting retained data. Source and prepared-payload budgets are separate; cache, global disk reserve
-and operator policy limits still need integration.
+source version, 4 GiB aggregate source/capture bytes, 2 GiB per prepared payload
+and 8 GiB aggregate payload/spool bytes. Separate local budget leases prevent
+simultaneous captures from exceeding their respective aggregate limits.
+Exhaustion blocks capture without deleting retained data. Source and prepared
+payload budgets are separate; cache, global disk reserve and operator policy
+limits still need integration.
 
 The Unix adapter requires private operator-owned directories/files and rejects
 symlink components and hard-linked journal entries. The journal contains
@@ -91,6 +92,6 @@ not repair corrupted records, delete old versions, or start a transfer.
 Tests exercise exclusive leases, stale revisions, forbidden regressions,
 copy/Git acknowledgment gates, typed retry backoff, corrupt records, byte
 budgets, partial captures, changed inputs and process death on both sides of
-record and snapshot publication. Production worker/index/network reconciliation, security subprocess
-composition and independent recovery drills remain
-release gates in the [delivery ledger](storage-delivery-ledger-2026-10-01.md).
+record and snapshot publication. Production worker/index/network reconciliation,
+security subprocess composition and independent recovery drills remain release
+gates in the [delivery ledger](storage-delivery-ledger-2026-10-01.md).

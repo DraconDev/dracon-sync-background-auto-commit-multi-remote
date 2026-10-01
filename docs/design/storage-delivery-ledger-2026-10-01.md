@@ -141,8 +141,9 @@ checks), including candidate binding, restart identity reuse, four payload/job
 publication crash points, independent payload budgets, required-copy readback,
 corrupt old receipts, quota failure and transient readback retry. No source bytes
 or new ciphertext can be substituted by the copy executor. Strict all-target
-workspace Clippy passed before the final local failure-classification refinement.
-The current full workspace/release reruns are pending and will be recorded here.
+workspace Clippy passed, followed by a final Sync all-target check after the
+local failure-classification refinement. The locked release build passed. The
+current full workspace rerun is pending and will be recorded here.
 
 This remains library infrastructure: no new `storage prepare` command, production
 Warden subprocess orchestration, S3 adapter, manifest, filters or daemon worker
