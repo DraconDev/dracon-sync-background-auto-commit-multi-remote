@@ -721,6 +721,13 @@ mod tests {
             format!("#!/bin/sh\n{APPROVED}\n"),
         )
         .unwrap();
+        let adapter = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            manifest.repo_id(),
+            Duration::from_secs(5),
+        )
+        .unwrap();
         assert!(store
             .prepare(&manifest, &"b".repeat(64), &adapter, 30)
             .await
