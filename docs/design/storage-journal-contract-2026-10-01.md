@@ -17,6 +17,9 @@ Git index. Callers must establish those facts before recording receipts. The
 Warden preparation adapter now binds completed encryption output to durable
 approval and publication. Production enrollment must still resolve its owning
 repo/executable/identity policy through operator-controlled bindings.
+The adapter requires the approved stable repo ID and refuses a job belonging
+to a different ID before reading captured source or recovering ciphertext.
+This does not replace verification of the operator's ID-to-checkout binding.
 
 ## Durable progress
 

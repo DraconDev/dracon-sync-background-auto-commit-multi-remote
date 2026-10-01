@@ -230,4 +230,16 @@ This is not protected manifest publication: the codec returns private plaintext
 for a future metadata-security transaction. It installs no files/filters and
 performs no network operations. Production contract derivation, authorization,
 metadata encryption/reuse, exact index transactions and packaged historical
-recovery remain outstanding. Final checks for this additional codec are pending.
+recovery remain outstanding. The expanded full workspace run passed 1984 tests
+(15 ignored); strict all-target Clippy, dependency policy and the locked release
+build also passed for this codec milestone.
+
+## Repository-bound security adapter
+
+Warden preparation now requires an operator-bound stable repository ID in
+addition to executable/repo paths. Every preparation and approved-output recovery
+compares that ID with the leased job before source access or child execution.
+A foreign binding cannot encrypt a captured job or adopt an already prepared
+representation, and rejection does not modify the other repository's failure
+state. The caller still must establish the trusted ID-to-checkout mapping;
+manifest/config strings do not constitute authorization. Validation is underway.
