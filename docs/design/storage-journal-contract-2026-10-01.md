@@ -63,6 +63,15 @@ integrity/capacity failures block progress and retain bytes. Transient I/O
 failures keep proof and establish a 30-second retry deadline. The daemon's fair
 scheduler and provider-specific classification remain pending.
 
+Its input is now a typed operator-resolved copy binding set, with an owning
+repository ID and explicit per-backend representation allowlists. It refuses
+wrong repo identity, missing/extra destinations and disallowed security before
+reading payloads or performing backend I/O. Encrypted-only approval is the
+convenience default; non-sensitive representations need an explicit grant.
+These binding types are not deserialized from repository metadata. The trusted
+caller must still resolve the operator's actual adapters/permissions; they do
+not certify provider access, secret classification or copy independence.
+
 ## Warden preparation composition
 
 The shared Warden adapter gives the child a verified private captured-source

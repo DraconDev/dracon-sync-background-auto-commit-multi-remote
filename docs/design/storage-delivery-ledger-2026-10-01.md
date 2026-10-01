@@ -243,3 +243,12 @@ A foreign binding cannot encrypt a captured job or adopt an already prepared
 representation, and rejection does not modify the other repository's failure
 state. The caller still must establish the trusted ID-to-checkout mapping;
 manifest/config strings do not constitute authorization. Validation is underway.
+
+The copy executor now requires typed operator-resolved bindings carrying the
+owning repo ID and each backend's allowed representation classes. It refuses
+foreign, incomplete/extra or disallowed-security copy sets before backend I/O.
+An encrypted-only convenience grant cannot publish a plaintext job. Explicit
+non-sensitive approval is required for that representation. The types cannot
+be deserialized from a committed manifest and do not resolve operator config,
+certify credentials/provider access, or prove independent-copy durability.
+The added refusal test uses panic-on-I/O adapters to verify this ordering.

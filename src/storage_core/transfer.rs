@@ -8,7 +8,9 @@ use anyhow::{bail, Context, Result};
 /// Upload/read back every required copy using operator-resolved backend adapters.
 ///
 /// The caller must authorize the backend bindings and successfully complete
-/// security processing before retaining the payload. No source file is read,
+/// security processing before retaining the payload. The exact copy set, owning
+/// repo ID and allowed security classes are checked before any upload/readback.
+/// No source file is read,
 /// encrypted again, staged, committed or deleted here. Retries always use the
 /// same private prepared snapshot and reverify every required copy, even when
 /// historical receipts exist. This holds only the job lease, never a Git lock.
