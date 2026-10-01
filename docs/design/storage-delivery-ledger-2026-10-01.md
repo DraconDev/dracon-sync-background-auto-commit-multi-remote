@@ -171,7 +171,10 @@ and cold recovery-store decryption, without requiring local job state to restore
 No live keys, repo enrollment, filters or object endpoints were used.
 
 Validation: all-target workspace Clippy, dependency checks and locked release
-build passed. The full workspace run and final expanded core tests are pending.
+build passed. The full workspace run passed 1974 tests (15 ignored).
+The final expanded core run passed all 35 tests (six ignored helpers/operational
+checks), including the two added unapproved-output/recovery-revision regressions.
+The real 101 MiB operational check was explicitly run and passed.
 This milestone explicitly enables Tokio's existing `io-util` feature; no new
 package or lockfile dependency was added.
 
