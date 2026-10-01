@@ -11,20 +11,28 @@ use tokio::io::AsyncReadExt;
 
 use super::backend::BackendFailure;
 use super::journal::{Encryption, FailureCode, Job, JobLease, Phase};
-use super::reference::Fingerprint;
+use super::reference::{validate_sha256, Fingerprint};
 
 /// Operator-selected Warden executable and owning repository, never manifest commands.
 pub struct WardenAdapter {
     executable: PathBuf,
     repo: PathBuf,
+    repo_id: String,
     timeout: Duration,
     identity_home: Option<PathBuf>,
 }
 
 impl WardenAdapter {
     /// Bind an absolute existing executable/repo and a positive processing deadline.
-    /// Callers must authorize these bindings and match the repo to the job's identity.
-    pub fn new(executable: &Path, repo: &Path, timeout: Duration) -> Result<Self> {
+    /// Callers must authorize these bindings and establish the repo's stable identity.
+    /// Every preparation/recovery checks that identity against the leased job.
+    pub fn new(
+        executable: &Path,
+        repo: &Path,
+        repo_id: &str,
+        timeout: Duration,
+    ) -> Result<Self> {
+        validate_sha256(repo_id)?;
         if !executable.is_absolute() || !repo.is_absolute() || timeout.is_zero() {
             bail!("absolute operator bindings and positive Warden deadline required");
         }
@@ -38,6 +46,7 @@ impl WardenAdapter {
         Ok(Self {
             executable,
             repo,
+            repo_id: repo_id.into(),
             timeout,
             identity_home: None,
         })
@@ -57,6 +66,11 @@ impl WardenAdapter {
     /// No working-tree file, Git index, backend, key creation, or recipient override is used.
     pub async fn prepare(&self, lease: &JobLease, now: u64) -> Result<Job> {
         let mut job = lease.load()?;
+        // Reject a wrong binding before reading source bytes, invoking Warden or
+        // recovering approved output. Do not poison a different repo's job.
+        if job.spec().repo_id != self.repo_id {
+            bail!("Warden repository binding does not match the job");
+        }
         if job.spec().encryption != Encryption::WardenAge
             || !matches!(job.phase(), Phase::Captured | Phase::Prepared)
             || now == 0
@@ -209,7 +223,8 @@ mod tests {
             .unwrap()
             .capture_snapshot(&mut &bytes[..])
             .unwrap();
-        let adapter = WardenAdapter::new(&binary, &repo, Duration::from_secs(5)).unwrap();
+        let adapter =
+            WardenAdapter::new(&binary, &repo, &"a".repeat(64), Duration::from_secs(5)).unwrap();
         (journal, job, adapter)
     }
 
@@ -217,6 +232,34 @@ mod tests {
     // encryption and recipient trust are checked by the operational test below.
     const APPROVED: &str =
         "cat >/dev/null\nprintf 'age-encryption.org/v1\\napproved opaque fixture\\n'";
+
+    #[tokio::test]
+    async fn foreign_repo_binding_cannot_encrypt_or_adopt_a_prepared_job() {
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job, owning_adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let foreign_adapter = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            &"b".repeat(64),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        let lease = journal.lease(job.id()).unwrap();
+        assert!(foreign_adapter.prepare(&lease, 1).await.is_err());
+        let captured = lease.load().unwrap();
+        assert_eq!(captured.phase(), Phase::Captured);
+        assert!(captured.failure().is_none());
+        assert!(captured.prepared_candidate().is_none());
+        assert!(lease.payload_snapshot().is_err());
+        let prepared = owning_adapter.prepare(&lease, 2).await.unwrap();
+        let before = lease.load().unwrap();
+        assert!(foreign_adapter.prepare(&lease, 3).await.is_err());
+        let after = lease.load().unwrap();
+        assert_eq!(after.phase(), Phase::Prepared);
+        assert_eq!(before.payload(), after.payload());
+        assert_eq!(after.payload(), prepared.payload());
+        assert!(after.failure().is_none());
+    }
 
     #[tokio::test]
     async fn success_publishes_once_and_restart_does_not_spawn_again() {
