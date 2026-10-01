@@ -10,6 +10,7 @@ pub(crate) struct SecuritySpool {
 
 impl JobLease {
     pub(crate) fn security_spool(&self) -> Result<SecuritySpool> {
+        runtime::protect(&self.directory)?;
         let job = self.load()?;
         job.require_phase(&[Phase::Captured])?;
         if job.spec.encryption != Encryption::WardenAge || job.prepared_candidate.is_some() {

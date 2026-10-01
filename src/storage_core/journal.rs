@@ -18,6 +18,7 @@ const VERSION: u32 = 1;
 const MAX_RECORD_BYTES: u64 = 64 * 1024;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+mod runtime;
 mod security;
 
 /// Representation expected for a prepared payload.
@@ -830,8 +831,10 @@ impl Journal {
             bail!("journal record limit must be positive");
         }
         private_directory(root, true)?;
+        runtime::protect(root)?;
         let directory = root.join(repo_id);
         private_directory(&directory, true)?;
+        runtime::protect(&directory)?;
         Ok(Self {
             directory,
             repo_id: repo_id.into(),
@@ -842,6 +845,7 @@ impl Journal {
     /// Obtain a nonblocking exclusive lease for one exact-source job.
     pub fn lease(&self, id: &str) -> Result<JobLease> {
         validate_sha256(id)?;
+        runtime::protect(&self.directory)?;
         let lock = try_lock(&self.directory.join(format!("{id}.lock")))?;
         Ok(JobLease {
             directory: self.directory.clone(),
@@ -962,6 +966,7 @@ impl JobLease {
     /// This operation holds a repository capture-budget lease for local I/O only;
     /// no network operation or Git index lock is involved.
     pub fn capture_snapshot(&self, input: &mut dyn Read) -> Result<Job> {
+        runtime::protect(&self.directory)?;
         let mut job = self.load()?;
         job.require_phase(&[Phase::PendingCapture, Phase::Captured])?;
         retain_snapshot(
@@ -998,6 +1003,7 @@ impl JobLease {
     /// authorization or encryption correctness. A complete saved representation
     /// is reused on retries; new age randomness cannot replace its identity.
     pub fn retain_payload(&self, input: &mut dyn Read, expected: &Fingerprint) -> Result<Job> {
+        runtime::protect(&self.directory)?;
         let mut job = self.load()?;
         job.require_phase(&[Phase::Captured, Phase::Prepared])?;
         job.validate_payload(expected)?;
@@ -1050,6 +1056,7 @@ impl JobLease {
 
     /// Atomically save the next revision, rejecting stale or retargeted records.
     pub fn save(&self, job: &mut Job) -> Result<()> {
+        runtime::protect(&self.directory)?;
         let current = self.load()?;
         job.validate()?;
         if job.id != self.id || job.spec.repo_id != self.repo_id || job.revision != current.revision
