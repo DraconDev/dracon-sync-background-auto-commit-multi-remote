@@ -1114,8 +1114,11 @@ fn retain_snapshot(
     if exists_without_symlink(&destination)? {
         verify_snapshot(&destination, expected)?;
     } else {
-        let (retained, previous_capture) =
-            snapshot_bytes(directory, &temporary, &[final_suffix, spool_suffix])?;
+        let extensions: &[&str] = match kind {
+            SnapshotKind::Source => &["source", "capture"],
+            SnapshotKind::Payload => &["payload", "payload-capture", "security-output"],
+        };
+        let (retained, previous_capture) = snapshot_bytes(directory, &temporary, extensions)?;
         let extra = expected
             .bytes()
             .checked_sub(previous_capture)

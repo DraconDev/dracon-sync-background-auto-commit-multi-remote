@@ -24,20 +24,38 @@ impl JobLease {
             &path,
             &["payload", "payload-capture", "security-output"],
         )?;
-        let capacity = self.limits.max_retained_payload_bytes
-            .checked_sub(retained.checked_sub(previous).context("invalid spool accounting")?)
-            .context("retained payload budget exhausted")?
+        let capacity = self
+            .limits
+            .max_retained_payload_bytes
+            .checked_sub(
+                retained
+                    .checked_sub(previous)
+                    .context("invalid spool accounting")?,
+            )
+            .ok_or(super::super::backend::BackendFailure::Capacity)?
             .min(self.limits.max_payload_bytes);
-        if capacity == 0 { bail!("retained payload budget exhausted"); }
+        if capacity == 0 {
+            bail!(super::super::backend::BackendFailure::Capacity);
+        }
         let file = open_private(&path, true, true)?;
         // No candidate/approval exists: this artifact was an interrupted/failed
         // transform, never an approved version. Only this job's spool is reset.
         file.set_len(0)?;
-        Ok(SecuritySpool { file, capacity, _budget: budget })
+        Ok(SecuritySpool {
+            file,
+            capacity,
+            _budget: budget,
+        })
     }
 
-    pub(crate) fn approve_security_output(&self, spool: SecuritySpool, identity: Fingerprint) -> Result<Job> {
-        if identity.bytes() > spool.capacity { bail!("security output exceeds reserved capacity"); }
+    pub(crate) fn approve_security_output(
+        &self,
+        spool: SecuritySpool,
+        identity: Fingerprint,
+    ) -> Result<Job> {
+        if identity.bytes() > spool.capacity {
+            bail!("security output exceeds reserved capacity");
+        }
         spool.file.sync_all()?;
         let path = self.directory.join(format!("{}.security-output", self.id));
         verify_snapshot(&path, &identity)?;
@@ -57,13 +75,18 @@ impl JobLease {
             return Ok(Some(job));
         }
         job.require_phase(&[Phase::Captured])?;
-        if job.prepared_candidate.is_none() { return Ok(None); }
+        if job.prepared_candidate.is_none() {
+            return Ok(None);
+        }
         let _budget = try_lock(&self.directory.join("payload-budget.lock"))?;
         Ok(Some(self.finish_security_output(job)?))
     }
 
     fn finish_security_output(&self, mut job: Job) -> Result<Job> {
-        let expected = job.prepared_candidate.clone().context("security approval missing")?;
+        let expected = job
+            .prepared_candidate
+            .clone()
+            .context("security approval missing")?;
         let destination = self.directory.join(format!("{}.payload", self.id));
         if exists_without_symlink(&destination)? {
             verify_snapshot(&destination, &expected)?.sync_all()?;

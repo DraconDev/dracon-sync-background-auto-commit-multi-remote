@@ -58,7 +58,7 @@ pub fn transfer_copies(
     Ok(job)
 }
 
-fn classify(error: &anyhow::Error) -> FailureCode {
+pub(super) fn classify(error: &anyhow::Error) -> FailureCode {
     if let Some(kind) = error.downcast_ref::<BackendFailure>() {
         return match kind {
             BackendFailure::Capacity => FailureCode::Capacity,
