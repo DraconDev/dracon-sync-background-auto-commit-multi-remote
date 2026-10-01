@@ -695,6 +695,125 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn timeout_respects_retry_deadline_and_does_not_discard_captured_metadata() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, _) = fixture(temp.path(), "exec sleep 10", Limits::default());
+        let adapter = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            manifest.repo_id(),
+            Duration::from_millis(100),
+        )
+        .unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .is_err());
+        let record = store.read(&id(&manifest)).unwrap();
+        assert_eq!(
+            record.failure.as_ref().unwrap().code,
+            FailureCode::Transient
+        );
+        assert_eq!(record.failure.as_ref().unwrap().retry_at, Some(31));
+        assert!(store.source(&record).is_ok());
+        std::fs::write(
+            temp.path().join("warden-fixture"),
+            format!("#!/bin/sh\n{APPROVED}\n"),
+        )
+        .unwrap();
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 30)
+            .await
+            .is_err());
+        assert!(!temp.path().join("repo/calls").exists());
+        assert!(store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 31)
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    #[ignore = "operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary"]
+    async fn real_warden_manifest_restores_without_original_metadata_store() {
+        use crate::storage_core::journal::{encode_relative_path, Encryption};
+        use crate::storage_core::manifest::Enrollment;
+        use std::process::{Command, Stdio};
+        let binary = PathBuf::from(
+            std::env::var_os("DRACON_STORAGE_TEST_WARDEN")
+                .expect("source-built Warden binary required"),
+        );
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("home");
+        let repo = temp.path().join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        std::fs::create_dir_all(home.join(".dracon/keys")).unwrap();
+        let keys = home.join(".dracon/keys/identity.age");
+        assert!(Command::new("age-keygen")
+            .arg("-o")
+            .arg(&keys)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success());
+        std::fs::set_permissions(&keys, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let manifest = Manifest::new(
+            "a".repeat(64),
+            vec![Enrollment {
+                path_hex: encode_relative_path(b"assets/private-\xff title.mp4").unwrap(),
+                contract_sha256: "b".repeat(64),
+                primary: "primary".into(),
+                required_copies: vec!["primary".into(), "recovery".into()],
+                encryption: Encryption::WardenAge,
+                payload: Some(Fingerprint::new("c".repeat(64), 101 * 1024 * 1024).unwrap()),
+            }],
+        )
+        .unwrap();
+        let store_root = temp.path().join("metadata");
+        let store =
+            MetadataStore::open(&store_root, manifest.repo_id(), Limits::default()).unwrap();
+        let adapter =
+            WardenAdapter::new(&binary, &repo, manifest.repo_id(), Duration::from_secs(30))
+                .unwrap()
+                .with_identity_home(&home)
+                .unwrap();
+        let prepared = store
+            .prepare(&manifest, &"d".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let cipher_path = temp.path().join("saved-manifest.age");
+        let mut saved = journal::open_private(&cipher_path, true, true).unwrap();
+        std::io::copy(&mut store.open_prepared(&prepared).unwrap(), &mut saved).unwrap();
+        saved.sync_all().unwrap();
+        let raw = manifest.encode_private().unwrap();
+        let cipher = std::fs::read(&cipher_path).unwrap();
+        assert!(!cipher.windows(raw.len()).any(|bytes| bytes == raw));
+        drop(store);
+        // Only this test-owned temporary store is removed. Recovery gets Git's
+        // ciphertext candidate and separately retained keys, not local records.
+        std::fs::remove_dir_all(&store_root).unwrap();
+        let plain_path = temp.path().join("recovered-private-metadata");
+        let output = journal::open_private(&plain_path, true, true).unwrap();
+        assert!(Command::new(&binary)
+            .args(["storage-decrypt", "--repo"])
+            .arg(&repo)
+            .arg("--max-bytes")
+            .arg(MAX_MANIFEST_BYTES.to_string())
+            .env("HOME", &home)
+            .env_remove("ARCANE_MACHINE_KEY")
+            .stdin(Stdio::from(File::open(&cipher_path).unwrap()))
+            .stdout(Stdio::from(output))
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success());
+        assert!(Manifest::parse_private(&std::fs::read(&plain_path).unwrap()).unwrap() == manifest);
+        assert!(!store_root.exists());
+        assert!(!repo.join(".gitattributes").exists());
+        assert!(!repo.join(".arcane").exists());
+    }
+
+    #[tokio::test]
     #[ignore = "subprocess helper, invoked by metadata crash test"]
     async fn metadata_crash_child() {
         let root = PathBuf::from(std::env::var_os("DRACON_METADATA_FIXTURE").unwrap());
