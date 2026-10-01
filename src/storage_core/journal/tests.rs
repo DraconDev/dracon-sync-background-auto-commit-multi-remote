@@ -493,3 +493,153 @@ fn snapshot_crash_child() {
         .unwrap();
     panic!("snapshot crash injection did not fire");
 }
+
+fn digest_bytes(bytes: &[u8]) -> Fingerprint {
+    Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap()
+}
+
+#[test]
+fn prepared_payload_is_retained_once_and_cannot_change_across_restart() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("journal");
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    let source = b"private exact source";
+    // Opaque fixture bytes: authorization/encryption belong to the caller.
+    let payload = b"approved opaque representation one";
+    let expected = digest_bytes(payload);
+    let job = journal.create(real_source_spec(source)).unwrap();
+    let lease = journal.lease(job.id()).unwrap();
+    assert!(lease.retain_payload(&mut &payload[..], &expected).is_err());
+    lease.capture_snapshot(&mut &source[..]).unwrap();
+    assert!(lease
+        .retain_payload(&mut &source[..], &digest_bytes(source))
+        .is_err());
+    let prepared = lease.retain_payload(&mut &payload[..], &expected).unwrap();
+    assert_eq!(prepared.phase(), Phase::Prepared);
+    drop(lease);
+    drop(journal);
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    let lease = journal.lease(job.id()).unwrap();
+    // Repeated preparation never substitutes new randomness/working tree bytes.
+    lease
+        .retain_payload(&mut &b"different new ciphertext"[..], &expected)
+        .unwrap();
+    assert!(lease
+        .retain_payload(&mut &b"replacement"[..], &digest_bytes(b"replacement"))
+        .is_err());
+    let mut actual = Vec::new();
+    lease
+        .payload_snapshot()
+        .unwrap()
+        .read_to_end(&mut actual)
+        .unwrap();
+    assert_eq!(actual, payload);
+    let path = journal.directory.join(format!("{}.payload", job.id()));
+    std::fs::write(&path, b"corrupt").unwrap();
+    assert!(lease.payload_snapshot().is_err());
+    assert!(lease.retain_payload(&mut &payload[..], &expected).is_err());
+    assert_eq!(std::fs::read(path).unwrap(), b"corrupt");
+}
+
+#[test]
+fn payload_spools_resume_matching_prefix_and_have_independent_byte_budget() {
+    let temp = tempfile::tempdir().unwrap();
+    let limits = Limits {
+        max_payload_bytes: 20,
+        max_retained_payload_bytes: 20,
+        ..Limits::default()
+    };
+    let journal = Journal::open(&temp.path().join("journal"), &spec().repo_id, limits).unwrap();
+    let source = b"source";
+    let payload = b"opaque payload one";
+    let first = journal.create(real_source_spec(source)).unwrap();
+    let lease = journal.lease(first.id()).unwrap();
+    lease.capture_snapshot(&mut &source[..]).unwrap();
+    let spool = journal
+        .directory
+        .join(format!("{}.payload-capture", first.id()));
+    let mut file = open_private(&spool, true, true).unwrap();
+    file.write_all(&payload[..6]).unwrap();
+    file.sync_all().unwrap();
+    drop(file);
+    lease
+        .retain_payload(&mut &payload[..], &digest_bytes(payload))
+        .unwrap();
+    assert!(!spool.exists());
+    let second = journal
+        .create(real_source_spec(b"different source"))
+        .unwrap();
+    let second_lease = journal.lease(second.id()).unwrap();
+    second_lease
+        .capture_snapshot(&mut &b"different source"[..])
+        .unwrap();
+    assert!(second_lease
+        .retain_payload(&mut &payload[..], &digest_bytes(payload))
+        .is_err());
+    assert_eq!(second_lease.load().unwrap().phase(), Phase::Captured);
+    assert!(lease.payload_snapshot().is_ok());
+    assert!(second_lease.source_snapshot().is_ok());
+}
+
+#[test]
+fn prepared_payload_recovers_process_death_without_repeating_security_processing() {
+    for phase in [
+        "before-payload-publish",
+        "after-payload-publish",
+        "before-publish",
+        "after-publish",
+    ] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("journal");
+        let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+        let job = journal
+            .create(real_source_spec(b"crash payload source"))
+            .unwrap();
+        journal
+            .lease(job.id())
+            .unwrap()
+            .capture_snapshot(&mut &b"crash payload source"[..])
+            .unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "storage_core::journal::tests::payload_crash_child",
+                "--ignored",
+            ])
+            .env("DRACON_STORAGE_CRASH_ROOT", &root)
+            .env("DRACON_STORAGE_CRASH_JOB", job.id())
+            .env("DRACON_STORAGE_CRASH_POINT", phase)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(73));
+        let lease = journal.lease(job.id()).unwrap();
+        let recovered = lease
+            .retain_payload(&mut &b""[..], &digest_bytes(b"approved crash payload"))
+            .unwrap();
+        assert_eq!(recovered.phase(), Phase::Prepared);
+        let mut actual = Vec::new();
+        lease
+            .payload_snapshot()
+            .unwrap()
+            .read_to_end(&mut actual)
+            .unwrap();
+        assert_eq!(actual, b"approved crash payload");
+    }
+}
+
+#[test]
+#[ignore = "subprocess helper, invoked by payload crash recovery test"]
+fn payload_crash_child() {
+    let root = PathBuf::from(std::env::var_os("DRACON_STORAGE_CRASH_ROOT").unwrap());
+    let id = std::env::var("DRACON_STORAGE_CRASH_JOB").unwrap();
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    journal
+        .lease(&id)
+        .unwrap()
+        .retain_payload(
+            &mut &b"approved crash payload"[..],
+            &digest_bytes(b"approved crash payload"),
+        )
+        .unwrap();
+    panic!("payload crash injection did not fire");
+}
