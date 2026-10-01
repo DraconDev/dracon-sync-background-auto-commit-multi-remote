@@ -195,6 +195,11 @@ fn real_git_inventory_is_read_only_ignores_payload_filters_and_reports_migration
         .find(|file| file.path == "assets/tracked.png")
         .unwrap();
     assert!(asset.tracked);
+    assert_eq!(asset.filter.as_deref(), Some("never-run"));
+    assert!(asset
+        .concerns
+        .iter()
+        .any(|c| c.contains("existing Git filter")));
     assert_eq!(asset.decision.placement, Placement::External);
     assert!(asset.concerns.iter().any(|c| c.contains("migration")));
     assert_eq!(plan.proposed_external_bytes, 30);

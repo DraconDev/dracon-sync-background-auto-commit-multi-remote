@@ -363,6 +363,7 @@ struct FilePlan {
     /// Lossless path bytes for filenames which cannot be represented as UTF-8.
     path_bytes_hex: Option<String>,
     tracked: bool,
+    filter: Option<String>,
     bytes: Option<u64>,
     decision: Decision,
     concerns: Vec<String>,
@@ -374,11 +375,77 @@ struct Plan {
     mode: &'static str,
     repository: PathBuf,
     storage_enabled: bool,
+    transfers_available: bool,
     eligibility: &'static str,
     proposed_git_bytes: u64,
     proposed_external_bytes: u64,
     files: Vec<FilePlan>,
     history: Option<HistoryInventory>,
+}
+
+fn inventory_filters(repo: &Path, paths: &BTreeSet<PathBuf>) -> Result<BTreeMap<PathBuf, String>> {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut input = Vec::new();
+    for path in paths {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            input.extend_from_slice(path.as_os_str().as_bytes());
+        }
+        #[cfg(not(unix))]
+        input.extend_from_slice(
+            path.to_str()
+                .context("unsupported path encoding")?
+                .as_bytes(),
+        );
+        input.push(0);
+    }
+    let mut child = crate::policy::std_git_command()
+        .current_dir(repo)
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .args(["check-attr", "-z", "--stdin", "filter"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .context("missing attribute inventory stdin")?;
+    // Drain stdout concurrently; large inventories otherwise deadlock full pipes.
+    let writer = std::thread::spawn(move || stdin.write_all(&input));
+    let output = child.wait_with_output();
+    let written = writer
+        .join()
+        .map_err(|_| anyhow::anyhow!("attribute input thread failed"))?;
+    let output = output?;
+    written?;
+    if !output.status.success() {
+        bail!("attribute inventory failed");
+    }
+    let pieces: Vec<&[u8]> = output.stdout.split(|b| *b == 0).collect();
+    let pieces = if pieces.last() == Some(&&b""[..]) {
+        &pieces[..pieces.len() - 1]
+    } else {
+        &pieces[..]
+    };
+    if pieces.len() % 3 != 0 {
+        bail!("invalid attribute inventory response");
+    }
+    let mut result = BTreeMap::new();
+    for triple in pieces.chunks_exact(3) {
+        if triple[1] != b"filter" {
+            bail!("unexpected attribute inventory response");
+        }
+        result.insert(
+            path_from_bytes(triple[0])?,
+            std::str::from_utf8(triple[2])
+                .context("unsupported filter encoding")?
+                .to_owned(),
+        );
+    }
+    Ok(result)
 }
 
 fn inventory(
@@ -406,6 +473,7 @@ fn inventory(
     .filter(|p| !p.is_empty())
     .map(path_from_bytes)
     .collect::<Result<_>>()?;
+    let filters = inventory_filters(repo, &all)?;
     let exclusions = crate::exclude::excluded_dir_names_set(global);
     let auto_exclusions = local
         .auto_commit_exclude_patterns
@@ -414,6 +482,7 @@ fn inventory(
     let mut plan = Plan {
         schema_version: 1, mode: "read-only-placement-preview", repository: repo.to_owned(),
         storage_enabled: policy.policy.enabled,
+        transfers_available: false,
         eligibility: "placement preview only; ownership, secret classification, filter compatibility and enrollment must pass before transfer",
         proposed_git_bytes: 0, proposed_external_bytes: 0, files: Vec::new(), history: None,
     };
@@ -515,6 +584,7 @@ fn inventory(
             path: path.to_string_lossy().into_owned(),
             path_bytes_hex,
             tracked: tracked.contains(&path),
+            filter: filters.get(&path).cloned(),
             bytes,
             decision,
             concerns,
