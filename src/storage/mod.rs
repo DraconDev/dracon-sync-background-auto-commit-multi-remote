@@ -267,6 +267,19 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Inspect durable job evidence without creating state or contacting backends.
+    Status {
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// State base directory; storage-journal is appended.
+        #[arg(long)]
+        state_dir: Option<PathBuf>,
+        /// Explicit operator-bound repository ID; otherwise read local Git config.
+        #[arg(long)]
+        repo_id: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
     /// Inventory owned Git paths and explain proposed placement; no upload/staging.
     Plan {
         #[arg(long, default_value = ".")]
@@ -696,8 +709,94 @@ fn history_inventory(repo: &Path) -> Result<HistoryInventory> {
     Ok(result)
 }
 
+#[derive(Debug, Serialize)]
+struct JournalStatus {
+    schema_version: u32,
+    mode: &'static str,
+    transfers_available: bool,
+    live_backend_verified: bool,
+    healthy_records: bool,
+    summary: dracon_sync::storage_core::journal::Summary,
+}
+
+fn journal_status(
+    repo: &Path,
+    state_dir: Option<&Path>,
+    repo_id: Option<&str>,
+) -> Result<JournalStatus> {
+    use dracon_sync::storage_core::journal::{Journal, Summary};
+    let id = if let Some(id) = repo_id {
+        Some(id.to_owned())
+    } else {
+        let output = crate::policy::std_git_command()
+            .current_dir(repo)
+            .args(["config", "--local", "--get", "dracon.storageRepoId"])
+            .output()?;
+        if output.status.success() {
+            Some(
+                std::str::from_utf8(&output.stdout)
+                    .context("invalid local storage repo ID encoding")?
+                    .trim()
+                    .to_owned(),
+            )
+        } else if output.status.code() == Some(1) {
+            None
+        } else {
+            bail!("cannot read local storage repo ID");
+        }
+    };
+    let summary = if let Some(id) = id {
+        let base = match state_dir {
+            Some(path) => path.to_owned(),
+            None => {
+                match std::env::var_os("DRACON_SYNC_STATE_DIR").filter(|value| !value.is_empty()) {
+                    Some(path) => PathBuf::from(path),
+                    None => dirs::home_dir()
+                        .context("home not found")?
+                        .join(".dracon/utilities/sync"),
+                }
+            }
+        };
+        Journal::inspect(&base.join("storage-journal"), &id)?
+    } else {
+        Summary::default()
+    };
+    Ok(JournalStatus {
+        schema_version: 1,
+        mode: "read-only-journal-evidence",
+        transfers_available: false,
+        live_backend_verified: false,
+        healthy_records: summary.invalid_records == 0 && summary.failed_records == 0,
+        summary,
+    })
+}
+
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::Status {
+        repo,
+        state_dir,
+        repo_id,
+        json,
+    } = command
+    {
+        let report = journal_status(&root(repo)?, state_dir.as_deref(), repo_id.as_deref())?;
+        if *json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            println!("Local storage journal: initialized={}, valid={}, invalid={}, failures={}, recorded preserved={}",
+                report.summary.initialized, report.summary.records, report.summary.invalid_records,
+                report.summary.failed_records, report.summary.recorded_preserved);
+            println!(
+                "Recorded evidence only; backends were not checked and transfers are not enabled."
+            );
+        }
+        if !report.healthy_records {
+            bail!("storage journal has unresolved concerns; records were preserved");
+        }
+        return Ok(());
+    }
     let (repo, policy_path, json) = match command {
+        StorageCommand::Status { .. } => unreachable!("status handled before policy resolution"),
         StorageCommand::Plan {
             repo, policy, json, ..
         }
