@@ -2780,7 +2780,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
         // row's STATUS cell shows ❌ CONCERN; this hint tells the
         // operator WHICH concern (because the same row could in
         // principle have other concern causes too).
-        return ".git exceeds 2 GB (github limit) — github push is skipped; shrink history or migrate assets to OVH".to_string();
+        return "GitHub push-size guard triggered (2 GiB per push); github push is skipped; review history or asset placement".to_string();
     }
     if warn {
         return "daemon handles after changes settle; run sync-now --warns to force now"
@@ -3380,7 +3380,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("REM", "🐙 github · 🦊 gitlab · 🗻 codeberg (active only; excluded not shown)"),
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
-        ("SIZE", "own .git · +N submodule gitdirs · 🟡 ≥1 GiB · 🔴 ≥2 GiB github limit"),
+        ("SIZE", "own .git · +N submodule gitdirs · 🟡 own ≥1 GiB · 🔴 2 GiB/push concern"),
         ("TOUCHED", "latest commit author (mailmap identity)"),
         ("", ""),
         ("hint", "`dracon-sync repos <name>` = detail · `repos --legend` = this key"),
