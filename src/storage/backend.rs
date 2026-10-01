@@ -249,3 +249,60 @@ fn malicious_object_symlink_cannot_escape_backend() {
     assert!(store.put(&mut &bytes[..]).is_err());
     assert_eq!(std::fs::read(other.path()).unwrap(), bytes);
 }
+
+#[test]
+#[ignore = "operational prototype: requires age and age-keygen on PATH"]
+fn encrypted_payload_round_trip_uses_isolated_keys_and_cold_backend() {
+    fn run(args: &[&std::ffi::OsStr], program: &str) -> std::process::Output {
+        let output = std::process::Command::new(program)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{program} prototype failed");
+        output
+    }
+    let workspace = tempfile::tempdir().unwrap();
+    let key = workspace.path().join("identity.txt");
+    run(&["-o".as_ref(), key.as_os_str()], "age-keygen");
+    let recipient = run(&["-y".as_ref(), key.as_os_str()], "age-keygen");
+    let recipient = std::str::from_utf8(&recipient.stdout).unwrap().trim();
+    let plaintext = workspace.path().join("source.bin");
+    let ciphertext = workspace.path().join("encrypted.age");
+    let restored = workspace.path().join("restored.bin");
+    let source = b"private fixture: never store these plaintext bytes in the backend";
+    std::fs::write(&plaintext, source).unwrap();
+    run(
+        &[
+            "-r".as_ref(),
+            recipient.as_ref(),
+            "-o".as_ref(),
+            ciphertext.as_os_str(),
+            plaintext.as_os_str(),
+        ],
+        "age",
+    );
+    let object_root = workspace.path().join("objects");
+    let store = LocalBackend::open(&object_root, 1024 * 1024).unwrap();
+    let identity = store.put(&mut File::open(&ciphertext).unwrap()).unwrap();
+    let payload = std::fs::read(store.object_path(&identity).unwrap()).unwrap();
+    assert!(!payload.windows(source.len()).any(|window| window == source));
+    drop(store);
+    let cold = LocalBackend::open(&object_root, 1024 * 1024).unwrap();
+    let hydrated = workspace.path().join("hydrated.age");
+    let mut file = File::create(&hydrated).unwrap();
+    cold.get_verified(&identity, &mut file).unwrap();
+    drop(file);
+    run(
+        &[
+            "-d".as_ref(),
+            "-i".as_ref(),
+            key.as_os_str(),
+            "-o".as_ref(),
+            restored.as_os_str(),
+            hydrated.as_os_str(),
+        ],
+        "age",
+    );
+    assert_eq!(std::fs::read(restored).unwrap(), source);
+    // This proves opaque encrypted-object recovery, not Warden classification/composition.
+}

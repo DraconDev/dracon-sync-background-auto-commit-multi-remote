@@ -142,7 +142,7 @@ fn reject_invalid_rules_and_secret_bearing_endpoints() {
 
 fn git_fixture() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
-    assert!(std::process::Command::new("git")
+    assert!(crate::test_helpers::test_git_cmd()
         .args(["-c", "init.templateDir=", "init", "--quiet"])
         .arg(dir.path())
         .status()
@@ -152,7 +152,7 @@ fn git_fixture() -> tempfile::TempDir {
 }
 
 fn git_fixture_command(repo: &Path, args: &[&str]) -> Vec<u8> {
-    let output = std::process::Command::new("git")
+    let output = crate::test_helpers::test_git_cmd()
         .current_dir(repo)
         .args([
             "-c",
@@ -302,4 +302,16 @@ fn repository_cannot_downgrade_operator_backend_encryption() {
         allowed_security.push(Security::NonSensitive);
     }
     assert!(validate_policy(&effective_policy(&approved, Some(&local))).is_ok());
+}
+
+#[cfg(unix)]
+#[test]
+fn repo_policy_symlinks_cannot_read_outside_repository() {
+    let dir = git_fixture();
+    let outside = tempfile::tempdir().unwrap();
+    std::fs::write(outside.path().join("dracon-sync.toml"), "").unwrap();
+    std::os::unix::fs::symlink(outside.path(), dir.path().join(".dracon")).unwrap();
+    let operator = dir.path().join("operator.toml");
+    std::fs::write(&operator, "").unwrap();
+    assert!(load_configuration(dir.path(), Some(&operator)).is_err());
 }

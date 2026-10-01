@@ -336,6 +336,16 @@ fn load_configuration(
         None => toml::from_str::<SyncPolicy>("")?,
     };
     let repo_path = repo.join(".dracon/dracon-sync.toml");
+    for component in [repo.join(".dracon"), repo_path.clone()] {
+        match std::fs::symlink_metadata(&component) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!("repo policy must not follow symlinks")
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error).context("cannot inspect repo policy"),
+        }
+    }
     let local = match std::fs::read_to_string(&repo_path) {
         Ok(text) => toml::from_str(&text).context("invalid repo policy; planning refused")?,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => RepoPolicyOverride::default(),
