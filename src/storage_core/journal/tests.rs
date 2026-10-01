@@ -350,3 +350,146 @@ fn crash_child() {
     lease.save(&mut job).unwrap();
     panic!("crash injection did not fire");
 }
+
+fn real_source_spec(bytes: &[u8]) -> JobSpec {
+    let mut input = spec();
+    input.source =
+        Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+    input
+}
+
+#[test]
+fn source_snapshots_resume_partial_capture_and_reuse_exact_completed_version() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("journal");
+    let data = b"the exact source version captured before upload";
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    let pending = journal.create(real_source_spec(data)).unwrap();
+    let lease = journal.lease(pending.id()).unwrap();
+    // Simulate a process dying after a prefix reached disk, with its lease released.
+    let capture = journal.directory.join(format!("{}.capture", pending.id()));
+    let mut file = open_private(&capture, true, true).unwrap();
+    file.write_all(&data[..7]).unwrap();
+    file.sync_all().unwrap();
+    drop(file);
+    let captured = lease.capture_snapshot(&mut &data[..]).unwrap();
+    assert_eq!(captured.phase(), Phase::Captured);
+    assert!(!capture.exists());
+    let mut actual = Vec::new();
+    lease
+        .source_snapshot()
+        .unwrap()
+        .read_to_end(&mut actual)
+        .unwrap();
+    assert_eq!(actual, data);
+    // A complete captured version remains available even after the live file changes.
+    lease
+        .capture_snapshot(&mut &b"newer unrelated working tree bytes"[..])
+        .unwrap();
+    let mut again = Vec::new();
+    lease
+        .source_snapshot()
+        .unwrap()
+        .read_to_end(&mut again)
+        .unwrap();
+    assert_eq!(again, data);
+}
+
+#[test]
+fn wrong_capture_prefix_and_corrupt_snapshot_fail_without_overwriting() {
+    let temp = tempfile::tempdir().unwrap();
+    let journal = Journal::open(
+        &temp.path().join("journal"),
+        &spec().repo_id,
+        Limits::default(),
+    )
+    .unwrap();
+    let data = b"immutable source";
+    let pending = journal.create(real_source_spec(data)).unwrap();
+    let lease = journal.lease(pending.id()).unwrap();
+    let capture = journal.directory.join(format!("{}.capture", pending.id()));
+    let mut file = open_private(&capture, true, true).unwrap();
+    file.write_all(b"wrong").unwrap();
+    drop(file);
+    assert!(lease.capture_snapshot(&mut &data[..]).is_err());
+    assert_eq!(std::fs::read(&capture).unwrap(), b"wrong");
+    assert_eq!(lease.load().unwrap().phase(), Phase::PendingCapture);
+    // Explicit test maintenance of its own invalid spool, never production cleanup.
+    std::fs::remove_file(&capture).unwrap();
+    lease.capture_snapshot(&mut &data[..]).unwrap();
+    let source = journal.directory.join(format!("{}.source", pending.id()));
+    std::fs::write(&source, b"corrupted source").unwrap();
+    assert!(lease.source_snapshot().is_err());
+    assert!(lease.capture_snapshot(&mut &data[..]).is_err());
+    assert_eq!(std::fs::read(&source).unwrap(), b"corrupted source");
+}
+
+#[test]
+fn aggregate_capture_budget_refuses_new_work_without_deleting_retained_versions() {
+    let temp = tempfile::tempdir().unwrap();
+    let limits = Limits {
+        max_snapshot_bytes: 20,
+        max_retained_snapshot_bytes: 20,
+        ..Limits::default()
+    };
+    let journal = Journal::open(&temp.path().join("journal"), &spec().repo_id, limits).unwrap();
+    let first = journal.create(real_source_spec(b"first snapshot")).unwrap();
+    let lease = journal.lease(first.id()).unwrap();
+    lease.capture_snapshot(&mut &b"first snapshot"[..]).unwrap();
+    let second = journal
+        .create(real_source_spec(b"second snapshot"))
+        .unwrap();
+    let second_lease = journal.lease(second.id()).unwrap();
+    assert!(second_lease
+        .capture_snapshot(&mut &b"second snapshot"[..])
+        .is_err());
+    assert!(lease.source_snapshot().is_ok());
+    assert_eq!(second_lease.load().unwrap().phase(), Phase::PendingCapture);
+}
+
+#[test]
+fn complete_capture_recovers_after_death_before_or_after_snapshot_publish() {
+    for phase in ["before-snapshot-publish", "after-snapshot-publish"] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("journal");
+        let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+        let job = journal.create(real_source_spec(b"crash snapshot")).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "storage_core::journal::tests::snapshot_crash_child",
+                "--ignored",
+            ])
+            .env("DRACON_STORAGE_CRASH_ROOT", &root)
+            .env("DRACON_STORAGE_CRASH_JOB", job.id())
+            .env("DRACON_STORAGE_CRASH_POINT", phase)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(73));
+        let lease = journal.lease(job.id()).unwrap();
+        // No live source read is necessary when the complete saved capture verifies.
+        let recovered = lease.capture_snapshot(&mut &b""[..]).unwrap();
+        assert_eq!(recovered.phase(), Phase::Captured);
+        let mut restored = Vec::new();
+        lease
+            .source_snapshot()
+            .unwrap()
+            .read_to_end(&mut restored)
+            .unwrap();
+        assert_eq!(restored, b"crash snapshot");
+    }
+}
+
+#[test]
+#[ignore = "subprocess helper, invoked by snapshot crash recovery test"]
+fn snapshot_crash_child() {
+    let root = PathBuf::from(std::env::var_os("DRACON_STORAGE_CRASH_ROOT").unwrap());
+    let id = std::env::var("DRACON_STORAGE_CRASH_JOB").unwrap();
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    journal
+        .lease(&id)
+        .unwrap()
+        .capture_snapshot(&mut &b"crash snapshot"[..])
+        .unwrap();
+    panic!("snapshot crash injection did not fire");
+}
