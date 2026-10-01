@@ -1003,10 +1003,14 @@ impl JobLease {
         }
         // Never substitute a representation for an unverified captured source.
         self.source_snapshot()?;
-        if job.prepared_candidate.is_none() {
+        if job.prepared_candidate.is_none() && job.phase == Phase::Captured {
             job.select_prepared_payload(expected.clone())?;
             self.save(&mut job)?;
-        } else if job.prepared_candidate.as_ref() != Some(expected) {
+        } else if job
+            .prepared_candidate
+            .as_ref()
+            .is_some_and(|candidate| candidate != expected)
+        {
             bail!("approved prepared candidate cannot change");
         }
         retain_snapshot(

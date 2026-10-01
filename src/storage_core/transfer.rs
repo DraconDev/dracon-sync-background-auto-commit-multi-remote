@@ -105,7 +105,7 @@ mod tests {
     use sha2::{Digest, Sha256};
     use std::io::{Read, Write};
 
-    pub(super) fn fixture(temp: &std::path::Path) -> (Journal, Job) {
+    fn fixture(temp: &std::path::Path) -> (Journal, Job) {
         let bytes = b"approved retained representation";
         let fingerprint =
             Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
@@ -205,50 +205,48 @@ mod tests {
             Some(FailureCode::Integrity)
         );
     }
-}
-
-#[cfg(test)]
-#[test]
-fn transient_readback_failure_retains_exact_payload_and_obeys_backoff() {
-    use crate::storage_core::reference::Fingerprint;
-    use std::io::{Read, Write};
-    use std::sync::atomic::{AtomicBool, Ordering};
-    struct Flaky {
-        local: super::backend::LocalBackend,
-        fail_readback: AtomicBool,
-    }
-    impl ImmutableBackend for Flaky {
-        fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
-            self.local.put(input)
+    #[test]
+    fn transient_readback_failure_retains_exact_payload_and_obeys_backoff() {
+        use crate::storage_core::reference::Fingerprint;
+        use std::io::{Read, Write};
+        use std::sync::atomic::{AtomicBool, Ordering};
+        struct Flaky {
+            local: LocalBackend,
+            fail_readback: AtomicBool,
         }
-        fn get_verified(&self, identity: &Fingerprint, output: &mut dyn Write) -> Result<()> {
-            if self.fail_readback.load(Ordering::Relaxed) {
-                return Err(std::io::Error::from(std::io::ErrorKind::TimedOut).into());
+        impl ImmutableBackend for Flaky {
+            fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
+                self.local.put(input)
             }
-            self.local.get_verified(identity, output)
+            fn get_verified(&self, identity: &Fingerprint, output: &mut dyn Write) -> Result<()> {
+                if self.fail_readback.load(Ordering::Relaxed) {
+                    return Err(std::io::Error::from(std::io::ErrorKind::TimedOut).into());
+                }
+                self.local.get_verified(identity, output)
+            }
         }
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job) = fixture(temp.path());
+        let lease = journal.lease(job.id()).unwrap();
+        let backend = Flaky {
+            local: LocalBackend::open(&temp.path().join("objects"), 1024).unwrap(),
+            fail_readback: AtomicBool::new(true),
+        };
+        let backends = BTreeMap::from([
+            ("primary".into(), &backend as &dyn ImmutableBackend),
+            ("recovery".into(), &backend as &dyn ImmutableBackend),
+        ]);
+        assert!(transfer_copies(&lease, &backends, 1).is_err());
+        assert_eq!(
+            lease.load().unwrap().failure(),
+            Some(FailureCode::Transient)
+        );
+        assert!(lease.payload_snapshot().is_ok());
+        backend.fail_readback.store(false, Ordering::Relaxed);
+        assert!(transfer_copies(&lease, &backends, 30).is_err());
+        assert_eq!(
+            transfer_copies(&lease, &backends, 31).unwrap().phase(),
+            Phase::ReadyToStage
+        );
     }
-    let temp = tempfile::tempdir().unwrap();
-    let (journal, job) = tests::fixture(temp.path());
-    let lease = journal.lease(job.id()).unwrap();
-    let backend = Flaky {
-        local: super::backend::LocalBackend::open(&temp.path().join("objects"), 1024).unwrap(),
-        fail_readback: AtomicBool::new(true),
-    };
-    let backends = BTreeMap::from([
-        ("primary".into(), &backend as &dyn ImmutableBackend),
-        ("recovery".into(), &backend as &dyn ImmutableBackend),
-    ]);
-    assert!(transfer_copies(&lease, &backends, 1).is_err());
-    assert_eq!(
-        lease.load().unwrap().failure(),
-        Some(FailureCode::Transient)
-    );
-    assert!(lease.payload_snapshot().is_ok());
-    backend.fail_readback.store(false, Ordering::Relaxed);
-    assert!(transfer_copies(&lease, &backends, 30).is_err());
-    assert_eq!(
-        transfer_copies(&lease, &backends, 31).unwrap().phase(),
-        super::journal::Phase::ReadyToStage
-    );
 }
