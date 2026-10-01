@@ -159,3 +159,18 @@ output can be partial on failure, including a damaged final authentication tag.
 These commands use existing authorized recipients/keys; they do not enroll a
 repo, install Git filters, generate keys, or upload. Classification and Sync's
 production subprocess/manifest composition remain pending.
+
+The shared-library Warden preparation adapter now connects captured source bytes
+to bounded subprocess output, durable approval and payload publication. It checks
+exit status before approval, enforces a deadline and reuses approved saved output
+after process death. No CLI/daemon storage enrollment invokes it yet. An explicit
+operational test passes a 101 MiB fixture through real Warden, both local copies,
+and cold decryption with isolated keys. To reproduce from the parent workspace:
+
+```sh
+DRACON_STORAGE_TEST_WARDEN=/absolute/source-build/dracon-warden cargo test -p dracon-sync --lib real_warden_large_payload --locked -- --ignored
+```
+
+The test also requires `age-keygen`. Its keys, source snapshots and backend roots
+are temporary fixtures. Test copies share a physical filesystem and are not
+certified independent recovery storage.

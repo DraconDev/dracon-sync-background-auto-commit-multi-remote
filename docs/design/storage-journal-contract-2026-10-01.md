@@ -14,9 +14,9 @@ Raw source hashes and path identities stay in private local state.
 These structures validate evidence consistency. They do not perform secret
 classification, authorize a backend, prove recipient approval, or inspect the
 Git index. Callers must establish those facts before recording receipts. The
-Warden streaming adapter and copy executor exist separately; binding recipient
-authorization and completed encryption artifacts to the executor remains
-required before production use.
+Warden preparation adapter now binds completed encryption output to durable
+approval and publication. Production enrollment must still resolve its owning
+repo/executable/identity policy through operator-controlled bindings.
 
 ## Durable progress
 
@@ -60,6 +60,29 @@ integrity/capacity failures block progress and retain bytes. Transient I/O
 failures keep proof and establish a 30-second retry deadline. The daemon's fair
 scheduler and provider-specific classification remain pending.
 
+## Warden preparation composition
+
+The shared Warden adapter gives the child a verified private captured-source
+file as stdin. It reads ciphertext stdout through 64 KiB buffers under a byte
+budget and deadline. Child stderr is discarded rather than becoming persistent
+secret-bearing diagnostics. No working-tree file is read or changed, and no
+Git filter, index, backend or key-creation operation runs.
+
+Successful exit and an age protocol header precede approval. The output file is
+fsynced and independently hashed before the approved candidate is saved; then
+its name is atomically published and the prepared phase is saved. Recovery can
+finish either side of publication from verified approved bytes. Full output
+left before approval is unapproved and cannot become a receipt. A failed or
+interrupted unapproved transform spool can be reset only after the captured
+source reverifies; source snapshots and approved representations are preserved.
+
+One private payload-budget lease covers local encryption and publication.
+Security-output artifacts count toward retained payload bytes. Uploads hold
+no such budget lease or Git index lock. Deadline failures kill/reap the child
+and establish a retry deadline. Missing authorization, failed exits and wrong
+representation require intervention. Permanent failures never become plaintext
+fallback. Binding policy, global disk reserve and fair scheduling remain pending.
+
 ## Source capture and exhaustion
 
 Capture streams through a 64 KiB buffer into a private version-specific spool.
@@ -93,5 +116,5 @@ Tests exercise exclusive leases, stale revisions, forbidden regressions,
 copy/Git acknowledgment gates, typed retry backoff, corrupt records, byte
 budgets, partial captures, changed inputs and process death on both sides of
 record and snapshot publication. Production worker/index/network reconciliation,
-security subprocess composition and independent recovery drills remain release
+operator binding integration and independent recovery drills remain release
 gates in the [delivery ledger](storage-delivery-ledger-2026-10-01.md).

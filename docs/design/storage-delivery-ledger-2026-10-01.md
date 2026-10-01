@@ -45,6 +45,14 @@ This ledger records actual evidence and preserves the remaining scope.
   discovery, independently of Git filter limits. Isolated CLI tests cover
   101 MiB payloads, exact restoration, an untrusted recipient, corruption,
   and plaintext byte budgets. Caller publication still requires successful exit.
+- Shared Warden preparation adapter streams a verified captured source into a
+  private bounded spool, enforces a subprocess deadline, refuses failed exits
+  and plaintext output, and records approval before publishing the payload.
+  Approved ciphertext survives restart without rerunning encryption; an
+  unapproved artifact cannot create a prepared receipt.
+- Actual 101 MiB Warden → journal → two local copies → cold recovery-store
+  decryption passed with isolated fixture keys and exact original digest.
+  These same-filesystem test copies do not certify independent failure domains.
 - Pointer encoding decision recorded in `storage-representation-decision-2026-10-01.md`.
 
 Validation commands used on 2026-10-01 (latest results below):
@@ -114,7 +122,7 @@ assuming a 20 MiB media threshold alone will solve history growth.
 | --- | --- | --- |
 | A: contracts/inventory | Partial | Per-path churn attribution, producer/service review, threat model, manifest/security/group contracts |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
-| C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, worker composition, protected restore metadata remain |
+| C: storage/security | Partial | Local streaming adapter and Warden CLI checked; S3 capability conformance, operator binding integration, protected restore metadata remain |
 | D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention/copy execution checked; production reconciliation and operator resource policy remain |
 | E: Git bridge | Partial | Strict pointer codec checked; protected manifest, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
@@ -124,8 +132,8 @@ assuming a 20 MiB media threshold alone will solve history growth.
 
 ## Next implementation sequence
 
-Continue with security subprocess composition, the protected restore manifest
-and production reconciliation around the journal and copy executor. Add
+Continue with the protected restore manifest, enrollment/operator binding
+integration and production reconciliation around Warden and the copy executor. Add
 S3 backend capability checks and independent-copy verification. Wire the Git bridge only after exact-version and
 security gates pass. Continue with hydration, daemon scheduling/status, pilots,
 and packaged release validation. Keep the whole roadmap active; a green preview
@@ -149,5 +157,26 @@ Dependency policy remains green from the preceding milestone; this change
 added no dependencies.
 
 This remains library infrastructure: no new `storage prepare` command, production
-Warden subprocess orchestration, S3 adapter, manifest, filters or daemon worker
+CLI/operator enrollment integration, S3 adapter, manifest, filters or daemon worker
 is present. No live storage paths/backends have been enrolled.
+
+## Warden preparation composition milestone
+
+The shared adapter now composes Warden with journal capture/approval/publication.
+Synthetic subprocess tests cover failed exit, plaintext stdout, bounded output,
+timeout/kill/retry, unapproved orphan handling and crashes on both sides of
+security approval/publication. The real source-build Warden operational test
+explicitly passed a 101 MiB fixture through preparation, both local copy receipts
+and cold recovery-store decryption, without requiring local job state to restore.
+No live keys, repo enrollment, filters or object endpoints were used.
+
+Validation: all-target workspace Clippy, dependency checks and locked release
+build passed. The full workspace run and final expanded core tests are pending.
+This milestone explicitly enables Tokio's existing `io-util` feature; no new
+package or lockfile dependency was added.
+
+Production bindings still must match owning repo ID, approved executable and
+identity/security policy. The adapter does not classify non-sensitive uploads
+or accept commands/recipients from an asset reference. CLI preparation,
+protected restore manifests, historical-key recovery drills, S3 conformance,
+Git staging and daemon scheduling remain release gates.
