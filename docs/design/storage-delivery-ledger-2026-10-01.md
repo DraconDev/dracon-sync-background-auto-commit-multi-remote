@@ -282,9 +282,10 @@ Warden transform and private capture/atomic-write primitives are reused rather
 than implementing a second subprocess or filesystem protocol. Snapshot budget
 and digest failures now have typed capacity/integrity categories.
 
-The initial expanded core run passed 52 tests (eight ignored); final validation
-including the added corrupt-prefix regression is running. All-target Clippy and
-formatting passed after replacing equivalent manual saturation arithmetic.
+The final expanded core run passed 53 tests (eight ignored), including the
+corrupt-prefix regression. The full workspace run passed 1994 tests (17 ignored).
+Strict all-target Clippy, formatting and the final locked release rebuild passed
+after replacing equivalent manual saturation arithmetic.
 No dependencies or configuration knobs were added. Production policy derivation,
 root separation/approval, manifest group consistency, atomic Git staging,
 historical-key drills, packaged restoration and daemon wiring remain gates.
