@@ -558,6 +558,10 @@ pub struct Limits {
     pub max_snapshot_bytes: u64,
     /// Maximum retained source/capture bytes in the repository namespace.
     pub max_retained_snapshot_bytes: u64,
+    /// Maximum bytes in one approved prepared representation.
+    pub max_payload_bytes: u64,
+    /// Maximum retained prepared payload/spool bytes in this repository.
+    pub max_retained_payload_bytes: u64,
 }
 
 impl Default for Limits {
@@ -566,6 +570,8 @@ impl Default for Limits {
             max_records: 10_000,
             max_snapshot_bytes: 1024 * 1024 * 1024,
             max_retained_snapshot_bytes: 4 * 1024 * 1024 * 1024,
+            max_payload_bytes: 2 * 1024 * 1024 * 1024,
+            max_retained_payload_bytes: 8 * 1024 * 1024 * 1024,
         }
     }
 }
@@ -770,6 +776,8 @@ impl Journal {
         if limits.max_records == 0
             || limits.max_snapshot_bytes == 0
             || limits.max_retained_snapshot_bytes < limits.max_snapshot_bytes
+            || limits.max_payload_bytes == 0
+            || limits.max_retained_payload_bytes < limits.max_payload_bytes
         {
             bail!("journal record limit must be positive");
         }
@@ -908,89 +916,14 @@ impl JobLease {
     pub fn capture_snapshot(&self, input: &mut dyn Read) -> Result<Job> {
         let mut job = self.load()?;
         job.require_phase(&[Phase::PendingCapture, Phase::Captured])?;
-        let expected = &job.spec.source;
-        if expected.bytes() > self.limits.max_snapshot_bytes {
-            bail!("source exceeds snapshot byte budget");
-        }
-        let _budget = try_lock(&self.directory.join("capture-budget.lock"))?;
-        let destination = self.directory.join(format!("{}.source", self.id));
-        let temporary = self.directory.join(format!("{}.capture", self.id));
-        if exists_without_symlink(&destination)? {
-            verify_snapshot(&destination, expected)?;
-        } else {
-            let (retained, previous_capture) = snapshot_bytes(&self.directory, &temporary)?;
-            let extra = expected
-                .bytes()
-                .checked_sub(previous_capture)
-                .context("capture exceeds selected source length")?;
-            if retained
-                .checked_add(extra)
-                .context("capture byte overflow")?
-                > self.limits.max_retained_snapshot_bytes
-            {
-                bail!("retained snapshot budget exhausted; source data was not deleted");
-            }
-            let complete = if exists_without_symlink(&temporary)? {
-                let file = open_private(&temporary, false, false)?;
-                if file.metadata()?.len() == expected.bytes() {
-                    // A process may have died after a complete fsync but before publish.
-                    // A previous attempt might have completed its writes but
-                    // failed fsync. Re-establish durability before adoption.
-                    verify_snapshot(&temporary, expected)?.sync_all()?;
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            };
-            if !complete {
-                let mut file = open_private(&temporary, true, true)?;
-                let previous = file.metadata()?.len();
-                let mut total = 0u64;
-                let mut digest = Sha256::new();
-                let mut input_buffer = [0u8; 64 * 1024];
-                let mut existing_buffer = [0u8; 64 * 1024];
-                loop {
-                    let count = match input.read(&mut input_buffer) {
-                        Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
-                        result => result?,
-                    };
-                    if count == 0 {
-                        break;
-                    }
-                    let next = total
-                        .checked_add(count as u64)
-                        .context("capture length overflow")?;
-                    if next > expected.bytes() {
-                        bail!("source changed during capture");
-                    }
-                    let compare = previous.saturating_sub(total).min(count as u64) as usize;
-                    if compare > 0 {
-                        file.read_exact(&mut existing_buffer[..compare])?;
-                        if existing_buffer[..compare] != input_buffer[..compare] {
-                            bail!("source does not match retained capture prefix");
-                        }
-                    }
-                    if compare < count {
-                        file.write_all(&input_buffer[compare..count])?;
-                    }
-                    digest.update(&input_buffer[..count]);
-                    total = next;
-                }
-                if total != expected.bytes()
-                    || format!("{:x}", digest.finalize()) != expected.sha256()
-                {
-                    bail!("captured bytes do not match selected source version");
-                }
-                file.sync_all()?;
-                crash_point("before-snapshot-publish");
-            }
-            // Exclusive job lease prevents concurrent writers of this snapshot.
-            std::fs::rename(&temporary, &destination)?;
-            File::open(&self.directory)?.sync_all()?;
-            crash_point("after-snapshot-publish");
-        }
+        retain_snapshot(
+            &self.directory,
+            &self.id,
+            SnapshotKind::Source,
+            self.limits,
+            input,
+            &job.spec.source,
+        )?;
         if job.phase == Phase::PendingCapture {
             job.record_capture(job.spec.source.clone())?;
             self.save(&mut job)?;
@@ -1006,6 +939,53 @@ impl JobLease {
         }
         let path = self.directory.join(format!("{}.source", self.id));
         let mut file = verify_snapshot(&path, &job.spec.source)?;
+        file.seek(SeekFrom::Start(0))?;
+        Ok(file)
+    }
+
+    /// Retain exactly the caller-approved prepared representation before upload.
+    ///
+    /// Security processing must finish successfully before the caller supplies
+    /// its fingerprint. This method checks bytes and durable storage, not key
+    /// authorization or encryption correctness. A complete saved representation
+    /// is reused on retries; new age randomness cannot replace its identity.
+    pub fn retain_payload(&self, input: &mut dyn Read, expected: &Fingerprint) -> Result<Job> {
+        let mut job = self.load()?;
+        job.require_phase(&[Phase::Captured, Phase::Prepared])?;
+        job.validate_payload(expected)?;
+        if job
+            .payload
+            .as_ref()
+            .is_some_and(|payload| payload != expected)
+        {
+            bail!("prepared payload identity cannot change");
+        }
+        // Never substitute a representation for an unverified captured source.
+        self.source_snapshot()?;
+        retain_snapshot(
+            &self.directory,
+            &self.id,
+            SnapshotKind::Payload,
+            self.limits,
+            input,
+            expected,
+        )?;
+        if job.phase == Phase::Captured {
+            job.record_prepared(expected.clone())?;
+            self.save(&mut job)?;
+        }
+        Ok(job)
+    }
+
+    /// Reverify the durable prepared representation and return it at byte zero.
+    pub fn payload_snapshot(&self) -> Result<File> {
+        let job = self.load()?;
+        let expected = job
+            .payload
+            .as_ref()
+            .context("payload has not been prepared")?;
+        let path = self.directory.join(format!("{}.payload", self.id));
+        let mut file = verify_snapshot(&path, expected)?;
         file.seek(SeekFrom::Start(0))?;
         Ok(file)
     }
@@ -1032,6 +1012,124 @@ impl JobLease {
     }
 }
 
+#[derive(Clone, Copy)]
+enum SnapshotKind {
+    Source,
+    Payload,
+}
+
+fn retain_snapshot(
+    directory: &Path,
+    id: &str,
+    kind: SnapshotKind,
+    limits: Limits,
+    input: &mut dyn Read,
+    expected: &Fingerprint,
+) -> Result<()> {
+    let (final_suffix, spool_suffix, per_version, aggregate, before_publish, after_publish) =
+        match kind {
+            SnapshotKind::Source => (
+                "source",
+                "capture",
+                limits.max_snapshot_bytes,
+                limits.max_retained_snapshot_bytes,
+                "before-snapshot-publish",
+                "after-snapshot-publish",
+            ),
+            SnapshotKind::Payload => (
+                "payload",
+                "payload-capture",
+                limits.max_payload_bytes,
+                limits.max_retained_payload_bytes,
+                "before-payload-publish",
+                "after-payload-publish",
+            ),
+        };
+    if expected.bytes() > per_version {
+        bail!("source exceeds snapshot byte budget");
+    }
+    let _budget = try_lock(&directory.join(format!("{final_suffix}-budget.lock")))?;
+    let destination = directory.join(format!("{id}.{final_suffix}"));
+    let temporary = directory.join(format!("{id}.{spool_suffix}"));
+    if exists_without_symlink(&destination)? {
+        verify_snapshot(&destination, expected)?;
+    } else {
+        let (retained, previous_capture) =
+            snapshot_bytes(directory, &temporary, &[final_suffix, spool_suffix])?;
+        let extra = expected
+            .bytes()
+            .checked_sub(previous_capture)
+            .context("capture exceeds selected source length")?;
+        if retained
+            .checked_add(extra)
+            .context("capture byte overflow")?
+            > aggregate
+        {
+            bail!("retained snapshot budget exhausted; source data was not deleted");
+        }
+        let complete = if exists_without_symlink(&temporary)? {
+            let file = open_private(&temporary, false, false)?;
+            if file.metadata()?.len() == expected.bytes() {
+                // A process may have died after a complete fsync but before publish.
+                // A previous attempt might have completed its writes but
+                // failed fsync. Re-establish durability before adoption.
+                verify_snapshot(&temporary, expected)?.sync_all()?;
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if !complete {
+            let mut file = open_private(&temporary, true, true)?;
+            let previous = file.metadata()?.len();
+            let mut total = 0u64;
+            let mut digest = Sha256::new();
+            let mut input_buffer = [0u8; 64 * 1024];
+            let mut existing_buffer = [0u8; 64 * 1024];
+            loop {
+                let count = match input.read(&mut input_buffer) {
+                    Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                    result => result?,
+                };
+                if count == 0 {
+                    break;
+                }
+                let next = total
+                    .checked_add(count as u64)
+                    .context("capture length overflow")?;
+                if next > expected.bytes() {
+                    bail!("source changed during capture");
+                }
+                let compare = previous.saturating_sub(total).min(count as u64) as usize;
+                if compare > 0 {
+                    file.read_exact(&mut existing_buffer[..compare])?;
+                    if existing_buffer[..compare] != input_buffer[..compare] {
+                        bail!("source does not match retained capture prefix");
+                    }
+                }
+                if compare < count {
+                    file.write_all(&input_buffer[compare..count])?;
+                }
+                digest.update(&input_buffer[..count]);
+                total = next;
+            }
+            if total != expected.bytes() || format!("{:x}", digest.finalize()) != expected.sha256()
+            {
+                bail!("captured bytes do not match selected source version");
+            }
+            file.sync_all()?;
+            crash_point(before_publish);
+        }
+        // Exclusive job lease prevents concurrent writers of this snapshot.
+        std::fs::rename(&temporary, &destination)?;
+        File::open(directory)?.sync_all()?;
+        crash_point(after_publish);
+    }
+    Ok(())
+}
+
 fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
     let mut file = open_private(path, false, false)?;
     if file.metadata()?.len() != expected.bytes() {
@@ -1052,7 +1150,7 @@ fn verify_snapshot(path: &Path, expected: &Fingerprint) -> Result<File> {
     Ok(file)
 }
 
-fn snapshot_bytes(directory: &Path, temporary: &Path) -> Result<(u64, u64)> {
+fn snapshot_bytes(directory: &Path, temporary: &Path, extensions: &[&str]) -> Result<(u64, u64)> {
     let mut retained = 0u64;
     let mut previous = 0u64;
     for entry in std::fs::read_dir(directory)? {
@@ -1060,7 +1158,7 @@ fn snapshot_bytes(directory: &Path, temporary: &Path) -> Result<(u64, u64)> {
         if !entry
             .path()
             .extension()
-            .is_some_and(|extension| extension == "source" || extension == "capture")
+            .is_some_and(|extension| extensions.iter().any(|allowed| extension == *allowed))
         {
             continue;
         }
