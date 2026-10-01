@@ -646,3 +646,88 @@ fn payload_crash_child() {
         .unwrap();
     panic!("payload crash injection did not fire");
 }
+
+#[cfg(unix)]
+fn isolated_git(repo: &Path, args: &[&str]) -> std::process::Output {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args([
+            "-c",
+            "init.templateDir=",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.fsmonitor=false",
+        ])
+        .args(args)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "isolated Git operation failed");
+    output
+}
+
+#[cfg(unix)]
+#[test]
+fn private_runtime_inside_watched_repo_is_ignored_and_cannot_be_the_repo_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let repo = temp.path().join("watched");
+    std::fs::create_dir(&repo).unwrap();
+    isolated_git(&repo, &["init", "--quiet"]);
+    let root = repo.join("runtime [literal]");
+    let journal = Journal::open(&root, &spec().repo_id, Limits::default()).unwrap();
+    let job = journal
+        .create(real_source_spec(b"private snapshot fixture"))
+        .unwrap();
+    journal
+        .lease(job.id())
+        .unwrap()
+        .capture_snapshot(&mut &b"private snapshot fixture"[..])
+        .unwrap();
+    let status = isolated_git(
+        &repo,
+        &["status", "--porcelain=v1", "--untracked-files=all"],
+    );
+    assert!(
+        status.stdout.is_empty(),
+        "runtime metadata/captures must never enter commit-all inventory"
+    );
+    assert!(Journal::open(&repo, &spec().repo_id, Limits::default()).is_err());
+    assert!(
+        !repo.join(".gitignore").exists(),
+        "project root ignore must not be changed"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn previously_tracked_runtime_and_changed_ignore_fail_before_private_capture() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempfile::tempdir().unwrap();
+    let repo = temp.path().join("watched");
+    std::fs::create_dir(&repo).unwrap();
+    isolated_git(&repo, &["init", "--quiet"]);
+    let root = repo.join("tracked-runtime");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::fs::write(root.join("metadata"), b"non-sensitive fixture").unwrap();
+    isolated_git(&repo, &["add", "--", "tracked-runtime/metadata"]);
+    assert!(Journal::open(&root, &spec().repo_id, Limits::default()).is_err());
+    assert!(!root.join(".gitignore").exists());
+    let clean_root = repo.join("private-runtime");
+    let journal = Journal::open(&clean_root, &spec().repo_id, Limits::default()).unwrap();
+    let job = journal
+        .create(real_source_spec(b"private snapshot fixture"))
+        .unwrap();
+    let lease = journal.lease(job.id()).unwrap();
+    let namespace = clean_root.join(&spec().repo_id);
+    std::fs::write(namespace.join(".gitignore"), b"!*.source\n").unwrap();
+    assert!(lease
+        .capture_snapshot(&mut &b"private snapshot fixture"[..])
+        .is_err());
+    assert!(!namespace.join(format!("{}.source", job.id())).exists());
+    assert!(!namespace.join(format!("{}.capture", job.id())).exists());
+    assert_eq!(lease.load().unwrap().phase(), Phase::PendingCapture);
+}
