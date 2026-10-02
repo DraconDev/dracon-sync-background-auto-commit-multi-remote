@@ -243,8 +243,9 @@ This is reference/attribute correspondence, not a backend availability or
 independent-copy durability certificate.
 
 Production setup must preserve unrelated attributes and hooks, compose Warden
-routing, invoke this guard before outgoing commits and wire daemon staging to
-exact prepared versions. Those setup and worker gates remain unfinished.
+routing and wire daemon staging to exact prepared versions. Configured commit
+guard integration is described below; production setup, outgoing-history/push
+coverage and worker gates remain unfinished.
 The tests install required drivers only in isolated temporary repositories;
 no preview command installs a filter or hook in the fleet. Cold-checkout metadata
 import/hydration, S3 and automatic transfers also remain separate gates.
