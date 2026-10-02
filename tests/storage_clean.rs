@@ -326,9 +326,12 @@ async fn enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers() 
             .status
             .success());
     }
-    assert!(git(&f.repo, &["commit", "--quiet", "-m", "v1 enrolled reference"])
-        .status
-        .success());
+    assert!(git(
+        &f.repo,
+        &["commit", "--quiet", "-m", "v1 enrolled reference"]
+    )
+    .status
+    .success());
     let index_after_commit = std::fs::read(f.repo.join(".git/index")).unwrap();
     // Current rules exclude the file by size; the recorded enrollment contract
     // must still govern updates.
@@ -450,12 +453,18 @@ async fn enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers() 
     let mut tombstone = enrolled(&f.journal.lease(&f.job).unwrap().load().unwrap());
     tombstone.payload = None;
     index_manifest(&f, vec![tombstone]).await;
-    assert!(git(&f.repo, &["rm", "--quiet", "-f", "--", "asset [version].bin"])
-        .status
-        .success());
-    assert!(git(&f.repo, &["commit", "--quiet", "-m", "tombstone enrolled path"])
-        .status
-        .success());
+    assert!(git(
+        &f.repo,
+        &["rm", "--quiet", "-f", "--", "asset [version].bin"]
+    )
+    .status
+    .success());
+    assert!(git(
+        &f.repo,
+        &["commit", "--quiet", "-m", "tombstone enrolled path"]
+    )
+    .status
+    .success());
     std::fs::write(
         f.repo.join("asset [version].bin"),
         b"revived after tombstone",
@@ -1767,7 +1776,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB5YkYzeXFvZWdBT0lrQ1lLYW5kU0lid3NPdktYWGNBV0hFdHgweStmSzJVClJTNlhhYllXL215V3NmSWhQUDU5dUJpbnZGMGM3ZUFNVGtLWDNualNGaE0KLT4gWDI1NTE5IGozTWJUQmRxNm92SEorYUEreWNENkMrQ1FvSkRISzBnY3JCdDdYM01EV1kKdHJ1dERhY1BuMk4vVWNuUHZKU3FxdzJzZUhjaFNVNXdoMkh5S2FyWGx4VQotPiBYMjU1MTkgTDMvRWFvcTc3anNQV0E4cDZmYUx1TGh5d2FscEtlZUR3UXJSNG9ZbUhuawp0bFB6N0laSkhkQmcwNHlBZEpVN1krMmd6SGM3NTF5THEyTDRXZVUxZjM4Ci0+IFgyNTUxOSA1cjRzM0NmanZZdklITHNKNkV3RURjQi9Yd3FVR0R1dDQyV09mVUVsbXdNCmF6eXkvQU5PeG82TXVmK205MG1sVHRzd1JsOTFQV0ZQMHhGemVrc2xvdHMKLT4gWDI1NTE5IHZjblc1YkhITGI1ZkRQVGxRRVIzdWtRd2E3d0YvS1lhZy9pckJlUGZoRGMKZU9lNG1NaDlUQkN6RGwrT0d5ZVNBZnlNSVdmaVc0NlFPcEdpUXlGeWc4WQotPiAkYXU/TyotZ3JlYXNlIFtdU3wKCi0tLSBaR0t2aEdLQ3BRcmg2ZXdRSjhJUEVmTGpYT2RkMzYwYmg1S3RNYWNYVVpzCoTl32izbEbiP/Jm46qx7+L9lolNuaHr18cxwABNc+nt7/H51teR4by8GAYvwkvtEJpKPEU=]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB6bUlCbDRDVGd0dlVJL0szQi96NFRDS09VSUNlR0RvMmxkNllMbmMxbkZvClFzNktiaC9HQU9YUjl0YkQ1Z1JwS1ZJR0d2NmI4UW8rYmhjQU9JYzJJK1EKLT4gWDI1NTE5ICt1VitoL1lpNy9PY1lidW5YY0JvcEo5bkN1eUQ2T2o5cmlwQWdDS1ByV1EKaC80MVh1TlIyRkhGS2dHbFVSbjgyemdKZU9MNVpZR0NPRGgxdVN3N05YawotPiBYMjU1MTkgTllqY01RdkpIUGo4SmZxZ0szejlmUUxqRU4xNXVDdjM3U1JhSy8xdXhCcwpjdUt4bGRnUFlBMnRKeU1PL1RUalJIOHJMemxTRUdUVGdkc0lma2JmQWFFCi0+IFgyNTUxOSAvZ2lrcVdyeDZrRmV1UHVwQ3JtUjVGcW9xMEVMNG00UWRROGNLa1BaT2hBCkQ3WE5zYXo2Rko5cCtyMnhESzRITGlTd0lvV2Z0NWsyd2laT3p1Ym5Mb3MKLT4gWDI1NTE5IGh5WTczVi9oR0VnT09sc1dWaUl6Tm5Fem02TkwxU3BQZmJPS1VXYkk3MEkKQXEvLzM3QWpMem1vS2RiSVJXTG81N1BuYlY2LzIwamlENVVFMzk5Z0R2cwotPiBjWjZFRC1ncmVhc2UgXldwIEFbamVWPCA2V3ogImxlSGUKT3k1WGVIT2tPMERPeTM1L0dSQ2x4QWlqOE1Nam41cm1PSFJGbHBCdUplZTNGVm9UNGpDVnpXbkhYV28rUHAwNwpGbDhiUHZQMDJXS2hxV2ltazIyZlNBUWZlZDh6SzE4bnpHUQotLS0gbDdtNUhSZ0JMSklPWHcweXkwQXRLN3UyMVd0SnNtYTFON3BwakhMUk1WawrIfropiyB84sBJuLrJGXV5dsbBZnGXxrlQ+KKsjudg4tt1lsxMyMNNDBNS4bTz/YU/zeeM]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))

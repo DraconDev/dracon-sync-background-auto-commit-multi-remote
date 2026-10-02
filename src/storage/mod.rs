@@ -1518,7 +1518,10 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
     // An enrolled path must keep the known-good driver: without it a later
     // `git add` would stage raw bytes instead of a verified reference.
     let filters = inventory_filters(&repo, &BTreeSet::from([path.clone()]))?;
-    if filters.get(path).is_some_and(|filter| filter != "dracon-storage") {
+    if filters
+        .get(path)
+        .is_some_and(|filter| filter != "dracon-storage")
+    {
         bail!("enrolled path requires the verified storage filter");
     }
     let (mut source, fingerprint) = select_source(&repo, path, *max_snapshot_bytes)?;
