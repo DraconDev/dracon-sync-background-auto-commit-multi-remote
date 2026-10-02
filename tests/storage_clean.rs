@@ -993,6 +993,16 @@ async fn actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook() 
 
 #[tokio::test]
 async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
+    cold_clone_recovery(false).await;
+}
+
+#[tokio::test]
+#[ignore = "operational HTTPS fixture: requires openssl and python3"]
+async fn cold_clone_restores_exact_asset_from_signed_https_s3() {
+    cold_clone_recovery(true).await;
+}
+
+async fn cold_clone_recovery(s3_tls: bool) {
     let f = fixture().await;
     assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
         .status
@@ -1142,6 +1152,10 @@ async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
         pointer_before
     );
 
+    if s3_tls {
+        verify_s3_https_recovery(&f, &cold, &root, &index_before, &pointer_before);
+    }
+
     assert!(!git(
         &cold,
         &["config", "--local", "--get", "dracon.storageGuardVersion"]
@@ -1161,4 +1175,143 @@ async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
     .status
     .success());
     assert!(!run().status.success());
+}
+
+fn verify_s3_https_recovery(
+    f: &Fixture,
+    cold: &Path,
+    metadata: &Path,
+    index: &[u8],
+    pointer: &[u8],
+) {
+    struct Server(std::process::Child);
+    impl Drop for Server {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let cert = f.temp.path().join("fixture-cert.pem");
+    let key = f.temp.path().join("fixture-key.pem");
+    let result = Command::new("openssl")
+        .args([
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-subj",
+            "/CN=127.0.0.1",
+            "-addext",
+            "subjectAltName=IP:127.0.0.1",
+            "-keyout",
+        ])
+        .arg(&key)
+        .arg("-out")
+        .arg(&cert)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "isolated certificate generation failed"
+    );
+    let script = f.temp.path().join("s3-fixture.py");
+    std::fs::write(&script,r#"
+import sys, ssl, http.server, pathlib, hashlib, hmac
+objects, cert, key, portfile, countfile = sys.argv[1:]
+def mac(key,data): return hmac.new(key,data.encode(),hashlib.sha256).digest()
+class Handler(http.server.BaseHTTPRequestHandler):
+ def log_message(self,*args): pass
+ def do_GET(self):
+  auth=self.headers.get('Authorization','')
+  names=auth.split('SignedHeaders=')[1].split(',')[0]
+  canonical='GET\n'+self.path+'\n\n'+''.join(n+':'+self.headers[n].strip()+'\n' for n in names.split(';'))+'\n'+names+'\n'+self.headers['x-amz-content-sha256']
+  date=self.headers['x-amz-date']; scope=date[:8]+'/us-east-1/s3/aws4_request'
+  signing=mac(mac(mac(mac(b'AWS4wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',date[:8]),'us-east-1'),'s3'),'aws4_request')
+  signature=mac(signing,'AWS4-HMAC-SHA256\n'+date+'\n'+scope+'\n'+hashlib.sha256(canonical.encode()).hexdigest()).hex()
+  if not hmac.compare_digest(signature,auth.split('Signature=')[1]): self.send_error(403); return
+  prefix='/fixture-bucket/approved/'
+  ident=self.path[len(prefix):]
+  if not self.path.startswith(prefix) or len(ident)!=64 or any(c not in '0123456789abcdef' for c in ident): self.send_error(404); return
+  content=(pathlib.Path(objects)/ident).read_bytes()
+  pathlib.Path(countfile).write_text('GET')
+  self.send_response(200); self.send_header('Content-Length',str(len(content))); self.end_headers(); self.wfile.write(content)
+server=http.server.HTTPServer(('127.0.0.1',0),Handler)
+context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); context.load_cert_chain(cert,key)
+server.socket=context.wrap_socket(server.socket,server_side=True)
+pathlib.Path(portfile).write_text(str(server.server_port))
+server.serve_forever()
+"#).unwrap();
+    let port = f.temp.path().join("fixture-port");
+    let count = f.temp.path().join("fixture-requests");
+    let _server = Server(
+        Command::new("python3")
+            .arg(&script)
+            .arg(f.temp.path().join("recovery"))
+            .arg(&cert)
+            .arg(&key)
+            .arg(&port)
+            .arg(&count)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while !port.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let port = std::fs::read_to_string(port).expect("isolated TLS server did not start");
+    let policy = f.temp.path().join("s3-recovery-policy.toml");
+    std::fs::write(&policy,format!("[storage.backends.recovery]\ntype = \"s3\"\nendpoint = \"https://127.0.0.1:{port}\"\nbucket = \"fixture-bucket\"\nregion = \"us-east-1\"\nprefix = \"approved\"\ncredential_ref = \"fixture\"\nallowed_security = [\"non-sensitive\"]\n")).unwrap();
+    let credentials = f.temp.path().join("operator-credentials");
+    std::fs::create_dir(&credentials).unwrap();
+    std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let credential = credentials.join("fixture.json");
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBxVU42cllzN0g4alprYUYxWm1BaE4xaWpqZTgzZFpNaUhRR3k5VFIzN2xZClM3UHNzUCtFNWljWG54c1hSUUxpODM5dGgyNFZ2RitKM3VybUs5YUhGTHcKLT4gWDI1NTE5ICtUNWVFMmFKZm95T2Y0N2JKMUpzUlhTSlN3RXdLNE1pZjZJZGl2T2h5VjgKMkdqYW03M1E1ZHlKdzU4S2xrQmtwYmxja1hVa2ZxdTlHV2I3WXYvbUpRbwotPiBYMjU1MTkgOWlFSVVGbG9FTU5rbk1NVFdiNlNlWWg2RGZtdzNSbCtOR2xSaVRSZEhWOApzUlozRVpVdmhqenRXajVQU3loWjh4RGsrVXlNdXhHaS84RThOcko1Q1pvCi0+IFgyNTUxOSB2WUI0TS9DTE51YmMwTWROZDlCSFlvZlJmbkd2U2hyd2NmeTRPbEdtQUY0Ckk1R0M1aGNVWFkzWldyYnAwa3gvK3BDdXltRE1jK2R4RGNzRkxHWXpNMGsKLT4gWDI1NTE5IGovcEZCOXJCczdSd2g3V2pDREtZY3laelR2Q2tXclcvWkp1VEk0N01IaWMKeElqMFZpOVdTZXc5eVJyNGJ5dTR3a0pscHRJcUlJSGYyb0tVNzhpTFd1SQotPiBaLWdyZWFzZQpuTHJpTDZQRDVMcEFMOFhUSkZqaWI5M2VMOVROa0grK3BHdU9HeUxwK3M1Z29DZUprckVkMVErMmI1bVkKLS0tIEdrdmxQSmZsMjZqOGdES0JyQ2RYNWJyamZ5ci9HaURIS1ZDYVd3NDFoTUUKOtPUEYh196kwxE7p8J6f1BCcomr7scJzQ0obuoQjk/kaS9IwHA6KVUqpVJmF2Fd1YU46Cg==]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let restore = f.temp.path().join("s3-private-restored");
+    let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .env("SSL_CERT_FILE", &cert)
+        .args(["storage", "restore-asset", "--repo"])
+        .arg(cold)
+        .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+        .arg(metadata)
+        .args([
+            "--manifest-path",
+            ".dracon/assets.manifest",
+            "--path",
+            "asset [version].bin",
+            "--policy",
+        ])
+        .arg(&policy)
+        .args(["--backend", "recovery", "--credentials-root"])
+        .arg(&credentials)
+        .arg("--restore-root")
+        .arg(&restore)
+        .output()
+        .unwrap();
+    assert!(
+        recovered.status.success(),
+        "{}",
+        String::from_utf8_lossy(&recovered.stderr)
+    );
+    assert_eq!(std::fs::read_to_string(count).unwrap(), "GET");
+    let restored = std::fs::read_dir(restore.join("a".repeat(64)))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| p.extension().is_some_and(|e| e == "source"))
+        .unwrap();
+    assert_eq!(
+        std::fs::read(restored).unwrap(),
+        b"approved private source content for the isolated clean fixture"
+    );
+    assert_eq!(std::fs::read(cold.join(".git/index")).unwrap(), index);
+    assert_eq!(
+        std::fs::read(cold.join("asset [version].bin")).unwrap(),
+        pointer
+    );
 }
