@@ -257,3 +257,47 @@ async fn faulty_backend_and_byte_budgets_cannot_publish_unverified_output() {
             .extension()
             .is_some_and(|ext| ext == "source")));
 }
+
+#[test]
+fn publication_race_preserves_operator_destination_and_verified_capture() {
+    struct RaceInput {
+        input: std::io::Cursor<Vec<u8>>,
+        destination: PathBuf,
+    }
+    impl Read for RaceInput {
+        fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+            let count = self.input.read(bytes)?;
+            if count == 0 {
+                std::fs::write(&self.destination, b"operator file created during capture")?;
+            }
+            Ok(count)
+        }
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let id = "a".repeat(64);
+    let destination = temp.path().join(format!("{id}.source"));
+    let bytes = b"verified recovered content";
+    let source =
+        Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+    let mut input = RaceInput {
+        input: std::io::Cursor::new(bytes.to_vec()),
+        destination: destination.clone(),
+    };
+    assert!(journal::retain_snapshot(
+        temp.path(),
+        &id,
+        SnapshotKind::Source,
+        Limits::default(),
+        &mut input,
+        &source
+    )
+    .is_err());
+    assert_eq!(
+        std::fs::read(destination).unwrap(),
+        b"operator file created during capture"
+    );
+    assert_eq!(
+        std::fs::read(temp.path().join(format!("{id}.capture"))).unwrap(),
+        bytes
+    );
+}

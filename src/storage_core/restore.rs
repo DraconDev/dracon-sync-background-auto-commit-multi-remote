@@ -43,6 +43,7 @@ impl RestoreStore {
     pub fn open(root: &Path, repo_id: &str, limits: Limits) -> Result<Self> {
         validate_sha256(repo_id)?;
         if !root.is_absolute()
+            || limits.max_records == 0
             || limits.max_snapshot_bytes == 0
             || limits.max_payload_bytes == 0
             || limits.max_retained_snapshot_bytes < limits.max_snapshot_bytes
@@ -96,6 +97,29 @@ impl RestoreStore {
         journal::runtime::protect(&self.directory)?;
         // Serialize only this namespace's recovery, never Git or another repo.
         let _lease = journal::try_lock(&self.directory.join("restore.lock"))?;
+        // Logical contract/version determines the cache path, not a source hash
+        // or arbitrary manifest-supplied filesystem destination.
+        let mut hash = Sha256::new();
+        hash.update(b"dracon-private-restored-asset-v1\0");
+        hash.update(self.repo_id.as_bytes());
+        hash.update(serde_json::to_vec(enrollment)?);
+        let id = format!("{:x}", hash.finalize());
+        let versions: std::collections::BTreeSet<_> = std::fs::read_dir(&self.directory)?
+            .map(|entry| entry.map(|entry| entry.path()))
+            .collect::<std::io::Result<Vec<_>>>()?
+            .into_iter()
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|ext| ext == "source" || ext == "capture")
+            })
+            .filter_map(|path| path.file_stem().map(|stem| stem.to_owned()))
+            .collect();
+        if versions.len() > self.limits.max_records
+            || versions.len() == self.limits.max_records
+                && !versions.contains(std::ffi::OsStr::new(&id))
+        {
+            bail!(BackendFailure::Capacity);
+        }
         let mut ciphertext = tempfile::tempfile_in(&self.directory)?;
         let mut sink = VerifiedSink {
             output: &mut ciphertext,
@@ -130,13 +154,6 @@ impl RestoreStore {
                     .await?
             }
         };
-        // Logical contract/version determines the cache path, not a source hash
-        // or arbitrary manifest-supplied filesystem destination.
-        let mut hash = Sha256::new();
-        hash.update(b"dracon-private-restored-asset-v1\0");
-        hash.update(self.repo_id.as_bytes());
-        hash.update(serde_json::to_vec(enrollment)?);
-        let id = format!("{:x}", hash.finalize());
         plain.seek(SeekFrom::Start(0))?;
         journal::retain_snapshot(
             &self.directory,

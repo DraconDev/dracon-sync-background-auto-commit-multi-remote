@@ -1275,8 +1275,18 @@ pub(crate) fn retain_snapshot(
             file.sync_all()?;
             crash_point(before_publish);
         }
-        // Exclusive job lease prevents concurrent writers of this snapshot.
-        std::fs::rename(&temporary, &destination)?;
+        // A job lease excludes our writers, but an operator may create a
+        // destination during capture. Publish create-only rather than replacing
+        // that file. A matching concurrent version is safe; conflicts survive.
+        match std::fs::hard_link(&temporary, &destination) {
+            Ok(()) => {
+                std::fs::remove_file(&temporary)?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                verify_snapshot(&destination, expected)?;
+            }
+            Err(error) => return Err(error.into()),
+        }
         File::open(directory)?.sync_all()?;
         crash_point(after_publish);
     }
