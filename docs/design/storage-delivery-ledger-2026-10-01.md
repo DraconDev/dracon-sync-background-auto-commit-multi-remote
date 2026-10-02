@@ -869,3 +869,8 @@ changed. Automatic capture/upload/routing/enrollment, live endpoint capability
 approval, actual-key encrypted independent-provider cold recovery, complete
 outgoing-history coverage, growth benchmarks, reviewed pilots and release remain
 open within the original roadmap.
+
+The completed final locked workspace run passed **2079 tests, zero failed,
+24 ignored** across 35 suites (terminal exit 0). Evidence:
+`/tmp/dracon-s3-recovery-workspace.log`; the two storage CLI operational cases
+were separately executed successfully in the 13-test suite above.
