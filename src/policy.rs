@@ -13,6 +13,10 @@ pub(crate) struct GitCommand {
 }
 
 impl GitCommand {
+    pub(crate) fn into_std(self) -> StdCommand {
+        self.inner
+    }
+
     pub(crate) fn new() -> Self {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.

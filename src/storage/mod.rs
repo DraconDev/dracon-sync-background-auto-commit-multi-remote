@@ -521,7 +521,7 @@ fn inventory_filters_at(
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
     let output = bounded_attribute_query(
-        command,
+        command.into_std(),
         input,
         32 * 1024 * 1024,
         std::time::Duration::from_secs(30),
