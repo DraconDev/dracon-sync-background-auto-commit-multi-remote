@@ -658,6 +658,46 @@ fn comments_and_storage_named_patterns_do_not_activate_guard() {
 
 #[cfg(unix)]
 #[tokio::test]
+async fn storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes() {
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    git_fixture_command(repo, &["config", "--unset", "filter.dracon-storage.clean"]);
+    git_fixture_command(
+        repo,
+        &["config", "--unset", "filter.dracon-storage.required"],
+    );
+    std::fs::write(repo.join("asset.bin"), b"unbound hydrated source").unwrap();
+    std::fs::write(repo.join("README.md"), b"bootstrap work\n").unwrap();
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+    )
+    .unwrap();
+    assert!(
+        !crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+            .await
+            .unwrap()
+    );
+    assert!(git2::Repository::open(repo).unwrap().head().is_err());
+    assert_eq!(
+        std::fs::read(repo.join("asset.bin")).unwrap(),
+        b"unbound hydrated source"
+    );
+    assert_eq!(
+        std::fs::read(repo.join("README.md")).unwrap(),
+        b"bootstrap work\n"
+    );
+    assert!(!repo.join(".git/index.lock").exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn storage_bootstrap_cannot_bypass_guard_with_no_verify() {
     for valid in [true, false] {
         let dir = guarded_fixture().await;
