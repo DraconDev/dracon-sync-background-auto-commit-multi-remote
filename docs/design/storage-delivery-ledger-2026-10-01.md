@@ -122,8 +122,8 @@ assuming a 20 MiB media threshold alone will solve history growth.
 | --- | --- | --- |
 | A: contracts/inventory | Partial | Private manifest schema specified; per-path churn attribution, producer/service review, full threat model and group contracts remain |
 | B: policy | Partial | Versioned sticky enrollment, atomic group policy, recovery/retention settings, actual staging resolution |
-| C: storage/security | Partial | Local streaming, Warden and retained protected metadata checked; S3 capability conformance and production operator/security integration remain |
-| D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; prepared payload retention/copy execution checked; production reconciliation and operator resource policy remain |
+| C: storage/security | Partial | Local streaming, Warden, retained protected metadata and isolated S3 conditional-write capability checks passed; actual provider/security certification remains |
+| D: durable journal | Partial | Transactional records, leases, source snapshots, byte budgets and process-death tests checked; explicit captured-job preparation/copy execution checked; production reconciliation and operator resource policy remain |
 | E: Git bridge | Partial | Strict pointer/private manifest codecs and retained Warden metadata preparation checked; Git metadata integration, required local filter composition, manual-index races, staging entry points and outgoing-ref validation remain |
 | F: restoration | Prototype only | Packaged hydrate/verify commands, safe destinations/cache, historical key recovery, independent copy failover |
 | G: daemon/status | Partial | Read-only redacted journal status checked; worker scheduling, live backend verification, fairness, grouping and outage isolation remain |
@@ -874,3 +874,55 @@ The completed final locked workspace run passed **2079 tests, zero failed,
 24 ignored** across 35 suites (terminal exit 0). Evidence:
 `/tmp/dracon-s3-recovery-workspace.log`; the two storage CLI operational cases
 were separately executed successfully in the 13-test suite above.
+
+
+## Capability checks and explicit durable job worker (2026-10-02)
+
+Source builds now provide `storage probe-backend` and `storage advance-job`.
+The probe retains a random 64-byte control under the reserved prefix, checks
+competing creates (exactly one 200 and one 412), different-byte write refusal,
+and complete readback before/after. The approved transport is confined to that
+exact configuration, not externally constructible/rebindable, and expires after
+one hour. No report or persisted receipt can replace a fresh check for explicit
+S3 job advancement. Both-success, both-refused, ignored condition, false refusal,
+partial/corrupt reads and stale/future approvals are tested.
+
+The worker consumes an already captured durable job. It validates every required
+global copy binding/security class, uses Warden SDK preparation or an explicitly
+authorized non-sensitive representation, then verifies every required copy and
+stops at ReadyToStage. Retained inputs are checked before capability requests;
+selected payload length/SHA-256 is verified at EOF before a backend's spool
+publishes/sends asset bytes. Same-length mutation, truncation, growth and a backend
+claiming success without consuming its input cannot produce successful copies.
+No working-file read, Git staging, commit, push, pruning or history change occurs.
+
+Three core worker tests cover exact capture/preparation/retry, missing Warden or
+forbidden class, and synthetic SDK composition/fail-closed plaintext output.
+Synthetic outputs check composition only; actual cryptography remains covered
+by the existing explicit operational Warden tests. A new local CLI case verifies
+that both required stores receive the captured version despite newer working
+edits, an existing foreign index lock survives, retries retain identity, and a
+missing required binding refuses before opening an invalid first backend.
+
+The TLS cold-clone fixture now also executes signed conditional asset PUT and
+readbacks through `advance-job`, exercises new-object creation and existing-object
+retry, and refuses an endpoint ignoring the overwrite condition. Five requests
+per capability check retain a single 64-byte control; no delete/list/bucket-create
+API is exposed. Fixture-only deletion forces the asset-creation branch and never
+touches a live object. This test uses published fixture credentials, a temporary
+CA and explicit non-sensitive content: it is not an actual-key encrypted S3 or
+independent-provider durability certificate.
+
+Focused evidence:
+- `/tmp/dracon-s3-capability-tests.log`: 13 HTTP/signing/capability tests passed.
+- `/tmp/dracon-s3-transfer-validation-tests.log`: 9 exact-input/copy tests passed.
+- `/tmp/dracon-storage-advance-worker.log`: 3 core worker tests passed.
+- `/tmp/dracon-storage-advance-operational.log`: all 14 Git CLI cases passed with
+  ignored operational cases enabled and source-built Warden selected.
+
+No installed daemon, bucket, live credential vault, operator policy or hook was
+changed. The preview remains unreleased. Automatic capture/routing/enrollment,
+startup reconciliation, all-version outgoing guards, resource qualification,
+actual encrypted independent-provider drills, pilots/package/release and the
+separate sanctioned legacy-maintenance proposal remain open. The roadmap scope
+has not been reduced to the explicit job milestone.
