@@ -1369,6 +1369,63 @@ mod tests {
         panic!("Warden descendant survived failed import");
     }
 
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn cancelling_import_releases_lease_and_terminates_security_group() {
+        let temp = tempfile::tempdir().unwrap();
+        let script = "sh -c 'echo $$ > cancelled-descendant.pid; exec sleep 60' & wait";
+        let (store, manifest, adapter) = fixture(temp.path(), script, Limits::default());
+        let (cipher, payload) = import_bytes(&manifest);
+        let task_cipher = cipher.clone();
+        let task_payload = payload.clone();
+        let task = tokio::spawn(async move {
+            store
+                .import(
+                    &mut task_cipher.as_slice(),
+                    &task_payload,
+                    &"b".repeat(64),
+                    &adapter,
+                )
+                .await
+                .map(|_| ())
+        });
+        let pid_path = temp.path().join("repo/cancelled-descendant.pid");
+        for _ in 0..200 {
+            if pid_path.exists() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(
+            pid_path.exists(),
+            "security child must start before cancellation"
+        );
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        let pid = std::fs::read_to_string(pid_path).unwrap();
+        let mut dead = false;
+        for _ in 0..100 {
+            let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
+            if stat.is_err() || stat.unwrap().split_once(") ").unwrap().1.starts_with('Z') {
+                dead = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(dead, "cancelled security descendant survived");
+        // Cancellation must release the namespace lease and publish no candidate.
+        let (store, manifest, adapter) = fixture(temp.path(), IMPORT_ADAPTER, Limits::default());
+        assert!(store.load_prepared_payload(&payload).is_err());
+        assert!(
+            store
+                .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+                .await
+                .unwrap()
+                .1
+                == manifest
+        );
+    }
+
     #[tokio::test]
     async fn cold_import_crashes_recover_retained_exact_ciphertext() {
         for point in [
