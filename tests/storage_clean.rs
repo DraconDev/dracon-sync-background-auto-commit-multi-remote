@@ -654,3 +654,67 @@ async fn index_guard_uses_staged_attributes_and_refuses_unenrolled_driver_paths(
     assert!(!verify_index(&f).status.success());
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
 }
+
+#[tokio::test]
+async fn guard_binding_requires_verified_index_and_honors_manual_alternate_index() {
+    let f = fixture().await;
+    let setup = || {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .args(["storage", "setup-guard", "--repo"])
+            .arg(&f.repo)
+            .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+            .arg(f.temp.path().join("metadata"))
+            .args(["--manifest-path", ".dracon/assets.manifest"])
+            .output()
+            .unwrap()
+    };
+    // The manifest is staged, but the asset is missing: setup must not activate.
+    assert!(!setup().status.success());
+    assert!(!git(
+        &f.repo,
+        &["config", "--local", "--get", "dracon.storageGuardVersion"]
+    )
+    .status
+    .success());
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(setup().status.success());
+    assert!(setup().status.success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    let verify = |alternate: Option<&Path>| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_dracon-sync"));
+        command
+            .args(["storage", "verify-configured-index", "--repo"])
+            .arg(&f.repo);
+        command.env_remove("GIT_INDEX_FILE");
+        if let Some(path) = alternate {
+            command.env("GIT_INDEX_FILE", path);
+        }
+        command.output().unwrap()
+    };
+    assert!(verify(None).status.success());
+    let alternate = f.temp.path().join("alternate.index");
+    std::fs::copy(f.repo.join(".git/index"), &alternate).unwrap();
+    assert!(Command::new("git")
+        .current_dir(&f.repo)
+        .env("GIT_INDEX_FILE", &alternate)
+        .args([
+            "update-index",
+            "--force-remove",
+            "--",
+            "asset [version].bin"
+        ])
+        .status()
+        .unwrap()
+        .success());
+    assert!(!verify(Some(&alternate)).status.success());
+    assert!(verify(None).status.success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    assert!(git(&f.repo, &["config", "dracon.storageGuardVersion", "2"])
+        .status
+        .success());
+    assert!(!setup().status.success());
+    assert!(!verify(None).status.success());
+}
