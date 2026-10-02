@@ -492,7 +492,8 @@ recovery and Linux checkout hydration with local crash resume. These operations
 remain an unreleased preview. A signed S3 HTTP adapter is tested in source;
 explicit S3 recovery uses a private operator credential vault. Explicit
 `storage probe-backend` checks competing creates and conflicting-write refusal;
-`storage advance-job` prepares an already captured version and verifies required
+`storage capture` retains a policy-selected new path as an exact-version job;
+`storage advance-job` prepares that captured version and verifies required
 copies without changing Git. Automatic routing and independent-provider
 certification remain unfinished.
 The preview usage above documents the required bindings and limitations.

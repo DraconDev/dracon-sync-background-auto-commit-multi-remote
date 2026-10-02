@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased `storage capture` connects enabled placement rules to bounded private
+  exact-version source retention. Required recovery copies need distinct global
+  security grants. Descriptor-based Unix containment refuses source links,
+  nested repositories and special files; existing ignores/exclusions, ownership
+  opt-out, tracked content and unapproved filters block capture. Retries reuse
+  the same version, while changed bytes create another retained job. Local CLI
+  and actual-Warden encryption/copy/decryption fixtures cover the pipeline;
+  automatic routing/enrollment, provider drills and release remain unfinished.
+
 - Unreleased `storage advance-job` prepares an already captured exact version
   through Warden or an explicit non-sensitive grant, verifies all required copies
   and stops at ReadyToStage without changing current edits or Git. S3 writes need

@@ -77,7 +77,8 @@ For an S3-compatible binding, the prototype schema accepts `type = "s3"`,
 `endpoint`, `bucket`, `credential_ref`, and `allowed_security`. Validation
 requires HTTPS without embedded credentials/query/fragment. Credentials and
 buckets are not accessed by planning/validation. Explicit S3 recovery is described
-below; automatic transfer and endpoint capability approval remain unfinished.
+below; explicit endpoint capability checks are implemented, while automatic
+transfer remains unfinished.
 A non-sensitive rule is permitted only when the operator explicitly includes
 `"non-sensitive"` in that backend's `allowed_security`. This is not a public
 publication capability or proof that the content is non-sensitive.
@@ -593,3 +594,68 @@ independent encrypted provider drills, pilots and release remain open. Planning
 and validation remain read-only; their `transfers_available = false` describes
 automatic transfer availability, not this explicit job operation. No live
 operator configuration or installed daemon is changed by the source preview.
+
+
+## Capture a policy-selected source version (unreleased)
+
+`storage capture` selects and privately retains the exact bytes of one new path.
+It requires an enabled effective storage policy, a matching external rule, and an
+existing operator-bound local `dracon.storageRepoId`. It does not infer rules
+from media extensions or repository size. Configure optional additional copies
+on the external rule:
+
+```toml
+[[storage.rules]]
+paths = ["declared-assets/**"]
+placement = "external"
+backend = "archive"
+required_copies = ["recovery"]
+security = "warden-encrypted"
+```
+
+The primary is always required; `required_copies` lists additional distinct
+logical backends. Each needs a global operator binding approving the same
+security class. Missing copies, repeated copies, and copy settings on a Git rule
+are invalid. Repository overrides can select approved logical copies but cannot
+grant their endpoints, credentials or security classes. `storage plan --json`
+now explains the selected required copy set.
+
+```sh
+dracon-sync storage capture --repo /absolute/checkout \
+  --repo-id YOUR_EXISTING_REPOSITORY_ID \
+  --journal-root /absolute/private/journal \
+  --policy /absolute/operator-policy.toml --git-target github \
+  --git-target gitlab --json -- declared-assets/example.data
+```
+
+Git targets are logical preservation destinations for later acknowledgment,
+not URLs or an instruction to push. They are validated and retained in the
+private portable contract. The rule and target contract is hashed without
+backend locations/credentials. Changed source bytes get a distinct job; retries
+reuse the same captured version. No source bytes/digests appear in the report.
+Use the returned `job_id` with `storage advance-job` to prepare and verify copies.
+
+Capture respects Git ignores and existing Sync exclusions, and `owned = false`
+refuses capture/advancement. It refuses existing index/HEAD content because
+initial adoption requires verified enrollment or reviewed forward migration.
+It also refuses an existing effective Git filter until composition is approved.
+This command creates a private job, not a sticky enrollment or filter bypass.
+Enrolled-path updates and tracked-file migration still need integration with
+protected manifests and the Git transaction worker.
+
+On Unix, source directories are pinned with descriptors and traversed without
+following symlinks; nested `.git` ownership markers are refused. Only regular
+files are read, with 64 KiB buffers. FIFO opens do not block, and links, Git
+internals, parent traversal and special files cannot be selected. Other platforms
+fail closed until they provide equivalent containment. Selection hashes a
+bounded stream, rewinds the pinned file, and journal capture independently
+verifies the same selected bytes. Limits default to 1 GiB per source and 4 GiB
+retained sources; explicit positive overrides do not evict prior versions.
+
+Capture performs no encryption/upload, enrollment, Git mutation, deletion or
+push. Advancement of an encrypted capture requires the authorized Warden adapter
+and keys; missing security cannot produce a raw fallback. Automatic daemon
+capture/routing and reviewed pilot activation remain unfinished and disabled.
+An isolated actual-Warden CLI test covers capture, encryption, two verified local
+copies, exact decryption and retry without replacing the ciphertext identity.
+It preserves newer edits and the index; it is not an independent-provider drill.
