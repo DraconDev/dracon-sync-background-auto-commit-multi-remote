@@ -808,11 +808,18 @@ async fn actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook() 
     )
     .status
     .success());
-    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    // Git itself may refresh its TREE cache before invoking pre-commit.
+    // Compare staged content/modes/paths, rather than serialized cache bytes.
+    let before = git(&f.repo, &["ls-files", "--stage", "-z"]).stdout;
+    let source = std::fs::read(f.repo.join("asset [version].bin")).unwrap();
     std::fs::remove_file(f.repo.join(".git/user-hook-ran")).unwrap();
     let rejected = commit("reject mismatched raw payload");
     assert!(!rejected.status.success());
     assert!(f.repo.join(".git/user-hook-ran").exists());
     assert_eq!(git(&f.repo, &["rev-parse", "HEAD"]).stdout, head);
-    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    assert_eq!(git(&f.repo, &["ls-files", "--stage", "-z"]).stdout, before);
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        source
+    );
 }
