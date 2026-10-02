@@ -182,7 +182,7 @@ workflow or authorization source.
 Tests use synthetic Warden subprocess output solely for index mechanics and
 cover matched publication, unrelated staging, manual edits/deletions, foreign
 locks, conflicting saved intents, non-UTF-8 paths, tombstones and process death
-before intent publication, before index replacement and after replacement.
+after intent publication, before index replacement and after replacement.
 This library performs no working-tree writes, filter installation, commits,
 pushes or automatic daemon enrollment. Working-file race checks and outgoing
 commit validation remain required integration gates.

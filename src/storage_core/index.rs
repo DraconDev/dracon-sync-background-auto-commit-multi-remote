@@ -958,6 +958,51 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn changed_reference_without_verified_job_and_unknown_prior_metadata_fail_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        stage(&f).unwrap();
+        commit_index(&f.transaction.repo);
+        let mut enrolled = f.manifest.enrollments().to_vec();
+        enrolled[0].payload = Some(Fingerprint::new("f".repeat(64), 123).unwrap());
+        let manifest = Manifest::new(f.manifest.repo_id().into(), enrolled).unwrap();
+        let prepared = f
+            .store
+            .prepare(&manifest, &"b".repeat(64), &f.adapter, 1)
+            .await
+            .unwrap();
+        let bundle = StageBundle::build(&f.store, &prepared, &manifest, vec![]).unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        let mut index = fresh_index(&f.transaction.repo).unwrap();
+        let unknown = f
+            .transaction
+            .repo
+            .blob(b"age-encryption.org/v1\nunknown prior metadata")
+            .unwrap();
+        index
+            .add(&entry(b".dracon/assets.manifest", unknown, 0o100644, 47))
+            .unwrap();
+        index.write().unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+    }
+
     fn commit_index(repo: &Repository) {
         let mut index = fresh_index(repo).unwrap();
         let tree = index.write_tree().unwrap();
