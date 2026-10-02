@@ -334,6 +334,19 @@ impl HydrationStore {
                             .checked_add(info.len())
                             .context("hydration selected byte overflow")?;
                     }
+                } else {
+                    let filename = file.file_name();
+                    let name = filename
+                        .to_str()
+                        .context("unknown hydration transaction entry")?;
+                    if !(name == "intent.json"
+                        || name == "source-budget.lock"
+                        || name.starts_with(".tmp"))
+                        || info.len() > 16 * 1024
+                        || info.mode() & 0o077 != 0
+                    {
+                        bail!("unknown or unsafe hydration transaction entry");
+                    }
                 }
             }
         }

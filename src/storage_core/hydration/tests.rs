@@ -1,6 +1,6 @@
 use super::*;
 use git2::{IndexEntry, IndexTime};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::process::Command;
 
 const DATA: &[u8] = b"verified original asset";
