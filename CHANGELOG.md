@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `repos` uses a rounded frame with fewer grid lines, right-aligned counts and
+  sizes, bold repository names, and a compact three-line key. The complete
+  legend remains available through `repos --legend`. Stalled repositories
+  show a red status and activity label even when marked active; warnings take
+  priority over activity. All rich-table columns and screen-width sizing remain.
+
 ### Fixed (workspace audit 2026-10-02)
 
 - Refreshed the standalone lockfile from the tested parent dependency versions and verified isolated `cargo metadata --locked --offline`, so a standalone clone retains the same reproducible dependency graph.

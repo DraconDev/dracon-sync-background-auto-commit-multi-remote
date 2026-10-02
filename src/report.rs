@@ -11781,6 +11781,50 @@ mod tests {
     }
 
     #[test]
+    fn stalled_rows_stay_visible_even_when_active() {
+        let mut row = make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
+        row.active = true;
+        assert_eq!(status_pair(&row), ("🔴 STALLED", Color::Red));
+        assert_eq!(activity_label_base(&row), "🔴 stalled 2h");
+        assert_eq!(severity_tier(&row), 1);
+        row.state_cause = StateCause::Working;
+        row.warn = true;
+        assert_eq!(status_pair(&row), ("🟡 WARN", Color::Yellow));
+    }
+
+    #[test]
+    fn rich_table_renders_single_line_rows_at_supported_widths() {
+        let mut clean = make_activity_row("5 minutes ago", 0, 0, "OK");
+        clean.repo = "/tmp/pi-use-last-selected-thinking-level".into();
+        clean.commits_1h = 12;
+        clean.commits_6h = 123;
+        clean.commits_24h = 1015;
+        let mut stalled =
+            make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
+        stalled.repo = "/tmp/dracon-platform".into();
+        for width in [165, 200, 320] {
+            let rendered =
+                build_repos_rich_table(&[clean.clone(), stalled.clone()], false, width).to_string();
+            let lines: Vec<_> = rendered.lines().collect();
+            assert_eq!(lines.len(), 6, "wrapped rows at {width}: {rendered}");
+            for line in &lines {
+                assert_eq!(
+                    unicode_width::UnicodeWidthStr::width(*line),
+                    usize::from(width)
+                );
+            }
+            assert!(lines[0].starts_with('╭'));
+            assert!(lines[5].ends_with('╯'));
+            assert!(lines[3].contains("STALLED") && lines[3].contains("dracon-platform"));
+            assert!(
+                lines[4].contains("   12     123    1015"),
+                "counts must align: {rendered}"
+            );
+            assert!(!rendered.contains('┆'));
+        }
+    }
+
+    #[test]
     fn test_activity_label_push_pending_is_waiting_without_inflight_marker() {
         // PENDING alone is not proof that a git process is running. A
         // one-minute-old pending row without a fresh in-flight marker must
