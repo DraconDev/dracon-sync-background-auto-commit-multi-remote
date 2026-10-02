@@ -666,6 +666,11 @@ fn real_attribute_query_drains_full_pipes_and_enforces_input_budget() {
     let oversized = BTreeSet::from([PathBuf::from("x".repeat(16 * 1024 * 1024))]);
     let error = inventory_filters(dir.path(), &oversized).unwrap_err();
     assert!(error.to_string().contains("input budget"));
+    let too_many = (0..100_001)
+        .map(|n| PathBuf::from(format!("p{n}")))
+        .collect();
+    let error = inventory_filters(dir.path(), &too_many).unwrap_err();
+    assert!(error.to_string().contains("path budget"));
 }
 
 #[cfg(unix)]
