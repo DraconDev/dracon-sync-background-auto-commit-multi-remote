@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased explicit S3 recovery/hydration resolves named credentials from a
+  bounded private operator vault, rejects links/unsafe permissions and Git-
+  tracked or unignored credential files, and requires an operator signing region.
+  Recovery runs on a blocking worker; a cold-clone HTTPS CLI fixture verifies
+  actual signed fetch, exact bytes and unchanged index/working pointer. Automatic
+  upload/routing and independent-provider certification remain unfinished.
+
 - Unreleased signed S3 HTTP adapter sends conditional payload-signed requests,
   verifies complete response streams, disables redirects/proxy inheritance and
   decompression, and redacts provider errors. Published AWS signing vectors and

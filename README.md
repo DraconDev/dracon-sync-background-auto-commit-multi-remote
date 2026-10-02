@@ -490,5 +490,6 @@ and the [implementation roadmap](docs/design/object-storage-roadmap-2026-10-01.m
 Source builds also provide explicit protected-manifest import, private asset
 recovery and Linux checkout hydration with local crash resume. These operations
 remain an unreleased preview. A signed S3 HTTP adapter is tested in source;
-operator credential resolution, CLI binding and automatic routing are unfinished.
+explicit S3 recovery uses a private operator credential vault. Automatic routing
+and provider capability approval remain unfinished.
 The preview usage above documents the required bindings and limitations.

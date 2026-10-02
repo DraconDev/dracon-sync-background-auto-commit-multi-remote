@@ -76,7 +76,8 @@ secret scanning or staging limits.
 For an S3-compatible binding, the prototype schema accepts `type = "s3"`,
 `endpoint`, `bucket`, `credential_ref`, and `allowed_security`. Validation
 requires HTTPS without embedded credentials/query/fragment. Credentials and
-buckets are not accessed. S3 transfer/capability checks are not implemented yet.
+buckets are not accessed by planning/validation. Explicit S3 recovery is described
+below; automatic transfer and endpoint capability approval remain unfinished.
 A non-sensitive rule is permitted only when the operator explicitly includes
 `"non-sensitive"` in that backend's `allowed_security`. This is not a public
 publication capability or proof that the content is non-sensitive.
@@ -383,7 +384,7 @@ allowed_security = ["warden-encrypted"]
 The selected backend must also be a required copy in that exact enrollment.
 Omitting `--backend` selects its declared primary; there is no automatic fallback.
 Repository overrides and manifests cannot supply adapter endpoints or grant
-permissions. The local object store must already exist. S3 recovery is not yet
+permissions. The local object store must already exist. S3 recovery is described below and requires explicit operator credentials. The
 implemented. A non-sensitive enrollment requires an explicit `non-sensitive`
 grant; recovering that asset needs no Warden adapter. The protected metadata
 import still requires authorized keys.
@@ -474,3 +475,62 @@ and interrupted record spools have their own bounded count/size. An oversized
 or full store refuses further growth. This preview does not provide automatic
 startup reconciliation, S3, smudge hydration or an independent-provider durability
 certificate. Complete outgoing-history/push checks remain unfinished.
+
+
+## Explicit S3 recovery (unreleased)
+
+`storage restore-asset` and `storage hydrate` can now fetch an exact approved
+required copy from a S3 binding. The approved committed manifest still supplies
+only logical copy identifiers. Endpoint, bucket, signing region, prefix and
+credential reference come from the operator's global configuration; repository
+overrides cannot grant these values or a plaintext representation class.
+
+```toml
+[storage.backends.archive]
+type = "s3"
+endpoint = "https://your-approved-s3-origin"
+bucket = "your-approved-bucket"
+region = "your-provider-signing-region"
+prefix = "ciphertexts/v1"
+credential_ref = "archive"
+# allowed_security defaults to ["warden-encrypted"]
+```
+
+Legacy planning bindings without `region` still parse, but actual recovery
+requires an explicit region. Prefix is optional and defaults to empty. Origins
+must use HTTPS without credentials, query, fragment or base path; this adapter
+uses path-style bucket URLs and confined ASCII prefix components. It does not
+create buckets, follow redirects, discover credentials or inherit proxies.
+
+Add `--credentials-root /absolute/private/operator-credentials` to the recovery
+command. The existing directory must be owned by the operator with mode 0700;
+`archive.json` must be an ordinary owned single-link file with mode 0600 or 0400.
+Every ancestor is traversed without following symlinks. Prefer an operator vault
+outside watched repositories. Inside a checkout, credentials must already be
+Git-ignored and absent from the index; the resolver refuses tracked/unignored
+files without changing ignores or Git state. No fallback search or environment
+credential lookup is performed. Credential files are limited to 32 KiB.
+
+The private JSON record has `version = 1`, `access_key_id` and
+`secret_access_key`; optional fields are `session_token` and `expires_unix_secs`.
+Set these values in the operator's private vault, not repository configuration.
+Unknown fields, unsafe permissions, invalid records and expired credentials
+refuse recovery. Session tokens are signed, and optional expiry is checked per
+request. The resolver never creates, changes or deletes credential files.
+
+Explicit requests run on a blocking worker while Warden's asynchronous
+verification/decryption remains available. HTTPS uses platform certificate
+verification. Complete response length/SHA-256 is checked independently before
+asset publication, with a whole-request deadline; partial/encoded responses,
+provider errors and corruption refuse success. Provider bodies/credential-bearing
+HTTP errors are redacted. `--resume-local` still uses only an already approved
+retained hydration transaction, without reading credentials or contacting a
+backend.
+
+An isolated operational test exercises cold-clone metadata import and actual
+signed HTTPS CLI recovery using a temporary CA, published fixture credentials,
+a private JSON vault and synthetic protected metadata. It verifies recovered
+bytes and unchanged Git index/working pointer. It is not a live provider or
+actual-key encrypted S3 durability certificate. Signed create-only upload exists
+at the adapter boundary, but automatic capture/upload/routing, endpoint capability
+approval, independent provider recovery, reviewed pilots and release remain open.
