@@ -280,7 +280,7 @@ impl Read for RedactedBody {
     fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
         self.0
             .read(output)
-            .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, TransientFailure))
+            .map_err(|_| std::io::Error::other(TransientFailure))
     }
 }
 
@@ -361,8 +361,8 @@ fn sign(
         "AWS4-HMAC-SHA256\n{timestamp}\n{scope}\n{:x}",
         Sha256::digest(canonical.as_bytes())
     );
-    let base = Zeroizing::new(format!("AWS4{}", &*credentials.secret));
-    let date = hmac(base.as_bytes(), timestamp[..8].as_bytes());
+    let base = Zeroizing::new(format!("AWS4{}", *credentials.secret));
+    let date = hmac(base.as_bytes(), &timestamp.as_bytes()[..8]);
     let region_key = hmac(&date, region.as_bytes());
     let service = hmac(&region_key, b"s3");
     let key = hmac(&service, b"aws4_request");
@@ -373,7 +373,7 @@ fn sign(
         .collect::<String>();
     Ok(Zeroizing::new(format!(
         "AWS4-HMAC-SHA256 Credential={}/{scope},SignedHeaders={signed},Signature={signature}",
-        &*credentials.access_key
+        *credentials.access_key
     )))
 }
 

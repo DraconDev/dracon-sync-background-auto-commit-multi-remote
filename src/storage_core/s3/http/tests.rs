@@ -10,7 +10,7 @@ use std::time::Instant;
 fn credentials() -> Credentials {
     // Published AWS test credentials; never load operator keys in these fixtures.
     Credentials::new(
-        "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB3WjlBVTl6UGI1Zkp0QkFxZEcyRmVwL216T2VoYWZ1ajA5ZVdHODBlSUdVCm1POHA0Vzk0SjBqcFdlU0FJWCtYeURoc292RzJMUXBac0l0MWN0OFdCSkUKLT4gWDI1NTE5IG4xRFVZa25xZkxsaDRDMkZmeUZwamh2djZ4TFJCdTNvL3Z3UmFyeTQ0encKc25XdlluV2FTdVk0b0hVeUx5RnBmVkxMaWkzRjZOUFFrRVR2WkxWcWx6QQotPiBYMjU1MTkgWFpYcWpKUnVIUnNhQ1FlS1dSYU9FR0thMlVlVTRuaHh0TVdMOHA2WjJ6bwpENElPeGVxWC94M2xUQnpCOGpUU2l3M0Z1TG5nYVdnTytLck1iMSt0K09RCi0+IFgyNTUxOSBEVkFtNS9OUDFZTnVtNkhKWWY3UjVZQWFSd00wNTZtZVlFSG1DWDB2MEgwCkFsSUtXZURIMFVDcTk5Z2c4OGhFczlTclBqckNETmZoY1d4T0I3cXZnMlEKLT4gWDI1NTE5IEdndUNNOFE3OW5PdVMreUo2Ym9hRHhjRUJUQ0NDUGViTW1XdUV0OTg5M1UKKy9qcFNVUXFYZ1VSRlpRNGdHZStnaGFFVmhtODRGZ2g4UTdDVFRnYTB3dwotPiBWWXEwLWdyZWFzZQp2UTZiZGRrMDVSdlByTFIvTWh1WFRTdDIreFhnRjd1aXpML1dveDhvbHpvejJZV21KcENsRU9kYWRYQmpXNXFhCkIxVDFoU2hieUs2VWlIeFdmb2NQaVpYUmZiQmZjVmxwZjVQK00zSXoKLS0tIDFmZlJmRCtLdW1kNkxKdnc3TU9DbmN6TkJ2dXg3T1N5L1NqZk5Qdktldm8KyeQNl6V4lXg4jhOFlZ3PbdkzXsXT6ddckivX/KZljLKbMC+ujty6tGLPDKC6Q4yQapDnnA==]".into(),
+        "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBlVHB0QzkwcTJqVkVPcFRWd3NwTFR1SmZzVy9aR2FSZnJNRXBJQ1ZoeFd3CmRSNnhhVEJEN2hxWk5lY0cvMUlSR3FuRVJJbzNyWEx4b3RoZmE5dE40RG8KLT4gWDI1NTE5IDNVQzIzeWgyTzNoQkkwOU8wUm93bXV2eU15dnVNeS9aOWxVVFZUYmZFM3MKYStOakxEUzk5dWlvWjlpUWtSdWZZRitqS1BrQWhHM01WSktTWm1ZK3NwNAotPiBYMjU1MTkgR09yWWlwYTBwYjBySFNhZXJFbWVBTnFDUUdhczNkcDM2Vnp5QlJXY0xFRQpmZlYzMXpZMDVLcjJaL0cyTDN1L3gvVnplak5OdmVWVU1Nc3BlaHYwc0U4Ci0+IFgyNTUxOSBtaEFFZTlVaHNrR1oyZVMwd1Z0WnA2RC9VK0JMRFFXQi91UGs1V3VEMlhBCmdtR3ZQMit1Y0V0Mzh6TG9PYkM1SGNQTUtwcHJLZER2RTVnOGtWdkp0WjAKLT4gWDI1NTE5IGlnUVdKSG9OOFdjeksxQ25sVkZWVjdtMCtlNHA2L0xqNk1JOE1IRXA4bFEKV0dVRHNjRXpLWWpYSXhhNE9OWkJmZ3VlenhJMTNTVlZhTjJSaThDT0NVWQotPiBRTVozLWdyZWFzZSBGZWogTHwKWVNEWDFta1V6ek5OWjdPMkt2dWs5d2VSNTY2RUx4UXZIVjMrbldaNXJUckZKank5VjVpREV6alB5Z01vYmcKLS0tIDI4UFFIQjJzV3dCM0FNdjU2bUdxbkx2ZVcxL2xlYk93Vlk3TWFHNDFTZkkKutpoT51pQbeFKRczCbxJVN2vFFuHxClh7Z0nlvQUTm0J5r48d8zetJB5o6VpWNJlx4GqnQ==]".into(),
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY".into(),
         None,
         None,
@@ -440,4 +440,44 @@ fn whole_response_deadline_cannot_be_extended_by_trickled_bytes() {
     assert!(!format!("{error:#}").contains(&endpoint));
     assert_eq!(requests.recv().unwrap().method, "GET");
     handle.join().unwrap();
+}
+
+#[test]
+fn session_credentials_are_sent_signed_and_expiration_is_checked_per_request() {
+    let id = identity(b"original");
+    let (endpoint, requests, handle) = server(vec![Reply::new(200, b"original")]);
+    let mut creds = credentials();
+    creds.token = Some(Zeroizing::new("isolated-session-token".into()));
+    let mut transport = SignedHttpTransport::build(config(&endpoint), creds, true).unwrap();
+    let mut body = transport.get(&id).unwrap();
+    let mut bytes = Vec::new();
+    body.read_to_end(&mut bytes).unwrap();
+    assert_eq!(bytes, b"original");
+    let request = requests.recv().unwrap();
+    assert_eq!(
+        request.headers["x-amz-security-token"],
+        "isolated-session-token"
+    );
+    verify_wire_signature(&request);
+    handle.join().unwrap();
+    transport.credentials.expires_at = Some(SystemTime::UNIX_EPOCH);
+    let error = transport.get(&id).err().unwrap();
+    assert_eq!(error.to_string(), BackendFailure::Security.to_string());
+}
+
+#[test]
+fn missing_and_wrong_length_objects_fail_before_publication() {
+    let id = identity(b"original");
+    for reply in [
+        Reply::new(404, b"PROVIDER-PRIVATE-SENTINEL"),
+        Reply::new(200, b"short"),
+        Reply::new(200, b"original-extra"),
+    ] {
+        let (endpoint, requests, handle) = server(vec![reply]);
+        let error = transport(&endpoint).get(&id).err().unwrap();
+        assert_eq!(error.to_string(), BackendFailure::Integrity.to_string());
+        assert!(!format!("{error:#}").contains("PROVIDER-PRIVATE-SENTINEL"));
+        assert_eq!(requests.recv().unwrap().method, "GET");
+        handle.join().unwrap();
+    }
 }
