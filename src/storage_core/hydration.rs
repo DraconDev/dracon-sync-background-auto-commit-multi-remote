@@ -168,10 +168,16 @@ impl HydrationStore {
                                 bail!("retained hydration original changed; edits preserved for manual recovery");
                             }
                             Some(transaction_path.join("original"))
-                        },
+                        }
                         None => None,
                     },
-                    Err(error) if error.downcast_ref::<std::io::Error>().is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound) => None,
+                    Err(error)
+                        if error
+                            .downcast_ref::<std::io::Error>()
+                            .is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound) =>
+                    {
+                        None
+                    }
                     Err(error) => return Err(error),
                 };
                 verify_parent(&workdir, &root, parent_relative, &parent)?;
@@ -401,7 +407,8 @@ fn relative_directory(root: &File, path: &Path) -> Result<File> {
 }
 fn verify_parent(workdir: &Path, root: &File, relative: &Path, pinned: &File) -> Result<()> {
     if identity(&directory_at_path(workdir)?)? != identity(root)?
-        || identity(&relative_directory(root, relative)?)? != identity(pinned)? {
+        || identity(&relative_directory(root, relative)?)? != identity(pinned)?
+    {
         bail!("hydration parent directory changed");
     }
     Ok(())

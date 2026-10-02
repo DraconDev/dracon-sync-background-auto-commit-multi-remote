@@ -233,5 +233,96 @@ fn crash_helper() {
     let root = PathBuf::from(std::env::var_os("DRACON_HYDRATION_TEST_ROOT").unwrap());
     let repo = git2::Repository::open(root.join("repo")).unwrap();
     let store = HydrationStore::open(&root.join("hydration"), REPO_ID, Limits::default()).unwrap();
-    store.hydrate(&repo, &asset(&root)).unwrap();
+    let result = store.hydrate(&repo, &asset(&root));
+    if std::env::var_os("DRACON_HYDRATION_TEST_RACE").is_some() {
+        assert!(result.is_err());
+    } else {
+        result.unwrap();
+    }
+}
+
+pub(super) fn race_at(phase: &str, parent: &File, name: &OsStr) {
+    let Ok(race) = std::env::var("DRACON_HYDRATION_TEST_RACE") else {
+        return;
+    };
+    if race == phase {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).mode(0o600);
+        if phase == "before-original-capture" {
+            options.truncate(true);
+        } else {
+            options.create_new(true);
+        }
+        let mut file = options.open(fd_path(parent).join(name)).unwrap();
+        file.write_all(b"concurrent operator edit").unwrap();
+        file.sync_all().unwrap();
+    } else if race == "parent" && phase == "before-original-capture" {
+        let old_parent = std::fs::read_link(fd_path(parent)).unwrap();
+        let repo = old_parent.parent().unwrap();
+        let outside = repo.parent().unwrap().join("outside-assets");
+        std::fs::create_dir(&outside).unwrap();
+        std::fs::write(outside.join(name), b"outside sentinel").unwrap();
+        std::fs::rename(&old_parent, repo.join("assets.moved")).unwrap();
+        std::os::unix::fs::symlink(&outside, &old_parent).unwrap();
+    }
+}
+
+#[test]
+fn concurrent_edits_creation_and_parent_replacement_preserve_all_operator_bytes() {
+    for race in [
+        "before-original-capture",
+        "before-working-publication",
+        "parent",
+    ] {
+        let f = Fixture::new(0o100644);
+        let repo = f.repo();
+        let index = std::fs::read(repo.path().join("index")).unwrap();
+        let child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "storage_core::hydration::tests::crash_helper",
+                "--ignored",
+                "--exact",
+            ])
+            .env("DRACON_HYDRATION_TEST_ROOT", f.root())
+            .env("DRACON_HYDRATION_TEST_RACE", race)
+            .env_remove("DRACON_HYDRATION_CRASH_POINT")
+            .output()
+            .unwrap();
+        assert!(
+            child.status.success(),
+            "{race}: {}",
+            String::from_utf8_lossy(&child.stderr)
+        );
+        let expected: &[u8] = if race == "parent" {
+            b"outside sentinel"
+        } else {
+            b"concurrent operator edit"
+        };
+        assert_eq!(std::fs::read(f.working()).unwrap(), expected, "{race}");
+        assert_eq!(std::fs::read(f.asset().path()).unwrap(), DATA);
+        assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), index);
+        assert!(!repo.path().join("index.lock").exists());
+        if race == "parent" {
+            assert_eq!(
+                std::fs::read(f.root().join("repo/assets.moved/private.bin")).unwrap(),
+                Pointer::new(payload()).unwrap().encode()
+            );
+        }
+        let transactions = f.root().join("hydration").join(REPO_ID);
+        let transaction = std::fs::read_dir(transactions)
+            .unwrap()
+            .filter_map(Result::ok)
+            .find(|entry| entry.path().is_dir())
+            .unwrap();
+        assert_eq!(
+            std::fs::read(transaction.path().join("publish.source")).unwrap(),
+            DATA
+        );
+        if race == "before-working-publication" {
+            assert_eq!(
+                std::fs::read(transaction.path().join("original")).unwrap(),
+                Pointer::new(payload()).unwrap().encode()
+            );
+        }
+    }
 }
