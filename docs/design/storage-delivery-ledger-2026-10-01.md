@@ -540,3 +540,16 @@ assuming SIGKILL delivery is synchronous. Evidence:
 follow after the running checks finish. The larger roadmap remains active;
 this resource qualification does not complete S3, enrollment, hydration,
 working-source races or outgoing-history/push protection.
+
+The first full workspace attempt exposed a pre-existing timing dependence in
+the historical-manifest integration fixture. With stderr diagnostics added,
+the failure reproduced on attempt seven: Git refreshed an unrelated `second.bin`
+index entry and correctly refused it because the restored older manifest did
+not enroll that later-added path. The fixture had relied on the stat cache
+skipping it. The historical index now removes that later-added entry before
+restoring its earlier manifest, preserves the working bytes, and explicitly
+proves a subsequent attempt to add the unenrolled sibling fails. Production
+clean/guard checks were not weakened. That first failed run is retained at
+`/tmp/dracon-bounded-attrs-workspace.log`; diagnostic evidence is at
+`/tmp/dracon-historical-clean-repeat.log`. The fixed targeted case passed;
+repeat qualification and a fresh full workspace run follow.
