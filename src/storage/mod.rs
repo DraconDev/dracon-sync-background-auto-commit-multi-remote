@@ -904,7 +904,9 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
     };
     dracon_sync::storage_core::reference::validate_sha256(repo_id)?;
     let repository = git2::Repository::open(repo)?;
-    let workdir = repository.workdir().context("clean driver requires a worktree")?;
+    let workdir = repository
+        .workdir()
+        .context("clean driver requires a worktree")?;
     if workdir.canonicalize()? != repo.canonicalize()?
         || repository
             .config()?
@@ -991,7 +993,9 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
         bail!("invalid protected metadata index mode");
     }
     let (size, kind) = repository.odb()?.read_header(entry.id)?;
-    if kind != git2::ObjectType::Blob || size as u64 > dracon_sync::storage_core::metadata::MAX_PROTECTED_MANIFEST_BYTES {
+    if kind != git2::ObjectType::Blob
+        || size as u64 > dracon_sync::storage_core::metadata::MAX_PROTECTED_MANIFEST_BYTES
+    {
         bail!("protected metadata exceeds budget");
     }
     let blob = repository.find_blob(entry.id)?;

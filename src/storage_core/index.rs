@@ -267,10 +267,13 @@ impl IndexTransaction {
                 if entry.mode != 0o100644 {
                     bail!(BackendFailure::Security);
                 }
-                let blob = self.repo.find_blob(entry.id)?;
-                if blob.size() as u64 > super::metadata::MAX_PROTECTED_MANIFEST_BYTES {
+                let (size, kind) = self.repo.odb()?.read_header(entry.id)?;
+                if kind != ObjectType::Blob
+                    || size as u64 > super::metadata::MAX_PROTECTED_MANIFEST_BYTES
+                {
                     bail!(BackendFailure::Capacity);
                 }
+                let blob = self.repo.find_blob(entry.id)?;
                 let fp = Fingerprint::new(
                     format!("{:x}", Sha256::digest(blob.content())),
                     blob.size() as u64,
@@ -346,7 +349,7 @@ impl IndexTransaction {
             if let Some(existing) = existing {
                 if path != &self.metadata_path
                     && (!matches!(existing.mode, 0o100644 | 0o100755)
-                        || Pointer::parse(self.repo.find_blob(existing.id)?.content()).is_err())
+                        || bounded_pointer(&self.repo, existing.id)?.is_none())
                 {
                     bail!("tracked raw paths require reviewed external migration");
                 }
@@ -475,9 +478,23 @@ impl IndexTransaction {
 use std::collections::BTreeSet;
 
 fn fresh_index(repo: &Repository) -> Result<Index> {
+    let path = repo.path().join("index");
+    if journal::exists_without_symlink(&path)?
+        && owned_file(&path)?.metadata()?.len() > MAX_INDEX_BYTES
+    {
+        bail!(BackendFailure::Capacity);
+    }
     let mut index = repo.index()?;
     index.read(true)?;
     Ok(index)
+}
+
+fn bounded_pointer(repo: &Repository, oid: Oid) -> Result<Option<Pointer>> {
+    let (size, kind) = repo.odb()?.read_header(oid)?;
+    if kind != ObjectType::Blob || size > 1024 {
+        return Ok(None);
+    }
+    Ok(Pointer::parse(repo.find_blob(oid)?.content()).ok())
 }
 
 fn desired(
@@ -502,9 +519,7 @@ fn desired(
         match (&enrolled.payload, entry) {
             (None, None) => {}
             (Some(payload), Some(entry)) if matches!(entry.mode, 0o100644 | 0o100755) => {
-                let blob = repo.find_blob(entry.id)?;
-                if Pointer::parse(blob.content())
-                    .ok()
+                if bounded_pointer(repo, entry.id)?
                     .as_ref()
                     .map(Pointer::payload)
                     != Some(payload)
