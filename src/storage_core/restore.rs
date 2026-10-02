@@ -16,8 +16,11 @@ use super::security::WardenAdapter;
 
 /// Private exact-version recovery receipt; no plaintext digest is exposed.
 pub struct RestoredAsset {
-    path: PathBuf,
-    bytes: u64,
+    pub(super) path: PathBuf,
+    pub(super) source: Fingerprint,
+    pub(super) repo_id: String,
+    pub(super) path_hex: String,
+    pub(super) payload: Fingerprint,
 }
 
 impl RestoredAsset {
@@ -27,7 +30,7 @@ impl RestoredAsset {
     }
     /// Actual verified/decrypted output length.
     pub fn bytes(&self) -> u64 {
-        self.bytes
+        self.source.bytes()
     }
 }
 
@@ -176,7 +179,10 @@ impl RestoreStore {
         journal::verify_snapshot(&path, &source)?;
         Ok(RestoredAsset {
             path,
-            bytes: source.bytes(),
+            source,
+            repo_id: self.repo_id.clone(),
+            path_hex: enrollment.path_hex.clone(),
+            payload: payload.clone(),
         })
     }
 }

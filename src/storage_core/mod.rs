@@ -9,6 +9,8 @@ pub mod backend;
 pub mod bindings;
 pub mod clean;
 pub mod index;
+#[cfg(target_os = "linux")]
+pub mod hydration;
 pub mod journal;
 pub mod manifest;
 pub mod metadata;
