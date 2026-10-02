@@ -1765,7 +1765,7 @@ fn portable_storage_declaration(
     };
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
     let mut outcome = Ok(false);
-    head.walk(git2::TreeWalkMode::PreOrder, |_, entry| {
+    let traversal = head.walk(git2::TreeWalkMode::PreOrder, |_, entry| {
         if std::time::Instant::now() >= deadline {
             outcome = Err(anyhow::anyhow!(
                 "portable storage HEAD detection deadline exceeded"
@@ -1782,15 +1782,14 @@ fn portable_storage_declaration(
             }
         }
         git2::TreeWalkResult::Ok
-    })
-    .or_else(|error| {
-        if outcome.as_ref().is_ok_and(|found| !found) {
-            Err(error)
-        } else {
-            Ok(())
+    });
+    match outcome {
+        Ok(false) => {
+            traversal?;
+            Ok(false)
         }
-    })?;
-    outcome
+        result => result,
+    }
 }
 
 /// Direct daemon and manual-hook entrypoint. No storage marker means no change.
