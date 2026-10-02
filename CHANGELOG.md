@@ -22,8 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nested repositories and special files; existing ignores/exclusions, ownership
   opt-out, tracked content and unapproved filters block capture. Retries reuse
   the same version, while changed bytes create another retained job. Local CLI
-  and actual-Warden encryption/copy/decryption fixtures cover the pipeline;
-  automatic routing/enrollment, provider drills and release remain unfinished.
+  and actual-Warden encryption/copy/decryption fixtures cover the pipeline.
+  Unreleased `storage capture-update` retains a new version of an already
+  enrolled path under its recorded contract from verified committed metadata,
+  even if current rules or sizes changed; unhydrated pointer bytes and missing
+  storage filters are refused. Automatic routing/enrollment, provider drills
+  and release remain unfinished.
 
 - Unreleased `storage advance-job` prepares an already captured exact version
   through Warden or an explicit non-sensitive grant, verifies all required copies

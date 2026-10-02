@@ -493,7 +493,8 @@ remain an unreleased preview. A signed S3 HTTP adapter is tested in source;
 explicit S3 recovery uses a private operator credential vault. Explicit
 `storage probe-backend` checks competing creates and conflicting-write refusal;
 `storage capture` retains a policy-selected new path as an exact-version job;
-`storage advance-job` prepares that captured version and verifies required
-copies without changing Git. Automatic routing and independent-provider
-certification remain unfinished.
+`storage capture-update` retains a new version of an already enrolled path
+under its recorded contract; `storage advance-job` prepares a captured version
+and verifies required copies without changing Git. Automatic routing and
+independent-provider certification remain unfinished.
 The preview usage above documents the required bindings and limitations.

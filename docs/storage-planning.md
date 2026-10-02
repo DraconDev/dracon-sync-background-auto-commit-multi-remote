@@ -640,8 +640,32 @@ refuses capture/advancement. It refuses existing index/HEAD content because
 initial adoption requires verified enrollment or reviewed forward migration.
 It also refuses an existing effective Git filter until composition is approved.
 This command creates a private job, not a sticky enrollment or filter bypass.
-Enrolled-path updates and tracked-file migration still need integration with
-protected manifests and the Git transaction worker.
+Tracked-file migration still needs integration with protected manifests and
+the Git transaction worker.
+
+`storage capture-update` retains a new version of an already enrolled path:
+
+```sh
+dracon-sync storage capture-update --repo /absolute/checkout \
+  --repo-id YOUR_EXISTING_REPOSITORY_ID \
+  --journal-root /absolute/private/journal \
+  --metadata-root /absolute/private/metadata \
+  --manifest-path .dracon/assets.manifest --revision HEAD \
+  --policy /absolute/operator-policy.toml --git-target github \
+  --json -- declared-assets/example.data
+```
+
+The enrollment contract (placement digest, primary, required copies,
+encryption) is read from verified protected metadata at the selected committed
+revision, never from current policy rules or sizes: a file stays external
+under its recorded contract even if rules change or a size threshold would now
+exclude it. The committed reference must agree with that enrollment first.
+An unhydrated checkout (any pointer-shaped working file) is refused as new
+asset bytes; hydrate before capturing. The path must keep the verified
+`dracon-storage` filter so a later `git add` cannot stage raw bytes.
+Otherwise the command shares capture's ownership, exclusion, containment and
+reporting behavior, and likewise performs no upload, enrollment, Git mutation
+or push. Manifest publication for the new version remains a separate step.
 
 On Unix, source directories are pinned with descriptors and traversed without
 following symlinks; nested `.git` ownership markers are refused. Only regular
