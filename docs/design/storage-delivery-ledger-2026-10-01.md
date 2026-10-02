@@ -372,3 +372,16 @@ No fleet filters/configuration, installed binary or live bucket changed.
 Production attribute/setup composition, binding selection/reconciliation,
 working-source races for direct index plumbing, outgoing-commit validation,
 S3, cold import/hydration and daemon transfers remain unfinished.
+
+The expanded core suite passed 68 tests (nine ignored). The three indexed-metadata
+Git checks passed after adding mismatched ciphertext refusal. A further real-Git
+non-UTF-8 path check passed; the final four-test integration run completed in
+5.31 seconds and its subsequent strict all-target Sync Clippy check passed.
+The full workspace snapshot contains the earlier three-test integration file;
+the separately completed run verifies the additional path case.
+
+The locked release build, strict all-target workspace Clippy, dependency policy,
+Sync formatting and diff checks passed. The built release CLI's clean-driver
+help also ran successfully with the documented explicit binding arguments.
+No dependency or default policy change was needed for this milestone.
+Final workspace results are recorded below when its existing run completes.
