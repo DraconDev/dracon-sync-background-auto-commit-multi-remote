@@ -397,7 +397,8 @@ enrollments, mismatched references and failed decryption publish no asset.
 
 The command prints the verified byte count and an opaque private file path.
 It leaves the checkout, index, filters, hooks and daemon bindings unchanged.
-Working-file hydration remains unfinished; this command does not replace a
+Use the separate explicit hydration command below to publish working bytes;
+this recovery command does not replace a
 working pointer or overwrite concurrent edits. Existing recovery files are
 verified and preserved, and conflicting content is refused. Versions are never
 evicted to make room. Publication uses a create-only operation so a concurrently
@@ -410,3 +411,66 @@ Positive `--max-payload-bytes`, `--max-output-bytes` and
 the per-output limit. These are recovery resource budgets, unrelated to a
 forge's push limits. Anonymous transient files separately hold bounded payload
 and decrypted output; failed attempts retain no published partial output.
+
+## Hydrating the checked-out version (unreleased, Linux)
+
+Use a source daemon with the storage guard and an already bound required clean
+driver, or an isolated checkout outside daemon watch roots. The installed
+0.113.92 daemon is not a deployment of this feature. Automatic enrollment and
+filter installation remain unfinished; do not apply this preview to the fleet.
+
+After importing metadata and explicitly setting up the matching guard, hydrate
+one asset:
+
+```sh
+dracon-sync storage hydrate \
+  --repo /path/to/checkout --repo-id "$REPO_ID" \
+  --metadata-root /private/cold-metadata \
+  --manifest-path .dracon/assets.manifest --path assets/private-video.mp4 \
+  --policy /path/to/operator.toml --backend recovery \
+  --restore-root /private/restored-assets \
+  --hydration-root /private/checkout-hydration \
+  --warden /absolute/path/to/dracon-warden \
+  --identity-home /path/to/authorized-identity-home
+```
+
+The recovery options and grants match `restore-asset`. Hydration additionally
+requires the selected commit to be HEAD, and the metadata root/path/repository
+ID to match the configured guard. Inside the owned Git index lease it rechecks
+placement and exact staged pointer/protected metadata correspondence before
+changing working bytes. A historical version can be recovered privately with
+`restore-asset`; check out that version explicitly before hydrating it.
+
+The hydration root must be private, dedicated to this checkout and on the same
+filesystem as the asset. Linux `/proc` and filesystem support for create-only
+`renameat2` are required; unsupported operations fail without replacement.
+Destination parents must already exist and cannot contain symlinks. Output is
+an independent file, with mode 0600 (0700 for an executable Git entry), so edits
+cannot mutate the recovery cache through a hard link. Local edits, symlinks,
+hard links, unresolved indexes, changed parents and inconsistent references are
+refused. Git index bytes, commits, filters and hooks remain unchanged.
+
+Publication retains an immutable private intent and verified output, moves only
+the matching working pointer into a private `original` backup, then publishes
+without replacing an existing destination. A concurrently created operator file
+wins. Capture conflicts restore the displaced file only if its working path is
+still absent; otherwise both files are preserved for review. The command prints
+the original backup path after success. No previous version is evicted.
+
+There is a brief interval between pointer capture and publication when the
+working path is absent. Process death can leave that interval open; durable
+private records/backups and the owned Git lock survive. Rerun hydration, or add
+`--resume-local` to the same command to use a matching previously authorized
+local transaction without fetching or decrypting again. Local resume checks the
+current commit, parent identity, private intent, staged references and retained
+output digest; it never selects the newest unrelated record. Missing preparation,
+corruption or local edits fail while retaining all files. On failure, inspect the
+reported private roots before manual recovery; no force/overwrite mode is supplied.
+
+Hydration retains at most 10,000 transaction versions per repository namespace.
+The existing output/retention byte flags also bound transaction output and
+original backups, separately from the recovery cache; private metadata records
+and interrupted record spools have their own bounded count/size. An oversized
+or full store refuses further growth. This preview does not provide automatic
+startup reconciliation, S3, smudge hydration or an independent-provider durability
+certificate. Complete outgoing-history/push checks remain unfinished.

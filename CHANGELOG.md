@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased Linux `storage hydrate` publishes a verified asset only for the
+  checked-out commit and matching configured guard/index metadata. Private
+  pointer backups, create-only publication and process-backed leases preserve
+  concurrent files and support interrupted publication. `--resume-local` uses
+  matching retained output without a new backend fetch/decryption. Index bytes
+  and Git history remain unchanged; local edits and corrupt/ambiguous state are
+  refused. Automatic enrollment, S3 and production routing remain unfinished.
+
 - Storage guards now detect staged/HEAD `filter=dracon-storage` declarations
   even without local filter settings, protecting cold clones and staged
   attribute deletion. Inherited filter settings also require a local binding.
