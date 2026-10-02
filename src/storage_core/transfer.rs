@@ -4,6 +4,8 @@ use super::backend::BackendFailure;
 use super::bindings::CopyBindings;
 use super::journal::{FailureCode, Job, JobLease};
 use anyhow::{bail, Context, Result};
+use sha2::{Digest, Sha256};
+use std::io::Read;
 
 /// Upload/read back every required copy using operator-resolved backend adapters.
 ///
@@ -32,11 +34,12 @@ pub fn transfer_copies(lease: &JobLease, backends: &CopyBindings<'_>, now: u64) 
             Ok(input) => input,
             Err(_) => return fail(lease, &mut job, FailureCode::Integrity, now),
         };
-        let actual = match backend.put(&mut input) {
+        let mut selected = SelectedInput::new(&mut input, &expected);
+        let actual = match backend.put(&mut selected) {
             Ok(actual) => actual,
             Err(error) => return fail(lease, &mut job, classify(&error), now),
         };
-        if actual != expected {
+        if actual != expected || !selected.finished {
             return fail(lease, &mut job, FailureCode::Integrity, now);
         }
         if let Err(error) = backend.get_verified(&expected, &mut std::io::sink()) {
@@ -47,6 +50,72 @@ pub fn transfer_copies(lease: &JobLease, backends: &CopyBindings<'_>, now: u64) 
         lease.save(&mut job)?;
     }
     Ok(job)
+}
+
+// Known adapters capture through EOF before remote publication. Validate the
+// selected identity at that boundary, rather than detecting changed bytes only
+// after a put has already published an unapproved representation.
+struct SelectedInput<'a> {
+    input: &'a mut dyn Read,
+    expected: &'a super::reference::Fingerprint,
+    hash: Sha256,
+    bytes: u64,
+    finished: bool,
+    failed: bool,
+}
+impl<'a> SelectedInput<'a> {
+    fn new(input: &'a mut dyn Read, expected: &'a super::reference::Fingerprint) -> Self {
+        Self {
+            input,
+            expected,
+            hash: Sha256::new(),
+            bytes: 0,
+            finished: false,
+            failed: false,
+        }
+    }
+    fn invalid(&mut self) -> std::io::Error {
+        self.failed = true;
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "selected payload changed before publication",
+        )
+    }
+}
+impl Read for SelectedInput<'_> {
+    fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
+        if self.failed {
+            return Err(self.invalid());
+        }
+        if self.finished || output.is_empty() {
+            return Ok(0);
+        }
+        let limit = self
+            .expected
+            .bytes()
+            .saturating_sub(self.bytes)
+            .saturating_add(1)
+            .min(output.len() as u64) as usize;
+        let count = self.input.read(&mut output[..limit])?;
+        if count == 0 {
+            if self.bytes != self.expected.bytes()
+                || format!("{:x}", self.hash.clone().finalize()) != self.expected.sha256()
+            {
+                return Err(self.invalid());
+            }
+            self.finished = true;
+            return Ok(0);
+        }
+        self.bytes = self
+            .bytes
+            .checked_add(count as u64)
+            .ok_or_else(|| self.invalid())?;
+        if self.bytes > self.expected.bytes() {
+            return Err(self.invalid());
+        }
+        self.hash.update(&output[..count]);
+        Ok(count)
+    }
 }
 
 pub(super) fn classify(error: &anyhow::Error) -> FailureCode {
@@ -326,5 +395,85 @@ mod tests {
             transfer_copies(&lease, &backends, 31).unwrap().phase(),
             Phase::ReadyToStage
         );
+    }
+    #[test]
+    fn changed_snapshot_is_rejected_before_immutable_backend_publication() {
+        struct Changed {
+            local: LocalBackend,
+            path: std::path::PathBuf,
+            replacement: Vec<u8>,
+        }
+        impl ImmutableBackend for Changed {
+            fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
+                std::fs::write(&self.path, &self.replacement)?;
+                self.local.put(input)
+            }
+            fn get_verified(&self, id: &Fingerprint, output: &mut dyn Write) -> Result<()> {
+                self.local.get_verified(id, output)
+            }
+        }
+        for replacement in [vec![b'z'; 31], b"short".to_vec(), vec![b'z'; 100]] {
+            let temp = tempfile::tempdir().unwrap();
+            let (journal, job) = fixture(temp.path());
+            let source = std::fs::read(
+                temp.path()
+                    .join("journal")
+                    .join("a".repeat(64))
+                    .join(format!("{}.source", job.id())),
+            )
+            .unwrap();
+            let root = temp.path().join("objects");
+            let backend = Changed {
+                local: LocalBackend::open(&root, 1024).unwrap(),
+                path: temp
+                    .path()
+                    .join("journal")
+                    .join("a".repeat(64))
+                    .join(format!("{}.payload", job.id())),
+                replacement,
+            };
+            let bindings = approved(BTreeMap::from([
+                ("primary".into(), &backend as &dyn ImmutableBackend),
+                ("recovery".into(), &backend as &dyn ImmutableBackend),
+            ]));
+            let lease = journal.lease(job.id()).unwrap();
+            assert!(transfer_copies(&lease, &bindings, 1).is_err());
+            assert_eq!(
+                lease.load().unwrap().failure(),
+                Some(FailureCode::Integrity)
+            );
+            assert_eq!(
+                std::fs::read_dir(&root)
+                    .unwrap()
+                    .filter(|entry| !entry
+                        .as_ref()
+                        .unwrap()
+                        .file_name()
+                        .as_encoded_bytes()
+                        .starts_with(b"."))
+                    .count(),
+                0
+            );
+            assert_eq!(
+                std::fs::read(backend.path.with_extension("source")).unwrap(),
+                source
+            );
+        }
+    }
+
+    #[test]
+    fn selected_input_requires_exact_eof_even_for_empty_payloads() {
+        let empty = Fingerprint::new(format!("{:x}", Sha256::digest(b"")), 0).unwrap();
+        let mut input = &b""[..];
+        let mut selected = SelectedInput::new(&mut input, &empty);
+        assert_eq!(selected.read(&mut []).unwrap(), 0);
+        assert!(!selected.finished);
+        assert_eq!(selected.read(&mut [0]).unwrap(), 0);
+        assert!(selected.finished);
+        let mut input = &b"extra"[..];
+        let mut selected = SelectedInput::new(&mut input, &empty);
+        assert!(selected.read(&mut [0; 64]).is_err());
+        assert!(selected.read(&mut [0; 64]).is_err());
+        assert!(!selected.finished);
     }
 }
