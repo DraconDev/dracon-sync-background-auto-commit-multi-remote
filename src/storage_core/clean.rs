@@ -110,3 +110,139 @@ impl<'a> PreparedClean<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage_core::journal::{
+        encode_relative_path, Encryption, JobSpec, Journal, Limits,
+    };
+
+    fn fixture(bytes: &[u8]) -> (tempfile::TempDir, Journal, String, Fingerprint) {
+        let temp = tempfile::tempdir().unwrap();
+        let source =
+            Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+        let journal = Journal::open(
+            &temp.path().join("journal"),
+            &"a".repeat(64),
+            Limits::default(),
+        )
+        .unwrap();
+        let job = journal
+            .create(JobSpec {
+                repo_id: "a".repeat(64),
+                path_hex: encode_relative_path(b"asset.bin").unwrap(),
+                source: source.clone(),
+                policy_sha256: "b".repeat(64),
+                primary: "primary".into(),
+                required_copies: vec!["primary".into()],
+                required_git_targets: vec!["github".into()],
+                encryption: Encryption::WardenAge,
+            })
+            .unwrap();
+        (temp, journal, job.id().into(), source)
+    }
+
+    // These unit tests isolate streaming mechanics. Real Git integration exercises
+    // the public constructor with verified snapshots, copies and protected metadata.
+    fn clean<'a>(lease: &'a JobLease, source: Fingerprint) -> PreparedClean<'a> {
+        PreparedClean {
+            _lease: lease,
+            source,
+            pointer: Pointer::new(Fingerprint::new("c".repeat(64), 200).unwrap()).unwrap(),
+        }
+    }
+
+    #[test]
+    fn unchanged_input_and_exact_unhydrated_pointer_are_deterministic() {
+        let bytes = b"private source version";
+        let (_temp, journal, id, source) = fixture(bytes);
+        let lease = journal.lease(&id).unwrap();
+        let clean = clean(&lease, source.clone());
+        let mut output = Vec::new();
+        clean.clean(&mut &bytes[..], &mut output).unwrap();
+        assert_eq!(output, clean.pointer.encode());
+        assert!(!String::from_utf8_lossy(&output).contains(source.sha256()));
+        let mut repeated = Vec::new();
+        clean.clean(&mut &output[..], &mut repeated).unwrap();
+        assert_eq!(repeated, output);
+    }
+
+    #[test]
+    fn changed_shorter_longer_and_foreign_pointer_inputs_emit_nothing() {
+        let bytes = b"selected source";
+        let (_temp, journal, id, source) = fixture(bytes);
+        let lease = journal.lease(&id).unwrap();
+        let clean = clean(&lease, source);
+        let foreign = Pointer::new(Fingerprint::new("d".repeat(64), 200).unwrap())
+            .unwrap()
+            .encode();
+        for input in [
+            b"Selected source".to_vec(),
+            b"selected sourc".to_vec(),
+            b"selected source!".to_vec(),
+            foreign,
+        ] {
+            let mut output = b"existing output".to_vec();
+            assert!(clean.clean(&mut &input[..], &mut output).is_err());
+            assert_eq!(output, b"existing output");
+        }
+    }
+
+    #[test]
+    fn large_source_uses_bounded_read_requests() {
+        struct Bounded<'a>(&'a [u8]);
+        impl Read for Bounded<'_> {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                assert!(buffer.len() <= 64 * 1024);
+                self.0.read(buffer)
+            }
+        }
+        let bytes = vec![7; 4 * 1024 * 1024];
+        let (_temp, journal, id, source) = fixture(&bytes);
+        let lease = journal.lease(&id).unwrap();
+        let clean = clean(&lease, source);
+        let mut output = Vec::new();
+        clean.clean(&mut Bounded(&bytes), &mut output).unwrap();
+        assert_eq!(output, clean.pointer.encode());
+    }
+
+    #[test]
+    fn oversized_unknown_stream_stops_at_bounded_recognition_window() {
+        struct Endless {
+            bytes: usize,
+        }
+        impl Read for Endless {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                self.bytes += buffer.len();
+                assert!(self.bytes <= 1025);
+                buffer.fill(7);
+                Ok(buffer.len())
+            }
+        }
+        let (_temp, journal, id, source) = fixture(b"short");
+        let lease = journal.lease(&id).unwrap();
+        let clean = clean(&lease, source);
+        let mut input = Endless { bytes: 0 };
+        let mut output = Vec::new();
+        assert!(clean.clean(&mut input, &mut output).is_err());
+        assert_eq!(input.bytes, 1025);
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn read_failure_cannot_publish_partial_reference_or_raw_input() {
+        struct Failing;
+        impl Read for Failing {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("fixture read failed"))
+            }
+        }
+        let (_temp, journal, id, source) = fixture(b"private bytes");
+        let lease = journal.lease(&id).unwrap();
+        let clean = clean(&lease, source);
+        let mut output = Vec::new();
+        assert!(clean.clean(&mut Failing, &mut output).is_err());
+        assert!(output.is_empty());
+    }
+}
