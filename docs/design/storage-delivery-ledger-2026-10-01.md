@@ -385,3 +385,19 @@ Sync formatting and diff checks passed. The built release CLI's clean-driver
 help also ran successfully with the documented explicit binding arguments.
 No dependency or default policy change was needed for this milestone.
 Final workspace results are recorded below when its existing run completes.
+
+The full workspace run completed successfully: 2012 passed, zero failed and
+18 ignored, including both actual Warden storage streaming checks. It covers
+all production changes in this milestone and the three-test Git snapshot;
+the final four-test run separately proves lossless CLI/Git path handling.
+Evidence logs: `/tmp/dracon-clean-workspace.log`, `/tmp/dracon-clean-core.log`,
+`/tmp/dracon-clean-verified-git.log`, `/tmp/dracon-clean-path-git.log`,
+`/tmp/dracon-clean-final-clippy.log`, `/tmp/dracon-clean-path-clippy.log`,
+`/tmp/dracon-clean-release.log`, `/tmp/dracon-clean-deny.log`.
+
+Next Git integration work must replace per-version driver arguments with
+repository-wide approved version selection, preserve the single effective
+filter/attribute contract, and add outgoing-commit and working-source race
+checks. The command's explicit version binding is an infrastructure interface,
+not the final automatically configured fleet workflow. All remaining roadmap
+packages retain their original scope; no production release is claimed.
