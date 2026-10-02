@@ -6849,7 +6849,10 @@ auto_bump_versions = false
             .arg(&repo)
             .status()
             .unwrap();
-        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+        for (k, v) in [
+            ("user.email", "audit-fixture@invalid"),
+            ("user.name", "test"),
+        ] {
             crate::git::git_cmd()
                 .args(["-C", &repo.to_string_lossy(), "config", k, v])
                 .status()
@@ -6924,7 +6927,7 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
-trusted_emails = ["test@test"]
+trusted_emails = ["audit-fixture@invalid"]
 trusted_authors = ["test"]
 auto_commit_exclude_patterns = ["dirty.txt"]
 "#;
@@ -8507,7 +8510,10 @@ push_url = "git@nonexistent.example.com:repo.git"
             .arg(&repo)
             .status()
             .unwrap();
-        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+        for (k, v) in [
+            ("user.email", "audit-fixture@invalid"),
+            ("user.name", "test"),
+        ] {
             crate::git::git_cmd()
                 .args(["-C", &repo.to_string_lossy(), "config", k, v])
                 .status()
@@ -8544,7 +8550,7 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
-trusted_emails = ["test@test"]
+trusted_emails = ["audit-fixture@invalid"]
 trusted_authors = ["test"]
 "#;
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
@@ -8671,7 +8677,7 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
-trusted_emails = ["test@test"]
+trusted_emails = ["audit-fixture@invalid"]
 trusted_authors = ["test"]
 
 [[remotes]]
@@ -9050,7 +9056,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
                 &repo.to_string_lossy(),
                 "config",
                 "user.email",
-                "test@test",
+                "audit-fixture@invalid",
             ])
             .status()
             .unwrap();
@@ -9104,7 +9110,7 @@ auto_commit = true
 auto_pull = false
 auto_push = true
 auto_bump_versions = false
-trusted_emails = ["test@test"]
+trusted_emails = ["audit-fixture@invalid"]
 trusted_authors = ["test"]
 
 [[remotes]]
