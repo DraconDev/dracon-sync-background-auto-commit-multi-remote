@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Configured daemon commits validate the immutable staged tree under an owned
   Git index lock, including bootstrap commits, instead of relying on hooks that
   libgit2 bypasses. Binding setup does not install filters or transfer data.
+  Attribute queries have explicit input/output/path/value budgets and an I/O
+  deadline; failed queries terminate their owned Unix process group. Strict
+  response parsing refuses duplicate, unknown or extra records.
 
 - Optional storage policy and read-only `storage plan`, `storage validate`, and
   redacted `storage status` previews for generic repositories. External placement

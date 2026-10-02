@@ -242,6 +242,14 @@ repository/config overrides; errors leave the index and working files intact.
 This is reference/attribute correspondence, not a backend availability or
 independent-copy durability certificate.
 
+Attribute queries refuse more than 100,000 paths or 16 MiB of NUL-delimited
+input, cap stdout at 32 MiB and individual filter values at 1,024 bytes, and
+share a 30-second I/O/process deadline. On Unix, query failures terminate the
+owned process group, including descendants holding pipes after the parent exits.
+Responses with duplicate/unknown paths, extra fields or missing terminators
+fail without changing the index. Exceeding a budget blocks the check rather
+than verifying only part of the repository.
+
 Production setup must preserve unrelated attributes and hooks, compose Warden
 routing and wire daemon staging to exact prepared versions. Configured commit
 guard integration is described below; production setup, outgoing-history/push
