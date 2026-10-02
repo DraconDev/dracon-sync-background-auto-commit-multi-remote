@@ -267,38 +267,38 @@ impl CompiledPolicy {
 
 #[derive(Debug, clap::Args)]
 pub(crate) struct RecoveryOptions {
-        #[arg(long)]
-        repo: PathBuf,
-        #[arg(long)]
-        repo_id: String,
-        #[arg(long)]
-        metadata_root: PathBuf,
-        #[arg(long)]
-        manifest_path: PathBuf,
-        #[arg(long)]
-        path: PathBuf,
-        #[arg(long, default_value = "HEAD")]
-        revision: String,
-        /// Operator configuration; repository overrides cannot define adapters.
-        #[arg(long)]
-        policy: Option<PathBuf>,
-        /// Select an approved required copy; defaults to the declared primary.
-        #[arg(long)]
-        backend: Option<String>,
-        #[arg(long)]
-        restore_root: PathBuf,
-        #[arg(long)]
-        warden: Option<PathBuf>,
-        #[arg(long)]
-        identity_home: Option<PathBuf>,
-        #[arg(long, default_value_t = 30)]
-        timeout_secs: u64,
-        #[arg(long, default_value_t = 2 * 1024 * 1024 * 1024)]
-        max_payload_bytes: u64,
-        #[arg(long, default_value_t = 1024 * 1024 * 1024)]
-        max_output_bytes: u64,
-        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
-        max_retained_bytes: u64,
+    #[arg(long)]
+    repo: PathBuf,
+    #[arg(long)]
+    repo_id: String,
+    #[arg(long)]
+    metadata_root: PathBuf,
+    #[arg(long)]
+    manifest_path: PathBuf,
+    #[arg(long)]
+    path: PathBuf,
+    #[arg(long, default_value = "HEAD")]
+    revision: String,
+    /// Operator configuration; repository overrides cannot define adapters.
+    #[arg(long)]
+    policy: Option<PathBuf>,
+    /// Select an approved required copy; defaults to the declared primary.
+    #[arg(long)]
+    backend: Option<String>,
+    #[arg(long)]
+    restore_root: PathBuf,
+    #[arg(long)]
+    warden: Option<PathBuf>,
+    #[arg(long)]
+    identity_home: Option<PathBuf>,
+    #[arg(long, default_value_t = 30)]
+    timeout_secs: u64,
+    #[arg(long, default_value_t = 2 * 1024 * 1024 * 1024)]
+    max_payload_bytes: u64,
+    #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+    max_output_bytes: u64,
+    #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+    max_retained_bytes: u64,
 }
 
 #[derive(Debug, Subcommand)]
@@ -1017,7 +1017,10 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
-    if matches!(command, StorageCommand::RestoreAsset(_) | StorageCommand::Hydrate { .. }) {
+    if matches!(
+        command,
+        StorageCommand::RestoreAsset(_) | StorageCommand::Hydrate { .. }
+    ) {
         return restore_asset(command).await;
     }
     if matches!(command, StorageCommand::ImportManifest { .. }) {
@@ -1159,7 +1162,10 @@ mod tests;
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
     let (options, hydration_root) = match command {
         StorageCommand::RestoreAsset(options) => (options, None),
-        StorageCommand::Hydrate { recovery, hydration_root } => (recovery, Some(hydration_root)),
+        StorageCommand::Hydrate {
+            recovery,
+            hydration_root,
+        } => (recovery, Some(hydration_root)),
         _ => unreachable!("recovery command was matched"),
     };
     let RecoveryOptions {
@@ -1178,10 +1184,7 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         max_payload_bytes,
         max_output_bytes,
         max_retained_bytes,
-    } = command
-    else {
-        bail!("expected explicit recovery bindings");
-    };
+    } = options;
     use dracon_sync::storage_core::{
         backend::LocalBackend,
         bindings::{ApprovedBackend, RestoreBinding},
@@ -1231,6 +1234,16 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         )?
     };
     let commit = repository.revparse_single(revision)?.peel_to_commit()?;
+    if hydration_root.is_some() {
+        #[cfg(not(target_os = "linux"))]
+        bail!("working-file hydration currently requires Linux");
+        if repository.head()?.peel_to_commit()?.id() != commit.id() {
+            bail!("hydrate requires the selected checked-out commit; use restore-asset for historical recovery");
+        }
+        if !verify_configured_index(&repo, false)? {
+            bail!("hydrate requires an explicitly configured storage guard");
+        }
+    }
     let tree = commit.tree()?;
     let entry = tree.get_path(manifest_path)?;
     let (bytes, kind) = repository.odb()?.read_header(entry.id())?;
@@ -1333,6 +1346,28 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         adapter.as_ref(),
     )
     .await?;
+    if let Some(hydration_root) = hydration_root {
+        #[cfg(target_os = "linux")]
+        {
+            let hydrated = dracon_sync::storage_core::hydration::HydrationStore::open(hydration_root, repo_id, Limits {
+                max_snapshot_bytes: *max_output_bytes,
+                max_retained_snapshot_bytes: *max_retained_bytes,
+                ..Limits::default()
+            })?.hydrate(&repository, &restored, manifest_path, commit.id(), |_| {
+                if !verify_configured_index(&repo, false)? { bail!("hydrate requires the storage guard binding"); }
+                Ok(())
+            }).with_context(|| format!("hydration refused; retained recovery/transaction files preserved under {} and {}", restore_root.display(), hydration_root.display()))?;
+            println!(
+                "Verified hydration: {} bytes at {}",
+                restored.bytes(),
+                hydrated.path().display()
+            );
+            if let Some(backup) = hydrated.backup() {
+                println!("Original retained at {}", backup.display());
+            }
+            return Ok(());
+        }
+    }
     println!(
         "Verified recovery: {} bytes at {}",
         restored.bytes(),
