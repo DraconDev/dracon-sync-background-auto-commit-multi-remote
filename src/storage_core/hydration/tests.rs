@@ -341,6 +341,118 @@ fn crash_recovery_resumes_capture_and_publication_without_original_cache_changes
 }
 
 #[test]
+fn local_resume_needs_no_original_recovery_cache_and_preserves_edits() {
+    for phase in [
+        "after-original-capture",
+        "before-working-publication",
+        "after-working-publication",
+    ] {
+        let f = Fixture::new(0o100644);
+        let repo = f.repo();
+        let result = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "storage_core::hydration::tests::crash_helper",
+                "--ignored",
+                "--exact",
+            ])
+            .env("DRACON_HYDRATION_TEST_ROOT", f.root())
+            .env("DRACON_HYDRATION_CRASH_POINT", phase)
+            .output()
+            .unwrap();
+        assert_eq!(result.status.code(), Some(73));
+        std::fs::remove_file(f.asset().path()).unwrap();
+        let index = std::fs::read(repo.path().join("index")).unwrap();
+        let store = f.store(Limits::default());
+        let receipt = store
+            .resume(
+                &repo,
+                Path::new("assets.manifest"),
+                Path::new("assets/private.bin"),
+                |_| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(std::fs::read(receipt.path()).unwrap(), DATA);
+        assert_eq!(
+            std::fs::read(receipt.backup().unwrap()).unwrap(),
+            Pointer::new(payload()).unwrap().encode()
+        );
+        assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), index);
+        std::fs::write(f.working(), b"operator edit after local resume").unwrap();
+        assert!(store
+            .resume(
+                &repo,
+                Path::new("assets.manifest"),
+                Path::new("assets/private.bin"),
+                |_| Ok(())
+            )
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.working()).unwrap(),
+            b"operator edit after local resume"
+        );
+        assert!(!repo.path().join("index.lock").exists());
+    }
+}
+
+#[test]
+fn local_resume_refuses_corrupt_output_intent_and_missing_preparation() {
+    for failure in ["output", "intent", "unprepared"] {
+        let f = Fixture::new(0o100644);
+        let repo = f.repo();
+        let phase = if failure == "unprepared" {
+            "after-intent"
+        } else {
+            "after-original-capture"
+        };
+        let result = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "storage_core::hydration::tests::crash_helper",
+                "--ignored",
+                "--exact",
+            ])
+            .env("DRACON_HYDRATION_TEST_ROOT", f.root())
+            .env("DRACON_HYDRATION_CRASH_POINT", phase)
+            .output()
+            .unwrap();
+        assert_eq!(result.status.code(), Some(73));
+        let directory = std::fs::read_dir(f.root().join("hydration").join(REPO_ID))
+            .unwrap()
+            .filter_map(Result::ok)
+            .find(|entry| entry.path().is_dir())
+            .unwrap()
+            .path();
+        match failure {
+            "output" => {
+                std::fs::write(directory.join("publish.source"), b"corrupt retained output")
+                    .unwrap()
+            }
+            "intent" => {
+                std::fs::write(directory.join("intent.json"), b"corrupt private intent").unwrap()
+            }
+            _ => {}
+        }
+        let before = std::fs::read(f.working()).ok();
+        assert!(f
+            .store(Limits::default())
+            .resume(
+                &repo,
+                Path::new("assets.manifest"),
+                Path::new("assets/private.bin"),
+                |_| Ok(())
+            )
+            .is_err());
+        assert_eq!(std::fs::read(f.working()).ok(), before);
+        if failure != "unprepared" {
+            assert_eq!(
+                std::fs::read(directory.join("original")).unwrap(),
+                Pointer::new(payload()).unwrap().encode()
+            );
+        }
+        assert!(!repo.path().join("index.lock").exists());
+    }
+}
+
+#[test]
 #[ignore = "subprocess helper invoked by hydration crash recovery"]
 fn crash_helper() {
     let root = PathBuf::from(std::env::var_os("DRACON_HYDRATION_TEST_ROOT").unwrap());
