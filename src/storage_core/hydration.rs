@@ -98,10 +98,119 @@ impl HydrationStore {
         selected_commit: git2::Oid,
         check_placement: impl FnOnce(&git2::Repository) -> Result<()>,
     ) -> Result<HydratedAsset> {
+        let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
+        self.hydrate_locked(repo, asset, manifest_path, selected_commit, check_placement)
+    }
+
+    /// Resume only a matching, previously authorized local transaction. No
+    /// backend fetch or new decryption occurs; retained plaintext must verify.
+    pub fn resume(
+        &self,
+        repo: &git2::Repository,
+        manifest_path: &Path,
+        asset_path: &Path,
+        check_placement: impl FnOnce(&git2::Repository) -> Result<()>,
+    ) -> Result<HydratedAsset> {
+        let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
+        let path_hex = journal::encode_relative_path(asset_path.as_os_str().as_bytes())?;
+        let commit = repo.head()?.peel_to_commit()?.id();
+        let workdir = repo
+            .workdir()
+            .context("hydration requires a checkout")?
+            .canonicalize()?;
+        let root = directory_at_path(&workdir)?;
+        let parent = relative_directory(
+            &root,
+            asset_path.parent().context("hydration parent missing")?,
+        )?;
+        let mut selected = None;
+        let mut count = 0usize;
+        for entry in std::fs::read_dir(fd_path(&self.namespace))? {
+            let entry = entry?;
+            let name = entry.file_name();
+            if matches!(
+                name.to_str(),
+                Some(".gitignore" | ".runtime-ignore.lock" | "hydrate.lock")
+            ) {
+                continue;
+            }
+            super::reference::validate_sha256(name.to_str().context("unknown hydration entry")?)?;
+            count += 1;
+            if count > self.limits.max_records {
+                bail!("hydration version capacity exceeded");
+            }
+            let transaction = child_directory(&self.namespace, &name, false)?;
+            let Some(mut file) = file_at(&transaction, OsStr::new("intent.json"))? else {
+                continue;
+            };
+            let info = file.metadata()?;
+            if info.len() > 16 * 1024 || info.mode() & 0o077 != 0 {
+                bail!("invalid private hydration intent");
+            }
+            let mut bytes = Vec::new();
+            file.take(16 * 1024 + 1).read_to_end(&mut bytes)?;
+            let intent: Intent = serde_json::from_slice(&bytes)
+                .map_err(|_| anyhow::anyhow!("invalid hydration intent encoding"))?;
+            intent.source.validate()?;
+            intent.payload.validate()?;
+            intent.manifest_payload.validate()?;
+            if intent.version != 1
+                || intent.repo_id != self.repo_id
+                || !matches!(intent.mode, 0o100644 | 0o100755)
+            {
+                bail!("invalid hydration intent binding");
+            }
+            journal::validate_path_hex(&intent.path_hex)?;
+            let pinned = git2::Oid::from_str(&intent.commit)
+                .map_err(|_| anyhow::anyhow!("invalid hydration commit binding"))?;
+            if pinned.to_string() != intent.commit {
+                bail!("noncanonical hydration commit binding");
+            }
+            if intent.path_hex != path_hex
+                || pinned != commit
+                || intent.root != identity(&root)?
+                || intent.parent != identity(&parent)?
+            {
+                continue;
+            }
+            let source_path = if file_at(&transaction, OsStr::new("publish.source"))?.is_some() {
+                fd_path(&transaction).join("publish.source")
+            } else {
+                workdir.join(asset_path)
+            };
+            // The directory handle keeps the selected retained file bound while
+            // it is independently checked and consumed by hydrate_locked.
+            let candidate = (
+                transaction,
+                RestoredAsset {
+                    path: source_path,
+                    source: intent.source,
+                    repo_id: intent.repo_id,
+                    path_hex: intent.path_hex,
+                    payload: intent.payload,
+                    manifest_payload: intent.manifest_payload,
+                },
+            );
+            if selected.replace(candidate).is_some() {
+                bail!("ambiguous local hydration transactions");
+            }
+        }
+        let (_transaction, asset) =
+            selected.context("no matching retained hydration transaction")?;
+        self.hydrate_locked(repo, &asset, manifest_path, commit, check_placement)
+    }
+
+    fn hydrate_locked(
+        &self,
+        repo: &git2::Repository,
+        asset: &RestoredAsset,
+        manifest_path: &Path,
+        selected_commit: git2::Oid,
+        check_placement: impl FnOnce(&git2::Repository) -> Result<()>,
+    ) -> Result<HydratedAsset> {
         if asset.repo_id != self.repo_id || asset.source.bytes() > self.limits.max_snapshot_bytes {
             bail!("hydration recovery binding or output budget mismatch");
         }
-        let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
         let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
         if repo.head()?.peel_to_commit()?.id() != selected_commit {
             bail!("hydration requires the selected checked-out commit");
