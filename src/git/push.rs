@@ -543,7 +543,8 @@ mod tests {
     #[tokio::test]
     async fn daemon_push_paths_honor_pre_push_hooks() {
         use std::os::unix::fs::PermissionsExt;
-        let _git_bin = crate::test_helpers::GitBinRestorer::new("/usr/bin/git");
+        let git_bin = crate::policy::git_binary();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(git_bin.to_str().unwrap());
         for route in ["normal", "mirror", "maintenance"] {
             let fixture = tempfile::tempdir().unwrap();
             let repo = fixture.path().join("repo");
@@ -552,7 +553,7 @@ mod tests {
             std::fs::create_dir_all(&repo).unwrap();
             std::fs::create_dir_all(&hooks).unwrap();
             let git = |cwd: &Path, args: &[&str]| {
-                let output = std::process::Command::new("/usr/bin/git")
+                let output = std::process::Command::new(&git_bin)
                     .args([
                         "-c",
                         "core.hooksPath=/dev/null",
