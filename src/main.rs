@@ -746,7 +746,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     daemon::VERBOSITY.store(cli.verbose, Ordering::SeqCst);
     if let Command::Storage { cmd } = &cli.cmd {
-        return storage::run(cmd);
+        return storage::run(cmd).await;
     }
     let policy_path = resolve_policy_path()?;
 

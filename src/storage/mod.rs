@@ -267,6 +267,29 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Import authenticated committed metadata into a private cold-recovery cache.
+    ImportManifest {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        manifest_path: PathBuf,
+        #[arg(long, default_value = "HEAD")]
+        revision: String,
+        /// Operator-approved metadata import policy digest; never read from Git.
+        #[arg(long)]
+        policy_sha256: String,
+        /// Absolute operator-selected Warden binary; never read from the manifest.
+        #[arg(long)]
+        warden: PathBuf,
+        #[arg(long)]
+        identity_home: Option<PathBuf>,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+    },
     /// Bind already validated storage to a commit guard; no filter/hook installation.
     SetupGuard {
         #[arg(long)]
@@ -948,7 +971,10 @@ fn journal_status(
     })
 }
 
-pub(crate) fn run(command: &StorageCommand) -> Result<()> {
+pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    if matches!(command, StorageCommand::ImportManifest { .. }) {
+        return import_manifest(command).await;
+    }
     if let StorageCommand::SetupGuard {
         repo,
         repo_id,
@@ -1016,7 +1042,8 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         | StorageCommand::FilterClean { .. }
         | StorageCommand::VerifyIndex { .. }
         | StorageCommand::SetupGuard { .. }
-        | StorageCommand::VerifyConfiguredIndex { .. } => {
+        | StorageCommand::VerifyConfiguredIndex { .. }
+        | StorageCommand::ImportManifest { .. } => {
             unreachable!("local command handled before policy resolution")
         }
         StorageCommand::Plan {
@@ -1078,6 +1105,110 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
 
 #[cfg(test)]
 mod tests;
+
+async fn import_manifest(command: &StorageCommand) -> Result<()> {
+    let StorageCommand::ImportManifest {
+        repo,
+        repo_id,
+        metadata_root,
+        manifest_path,
+        revision,
+        policy_sha256,
+        warden,
+        identity_home,
+        timeout_secs,
+    } = command
+    else {
+        bail!("expected explicit import bindings");
+    };
+    use dracon_sync::storage_core::{
+        journal::Limits,
+        metadata::{MetadataStore, MAX_PROTECTED_MANIFEST_BYTES},
+        reference::{validate_sha256, Fingerprint},
+        security::WardenAdapter,
+    };
+    use sha2::{Digest, Sha256};
+    validate_sha256(repo_id)?;
+    validate_sha256(policy_sha256)?;
+    let repo = repo.canonicalize()?;
+    let repository = git2::Repository::open(&repo)?;
+    if repository
+        .workdir()
+        .context("manifest import requires a checkout")?
+        .canonicalize()?
+        != repo
+        || repository
+            .config()?
+            .open_level(git2::ConfigLevel::Local)?
+            .get_string("dracon.storageRepoId")
+            .ok()
+            .as_deref()
+            != Some(repo_id.as_str())
+    {
+        bail!("manifest import repository binding does not match");
+    }
+    if !metadata_root.is_absolute() {
+        bail!("absolute private metadata root required");
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(
+            manifest_path.as_os_str().as_bytes(),
+        )?;
+    }
+    #[cfg(not(unix))]
+    dracon_sync::storage_core::journal::encode_relative_path(
+        manifest_path
+            .to_str()
+            .context("unsupported manifest path")?
+            .as_bytes(),
+    )?;
+    let commit = repository.revparse_single(revision)?.peel_to_commit()?;
+    let tree = commit.tree()?;
+    let entry = tree.get_path(manifest_path)?;
+    if entry.filemode() != 0o100644 {
+        bail!("invalid committed metadata mode");
+    }
+    let (bytes, kind) = repository.odb()?.read_header(entry.id())?;
+    if kind != git2::ObjectType::Blob || bytes as u64 > MAX_PROTECTED_MANIFEST_BYTES {
+        bail!("committed metadata exceeds budget");
+    }
+    let blob = repository.find_blob(entry.id())?;
+    let payload = Fingerprint::new(
+        format!("{:x}", Sha256::digest(blob.content())),
+        bytes as u64,
+    )?;
+    let mut adapter = WardenAdapter::new(
+        warden,
+        &repo,
+        repo_id,
+        std::time::Duration::from_secs(*timeout_secs),
+    )?;
+    if let Some(home) = identity_home {
+        adapter = adapter.with_identity_home(home)?;
+    }
+    let store = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
+    let (_, manifest) = store
+        .import(&mut blob.content(), &payload, policy_sha256, &adapter)
+        .await?;
+    #[cfg(unix)]
+    let manifest_hex = {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(
+            manifest_path.as_os_str().as_bytes(),
+        )?
+    };
+    #[cfg(not(unix))]
+    let manifest_hex = dracon_sync::storage_core::journal::encode_relative_path(
+        manifest_path.to_str().unwrap().as_bytes(),
+    )?;
+    if manifest.enrollment(&manifest_hex).is_some() {
+        bail!("metadata path cannot be an enrolled asset");
+    }
+    println!("Authenticated committed manifest imported into private cache; assets, filters, guard bindings and transfers were not changed.");
+    Ok(())
+}
 
 fn filter_clean(command: &StorageCommand) -> Result<()> {
     let StorageCommand::FilterClean {
