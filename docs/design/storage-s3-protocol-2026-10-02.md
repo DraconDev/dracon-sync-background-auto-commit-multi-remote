@@ -1,8 +1,9 @@
 # S3 immutable transfer protocol (2026-10-02)
 
-The source protocol driver is `src/storage_core/s3.rs`. It is not wired to fleet
-policy and does not make network requests yet. Its transport boundary is intended
-for an operator-resolved, credential-bearing signed HTTP implementation. This is
+The source protocol driver is `src/storage_core/s3.rs`. Its signed HTTP adapter
+is `src/storage_core/s3/http.rs`. These are not wired to fleet policy or CLI
+recovery yet. Adapter construction performs no network requests; explicit
+transfer operations perform bounded signed PUT/GET requests. This is
 one implementation step within the existing object-storage roadmap, not a
 replacement for worker, enrollment, provider certification or release gates.
 
@@ -28,9 +29,20 @@ fall back to an unconditional write. Cloudflare also lists conditional `PutObjec
 This documented support still requires an actual endpoint capability test.
 A provider ignoring the conditional header cannot be approved merely because normal round trips pass.
 
-## Signed HTTP transport remains required
+## Signed HTTP transport and remaining activation gates
 
-Resolve endpoint, bucket, region, credentials and prefix from operator-owned
+The adapter accepts explicitly resolved endpoint, bucket, region, credentials
+and prefix, rejects unsafe origins/namespaces, and uses HTTPS, no redirects, no
+inherited proxies and no response decompression. It signs the actual ciphertext
+hash, content length and overwrite condition; session tokens are signed and marked
+sensitive alongside Authorization. Owned credential buffers and signing keys
+clear on drop, with no Debug/Serialize credential implementation. Each request
+checks optional credential expiry. Provider response bodies and arbitrary HTTP
+errors are not surfaced; failures retain capacity/security/integrity/transient
+classification. The explicit request timeout includes the complete response body.
+Use the synchronous adapter from a blocking worker outside the async runtime.
+
+The remaining operator resolver must obtain these fields from operator-owned
 bindings, never from a repository override or protected restore manifest. Use
 HTTPS, disable redirects and credential-bearing proxy inheritance, sign the
 exact request path and conditional header, enforce whole-request/body deadlines,
@@ -52,6 +64,11 @@ Synthetic transport tests cover new and existing full readback, unchanged corrup
 existing objects, conflicting writes, failed readback, source failures, provider
 body failures, destination failures and byte budgets. A seekable private-file
 transport exercises a 101 MiB stream with 64 KiB read requests and exact readback
-without a payload-sized memory buffer. These tests prove the protocol driver's
-invariants; actual HTTP signing, provider behavior, independent cold recovery,
-credential isolation and deployment remain separate acceptance gates.
+without a payload-sized memory buffer. Nine adapter tests additionally check two published AWS signatures, actual
+loopback HTTP headers/body/path/readback, session-token signing and expiry,
+conditional conflicts, redacted provider errors, response lengths, partial/encoded
+responses, redirect refusal and a total deadline under trickled bytes. Loopback
+HTTP is accessible only through the private test constructor; production
+construction rejects plaintext HTTP. These tests prove protocol and signing
+behavior, not an endpoint capability certificate. Operator credential resolution,
+provider behavior, independent cold recovery and deployment remain separate gates.

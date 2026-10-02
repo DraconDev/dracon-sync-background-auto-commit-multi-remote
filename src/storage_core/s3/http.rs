@@ -111,6 +111,7 @@ impl std::error::Error for TransientFailure {}
 
 impl SignedHttpTransport {
     /// Construct a HTTPS-only adapter; this performs no network requests.
+    /// Construct and execute on a blocking worker, outside an async runtime.
     pub fn new(config: HttpConfig, credentials: Credentials) -> Result<Self> {
         Self::build(config, credentials, false)
     }

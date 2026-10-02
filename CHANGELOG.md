@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased signed S3 HTTP adapter sends conditional payload-signed requests,
+  verifies complete response streams, disables redirects/proxy inheritance and
+  decompression, and redacts provider errors. Published AWS signing vectors and
+  isolated HTTP fixtures cover headers, session credentials, readback and total
+  deadlines. Operator credential resolution, provider capability approval and
+  CLI/daemon activation remain unfinished.
+
 - Unreleased S3 protocol driver captures bounded private spools, requires atomic
   create-only transport writes and independently verifies complete readback for
   both new and existing objects. Corrupt objects, failed transfers and oversized
