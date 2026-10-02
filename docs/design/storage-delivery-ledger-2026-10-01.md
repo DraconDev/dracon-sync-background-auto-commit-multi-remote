@@ -989,3 +989,22 @@ buckets remain unchanged. Automatic routing/enrollment, outgoing all-version
 validation, production reconciliation/resource qualification, actual independent
 provider recovery, pilots, package/release and sanctioned legacy maintenance
 remain open. The full roadmap remains active.
+
+Final locked workspace run completed: **2,098 passed, 0 failed,
+25 ignored across 35 suites**
+(`/tmp/dracon-storage-capture-workspace-final.log`). All 16 CLI operational cases
+were separately run with ignored cases enabled. Locked release build, strict
+workspace/all-target Clippy, dependency deny, formatting and diff checks passed
+(`/tmp/dracon-storage-capture-release-final.log`,
+`/tmp/dracon-storage-capture-clippy-final.log`,
+`/tmp/dracon-storage-capture-deny.log`). The built release artifact exposes the
+documented `storage capture --help`; no installed daemon was replaced.
+
+The first workspace run (`/tmp/dracon-storage-capture-workspace.log`) terminated
+with one System zero-sentinel registry mismatch while concurrent System changes
+were in flight. The current System source already contained the corrected
+registry expectation. Its targeted regression passed
+(`/tmp/dracon-storage-capture-system-registry.log`), then workspace tests, release
+and lint were rerun successfully. No System behavior was reverted or modified
+for the capture work; routine workspace formatting applied only whitespace to
+a concurrently updated quarantine test.
