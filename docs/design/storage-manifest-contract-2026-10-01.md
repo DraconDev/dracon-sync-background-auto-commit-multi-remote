@@ -186,3 +186,31 @@ after intent publication, before index replacement and after replacement.
 This library performs no working-tree writes, filter installation, commits,
 pushes or automatic daemon enrollment. Working-file race checks and outgoing
 commit validation remain required integration gates.
+
+## Networkless prepared clean transformation (2026-10-02)
+
+`PreparedClean` requires an exact repo/path/job binding, a matching locally
+prepared manifest, verified immutable source/payload snapshots and a ready or
+later job with no recorded failure. Contract, security, copies and payload must
+agree with the enrolled version. Its lease prevents concurrent job mutation.
+It streams the actual input using at most 64 KiB read requests and writes no
+output before source length and SHA-256 both match. It emits only the canonical
+payload pointer, never a private plaintext fingerprint. Changed, truncated,
+oversized or unreadable input fails without raw fallback. The same exact
+canonical pointer is accepted for an unhydrated checkout; unrelated pointers
+are refused. A bounded 1025-byte recognition window handles short-source jobs
+without making pointer input exceed their plaintext length budget.
+
+The explicit `storage filter-clean` CLI additionally verifies the checkout's
+local stable ID, existing absolute private roots and matching protected metadata
+in the actual index. `GIT_INDEX_FILE` selects that index when present. Index
+symlinks, foreign ownership, unresolved entries and excessive length are refused;
+metadata object headers are bounded before blob contents are loaded. The CLI
+never encrypts, uploads, installs filters or acknowledges staging/commit/push.
+It requires the prepared metadata entry to be present before emitting a pointer.
+
+This gate is only part of working-file integration. Production setup still must
+preserve attributes, maintain selected version bindings, compose Warden routing,
+verify source races for daemon index plumbing and validate outgoing commits.
+Manual users can disable local filters/hooks; this driver does not certify
+backend availability or independent-copy durability after prior verification.

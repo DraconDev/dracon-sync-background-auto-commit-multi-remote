@@ -341,3 +341,34 @@ Logs: `/tmp/dracon-index-workspace.log`, `/tmp/dracon-index-final-focused.log`,
 `/tmp/dracon-index-clippy.log`, `/tmp/dracon-index-final-clippy.log`,
 `/tmp/dracon-index-release.log`, `/tmp/dracon-index-deny.log`.
 No installed binary, production storage configuration or live bucket changed.
+
+## Networkless clean driver infrastructure (2026-10-02)
+
+A leased exact-version clean transformation now validates protected metadata,
+source/payload snapshots, repo/path binding and sticky placement/security/copy
+contract before accepting input. It hashes actual bytes in bounded chunks and
+emits only the canonical prepared pointer after complete verification. Existing
+output remains untouched on proof failure. Exact unhydrated pointers are reused;
+foreign pointers, changed/same-size bytes, truncated or oversized streams and
+read failures are refused. No encryption, backend call or working-file write
+occurs during cleaning.
+
+The explicit CLI binds existing local state and requires matching protected
+metadata in the actual Git index, including an alternate `GIT_INDEX_FILE`.
+It refuses unknown metadata and never falls back to raw content. Metadata/blob
+headers and physical index size are checked before parsing/loading large data.
+The metadata store can load its already verified private decoded manifest;
+this is local correspondence evidence, not a new authorization or cold restore.
+
+Five streaming unit tests passed. Three real-Git required-filter tests passed
+for the initial indexed-metadata gate, covering unchanged edits, same-size
+mutation, unhydrated pointer reuse, wrong path/repo, failed jobs, missing
+metadata and alternate indexes. The expanded checks additionally exercise
+mismatched indexed ciphertext and the pre-decode index limit. They use synthetic
+Warden output for Git mechanics; actual cryptographic evidence remains the
+separate Warden streaming/restore tests. Final gate results are recorded below.
+
+No fleet filters/configuration, installed binary or live bucket changed.
+Production attribute/setup composition, binding selection/reconciliation,
+working-source races for direct index plumbing, outgoing-commit validation,
+S3, cold import/hydration and daemon transfers remain unfinished.
