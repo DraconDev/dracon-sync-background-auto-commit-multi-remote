@@ -140,7 +140,7 @@ impl HydrationStore {
                 bail!("hydration version capacity exceeded");
             }
             let transaction = child_directory(&self.namespace, &name, false)?;
-            let Some(mut file) = file_at(&transaction, OsStr::new("intent.json"))? else {
+            let Some(file) = file_at(&transaction, OsStr::new("intent.json"))? else {
                 continue;
             };
             let info = file.metadata()?;
@@ -161,6 +161,9 @@ impl HydrationStore {
                 bail!("invalid hydration intent binding");
             }
             journal::validate_path_hex(&intent.path_hex)?;
+            if name != transaction_id(&intent)? {
+                bail!("hydration intent identity mismatch");
+            }
             let pinned = git2::Oid::from_str(&intent.commit)
                 .map_err(|_| anyhow::anyhow!("invalid hydration commit binding"))?;
             if pinned.to_string() != intent.commit {
@@ -280,24 +283,7 @@ impl HydrationStore {
         // working-tree operation; its inode is never shared with editable output.
         let mut source = journal::verify_snapshot(&asset.path, &asset.source)?;
         source.seek(SeekFrom::Start(0))?;
-        let mut hash = Sha256::new();
-        hash.update(b"dracon-checkout-hydration-v1\0");
-        hash.update(intent.repo_id.as_bytes());
-        hash.update(intent.path_hex.as_bytes());
-        hash.update(intent.payload.sha256().as_bytes());
-        hash.update(intent.payload.bytes().to_be_bytes());
-        hash.update(intent.manifest_payload.sha256().as_bytes());
-        hash.update(intent.commit.as_bytes());
-        hash.update(intent.mode.to_be_bytes());
-        for value in [
-            intent.root.0,
-            intent.root.1,
-            intent.parent.0,
-            intent.parent.1,
-        ] {
-            hash.update(value.to_be_bytes());
-        }
-        let id = format!("{:x}", hash.finalize());
+        let id = transaction_id(&intent)?;
         let transaction_path = self.directory.join(&id);
         let receipt = |backup| HydratedAsset {
             path: workdir.join(&relative),
@@ -512,6 +498,14 @@ impl HydrationStore {
 fn identity(file: &File) -> Result<(u64, u64)> {
     let info = file.metadata()?;
     Ok((info.dev(), info.ino()))
+}
+fn transaction_id(intent: &Intent) -> Result<String> {
+    let raw = serde_json::to_vec(intent)?;
+    if raw.len() > 16 * 1024 { bail!("hydration intent exceeds budget"); }
+    let mut hash = Sha256::new();
+    hash.update(b"dracon-checkout-hydration-v1\0");
+    hash.update(raw);
+    Ok(format!("{:x}", hash.finalize()))
 }
 fn fd_path(file: &File) -> PathBuf {
     PathBuf::from(format!("/proc/self/fd/{}", file.as_raw_fd()))
