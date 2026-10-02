@@ -265,10 +265,8 @@ impl CompiledPolicy {
     }
 }
 
-#[derive(Debug, Subcommand)]
-pub(crate) enum StorageCommand {
-    /// Recover an exact committed asset into a private cache; checkout is unchanged.
-    RestoreAsset {
+#[derive(Debug, clap::Args)]
+pub(crate) struct RecoveryOptions {
         #[arg(long)]
         repo: PathBuf,
         #[arg(long)]
@@ -301,6 +299,18 @@ pub(crate) enum StorageCommand {
         max_output_bytes: u64,
         #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
         max_retained_bytes: u64,
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum StorageCommand {
+    /// Recover an exact committed asset into a private cache; checkout is unchanged.
+    RestoreAsset(RecoveryOptions),
+    /// Hydrate one checked-out asset using a private retained transaction (Linux).
+    Hydrate {
+        #[command(flatten)]
+        recovery: RecoveryOptions,
+        #[arg(long)]
+        hydration_root: PathBuf,
     },
     /// Import authenticated committed metadata into a private cold-recovery cache.
     ImportManifest {
@@ -1007,7 +1017,7 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
-    if matches!(command, StorageCommand::RestoreAsset { .. }) {
+    if matches!(command, StorageCommand::RestoreAsset(_) | StorageCommand::Hydrate { .. }) {
         return restore_asset(command).await;
     }
     if matches!(command, StorageCommand::ImportManifest { .. }) {
@@ -1082,7 +1092,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         | StorageCommand::SetupGuard { .. }
         | StorageCommand::VerifyConfiguredIndex { .. }
         | StorageCommand::ImportManifest { .. }
-        | StorageCommand::RestoreAsset { .. } => {
+        | StorageCommand::RestoreAsset(_)
+        | StorageCommand::Hydrate { .. } => {
             unreachable!("local command handled before policy resolution")
         }
         StorageCommand::Plan {
@@ -1146,7 +1157,12 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
 mod tests;
 
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
-    let StorageCommand::RestoreAsset {
+    let (options, hydration_root) = match command {
+        StorageCommand::RestoreAsset(options) => (options, None),
+        StorageCommand::Hydrate { recovery, hydration_root } => (recovery, Some(hydration_root)),
+        _ => unreachable!("recovery command was matched"),
+    };
+    let RecoveryOptions {
         repo,
         repo_id,
         metadata_root,
