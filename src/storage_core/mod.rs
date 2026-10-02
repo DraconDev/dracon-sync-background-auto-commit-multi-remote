@@ -20,3 +20,4 @@ pub mod s3;
 pub mod security;
 pub mod staging;
 pub mod transfer;
+pub mod worker;

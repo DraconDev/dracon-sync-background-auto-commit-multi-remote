@@ -324,8 +324,42 @@ pub(crate) struct ProbeOptions {
     json: bool,
 }
 
+#[derive(Debug, Clone, clap::Args)]
+pub(crate) struct AdvanceOptions {
+    #[arg(long)]
+    repo: PathBuf,
+    #[arg(long)]
+    repo_id: String,
+    #[arg(long)]
+    journal_root: PathBuf,
+    #[arg(long)]
+    job_id: String,
+    #[arg(long)]
+    policy: Option<PathBuf>,
+    #[arg(long)]
+    credentials_root: Option<PathBuf>,
+    #[arg(long)]
+    warden: Option<PathBuf>,
+    #[arg(long)]
+    identity_home: Option<PathBuf>,
+    #[arg(long, default_value_t = 30)]
+    timeout_secs: u64,
+    #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+    max_snapshot_bytes: u64,
+    #[arg(long, default_value_t = 2 * 1024 * 1024 * 1024)]
+    max_payload_bytes: u64,
+    #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+    max_retained_snapshot_bytes: u64,
+    #[arg(long, default_value_t = 8 * 1024 * 1024 * 1024)]
+    max_retained_payload_bytes: u64,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Prepare/copy one captured version; stops before staging, committing or pushing.
+    AdvanceJob(Box<AdvanceOptions>),
     /// Probe S3 write refusal/readback; retains one synthetic 64-byte control object.
     ProbeBackend(Box<ProbeOptions>),
     /// Recover an exact committed asset into a private cache; checkout is unchanged.
@@ -1045,6 +1079,14 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::AdvanceJob(options) = command {
+        let options = options.clone();
+        return tokio::task::spawn_blocking(move || {
+            futures::executor::block_on(advance_job(&options))
+        })
+        .await
+        .map_err(|_| anyhow::anyhow!("transfer worker failed"))?;
+    }
     if let StorageCommand::ProbeBackend(options) = command {
         let options = options.clone();
         return tokio::task::spawn_blocking(move || probe_backend(&options))
@@ -1123,7 +1165,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
-        StorageCommand::ProbeBackend(_)
+        StorageCommand::AdvanceJob(_)
+        | StorageCommand::ProbeBackend(_)
         | StorageCommand::Status { .. }
         | StorageCommand::FilterClean { .. }
         | StorageCommand::VerifyIndex { .. }
@@ -1256,6 +1299,154 @@ fn probe_backend(options: &ProbeOptions) -> Result<()> {
         );
     } else {
         println!("Backend {}: competing creates, conflicting-write refusal and exact readback verified; 64-byte control object retained.", options.backend);
+    }
+    Ok(())
+}
+
+async fn advance_job(options: &AdvanceOptions) -> Result<()> {
+    use dracon_sync::storage_core::{
+        backend::{ImmutableBackend, LocalBackend},
+        bindings::{ApprovedBackend, CopyBindings},
+        journal::{Encryption, Journal, Limits, Phase},
+        s3::S3Backend,
+        security::WardenAdapter,
+        worker,
+    };
+    let repo = root(&options.repo)?;
+    let repository = git2::Repository::open(&repo)?;
+    if repository
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?
+        .get_string("dracon.storageRepoId")
+        .ok()
+        .as_deref()
+        != Some(options.repo_id.as_str())
+    {
+        bail!("transfer repository binding does not match");
+    }
+    let journal = Journal::open(
+        &options.journal_root,
+        &options.repo_id,
+        Limits {
+            max_snapshot_bytes: options.max_snapshot_bytes,
+            max_payload_bytes: options.max_payload_bytes,
+            max_retained_snapshot_bytes: options.max_retained_snapshot_bytes,
+            max_retained_payload_bytes: options.max_retained_payload_bytes,
+            ..Limits::default()
+        },
+    )?;
+    let lease = journal.lease(&options.job_id)?;
+    let job = lease.load()?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)?
+        .as_secs();
+    if !job.retry_eligible(now)
+        || !matches!(
+            job.phase(),
+            Phase::Captured
+                | Phase::Prepared
+                | Phase::Uploading
+                | Phase::PrimaryVerified
+                | Phase::ReadyToStage
+        )
+    {
+        bail!("selected job is not eligible for preparation/transfer");
+    }
+    let (global, _) = load_configuration(&repo, options.policy.as_deref())?;
+    CompiledPolicy::new(global.storage.clone())?;
+    let class = match job.spec().encryption {
+        Encryption::None => Security::NonSensitive,
+        Encryption::WardenAge => Security::WardenEncrypted,
+    };
+    // Validate the entire required copy set before credential/network/backend I/O.
+    for id in &job.spec().required_copies {
+        let binding = global
+            .storage
+            .backends
+            .get(id)
+            .context("required copy lacks an operator binding")?;
+        if !binding.allowed_security().contains(&class) {
+            bail!("required copy lacks the approved security class");
+        }
+    }
+    let mut adapter = options
+        .warden
+        .as_ref()
+        .map(|binary| {
+            WardenAdapter::new(
+                binary,
+                &repo,
+                &options.repo_id,
+                std::time::Duration::from_secs(options.timeout_secs),
+            )
+        })
+        .transpose()?;
+    if let Some(home) = &options.identity_home {
+        adapter = Some(
+            adapter
+                .take()
+                .context("identity home requires a Warden executable")?
+                .with_identity_home(home)?,
+        );
+    }
+    if job.phase() == Phase::Captured
+        && job.spec().encryption == Encryption::WardenAge
+        && adapter.is_none()
+    {
+        bail!("captured encrypted job requires an approved Warden adapter");
+    }
+    let mut adapters: BTreeMap<String, Box<dyn ImmutableBackend>> = BTreeMap::new();
+    for id in &job.spec().required_copies {
+        let binding = &global.storage.backends[id];
+        let backend: Box<dyn ImmutableBackend> = match binding {
+            BackendBinding::Local { root, .. } => Box::new(LocalBackend::open_existing(
+                root,
+                options.max_payload_bytes,
+            )?),
+            BackendBinding::S3 { .. } => Box::new(S3Backend::new(
+                resolve_s3(
+                    binding,
+                    options.credentials_root.as_deref(),
+                    options.timeout_secs,
+                )?
+                .verify_conditional_writes()?,
+                options.max_payload_bytes,
+            )?),
+        };
+        adapters.insert(id.clone(), backend);
+    }
+    let bindings = CopyBindings::new(
+        options.repo_id.clone(),
+        adapters
+            .iter()
+            .map(|(id, backend)| {
+                let classes = global.storage.backends[id]
+                    .allowed_security()
+                    .iter()
+                    .map(|class| match class {
+                        Security::NonSensitive => Encryption::None,
+                        Security::WardenEncrypted => Encryption::WardenAge,
+                    })
+                    .collect();
+                Ok((
+                    id.clone(),
+                    ApprovedBackend::for_security(backend.as_ref(), classes)?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?,
+    )?;
+    let ready = worker::advance(&lease, &bindings, adapter.as_ref(), now).await?;
+    if options.json {
+        println!(
+            "{}",
+            serde_json::json!({"schema_version":1,"job_id":ready.id(),"phase":"ready-to-stage",
+        "required_copies_verified":true,"payload_bytes":ready.payload().context("prepared payload missing")?.bytes(),"git_changed":false})
+        );
+    } else {
+        println!(
+            "Job {}: required copies verified; ready to stage. Git unchanged.",
+            ready.id()
+        );
     }
     Ok(())
 }
