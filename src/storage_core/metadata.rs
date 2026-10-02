@@ -359,6 +359,7 @@ impl MetadataStore {
             record.phase = Phase::Captured;
             self.save(&mut record)?;
         }
+        self.source(&record)?;
         ciphertext.seek(SeekFrom::Start(0))?;
         journal::retain_snapshot(
             &self.directory,
@@ -1138,8 +1139,199 @@ mod tests {
             .success());
         assert!(Manifest::parse_private(&std::fs::read(&plain_path).unwrap()).unwrap() == manifest);
         assert!(!store_root.exists());
+        let moved = temp.path().join("moved-checkout");
+        std::fs::create_dir_all(moved.join(".git")).unwrap();
+        let cold = MetadataStore::open(
+            &temp.path().join("cold-metadata"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        let recovery =
+            WardenAdapter::new(&binary, &moved, manifest.repo_id(), Duration::from_secs(30))
+                .unwrap()
+                .with_identity_home(&home)
+                .unwrap();
+        let (imported, decoded) = cold
+            .import(
+                &mut cipher.as_slice(),
+                prepared.payload(),
+                &"d".repeat(64),
+                &recovery,
+            )
+            .await
+            .unwrap();
+        assert!(decoded == manifest);
+        assert_eq!(imported.payload(), prepared.payload());
+        assert!(cold.load_prepared_payload(prepared.payload()).unwrap().1 == manifest);
+        assert!(cold.check_manifest(&imported, &manifest).is_ok());
+        assert!(!store_root.exists());
+        assert!(!moved.join(".gitattributes").exists());
         assert!(!repo.join(".gitattributes").exists());
         assert!(!repo.join(".arcane").exists());
+    }
+
+    const IMPORT_ADAPTER: &str = "printf '%s\\n' \"$1\" >> calls\ncase \"$1\" in\nstorage-encrypt) printf 'age-encryption.org/v1\\n'; cat ;;\nstorage-decrypt) tail -n +2 ;;\n*) exit 99 ;;\nesac";
+
+    fn import_bytes(manifest: &Manifest) -> (Vec<u8>, Fingerprint) {
+        let mut bytes = b"age-encryption.org/v1\n".to_vec();
+        bytes.extend_from_slice(&manifest.encode_private().unwrap());
+        let fingerprint =
+            Fingerprint::new(format!("{:x}", Sha256::digest(&bytes)), bytes.len() as u64).unwrap();
+        (bytes, fingerprint)
+    }
+
+    #[tokio::test]
+    async fn cold_import_preserves_ciphertext_versions_and_existing_preparations() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(temp.path(), IMPORT_ADAPTER, Limits::default());
+        let local = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let before = std::fs::read(store.path(local.id(), "json")).unwrap();
+        let (cipher, payload) = import_bytes(&manifest);
+        let (imported, decoded) = store
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .unwrap();
+        assert!(decoded == manifest);
+        assert_ne!(imported.id(), local.id());
+        assert_eq!(imported.payload(), local.payload());
+        assert_eq!(
+            std::fs::read(store.path(local.id(), "json")).unwrap(),
+            before
+        );
+        assert!(!String::from_utf8(before)
+            .unwrap()
+            .contains("imported_payload"));
+        let imported_before = std::fs::read(store.path(imported.id(), "json")).unwrap();
+        let repeated = store
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(repeated.id(), imported.id());
+        assert_eq!(
+            std::fs::read(store.path(imported.id(), "json")).unwrap(),
+            imported_before
+        );
+        assert!(store.load_prepared_payload(&payload).unwrap().1 == manifest);
+        let cold = MetadataStore::open(
+            &temp.path().join("cold"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        let imported = cold
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .unwrap()
+            .0;
+        assert!(cold.load_prepared_payload(&payload).unwrap().1 == manifest);
+        assert!(cold.check_manifest(&imported, &manifest).is_ok());
+    }
+
+    #[tokio::test]
+    async fn cold_import_refuses_wrong_repo_corruption_noncanonical_and_output_overflow() {
+        for case in ["repo", "corruption", "noncanonical", "overflow", "failure"] {
+            let temp = tempfile::tempdir().unwrap();
+            let script = if case == "failure" {
+                "tail -n +2; exit 9"
+            } else {
+                IMPORT_ADAPTER
+            };
+            let limits = if case == "overflow" {
+                Limits {
+                    max_snapshot_bytes: 1,
+                    ..Limits::default()
+                }
+            } else {
+                Limits::default()
+            };
+            let (store, manifest, adapter) = fixture(temp.path(), script, limits);
+            let data = if case == "repo" {
+                Manifest::new("c".repeat(64), vec![]).unwrap()
+            } else {
+                manifest
+            };
+            let (mut bytes, mut payload) = import_bytes(&data);
+            if case == "corruption" {
+                bytes[25] ^= 1;
+            }
+            if case == "noncanonical" {
+                bytes.push(b' ');
+                payload =
+                    Fingerprint::new(format!("{:x}", Sha256::digest(&bytes)), bytes.len() as u64)
+                        .unwrap();
+            }
+            assert!(
+                store
+                    .import(&mut bytes.as_slice(), &payload, &"b".repeat(64), &adapter)
+                    .await
+                    .is_err(),
+                "{case}"
+            );
+            assert_eq!(
+                std::fs::read_dir(&store.directory)
+                    .unwrap()
+                    .filter(|entry| entry
+                        .as_ref()
+                        .unwrap()
+                        .path()
+                        .extension()
+                        .is_some_and(|ext| ext == "json"))
+                    .count(),
+                0
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn cold_import_crashes_recover_retained_exact_ciphertext() {
+        for point in [
+            "before-import-approval",
+            "after-import-approval",
+            "after-metadata-publish",
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let (store, manifest, adapter) =
+                fixture(temp.path(), IMPORT_ADAPTER, Limits::default());
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "storage_core::metadata::tests::metadata_import_crash_child",
+                    "--ignored",
+                ])
+                .env("DRACON_METADATA_IMPORT_FIXTURE", temp.path())
+                .env("DRACON_METADATA_CRASH_POINT", point)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .unwrap();
+            assert_eq!(status.code(), Some(74));
+            let (cipher, payload) = import_bytes(&manifest);
+            let imported = store
+                .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+                .await
+                .unwrap()
+                .0;
+            assert_eq!(imported.payload(), &payload);
+            assert!(store.load_prepared_payload(&payload).unwrap().1 == manifest);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "subprocess helper invoked by cold-import crash test"]
+    async fn metadata_import_crash_child() {
+        let root = PathBuf::from(std::env::var_os("DRACON_METADATA_IMPORT_FIXTURE").unwrap());
+        let (store, manifest, adapter) = fixture(&root, IMPORT_ADAPTER, Limits::default());
+        let (cipher, payload) = import_bytes(&manifest);
+        store
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .unwrap();
+        panic!("import crash injection did not fire");
     }
 
     #[tokio::test]
