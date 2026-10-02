@@ -622,3 +622,13 @@ when its existing run finishes. No installed binary, live bucket, fleet filter,
 operator key or production enrollment was changed. Asset hydration, provider
 adapters, automatic enrollment/worker scheduling, Warden routing composition and
 complete outgoing-history/push coverage retain the full original roadmap scope.
+
+The full locked workspace run completed: **2038 passed, zero failed, 21 ignored**,
+including the cold-clone CLI case with the original cache removed, all new
+import/crash/cancellation cases and both actual large-payload crypto integration
+checks. The real-key metadata import case is separately invoked and is not added
+to that pass count. Logs: `/tmp/dracon-cold-import-workspace.log`,
+`/tmp/dracon-cold-import-clippy.log`, `/tmp/dracon-cold-import-release.log`,
+`/tmp/dracon-cold-import-deny.log`. Formatting/diff checks passed. This validates
+the cold-metadata import milestone; packaged asset hydration and the wider
+production storage feature remain unfinished and unreleased.
