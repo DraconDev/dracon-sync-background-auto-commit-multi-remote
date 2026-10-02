@@ -4388,7 +4388,7 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        let storage_commit = crate::storage::commit_configured_storage(repo, &msg);
+        let storage_commit = storage_guarded_commit(repo, &msg).await?;
         match storage_commit {
             Ok(true) => {}
             Ok(false) => svc.commit(&msg).await?,
@@ -4801,7 +4801,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     }
 
     let msg = format!("auto: initial commit ({} files)", staged.len());
-    match crate::storage::commit_configured_storage(repo, &msg) {
+    match storage_guarded_commit(repo, &msg).await? {
         Ok(true) => return Ok(true),
         Ok(false) => {}
         Err(error) => {
@@ -4826,6 +4826,15 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         staged.len()
     );
     Ok(true)
+}
+
+async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<bool>> {
+    let repo = repo.to_path_buf();
+    let message = message.to_owned();
+    Ok(tokio::task::spawn_blocking(move || {
+        crate::storage::commit_configured_storage(&repo, &message)
+    })
+    .await?)
 }
 
 /// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the

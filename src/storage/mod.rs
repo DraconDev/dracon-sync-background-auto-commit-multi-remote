@@ -1322,10 +1322,11 @@ pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bo
     let tree_id = indexed.index.write_tree()?;
     let tree = repository.find_tree(tree_id)?;
     let signature = repository.signature()?;
-    let parent = repository
-        .head()
-        .ok()
-        .and_then(|head| head.peel_to_commit().ok());
+    let parent = match repository.head() {
+        Ok(head) => Some(head.peel_to_commit()?),
+        Err(error) if error.code() == git2::ErrorCode::UnbornBranch => None,
+        Err(error) => return Err(error).context("cannot determine guarded commit parent"),
+    };
     let parents: Vec<_> = parent.iter().collect();
     repository.commit(
         Some("HEAD"),
