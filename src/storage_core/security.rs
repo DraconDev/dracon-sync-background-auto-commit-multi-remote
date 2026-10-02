@@ -22,6 +22,21 @@ pub struct WardenAdapter {
     identity_home: Option<PathBuf>,
 }
 
+// Own only the subprocess group created below. Cancellation must terminate
+// descendants holding stdout as well as the direct child (kill_on_drop).
+struct SecurityProcessGroup(Option<u32>);
+
+impl Drop for SecurityProcessGroup {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        if let Some(pid) = self.0 {
+            unsafe {
+                libc::kill(-(pid as i32), libc::SIGKILL);
+            }
+        }
+    }
+}
+
 impl WardenAdapter {
     /// Bind an absolute existing executable/repo and a positive processing deadline.
     /// Callers must authorize these bindings and establish the repo's stable identity.
@@ -175,7 +190,10 @@ impl WardenAdapter {
         if let Some(home) = &self.identity_home {
             command.env("HOME", home).env_remove("ARCANE_MACHINE_KEY");
         }
+        #[cfg(unix)]
+        command.process_group(0);
         let mut child = command.spawn().map_err(|_| BackendFailure::Security)?;
+        let mut group = SecurityProcessGroup(child.id());
         let result = tokio::time::timeout(self.timeout, async {
             let mut output = child.stdout.take().ok_or(BackendFailure::Security)?;
             let identity = stream_output(&mut output, output_file, capacity).await?;
@@ -189,9 +207,14 @@ impl WardenAdapter {
         })
         .await;
         match result {
-            Ok(Ok(identity)) => Ok(identity),
+            Ok(Ok(identity)) => {
+                group.0 = None;
+                Ok(identity)
+            }
             outcome => {
-                let _ = child.kill().await;
+                drop(group);
+                let _ = child.start_kill();
+                let _ = tokio::time::timeout(Duration::from_secs(5), child.wait()).await;
                 match outcome {
                     Err(_) => Err(std::io::Error::new(
                         std::io::ErrorKind::TimedOut,
