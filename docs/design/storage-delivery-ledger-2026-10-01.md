@@ -564,3 +564,13 @@ no production code/dependency changed afterward. The actual source Warden hook
 integration also passed with the new bounded query path
 (`/tmp/dracon-bounded-attrs-cross-hook.log`). Final complete workspace totals
 are recorded only when its remaining Warden integration/streaming checks end.
+
+The fresh locked workspace run completed successfully: **2031 passed, zero
+failed, 20 ignored**, including all new query checks, all nine ordinary real-Git
+checks, the corrected historical-version fixture, Warden integration and both
+actual crypto streaming tests. Evidence:
+`/tmp/dracon-bounded-attrs-final-workspace.log`. The explicitly invoked
+cross-utility hook check is recorded separately rather than counted among the
+ignored workspace tests. Formatting/diff checks passed. These results validate
+this bounded-query milestone; no production release/enrollment or larger-roadmap
+completion is claimed.
