@@ -514,10 +514,17 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
     assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
         .status
         .success());
+    assert!(!verify_index(&f).status.success());
+    // Normal add can skip the driver through the unchanged-file stat cache.
+    let _ = git(&f.repo, &["add", "--", "asset [version].bin"]);
+    assert!(!verify_index(&f).status.success());
     let before = std::fs::read(f.repo.join(".git/index")).unwrap();
-    assert!(!git(&f.repo, &["add", "--", "asset [version].bin"])
-        .status
-        .success());
+    assert!(!git(
+        &f.repo,
+        &["add", "--renormalize", "--", "asset [version].bin"]
+    )
+    .status
+    .success());
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
     std::fs::write(f.repo.join("asset [version].bin"), old_source).unwrap();
     assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
@@ -527,10 +534,14 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
         git(&f.repo, &["show", ":asset [version].bin"]).stdout,
         f.pointer.encode()
     );
-    assert!(verify_index(&f).status.success());
+    assert!(!verify_index(&f).status.success());
     assert!(!git(&f.repo, &["add", "--renormalize", "--", "second.bin"])
         .status
         .success());
+    assert!(git(&f.repo, &["rm", "--cached", "--", "second.bin"])
+        .status
+        .success());
+    assert!(verify_index(&f).status.success());
 }
 
 #[tokio::test]
