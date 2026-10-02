@@ -527,9 +527,12 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
     .success());
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
     std::fs::write(f.repo.join("asset [version].bin"), old_source).unwrap();
-    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
-        .status
-        .success());
+    let restored_add = git(&f.repo, &["add", "--", "asset [version].bin"]);
+    assert!(
+        restored_add.status.success(),
+        "{}",
+        String::from_utf8_lossy(&restored_add.stderr)
+    );
     assert_eq!(
         git(&f.repo, &["show", ":asset [version].bin"]).stdout,
         f.pointer.encode()
