@@ -1409,7 +1409,7 @@ fn capture_job(command: &StorageCommand) -> Result<()> {
     }
     match repository.head() {
         Ok(head) => match head.peel_to_tree()?.get_path(path) {
-                Ok(_) => bail!("committed HEAD content requires reviewed forward migration"),
+            Ok(_) => bail!("committed HEAD content requires reviewed forward migration"),
             Err(error) if error.code() == git2::ErrorCode::NotFound => {}
             Err(error) => return Err(error.into()),
         },

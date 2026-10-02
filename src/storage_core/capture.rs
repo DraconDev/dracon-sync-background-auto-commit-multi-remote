@@ -132,7 +132,10 @@ mod tests {
         input.read_to_end(&mut bytes).unwrap();
         assert_eq!(bytes, b"exact retained bytes");
         assert_eq!(identity.bytes(), 20);
-        assert_eq!(std::fs::read(root.path().join("asset")).unwrap(), b"newer edits preserved");
+        assert_eq!(
+            std::fs::read(root.path().join("asset")).unwrap(),
+            b"newer edits preserved"
+        );
         assert!(select_source(root.path(), Path::new("asset"), 19).is_err());
     }
     #[test]
