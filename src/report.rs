@@ -560,6 +560,15 @@ fn activity_label_base(row: &RepoReportRow) -> String {
         return format!("🚫 unowned: {}", truncate(detail, 20));
     }
 
+    if matches!(row.state_cause, StateCause::Stalled) {
+        return format!(
+            "🔴 stalled {}",
+            last_when_mins
+                .map(shorten_mins)
+                .unwrap_or_else(|| "?".to_string())
+        );
+    }
+
     let has_dirty = row.modified > 0 || row.staged > 0;
 
     // 3. dirty repo — show time since last commit.
@@ -3376,7 +3385,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("CHANGES", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded"),
         ("A/B", "↑ ahead · ↓ behind · — synced"),
         ("", ""),
-        ("PUSH", "✅ OK · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑)"),
+        ("PUSH", "last push result + age (current edits may still be waiting): ✅ OK · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑)"),
         ("REM", "🐙 github · 🦊 gitlab · 🗻 codeberg (active only; excluded not shown)"),
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
@@ -3398,7 +3407,14 @@ fn print_repos_legend_footer() {
     if width < LEGEND_MIN_WIDTH {
         return;
     }
-    print_repos_legend();
+    for line in [
+        "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · A/B ↑ahead ↓behind · 1H/6H/24H commits",
+        "PUSH = last push result + age · SIZE = own .git + submodule gitdirs · TOUCHED = commit author",
+        "Detail: dracon-sync repos <name> · Full key: dracon-sync repos --legend",
+    ] {
+        println!("{}", colorize(line, "2"));
+    }
+    println!();
 }
 
 /// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
@@ -4972,12 +4988,12 @@ fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
         ("❌ CONCERN", Color::Red)
     } else if matches!(row.state_cause, StateCause::Unowned { .. }) {
         ("🚫 unowned", Color::Red)
+    } else if matches!(row.state_cause, StateCause::Stalled) {
+        ("🔴 STALLED", Color::Red)
+    } else if row.warn {
+        ("🟡 WARN", Color::Yellow)
     } else if row.active {
         ("🔄 ACTIVE", Color::Cyan)
-    } else if row.warn {
-        // CHANGED 2026-07-22 (v0.112.36): 🟡 (width 2) replaces
-        // ⚠️ (width 1, renders 2) — see the tally line above.
-        ("🟡 WARN", Color::Yellow)
     } else {
         ("✅ CLEAN", Color::Green)
     }
@@ -6335,7 +6351,7 @@ fn role_cell(role: &crate::role::RoleKind) -> comfy_table::Cell {
 fn severity_tier(row: &RepoReportRow) -> u8 {
     if row.concern {
         0
-    } else if row.warn {
+    } else if row.warn || matches!(row.state_cause, StateCause::Stalled) {
         1
     } else if row.active {
         2
@@ -6434,11 +6450,21 @@ fn print_repos_summary(
     full_path: bool,
     by_severity: bool,
 ) {
+    println!(
+        "{}",
+        build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
+    );
+}
+
+fn build_repos_rich_table(
+    rows: &[RepoReportRow],
+    full_path: bool,
+    terminal_columns: u16,
+) -> comfy_table::Table {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
-        Width,
+        modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY, Cell, CellAlignment, Color,
+        ColumnConstraint, ContentArrangement, Table, TableComponent, Width,
     };
-    let _ = _filter;
 
     // Sort: severity (concern → warn → active → clean) ascending
     // by default, but skip the sort when the operator didn't ask
@@ -6448,7 +6474,7 @@ fn print_repos_summary(
         indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
     }
 
-    let width = terminal_width().unwrap_or(120) as usize;
+    let width = terminal_columns as usize;
     // Width budget split:
     //   - # column: 4 chars ("1.")
     //   - STATUS column: 12 chars (the longest is "❌ CONCERN" = 10)
@@ -6467,12 +6493,14 @@ fn print_repos_summary(
         .max(20);
 
     let mut table = Table::new();
-    table.load_preset(UTF8_FULL_CONDENSED);
+    table.load_preset(UTF8_BORDERS_ONLY);
+    table.apply_modifier(UTF8_ROUND_CORNERS);
+    table.set_style(TableComponent::LeftHeaderIntersection, '├');
+    table.set_style(TableComponent::HeaderLines, '─');
+    table.set_style(TableComponent::RightHeaderIntersection, '┤');
     table.set_content_arrangement(ContentArrangement::Dynamic);
-    if let Some(w) = terminal_width() {
-        if (40..=2000).contains(&w) {
-            table.set_width(w);
-        }
+    if (40..=2000).contains(&terminal_columns) {
+        table.set_width(terminal_columns);
     }
 
     // Header row. Header cells are styled white-bold for contrast
@@ -6528,12 +6556,14 @@ fn print_repos_summary(
         table.add_row(vec![
             Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
             Cell::new(status_text).fg(status_color),
-            Cell::new(repo_short).fg(Color::White),
+            Cell::new(repo_short)
+                .fg(Color::White)
+                .add_attribute(comfy_table::Attribute::Bold),
             Cell::new(what).fg(Color::White),
         ]);
     }
 
-    println!("{table}");
+    table
 }
 
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
@@ -6814,6 +6844,15 @@ fn print_repos_rich_table(
         .expect("TOUCHED column")
         .set_constraint(ColumnConstraint::Absolute(Width::Fixed(TOUCHED_COL as u16)));
 
+    // Align counts and sizes by magnitude; the repository and activity
+    // columns stay left aligned for reading names and state labels.
+    for index in [0, 4, 5, 6, 7, 11, 12, 13, 14] {
+        table
+            .column_mut(index)
+            .expect("numeric column")
+            .set_cell_alignment(CellAlignment::Right);
+    }
+
     let repo_budget = repo_col.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
     // v0.113.19: per-class change columns — 3-cell content budget
@@ -6946,7 +6985,7 @@ fn print_repos_rich_table(
             Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_short).fg(Color::White),
-            Cell::new(activity).fg(Color::White),
+            Cell::new(activity).fg(state_color_for(&row.state_cause)),
             chg(row.modified),
             chg(row.staged),
             chg(row.untracked),
@@ -6958,7 +6997,7 @@ fn print_repos_rich_table(
             pulse(row.commits_6h),
             pulse(row.commits_24h),
             Cell::new(size_text).fg(size_color),
-            Cell::new(touched).fg(Color::White),
+            Cell::new(touched).fg(Color::DarkGrey),
         ];
         table.add_row(cells);
     }
