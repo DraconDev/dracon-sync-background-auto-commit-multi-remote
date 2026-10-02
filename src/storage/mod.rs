@@ -1551,7 +1551,10 @@ async fn advance_job(options: &AdvanceOptions) -> Result<()> {
     {
         bail!("selected job is not eligible for preparation/transfer");
     }
-    let (global, _) = load_configuration(&repo, options.policy.as_deref())?;
+    let (global, local) = load_configuration(&repo, options.policy.as_deref())?;
+    if local.owned == Some(false) {
+        bail!("repository opted out of Sync ownership");
+    }
     CompiledPolicy::new(global.storage.clone())?;
     let class = match job.spec().encryption {
         Encryption::None => Security::NonSensitive,
