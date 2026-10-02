@@ -200,6 +200,85 @@ async fn fixture() -> Fixture {
     fixture_path(b"asset [version].bin").await
 }
 
+#[tokio::test]
+async fn advance_job_copies_retained_version_without_touching_git_or_current_edits() {
+    let f = fixture().await;
+    let bytes = b"approved private source content for the isolated clean fixture";
+    let spec = JobSpec {
+        repo_id: "a".repeat(64),
+        path_hex: encode_relative_path(b"asset [version].bin").unwrap(),
+        source: f.pointer.fingerprint().clone(),
+        policy_sha256: "c".repeat(64),
+        primary: "primary".into(),
+        required_copies: vec!["primary".into(), "recovery".into()],
+        required_git_targets: vec!["github".into()],
+        encryption: Encryption::None,
+    };
+    let job = f.journal.create(spec).unwrap();
+    f.journal
+        .lease(job.id())
+        .unwrap()
+        .capture_snapshot(&mut &bytes[..])
+        .unwrap();
+    let primary = LocalBackend::open(&f.temp.path().join("next-primary"), 1024).unwrap();
+    let recovery = LocalBackend::open(&f.temp.path().join("next-recovery"), 1024).unwrap();
+    let policy = f.temp.path().join("advance-policy.toml");
+    std::fs::write(&policy, format!("[storage.backends.primary]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("next-primary").display(), f.temp.path().join("next-recovery").display())).unwrap();
+    std::fs::write(f.repo.join("asset [version].bin"), b"new operator edits").unwrap();
+    let index = std::fs::read(f.repo.join(".git/index")).ok();
+    std::fs::write(f.repo.join(".git/index.lock"), b"foreign lock retained").unwrap();
+    let run = || {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .args(["storage", "advance-job", "--repo"])
+            .arg(&f.repo)
+            .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+            .arg(f.temp.path().join("journal"))
+            .args(["--job-id", job.id(), "--policy"])
+            .arg(&policy)
+            .arg("--json")
+            .output()
+            .unwrap()
+    };
+    for _ in 0..2 {
+        let output = run();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["phase"], "ready-to-stage");
+        assert_eq!(report["git_changed"], false);
+        assert_eq!(
+            f.journal.load(job.id()).unwrap().phase(),
+            Phase::ReadyToStage
+        );
+    }
+    use dracon_sync::storage_core::backend::ImmutableBackend;
+    assert_eq!(
+        primary.verify(f.pointer.fingerprint()).unwrap(),
+        *f.pointer.fingerprint()
+    );
+    assert_eq!(
+        recovery.verify(f.pointer.fingerprint()).unwrap(),
+        *f.pointer.fingerprint()
+    );
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        b"new operator edits"
+    );
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).ok(), index);
+    assert_eq!(
+        std::fs::read(f.repo.join(".git/index.lock")).unwrap(),
+        b"foreign lock retained"
+    );
+    std::fs::write(&policy, "[storage.backends.primary]\ntype = \"local\"\nroot = \"/does-not-exist\"\nallowed_security = [\"non-sensitive\"]\n").unwrap();
+    let refused = run();
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr)
+        .contains("required copy lacks an operator binding"));
+}
+
 async fn fixture_path(asset_path: &[u8]) -> Fixture {
     use std::os::unix::ffi::OsStringExt;
     let temp = tempfile::tempdir().unwrap();
@@ -1296,7 +1375,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBOcFFFbEgyZ0hQZGxsb0lJZ0hWL013VXcwaG9FdkF1TlhqZlJiRzh3MkRvCmlKZy9FZSsxSmowOVdvbjN3cXJia0F6MXBzTk5HemZBd2ZBM0ZMUHpBNFEKLT4gWDI1NTE5IGhMUU8zdnFjUXRVWU1ZM2JKa3J5Q1plNkF0MURPb094SUw0d2FTcWZod0UKMEtPZ3hmSEVQWG9nOGtsOExwTWNvZWFlRXVsM1IrcUlZMEw4VjlPSy9WRQotPiBYMjU1MTkgSXRjTFN2ajZteUY2RVE0d1J3a2pITTg4NGxSVGE5djlyWnBJRkdTU0IzbwpwOGpsK0RvUUJGMXpwV0Y4NEE0M3pvOEQyUmJzN05DZUdWcE9UaHFBNEZBCi0+IFgyNTUxOSBsa2Z0TUxQVmM3WTlxQ0E1cEtGRElxRysvNlk1YkJ2Q2ZDTTRwL3Q4VDFRCllJS1RGNWhvdjFRUEdQa2lQaWJ4QlRFSCtPVlVWMSswWnZvT1F4Tm03Rm8KLT4gWDI1NTE5IEtxQ3NhVlVZbE5CcGFzNEQyNXhIV0ExTTR6djhSTm81OFZTeEJENERwSEkKNjlwOGFJMFR4WGI2SHpFYThnODMwQjFIYUtRNXZYSUExZFk1OWxBcHNDdwotPiAiR3UtZ3JlYXNlClRLQ3dORHhaMmtyc2FCYkVRU1puaGt3dXZKN29YSzZuNGtPRXpWekxhUnByeU9KT1hkam9uQWw2LzhpbnF2ejcKV1FnYlp5Sm5udEoxUzkwVU5Ed0IrZHEvZWd1V3psWmJ4dwotLS0gL3djczBKeDlGYk45Nmp0TFpSa1FNRDdpT0VFN2FTMC9TZmg4eDlNS2JwVQoUSWs98k6OXhQ6StJGizrfZ1OB3mdpgJjXfisa/IJGc2ghvl711RgMSzI7NnQnxmHgsaOc]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA1eFQ3M3Y2S1VTWGRIU3NSYUEzZG9IbDVtUHdnSHNSK1JGWTB3ODFSUEQ4CkhXREhwdUNtNjV0VHNOUDBGbHRMTk45YlBEK2s2ajZudHBWVmRaa21zbmsKLT4gWDI1NTE5IFduNC8zazJiWGNORVNxaXprOVlxVEU1UW91VldrYWJHZWx2TEdPSlVLRzAKSTFSK2FVQ0U3Y3lxMmVPUncyT3NWa1ZQU0dObWRSaTJqY3YrQ0kxZWlSRQotPiBYMjU1MTkgcHVnN1BnVzhuYVlLd3FPWHA0eUJUaERSMktGSnluVnBMWkpJaTlHdFprawpVeU4rUUZCQ0J2SkgvRUVYQUhFaW8vOTRpYmU5RmZOUXZ4MHVDMzl4cGprCi0+IFgyNTUxOSBMamlZTHFFMTJ0RWllNzJWM1JWR1JPN2dVU1J6YzFzYUxVclM3ZWZVY1JrCm5PWjRaWGVLdXgwbW05RjZ3VU8wK1kxTXBKTFBmL0NSZEE4QWNwNFNaT28KLT4gWDI1NTE5IG9LV0tiYjBuN2srQy9vQm1mZm9FMjUyMUJqbjJBY0YzQi85L3Rkb2R4UUUKUEs5RFBaY2RPbnFXWUluRDczUjFtL1lwSEpLU0FKTHJ3cm9jaHI2R05GYwotPiBjcHYpIS1ncmVhc2UKQmpMOTMwVGF2L2xrRi95bnZJTQotLS0gdmVMT2RqV2tJdS90bTVOcWtVdkdvRXNGclhZOVNkV1BvN2dZQWRKNWpKVQpVXrro2uWOFvwJnWesILIK0/5aUz3/K+RDlmSyfNMFnIigQYImIUL/lRfwJTnsKhdcxRPQ]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
