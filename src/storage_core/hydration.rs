@@ -1,0 +1,287 @@
+//! Linux create-only checkout publication with retained pointer backups.
+//!
+//! This is a filesystem transaction, not a Git commit or permission to fetch.
+//! The caller verifies the selected manifest/attributes before invoking it.
+
+use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::ffi::{CString, OsStr};
+use std::fs::File;
+use std::io::{Read, Write};
+use std::os::fd::{AsRawFd, FromRawFd};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::MetadataExt;
+use std::path::{Component, Path, PathBuf};
+
+use super::index::CommitLock;
+use super::journal::{self, Limits, SnapshotKind};
+use super::reference::{Fingerprint, Pointer};
+use super::restore::RestoredAsset;
+
+/// A verified checkout result. A displaced pointer is retained, never deleted.
+pub struct HydratedAsset {
+    path: PathBuf,
+    backup: Option<PathBuf>,
+}
+
+impl HydratedAsset {
+    /// The selected working asset path.
+    pub fn path(&self) -> &Path { &self.path }
+    /// Private retained original file, if a pointer was displaced.
+    pub fn backup(&self) -> Option<&Path> { self.backup.as_deref() }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct Intent {
+    version: u32,
+    repo_id: String,
+    path_hex: String,
+    payload: Fingerprint,
+    source: Fingerprint,
+    mode: u32,
+    root: (u64, u64),
+    parent: (u64, u64),
+}
+
+/// Private per-checkout transactions; all retained versions count toward limits.
+pub struct HydrationStore {
+    directory: PathBuf,
+    namespace: File,
+    repo_id: String,
+    limits: Limits,
+}
+
+impl HydrationStore {
+    /// Use an explicit private root on the same filesystem as working assets.
+    pub fn open(root: &Path, repo_id: &str, limits: Limits) -> Result<Self> {
+        super::reference::validate_sha256(repo_id)?;
+        if limits.max_records == 0 || limits.max_snapshot_bytes == 0
+            || limits.max_retained_snapshot_bytes < limits.max_snapshot_bytes {
+            bail!("invalid hydration retention limits");
+        }
+        journal::private_directory(root, true)?;
+        journal::runtime::protect(root)?;
+        let directory = root.join(repo_id);
+        journal::private_directory(&directory, true)?;
+        journal::runtime::protect(&directory)?;
+        let namespace = directory_at_path(&directory)?;
+        Ok(Self { directory, namespace, repo_id: repo_id.into(), limits })
+    }
+
+    /// Publish a verified recovery only over its exact working pointer, or into
+    /// a missing path. Refuse local edits; capture-before-publish is resumable.
+    /// No replacement operation writes over a concurrently created destination.
+    pub fn hydrate(&self, repo: &git2::Repository, asset: &RestoredAsset) -> Result<HydratedAsset> {
+        if asset.repo_id != self.repo_id || asset.source.bytes() > self.limits.max_snapshot_bytes {
+            bail!("hydration recovery binding or output budget mismatch");
+        }
+        let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
+        let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
+        let relative = PathBuf::from(OsStr::from_bytes(&super::staging::decode_path(&asset.path_hex)?));
+        let index = repo.index()?;
+        if index.has_conflicts() { bail!("hydration requires a resolved index"); }
+        let entry = index.get_path(&relative, 0).context("hydration reference is not staged")?;
+        let (size, kind) = repo.odb()?.read_header(entry.id)?;
+        if !matches!(entry.mode, 0o100644 | 0o100755) || kind != git2::ObjectType::Blob || size > 1024
+            || Pointer::parse(repo.find_blob(entry.id)?.content())?.payload() != &asset.payload {
+            bail!("hydration reference and verified recovery disagree");
+        }
+        let workdir = repo.workdir().context("hydration requires a checkout")?.canonicalize()?;
+        let root = directory_at_path(&workdir)?;
+        let parent_relative = relative.parent().context("hydration parent missing")?;
+        let parent = relative_directory(&root, parent_relative)?;
+        if parent.metadata()?.dev() != self.namespace.metadata()?.dev() {
+            bail!("hydration root and working asset must share a filesystem");
+        }
+        let name = relative.file_name().context("hydration filename missing")?;
+        let intent = Intent { version: 1, repo_id: self.repo_id.clone(), path_hex: asset.path_hex.clone(),
+            payload: asset.payload.clone(), source: asset.source.clone(), mode: entry.mode,
+            root: identity(&root)?, parent: identity(&parent)? };
+        // The immutable recovered file is independently verified before any
+        // working-tree operation; its inode is never shared with editable output.
+        let mut source = journal::verify_snapshot(&asset.path, &asset.source)?;
+        let mut hash = Sha256::new();
+        hash.update(b"dracon-checkout-hydration-v1\0");
+        hash.update(intent.repo_id.as_bytes()); hash.update(intent.path_hex.as_bytes());
+        hash.update(intent.payload.sha256().as_bytes()); hash.update(intent.payload.bytes().to_be_bytes());
+        hash.update(intent.mode.to_be_bytes());
+        for value in [intent.root.0, intent.root.1, intent.parent.0, intent.parent.1] { hash.update(value.to_be_bytes()); }
+        let id = format!("{:x}", hash.finalize());
+        let transaction_path = self.directory.join(&id);
+        let receipt = |backup| HydratedAsset { path: workdir.join(&relative), backup };
+        let existing = file_at(&parent, name)?;
+        if let Some(file) = existing.as_ref() {
+            if matches_fingerprint(file, &asset.source)? {
+                let backup = transaction_path.join("original");
+                return Ok(receipt(backup.try_exists()?.then_some(backup)));
+            }
+            if !matches_pointer(file, &asset.payload)? { bail!("working asset has local edits; hydration refused"); }
+        }
+        self.check_budget(&id, asset.source.bytes())?;
+        let transaction = child_directory(&self.namespace, OsStr::new(&id), true)?;
+        let private_path = fd_path(&transaction);
+        let raw = serde_json::to_vec(&intent)?;
+        if raw.len() > 16 * 1024 { bail!("hydration intent exceeds budget"); }
+        let intent_path = private_path.join("intent.json");
+        if let Some(mut previous) = file_at(&transaction, OsStr::new("intent.json"))? {
+            let mut bytes = Vec::new();
+            (&mut previous).take(16 * 1024 + 1).read_to_end(&mut bytes)?;
+            if bytes != raw { bail!("hydration transaction binding differs"); }
+        } else {
+            let mut temporary = tempfile::NamedTempFile::new_in(&private_path)?;
+            temporary.write_all(&raw)?; temporary.as_file().sync_all()?;
+            temporary.persist_noclobber(&intent_path).map_err(|_| anyhow::anyhow!("hydration intent publication refused"))?;
+            transaction.sync_all()?;
+        }
+        hydration_crash("after-intent");
+        // Copy with a bounded digest check, never hard-link an editable checkout
+        // to the immutable recovered cache.
+        journal::retain_snapshot(&private_path, "publish", SnapshotKind::Source, self.limits, &mut source, &asset.source)?;
+        let prepared = private_path.join("publish.source");
+        journal::verify_snapshot(&prepared, &asset.source)?;
+        verify_parent(&root, parent_relative, &parent)?;
+        if let Some(original) = file_at(&transaction, OsStr::new("original"))? {
+            if !matches_pointer(&original, &asset.payload)? { bail!("retained hydration original changed; manual recovery required"); }
+            if file_at(&parent, name)?.is_some() { bail!("working path changed during hydration; retained files preserved"); }
+        } else if existing.is_some() {
+            move_create_only(&parent, name, &transaction, OsStr::new("original"))?;
+            parent.sync_all()?; transaction.sync_all()?;
+            hydration_crash("after-original-capture");
+            let original = file_at(&transaction, OsStr::new("original"))?.context("captured hydration original missing")?;
+            if !matches_pointer(&original, &asset.payload)? {
+                // The captured file changed after preflight. Restore it only if
+                // the working path is still absent; a new operator file wins.
+                verify_parent(&root, parent_relative, &parent)?;
+                let _ = move_create_only(&transaction, OsStr::new("original"), &parent, name);
+                parent.sync_all()?; transaction.sync_all()?;
+                bail!("working asset changed during capture; hydration refused and files preserved");
+            }
+        }
+        verify_parent(&root, parent_relative, &parent)?;
+        let output = journal::verify_snapshot(&prepared, &asset.source)?;
+        let mode = if entry.mode == 0o100755 { 0o700 } else { 0o600 };
+        if unsafe { libc::fchmod(output.as_raw_fd(), mode) } != 0 { return Err(std::io::Error::last_os_error().into()); }
+        output.sync_all()?;
+        hydration_crash("before-working-publication");
+        move_create_only(&transaction, OsStr::new("publish.source"), &parent, name)
+            .context("working path changed; verified output and original retained")?;
+        parent.sync_all()?; transaction.sync_all()?;
+        hydration_crash("after-working-publication");
+        verify_parent(&root, parent_relative, &parent)?;
+        let published = file_at(&parent, name)?.context("hydrated working file disappeared")?;
+        if !matches_fingerprint(&published, &asset.source)? { bail!("hydrated working asset changed; edits preserved"); }
+        let backup = transaction_path.join("original");
+        Ok(receipt(file_at(&transaction, OsStr::new("original"))?.is_some().then_some(backup)))
+    }
+
+    fn check_budget(&self, id: &str, additional: u64) -> Result<()> {
+        let mut count = 0usize;
+        let mut retained = 0u64;
+        let mut selected = 0u64;
+        for entry in std::fs::read_dir(fd_path(&self.namespace))? {
+            let entry = entry?; let name = entry.file_name();
+            if matches!(name.to_str(), Some(".gitignore" | ".runtime-ignore.lock" | "hydrate.lock")) { continue; }
+            super::reference::validate_sha256(name.to_str().context("unknown hydration entry")?)?;
+            count += 1;
+            if count > self.limits.max_records { bail!("hydration version capacity exceeded"); }
+            let directory = child_directory(&self.namespace, &name, false)?;
+            let mut files = 0usize;
+            for file in std::fs::read_dir(fd_path(&directory))? {
+                files += 1; if files > 32 { bail!("hydration transaction file budget exceeded"); }
+                let file = file?;
+                let info = std::fs::symlink_metadata(file.path())?;
+                if !info.is_file() || info.uid() != unsafe { libc::geteuid() } || info.nlink() != 1 {
+                    bail!("unsafe retained hydration entry");
+                }
+                if matches!(file.file_name().to_str(), Some("publish.source" | "publish.capture" | "original")) {
+                    retained = retained.checked_add(info.len()).context("hydration retention overflow")?;
+                    if name == id && file.file_name() != "original" { selected = selected.checked_add(info.len()).context("hydration selected byte overflow")?; }
+                }
+            }
+        }
+        if (count == self.limits.max_records && !fd_path(&self.namespace).join(id).try_exists()?)
+            || retained.checked_add(additional.saturating_sub(selected)).context("hydration budget overflow")? > self.limits.max_retained_snapshot_bytes {
+            bail!("hydration retention capacity exceeded; previous versions preserved");
+        }
+        Ok(())
+    }
+}
+
+fn identity(file: &File) -> Result<(u64, u64)> { let info = file.metadata()?; Ok((info.dev(), info.ino())) }
+fn fd_path(file: &File) -> PathBuf { PathBuf::from(format!("/proc/self/fd/{}", file.as_raw_fd())) }
+fn component(value: &OsStr) -> Result<CString> {
+    let bytes = value.as_bytes();
+    if bytes.is_empty() || bytes == b"." || bytes == b".." || bytes.contains(&b'/') { bail!("invalid hydration path component"); }
+    Ok(CString::new(bytes)?)
+}
+fn child_directory(parent: &File, name: &OsStr, create: bool) -> Result<File> {
+    let name = component(name)?;
+    if create && unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } != 0 {
+        let error = std::io::Error::last_os_error();
+        if error.kind() != std::io::ErrorKind::AlreadyExists { return Err(error.into()); }
+        parent.sync_all()?;
+    } else if create { parent.sync_all()?; }
+    let fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC) };
+    if fd < 0 { return Err(std::io::Error::last_os_error().into()); }
+    Ok(unsafe { File::from_raw_fd(fd) })
+}
+fn directory_at_path(path: &Path) -> Result<File> {
+    if !path.is_absolute() { bail!("hydration directory must be absolute"); }
+    let root = File::open("/")?;
+    let relative = path.strip_prefix("/")?;
+    relative_directory(&root, relative)
+}
+fn relative_directory(root: &File, path: &Path) -> Result<File> {
+    let mut directory = root.try_clone()?;
+    for part in path.components() {
+        let Component::Normal(name) = part else { bail!("hydration parent must be confined"); };
+        directory = child_directory(&directory, name, false)?;
+    }
+    Ok(directory)
+}
+fn verify_parent(root: &File, relative: &Path, pinned: &File) -> Result<()> {
+    if identity(&relative_directory(root, relative)?)? != identity(pinned)? { bail!("hydration parent directory changed"); }
+    Ok(())
+}
+fn file_at(directory: &File, name: &OsStr) -> Result<Option<File>> {
+    let name = component(name)?;
+    let fd = unsafe { libc::openat(directory.as_raw_fd(), name.as_ptr(), libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC) };
+    if fd < 0 { let error = std::io::Error::last_os_error(); return if error.kind() == std::io::ErrorKind::NotFound { Ok(None) } else { Err(error.into()) }; }
+    let file = unsafe { File::from_raw_fd(fd) }; let info = file.metadata()?;
+    if !info.is_file() || info.uid() != unsafe { libc::geteuid() } || info.nlink() != 1 { bail!("hydration file must be an ordinary owned file without hard links"); }
+    Ok(Some(file))
+}
+fn matches_pointer(file: &File, payload: &Fingerprint) -> Result<bool> {
+    let expected = Pointer::new(payload.clone())?.encode();
+    if file.metadata()?.len() != expected.len() as u64 { return Ok(false); }
+    let mut bytes = Vec::new();
+    file.try_clone()?.take(expected.len() as u64 + 1).read_to_end(&mut bytes)?;
+    Ok(bytes == expected)
+}
+fn matches_fingerprint(file: &File, expected: &Fingerprint) -> Result<bool> {
+    if file.metadata()?.len() != expected.bytes() { return Ok(false); }
+    let mut reader = file.try_clone()?; let mut hash = Sha256::new();
+    let mut bytes = 0u64; let mut buffer = [0u8; 64 * 1024];
+    loop { let count = reader.read(&mut buffer)?; if count == 0 { break; }
+        bytes = bytes.checked_add(count as u64).context("hydration length overflow")?;
+        if bytes > expected.bytes() { return Ok(false); } hash.update(&buffer[..count]); }
+    Ok(bytes == expected.bytes() && format!("{:x}", hash.finalize()) == expected.sha256())
+}
+fn move_create_only(from: &File, from_name: &OsStr, to: &File, to_name: &OsStr) -> Result<()> {
+    let from_name = component(from_name)?; let to_name = component(to_name)?;
+    if unsafe { libc::renameat2(from.as_raw_fd(), from_name.as_ptr(), to.as_raw_fd(), to_name.as_ptr(), libc::RENAME_NOREPLACE) } != 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok(())
+}
+#[cfg(not(test))]
+fn hydration_crash(_: &str) {}
+#[cfg(test)]
+fn hydration_crash(phase: &str) {
+    if std::env::var("DRACON_HYDRATION_CRASH_POINT").ok().as_deref() == Some(phase) { std::process::exit(73); }
+}
+
+#[cfg(test)]
+mod tests;
