@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prepared job, exact current source bytes and the matching protected metadata
   in Git's actual index. It emits only the canonical pointer, refuses changed
   or unprepared content, and performs no upload, encryption or filter setup.
+- Repository-wide clean selection resolves the exact indexed manifest and path
+  to a verified local preparation without per-version command arguments.
+  `storage verify-index` checks references and staged required-driver attributes
+  independently of Git's unchanged-file stat cache. Production hook/setup and
+  daemon invocation remain pending.
 - Private runtime isolation for journal/local-store writes, including refusal
   of tracked paths, project roots, unmarked nonempty directories and tampered
   protection. Operator files and existing project ignore rules are preserved.

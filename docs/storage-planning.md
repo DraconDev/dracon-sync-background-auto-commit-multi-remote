@@ -190,38 +190,61 @@ The test also requires `age-keygen`. Its keys, source snapshots and backend root
 are temporary fixtures. Test copies share a physical filesystem and are not
 certified independent recovery storage.
 
-## Explicit prepared clean driver
+## Repository-wide prepared clean driver
 
 `storage filter-clean` is an unreleased local driver for already prepared
-versions, not an enrollment or upload command. Operator-supplied arguments bind
-an exact repo, existing private state roots, prepared metadata and job. The
-local Git config `dracon.storageRepoId` must match that binding. The actual Git
-index must already contain the exact protected metadata at its reserved path.
-The driver honors `GIT_INDEX_FILE`, so an alternate index cannot borrow restore
-metadata from the ordinary index. Symlinked/nonregular/foreign-owned or oversized
-index files are refused.
+versions, not an enrollment or upload command. Operator arguments bind an exact
+repo, existing private state roots and reserved metadata path. The local Git
+config `dracon.storageRepoId` must match. The actual Git index selects the
+protected manifest; the driver resolves that exact ciphertext to its verified
+local preparation, then selects the requested path's matching eligible job.
+There are no per-version `--metadata-id` or `--job-id` arguments to update.
 
 ```sh
 dracon-sync storage filter-clean \
   --repo /path/to/repo --repo-id "$REPO_ID" \
   --journal-root /private/storage-journal \
   --metadata-root /private/storage-metadata \
-  --metadata-id "$PREPARED_METADATA_ID" \
-  --manifest-path .dracon/assets.manifest --job-id "$PREPARED_JOB_ID" \
+  --manifest-path .dracon/assets.manifest \
   -- 'assets/example.bin' < 'assets/example.bin'
 ```
 
-Its stdout contains only a canonical pointer after complete source verification.
-Changed bytes (including same-size edits), missing snapshots, failed jobs,
-wrong paths/repositories/contracts or missing/mismatched indexed metadata cause
-failure without raw fallback. An unhydrated checkout may supply the same exact
-canonical pointer. A different pointer is not adopted. Reads and memory are
-bounded; private source fingerprints never appear in the output reference.
+One required Git driver can use `%f` after `--` for all enrolled paths in that
+repo. The driver honors `GIT_INDEX_FILE`; an alternate index cannot borrow
+metadata from the ordinary one. An older indexed manifest selects the older
+retained preparation, never whichever cached version is newest. Unknown or
+ambiguous metadata/source identities, exhausted catalog budgets, a held job
+lease, failed jobs, wrong contracts/paths/repos and missing snapshots cause
+failure without raw fallback. Source input must match exactly; the same canonical
+pointer is accepted for an unhydrated checkout. Nothing uploads, encrypts,
+installs filters or acknowledges a commit/push during cleaning.
 
-A manually configured Git driver must be **required** and use Git's `%f` for the
-path after `--`. Production setup must preserve unrelated attributes, resolve
-Warden composition and maintain exact prepared-version bindings. Those setup,
-worker and outgoing-commit validation gates are still unfinished. Tests install
-a required driver only inside isolated temporary repositories; this preview
-installs nothing in the fleet. The driver does not update journal phases or
-claim a matching metadata/pointer group was committed or pushed.
+## Independent index verification
+
+Git can skip clean processing for unchanged files through its stat cache.
+A clean driver alone therefore cannot prove that all staged references still
+match a changed manifest. The independent guard inspects the actual index:
+
+```sh
+dracon-sync storage verify-index \
+  --repo /path/to/repo --repo-id "$REPO_ID" \
+  --metadata-root /private/storage-metadata \
+  --manifest-path .dracon/assets.manifest
+```
+
+It rejects missing/raw/mismatched enrolled references and tombstones whose paths
+are still indexed. It also checks **staged** effective attributes: enrolled paths
+must use `dracon-storage`, that driver must be locally required, and tracked
+paths using that driver must be enrolled. Unstaged attribute changes do not
+substitute for the attributes going into the outgoing commit. Alternate indexes
+are honored. The attribute query suppresses hooks/fsmonitor and ambient Git
+repository/config overrides; errors leave the index and working files intact.
+This is reference/attribute correspondence, not a backend availability or
+independent-copy durability certificate.
+
+Production setup must preserve unrelated attributes and hooks, compose Warden
+routing, invoke this guard before outgoing commits and wire daemon staging to
+exact prepared versions. Those setup and worker gates remain unfinished.
+The tests install required drivers only in isolated temporary repositories;
+no preview command installs a filter or hook in the fleet. Cold-checkout metadata
+import/hydration, S3 and automatic transfers also remain separate gates.
