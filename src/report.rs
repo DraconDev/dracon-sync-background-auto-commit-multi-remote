@@ -6742,6 +6742,7 @@ fn build_repos_rich_table(
     table.apply_modifier(UTF8_ROUND_CORNERS);
     table.set_style(TableComponent::LeftHeaderIntersection, '├');
     table.set_style(TableComponent::HeaderLines, '─');
+    table.set_style(TableComponent::MiddleHeaderIntersections, '┼');
     table.set_style(TableComponent::RightHeaderIntersection, '┤');
     table.set_content_arrangement(ContentArrangement::Dynamic);
     if (40..=2000).contains(&terminal_columns) {
@@ -11809,6 +11810,10 @@ mod tests {
                 "counts must align: {rendered}"
             );
             assert!(!rendered.contains('┆'));
+            assert!(
+                !rendered.contains('═'),
+                "single-line header style: {rendered}"
+            );
         }
     }
 
