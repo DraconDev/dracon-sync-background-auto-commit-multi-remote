@@ -524,7 +524,10 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
         git(&f.repo, &["show", ":asset [version].bin"]).stdout,
         f.pointer.encode()
     );
-    assert!(!git(&f.repo, &["add", "--", "second.bin"]).status.success());
+    assert!(verify_index(&f).status.success());
+    assert!(!git(&f.repo, &["add", "--renormalize", "--", "second.bin"])
+        .status
+        .success());
 }
 
 #[tokio::test]
@@ -541,4 +544,37 @@ async fn busy_selected_job_fails_without_selecting_or_creating_another_version()
     assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
         .status
         .success());
+}
+
+fn verify_index(f: &Fixture) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "verify-index", "--repo"])
+        .arg(&f.repo)
+        .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+        .arg(f.temp.path().join("metadata"))
+        .args(["--manifest-path", ".dracon/assets.manifest"])
+        .output()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn index_validation_catches_raw_and_missing_references_without_running_clean() {
+    let f = fixture().await;
+    assert!(!verify_index(&f).status.success());
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert!(verify_index(&f).status.success());
+    let repo = git2::Repository::open(&f.repo).unwrap();
+    let mut index = repo.index().unwrap();
+    let mut entry = index.get_path(Path::new("asset [version].bin"), 0).unwrap();
+    entry.id = repo.blob(b"raw source bypassing filter").unwrap();
+    index.add(&entry).unwrap();
+    index.write().unwrap();
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!verify_index(&f).status.success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    index.remove_path(Path::new("asset [version].bin")).unwrap();
+    index.write().unwrap();
+    assert!(!verify_index(&f).status.success());
 }

@@ -983,10 +983,8 @@ fn indexed_manifest(
     {
         bail!("clean driver repository binding does not match");
     }
-    for root in [metadata_root] {
-        if !root.is_absolute() || !root.join(repo_id).is_dir() {
-            bail!("clean driver requires existing absolute private state bindings");
-        }
+    if !metadata_root.is_absolute() || !metadata_root.join(repo_id).is_dir() {
+        bail!("existing absolute private metadata binding required");
     }
     #[cfg(unix)]
     let manifest_hex = {
@@ -1051,6 +1049,7 @@ fn indexed_manifest(
         format!("{:x}", Sha256::digest(blob.content())),
         blob.size() as u64,
     )?;
+    drop(blob);
     let store = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
     let (prepared, manifest) = store.load_prepared_payload(&payload)?;
     if manifest.enrollment(&manifest_hex).is_some() {
