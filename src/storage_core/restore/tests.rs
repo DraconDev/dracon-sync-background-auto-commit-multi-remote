@@ -133,6 +133,96 @@ async fn private_recovery_verifies_plain_and_encrypted_versions_and_preserves_ed
 }
 
 #[tokio::test]
+async fn version_and_retention_limits_preserve_previous_recovery_and_tombstones_refuse() {
+    let f = fixture(Encryption::None).await;
+    let binding = RestoreBinding::new(
+        f.manifest.repo_id().into(),
+        "recovery".into(),
+        ApprovedBackend::for_security(&f.backend, vec![Encryption::None]).unwrap(),
+    )
+    .unwrap();
+    let path = &f.manifest.enrollments()[0].path_hex;
+    let mut next = f.manifest.enrollments()[0].clone();
+    next.payload = Some(
+        f.backend
+            .put(&mut b"different next bytes".as_slice())
+            .unwrap(),
+    );
+    let next_manifest = Manifest::new(f.manifest.repo_id().into(), vec![next.clone()]).unwrap();
+    let next_prepared = f
+        .metadata
+        .prepare(&next_manifest, &"b".repeat(64), &f.warden, 2)
+        .await
+        .unwrap();
+    next.payload = None;
+    let deleted = Manifest::new(f.manifest.repo_id().into(), vec![next]).unwrap();
+    let deleted_prepared = f
+        .metadata
+        .prepare(&deleted, &"b".repeat(64), &f.warden, 3)
+        .await
+        .unwrap();
+    for (name, max_records, retained) in [("versions", 1, 40), ("bytes", 3, 20)] {
+        let store = RestoreStore::open(
+            &f.temp.path().join(name),
+            f.manifest.repo_id(),
+            Limits {
+                max_records,
+                max_snapshot_bytes: 20,
+                max_retained_snapshot_bytes: retained,
+                ..Limits::default()
+            },
+        )
+        .unwrap();
+        let first = store
+            .recover(&f.metadata, &f.prepared, &f.manifest, path, &binding, None)
+            .await
+            .unwrap();
+        assert!(store
+            .recover(
+                &f.metadata,
+                &next_prepared,
+                &next_manifest,
+                path,
+                &binding,
+                None
+            )
+            .await
+            .is_err());
+        assert!(store
+            .recover(
+                &f.metadata,
+                &deleted_prepared,
+                &deleted,
+                path,
+                &binding,
+                None
+            )
+            .await
+            .is_err());
+        assert_eq!(
+            std::fs::read(first.path()).unwrap(),
+            b"exact original bytes"
+        );
+        let again = store
+            .recover(&f.metadata, &f.prepared, &f.manifest, path, &binding, None)
+            .await
+            .unwrap();
+        assert_eq!(again.path(), first.path());
+        assert_eq!(
+            std::fs::read_dir(&store.directory)
+                .unwrap()
+                .filter_map(Result::ok)
+                .filter(|entry| entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "source"))
+                .count(),
+            1
+        );
+    }
+}
+
+#[tokio::test]
 async fn wrong_grants_missing_keys_and_failed_authenticated_output_never_publish() {
     let f = fixture(Encryption::WardenAge).await;
     let store = RestoreStore::open(
