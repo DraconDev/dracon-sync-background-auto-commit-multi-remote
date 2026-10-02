@@ -10,7 +10,7 @@ use std::time::Instant;
 fn credentials() -> Credentials {
     // Published AWS test credentials; never load operator keys in these fixtures.
     Credentials::new(
-        "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBlVHB0QzkwcTJqVkVPcFRWd3NwTFR1SmZzVy9aR2FSZnJNRXBJQ1ZoeFd3CmRSNnhhVEJEN2hxWk5lY0cvMUlSR3FuRVJJbzNyWEx4b3RoZmE5dE40RG8KLT4gWDI1NTE5IDNVQzIzeWgyTzNoQkkwOU8wUm93bXV2eU15dnVNeS9aOWxVVFZUYmZFM3MKYStOakxEUzk5dWlvWjlpUWtSdWZZRitqS1BrQWhHM01WSktTWm1ZK3NwNAotPiBYMjU1MTkgR09yWWlwYTBwYjBySFNhZXJFbWVBTnFDUUdhczNkcDM2Vnp5QlJXY0xFRQpmZlYzMXpZMDVLcjJaL0cyTDN1L3gvVnplak5OdmVWVU1Nc3BlaHYwc0U4Ci0+IFgyNTUxOSBtaEFFZTlVaHNrR1oyZVMwd1Z0WnA2RC9VK0JMRFFXQi91UGs1V3VEMlhBCmdtR3ZQMit1Y0V0Mzh6TG9PYkM1SGNQTUtwcHJLZER2RTVnOGtWdkp0WjAKLT4gWDI1NTE5IGlnUVdKSG9OOFdjeksxQ25sVkZWVjdtMCtlNHA2L0xqNk1JOE1IRXA4bFEKV0dVRHNjRXpLWWpYSXhhNE9OWkJmZ3VlenhJMTNTVlZhTjJSaThDT0NVWQotPiBRTVozLWdyZWFzZSBGZWogTHwKWVNEWDFta1V6ek5OWjdPMkt2dWs5d2VSNTY2RUx4UXZIVjMrbldaNXJUckZKank5VjVpREV6alB5Z01vYmcKLS0tIDI4UFFIQjJzV3dCM0FNdjU2bUdxbkx2ZVcxL2xlYk93Vlk3TWFHNDFTZkkKutpoT51pQbeFKRczCbxJVN2vFFuHxClh7Z0nlvQUTm0J5r48d8zetJB5o6VpWNJlx4GqnQ==]".into(),
+        "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBRWTMzazJuSkpYL2N6dnZick50YXZ3WjkvVUh3TEdGVldZMkpsOTJsa2c4CmMwTUtZMGJnVUFyVkwrdFNwaTREdWxKWDh4UTdKYnpPWGtmKytPRVlZb28KLT4gWDI1NTE5IHdwYndEd0E3ZnRnTmpkdUszdCtmY3F1RGNYamZYZnZiVlQ3ckNNUUNpMVEKakNvUzR1L3hlVVZFS0xEQkdXWThWUStBNmxoMG9vVU1mYnhmTUhjWjZGawotPiBYMjU1MTkgUjhlWnIvc252alFYMWlLUjRlN24za25RYnRWcmlVZmdhTnBicThXRzRYcwpTQTJJY0YrUU1pVXF2MGFiWWRwU24yWFhlMGNaMmlYNWhCRHQvUFJVQk1NCi0+IFgyNTUxOSA2V3Q0Q1JrNEhidVZHNnVUK3hhVlNuLzBDUmdaY3llNCtZa2ZxYzhzSmtzCjgvak03blo4a2VaS3hlNzBuNGU4MllxR1NhZ2xoZnFwTzBpUHVmb2R2aDQKLT4gWDI1NTE5IHJEZ0w2RWVuZWRrcHZtQ3ZIZ0pjeVNIcTN6YjZSTnpleGYvUTNiVG9MMncKc1VrelJBKzg1ZFY2RS9kdEFzNEd2S2RWK3dFdGZhR01YeDJmMUhNVEVOZwotPiByay1ncmVhc2UgQlYyXXVKMDIgNF50KAo3c01xelNwQ3JIMWREbjZ3UVIxMjB0cDdZYjFNUmdvd2dvcVZtNTh5MDRsLzM2NXo4VmNSMUdkYjJGb2ZrTytOClN1VGRwTEE2UHArbURhMHpvelZ2MzRZNUdyMHEKLS0tIFpjUE5qR2JxMGFKWGszY2FZQ0lNYmswVTIvck9aQk5DWk9YK01hZ3lVNVUKvzIc1YJ4qEfEwloxXvC3trpI74lBNRjFqZl98irJ9F2gNxrY0P0WNSNMEUM8SOWvhn6jCA==]".into(),
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY".into(),
         None,
         None,
@@ -479,5 +479,117 @@ fn missing_and_wrong_length_objects_fail_before_publication() {
         assert!(!format!("{error:#}").contains("PROVIDER-PRIVATE-SENTINEL"));
         assert_eq!(requests.recv().unwrap().method, "GET");
         handle.join().unwrap();
+    }
+}
+
+#[test]
+fn capability_probe_checks_competing_creates_and_preserved_conflicting_bytes() {
+    let original = [0x31; 64];
+    let (endpoint, requests, handle) = server(vec![
+        Reply::new(200, b""),
+        Reply::new(412, b""),
+        Reply::new(200, &original),
+        Reply::new(412, b""),
+        Reply::new(200, &original),
+    ]);
+    let verified = transport(&endpoint).probe(original).unwrap();
+    assert_eq!(verified.probe_object(), &identity(&original));
+    assert!(verified.verified_at_unix() > 0);
+    let mut altered = original;
+    altered[0] ^= 1;
+    let mut puts = 0;
+    for method in ["PUT", "PUT", "GET", "PUT", "GET"] {
+        let request = requests.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(request.method, method);
+        assert_eq!(
+            request.path,
+            format!(
+                "/fixture-bucket/encrypted/v1/.dracon-probes/{}",
+                identity(&original).sha256()
+            )
+        );
+        verify_wire_signature(&request);
+        if method == "PUT" {
+            puts += 1;
+            assert_eq!(request.headers["if-none-match"], "*");
+            let expected = if puts == 3 { &altered } else { &original };
+            assert_eq!(request.body, expected);
+            assert_eq!(
+                request.headers["x-amz-content-sha256"],
+                identity(expected).sha256()
+            );
+        }
+    }
+    handle.join().unwrap();
+}
+
+#[test]
+fn capability_probe_refuses_double_create_success_and_false_refusal() {
+    let original = [0x31; 64];
+    for statuses in [(200, 200), (412, 412)] {
+        let (endpoint, requests, handle) = server(vec![
+            Reply::new(statuses.0, b""),
+            Reply::new(statuses.1, b"PRIVATE-PROVIDER-SENTINEL"),
+        ]);
+        let error = transport(&endpoint).probe(original).err().unwrap();
+        assert_eq!(error.to_string(), BackendFailure::Security.to_string());
+        assert!(!format!("{error:#}").contains("PRIVATE-PROVIDER-SENTINEL"));
+        assert_eq!(requests.recv().unwrap().method, "PUT");
+        assert_eq!(requests.recv().unwrap().method, "PUT");
+        handle.join().unwrap();
+    }
+}
+
+#[test]
+fn capability_probe_refuses_overwrite_and_corrupt_or_partial_readback() {
+    let original = [0x31; 64];
+    for (conflict, last) in [
+        (200, None),
+        (412, Some(Reply::new(200, &[0x32; 64]))),
+        (412, Some(Reply::new(206, &original))),
+    ] {
+        let mut replies = vec![
+            Reply::new(200, b""),
+            Reply::new(412, b""),
+            Reply::new(200, &original),
+            Reply::new(conflict, b"PRIVATE-PROVIDER-SENTINEL"),
+        ];
+        if let Some(last) = last {
+            replies.push(last);
+        }
+        let count = replies.len();
+        let (endpoint, requests, handle) = server(replies);
+        let error = transport(&endpoint).probe(original).err().unwrap();
+        assert!(!format!("{error:#}").contains("PRIVATE-PROVIDER-SENTINEL"));
+        for _ in 0..count {
+            requests.recv_timeout(Duration::from_secs(2)).unwrap();
+        }
+        handle.join().unwrap();
+    }
+}
+
+#[test]
+fn verified_write_scope_expiration_refuses_before_provider_contact() {
+    let original = [0x31; 64];
+    let (endpoint, requests, handle) = server(vec![
+        Reply::new(200, b""),
+        Reply::new(412, b""),
+        Reply::new(200, &original),
+        Reply::new(412, b""),
+        Reply::new(200, &original),
+    ]);
+    let mut verified = transport(&endpoint).probe(original).unwrap();
+    for _ in 0..5 {
+        requests.recv().unwrap();
+    }
+    handle.join().unwrap();
+    for stamp in [unix_now().unwrap() - 3601, unix_now().unwrap() + 3600] {
+        verified.verified_at_unix = stamp;
+        let mut source = tempfile::tempfile().unwrap();
+        source.write_all(b"source").unwrap();
+        let error = verified
+            .put_if_absent(&identity(b"source"), source)
+            .unwrap_err();
+        assert_eq!(error.to_string(), TransientFailure.to_string());
     }
 }

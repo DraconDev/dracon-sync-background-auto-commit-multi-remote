@@ -317,7 +317,7 @@ impl SignedHttpTransport {
     /// Create and retain one 64-byte random control object in a reserved namespace,
     /// attempt an atomically refused conflicting write, then verify original bytes.
     /// No user payload, Git state, bucket creation or object deletion is involved.
-    /// Execute on a blocking worker. This explicitly performs four network requests.
+    /// Execute on a blocking worker. This performs five requests, including two competing creates.
     pub fn verify_conditional_writes(self) -> Result<VerifiedWriteTransport> {
         let mut challenge = [0u8; 64];
         #[cfg(unix)]
@@ -342,10 +342,28 @@ impl SignedHttpTransport {
             file.seek(SeekFrom::Start(0))?;
             Ok(file)
         };
-        let created =
-            self.request_url(Method::PUT, url.clone(), &first, Some(spool(&original)?))?;
-        if created.status() != StatusCode::OK {
-            return Err(status_failure(created.status()));
+        let (left, right) = std::thread::scope(|scope| -> Result<_> {
+            let left = scope.spawn(|| {
+                self.request_url(Method::PUT, url.clone(), &first, Some(spool(&original)?))
+            });
+            let right = scope.spawn(|| {
+                self.request_url(Method::PUT, url.clone(), &first, Some(spool(&original)?))
+            });
+            let left = left.join().map_err(|_| BackendFailure::Security)??;
+            let right = right.join().map_err(|_| BackendFailure::Security)??;
+            Ok((left.status(), right.status()))
+        })?;
+        if !matches!(
+            (left, right),
+            (StatusCode::OK, StatusCode::PRECONDITION_FAILED)
+                | (StatusCode::PRECONDITION_FAILED, StatusCode::OK)
+        ) {
+            for status in [left, right] {
+                if status != StatusCode::OK && status != StatusCode::PRECONDITION_FAILED {
+                    return Err(status_failure(status));
+                }
+            }
+            bail!(BackendFailure::Security);
         }
         self.verify_probe_readback(url.clone(), &first)?;
         // The key stays the same, while body/hash/signature change. A HEAD-before-
