@@ -718,3 +718,101 @@ async fn guard_binding_requires_verified_index_and_honors_manual_alternate_index
     assert!(!setup().status.success());
     assert!(!verify(None).status.success());
 }
+
+#[tokio::test]
+#[ignore = "requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary"]
+async fn actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook() {
+    let warden =
+        PathBuf::from(std::env::var_os("DRACON_STORAGE_TEST_WARDEN").expect("built Warden binary"));
+    assert!(warden.is_absolute() && warden.is_file());
+    let f = fixture().await;
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    for (key, value) in [
+        ("user.name", "DraconDev"),
+        ("user.email", "dracsharp@gmail.com"),
+        ("commit.gpgsign", "false"),
+        ("filter.dracon.clean", "cat"),
+    ] {
+        assert!(git(&f.repo, &["config", "--local", key, value])
+            .status
+            .success());
+    }
+    let hook = f.repo.join(".git/hooks/pre-commit");
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\nprintf ran > .git/user-hook-ran\nexit 0\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let setup = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "setup-guard", "--repo"])
+        .arg(&f.repo)
+        .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+        .arg(f.temp.path().join("metadata"))
+        .args(["--manifest-path", ".dracon/assets.manifest"])
+        .output()
+        .unwrap();
+    assert!(
+        setup.status.success(),
+        "{}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+    let install = Command::new(&warden)
+        .args(["setup-hooks", "--local"])
+        .arg(&f.repo)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_SYSTEM", "/dev/null")
+        .output()
+        .unwrap();
+    assert!(
+        install.status.success(),
+        "{}",
+        String::from_utf8_lossy(&install.stderr)
+    );
+    let commit = |message: &str| {
+        let mut paths = vec![warden.parent().unwrap().to_owned()];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+        Command::new("git")
+            .current_dir(&f.repo)
+            .env("PATH", std::env::join_paths(paths).unwrap())
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_SYSTEM", "/dev/null")
+            .args(["commit", "--quiet", "-m", message])
+            .output()
+            .unwrap()
+    };
+    let first = commit("verified local reference");
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(f.repo.join(".git/user-hook-ran").exists());
+    let head = git(&f.repo, &["rev-parse", "HEAD"]).stdout;
+    let raw = f.repo.join(".git/raw-fixture");
+    std::fs::write(&raw, b"raw accidentally staged payload").unwrap();
+    let object = git(&f.repo, &["hash-object", "-w", "--", raw.to_str().unwrap()]);
+    assert!(object.status.success());
+    let oid = String::from_utf8(object.stdout).unwrap();
+    assert!(git(
+        &f.repo,
+        &[
+            "update-index",
+            "--cacheinfo",
+            "100644",
+            oid.trim(),
+            "asset [version].bin"
+        ]
+    )
+    .status
+    .success());
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    std::fs::remove_file(f.repo.join(".git/user-hook-ran")).unwrap();
+    let rejected = commit("reject mismatched raw payload");
+    assert!(!rejected.status.success());
+    assert!(f.repo.join(".git/user-hook-ran").exists());
+    assert_eq!(git(&f.repo, &["rev-parse", "HEAD"]).stdout, head);
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+}
