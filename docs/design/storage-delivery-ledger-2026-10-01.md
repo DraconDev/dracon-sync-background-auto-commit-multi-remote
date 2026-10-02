@@ -861,8 +861,8 @@ diff checks passed. Logs: `/tmp/dracon-s3-recovery-clippy.log`,
 `/tmp/dracon-s3-recovery-release.log`, `/tmp/dracon-s3-recovery-deny.log`.
 Parent and standalone lockfiles resolve the new direct HMAC/clock/zeroize
 requirements; standalone resolution was performed offline without updating
-unrelated dependency versions. New directly selected dependency MSRVs remain
-below the declared Rust 1.89 floor; no new full MSRV build is claimed.
+unrelated dependency versions. Chrono and zeroize declare Rust 1.62 and 1.85 respectively; the pinned HMAC
+version was already in the workspace lock. No new full Rust 1.89 build is claimed.
 
 No installed daemon/hooks, live provider, operator keys or fleet configuration
 changed. Automatic capture/upload/routing/enrollment, live endpoint capability
