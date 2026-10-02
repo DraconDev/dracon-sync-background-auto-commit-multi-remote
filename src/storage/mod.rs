@@ -71,6 +71,9 @@ pub(crate) struct StorageRule {
     pub(crate) min_bytes: Option<u64>,
     #[serde(default)]
     pub(crate) backend: Option<String>,
+    /// Additional required logical copies; primary is always required too.
+    #[serde(default)]
+    pub(crate) required_copies: Vec<String>,
     #[serde(default)]
     pub(crate) security: Option<Security>,
 }
@@ -188,9 +191,18 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
                 {
                     bail!("storage rule {index} selects a security class not approved for backend {backend:?}");
                 }
+                let mut copies = BTreeSet::new();
+                for copy in &rule.required_copies {
+                    if !copies.insert(copy) || copy == backend {
+                        bail!("storage rule {index} repeats a required copy");
+                    }
+                    if !policy.backends.get(copy).is_some_and(|b| b.allowed_security().contains(&security)) {
+                        bail!("storage rule {index} requires an unapproved copy/security class");
+                    }
+                }
             }
             Placement::Git => {
-                if rule.backend.is_some() || rule.security.is_some() {
+                if rule.backend.is_some() || rule.security.is_some() || !rule.required_copies.is_empty() {
                     bail!("Git rule {index} cannot set external backend/security");
                 }
             }
@@ -216,6 +228,7 @@ struct Decision {
     rule: Option<usize>,
     backend: Option<String>,
     security: Option<Security>,
+    required_copies: Vec<String>,
     reason: String,
 }
 
@@ -248,6 +261,7 @@ impl CompiledPolicy {
                         rule: Some(index),
                         backend: rule.backend.clone(),
                         security: rule.security,
+                        required_copies: rule.backend.iter().cloned().chain(rule.required_copies.iter().cloned()).collect(),
                         reason: "first matching path and size condition; proposed placement only"
                             .into(),
                     };
@@ -259,6 +273,7 @@ impl CompiledPolicy {
             rule: None,
             backend: None,
             security: None,
+            required_copies: Vec::new(),
             reason: if self.policy.enabled {
                 "no matching storage rule"
             } else {
