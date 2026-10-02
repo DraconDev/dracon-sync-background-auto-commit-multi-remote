@@ -592,3 +592,65 @@ async fn index_validation_catches_raw_and_missing_references_without_running_cle
     index.write().unwrap();
     assert!(!verify_index(&f).status.success());
 }
+
+#[tokio::test]
+async fn index_guard_uses_staged_attributes_and_refuses_unenrolled_driver_paths() {
+    let f = fixture().await;
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert!(verify_index(&f).status.success());
+    assert!(git(
+        &f.repo,
+        &[
+            "config",
+            "--local",
+            "filter.dracon-storage.required",
+            "false"
+        ]
+    )
+    .status
+    .success());
+    assert!(!verify_index(&f).status.success());
+    assert!(git(
+        &f.repo,
+        &[
+            "config",
+            "--local",
+            "filter.dracon-storage.required",
+            "true"
+        ]
+    )
+    .status
+    .success());
+    // The outgoing commit uses indexed attributes, not an unstaged edit.
+    std::fs::write(
+        f.repo.join(".gitattributes"),
+        "*.bin -filter -text -ident\n",
+    )
+    .unwrap();
+    assert!(verify_index(&f).status.success());
+    assert!(git(&f.repo, &["add", "--", ".gitattributes"])
+        .status
+        .success());
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!verify_index(&f).status.success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    std::fs::write(
+        f.repo.join(".gitattributes"),
+        "*.bin filter=dracon-storage -text -ident\n",
+    )
+    .unwrap();
+    assert!(git(&f.repo, &["add", "--", ".gitattributes"])
+        .status
+        .success());
+    let repo = git2::Repository::open(&f.repo).unwrap();
+    let mut index = repo.index().unwrap();
+    let mut pointer = index.get_path(Path::new("asset [version].bin"), 0).unwrap();
+    pointer.path = b"undeclared.bin".to_vec();
+    index.add(&pointer).unwrap();
+    index.write().unwrap();
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!verify_index(&f).status.success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+}
