@@ -6982,7 +6982,9 @@ fn build_repos_rich_table(
         let cells = vec![
             Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
             Cell::new(status_text).fg(status_color),
-            Cell::new(repo_short).fg(Color::White),
+            Cell::new(repo_short)
+                .fg(Color::White)
+                .add_attribute(comfy_table::Attribute::Bold),
             Cell::new(activity).fg(state_color_for(&row.state_cause)),
             chg(row.modified),
             chg(row.staged),
