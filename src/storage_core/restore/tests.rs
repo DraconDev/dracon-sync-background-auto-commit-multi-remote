@@ -532,4 +532,81 @@ async fn real_cold_recovery_restores_large_encrypted_asset_without_original_sour
     assert_eq!(restored.bytes(), bytes);
     journal::verify_snapshot(restored.path(), &expected).unwrap();
     assert!(!moved.join("assets/private-video.mp4").exists());
+    #[cfg(target_os = "linux")]
+    {
+        use git2::{IndexEntry, IndexTime};
+        // The actual-key recovery proof can publish to an isolated checkout;
+        // the filesystem fixture has no original source/journal/cache to use.
+        let repository = git2::Repository::init(&moved).unwrap();
+        repository
+            .config()
+            .unwrap()
+            .set_str("dracon.storageRepoId", manifest.repo_id())
+            .unwrap();
+        std::fs::create_dir(moved.join("assets")).unwrap();
+        let pointer = crate::storage_core::reference::Pointer::new(payload)
+            .unwrap()
+            .encode();
+        std::fs::write(moved.join("assets/private-video.mp4"), &pointer).unwrap();
+        let mut index = repository.index().unwrap();
+        for (path, data) in [
+            (b"assets/private-video.mp4".as_slice(), pointer.as_slice()),
+            (b"assets.manifest".as_slice(), protected.as_slice()),
+        ] {
+            index
+                .add(&IndexEntry {
+                    ctime: IndexTime::new(0, 0),
+                    mtime: IndexTime::new(0, 0),
+                    dev: 0,
+                    ino: 0,
+                    mode: 0o100644,
+                    uid: 0,
+                    gid: 0,
+                    file_size: data.len() as u32,
+                    id: repository.blob(data).unwrap(),
+                    flags: 0,
+                    flags_extended: 0,
+                    path: path.to_vec(),
+                })
+                .unwrap();
+        }
+        index.write().unwrap();
+        let before = std::fs::read(repository.path().join("index")).unwrap();
+        let tree_id = index.write_tree().unwrap();
+        let tree = repository.find_tree(tree_id).unwrap();
+        let signature = git2::Signature::now("DraconDev", "dracsharp@gmail.com").unwrap();
+        let commit = repository
+            .commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                "cold encrypted hydration fixture",
+                &tree,
+                &[],
+            )
+            .unwrap();
+        let hydrated = crate::storage_core::hydration::HydrationStore::open(
+            &temp.path().join("hydration"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap()
+        .hydrate(
+            &repository,
+            &restored,
+            Path::new("assets.manifest"),
+            commit,
+            |repo| {
+                crate::storage_core::index::verify_manifest_entries(repo, &repo.index()?, &decoded)
+            },
+        )
+        .unwrap();
+        journal::verify_snapshot(hydrated.path(), &expected).unwrap();
+        assert_eq!(std::fs::read(hydrated.backup().unwrap()).unwrap(), pointer);
+        assert_eq!(
+            std::fs::read(repository.path().join("index")).unwrap(),
+            before
+        );
+        assert!(!repository.path().join("index.lock").exists());
+    }
 }
