@@ -4362,7 +4362,7 @@ async fn stage_commit_and_push(
         // test_filter_only_reset_failure_is_non_fatal): only a
         // genuine push failure escalates to PushFailed.
         // v0.113.69 commit-only: never attempt the push here either.
-        if !ctx.commit_only && false {
+        if !ctx.commit_only {
             match handle_ahead_push(ctx, svc).await? {
                 PushReport::AllPaused => {}
                 PushReport::Attempted { ok: false, .. } => {
@@ -10694,7 +10694,10 @@ auto_bump_versions = false
         std::fs::write(repo.join("file.txt"), "v1\n").unwrap();
         git_cmd(&repo, &["add", "file.txt"]);
         git_cmd(&repo, &["commit", "--no-verify", "-m", "init"]);
-        git_cmd(&repo, &["remote", "add", "origin", &origin_bare.to_string_lossy()]);
+        git_cmd(
+            &repo,
+            &["remote", "add", "origin", &origin_bare.to_string_lossy()],
+        );
         git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
         // Two ahead commits with real upstream tracking.
         std::fs::write(repo.join("file.txt"), "v2\n").unwrap();
