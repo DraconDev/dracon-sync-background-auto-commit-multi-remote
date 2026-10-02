@@ -63,6 +63,70 @@ mod tests {
     use crate::storage_core::reference::Fingerprint;
     use sha2::{Digest, Sha256};
     use std::collections::BTreeMap;
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn encrypted_preparation_copies_only_approved_representation() {
+        use crate::storage_core::backend::ImmutableBackend;
+        use std::os::unix::fs::PermissionsExt;
+        for approved in [true, false] {
+            let temp = tempfile::tempdir().unwrap();
+            let (journal, id) = fixture(temp.path(), Encryption::WardenAge);
+            let repo = temp.path().join("repo");
+            std::fs::create_dir(&repo).unwrap();
+            git2::Repository::init(&repo).unwrap();
+            let executable = temp.path().join("warden-fixture");
+            // Synthetic executable verifies worker/SDK composition, not encryption.
+            let script = if approved {
+                "#!/bin/sh\ncat >/dev/null\nprintf 'age-encryption.org/v1\\nopaque fixture\\n'\n"
+            } else {
+                "#!/bin/sh\ncat\n"
+            };
+            std::fs::write(&executable, script).unwrap();
+            std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let adapter = WardenAdapter::new(
+                &executable,
+                &repo,
+                &"a".repeat(64),
+                std::time::Duration::from_secs(5),
+            )
+            .unwrap();
+            let backend = LocalBackend::open(&temp.path().join("objects"), 1024).unwrap();
+            let bindings = CopyBindings::new(
+                "a".repeat(64),
+                BTreeMap::from([(
+                    "primary".into(),
+                    ApprovedBackend::for_security(&backend, vec![Encryption::WardenAge]).unwrap(),
+                )]),
+            )
+            .unwrap();
+            let lease = journal.lease(&id).unwrap();
+            let outcome = advance(&lease, &bindings, Some(&adapter), 1).await;
+            if approved {
+                let ready = outcome.unwrap();
+                let identity = ready.payload().unwrap().clone();
+                let mut bytes = Vec::new();
+                backend.get_verified(&identity, &mut bytes).unwrap();
+                assert_eq!(bytes, b"age-encryption.org/v1\nopaque fixture\n");
+                std::fs::write(&executable, "#!/bin/sh\nexit 71\n").unwrap();
+                assert_eq!(
+                    advance(&lease, &bindings, Some(&adapter), 2)
+                        .await
+                        .unwrap()
+                        .payload(),
+                    Some(&identity)
+                );
+            } else {
+                assert!(outcome.is_err());
+                assert_eq!(lease.load().unwrap().phase(), Phase::Captured);
+                assert!(lease.load().unwrap().payload().is_none());
+                assert!(!temp
+                    .path()
+                    .join("objects")
+                    .join(lease.load().unwrap().spec().source.sha256())
+                    .exists());
+            }
+        }
+    }
     fn fixture(path: &std::path::Path, encryption: Encryption) -> (Journal, String) {
         let bytes = b"captured exact version";
         let journal =
