@@ -23,9 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   private job records and resumable snapshots, bounded Warden preparation,
   immutable verified local copies, repository/security-bound adapter grants,
   and a bounded private restore-manifest codec with sticky enrollment tombstones
-  and crash-resumable Warden metadata preparation.
-  Production configuration resolution, protected metadata publication, S3,
-  Git filters/staging, packaged restoration and daemon transfers remain gated;
+  and crash-resumable Warden metadata preparation. A repository-bound library
+  transaction atomically stages matched pointers and protected metadata while
+  preserving unrelated staged edits and reconciling interrupted publication.
+  Production configuration resolution, working-file/filter integration, S3,
+  packaged restoration and daemon transfers remain gated;
   this infrastructure is not automatic bucket migration.
 - Private runtime isolation for journal/local-store writes, including refusal
   of tracked paths, project roots, unmarked nonempty directories and tampered

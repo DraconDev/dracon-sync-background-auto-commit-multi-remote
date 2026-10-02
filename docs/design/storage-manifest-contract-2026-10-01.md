@@ -148,3 +148,41 @@ and retry deadlines. A separately run real Warden fixture encrypted a manifest
 with a non-UTF-8 asset path, saved the ciphertext, removed only its test-owned
 temporary metadata store and restored the exact decoded manifest using separately
 retained fixture keys. No live keys, filters, repositories or buckets were changed.
+
+## Atomic index publication infrastructure (2026-10-02)
+
+`StageBundle` couples verified leased jobs to the exact manifest from which
+retained ciphertext was prepared. Repository identity, sticky contract, security,
+copy set and current payload must agree. Source and prepared payload snapshots
+are reverified. Failed jobs, duplicate paths and unmatched metadata are refused.
+
+`IndexTransaction` additionally requires the checkout's local
+`dracon.storageRepoId` to match its approved binding. It writes ciphertext and
+canonical pointers as Git blobs without filters, then prepares a complete index
+candidate containing both. Unrelated staged entries survive. The actual index
+fingerprint must still equal the observed baseline under Git's index lock.
+Existing raw tracked assets require reviewed migration; staged managed edits or
+deletions, unmerged entries and path/gitlink collisions block the transaction.
+
+A private durable intent precedes publication. A complete candidate in the
+repository Git directory is hardlinked to `index.lock`, then renamed over the
+index atomically. Recovery recognizes its own lock by recorded device/inode and
+never removes a foreign lock. A conflicting baseline releases only transaction
+artifacts and leaves the operator index intact. Verification reloads the actual
+index from disk rather than trusting libgit2's cache; only then may jobs become
+`Staged`. Git commit and push receipts remain separate.
+
+Prior encrypted metadata must resolve to a retained verified preparation before
+its sticky enrollments can be changed. Entries cannot disappear or change
+contracts implicitly, and new payload identities require verified jobs.
+Cold-checkout decryption/import and reviewed enrollment migration are still
+required production work. This local proof mechanism is not a complete restore
+workflow or authorization source.
+
+Tests use synthetic Warden subprocess output solely for index mechanics and
+cover matched publication, unrelated staging, manual edits/deletions, foreign
+locks, conflicting saved intents, non-UTF-8 paths, tombstones and process death
+before intent publication, before index replacement and after replacement.
+This library performs no working-tree writes, filter installation, commits,
+pushes or automatic daemon enrollment. Working-file race checks and outgoing
+commit validation remain required integration gates.
