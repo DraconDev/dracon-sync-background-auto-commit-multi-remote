@@ -121,7 +121,7 @@ impl LocalBackend {
     }
 }
 
-fn stream_digest(
+pub(super) fn stream_digest(
     input: &mut dyn Read,
     output: &mut dyn Write,
     max_bytes: u64,
