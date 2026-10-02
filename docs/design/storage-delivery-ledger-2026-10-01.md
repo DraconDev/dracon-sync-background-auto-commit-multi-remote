@@ -553,3 +553,14 @@ clean/guard checks were not weakened. That first failed run is retained at
 `/tmp/dracon-bounded-attrs-workspace.log`; diagnostic evidence is at
 `/tmp/dracon-historical-clean-repeat.log`. The fixed targeted case passed;
 repeat qualification and a fresh full workspace run follow.
+
+The corrected historical case passed ten consecutive targeted executions
+(`/tmp/dracon-historical-clean-fixed-repeat.log`) and subsequently passed within
+the fresh workspace run. Final strict all-target Clippy passed after the fixture
+change (`/tmp/dracon-bounded-attrs-final-clippy.log`). The production release
+build and dependency policy had already passed before that test-only correction
+(`/tmp/dracon-bounded-attrs-release.log`, `/tmp/dracon-bounded-attrs-deny.log`);
+no production code/dependency changed afterward. The actual source Warden hook
+integration also passed with the new bounded query path
+(`/tmp/dracon-bounded-attrs-cross-hook.log`). Final complete workspace totals
+are recorded only when its remaining Warden integration/streaming checks end.
