@@ -44,6 +44,132 @@ fn quote(argument: &str) -> String {
     format!("'{}'", argument.replace('\'', "'\\''"))
 }
 
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
+    let f = fixture().await;
+    let source = std::fs::read(f.repo.join("asset [version].bin")).unwrap();
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    for (key, value) in [
+        ("user.name", "DraconDev"),
+        ("user.email", "dracsharp@gmail.com"),
+        ("commit.gpgsign", "false"),
+        ("core.hooksPath", "/dev/null"),
+    ] {
+        assert!(git(&f.repo, &["config", "--local", key, value])
+            .status
+            .success());
+    }
+    assert!(
+        git(&f.repo, &["commit", "--quiet", "-m", "hydration reference"])
+            .status
+            .success()
+    );
+    let revision = String::from_utf8(git(&f.repo, &["rev-parse", "HEAD"]).stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    std::fs::write(f.repo.join("asset [version].bin"), f.pointer.encode()).unwrap();
+    let policy = f.temp.path().join("hydrate-policy.toml");
+    std::fs::write(&policy, format!("[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("recovery").display())).unwrap();
+    let run = |revision: Option<&str>| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_dracon-sync"));
+        command
+            .args(["storage", "hydrate", "--repo"])
+            .arg(&f.repo)
+            .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+            .arg(f.temp.path().join("metadata"))
+            .args([
+                "--manifest-path",
+                ".dracon/assets.manifest",
+                "--path",
+                "asset [version].bin",
+                "--policy",
+            ])
+            .arg(&policy)
+            .args(["--backend", "recovery", "--restore-root"])
+            .arg(f.temp.path().join("recovered"))
+            .arg("--hydration-root")
+            .arg(f.temp.path().join("hydration"));
+        if let Some(revision) = revision {
+            command.args(["--revision", revision]);
+        }
+        command.output().unwrap()
+    };
+    // Missing guard binding fails before any recovery/cache write.
+    assert!(!run(None).status.success());
+    assert!(!f.temp.path().join("recovered").exists());
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        f.pointer.encode()
+    );
+    let setup = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "setup-guard", "--repo"])
+        .arg(&f.repo)
+        .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+        .arg(f.temp.path().join("metadata"))
+        .args(["--manifest-path", ".dracon/assets.manifest"])
+        .output()
+        .unwrap();
+    assert!(
+        setup.status.success(),
+        "{}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+    let index = std::fs::read(f.repo.join(".git/index")).unwrap();
+    let output = run(None);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        source
+    );
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
+    assert!(run(None).status.success());
+    let diff = git(&f.repo, &["diff", "--", "asset [version].bin"]);
+    assert!(
+        diff.status.success(),
+        "{}",
+        String::from_utf8_lossy(&diff.stderr)
+    );
+    assert!(diff.stdout.is_empty());
+    assert_eq!(
+        git(&f.repo, &["show", ":asset [version].bin"]).stdout,
+        f.pointer.encode()
+    );
+    std::fs::write(
+        f.repo.join("asset [version].bin"),
+        b"operator edit preserved",
+    )
+    .unwrap();
+    assert!(!run(None).status.success());
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        b"operator edit preserved"
+    );
+    // A historical restore remains available privately, but must not hydrate
+    // over the current checked-out version.
+    std::fs::write(f.repo.join("README.md"), b"next commit\n").unwrap();
+    assert!(git(&f.repo, &["add", "--", "README.md"]).status.success());
+    assert!(git(
+        &f.repo,
+        &["commit", "--quiet", "-m", "next checked-out version"]
+    )
+    .status
+    .success());
+    assert!(!run(Some(&revision)).status.success());
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        b"operator edit preserved"
+    );
+    assert!(!f.repo.join(".git/index.lock").exists());
+}
+
 async fn fixture() -> Fixture {
     fixture_path(b"asset [version].bin").await
 }
