@@ -493,3 +493,22 @@ restoration remain unfinished. In particular, this is not complete outgoing
 protection against manual --no-verify commits or removal of every local guard
 marker. All remaining roadmap packages retain their full scope; no release or
 production readiness is claimed.
+
+The locked workspace run completed: **2027 passed, zero failed, 19 ignored**,
+including all nine ordinary real-Git driver/binding tests, native/bootstrap
+commit cases, both Warden hook cases and both actual storage crypto streaming
+checks. Its integration-file snapshot predates the extra ignored cross-utility
+test; that test passed separately with both built debug and release Warden
+installers. The final empty-marker hook case also passed in the subsequent
+focused Warden run. These supplementary results are explicit evidence rather
+than additions to the workspace pass total.
+
+Final strict all-target workspace Clippy, locked release build, dependency policy,
+Sync/Warden formatting and diff checks passed. Both release guard CLI help pages
+ran successfully. Logs: `/tmp/dracon-commit-guard-workspace.log`,
+`/tmp/dracon-storage-final-hook-tests.log`,
+`/tmp/dracon-cross-utility-release-guard.log`,
+`/tmp/dracon-commit-guard-final-clippy.log`,
+`/tmp/dracon-commit-guard-final-release.log`,
+`/tmp/dracon-commit-guard-deny.log`. This completes verification of this source
+milestone; the larger storage roadmap remains active and unreleased.
