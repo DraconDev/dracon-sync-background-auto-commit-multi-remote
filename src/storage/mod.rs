@@ -1660,6 +1660,139 @@ struct GuardBinding {
     manifest_path: PathBuf,
 }
 
+/// Portable declarations survive cloning without any local filter settings.
+/// A declaration reserves storage routing even if no current file matches it;
+/// local overrides do not authorize dropping the preservation contract.
+fn portable_storage_declaration(
+    repository: &git2::Repository,
+    honor_git_index: bool,
+) -> Result<bool> {
+    fn is_attributes(path: &[u8]) -> bool {
+        path == b".gitattributes" || path.ends_with(b"/.gitattributes")
+    }
+    fn declares(bytes: &[u8]) -> bool {
+        bytes.split(|byte| *byte == b'\n').any(|line| {
+            let line = line.trim_ascii();
+            if line.is_empty() || line.starts_with(b"#") {
+                return false;
+            }
+            // Skip Git's pattern (possibly C-quoted); inspect attribute tokens,
+            // not filenames or comments containing the driver's name.
+            let mut offset = 0;
+            let quoted = line[0] == b'"';
+            if quoted {
+                offset = 1;
+            }
+            while offset < line.len() {
+                match line[offset] {
+                    b'\\' if quoted => offset = (offset + 2).min(line.len()),
+                    b'"' if quoted => {
+                        offset += 1;
+                        break;
+                    }
+                    byte if !quoted && byte.is_ascii_whitespace() => break,
+                    _ => offset += 1,
+                }
+            }
+            line[offset..]
+                .split(|byte| byte.is_ascii_whitespace())
+                .any(|token| token == b"filter=dracon-storage")
+        })
+    }
+    let mut attribute_bytes = 0usize;
+    let mut inspect = |oid: git2::Oid, mode: u32| -> Result<bool> {
+        if mode != 0o100644 && mode != 0o100755 {
+            return Ok(false);
+        }
+        let (size, kind) = repository.odb()?.read_header(oid)?;
+        attribute_bytes = attribute_bytes
+            .checked_add(size)
+            .context("attribute byte count overflow")?;
+        if kind != git2::ObjectType::Blob
+            || size > 4 * 1024 * 1024
+            || attribute_bytes > 16 * 1024 * 1024
+        {
+            bail!("portable storage attribute detection exceeds byte budget");
+        }
+        Ok(declares(repository.find_blob(oid)?.content()))
+    };
+    let selected = if honor_git_index {
+        std::env::var_os("GIT_INDEX_FILE").map(PathBuf::from)
+    } else {
+        None
+    };
+    let index_path = selected.unwrap_or_else(|| repository.path().join("index"));
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    }
+    match options.open(&index_path) {
+        Ok(file) => {
+            let info = file.metadata()?;
+            if !info.is_file() || info.len() > 64 * 1024 * 1024 {
+                bail!("portable storage detection index unavailable or exceeds budget");
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if info.uid() != unsafe { libc::geteuid() } {
+                    bail!("portable storage detection index owner mismatch");
+                }
+            }
+            for entry in git2::Index::open(&index_path)?.iter() {
+                if is_attributes(&entry.path) && inspect(entry.id, entry.mode)? {
+                    return Ok(true);
+                }
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error).context("cannot inspect portable storage index"),
+    }
+    let head = match repository.head() {
+        Ok(head) => head.peel_to_tree()?,
+        Err(error)
+            if matches!(
+                error.code(),
+                git2::ErrorCode::UnbornBranch | git2::ErrorCode::NotFound
+            ) =>
+        {
+            return Ok(false)
+        }
+        Err(error) => return Err(error).context("cannot inspect portable storage HEAD"),
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let mut outcome = Ok(false);
+    head.walk(git2::TreeWalkMode::PreOrder, |_, entry| {
+        if std::time::Instant::now() >= deadline {
+            outcome = Err(anyhow::anyhow!(
+                "portable storage HEAD detection deadline exceeded"
+            ));
+            return git2::TreeWalkResult::Abort;
+        }
+        if entry.name_bytes() == b".gitattributes" {
+            match inspect(entry.id(), entry.filemode() as u32) {
+                Ok(false) => {}
+                result => {
+                    outcome = result;
+                    return git2::TreeWalkResult::Abort;
+                }
+            }
+        }
+        git2::TreeWalkResult::Ok
+    })
+    .or_else(|error| {
+        if outcome.as_ref().is_ok_and(|found| !found) {
+            Err(error)
+        } else {
+            Ok(())
+        }
+    })?;
+    outcome
+}
+
 /// Direct daemon and manual-hook entrypoint. No storage marker means no change.
 /// The daemon passes false to inspect its actual libgit2 index, ignoring an
 /// ambient alternate-index environment. Manual Git hooks pass true for Git's index.
@@ -1671,13 +1804,19 @@ fn configured_guard(repo: &Path, honor_git_index: bool) -> Result<Option<GuardBi
         Err(error) if error.code() == git2::ErrorCode::NotFound => None,
         Err(error) => return Err(error).context("cannot read storage guard version"),
     };
-    let driver_present = [
+    let effective = repository.config()?;
+    let mut driver_present = false;
+    for key in [
         "filter.dracon-storage.clean",
         "filter.dracon-storage.process",
         "filter.dracon-storage.required",
-    ]
-    .iter()
-    .any(|key| repository.config().is_ok_and(|config| config.get_entry(key).is_ok()));
+    ] {
+        match effective.get_entry(key) {
+            Ok(_) => driver_present = true,
+            Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+            Err(error) => return Err(error).context("cannot read storage driver setting"),
+        }
+    }
     if version.is_none() && !driver_present {
         if !portable_storage_declaration(&repository, honor_git_index)? {
             return Ok(None);
