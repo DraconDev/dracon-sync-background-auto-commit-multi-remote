@@ -1219,25 +1219,50 @@ fn verify_s3_https_recovery(
     );
     let script = f.temp.path().join("s3-fixture.py");
     std::fs::write(&script,r#"
-import sys, ssl, http.server, pathlib, hashlib, hmac
+import sys, ssl, http.server, pathlib, hashlib, hmac, os
 objects, cert, key, portfile, countfile = sys.argv[1:]
+probe_root=pathlib.Path(objects)/'.dracon-probes'
 def mac(key,data): return hmac.new(key,data.encode(),hashlib.sha256).digest()
 class Handler(http.server.BaseHTTPRequestHandler):
  def log_message(self,*args): pass
- def do_GET(self):
+ def authorized(self,body):
   auth=self.headers.get('Authorization','')
   names=auth.split('SignedHeaders=')[1].split(',')[0]
-  canonical='GET\n'+self.path+'\n\n'+''.join(n+':'+self.headers[n].strip()+'\n' for n in names.split(';'))+'\n'+names+'\n'+self.headers['x-amz-content-sha256']
+  canonical=self.command+'\n'+self.path+'\n\n'+''.join(n+':'+self.headers[n].strip()+'\n' for n in names.split(';'))+'\n'+names+'\n'+self.headers['x-amz-content-sha256']
   date=self.headers['x-amz-date']; scope=date[:8]+'/us-east-1/s3/aws4_request'
   signing=mac(mac(mac(mac(b'AWS4wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',date[:8]),'us-east-1'),'s3'),'aws4_request')
   signature=mac(signing,'AWS4-HMAC-SHA256\n'+date+'\n'+scope+'\n'+hashlib.sha256(canonical.encode()).hexdigest()).hex()
-  if not hmac.compare_digest(signature,auth.split('Signature=')[1]): self.send_error(403); return
+  if not hmac.compare_digest(signature,auth.split('Signature=')[1]) or self.headers['x-amz-content-sha256']!=hashlib.sha256(body).hexdigest(): self.send_error(403); return False
+  return True
+ def object_path(self):
   prefix='/fixture-bucket/approved/'
+  if not self.path.startswith(prefix): self.send_error(404); return None
   ident=self.path[len(prefix):]
-  if not self.path.startswith(prefix) or len(ident)!=64 or any(c not in '0123456789abcdef' for c in ident): self.send_error(404); return
-  content=(pathlib.Path(objects)/ident).read_bytes()
+  probe=ident.startswith('.dracon-probes/')
+  if probe: ident=ident[len('.dracon-probes/'):]
+  if len(ident)!=64 or any(c not in '0123456789abcdef' for c in ident): self.send_error(404); return None
+  return (probe_root if probe else pathlib.Path(objects))/ident
+ def do_GET(self):
+  if not self.authorized(b''): return
+  path=self.object_path()
+  if path is None: return
+  content=path.read_bytes()
   pathlib.Path(countfile).write_text('GET')
   self.send_response(200); self.send_header('Content-Length',str(len(content))); self.end_headers(); self.wfile.write(content)
+ def do_PUT(self):
+  size=int(self.headers.get('Content-Length','0'))
+  if size!=64 or '.dracon-probes/' not in self.path or self.headers.get('If-None-Match')!='*': self.send_error(400); return
+  body=self.rfile.read(size)
+  if not self.authorized(body): return
+  path=self.object_path()
+  if path is None: return
+  probe_root.mkdir(mode=0o700,exist_ok=True)
+  ignoring=(pathlib.Path(objects)/'.ignore-condition').exists()
+  flags=os.O_WRONLY|os.O_CREAT|(os.O_TRUNC if ignoring else os.O_EXCL)
+  try: fd=os.open(path,flags,0o600)
+  except FileExistsError: self.send_response(412); self.end_headers(); return
+  with os.fdopen(fd,'wb') as file: file.write(body); file.flush(); os.fsync(file.fileno())
+  self.send_response(200); self.end_headers()
 server=http.server.HTTPServer(('127.0.0.1',0),Handler)
 context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); context.load_cert_chain(cert,key)
 server.socket=context.wrap_socket(server.socket,server_side=True)
@@ -1271,7 +1296,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBxVU42cllzN0g4alprYUYxWm1BaE4xaWpqZTgzZFpNaUhRR3k5VFIzN2xZClM3UHNzUCtFNWljWG54c1hSUUxpODM5dGgyNFZ2RitKM3VybUs5YUhGTHcKLT4gWDI1NTE5ICtUNWVFMmFKZm95T2Y0N2JKMUpzUlhTSlN3RXdLNE1pZjZJZGl2T2h5VjgKMkdqYW03M1E1ZHlKdzU4S2xrQmtwYmxja1hVa2ZxdTlHV2I3WXYvbUpRbwotPiBYMjU1MTkgOWlFSVVGbG9FTU5rbk1NVFdiNlNlWWg2RGZtdzNSbCtOR2xSaVRSZEhWOApzUlozRVpVdmhqenRXajVQU3loWjh4RGsrVXlNdXhHaS84RThOcko1Q1pvCi0+IFgyNTUxOSB2WUI0TS9DTE51YmMwTWROZDlCSFlvZlJmbkd2U2hyd2NmeTRPbEdtQUY0Ckk1R0M1aGNVWFkzWldyYnAwa3gvK3BDdXltRE1jK2R4RGNzRkxHWXpNMGsKLT4gWDI1NTE5IGovcEZCOXJCczdSd2g3V2pDREtZY3laelR2Q2tXclcvWkp1VEk0N01IaWMKeElqMFZpOVdTZXc5eVJyNGJ5dTR3a0pscHRJcUlJSGYyb0tVNzhpTFd1SQotPiBaLWdyZWFzZQpuTHJpTDZQRDVMcEFMOFhUSkZqaWI5M2VMOVROa0grK3BHdU9HeUxwK3M1Z29DZUprckVkMVErMmI1bVkKLS0tIEdrdmxQSmZsMjZqOGdES0JyQ2RYNWJyamZ5ci9HaURIS1ZDYVd3NDFoTUUKOtPUEYh196kwxE7p8J6f1BCcomr7scJzQ0obuoQjk/kaS9IwHA6KVUqpVJmF2Fd1YU46Cg==]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBOcFFFbEgyZ0hQZGxsb0lJZ0hWL013VXcwaG9FdkF1TlhqZlJiRzh3MkRvCmlKZy9FZSsxSmowOVdvbjN3cXJia0F6MXBzTk5HemZBd2ZBM0ZMUHpBNFEKLT4gWDI1NTE5IGhMUU8zdnFjUXRVWU1ZM2JKa3J5Q1plNkF0MURPb094SUw0d2FTcWZod0UKMEtPZ3hmSEVQWG9nOGtsOExwTWNvZWFlRXVsM1IrcUlZMEw4VjlPSy9WRQotPiBYMjU1MTkgSXRjTFN2ajZteUY2RVE0d1J3a2pITTg4NGxSVGE5djlyWnBJRkdTU0IzbwpwOGpsK0RvUUJGMXpwV0Y4NEE0M3pvOEQyUmJzN05DZUdWcE9UaHFBNEZBCi0+IFgyNTUxOSBsa2Z0TUxQVmM3WTlxQ0E1cEtGRElxRysvNlk1YkJ2Q2ZDTTRwL3Q4VDFRCllJS1RGNWhvdjFRUEdQa2lQaWJ4QlRFSCtPVlVWMSswWnZvT1F4Tm03Rm8KLT4gWDI1NTE5IEtxQ3NhVlVZbE5CcGFzNEQyNXhIV0ExTTR6djhSTm81OFZTeEJENERwSEkKNjlwOGFJMFR4WGI2SHpFYThnODMwQjFIYUtRNXZYSUExZFk1OWxBcHNDdwotPiAiR3UtZ3JlYXNlClRLQ3dORHhaMmtyc2FCYkVRU1puaGt3dXZKN29YSzZuNGtPRXpWekxhUnByeU9KT1hkam9uQWw2LzhpbnF2ejcKV1FnYlp5Sm5udEoxUzkwVU5Ed0IrZHEvZWd1V3psWmJ4dwotLS0gL3djczBKeDlGYk45Nmp0TFpSa1FNRDdpT0VFN2FTMC9TZmg4eDlNS2JwVQoUSWs98k6OXhQ6StJGizrfZ1OB3mdpgJjXfisa/IJGc2ghvl711RgMSzI7NnQnxmHgsaOc]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
@@ -1300,6 +1325,46 @@ server.serve_forever()
         String::from_utf8_lossy(&recovered.stderr)
     );
     assert_eq!(std::fs::read_to_string(count).unwrap(), "GET");
+    let probe = || {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .env("SSL_CERT_FILE", &cert)
+            .args(["storage", "probe-backend", "--repo"])
+            .arg(cold)
+            .arg("--policy")
+            .arg(&policy)
+            .args(["--backend", "recovery", "--credentials-root"])
+            .arg(&credentials)
+            .arg("--json")
+            .output()
+            .unwrap()
+    };
+    let checked = probe();
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(report["competing_creates_verified"], true);
+    assert_eq!(report["conflicting_write_refused"], true);
+    assert_eq!(report["full_readback_verified"], true);
+    assert_eq!(report["probe_object_bytes"], 64);
+    assert_eq!(report["live_provider_certified"], false);
+    let probes = f.temp.path().join("recovery/.dracon-probes");
+    assert_eq!(std::fs::read_dir(&probes).unwrap().count(), 1);
+    for object in std::fs::read_dir(&probes).unwrap() {
+        assert_eq!(object.unwrap().metadata().unwrap().len(), 64);
+    }
+    std::fs::write(
+        f.temp.path().join("recovery/.ignore-condition"),
+        b"fixture-only unsafe provider",
+    )
+    .unwrap();
+    let refused = probe();
+    assert!(!refused.status.success());
+    assert!(refused.stdout.is_empty());
+    assert_eq!(std::fs::read_dir(&probes).unwrap().count(), 2);
+
     let restored = std::fs::read_dir(restore.join("a".repeat(64)))
         .unwrap()
         .map(|e| e.unwrap().path())
