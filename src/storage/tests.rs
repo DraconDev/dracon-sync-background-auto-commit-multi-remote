@@ -697,6 +697,64 @@ trusted_authors = ["DraconDev"]
 }
 
 #[cfg(unix)]
+#[test]
+fn portable_detection_refuses_missing_blobs_oversize_and_symlink_indexes() {
+    for failure in ["blob", "size", "symlink"] {
+        let dir = git_fixture();
+        let repo = dir.path();
+        let bytes = if failure == "size" {
+            vec![b'#'; 4 * 1024 * 1024 + 1]
+        } else {
+            b"# ordinary attribute example\n".to_vec()
+        };
+        std::fs::write(repo.join(".gitattributes"), &bytes).unwrap();
+        git_fixture_command(repo, &["add", "--", ".gitattributes"]);
+        let index = std::fs::read(repo.join(".git/index")).unwrap();
+        if failure == "blob" {
+            let repository = git2::Repository::open(repo).unwrap();
+            let oid = repository
+                .index()
+                .unwrap()
+                .get_path(Path::new(".gitattributes"), 0)
+                .unwrap()
+                .id
+                .to_string();
+            // Only this fixture's loose test blob is removed to exercise an
+            // unreadable index reference; no watched/operator object is touched.
+            std::fs::remove_file(repo.join(".git/objects").join(&oid[..2]).join(&oid[2..]))
+                .unwrap();
+        } else if failure == "symlink" {
+            std::fs::rename(repo.join(".git/index"), repo.join(".git/saved.index")).unwrap();
+            std::os::unix::fs::symlink("saved.index", repo.join(".git/index")).unwrap();
+        }
+        assert!(verify_configured_index(repo, false).is_err(), "{failure}");
+        assert!(
+            commit_configured_storage(repo, "must refuse unreadable binding detection").is_err(),
+            "{failure}"
+        );
+        assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
+        assert_eq!(std::fs::read(repo.join(".gitattributes")).unwrap(), bytes);
+    }
+}
+
+#[test]
+fn included_driver_settings_require_an_explicit_guard_binding() {
+    let dir = git_fixture();
+    let config = dir.path().join(".git/included-driver.config");
+    std::fs::write(
+        &config,
+        "[filter \"dracon-storage\"]\nclean = cat\nrequired = true\n",
+    )
+    .unwrap();
+    git_fixture_command(
+        dir.path(),
+        &["config", "include.path", config.to_str().unwrap()],
+    );
+    assert!(verify_configured_index(dir.path(), false).is_err());
+    assert!(commit_configured_storage(dir.path(), "unbound included driver").is_err());
+}
+
+#[cfg(unix)]
 #[tokio::test]
 async fn storage_bootstrap_cannot_bypass_guard_with_no_verify() {
     for valid in [true, false] {
