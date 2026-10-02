@@ -487,6 +487,9 @@ fn desired(
     metadata_path: &[u8],
     metadata: Oid,
 ) -> Result<bool> {
+    if index.has_conflicts() {
+        return Ok(false);
+    }
     let Some(meta) = index.iter().find(|entry| entry.path == metadata_path) else {
         return Ok(false);
     };
@@ -690,6 +693,10 @@ mod tests {
     }
 
     async fn fixture(root: &Path) -> Fixture {
+        fixture_path(root, b"asset.bin").await
+    }
+
+    async fn fixture_path(root: &Path, asset_path: &[u8]) -> Fixture {
         let repo_path = root.join("repo");
         let repo = Repository::init(&repo_path).unwrap();
         repo.config()
@@ -714,12 +721,12 @@ mod tests {
             .unwrap();
         }
         let bytes = b"explicitly approved non-sensitive fixture asset";
-        std::fs::write(repo_path.join("asset.bin"), bytes).unwrap();
+        std::fs::write(repo_path.join(os_path(asset_path).unwrap()), bytes).unwrap();
         let payload =
             Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
         let spec = JobSpec {
             repo_id: "a".repeat(64),
-            path_hex: journal::encode_relative_path(b"asset.bin").unwrap(),
+            path_hex: journal::encode_relative_path(asset_path).unwrap(),
             source: payload.clone(),
             policy_sha256: "b".repeat(64),
             primary: "primary".into(),
@@ -948,6 +955,124 @@ mod tests {
         assert_eq!(
             std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
             before
+        );
+    }
+
+    fn commit_index(repo: &Repository) {
+        let mut index = fresh_index(repo).unwrap();
+        let tree = index.write_tree().unwrap();
+        let signature = git2::Signature::now("DraconDev", "dracsharp@gmail.com").unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            "prepared pair fixture",
+            &repo.find_tree(tree).unwrap(),
+            &[&parent],
+        )
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn manual_managed_deletion_is_preserved_but_explicit_tombstone_stages() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        stage(&f).unwrap();
+        commit_index(&f.transaction.repo);
+        let mut enrolled = f.manifest.enrollments().to_vec();
+        enrolled[0].payload = None;
+        let tombstone = Manifest::new(f.manifest.repo_id().into(), enrolled).unwrap();
+        let prepared = f
+            .store
+            .prepare(&tombstone, &"b".repeat(64), &f.adapter, 1)
+            .await
+            .unwrap();
+        let bundle = StageBundle::build(&f.store, &prepared, &tombstone, vec![]).unwrap();
+        let mut index = fresh_index(&f.transaction.repo).unwrap();
+        index.remove_path(Path::new("asset.bin")).unwrap();
+        index.write().unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        // Restore only the fixture index to its original committed pointer.
+        let tree = f.transaction.repo.head().unwrap().peel_to_tree().unwrap();
+        index.read_tree(&tree).unwrap();
+        index.write().unwrap();
+        f.transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .unwrap();
+        let index = fresh_index(&f.transaction.repo).unwrap();
+        assert!(index.get_path(Path::new("asset.bin"), 0).is_none());
+        assert!(index
+            .get_path(Path::new(".dracon/assets.manifest"), 0)
+            .is_some());
+        assert!(f
+            .transaction
+            .repo
+            .workdir()
+            .unwrap()
+            .join("asset.bin")
+            .exists());
+    }
+
+    #[tokio::test]
+    async fn lossless_non_utf8_paths_are_staged_as_exact_index_entries() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = b"asset [raw] \xff.bin";
+        let f = fixture_path(temp.path(), path).await;
+        stage(&f).unwrap();
+        let index = fresh_index(&f.transaction.repo).unwrap();
+        let asset = index.iter().find(|entry| entry.path == path).unwrap();
+        assert!(Pointer::parse(f.transaction.repo.find_blob(asset.id).unwrap().content()).is_ok());
+        assert!(f
+            .transaction
+            .repo
+            .workdir()
+            .unwrap()
+            .join(os_path(path).unwrap())
+            .exists());
+    }
+
+    #[tokio::test]
+    async fn saved_intent_conflict_releases_only_its_owned_lock() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let lock = f.transaction.repo.path().join("index.lock");
+        std::fs::write(&lock, b"foreign process").unwrap();
+        assert!(stage(&f).is_err());
+        assert!(f.transaction.state.join("intent.json").exists());
+        std::fs::remove_file(&lock).unwrap();
+        let mut index = fresh_index(&f.transaction.repo).unwrap();
+        let note = f
+            .transaction
+            .repo
+            .blob(b"concurrent unrelated edit")
+            .unwrap();
+        index.add(&entry(b"note.md", note, 0o100644, 25)).unwrap();
+        index.write().unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(stage(&f).is_err());
+        assert!(!lock.exists());
+        assert!(!f.transaction.state.join("intent.json").exists());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        stage(&f).unwrap();
+        assert_eq!(
+            fresh_index(&f.transaction.repo)
+                .unwrap()
+                .get_path(Path::new("note.md"), 0)
+                .unwrap()
+                .id,
+            note
         );
     }
 
