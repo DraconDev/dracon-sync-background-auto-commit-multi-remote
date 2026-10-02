@@ -3412,7 +3412,7 @@ fn print_repos_legend_footer() {
         "PUSH = last push result + age · SIZE = own .git + submodule gitdirs · TOUCHED = commit author",
         "Detail: dracon-sync repos <name> · Full key: dracon-sync repos --legend",
     ] {
-        println!("{}", colorize(line, "2"));
+        println!("{}", colorize(line, Color::DarkGrey));
     }
     println!();
 }
@@ -6589,11 +6589,21 @@ fn print_repos_rich_table(
     _ok_count: usize,
     full_path: bool,
 ) {
+    println!(
+        "{}",
+        build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
+    );
+}
+
+fn build_repos_rich_table(
+    rows: &[RepoReportRow],
+    full_path: bool,
+    terminal_columns: u16,
+) -> comfy_table::Table {
     use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
-        Width,
+        modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY, Cell, CellAlignment, Color,
+        ColumnConstraint, ContentArrangement, Table, TableComponent, Width,
     };
-    let _ = _filter;
 
     // Sort by severity (concern → warn → active → clean), stable.
     let mut indexed: Vec<(usize, &RepoReportRow)> = rows.iter().enumerate().collect();
@@ -6606,7 +6616,7 @@ fn print_repos_rich_table(
         .max()
         .unwrap_or(REM_MIN_COL);
 
-    let width = terminal_width().unwrap_or(120) as usize;
+    let width = terminal_columns as usize;
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
@@ -6742,12 +6752,14 @@ fn print_repos_rich_table(
     let _ = (fixed, border_overhead, cell_padding, width); // suppress unused warnings
 
     let mut table = Table::new();
-    table.load_preset(UTF8_FULL_CONDENSED);
+    table.load_preset(UTF8_BORDERS_ONLY);
+    table.apply_modifier(UTF8_ROUND_CORNERS);
+    table.set_style(TableComponent::LeftHeaderIntersection, '├');
+    table.set_style(TableComponent::HeaderLines, '─');
+    table.set_style(TableComponent::RightHeaderIntersection, '┤');
     table.set_content_arrangement(ContentArrangement::Dynamic);
-    if let Some(w) = terminal_width() {
-        if (40..=2000).contains(&w) {
-            table.set_width(w);
-        }
+    if (40..=2000).contains(&terminal_columns) {
+        table.set_width(terminal_columns);
     }
 
     let bold = |s: &str| {
