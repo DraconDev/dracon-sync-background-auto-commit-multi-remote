@@ -541,7 +541,7 @@ async fn configured_storage_commits_verified_tree_and_preserves_rejected_index()
     let repository = git2::Repository::open(repo).unwrap();
     let head = repository.head().unwrap().peel_to_commit().unwrap();
     assert_eq!(head.parent_count(), 0);
-    assert_eq!(head.author().name(), Some("DraconDev"));
+    assert_eq!(head.author().name().unwrap(), "DraconDev");
     let pointer = git_fixture_command(repo, &["show", "HEAD:asset.bin"]);
     assert_eq!(pointer, std::fs::read(repo.join("asset.bin")).unwrap());
     assert_eq!(
