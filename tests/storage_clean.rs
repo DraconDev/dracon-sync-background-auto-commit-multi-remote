@@ -450,7 +450,7 @@ async fn enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers() 
     let mut tombstone = enrolled(&f.journal.lease(&f.job).unwrap().load().unwrap());
     tombstone.payload = None;
     index_manifest(&f, vec![tombstone]).await;
-    assert!(git(&f.repo, &["rm", "--quiet", "--", "asset [version].bin"])
+    assert!(git(&f.repo, &["rm", "--quiet", "-f", "--", "asset [version].bin"])
         .status
         .success());
     assert!(git(&f.repo, &["commit", "--quiet", "-m", "tombstone enrolled path"])
@@ -1767,7 +1767,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBKdFFtTVlQcTNFZ1JaV3hZUVNGSUhBTTN1UXd1SVVYNGJvNC9YR2RzSURRCkVBSURPejliTjg0S0Z0Vnczb25ZZTdEd1p2ekNGZWJWdm1rVUpzYnVyN00KLT4gWDI1NTE5IHNsR2dHRjhSWmZxNEY0NldmKzN1Qi9sTE1Xa280eXFoUUxZVGhkNGdmbjQKbU1aQUpsRUxJRGJTQmRtM1NvMmVCNHpBNjV2d1RvMjBRQ0pkUEZjTEpDSQotPiBYMjU1MTkgNUVQaGcySVl3Tnhod0xVTHRBWnRhNlFEVWdVc3JaUHV3bnptSnRici9VSQpvY0lYTEVmTEtxSGozcjRoNkE1Ky85ZUd2anExSnlUSmh2NEpSMnlGRDlVCi0+IFgyNTUxOSB2L0YvUHdFbDJwcW5lU1Q5b284TmlUYkdhZjI0ODlEczhLNFpKOGZOMlFvCjZPNmhCZXVLUmRqTXVpSUxvemdkSmhrYmkvbG5ISVN5TVpNc0NoTjU1aFUKLT4gWDI1NTE5IGUrbHZBaE92RDNrSmMyTEJGemNkOU16ZGlETWxJRnZNWWpJY2ZjNFlyemsKSHAzeGhqdlVwalZVTU1DbnpaQXR5ZnRrWjdMQzl0aEZvNUlKdVZVd3pUTQotPiBBOS1ncmVhc2UgZlQoSS4yRnsKTnd5RXdPc0RHRXg5TCticDBOUQotLS0gb05FVUo5dHpuN3lOQnQ0aVlCcVlPeDBLOTdtOFc4QlloRjhMbUNmL01MYwowwA1d6c6BOp5eCaMhbPmKExgtkgZOlsRvEGfm2Ov/tReXp2rlEQdfLyF9lSK4Yo7iutER]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB5YkYzeXFvZWdBT0lrQ1lLYW5kU0lid3NPdktYWGNBV0hFdHgweStmSzJVClJTNlhhYllXL215V3NmSWhQUDU5dUJpbnZGMGM3ZUFNVGtLWDNualNGaE0KLT4gWDI1NTE5IGozTWJUQmRxNm92SEorYUEreWNENkMrQ1FvSkRISzBnY3JCdDdYM01EV1kKdHJ1dERhY1BuMk4vVWNuUHZKU3FxdzJzZUhjaFNVNXdoMkh5S2FyWGx4VQotPiBYMjU1MTkgTDMvRWFvcTc3anNQV0E4cDZmYUx1TGh5d2FscEtlZUR3UXJSNG9ZbUhuawp0bFB6N0laSkhkQmcwNHlBZEpVN1krMmd6SGM3NTF5THEyTDRXZVUxZjM4Ci0+IFgyNTUxOSA1cjRzM0NmanZZdklITHNKNkV3RURjQi9Yd3FVR0R1dDQyV09mVUVsbXdNCmF6eXkvQU5PeG82TXVmK205MG1sVHRzd1JsOTFQV0ZQMHhGemVrc2xvdHMKLT4gWDI1NTE5IHZjblc1YkhITGI1ZkRQVGxRRVIzdWtRd2E3d0YvS1lhZy9pckJlUGZoRGMKZU9lNG1NaDlUQkN6RGwrT0d5ZVNBZnlNSVdmaVc0NlFPcEdpUXlGeWc4WQotPiAkYXU/TyotZ3JlYXNlIFtdU3wKCi0tLSBaR0t2aEdLQ3BRcmg2ZXdRSjhJUEVmTGpYT2RkMzYwYmg1S3RNYWNYVVpzCoTl32izbEbiP/Jm46qx7+L9lolNuaHr18cxwABNc+nt7/H51teR4by8GAYvwkvtEJpKPEU=]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
