@@ -304,11 +304,11 @@ pub(crate) struct RecoveryOptions {
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
     /// Recover an exact committed asset into a private cache; checkout is unchanged.
-    RestoreAsset(RecoveryOptions),
+    RestoreAsset(Box<RecoveryOptions>),
     /// Hydrate one checked-out asset using a private retained transaction (Linux).
     Hydrate {
         #[command(flatten)]
-        recovery: RecoveryOptions,
+        recovery: Box<RecoveryOptions>,
         #[arg(long)]
         hydration_root: PathBuf,
         /// Resume a matching retained local transaction without fetching/decrypting.
@@ -1164,12 +1164,12 @@ mod tests;
 
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
     let (options, hydration_root, resume_local) = match command {
-        StorageCommand::RestoreAsset(options) => (options, None, false),
+        StorageCommand::RestoreAsset(options) => (options.as_ref(), None, false),
         StorageCommand::Hydrate {
             recovery,
             hydration_root,
             resume_local,
-        } => (recovery, Some(hydration_root), *resume_local),
+        } => (recovery.as_ref(), Some(hydration_root), *resume_local),
         _ => unreachable!("recovery command was matched"),
     };
     let RecoveryOptions {
