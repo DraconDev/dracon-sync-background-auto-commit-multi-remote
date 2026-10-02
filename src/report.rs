@@ -11789,7 +11789,7 @@ mod tests {
         clean.commits_24h = 1015;
         let mut stalled =
             make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
-        stalled.repo = "/tmp/dracon-platform".into();
+        stalled.repo = "/tmp/platform".into();
         let rows = [clean, stalled];
         for width in [165, 200, 320] {
             let rendered = build_repos_rich_table(&rows, false, width).to_string();
@@ -11803,7 +11803,7 @@ mod tests {
             }
             assert!(lines[0].starts_with('╭'));
             assert!(lines[5].ends_with('╯'));
-            assert!(lines[3].contains("STALLED") && lines[3].contains("dracon-platform"));
+            assert!(lines[3].contains("STALLED") && lines[3].contains("platform"));
             assert!(
                 lines[4].contains("   12     123    1015"),
                 "counts must align: {rendered}"
