@@ -781,3 +781,31 @@ create-only rename and `/proc` access. Automatic startup reconciliation, S3,
 worker/routing/enrollment, public metadata without Warden, complete outgoing
 history/push coverage, growth benchmarks, reviewed pilots and release retain the
 full original roadmap scope.
+
+## S3 create-only protocol driver (2026-10-02)
+
+`storage_core::s3` now implements `ImmutableBackend` over a minimal conditional
+PUT/full GET transport boundary. Capture uses an anonymous private bounded spool
+and a stable fingerprint. Both creation and existing-object responses require
+independent complete readback before success. The driver exposes no unconditional
+write, delete, listing or bucket mutation. Source failure/byte overflow prevents
+provider contact; conflicting writes, failed readback and corrupt existing bytes
+produce no successful receipt. Retrieval bounds actual bytes to the expected
+identity, and callers still publish output only after successful verification.
+
+Seven focused protocol tests passed, including a 101 MiB private-file streaming
+round trip with 64 KiB capture requests, existing corrupt object preservation,
+conflicts, source/provider/destination failures and size bounds. Evidence:
+`/tmp/dracon-s3-protocol-tests.log`. Final strict workspace/all-target Clippy,
+release build, dependency policy and formatting/diff checks passed. Logs:
+`/tmp/dracon-s3-protocol-clippy.log`, `/tmp/dracon-s3-protocol-release.log`,
+`/tmp/dracon-s3-protocol-deny.log`. The release build started before documentation
+for three public items was added; the final strict Clippy verifies those additions.
+
+This is a protocol driver tested with synthetic transports, not a signed HTTP
+adapter or provider certification. The S3 planning binding still cannot perform
+network recovery. Operator credential resolution, signed conditional HTTP,
+endpoint capability checks, durable worker/routing/enrollment, independent cold
+provider recovery and the original remaining release gates remain required. No
+installed daemon, live bucket, keys or fleet configuration changed. See
+[protocol requirements](storage-s3-protocol-2026-10-02.md).
