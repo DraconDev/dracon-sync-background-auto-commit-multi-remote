@@ -125,7 +125,7 @@ impl IndexTransaction {
         let _lease = journal::try_lock(&self.state.join("transaction.lock"))?;
         let group = group_id(bundle, &self.metadata_path)?;
         let metadata_oid = self.write_metadata(bundle)?;
-        let current = self.repo.index()?;
+        let current = fresh_index(&self.repo)?;
         let intent_path = self.state.join("intent.json");
         if journal::exists_without_symlink(&intent_path)? {
             let intent = self.read_intent()?;
@@ -425,7 +425,7 @@ impl IndexTransaction {
     fn verify(&self, bundle: &StageBundle<'_>, metadata: Oid) -> Result<()> {
         if !desired(
             &self.repo,
-            &self.repo.index()?,
+            &fresh_index(&self.repo)?,
             bundle,
             &self.metadata_path,
             metadata,
@@ -473,6 +473,12 @@ impl IndexTransaction {
 }
 
 use std::collections::BTreeSet;
+
+fn fresh_index(repo: &Repository) -> Result<Index> {
+    let mut index = repo.index()?;
+    index.read(true)?;
+    Ok(index)
+}
 
 fn desired(
     repo: &Repository,
@@ -824,7 +830,7 @@ mod tests {
         index.write().unwrap();
         let source = std::fs::read(repo.workdir().unwrap().join("asset.bin")).unwrap();
         let proof = stage(&f).unwrap();
-        let index = repo.index().unwrap();
+        let index = fresh_index(repo).unwrap();
         assert_eq!(index.get_path(Path::new("note.md"), 0).unwrap().id, oid);
         let asset = index.get_path(Path::new("asset.bin"), 0).unwrap();
         assert!(f.manifest.enrollments()[0].matches_pointer(
@@ -976,7 +982,7 @@ mod tests {
                 .unwrap();
             assert_eq!(status.code(), Some(75), "{point}");
             let f = fixture(temp.path()).await;
-            let index = f.transaction.repo.index().unwrap();
+            let index = fresh_index(&f.transaction.repo).unwrap();
             assert_eq!(
                 index.get_path(Path::new("asset.bin"), 0).is_some(),
                 point == "after-index-publish"
