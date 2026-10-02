@@ -1285,6 +1285,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn commit_lock_preserves_foreign_locks_and_releases_only_its_inode() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let repo = &f.transaction.repo;
+        let path = repo.path().join("index.lock");
+        std::fs::write(&path, b"operator Git operation").unwrap();
+        assert!(CommitLock::acquire(repo, &"a".repeat(64)).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"operator Git operation");
+        std::fs::remove_file(&path).unwrap();
+        let before = std::fs::read(repo.path().join("index")).unwrap();
+        let lock = CommitLock::acquire(repo, &"a".repeat(64)).unwrap();
+        assert!(CommitLock::acquire(repo, &"a".repeat(64)).is_err());
+        assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), before);
+        // Replacing only our test-owned lock simulates an external conflicting
+        // owner. Drop must preserve that replacement rather than delete it.
+        std::fs::remove_file(&path).unwrap();
+        std::fs::write(&path, b"replacement owner").unwrap();
+        drop(lock);
+        assert_eq!(std::fs::read(&path).unwrap(), b"replacement owner");
+        std::fs::remove_file(&path).unwrap();
+        let lock = CommitLock::acquire(repo, &"a".repeat(64)).unwrap();
+        drop(lock);
+        assert!(!path.exists());
+    }
+
+    #[tokio::test]
+    #[ignore = "commit-lock subprocess helper invoked by crash recovery test"]
+    async fn commit_lock_crash_helper() {
+        let root = std::env::var_os("DRACON_COMMIT_TEST_ROOT").unwrap();
+        let f = fixture(Path::new(&root)).await;
+        let _lock = CommitLock::acquire(&f.transaction.repo, &"a".repeat(64)).unwrap();
+        panic!("commit lock crash point not reached");
+    }
+
+    #[tokio::test]
+    async fn commit_lock_recovers_owned_git_lock_after_process_death() {
+        let temp = tempfile::tempdir().unwrap();
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "storage_core::index::tests::commit_lock_crash_helper",
+                "--ignored",
+                "--exact",
+            ])
+            .env("DRACON_COMMIT_TEST_ROOT", temp.path())
+            .env("DRACON_COMMIT_CRASH_POINT", "after-commit-index-lock")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert_eq!(status.code(), Some(76));
+        let f = fixture(temp.path()).await;
+        let path = f.transaction.repo.path().join("index.lock");
+        assert!(path.exists());
+        let lock = CommitLock::acquire(&f.transaction.repo, &"a".repeat(64)).unwrap();
+        drop(lock);
+        assert!(!path.exists());
+        assert_eq!(
+            f.journal.lease(&f.job).unwrap().load().unwrap().phase(),
+            Phase::ReadyToStage
+        );
+    }
+
+    #[tokio::test]
     #[ignore = "subprocess helper invoked by crash recovery test"]
     async fn index_crash_helper() {
         let root = std::env::var_os("DRACON_INDEX_TEST_ROOT").unwrap();
