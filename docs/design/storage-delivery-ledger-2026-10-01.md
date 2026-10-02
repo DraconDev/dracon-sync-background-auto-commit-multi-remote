@@ -717,3 +717,67 @@ added to workspace totals.
 No installed daemon, operator keys, live hooks or enrollment changed. Safe
 working-file hydration, S3 adapters, automatic routing/worker scheduling,
 complete outgoing-history coverage, pilots and release remain unfinished.
+
+## Explicit Linux checkout hydration (2026-10-02)
+
+`storage hydrate` now consumes exact verified recovery and publishes it to the
+checked-out version's working path. The configured guard must match the supplied
+repository ID, protected-manifest path and private metadata root. Inside the
+owned Git index lease, hydration repeats placement verification and checks the
+selected HEAD, exact staged pointer and protected metadata digest. Recovery
+receipts now privately carry source/payload/manifest correspondence; their fields
+cannot be constructed by external callers and source hashes are not printed.
+
+A private intent binds version, path, fingerprints, Git mode and pinned directory
+identities. Output is copied and reverified independently of the recovery cache;
+working edits cannot mutate it through shared inodes. Linux directory-descriptor
+operations refuse symlink traversal and use `renameat2(RENAME_NOREPLACE)` for
+pointer capture/publication. Original pointers are retained privately. Capture
+conflicts restore the original only into a still-missing working path; a new
+operator file wins. Changed roots/parents, hard links, local edits, inconsistent
+metadata, corrupt cache and exceeded version/byte limits refuse publication.
+Output uses mode 0600, or 0700 for an executable Git entry. Index bytes and Git
+history are unchanged.
+
+Publication has a brief missing-path interval after pointer capture. Durable
+intent/output/original files survive process death, and leases recover owned
+stale Git locks. Explicit `--resume-local` selects only a matching private
+transaction, verifies its identity and retained bytes, then resumes without
+fetching/decrypting. It neither selects the newest unrelated record nor silently
+falls back on provider failure. Corrupt or unprepared state fails while retaining
+all files; even early intent-validation errors release recovered owned locks.
+
+Nine focused hydration tests passed (one subprocess helper ignored), covering
+publication, missing files, executable mode, reference/commit/placement binding,
+version/retention limits, cache integrity, concurrent edits/creation/parent
+replacement, four process-death phases and local resume without the original
+recovery cache. Evidence: `/tmp/dracon-hydration-tests.log`. The final CLI suite
+passed **11 tests, zero failed, one ignored** in
+`/tmp/dracon-hydration-final-git.log`. The hydration case verifies required-clean
+Git diff equivalence and unchanged index, edit refusal, historical-version
+refusal, and explicit local resume with the backend offline and recovery cache
+removed. These filesystem/CLI fixtures use synthetic protected metadata.
+
+The actual-key operational test separately passed for **101 MiB** after deleting
+the original source/ciphertext spool/metadata store: cold metadata import and
+authenticated asset recovery were followed by checkout publication, byte-exact
+verification, retained original pointer and unchanged index. The callback checked
+manifest entries; this proves crypto/filesystem correspondence, not a production
+filter deployment or independent-provider certificate. Evidence:
+`/tmp/dracon-hydration-real-crypto.log`.
+
+The locked workspace passed **2059 tests, zero failed, 23 ignored** before a
+CLI-only indirection fix. Shared recovery arguments were boxed to satisfy strict
+Clippy's enum-size lint without changing flags; final all-target Clippy, release
+build and CLI regressions passed. Dependency policy and formatting/diff checks
+passed. Logs: `/tmp/dracon-hydration-workspace.log`,
+`/tmp/dracon-hydration-clippy.log`, `/tmp/dracon-hydration-release.log`,
+`/tmp/dracon-hydration-deny.log`. The source-built release help page ran. A final
+workspace run is in progress for the completed source.
+
+No installed daemon/hooks, fleet enrollment, operator keys or live buckets were
+changed. Hydration is explicit and Linux-only; supported filesystems must provide
+create-only rename and `/proc` access. Automatic startup reconciliation, S3,
+worker/routing/enrollment, public metadata without Warden, complete outgoing
+history/push coverage, growth benchmarks, reviewed pilots and release retain the
+full original roadmap scope.
