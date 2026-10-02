@@ -512,3 +512,31 @@ ran successfully. Logs: `/tmp/dracon-commit-guard-workspace.log`,
 `/tmp/dracon-commit-guard-final-release.log`,
 `/tmp/dracon-commit-guard-deny.log`. This completes verification of this source
 milestone; the larger storage roadmap remains active and unreleased.
+
+## Bounded attribute-query lifecycle (2026-10-02)
+
+The storage inventory/index guard no longer collects unlimited stdout or waits
+indefinitely for Git while holding a commit lock. Queries have a 100,000-path
+and 16 MiB input budget, 32 MiB output budget, 1,024-byte individual filter-value
+budget and shared 30-second I/O/process deadline. A dedicated runtime thread
+supports both synchronous CLI callers inside Tokio and daemon blocking workers;
+write/read/wait proceed concurrently under the same deadline. Error/timeout
+cleanup terminates the query's owned Unix process group, including descendants
+holding pipes after the original process exits, with bounded parent reaping.
+
+Response parsing consumes the exact expected record count without allocating a
+vector for every NUL field. Missing terminators, unexpected attributes,
+unknown/duplicate paths, oversized values and extra records fail closed. Budget
+exhaustion is a visible failure; it never verifies only a subset or changes
+staging to raw content. Existing required-filter/index/working-file contracts
+remain in force. No network or fleet configuration changes were made.
+
+Five focused attribute tests passed, including the prior literal-path batch
+case, 12,000 real-Git paths crossing pipe capacity, input/path refusal, malformed
+responses, oversized output, blocked input and a descendant retaining stdout
+after parent exit. The Linux descendant test verifies process death rather than
+assuming SIGKILL delivery is synchronous. Evidence:
+`/tmp/dracon-bounded-attrs-tests.log`. Full workspace/release/lint/policy results
+follow after the running checks finish. The larger roadmap remains active;
+this resource qualification does not complete S3, enrollment, hydration,
+working-source races or outgoing-history/push protection.
