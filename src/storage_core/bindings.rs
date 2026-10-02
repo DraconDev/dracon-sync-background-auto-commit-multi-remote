@@ -93,7 +93,11 @@ impl<'a> RestoreBinding<'a> {
     pub fn new(repo_id: String, backend_id: String, approved: ApprovedBackend<'a>) -> Result<Self> {
         validate_sha256(&repo_id)?;
         identifier(&backend_id)?;
-        Ok(Self { repo_id, backend_id, approved })
+        Ok(Self {
+            repo_id,
+            backend_id,
+            approved,
+        })
     }
 
     pub(crate) fn backend_for(
