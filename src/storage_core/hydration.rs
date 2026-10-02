@@ -245,9 +245,10 @@ impl HydrationStore {
             parent.sync_all()?;
             transaction.sync_all()?;
             hydration_crash("after-original-capture");
-            let original = file_at(&transaction, OsStr::new("original"))?
-                .context("captured hydration original missing")?;
-            if !matches_pointer(&original, &asset.payload)? {
+            let valid_original = file_at(&transaction, OsStr::new("original"))
+                .and_then(|file| file.context("captured hydration original missing"))
+                .and_then(|file| matches_pointer(&file, &asset.payload));
+            if !matches!(valid_original, Ok(true)) {
                 // The captured file changed after preflight. Restore it only if
                 // the working path is still absent; a new operator file wins.
                 verify_parent(&workdir, &root, parent_relative, &parent)?;
