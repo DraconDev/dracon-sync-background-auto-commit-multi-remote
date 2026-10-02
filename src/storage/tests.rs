@@ -577,27 +577,56 @@ fn ordinary_repo_has_no_storage_commit_or_guard_requirement() {
 #[tokio::test]
 async fn cold_clone_and_staged_attribute_removal_cannot_disable_storage_guard() {
     let source = guarded_fixture().await;
-    setup_guard(source.path(), &"a".repeat(64), &source.path().join(".git/metadata"), Path::new("assets.manifest")).unwrap();
+    setup_guard(
+        source.path(),
+        &"a".repeat(64),
+        &source.path().join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
     assert!(commit_configured_storage(source.path(), "storage source").unwrap());
     let destination = tempfile::tempdir().unwrap();
     let clone = destination.path().join("cold");
     let repository = git2::Repository::clone(source.path().to_str().unwrap(), &clone).unwrap();
-    let local = repository.config().unwrap().open_level(git2::ConfigLevel::Local).unwrap();
+    let local = repository
+        .config()
+        .unwrap()
+        .open_level(git2::ConfigLevel::Local)
+        .unwrap();
     assert!(local.get_entry(GUARD_VERSION_KEY).is_err());
     assert!(local.get_entry("filter.dracon-storage.clean").is_err());
     let head = repository.head().unwrap().target();
     let index = std::fs::read(repository.path().join("index")).unwrap();
     assert!(verify_configured_index(&clone, false).is_err());
     assert!(commit_configured_storage(&clone, "unbound cold clone").is_err());
-    assert_eq!(std::fs::read(repository.path().join("index")).unwrap(), index);
+    assert_eq!(
+        std::fs::read(repository.path().join("index")).unwrap(),
+        index
+    );
     // Removing both declarations and the working pointer cannot erase HEAD's
     // preservation contract or permit a new raw-file commit.
-    git_fixture_command(&clone, &["update-index", "--force-remove", "--", ".gitattributes", "asset.bin"]);
-    std::fs::write(clone.join("asset.bin"), b"hydrated bytes must stay out of Git").unwrap();
+    git_fixture_command(
+        &clone,
+        &[
+            "update-index",
+            "--force-remove",
+            "--",
+            ".gitattributes",
+            "asset.bin",
+        ],
+    );
+    std::fs::write(
+        clone.join("asset.bin"),
+        b"hydrated bytes must stay out of Git",
+    )
+    .unwrap();
     assert!(verify_configured_index(&clone, false).is_err());
     assert!(commit_configured_storage(&clone, "removed attributes").is_err());
     assert_eq!(repository.head().unwrap().target(), head);
-    assert_eq!(std::fs::read(clone.join("asset.bin")).unwrap(), b"hydrated bytes must stay out of Git");
+    assert_eq!(
+        std::fs::read(clone.join("asset.bin")).unwrap(),
+        b"hydrated bytes must stay out of Git"
+    );
     assert!(!repository.path().join("index.lock").exists());
 }
 
@@ -605,7 +634,7 @@ async fn cold_clone_and_staged_attribute_removal_cannot_disable_storage_guard() 
 fn staged_nested_macro_and_quoted_storage_declarations_require_binding() {
     for declaration in [
         &b"[attr]preserved filter=dracon-storage -text\n*.bin preserved\n"[..],
-        &b"\"private \\"name\\".bin\" filter=dracon-storage\r\n"[..],
+        &br#""private \"name\".bin" filter=dracon-storage"#[..],
         &b"private-\xff.bin filter=dracon-storage\n"[..],
         &b"*.absent filter=dracon-storage\n"[..],
     ] {
