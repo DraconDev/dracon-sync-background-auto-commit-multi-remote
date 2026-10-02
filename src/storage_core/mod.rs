@@ -7,6 +7,7 @@
 
 pub mod backend;
 pub mod bindings;
+pub mod clean;
 pub mod index;
 pub mod journal;
 pub mod manifest;
