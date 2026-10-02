@@ -9,7 +9,7 @@ use reqwest::{Method, StatusCode, Url};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::time::{Duration, SystemTime};
 use zeroize::Zeroizing;
 
@@ -204,8 +204,17 @@ impl SignedHttpTransport {
     }
 
     fn request(&self, method: Method, id: &Fingerprint, file: Option<File>) -> Result<Response> {
+        self.request_url(method, self.url(id)?, id, file)
+    }
+
+    fn request_url(
+        &self,
+        method: Method,
+        url: Url,
+        id: &Fingerprint,
+        file: Option<File>,
+    ) -> Result<Response> {
         self.credentials.check_expiration()?;
-        let url = self.url(id)?;
         let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
         let hash = if file.is_some() {
             id.sha256()
@@ -266,6 +275,136 @@ impl SignedHttpTransport {
     }
 }
 
+/// A recently observed create-only capability bound to this exact transport.
+/// It is not a provider durability or independent recovery certificate.
+pub struct VerifiedWriteTransport {
+    transport: SignedHttpTransport,
+    probe_object: Fingerprint,
+    verified_at_unix: u64,
+}
+
+impl VerifiedWriteTransport {
+    /// Identity of the retained synthetic control object, under `.dracon-probes`.
+    pub fn probe_object(&self) -> &Fingerprint {
+        &self.probe_object
+    }
+    /// Time of successful conflicting-write refusal and independent readback.
+    pub fn verified_at_unix(&self) -> u64 {
+        self.verified_at_unix
+    }
+}
+
+impl S3Transport for VerifiedWriteTransport {
+    fn put_if_absent(&self, identity: &Fingerprint, source: File) -> Result<ConditionalPut> {
+        let now = unix_now()?;
+        if now < self.verified_at_unix || now - self.verified_at_unix > 3600 {
+            bail!(TransientFailure);
+        }
+        self.transport.put_if_absent(identity, source)
+    }
+    fn get(&self, identity: &Fingerprint) -> Result<Box<dyn Read>> {
+        self.transport.get(identity)
+    }
+}
+
+fn unix_now() -> Result<u64> {
+    Ok(SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)?
+        .as_secs())
+}
+
+impl SignedHttpTransport {
+    /// Create and retain one 64-byte random control object in a reserved namespace,
+    /// attempt an atomically refused conflicting write, then verify original bytes.
+    /// No user payload, Git state, bucket creation or object deletion is involved.
+    /// Execute on a blocking worker. This explicitly performs four network requests.
+    pub fn verify_conditional_writes(self) -> Result<VerifiedWriteTransport> {
+        let mut challenge = [0u8; 64];
+        #[cfg(unix)]
+        File::open("/dev/urandom")?.read_exact(&mut challenge)?;
+        #[cfg(not(unix))]
+        bail!(BackendFailure::Security);
+        self.probe(challenge)
+    }
+
+    fn probe(self, original: [u8; 64]) -> Result<VerifiedWriteTransport> {
+        let first = Fingerprint::new(format!("{:x}", Sha256::digest(original)), 64)?;
+        let mut altered = original;
+        altered[0] ^= 1;
+        let conflicting = Fingerprint::new(format!("{:x}", Sha256::digest(altered)), 64)?;
+        let mut url = self.url(&first)?;
+        let path = url.path().to_owned();
+        let (prefix, hash) = path.rsplit_once('/').ok_or(BackendFailure::Security)?;
+        url.set_path(&format!("{prefix}/.dracon-probes/{hash}"));
+        let spool = |bytes: &[u8]| -> Result<File> {
+            let mut file = tempfile::tempfile()?;
+            file.write_all(bytes)?;
+            file.seek(SeekFrom::Start(0))?;
+            Ok(file)
+        };
+        let created =
+            self.request_url(Method::PUT, url.clone(), &first, Some(spool(&original)?))?;
+        if created.status() != StatusCode::OK {
+            return Err(status_failure(created.status()));
+        }
+        self.verify_probe_readback(url.clone(), &first)?;
+        // The key stays the same, while body/hash/signature change. A HEAD-before-
+        // PUT or a digest-name rejection cannot stand in for atomic 412 semantics.
+        let refused = self.request_url(
+            Method::PUT,
+            url.clone(),
+            &conflicting,
+            Some(spool(&altered)?),
+        )?;
+        if refused.status() != StatusCode::PRECONDITION_FAILED {
+            if refused.status() == StatusCode::OK {
+                bail!(BackendFailure::Security);
+            }
+            return Err(status_failure(refused.status()));
+        }
+        self.verify_probe_readback(url, &first)?;
+        Ok(VerifiedWriteTransport {
+            transport: self,
+            probe_object: first,
+            verified_at_unix: unix_now()?,
+        })
+    }
+
+    fn verify_probe_readback(&self, url: Url, identity: &Fingerprint) -> Result<()> {
+        let response = self.request_url(Method::GET, url, identity, None)?;
+        let mut body = checked_body(response, identity)?;
+        let actual = super::super::backend::stream_digest(
+            &mut body,
+            &mut std::io::sink(),
+            identity.bytes(),
+        )?;
+        if actual != *identity {
+            bail!(BackendFailure::Integrity);
+        }
+        Ok(())
+    }
+}
+
+fn checked_body(response: Response, identity: &Fingerprint) -> Result<RedactedBody> {
+    if response.status() != StatusCode::OK {
+        return Err(status_failure(response.status()));
+    }
+    if response
+        .headers()
+        .contains_key(reqwest::header::CONTENT_RANGE)
+        || response
+            .headers()
+            .get(reqwest::header::CONTENT_ENCODING)
+            .is_some_and(|value| value != "identity")
+        || response
+            .content_length()
+            .is_some_and(|length| length != identity.bytes())
+    {
+        bail!(BackendFailure::Integrity);
+    }
+    Ok(RedactedBody(response))
+}
+
 fn status_failure(status: StatusCode) -> anyhow::Error {
     match status.as_u16() {
         401 | 403 => BackendFailure::Security.into(),
@@ -298,23 +437,7 @@ impl S3Transport for SignedHttpTransport {
 
     fn get(&self, identity: &Fingerprint) -> Result<Box<dyn Read>> {
         let response = self.request(Method::GET, identity, None)?;
-        if response.status() != StatusCode::OK {
-            return Err(status_failure(response.status()));
-        }
-        if response
-            .headers()
-            .contains_key(reqwest::header::CONTENT_RANGE)
-            || response
-                .headers()
-                .get(reqwest::header::CONTENT_ENCODING)
-                .is_some_and(|value| value != "identity")
-            || response
-                .content_length()
-                .is_some_and(|length| length != identity.bytes())
-        {
-            bail!(BackendFailure::Integrity);
-        }
-        Ok(Box::new(RedactedBody(response)))
+        Ok(Box::new(checked_body(response, identity)?))
     }
 }
 
