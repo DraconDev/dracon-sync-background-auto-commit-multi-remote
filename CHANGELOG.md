@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed (workspace audit 2026-10-02)
 
+- Refreshed the standalone lockfile from the tested parent dependency versions and verified isolated `cargo metadata --locked --offline`, so a standalone clone retains the same reproducible dependency graph.
 - Daemon pushes now run repository/global pre-push hooks on normal, mirror, HTTPS fallback and maintenance routes (audit A6, 2026-10-02). Approved large-blob maintenance uses the narrow `DRACON_ALLOW_REWRITE=1` exception while retaining secret scans and chained operator hooks. Real local-remote regressions verify refusing and accepting hooks.
 
 ### Added
