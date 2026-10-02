@@ -1,8 +1,8 @@
 # S3 immutable transfer protocol (2026-10-02)
 
 The source protocol driver is `src/storage_core/s3.rs`. Its signed HTTP adapter
-is `src/storage_core/s3/http.rs`. These are not wired to fleet policy or CLI
-recovery yet. Adapter construction performs no network requests; explicit
+is `src/storage_core/s3/http.rs`. Explicit CLI recovery now resolves operator bindings and private credentials;
+automatic fleet upload/routing remains unfinished. Adapter construction performs no network requests; explicit
 transfer operations perform bounded signed PUT/GET requests. This is
 one implementation step within the existing object-storage roadmap, not a
 replacement for worker, enrollment, provider certification or release gates.
@@ -42,7 +42,10 @@ errors are not surfaced; failures retain capacity/security/integrity/transient
 classification. The explicit request timeout includes the complete response body.
 Use the synchronous adapter from a blocking worker outside the async runtime.
 
-The remaining operator resolver must obtain these fields from operator-owned
+The implemented read-only resolver obtains named private JSON credentials from
+an explicitly selected owned directory, rejects links/unsafe permissions and
+tracked or unignored credential files, and checks expiry. Global S3 bindings
+supply the required region and optional prefix. These fields come from operator-owned
 bindings, never from a repository override or protected restore manifest. Use
 HTTPS, disable redirects and credential-bearing proxy inheritance, sign the
 exact request path and conditional header, enforce whole-request/body deadlines,
@@ -70,5 +73,7 @@ conditional conflicts, redacted provider errors, response lengths, partial/encod
 responses, redirect refusal and a total deadline under trickled bytes. Loopback
 HTTP is accessible only through the private test constructor; production
 construction rejects plaintext HTTP. These tests prove protocol and signing
-behavior, not an endpoint capability certificate. Operator credential resolution,
-provider behavior, independent cold recovery and deployment remain separate gates.
+behavior, not an endpoint capability certificate. A separate operational cold-clone test now exercises actual signed HTTPS CLI
+recovery using a temporary CA and synthetic protected metadata, preserving the
+index and working pointer. Actual provider behavior, encrypted independent cold
+recovery, automatic upload/routing and deployment remain separate gates.

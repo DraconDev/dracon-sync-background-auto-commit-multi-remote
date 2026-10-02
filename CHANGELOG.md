@@ -27,14 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   verifies complete response streams, disables redirects/proxy inheritance and
   decompression, and redacts provider errors. Published AWS signing vectors and
   isolated HTTP fixtures cover headers, session credentials, readback and total
-  deadlines. Operator credential resolution, provider capability approval and
-  CLI/daemon activation remain unfinished.
+  deadlines. Provider capability approval and automatic daemon activation
+  remain unfinished.
 
 - Unreleased S3 protocol driver captures bounded private spools, requires atomic
   create-only transport writes and independently verifies complete readback for
   both new and existing objects. Corrupt objects, failed transfers and oversized
-  streams cannot produce successful receipts. Signed HTTP transport and fleet
-  integration remain unfinished; no live bucket is connected by this change.
+  streams cannot produce successful receipts. The signed HTTP adapter now
+  supports explicit recovery; automatic fleet upload/routing remains unfinished.
 
 - Unreleased Linux `storage hydrate` publishes a verified asset only for the
   checked-out commit and matching configured guard/index metadata. Private

@@ -384,8 +384,8 @@ allowed_security = ["warden-encrypted"]
 The selected backend must also be a required copy in that exact enrollment.
 Omitting `--backend` selects its declared primary; there is no automatic fallback.
 Repository overrides and manifests cannot supply adapter endpoints or grant
-permissions. The local object store must already exist. S3 recovery is described below and requires explicit operator credentials. The
-implemented. A non-sensitive enrollment requires an explicit `non-sensitive`
+permissions. The local object store must already exist. S3 recovery is described
+below and requires explicit operator credentials. A non-sensitive enrollment requires an explicit `non-sensitive`
 grant; recovering that asset needs no Warden adapter. The protected metadata
 import still requires authorized keys.
 
