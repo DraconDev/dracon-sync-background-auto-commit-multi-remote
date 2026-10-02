@@ -57,7 +57,7 @@ impl Credentials {
         })
     }
 
-    fn valid_now(&self) -> Result<()> {
+    pub(super) fn check_expiration(&self) -> Result<()> {
         if self
             .expires_at
             .is_some_and(|expiry| expiry <= SystemTime::now())
@@ -157,7 +157,7 @@ impl SignedHttpTransport {
         {
             bail!(BackendFailure::Security);
         }
-        credentials.valid_now()?;
+        credentials.check_expiration()?;
         let host = endpoint
             .as_str()
             .split_once("://")
@@ -204,7 +204,7 @@ impl SignedHttpTransport {
     }
 
     fn request(&self, method: Method, id: &Fingerprint, file: Option<File>) -> Result<Response> {
-        self.credentials.valid_now()?;
+        self.credentials.check_expiration()?;
         let url = self.url(id)?;
         let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
         let hash = if file.is_some() {

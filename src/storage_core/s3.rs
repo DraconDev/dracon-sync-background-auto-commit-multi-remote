@@ -1,6 +1,8 @@
 //! Create-only S3 protocol driver. Credential resolution and signed HTTP transport
 //! are separate operator-owned responsibilities; this module performs no discovery.
 
+/// Read-only private operator credential resolver.
+pub mod credentials;
 /// Operator-bound signed HTTP transport.
 pub mod http;
 
