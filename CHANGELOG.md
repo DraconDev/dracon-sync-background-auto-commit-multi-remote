@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Refreshed the standalone lockfile from the tested parent dependency versions and verified isolated `cargo metadata --locked --offline`, so a standalone clone retains the same reproducible dependency graph.
 - Daemon pushes now run repository/global pre-push hooks on normal, mirror, HTTPS fallback and maintenance routes (audit A6, 2026-10-02). Approved large-blob maintenance uses the narrow `DRACON_ALLOW_REWRITE=1` exception while retaining secret scans and chained operator hooks. Real local-remote regressions verify refusing and accepting hooks.
+- Removed `MemoryDenyWriteExecute` from `dracon-sync.service`: honoring pre-push hooks means hook children (e.g. node/V8, which needs `PROT_EXEC` at isolate init) inherit the unit's seccomp filter, and MDWE killed them with SIGTRAP — fleet-wide push-stuck across `dracon-platform` + 8 nested games on first deploy (2026-10-02). MDWE and honored JIT-based hooks are mutually exclusive; the flag is dropped with rationale in the unit file.
 
 ### Added
 
