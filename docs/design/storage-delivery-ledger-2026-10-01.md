@@ -809,3 +809,7 @@ endpoint capability checks, durable worker/routing/enrollment, independent cold
 provider recovery and the original remaining release gates remain required. No
 installed daemon, live bucket, keys or fleet configuration changed. See
 [protocol requirements](storage-s3-protocol-2026-10-02.md).
+
+The completed locked workspace run passed **2066 tests, zero failed,
+23 ignored** across 35 suites. Evidence: `/tmp/dracon-s3-protocol-workspace.log`
+(terminal exit 0), including the existing actual Warden large-stream test.
