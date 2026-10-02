@@ -1,11 +1,11 @@
 # S3 immutable transfer protocol (2026-10-02)
 
 The source protocol driver is `src/storage_core/s3.rs`. Its signed HTTP adapter
-is `src/storage_core/s3/http.rs`. Explicit CLI recovery now resolves operator bindings and private credentials;
+is `src/storage_core/s3/http.rs`. Explicit CLI recovery and captured-job advancement resolve operator bindings and private credentials;
 automatic fleet upload/routing remains unfinished. Adapter construction performs no network requests; explicit
 transfer operations perform bounded signed PUT/GET requests. This is
 one implementation step within the existing object-storage roadmap, not a
-replacement for worker, enrollment, provider certification or release gates.
+replacement for automatic scheduling, enrollment, provider certification or release gates.
 
 ## Required operations
 
@@ -77,3 +77,36 @@ behavior, not an endpoint capability certificate. A separate operational cold-cl
 recovery using a temporary CA and synthetic protected metadata, preserving the
 index and working pointer. Actual provider behavior, encrypted independent cold
 recovery, automatic upload/routing and deployment remain separate gates.
+
+
+## Capability approval and selected-version worker
+
+`SignedHttpTransport::verify_conditional_writes` consumes the exact configured
+transport. It publishes a random 64-byte control under the reserved probe prefix:
+two competing conditional creates must produce one 200 and one 412, complete
+GET must match, a different payload at the same key must produce 412, and another
+complete GET must still match. Both successful creates, both refusals, false
+412/overwritten bytes, partial responses or any ambiguous result deny approval.
+The control is retained; no delete/list operation is introduced.
+
+The resulting write transport cannot be constructed or rebound externally and
+expires after one hour, rejecting future clock observations. Explicit
+`storage advance-job` always obtains this approval afresh for each required S3
+binding. Probe reports are informational and cannot grant writes. This observed
+check does not certify lifecycle settings, independent providers or durability.
+
+The durable worker prepares captured snapshots through Warden (or explicitly
+approved non-sensitive retention), then independently reads every required copy
+before returning `ReadyToStage`. A selected-input reader checks exact length and
+SHA-256 at EOF **before** Local/S3 private spools publish/send asset bytes. A
+mutated retained payload therefore cannot publish under a new unexpected hash.
+Backend claims without complete input consumption also fail. Current working
+files, Git/index locks and published history are untouched. Automatic capture,
+routing, enrollment, commit/push scheduling and provider certification remain
+separate unfinished roadmap gates.
+
+An isolated TLS CLI fixture now exercises capability checking, captured-job
+preparation, signed conditional asset PUT, full readback, retry against an
+existing object, and refusal of a provider that ignores the conditional header.
+It uses synthetic protected metadata and an explicitly non-sensitive grant; it
+is not an actual-key encrypted S3 or live independent-provider certificate.

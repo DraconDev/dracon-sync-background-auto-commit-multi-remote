@@ -532,5 +532,64 @@ signed HTTPS CLI recovery using a temporary CA, published fixture credentials,
 a private JSON vault and synthetic protected metadata. It verifies recovered
 bytes and unchanged Git index/working pointer. It is not a live provider or
 actual-key encrypted S3 durability certificate. Signed create-only upload exists
-at the adapter boundary, but automatic capture/upload/routing, endpoint capability
-approval, independent provider recovery, reviewed pilots and release remain open.
+through explicit captured-job advancement below. Automatic capture/upload/routing,
+independent provider recovery, reviewed pilots and release remain open.
+
+
+## Explicit capability check and captured-job advancement (unreleased)
+
+`storage probe-backend` checks an operator-approved S3 binding without reading
+asset files:
+
+```sh
+dracon-sync storage probe-backend --repo /absolute/checkout \
+  --policy /absolute/operator-policy.toml --backend archive \
+  --credentials-root /absolute/private/operator-credentials --json
+```
+
+This is a write operation: it retains one random 64-byte control object under
+`<prefix>/.dracon-probes/`. Two competing conditional creates must yield exactly
+one creation and one refusal. A different payload must subsequently be refused
+at that same key. Complete GET/readback checks before and after the conflicting
+write must match the original. Five requests exercise these conditions; no
+asset is sent, and no list/delete/bucket-creation permission is needed. Failed
+checks may also leave a control object. Controls are never automatically deleted.
+The result is an observed endpoint capability check, not a provider durability
+certificate or authorization to change a representation policy.
+
+`storage advance-job` advances an **already captured** exact version in its
+private durable journal to `ReadyToStage`:
+
+```sh
+dracon-sync storage advance-job --repo /absolute/checkout \
+  --repo-id YOUR_EXISTING_REPOSITORY_ID \
+  --journal-root /absolute/private/journal --job-id YOUR_CAPTURED_JOB_ID \
+  --policy /absolute/operator-policy.toml \
+  --credentials-root /absolute/private/operator-credentials --json
+```
+
+The repository's local `dracon.storageRepoId` must match. Every required logical
+copy needs a global operator binding and the captured job's security class.
+Local object stores must already exist. Each S3 adapter performs a fresh
+capability check before asset upload; the result is confined to that exact
+transport/credential configuration and expires after one hour. A check from
+another endpoint, an old serialized report or a future timestamp cannot enable
+writes. Missing grants and damaged retained inputs refuse advancement before
+network access.
+
+For a captured encrypted job, additionally select `--warden /absolute/dracon-warden`
+and, when appropriate, `--identity-home /absolute/private/authorized-identities`.
+Preparation uses Warden's streaming SDK and retained transaction identity; it
+never falls back to unencrypted bytes. A `non-sensitive` class requires an
+explicit operator grant. The command reads retained snapshots, so current edits
+are preserved. Selected payload length and digest must pass at EOF before the
+backend can publish an object; each required copy then needs complete independent
+readback. Retries retain the same version and representation.
+
+This command does not capture/enroll files, stage a pointer/manifest, commit,
+push or declare a version preserved. `ReadyToStage` confirms verified copies
+only. Automatic scheduling, routing/enrollment, outgoing-history guards,
+independent encrypted provider drills, pilots and release remain open. Planning
+and validation remain read-only; their `transfers_available = false` describes
+automatic transfer availability, not this explicit job operation. No live
+operator configuration or installed daemon is changed by the source preview.

@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased `storage advance-job` prepares an already captured exact version
+  through Warden or an explicit non-sensitive grant, verifies all required copies
+  and stops at ReadyToStage without changing current edits or Git. S3 writes need
+  a fresh endpoint-bound capability check: competing creates, conflicting-write
+  refusal and complete readback. `storage probe-backend` exposes the check and
+  retains one random 64-byte control object. Selected payload EOF/digest checks
+  precede publication. Local and signed HTTPS CLI fixtures verify retries and
+  refusal of unsafe providers. Automatic capture/routing, provider durability
+  certification, pilots and release remain unfinished.
+
 - Unreleased explicit S3 recovery/hydration resolves named credentials from a
   bounded private operator vault, rejects links/unsafe permissions and Git-
   tracked or unignored credential files, and requires an operator signing region.
