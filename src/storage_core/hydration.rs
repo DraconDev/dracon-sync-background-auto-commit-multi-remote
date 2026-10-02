@@ -73,6 +73,10 @@ impl HydrationStore {
         journal::private_directory(&directory, true)?;
         journal::runtime::protect(&directory)?;
         let namespace = directory_at_path(&directory)?;
+        let info = namespace.metadata()?;
+        if info.uid() != unsafe { libc::geteuid() } || info.mode() & 0o077 != 0 {
+            bail!("hydration namespace must remain private and owned");
+        }
         Ok(Self {
             directory,
             namespace,
@@ -157,8 +161,21 @@ impl HydrationStore {
         let existing = file_at(&parent, name)?;
         if let Some(file) = existing.as_ref() {
             if matches_fingerprint(file, &asset.source)? {
-                let backup = transaction_path.join("original");
-                return Ok(receipt(backup.try_exists()?.then_some(backup)));
+                let backup = match child_directory(&self.namespace, OsStr::new(&id), false) {
+                    Ok(transaction) => match file_at(&transaction, OsStr::new("original"))? {
+                        Some(original) => {
+                            if !matches_pointer(&original, &asset.payload)? {
+                                bail!("retained hydration original changed; edits preserved for manual recovery");
+                            }
+                            Some(transaction_path.join("original"))
+                        },
+                        None => None,
+                    },
+                    Err(error) if error.downcast_ref::<std::io::Error>().is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound) => None,
+                    Err(error) => return Err(error),
+                };
+                verify_parent(&workdir, &root, parent_relative, &parent)?;
+                return Ok(receipt(backup));
             }
             if !matches_pointer(file, &asset.payload)? {
                 bail!("working asset has local edits; hydration refused");
@@ -207,7 +224,7 @@ impl HydrationStore {
         )?;
         let prepared = private_path.join("publish.source");
         journal::verify_snapshot(&prepared, &asset.source)?;
-        verify_parent(&root, parent_relative, &parent)?;
+        verify_parent(&workdir, &root, parent_relative, &parent)?;
         if let Some(original) = file_at(&transaction, OsStr::new("original"))? {
             if !matches_pointer(&original, &asset.payload)? {
                 bail!("retained hydration original changed; manual recovery required");
@@ -216,6 +233,8 @@ impl HydrationStore {
                 bail!("working path changed during hydration; retained files preserved");
             }
         } else if existing.is_some() {
+            hydration_step("before-original-capture", &parent, name);
+            verify_parent(&workdir, &root, parent_relative, &parent)?;
             move_create_only(&parent, name, &transaction, OsStr::new("original"))?;
             parent.sync_all()?;
             transaction.sync_all()?;
@@ -225,7 +244,7 @@ impl HydrationStore {
             if !matches_pointer(&original, &asset.payload)? {
                 // The captured file changed after preflight. Restore it only if
                 // the working path is still absent; a new operator file wins.
-                verify_parent(&root, parent_relative, &parent)?;
+                verify_parent(&workdir, &root, parent_relative, &parent)?;
                 let _ = move_create_only(&transaction, OsStr::new("original"), &parent, name);
                 parent.sync_all()?;
                 transaction.sync_all()?;
@@ -234,23 +253,29 @@ impl HydrationStore {
                 );
             }
         }
-        verify_parent(&root, parent_relative, &parent)?;
+        verify_parent(&workdir, &root, parent_relative, &parent)?;
         let output = journal::verify_snapshot(&prepared, &asset.source)?;
         let mode = if entry.mode == 0o100755 { 0o700 } else { 0o600 };
         if unsafe { libc::fchmod(output.as_raw_fd(), mode) } != 0 {
             return Err(std::io::Error::last_os_error().into());
         }
         output.sync_all()?;
-        hydration_crash("before-working-publication");
+        hydration_step("before-working-publication", &parent, name);
+        verify_parent(&workdir, &root, parent_relative, &parent)?;
         move_create_only(&transaction, OsStr::new("publish.source"), &parent, name)
             .context("working path changed; verified output and original retained")?;
         parent.sync_all()?;
         transaction.sync_all()?;
         hydration_crash("after-working-publication");
-        verify_parent(&root, parent_relative, &parent)?;
+        verify_parent(&workdir, &root, parent_relative, &parent)?;
         let published = file_at(&parent, name)?.context("hydrated working file disappeared")?;
         if !matches_fingerprint(&published, &asset.source)? {
             bail!("hydrated working asset changed; edits preserved");
+        }
+        if let Some(original) = file_at(&transaction, OsStr::new("original"))? {
+            if !matches_pointer(&original, &asset.payload)? {
+                bail!("retained hydration original changed; edits preserved for manual recovery");
+            }
         }
         let backup = transaction_path.join("original");
         Ok(receipt(
@@ -374,8 +399,9 @@ fn relative_directory(root: &File, path: &Path) -> Result<File> {
     }
     Ok(directory)
 }
-fn verify_parent(root: &File, relative: &Path, pinned: &File) -> Result<()> {
-    if identity(&relative_directory(root, relative)?)? != identity(pinned)? {
+fn verify_parent(workdir: &Path, root: &File, relative: &Path, pinned: &File) -> Result<()> {
+    if identity(&directory_at_path(workdir)?)? != identity(root)?
+        || identity(&relative_directory(root, relative)?)? != identity(pinned)? {
         bail!("hydration parent directory changed");
     }
     Ok(())
@@ -469,6 +495,12 @@ fn hydration_crash(phase: &str) {
     {
         std::process::exit(73);
     }
+}
+
+fn hydration_step(phase: &str, _parent: &File, _name: &OsStr) {
+    #[cfg(test)]
+    tests::race_at(phase, _parent, _name);
+    hydration_crash(phase);
 }
 
 #[cfg(test)]
