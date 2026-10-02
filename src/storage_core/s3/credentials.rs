@@ -73,6 +73,23 @@ fn load_inner(root: &Path, reference: &str) -> Result<Credentials> {
     if metadata.uid() != unsafe { libc::geteuid() } || metadata.mode() & 0o077 != 0 {
         bail!(BackendFailure::Security);
     }
+    // Reading a credential must not endorse a plaintext file that the daemon
+    // can auto-stage. Existing ignored operator vaults are supported; tracked
+    // or unignored files in a checkout are refused without modifying Git.
+    match git2::Repository::discover(root) {
+        Ok(repo) => {
+            let workdir = repo.workdir().ok_or(BackendFailure::Security)?;
+            let path = root.join(format!("{reference}.json"));
+            let relative = path
+                .strip_prefix(workdir)
+                .map_err(|_| BackendFailure::Security)?;
+            if repo.index()?.get_path(relative, 0).is_some() || !repo.is_path_ignored(relative)? {
+                bail!(BackendFailure::Security);
+            }
+        }
+        Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+        Err(_) => bail!(BackendFailure::Security),
+    }
     let name = std::ffi::CString::new(format!("{reference}.json"))?;
     let descriptor = unsafe {
         libc::openat(
@@ -166,6 +183,28 @@ mod tests {
         assert!(load(&link, "approved").is_err());
         std::fs::write(&file, vec![b'x'; MAX_BYTES as usize + 1]).unwrap();
         assert!(load(root.path(), "approved").is_err());
+    }
+    #[test]
+    fn git_tracked_or_unignored_credentials_refuse_without_mutation() {
+        let root = tempfile::tempdir().unwrap();
+        let repo = git2::Repository::init(root.path()).unwrap();
+        let vault = root.path().join("vault");
+        std::fs::create_dir(&vault).unwrap();
+        std::fs::set_permissions(&vault, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let path = vault.join("approved.json");
+        let bytes=br#"{"version":1,"access_key_id":"TESTACCESS123","secret_access_key":"isolated-secret-not-live"}"#;
+        std::fs::write(&path, bytes).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        assert!(load(&vault, "approved").is_err());
+        std::fs::write(root.path().join(".gitignore"), "/vault/\n").unwrap();
+        assert!(load(&vault, "approved").is_ok());
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new("vault/approved.json")).unwrap();
+        index.write().unwrap();
+        let before = std::fs::read(repo.path().join("index")).unwrap();
+        assert!(load(&vault, "approved").is_err());
+        assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), before);
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
     }
     #[test]
     fn malformed_unknown_and_expired_records_redact_contents() {
