@@ -187,6 +187,9 @@ async fn fixture_path(asset_path: &[u8]) -> Fixture {
         "*.bin filter=dracon-storage -text -ident\n",
     )
     .unwrap();
+    assert!(git(&repo, &["add", "--", ".gitattributes"])
+        .status
+        .success());
     Fixture {
         temp,
         repo,

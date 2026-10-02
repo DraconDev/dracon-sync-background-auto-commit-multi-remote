@@ -426,6 +426,14 @@ struct Plan {
 }
 
 fn inventory_filters(repo: &Path, paths: &BTreeSet<PathBuf>) -> Result<BTreeMap<PathBuf, String>> {
+    inventory_filters_at(repo, paths, None)
+}
+
+fn inventory_filters_at(
+    repo: &Path,
+    paths: &BTreeSet<PathBuf>,
+    index: Option<&Path>,
+) -> Result<BTreeMap<PathBuf, String>> {
     use std::io::Write;
     use std::process::Stdio;
     let mut input = Vec::new();
@@ -443,10 +451,19 @@ fn inventory_filters(repo: &Path, paths: &BTreeSet<PathBuf>) -> Result<BTreeMap<
         );
         input.push(0);
     }
-    let mut child = crate::policy::std_git_command()
-        .current_dir(repo)
-        .env("GIT_OPTIONAL_LOCKS", "0")
-        .args(["check-attr", "-z", "--stdin", "filter"])
+    let mut command = crate::policy::std_git_command();
+    command.current_dir(repo).env("GIT_OPTIONAL_LOCKS", "0");
+    if let Some(index) = index {
+        command
+            .env("GIT_INDEX_FILE", index)
+            .arg("--literal-pathspecs");
+    }
+    command.arg("check-attr");
+    if index.is_some() {
+        command.arg("--cached");
+    }
+    let mut child = command
+        .args(["-z", "--stdin", "filter"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -486,6 +503,9 @@ fn inventory_filters(repo: &Path, paths: &BTreeSet<PathBuf>) -> Result<BTreeMap<
                 .context("unsupported filter encoding")?
                 .to_owned(),
         );
+    }
+    if result.len() != paths.len() || !paths.iter().all(|path| result.contains_key(path)) {
+        bail!("incomplete attribute inventory response");
     }
     Ok(result)
 }
@@ -814,7 +834,8 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
             &indexed.index,
             &indexed.manifest,
         )?;
-        println!("Indexed storage references match protected metadata; backends were not checked.");
+        verify_storage_attributes(&indexed)?;
+        println!("Indexed storage references and required attributes match protected metadata; backends were not checked.");
         return Ok(());
     }
     if matches!(command, StorageCommand::FilterClean { .. }) {
@@ -955,6 +976,7 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
 struct IndexedManifest {
     repo: git2::Repository,
     index: git2::Index,
+    index_path: PathBuf,
     store: dracon_sync::storage_core::metadata::MetadataStore,
     prepared: dracon_sync::storage_core::metadata::PreparedMetadata,
     manifest: dracon_sync::storage_core::manifest::Manifest,
@@ -1058,8 +1080,53 @@ fn indexed_manifest(
     Ok(IndexedManifest {
         repo: repository,
         index,
+        index_path,
         store,
         prepared,
         manifest,
     })
+}
+
+fn verify_storage_attributes(indexed: &IndexedManifest) -> Result<()> {
+    if indexed
+        .repo
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?
+        .get_bool("filter.dracon-storage.required")
+        .ok()
+        != Some(true)
+    {
+        bail!("storage clean driver must be locally required");
+    }
+    let mut paths = BTreeSet::new();
+    for entry in indexed.index.iter() {
+        if matches!(entry.mode, 0o100644 | 0o100755) {
+            paths.insert(path_from_bytes(&entry.path)?);
+        }
+    }
+    let mut enrolled = BTreeSet::new();
+    for entry in indexed.manifest.enrollments() {
+        let path = path_from_bytes(&decode_manifest_path(&entry.path_hex)?)?;
+        paths.insert(path.clone());
+        enrolled.insert(path);
+    }
+    let root = indexed
+        .repo
+        .workdir()
+        .context("storage verification requires a worktree")?;
+    let filters = inventory_filters_at(root, &paths, Some(&indexed.index_path))?;
+    for (path, filter) in filters {
+        if (filter == "dracon-storage") != enrolled.contains(&path) {
+            bail!("indexed storage attributes and enrollments disagree");
+        }
+    }
+    Ok(())
+}
+
+fn decode_manifest_path(hex: &str) -> Result<Vec<u8>> {
+    // The private manifest codec has already validated these confined hex paths.
+    hex.as_bytes()
+        .chunks_exact(2)
+        .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
+        .collect()
 }
