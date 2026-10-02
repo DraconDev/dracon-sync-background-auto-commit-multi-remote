@@ -161,7 +161,8 @@ impl HydrationStore {
                 bail!("invalid hydration intent binding");
             }
             journal::validate_path_hex(&intent.path_hex)?;
-            if name != transaction_id(&intent)? {
+            let expected_id = transaction_id(&intent)?;
+            if name.as_os_str() != OsStr::new(&expected_id) {
                 bail!("hydration intent identity mismatch");
             }
             let pinned = git2::Oid::from_str(&intent.commit)
