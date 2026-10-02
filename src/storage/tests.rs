@@ -720,7 +720,14 @@ fn attribute_query_kills_descendants_holding_stdout_after_parent_exit() {
             .unwrap_err();
     assert!(error.to_string().contains("timed out"), "{error}");
     let pid = std::fs::read_to_string(temp.path().join("descendant.pid")).unwrap();
-    let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
-    // SIGKILL may leave a zombie briefly until its new parent reaps it.
-    assert!(stat.is_err() || stat.unwrap().split_once(") ").unwrap().1.starts_with('Z'));
+    // SIGKILL delivery/reaping is asynchronous; wait briefly for death rather
+    // than assuming the child has received its signal before this thread runs.
+    for _ in 0..100 {
+        let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
+        if stat.is_err() || stat.unwrap().split_once(") ").unwrap().1.starts_with('Z') {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    panic!("attribute-query descendant survived cancellation");
 }
