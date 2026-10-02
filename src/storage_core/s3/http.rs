@@ -30,7 +30,12 @@ pub struct Credentials {
 
 impl Credentials {
     /// Validate bounded header-safe credentials, including an optional session token.
-    pub fn new(access_key: String, secret: String, token: Option<String>, expires_at: Option<SystemTime>) -> Result<Self> {
+    pub fn new(
+        access_key: String,
+        secret: String,
+        token: Option<String>,
+        expires_at: Option<SystemTime>,
+    ) -> Result<Self> {
         let access_key = Zeroizing::new(access_key);
         let secret = Zeroizing::new(secret);
         let token = token.map(Zeroizing::new);
@@ -38,22 +43,34 @@ impl Credentials {
             || !access_key.bytes().all(|b| b.is_ascii_alphanumeric())
             || !(16..=256).contains(&secret.len())
             || !visible(&secret)
-            || token.as_ref().is_some_and(|s| s.is_empty() || s.len() > 16384 || !visible(s))
+            || token
+                .as_ref()
+                .is_some_and(|s| s.is_empty() || s.len() > 16384 || !visible(s))
         {
             bail!(BackendFailure::Security);
         }
-        Ok(Self { access_key, secret, token, expires_at })
+        Ok(Self {
+            access_key,
+            secret,
+            token,
+            expires_at,
+        })
     }
 
     fn valid_now(&self) -> Result<()> {
-        if self.expires_at.is_some_and(|expiry| expiry <= SystemTime::now()) {
+        if self
+            .expires_at
+            .is_some_and(|expiry| expiry <= SystemTime::now())
+        {
             bail!(BackendFailure::Security);
         }
         Ok(())
     }
 }
 
-fn visible(s: &str) -> bool { s.bytes().all(|b| (0x21..=0x7e).contains(&b)) }
+fn visible(s: &str) -> bool {
+    s.bytes().all(|b| (0x21..=0x7e).contains(&b))
+}
 
 /// Explicit operator-selected path-style endpoint and ciphertext-key namespace.
 /// Provider capability approval remains separate from constructing this value.
@@ -100,41 +117,85 @@ impl SignedHttpTransport {
 
     fn build(config: HttpConfig, credentials: Credentials, test_loopback: bool) -> Result<Self> {
         let endpoint = Url::parse(&config.endpoint).map_err(|_| BackendFailure::Security)?;
-        let loopback = test_loopback && endpoint.scheme() == "http"
+        let loopback = test_loopback
+            && endpoint.scheme() == "http"
             && endpoint.host_str() == Some("127.0.0.1");
-        if (endpoint.scheme() != "https" && !loopback) || endpoint.host_str().is_none()
-            || !endpoint.username().is_empty() || endpoint.password().is_some()
-            || endpoint.query().is_some() || endpoint.fragment().is_some()
-            || endpoint.path() != "/" || config.timeout.is_zero()
+        if (endpoint.scheme() != "https" && !loopback)
+            || endpoint.host_str().is_none()
+            || !endpoint.username().is_empty()
+            || endpoint.password().is_some()
+            || endpoint.query().is_some()
+            || endpoint.fragment().is_some()
+            || endpoint.path() != "/"
+            || config.timeout.is_zero()
             || config.timeout > Duration::from_secs(3600)
             || !(3..=63).contains(&config.bucket.len())
-            || !config.bucket.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'.')
+            || !config
+                .bucket
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'.')
             || !config.bucket.as_bytes()[0].is_ascii_alphanumeric()
-            || !config.bucket.as_bytes()[config.bucket.len()-1].is_ascii_alphanumeric()
+            || !config.bucket.as_bytes()[config.bucket.len() - 1].is_ascii_alphanumeric()
             || config.bucket.contains("..")
-            || config.region.is_empty() || config.region.len() > 64
-            || !config.region.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            || config.region.is_empty()
+            || config.region.len() > 64
+            || !config
+                .region
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
             || config.prefix.len() > 1024
-            || (!config.prefix.is_empty() && config.prefix.split('/').any(|part|
-                part.is_empty() || part == "." || part == ".."
-                || !part.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))))
-        { bail!(BackendFailure::Security); }
+            || (!config.prefix.is_empty()
+                && config.prefix.split('/').any(|part| {
+                    part.is_empty()
+                        || part == "."
+                        || part == ".."
+                        || !part
+                            .bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))
+                }))
+        {
+            bail!(BackendFailure::Security);
+        }
         credentials.valid_now()?;
-        let host = endpoint.as_str().split_once("://").unwrap().1.trim_end_matches('/').to_owned();
-        let client = Client::builder().https_only(!loopback)
-            .redirect(reqwest::redirect::Policy::none()).no_proxy()
-            .no_gzip().no_brotli().no_deflate().no_zstd()
-            .timeout(config.timeout).connect_timeout(config.timeout)
-            .build().map_err(|_| BackendFailure::Security)?;
-        Ok(Self { client, endpoint, host, bucket: config.bucket, region: config.region,
-            prefix: config.prefix, timeout: config.timeout, credentials })
+        let host = endpoint
+            .as_str()
+            .split_once("://")
+            .unwrap()
+            .1
+            .trim_end_matches('/')
+            .to_owned();
+        let client = Client::builder()
+            .https_only(!loopback)
+            .redirect(reqwest::redirect::Policy::none())
+            .no_proxy()
+            .no_gzip()
+            .no_brotli()
+            .no_deflate()
+            .no_zstd()
+            .timeout(config.timeout)
+            .connect_timeout(config.timeout)
+            .build()
+            .map_err(|_| BackendFailure::Security)?;
+        Ok(Self {
+            client,
+            endpoint,
+            host,
+            bucket: config.bucket,
+            region: config.region,
+            prefix: config.prefix,
+            timeout: config.timeout,
+            credentials,
+        })
     }
 
     fn url(&self, identity: &Fingerprint) -> Result<Url> {
         identity.validate()?;
         let mut url = self.endpoint.clone();
-        let path = if self.prefix.is_empty() { format!("/{}/{}", self.bucket, identity.sha256()) }
-            else { format!("/{}/{}/{}", self.bucket, self.prefix, identity.sha256()) };
+        let path = if self.prefix.is_empty() {
+            format!("/{}/{}", self.bucket, identity.sha256())
+        } else {
+            format!("/{}/{}/{}", self.bucket, self.prefix, identity.sha256())
+        };
         // Confined ASCII components contain no percent escapes or dot segments;
         // the exact URL path sent is also the path signed.
         url.set_path(&path);
@@ -145,7 +206,11 @@ impl SignedHttpTransport {
         self.credentials.valid_now()?;
         let url = self.url(id)?;
         let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-        let hash = if file.is_some() { id.sha256() } else { EMPTY_SHA256 };
+        let hash = if file.is_some() {
+            id.sha256()
+        } else {
+            EMPTY_SHA256
+        };
         let mut headers = BTreeMap::from([
             ("host".to_owned(), self.host.clone()),
             ("x-amz-content-sha256".to_owned(), hash.to_owned()),
@@ -159,21 +224,36 @@ impl SignedHttpTransport {
             headers.insert("if-none-match".into(), "*".into());
             headers.insert("content-length".into(), id.bytes().to_string());
         }
-        let authorization = sign(method.as_str(), url.path(), hash, &headers,
-            &timestamp, &self.region, &self.credentials)?;
+        let authorization = sign(
+            method.as_str(),
+            url.path(),
+            hash,
+            &headers,
+            &timestamp,
+            &self.region,
+            &self.credentials,
+        )?;
         let mut outgoing = HeaderMap::new();
         for (name, value) in headers {
-            let name = HeaderName::from_bytes(name.as_bytes()).map_err(|_| BackendFailure::Security)?;
+            let name =
+                HeaderName::from_bytes(name.as_bytes()).map_err(|_| BackendFailure::Security)?;
             let mut value = HeaderValue::from_str(&value).map_err(|_| BackendFailure::Security)?;
-            if name == "x-amz-security-token" { value.set_sensitive(true); }
+            if name == "x-amz-security-token" {
+                value.set_sensitive(true);
+            }
             outgoing.insert(name, value);
         }
-        let mut authorization = HeaderValue::from_str(&authorization).map_err(|_| BackendFailure::Security)?;
+        let mut authorization =
+            HeaderValue::from_str(&authorization).map_err(|_| BackendFailure::Security)?;
         authorization.set_sensitive(true);
         outgoing.insert(reqwest::header::AUTHORIZATION, authorization);
         // Explicit request timeout also sets reqwest's asynchronous total body
         // deadline, preventing trickled bytes from extending the transfer forever.
-        let mut request = self.client.request(method, url).headers(outgoing).timeout(self.timeout);
+        let mut request = self
+            .client
+            .request(method, url)
+            .headers(outgoing)
+            .timeout(self.timeout);
         if let Some(mut file) = file {
             if !file.metadata()?.is_file() || file.metadata()?.len() != id.bytes() {
                 bail!(BackendFailure::Integrity);
@@ -198,7 +278,9 @@ fn status_failure(status: StatusCode) -> anyhow::Error {
 struct RedactedBody(Response);
 impl Read for RedactedBody {
     fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
-        self.0.read(output).map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, TransientFailure))
+        self.0
+            .read(output)
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, TransientFailure))
     }
 }
 
@@ -215,11 +297,22 @@ impl S3Transport for SignedHttpTransport {
 
     fn get(&self, identity: &Fingerprint) -> Result<Box<dyn Read>> {
         let response = self.request(Method::GET, identity, None)?;
-        if response.status() != StatusCode::OK { return Err(status_failure(response.status())); }
-        if response.headers().contains_key(reqwest::header::CONTENT_RANGE)
-            || response.headers().get(reqwest::header::CONTENT_ENCODING).is_some_and(|value| value != "identity")
-            || response.content_length().is_some_and(|length| length != identity.bytes())
-        { bail!(BackendFailure::Integrity); }
+        if response.status() != StatusCode::OK {
+            return Err(status_failure(response.status()));
+        }
+        if response
+            .headers()
+            .contains_key(reqwest::header::CONTENT_RANGE)
+            || response
+                .headers()
+                .get(reqwest::header::CONTENT_ENCODING)
+                .is_some_and(|value| value != "identity")
+            || response
+                .content_length()
+                .is_some_and(|length| length != identity.bytes())
+        {
+            bail!(BackendFailure::Integrity);
+        }
         Ok(Box::new(RedactedBody(response)))
     }
 }
@@ -230,26 +323,58 @@ fn hmac(key: &[u8], data: &[u8]) -> Zeroizing<Vec<u8>> {
     Zeroizing::new(mac.finalize().into_bytes().to_vec())
 }
 
-fn sign(method: &str, path: &str, payload: &str, headers: &BTreeMap<String, String>,
-    timestamp: &str, region: &str, credentials: &Credentials) -> Result<Zeroizing<String>> {
+fn sign(
+    method: &str,
+    path: &str,
+    payload: &str,
+    headers: &BTreeMap<String, String>,
+    timestamp: &str,
+    region: &str,
+    credentials: &Credentials,
+) -> Result<Zeroizing<String>> {
     validate_sha256(payload)?;
-    if timestamp.len() != 16 || !timestamp.is_ascii() || &timestamp[8..9] != "T"
-        || &timestamp[15..] != "Z" || !timestamp[..8].bytes().chain(timestamp[9..15].bytes()).all(|b| b.is_ascii_digit())
-    { bail!(BackendFailure::Security); }
-    let canonical_headers = headers.iter().map(|(name, value)| format!("{name}:{}\n", value.trim()))
+    if timestamp.len() != 16
+        || !timestamp.is_ascii()
+        || &timestamp[8..9] != "T"
+        || &timestamp[15..] != "Z"
+        || !timestamp[..8]
+            .bytes()
+            .chain(timestamp[9..15].bytes())
+            .all(|b| b.is_ascii_digit())
+    {
+        bail!(BackendFailure::Security);
+    }
+    let canonical_headers = headers
+        .iter()
+        .map(|(name, value)| format!("{name}:{}\n", value.trim()))
         .collect::<String>();
-    let signed = headers.keys().map(String::as_str).collect::<Vec<_>>().join(";");
-    let canonical = Zeroizing::new(format!("{method}\n{path}\n\n{canonical_headers}\n{signed}\n{payload}"));
+    let signed = headers
+        .keys()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(";");
+    let canonical = Zeroizing::new(format!(
+        "{method}\n{path}\n\n{canonical_headers}\n{signed}\n{payload}"
+    ));
     let scope = format!("{}/{region}/s3/aws4_request", &timestamp[..8]);
-    let to_sign = format!("AWS4-HMAC-SHA256\n{timestamp}\n{scope}\n{:x}", Sha256::digest(canonical.as_bytes()));
+    let to_sign = format!(
+        "AWS4-HMAC-SHA256\n{timestamp}\n{scope}\n{:x}",
+        Sha256::digest(canonical.as_bytes())
+    );
     let base = Zeroizing::new(format!("AWS4{}", &*credentials.secret));
     let date = hmac(base.as_bytes(), timestamp[..8].as_bytes());
     let region_key = hmac(&date, region.as_bytes());
     let service = hmac(&region_key, b"s3");
     let key = hmac(&service, b"aws4_request");
     let signature = hmac(&key, to_sign.as_bytes());
-    let signature = signature.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
-    Ok(Zeroizing::new(format!("AWS4-HMAC-SHA256 Credential={}/{scope},SignedHeaders={signed},Signature={signature}", &*credentials.access_key)))
+    let signature = signature
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    Ok(Zeroizing::new(format!(
+        "AWS4-HMAC-SHA256 Credential={}/{scope},SignedHeaders={signed},Signature={signature}",
+        &*credentials.access_key
+    )))
 }
 
 #[cfg(test)]
