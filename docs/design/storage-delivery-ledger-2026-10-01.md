@@ -574,3 +574,51 @@ cross-utility hook check is recorded separately rather than counted among the
 ignored workspace tests. Formatting/diff checks passed. These results validate
 this bounded-query milestone; no production release/enrollment or larger-roadmap
 completion is claimed.
+
+## Cold protected-metadata import (2026-10-02)
+
+`MetadataStore::import` and the unreleased `storage import-manifest` command now
+rebuild private metadata correspondence from exact committed age ciphertext
+without the original machine's preparation cache. The command pins a selected
+commit, requires explicit local repository-ID/policy/Warden bindings and ignores
+unstaged manifest changes. It does not install a filter/hook, activate a guard,
+hydrate an asset, grant backend permissions, stage or push.
+
+Ciphertext is length/digest/header checked in a bounded anonymous private spool,
+decrypted with existing authorized keys into separate unpublished output, then
+canonical-codec/repo checked before retaining source/ciphertext proof. One import
+lease bounds transient files per namespace; existing retained/catalog budgets
+apply. Corrupted sources/payloads and ambiguous caches fail without overwriting
+previous bytes. Imported private specifications use version 2 with ciphertext in
+their identity; version-1 encodings/IDs and the committed manifest codec remain
+unchanged. Independently encrypted versions of the same decoded metadata coexist.
+
+Crash points before/after import approval and after ciphertext publication
+recover the exact retained version. Warden's adapter now creates an owned Unix
+process group: timeout/failure/cancellation terminates descendants holding pipes
+and releases the import lease. No new key-generation/network facility was added.
+The already locked tempfile crate was promoted from test-only to runtime use for
+anonymous private spools; no new crate version was selected.
+
+Fifteen focused metadata tests passed (three operational/subprocess helpers
+ignored), including cache limits/corruption, unchanged preparations, wrong-repo
+and noncanonical/oversize/bad-exit refusal, process-death recovery, descendant
+termination and cancellation/retry. The CLI cold-clone test passed; its final
+workspace case additionally deletes the original test-owned cache and verifies
+committed bytes are used while working manifest edits/index/pointer contents and
+filter/guard settings remain unchanged. These synthetic fixtures prove mechanics.
+
+The separately invoked actual Warden/age-key check passed after deleting the
+original test store and moving the checkout. It imported both independently
+randomized ciphertext versions, verified exact metadata/cache correspondence,
+and refused corrupted age data. This is metadata/key recovery evidence, not an
+asset hydration or independent-provider durability certificate. Logs:
+`/tmp/dracon-cold-import-final-core.log`, `/tmp/dracon-cold-import-git.log`,
+`/tmp/dracon-cold-import-final-real-crypto.log`.
+
+Strict all-target Clippy, locked release build, dependency policy and formatting
+passed; the release import-manifest help page ran. Full workspace totals follow
+when its existing run finishes. No installed binary, live bucket, fleet filter,
+operator key or production enrollment was changed. Asset hydration, provider
+adapters, automatic enrollment/worker scheduling, Warden routing composition and
+complete outgoing-history/push coverage retain the full original roadmap scope.
