@@ -330,3 +330,14 @@ filesystem journal waits, and the existing run completed without restarting it.
 The final all-target Sync Clippy check passed. Formatting is clean for Sync;
 workspace-wide formatting also reported independent edits in dracon-system,
 which this work did not change.
+
+The full workspace run completed successfully: 2002 passed, zero failed and
+18 ignored, including both actual Warden storage streaming integration tests.
+This run compiled the eight-test transaction snapshot; the additional ninth
+regression passed in the separately completed expanded focused run. The release
+build and strict Clippy checks passed for the production implementation; the
+expanded all-target Sync Clippy check also covered the added regression.
+Logs: `/tmp/dracon-index-workspace.log`, `/tmp/dracon-index-final-focused.log`,
+`/tmp/dracon-index-clippy.log`, `/tmp/dracon-index-final-clippy.log`,
+`/tmp/dracon-index-release.log`, `/tmp/dracon-index-deny.log`.
+No installed binary, production storage configuration or live bucket changed.
