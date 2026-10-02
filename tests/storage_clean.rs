@@ -510,6 +510,16 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
     );
     // An older indexed manifest selects its older local version, even with
     // newer prepared sources retained. It must not silently bless newer bytes.
+    // The sibling did not exist in that historical manifest. Remove its later
+    // index entry first: Git can refresh unrelated entries during any add, so
+    // leaving an unenrolled sibling indexed makes success depend on stat-cache
+    // timing. Its working content remains available for the refusal below.
+    assert!(git(
+        &f.repo,
+        &["update-index", "--force-remove", "--", "second.bin"]
+    )
+    .status
+    .success());
     std::fs::write(f.repo.join(".dracon/assets.manifest"), old_metadata).unwrap();
     assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
         .status
@@ -537,13 +547,15 @@ async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versi
         git(&f.repo, &["show", ":asset [version].bin"]).stdout,
         f.pointer.encode()
     );
-    assert!(!verify_index(&f).status.success());
-    assert!(!git(&f.repo, &["add", "--renormalize", "--", "second.bin"])
-        .status
-        .success());
-    assert!(git(&f.repo, &["rm", "--cached", "--", "second.bin"])
-        .status
-        .success());
+    assert!(verify_index(&f).status.success());
+    assert!(!git(&f.repo, &["add", "--", "second.bin"]).status.success());
+    assert!(git(&f.repo, &["ls-files", "--", "second.bin"])
+        .stdout
+        .is_empty());
+    assert_eq!(
+        std::fs::read(f.repo.join("second.bin")).unwrap(),
+        b"independently prepared second asset"
+    );
     assert!(verify_index(&f).status.success());
 }
 
