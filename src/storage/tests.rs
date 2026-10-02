@@ -447,3 +447,128 @@ fn journal_status_is_read_only_and_redacts_source_metadata() {
     assert!(!report.live_backend_verified);
     assert!(!report.transfers_available);
 }
+
+#[cfg(unix)]
+async fn guarded_fixture() -> tempfile::TempDir {
+    use dracon_sync::storage_core::{
+        journal::{encode_relative_path, Encryption, Limits},
+        manifest::{Enrollment, Manifest},
+        metadata::MetadataStore,
+        reference::{Fingerprint, Pointer},
+        security::WardenAdapter,
+    };
+    use std::os::unix::fs::PermissionsExt;
+    let dir = git_fixture();
+    let repo = dir.path();
+    let id = "a".repeat(64);
+    git_fixture_command(repo, &["config", "dracon.storageRepoId", &id]);
+    git_fixture_command(repo, &["config", "user.name", "DraconDev"]);
+    git_fixture_command(repo, &["config", "user.email", "dracsharp@gmail.com"]);
+    let payload = Fingerprint::new("b".repeat(64), 42).unwrap();
+    let manifest = Manifest::new(
+        id.clone(),
+        vec![Enrollment {
+            path_hex: encode_relative_path(b"asset.bin").unwrap(),
+            contract_sha256: "c".repeat(64),
+            primary: "archive".into(),
+            required_copies: vec!["archive".into()],
+            encryption: Encryption::None,
+            payload: Some(payload.clone()),
+        }],
+    )
+    .unwrap();
+    let binary = repo.join(".git/synthetic-warden");
+    std::fs::write(
+        &binary,
+        "#!/bin/sh\nprintf 'age-encryption.org/v1\\n'\ncat\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let adapter =
+        WardenAdapter::new(&binary, repo, &id, std::time::Duration::from_secs(5)).unwrap();
+    let root = repo.join(".git/metadata");
+    let store = MetadataStore::open(&root, &id, Limits::default()).unwrap();
+    let prepared = store
+        .prepare(&manifest, &"c".repeat(64), &adapter, 1)
+        .await
+        .unwrap();
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    store
+        .open_prepared(&prepared)
+        .unwrap()
+        .read_to_end(&mut bytes)
+        .unwrap();
+    std::fs::write(repo.join("assets.manifest"), bytes).unwrap();
+    std::fs::write(
+        repo.join("asset.bin"),
+        Pointer::new(payload).unwrap().encode(),
+    )
+    .unwrap();
+    std::fs::write(
+        repo.join(".gitattributes"),
+        "*.bin filter=dracon-storage -text -ident\n",
+    )
+    .unwrap();
+    git_fixture_command(repo, &["config", "filter.dracon-storage.clean", "cat"]);
+    git_fixture_command(repo, &["config", "filter.dracon-storage.required", "true"]);
+    git_fixture_command(
+        repo,
+        &[
+            "add",
+            "--",
+            "assets.manifest",
+            "asset.bin",
+            ".gitattributes",
+        ],
+    );
+    dir
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn configured_storage_commits_verified_tree_and_preserves_rejected_index() {
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    let id = "a".repeat(64);
+    let root = repo.join(".git/metadata");
+    assert!(commit_configured_storage(repo, "unbound").is_err());
+    setup_guard(repo, &id, &root, Path::new("assets.manifest")).unwrap();
+    setup_guard(repo, &id, &root, Path::new("assets.manifest")).unwrap();
+    assert!(verify_configured_index(repo, false).unwrap());
+    let initial_index = std::fs::read(repo.join(".git/index")).unwrap();
+    assert!(commit_configured_storage(repo, "guarded root").unwrap());
+    let repository = git2::Repository::open(repo).unwrap();
+    let head = repository.head().unwrap().peel_to_commit().unwrap();
+    assert_eq!(head.parent_count(), 0);
+    assert_eq!(head.author().name(), Some("DraconDev"));
+    let pointer = git_fixture_command(repo, &["show", "HEAD:asset.bin"]);
+    assert_eq!(pointer, std::fs::read(repo.join("asset.bin")).unwrap());
+    assert_eq!(
+        std::fs::read(repo.join(".git/index")).unwrap(),
+        initial_index
+    );
+    assert!(!repo.join(".git/index.lock").exists());
+    // libgit2 callers bypass hooks: rejection must happen within the commit API.
+    std::fs::write(repo.join("asset.bin"), b"raw accidental asset").unwrap();
+    git_fixture_command(repo, &["add", "--", "asset.bin"]);
+    let rejected_index = std::fs::read(repo.join(".git/index")).unwrap();
+    assert!(commit_configured_storage(repo, "must reject raw bytes").is_err());
+    assert_eq!(repository.head().unwrap().target(), Some(head.id()));
+    assert_eq!(
+        std::fs::read(repo.join(".git/index")).unwrap(),
+        rejected_index
+    );
+    assert_eq!(
+        std::fs::read(repo.join("asset.bin")).unwrap(),
+        b"raw accidental asset"
+    );
+    assert!(!repo.join(".git/index.lock").exists());
+}
+
+#[test]
+fn ordinary_repo_has_no_storage_commit_or_guard_requirement() {
+    let dir = git_fixture();
+    assert!(!verify_configured_index(dir.path(), false).unwrap());
+    assert!(!commit_configured_storage(dir.path(), "ordinary").unwrap());
+}
