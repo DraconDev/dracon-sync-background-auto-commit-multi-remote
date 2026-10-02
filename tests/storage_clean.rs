@@ -207,7 +207,7 @@ async fn advance_job_copies_retained_version_without_touching_git_or_current_edi
     let spec = JobSpec {
         repo_id: "a".repeat(64),
         path_hex: encode_relative_path(b"asset [version].bin").unwrap(),
-        source: f.pointer.fingerprint().clone(),
+        source: f.pointer.payload().clone(),
         policy_sha256: "c".repeat(64),
         primary: "primary".into(),
         required_copies: vec!["primary".into(), "recovery".into()],
@@ -250,19 +250,18 @@ async fn advance_job_copies_retained_version_without_touching_git_or_current_edi
         assert_eq!(report["phase"], "ready-to-stage");
         assert_eq!(report["git_changed"], false);
         assert_eq!(
-            f.journal.load(job.id()).unwrap().phase(),
+            f.journal.lease(job.id()).unwrap().load().unwrap().phase(),
             Phase::ReadyToStage
         );
     }
     use dracon_sync::storage_core::backend::ImmutableBackend;
-    assert_eq!(
-        primary.verify(f.pointer.fingerprint()).unwrap(),
-        *f.pointer.fingerprint()
-    );
-    assert_eq!(
-        recovery.verify(f.pointer.fingerprint()).unwrap(),
-        *f.pointer.fingerprint()
-    );
+    for backend in [&primary, &recovery] {
+        let mut copied = Vec::new();
+        backend
+            .get_verified(f.pointer.payload(), &mut copied)
+            .unwrap();
+        assert_eq!(copied, bytes);
+    }
     assert_eq!(
         std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
         b"new operator edits"
@@ -1375,7 +1374,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA1eFQ3M3Y2S1VTWGRIU3NSYUEzZG9IbDVtUHdnSHNSK1JGWTB3ODFSUEQ4CkhXREhwdUNtNjV0VHNOUDBGbHRMTk45YlBEK2s2ajZudHBWVmRaa21zbmsKLT4gWDI1NTE5IFduNC8zazJiWGNORVNxaXprOVlxVEU1UW91VldrYWJHZWx2TEdPSlVLRzAKSTFSK2FVQ0U3Y3lxMmVPUncyT3NWa1ZQU0dObWRSaTJqY3YrQ0kxZWlSRQotPiBYMjU1MTkgcHVnN1BnVzhuYVlLd3FPWHA0eUJUaERSMktGSnluVnBMWkpJaTlHdFprawpVeU4rUUZCQ0J2SkgvRUVYQUhFaW8vOTRpYmU5RmZOUXZ4MHVDMzl4cGprCi0+IFgyNTUxOSBMamlZTHFFMTJ0RWllNzJWM1JWR1JPN2dVU1J6YzFzYUxVclM3ZWZVY1JrCm5PWjRaWGVLdXgwbW05RjZ3VU8wK1kxTXBKTFBmL0NSZEE4QWNwNFNaT28KLT4gWDI1NTE5IG9LV0tiYjBuN2srQy9vQm1mZm9FMjUyMUJqbjJBY0YzQi85L3Rkb2R4UUUKUEs5RFBaY2RPbnFXWUluRDczUjFtL1lwSEpLU0FKTHJ3cm9jaHI2R05GYwotPiBjcHYpIS1ncmVhc2UKQmpMOTMwVGF2L2xrRi95bnZJTQotLS0gdmVMT2RqV2tJdS90bTVOcWtVdkdvRXNGclhZOVNkV1BvN2dZQWRKNWpKVQpVXrro2uWOFvwJnWesILIK0/5aUz3/K+RDlmSyfNMFnIigQYImIUL/lRfwJTnsKhdcxRPQ]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwWHdTdlpRQkhhNURlU0dJazZHNU5GUlpXUjZUdERLcWdUajk0S28vVVI4Cm95akVzeXJyZmw2dWFFckhPRXcyTmN6YTkra0I3a1VQWUpJTnM3RUJ4YjgKLT4gWDI1NTE5IEhpVjV6c0oxeVo1amdzYVgxK0xjcE1leHQ2a0wvNklKRjZSQThVTDJqa3MKS0JYdlh6N29ZL01FSFEwWmRPbEFuTXJlcTFXazhJSFM1OHFWRFlwbFN1cwotPiBYMjU1MTkgejkvbS9SUisrNEMrZFN4cDhQRTU5N3Y1TFRYK0hqdXNGYnRRbU5yV2lrawpmN29RS0dWL1FQUmZSWXFsaXg3Z3VBeXBZR3pYMFpaQUpEOUVoR1F5bDBJCi0+IFgyNTUxOSBGRnZDVG1UdEpCdUtpN0VveGJPUDBCdlF5WlJ6bG5yNXRjQXBLNUVPaVJNCkxCWlZhMi95QjlCMkJTUlVVcVRSS050czJ6enJyNlVqd0ZTVVZmSGxBY1UKLT4gWDI1NTE5IGJCdXE5UFkzZDdZS1FnQ0FnaHlvdlJnakFSN3BacDFUQUs4bVdVYVFEZ1UKYnFJVFUzeTVEaUlmS3dsdzVCY3MxT1g5eE5KV0srektCUUdjVVl4cDFOYwotPiByLWdyZWFzZSB3fVtlICUgSGpnT1V4CmIwQlZlS3R1VVc4bVBkeVdmWFhLY3lPSGZlWUMKLS0tIEErR2pZU3VRcUxaQVc5YzBVRWdWK200OXlQSkk4V0lYMVo0VzZvK1lNOWcKoly7hoDJeExNpZEgchwhNAbavCz08Mf80byFj2V9wGuqtdGnywCfoImfedZ+1Lvzhdgd5g==]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
