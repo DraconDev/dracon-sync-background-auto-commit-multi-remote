@@ -133,6 +133,8 @@ fn reject_invalid_rules_and_secret_bearing_endpoints() {
                 endpoint: endpoint.into(),
                 bucket: "assets".into(),
                 credential_ref: "approved".into(),
+                region: None,
+                prefix: String::new(),
                 allowed_security: encrypted_only(),
             },
         );

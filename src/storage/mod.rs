@@ -22,6 +22,10 @@ pub(crate) enum BackendBinding {
         endpoint: String,
         bucket: String,
         credential_ref: String,
+        #[serde(default)]
+        region: Option<String>,
+        #[serde(default)]
+        prefix: String,
         #[serde(default = "encrypted_only")]
         allowed_security: Vec<Security>,
     },
@@ -265,7 +269,7 @@ impl CompiledPolicy {
     }
 }
 
-#[derive(Debug, clap::Args)]
+#[derive(Debug, Clone, clap::Args)]
 pub(crate) struct RecoveryOptions {
     #[arg(long)]
     repo: PathBuf,
@@ -291,6 +295,9 @@ pub(crate) struct RecoveryOptions {
     warden: Option<PathBuf>,
     #[arg(long)]
     identity_home: Option<PathBuf>,
+    /// Explicit private operator credential directory; required for S3 recovery.
+    #[arg(long)]
+    credentials_root: Option<PathBuf>,
     #[arg(long, default_value_t = 30)]
     timeout_secs: u64,
     #[arg(long, default_value_t = 2 * 1024 * 1024 * 1024)]
@@ -301,7 +308,7 @@ pub(crate) struct RecoveryOptions {
     max_retained_bytes: u64,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
     /// Recover an exact committed asset into a private cache; checkout is unchanged.
     RestoreAsset(Box<RecoveryOptions>),
@@ -1163,6 +1170,13 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
 mod tests;
 
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
+    let command = command.clone();
+    tokio::task::spawn_blocking(move || futures::executor::block_on(restore_asset_inner(&command)))
+        .await
+        .map_err(|_| anyhow::anyhow!("recovery worker failed"))?
+}
+
+async fn restore_asset_inner(command: &StorageCommand) -> Result<()> {
     let (options, hydration_root, resume_local) = match command {
         StorageCommand::RestoreAsset(options) => (options.as_ref(), None, false),
         StorageCommand::Hydrate {
@@ -1184,13 +1198,14 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         restore_root,
         warden,
         identity_home,
+        credentials_root,
         timeout_secs,
         max_payload_bytes,
         max_output_bytes,
         max_retained_bytes,
     } = options;
     use dracon_sync::storage_core::{
-        backend::LocalBackend,
+        backend::{ImmutableBackend, LocalBackend},
         bindings::{ApprovedBackend, RestoreBinding},
         journal::{Encryption, Limits},
         metadata::{MetadataStore, MAX_PROTECTED_MANIFEST_BYTES},
@@ -1306,16 +1321,52 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         .backends
         .get(selected)
         .context("selected copy lacks an operator backend binding")?;
-    let BackendBinding::Local {
-        root,
-        allowed_security,
-    } = binding
-    else {
-        bail!("S3 recovery adapter is not available yet");
+    let (backend_adapter, allowed_security): (Box<dyn ImmutableBackend>, _) = match binding {
+        BackendBinding::Local {
+            root,
+            allowed_security,
+        } => (
+            Box::new(LocalBackend::open_existing(root, *max_payload_bytes)?),
+            allowed_security,
+        ),
+        BackendBinding::S3 {
+            endpoint,
+            bucket,
+            credential_ref,
+            region,
+            prefix,
+            allowed_security,
+        } => {
+            use dracon_sync::storage_core::s3::{
+                credentials,
+                http::{HttpConfig, SignedHttpTransport},
+                S3Backend,
+            };
+            let region = region
+                .as_ref()
+                .context("approved S3 binding requires an explicit signing region")?;
+            let root = credentials_root
+                .as_ref()
+                .context("S3 recovery requires an explicit operator credentials root")?;
+            let credentials = credentials::load(root, credential_ref)?;
+            let transport = SignedHttpTransport::new(
+                HttpConfig {
+                    endpoint: endpoint.clone(),
+                    bucket: bucket.clone(),
+                    region: region.clone(),
+                    prefix: prefix.clone(),
+                    timeout: std::time::Duration::from_secs(*timeout_secs),
+                },
+                credentials,
+            )?;
+            (
+                Box::new(S3Backend::new(transport, *max_payload_bytes)?),
+                allowed_security,
+            )
+        }
     };
-    let local = LocalBackend::open_existing(root, *max_payload_bytes)?;
     let granted = ApprovedBackend::for_security(
-        &local,
+        backend_adapter.as_ref(),
         allowed_security
             .iter()
             .map(|class| match class {
