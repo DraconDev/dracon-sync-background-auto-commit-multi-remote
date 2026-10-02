@@ -4388,7 +4388,15 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
-        svc.commit(&msg).await?;
+        let storage_commit = crate::storage::commit_configured_storage(repo, &msg);
+        match storage_commit {
+            Ok(true) => {}
+            Ok(false) => svc.commit(&msg).await?,
+            Err(error) => {
+                eprintln!("⚠️ {} storage commit guard blocked auto-commit; staged/worktree content retained: {}", repo.display(), error);
+                return Ok(Some(SyncOutcome::Blocked));
+            }
+        }
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
             // commit→push gate (GitService::commit is in-process libgit2,
@@ -4793,6 +4801,18 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     }
 
     let msg = format!("auto: initial commit ({} files)", staged.len());
+    match crate::storage::commit_configured_storage(repo, &msg) {
+        Ok(true) => return Ok(true),
+        Ok(false) => {}
+        Err(error) => {
+            eprintln!(
+                "⚠️ {} storage guard blocked root commit; staged/worktree content retained: {}",
+                repo.display(),
+                error
+            );
+            return Ok(false);
+        }
+    }
     run_git_with_timeout(
         repo,
         &["commit", "--no-verify", "-m", &msg],

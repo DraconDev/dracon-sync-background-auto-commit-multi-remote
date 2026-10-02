@@ -1216,10 +1216,16 @@ fn verify_guard_entries(indexed: &IndexedManifest) -> Result<()> {
     verify_storage_attributes(indexed)
 }
 
+struct GuardBinding {
+    repo_id: String,
+    metadata_root: PathBuf,
+    manifest_path: PathBuf,
+}
+
 /// Direct daemon and manual-hook entrypoint. No storage marker means no change.
 /// The daemon passes false to inspect its actual libgit2 index, ignoring an
 /// ambient alternate-index environment. Manual Git hooks pass true for Git's index.
-pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Result<bool> {
+fn configured_guard(repo: &Path) -> Result<Option<GuardBinding>> {
     let repository = git2::Repository::open(repo)?;
     let local = repository.config()?.open_level(git2::ConfigLevel::Local)?;
     let version = match local.get_string(GUARD_VERSION_KEY) {
@@ -1235,7 +1241,7 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
     .iter()
     .any(|key| local.get_entry(key).is_ok());
     if version.is_none() && !driver_present {
-        return Ok(false);
+        return Ok(None);
     }
     if version.as_deref() != Some("1") {
         bail!("storage driver requires an explicit version-1 guard binding");
@@ -1268,15 +1274,67 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
             bail!("storage guard executable is not executable");
         }
     }
-    let explicit_index = (!honor_git_index).then(|| repository.path().join("index"));
+    Ok(Some(GuardBinding {
+        repo_id,
+        metadata_root,
+        manifest_path,
+    }))
+}
+
+pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Result<bool> {
+    let Some(binding) = configured_guard(repo)? else {
+        return Ok(false);
+    };
+    let explicit_index = if honor_git_index {
+        None
+    } else {
+        Some(git2::Repository::open(repo)?.path().join("index"))
+    };
     let indexed = indexed_manifest_at(
         repo,
-        &repo_id,
-        &metadata_root,
-        &manifest_path,
+        &binding.repo_id,
+        &binding.metadata_root,
+        &binding.manifest_path,
         explicit_index,
     )?;
     verify_guard_entries(&indexed)?;
+    Ok(true)
+}
+
+/// Commit the verified immutable tree under an owned Git index lock.
+/// Returns false only for a repository without storage markers. No fallback
+/// bypasses validation; callers retain the ordinary path solely for that case.
+pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bool> {
+    let Some(binding) = configured_guard(repo)? else {
+        return Ok(false);
+    };
+    let repository = git2::Repository::open(repo)?;
+    let _lock =
+        dracon_sync::storage_core::index::CommitLock::acquire(&repository, &binding.repo_id)?;
+    let mut indexed = indexed_manifest_at(
+        repo,
+        &binding.repo_id,
+        &binding.metadata_root,
+        &binding.manifest_path,
+        Some(repository.path().join("index")),
+    )?;
+    verify_guard_entries(&indexed)?;
+    let tree_id = indexed.index.write_tree()?;
+    let tree = repository.find_tree(tree_id)?;
+    let signature = repository.signature()?;
+    let parent = repository
+        .head()
+        .ok()
+        .and_then(|head| head.peel_to_commit().ok());
+    let parents: Vec<_> = parent.iter().collect();
+    repository.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        message,
+        &tree,
+        &parents,
+    )?;
     Ok(true)
 }
 

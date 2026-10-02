@@ -24,6 +24,106 @@ const MAX_INDEX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTENT_BYTES: u64 = 16 * 1024 * 1024;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+/// Process-backed coordination and an owned Git index lock for guarded commits.
+/// A completed private marker recognizes stale locks after process death.
+/// Foreign locks/markers are preserved; this lock never changes index content.
+pub struct CommitLock {
+    _lease: File,
+    directory: PathBuf,
+    identity: (u64, u64),
+}
+
+impl CommitLock {
+    /// Bind an already owned repository and stable ID before validating/committing.
+    /// The caller establishes enrollment authority; no history operation occurs.
+    pub fn acquire(repo: &Repository, repo_id: &str) -> Result<Self> {
+        super::reference::validate_sha256(repo_id)?;
+        if repo
+            .config()?
+            .open_level(git2::ConfigLevel::Local)?
+            .get_string("dracon.storageRepoId")
+            .ok()
+            .as_deref()
+            != Some(repo_id)
+        {
+            bail!(BackendFailure::Security);
+        }
+        let directory = repo.path().canonicalize()?;
+        let lease = journal::try_lock(&directory.join(".dracon-storage-commit.lease"))?;
+        let marker = directory.join(".dracon-storage-commit.marker");
+        let expected = format!("dracon-storage-commit-lock-v1\n{repo_id}\n");
+        if !journal::exists_without_symlink(&marker)? {
+            let temporary = directory.join(format!(
+                ".dracon-storage-commit-marker-{}-{}",
+                std::process::id(),
+                SEQUENCE.fetch_add(1, Ordering::Relaxed)
+            ));
+            let mut output = create_private(&temporary)?;
+            output.write_all(expected.as_bytes())?;
+            output.sync_all()?;
+            // Create-only publication of the complete marker, never an empty
+            // marker that a later process might mistake for operator content.
+            let result = std::fs::hard_link(&temporary, &marker);
+            std::fs::remove_file(&temporary)?;
+            result?;
+            File::open(&directory)?.sync_all()?;
+        }
+        let mut file = owned_file(&marker)?;
+        let mut raw = Vec::new();
+        (&mut file)
+            .take(expected.len() as u64 + 1)
+            .read_to_end(&mut raw)?;
+        if raw != expected.as_bytes() {
+            bail!(BackendFailure::Security);
+        }
+        let identity = identity(&file.metadata()?)?;
+        let lock = directory.join("index.lock");
+        if journal::exists_without_symlink(&lock)? {
+            if identity != super_identity(&lock)? {
+                bail!("foreign Git index lock blocks guarded commit");
+            }
+            // The process lease proves the previous owner is gone.
+            std::fs::remove_file(&lock)?;
+        }
+        std::fs::hard_link(&marker, &lock)?;
+        let guard = Self {
+            _lease: lease,
+            directory,
+            identity,
+        };
+        File::open(&guard.directory)?.sync_all()?;
+        commit_crash("after-commit-index-lock");
+        Ok(guard)
+    }
+}
+
+fn super_identity(path: &Path) -> Result<(u64, u64)> {
+    identity(&owned_file(path)?.metadata()?)
+}
+
+impl Drop for CommitLock {
+    fn drop(&mut self) {
+        let path = self.directory.join("index.lock");
+        if std::fs::symlink_metadata(&path)
+            .ok()
+            .and_then(|info| identity(&info).ok())
+            == Some(self.identity)
+        {
+            let _ = std::fs::remove_file(path);
+            let _ = File::open(&self.directory).and_then(|file| file.sync_all());
+        }
+    }
+}
+
+#[cfg(not(test))]
+fn commit_crash(_point: &str) {}
+#[cfg(test)]
+fn commit_crash(point: &str) {
+    if std::env::var("DRACON_COMMIT_CRASH_POINT").ok().as_deref() == Some(point) {
+        std::process::exit(76);
+    }
+}
+
 /// An observed index version. Mutation rejects a different version under Git's lock.
 #[derive(Clone)]
 pub struct IndexSnapshot(Option<Fingerprint>);
