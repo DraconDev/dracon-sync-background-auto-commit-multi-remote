@@ -97,7 +97,10 @@ impl<'a> StageBundle<'a> {
         &self.manifest
     }
 
-    pub(crate) fn previous_manifest(&self, payload: &super::reference::Fingerprint) -> Result<Manifest> {
+    pub(crate) fn previous_manifest(
+        &self,
+        payload: &super::reference::Fingerprint,
+    ) -> Result<Manifest> {
         self.store.retained_manifest(payload)
     }
 

@@ -309,7 +309,9 @@ impl MetadataStore {
             if count > self.limits.max_records {
                 bail!(BackendFailure::Capacity);
             }
-            let id = path.file_stem().and_then(|stem| stem.to_str())
+            let id = path
+                .file_stem()
+                .and_then(|stem| stem.to_str())
                 .ok_or(BackendFailure::Integrity)?;
             let record = self.read(id)?;
             if record.phase != Phase::Prepared || record.approved.as_ref() != Some(payload) {
@@ -319,7 +321,9 @@ impl MetadataStore {
             let mut source = self.source(&record)?;
             source.seek(SeekFrom::Start(0))?;
             let mut raw = Vec::new();
-            source.take(MAX_MANIFEST_BYTES as u64 + 1).read_to_end(&mut raw)?;
+            source
+                .take(MAX_MANIFEST_BYTES as u64 + 1)
+                .read_to_end(&mut raw)?;
             return Manifest::parse_private(&raw);
         }
         bail!("prior manifest requires approved decryption/import before staging")

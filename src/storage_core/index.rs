@@ -4,9 +4,9 @@
 //! Production setup, working-file races and outgoing-commit validation remain
 //! caller responsibilities. Existing raw tracked paths require reviewed migration.
 
-use anyhow::{bail, Result};
 #[cfg(not(unix))]
 use anyhow::Context;
+use anyhow::{bail, Result};
 use git2::{Index, IndexEntry, IndexTime, ObjectType, Oid, Repository};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -159,6 +159,7 @@ impl IndexTransaction {
         if self.snapshot()?.0 != snapshot.0 {
             bail!("manual index change conflicts with staging");
         }
+        self.check_enrollment(&current, bundle)?;
         self.check_touched(&current, bundle)?;
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let filename = format!(".dracon-storage-index-{}-{sequence}", std::process::id());
@@ -260,46 +261,98 @@ impl IndexTransaction {
         Ok(output.finalize()?)
     }
 
+    fn check_enrollment(&self, index: &Index, bundle: &StageBundle<'_>) -> Result<()> {
+        let previous =
+            if let Some(entry) = index.iter().find(|entry| entry.path == self.metadata_path) {
+                if entry.mode != 0o100644 {
+                    bail!(BackendFailure::Security);
+                }
+                let blob = self.repo.find_blob(entry.id)?;
+                if blob.size() as u64 > super::metadata::MAX_PROTECTED_MANIFEST_BYTES {
+                    bail!(BackendFailure::Capacity);
+                }
+                let fp = Fingerprint::new(
+                    format!("{:x}", Sha256::digest(blob.content())),
+                    blob.size() as u64,
+                )?;
+                Some(bundle.previous_manifest(&fp)?)
+            } else {
+                None
+            };
+        if let Some(previous) = &previous {
+            if previous.repo_id() != self.repo_id {
+                bail!(BackendFailure::Security);
+            }
+            for old in previous.enrollments() {
+                if bundle
+                    .manifest()
+                    .enrollment(&old.path_hex)
+                    .is_none_or(|new| !old.same_contract(new))
+                {
+                    bail!("sticky enrollment changes require reviewed migration");
+                }
+            }
+        }
+        for new in bundle.manifest().enrollments() {
+            let path = decode_path(&new.path_hex)?;
+            let old = previous
+                .as_ref()
+                .and_then(|manifest| manifest.enrollment(&new.path_hex));
+            if previous.is_none() && index.iter().any(|entry| entry.path == path) {
+                bail!("existing tracked paths require reviewed enrollment migration");
+            }
+            if new.payload.is_some()
+                && !bundle
+                    .pointers()
+                    .iter()
+                    .any(|(updated, _)| updated == &path)
+                && old.is_none_or(|old| old.payload != new.payload)
+            {
+                bail!("changed asset reference lacks a verified staging job");
+            }
+            if new.payload.is_none() && old.is_none() {
+                bail!("new enrollment requires a verified asset version");
+            }
+        }
+        Ok(())
+    }
+
     fn check_touched(&self, index: &Index, bundle: &StageBundle<'_>) -> Result<()> {
         if index.has_conflicts() {
             bail!("unresolved index conflicts block staging");
         }
-        let mut touched: BTreeSet<Vec<u8>> = bundle
-            .pointers()
-            .iter()
-            .map(|(path, _)| path.clone())
-            .collect();
+        let mut touched = BTreeSet::new();
         touched.insert(self.metadata_path.clone());
         for enrolled in bundle.manifest().enrollments() {
-            if enrolled.payload.is_none() {
-                touched.insert(decode_path(&enrolled.path_hex)?);
-            }
+            touched.insert(decode_path(&enrolled.path_hex)?);
         }
         let head = self
             .repo
             .head()
             .ok()
             .and_then(|head| head.peel_to_tree().ok());
-        for existing in index.iter() {
-            if touched.contains(&existing.path) {
-                let original = head
-                    .as_ref()
-                    .and_then(|tree| tree.get_path(&os_path(&existing.path).ok()?).ok());
-                if original
-                    .as_ref()
-                    .map(|entry| (entry.id(), entry.filemode() as u32))
-                    != Some((existing.id, existing.mode))
+        for path in &touched {
+            let existing = index.iter().find(|entry| &entry.path == path);
+            let original = head
+                .as_ref()
+                .and_then(|tree| tree.get_path(&os_path(path).ok()?).ok());
+            if original
+                .as_ref()
+                .map(|entry| (entry.id(), entry.filemode() as u32))
+                != existing.as_ref().map(|entry| (entry.id, entry.mode))
+            {
+                bail!("manual staged edit or deletion conflicts with a managed path");
+            }
+            if let Some(existing) = existing {
+                if path != &self.metadata_path
+                    && (!matches!(existing.mode, 0o100644 | 0o100755)
+                        || Pointer::parse(self.repo.find_blob(existing.id)?.content()).is_err())
                 {
-                    bail!("manual staged edit conflicts with a managed path");
-                }
-                if existing.path != self.metadata_path {
-                    if !matches!(existing.mode, 0o100644 | 0o100755)
-                        || Pointer::parse(self.repo.find_blob(existing.id)?.content()).is_err()
-                    {
-                        bail!("tracked raw paths require reviewed external migration");
-                    }
+                    bail!("tracked raw paths require reviewed external migration");
                 }
             }
+        }
+        for existing in index.iter() {
             for path in &touched {
                 if path != &existing.path
                     && (prefix(path, &existing.path) || prefix(&existing.path, path))
