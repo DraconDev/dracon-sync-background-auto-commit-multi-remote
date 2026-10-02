@@ -373,6 +373,27 @@ pub(crate) struct AdvanceOptions {
 
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Capture a policy-selected new path; no upload, enrollment or Git mutation.
+    Capture {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        journal_root: PathBuf,
+        #[arg(long)]
+        policy: Option<PathBuf>,
+        /// Required logical Git destinations for later preservation acknowledgment.
+        #[arg(long, required = true)]
+        git_target: Vec<String>,
+        #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+        max_snapshot_bytes: u64,
+        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+        max_retained_snapshot_bytes: u64,
+        #[arg(long)]
+        json: bool,
+        path: PathBuf,
+    },
     /// Prepare/copy one captured version; stops before staging, committing or pushing.
     AdvanceJob(Box<AdvanceOptions>),
     /// Probe S3 write refusal/readback; retains one synthetic 64-byte control object.
@@ -1094,6 +1115,11 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    if matches!(command, StorageCommand::Capture { .. }) {
+        let command = command.clone();
+        return tokio::task::spawn_blocking(move || capture_job(&command))
+            .await.map_err(|_| anyhow::anyhow!("capture worker failed"))?;
+    }
     if let StorageCommand::AdvanceJob(options) = command {
         let options = options.clone();
         return tokio::task::spawn_blocking(move || {
@@ -1180,7 +1206,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
-        StorageCommand::AdvanceJob(_)
+        StorageCommand::Capture { .. }
+        | StorageCommand::AdvanceJob(_)
         | StorageCommand::ProbeBackend(_)
         | StorageCommand::Status { .. }
         | StorageCommand::FilterClean { .. }
