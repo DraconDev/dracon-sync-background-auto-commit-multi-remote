@@ -1165,6 +1165,53 @@ mod tests {
         assert_eq!(imported.payload(), prepared.payload());
         assert!(cold.load_prepared_payload(prepared.payload()).unwrap().1 == manifest);
         assert!(cold.check_manifest(&imported, &manifest).is_ok());
+        let other = MetadataStore::open(
+            &temp.path().join("another-producer"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        let other_prepared = other
+            .prepare(&manifest, &"d".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        assert_ne!(other_prepared.payload(), prepared.payload());
+        let (other_imported, _) = cold
+            .import(
+                &mut other.open_prepared(&other_prepared).unwrap(),
+                other_prepared.payload(),
+                &"d".repeat(64),
+                &recovery,
+            )
+            .await
+            .unwrap();
+        assert_ne!(other_imported.id(), imported.id());
+        assert!(cold.load_prepared_payload(prepared.payload()).is_ok());
+        assert!(cold.load_prepared_payload(other_prepared.payload()).is_ok());
+        let mut damaged = cipher.clone();
+        let last = damaged.len() - 1;
+        damaged[last] ^= 1;
+        let damaged_fp = Fingerprint::new(
+            format!("{:x}", Sha256::digest(&damaged)),
+            damaged.len() as u64,
+        )
+        .unwrap();
+        let invalid = MetadataStore::open(
+            &temp.path().join("invalid-import"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        assert!(invalid
+            .import(
+                &mut damaged.as_slice(),
+                &damaged_fp,
+                &"d".repeat(64),
+                &recovery
+            )
+            .await
+            .is_err());
+        assert!(invalid.load_prepared_payload(&damaged_fp).is_err());
         assert!(!store_root.exists());
         assert!(!moved.join(".gitattributes").exists());
         assert!(!repo.join(".gitattributes").exists());
@@ -1285,6 +1332,41 @@ mod tests {
                 0
             );
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn cold_import_timeout_terminates_descendant_and_publishes_no_record() {
+        let temp = tempfile::tempdir().unwrap();
+        let script = "sh -c 'echo $$ > descendant.pid; exec sleep 60' & exit 0";
+        let (store, manifest, _) = fixture(temp.path(), script, Limits::default());
+        let adapter = WardenAdapter::new(
+            &temp.path().join("warden-fixture"),
+            &temp.path().join("repo"),
+            manifest.repo_id(),
+            Duration::from_secs(1),
+        )
+        .unwrap();
+        let (cipher, payload) = import_bytes(&manifest);
+        let error = store
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            error.downcast_ref::<std::io::Error>().unwrap().kind(),
+            std::io::ErrorKind::TimedOut
+        );
+        assert!(store.load_prepared_payload(&payload).is_err());
+        let pid = std::fs::read_to_string(temp.path().join("repo/descendant.pid")).unwrap();
+        for _ in 0..100 {
+            let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
+            if stat.is_err() || stat.unwrap().split_once(") ").unwrap().1.starts_with('Z') {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        panic!("Warden descendant survived failed import");
     }
 
     #[tokio::test]

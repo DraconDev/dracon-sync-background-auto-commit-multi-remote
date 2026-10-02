@@ -890,6 +890,9 @@ async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
     .unwrap();
     std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
     let root = f.temp.path().join("cold-private-cache");
+    // Delete only this fixture's original private metadata store. The clone
+    // must reconstruct its cache from Git ciphertext and the selected adapter.
+    std::fs::remove_dir_all(f.temp.path().join("metadata")).unwrap();
     let index_before = std::fs::read(cold.join(".git/index")).unwrap();
     let pointer_before = std::fs::read(cold.join("asset [version].bin")).unwrap();
     let committed = std::fs::read(cold.join(".dracon/assets.manifest")).unwrap();
