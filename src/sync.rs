@@ -4349,6 +4349,28 @@ async fn stage_commit_and_push(
             );
         }
         maybe_sync_visibility_and_metadata(ctx);
+        // FIX (deathrun 2026-10-02): push pre-existing ahead BEFORE
+        // returning — without this, a repo whose staged diff is empty
+        // (filter churn, hygiene re-adds) but which has unpushed
+        // commits NEVER pushes: this early return bypasses
+        // `handle_ahead_push` below, so ahead>0 sits forever while
+        // every cycle reports NothingToDo (deathrun: 8 commits, 4h+
+        // unpushed, sync-now NothingToDo, zero push attempts).
+        // Mirrors the early filter-only site fix (junk-runner 19
+        // commits/10h starvation, 2026-07-26) but keeps this
+        // branch's long-standing NothingToDo outcome contract (see
+        // test_filter_only_reset_failure_is_non_fatal): only a
+        // genuine push failure escalates to PushFailed.
+        // v0.113.69 commit-only: never attempt the push here either.
+        if !ctx.commit_only {
+            match handle_ahead_push(ctx, svc).await? {
+                PushReport::AllPaused => {}
+                PushReport::Attempted { ok: false, .. } => {
+                    return Ok(Some(SyncOutcome::PushFailed))
+                }
+                PushReport::Attempted { ok: true, .. } => {}
+            }
+        }
         return Ok(Some(SyncOutcome::NothingToDo));
     }
 
