@@ -926,3 +926,13 @@ startup reconciliation, all-version outgoing guards, resource qualification,
 actual encrypted independent-provider drills, pilots/package/release and the
 separate sanctioned legacy-maintenance proposal remain open. The roadmap scope
 has not been reduced to the explicit job milestone.
+
+Final locked workspace run completed successfully: **2,091 passed,
+0 failed, 24 ignored across 35 suites**
+(`/tmp/dracon-storage-advance-workspace.log`). The 14 operational Git CLI cases
+were separately run with ignored cases enabled. Locked release build, strict
+workspace/all-target Clippy, dependency deny, formatting and diff checks passed
+(`/tmp/dracon-storage-advance-release.log`,
+`/tmp/dracon-storage-advance-clippy.log`,
+`/tmp/dracon-storage-advance-deny.log`). The release artifact's `storage advance-job
+--help` also exposes the documented command; no installed binary was replaced.
