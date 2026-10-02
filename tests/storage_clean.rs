@@ -1329,7 +1329,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
   self.send_response(200); self.send_header('Content-Length',str(len(content))); self.end_headers(); self.wfile.write(content)
  def do_PUT(self):
   size=int(self.headers.get('Content-Length','0'))
-  if size!=64 or '.dracon-probes/' not in self.path or self.headers.get('If-None-Match')!='*': self.send_error(400); return
+  if size<1 or size>65536 or ('.dracon-probes/' in self.path and size!=64) or self.headers.get('If-None-Match')!='*': self.send_error(400); return
   body=self.rfile.read(size)
   if not self.authorized(body): return
   path=self.object_path()
@@ -1374,7 +1374,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwWHdTdlpRQkhhNURlU0dJazZHNU5GUlpXUjZUdERLcWdUajk0S28vVVI4Cm95akVzeXJyZmw2dWFFckhPRXcyTmN6YTkra0I3a1VQWUpJTnM3RUJ4YjgKLT4gWDI1NTE5IEhpVjV6c0oxeVo1amdzYVgxK0xjcE1leHQ2a0wvNklKRjZSQThVTDJqa3MKS0JYdlh6N29ZL01FSFEwWmRPbEFuTXJlcTFXazhJSFM1OHFWRFlwbFN1cwotPiBYMjU1MTkgejkvbS9SUisrNEMrZFN4cDhQRTU5N3Y1TFRYK0hqdXNGYnRRbU5yV2lrawpmN29RS0dWL1FQUmZSWXFsaXg3Z3VBeXBZR3pYMFpaQUpEOUVoR1F5bDBJCi0+IFgyNTUxOSBGRnZDVG1UdEpCdUtpN0VveGJPUDBCdlF5WlJ6bG5yNXRjQXBLNUVPaVJNCkxCWlZhMi95QjlCMkJTUlVVcVRSS050czJ6enJyNlVqd0ZTVVZmSGxBY1UKLT4gWDI1NTE5IGJCdXE5UFkzZDdZS1FnQ0FnaHlvdlJnakFSN3BacDFUQUs4bVdVYVFEZ1UKYnFJVFUzeTVEaUlmS3dsdzVCY3MxT1g5eE5KV0srektCUUdjVVl4cDFOYwotPiByLWdyZWFzZSB3fVtlICUgSGpnT1V4CmIwQlZlS3R1VVc4bVBkeVdmWFhLY3lPSGZlWUMKLS0tIEErR2pZU3VRcUxaQVc5YzBVRWdWK200OXlQSkk4V0lYMVo0VzZvK1lNOWcKoly7hoDJeExNpZEgchwhNAbavCz08Mf80byFj2V9wGuqtdGnywCfoImfedZ+1Lvzhdgd5g==]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAxd0x6WS9wMXk2T3JpVlVWV0k2ZThPeGEvQ0c3bjNmdjhlVHkyT1B2V2pNCk12dGg0cE14aFhBSGhiTzNEN1dESVBTcXM1a0phTUxwZW9nU0R5aDRaWEkKLT4gWDI1NTE5IDhUblJmRkVkUW1yWkU2VldiNkxkeVp5TGkvV3FJbHdGWTBneE44RHlNMncKUEVFa2k3ZWFWdWc4WWhHZUQ5N1JxSG42QUVhMEo3QVNrVFl0MktlMmtFSQotPiBYMjU1MTkgSUtlRlBnbG1kSEJlQ2VUc2pvcGNwOG9pMldqb05rd05uelQxcS93Tm9VawpqaWM2Umg1bVpYQUY3UmJUeXRsOVhqZlNsd0ljT1c3WkZwUHZTckFTZ1FrCi0+IFgyNTUxOSBiRDRZTzFsZFdsb3IzTFQ3OUlhdHkrU0ZmNUpEUmcza2xyY3YxSjhEYnlVCmNnT1dxMXlSdkFnblBtTkpqcDlvZnBHREVpWkRHZXhzbEdiZDd0c1JmVWMKLT4gWDI1NTE5IE5Lb0pneDN0T2lUYldSUW4vemJjUmdYSmJpOHBCZDJVMHE5dlZZQTRreFkKTXRnVzhZL0dtUUoxSG44L1dueUZvSXBWRkREeUxPeGV5Yk1WclBkRXlWawotPiBlOU1yeGRFZS1ncmVhc2UgY0Y1CjRFM0FSRnk2cEpoSkxndWRjcDBQamt1WmVZdwotLS0gM081MXpCQmg2dldudzhrYTlGaitydW1ydGhDejBmeFpMSWVxN0ZNc0Ftcwr2ofmwRjjwUJNsbQ5pSTf9GCup7qEK7tTZqyQYruqbusny4fcIMCZIKEotzrAqmjgCRZa3]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
@@ -1433,6 +1433,82 @@ server.serve_forever()
     for object in std::fs::read_dir(&probes).unwrap() {
         assert_eq!(object.unwrap().metadata().unwrap().len(), 64);
     }
+    // Exercise captured-job preparation and real signed asset PUT/readbacks.
+    // The isolated recovery object's deletion forces creation by this test only.
+    let source = b"approved private source content for the isolated clean fixture";
+    let upload_root = f.temp.path().join("upload-journal");
+    let journal = Journal::open(&upload_root, &"a".repeat(64), Limits::default()).unwrap();
+    let job = journal
+        .create(JobSpec {
+            repo_id: "a".repeat(64),
+            path_hex: encode_relative_path(b"asset [version].bin").unwrap(),
+            source: f.pointer.payload().clone(),
+            policy_sha256: "c".repeat(64),
+            primary: "primary".into(),
+            required_copies: vec!["primary".into(), "recovery".into()],
+            required_git_targets: vec!["github".into()],
+            encryption: Encryption::None,
+        })
+        .unwrap();
+    journal
+        .lease(job.id())
+        .unwrap()
+        .capture_snapshot(&mut &source[..])
+        .unwrap();
+    let mut policy_file = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&policy)
+        .unwrap();
+    use std::io::Write;
+    writeln!(policy_file, "[storage.backends.primary]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]", f.temp.path().join("primary").display()).unwrap();
+    std::fs::remove_file(
+        f.temp
+            .path()
+            .join("recovery")
+            .join(f.pointer.payload().sha256()),
+    )
+    .unwrap();
+    let advance = || {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .env("SSL_CERT_FILE", &cert)
+            .args(["storage", "advance-job", "--repo"])
+            .arg(cold)
+            .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+            .arg(&upload_root)
+            .args(["--job-id", job.id(), "--policy"])
+            .arg(&policy)
+            .arg("--credentials-root")
+            .arg(&credentials)
+            .arg("--json")
+            .output()
+            .unwrap()
+    };
+    for _ in 0..2 {
+        let output = advance();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["phase"], "ready-to-stage");
+        assert_eq!(report["git_changed"], false);
+        assert_eq!(
+            std::fs::read(
+                f.temp
+                    .path()
+                    .join("recovery")
+                    .join(f.pointer.payload().sha256())
+            )
+            .unwrap(),
+            source
+        );
+    }
+    assert_eq!(
+        journal.lease(job.id()).unwrap().load().unwrap().phase(),
+        Phase::ReadyToStage
+    );
+    assert_eq!(std::fs::read_dir(&probes).unwrap().count(), 3);
     std::fs::write(
         f.temp.path().join("recovery/.ignore-condition"),
         b"fixture-only unsafe provider",
@@ -1441,7 +1517,20 @@ server.serve_forever()
     let refused = probe();
     assert!(!refused.status.success());
     assert!(refused.stdout.is_empty());
-    assert_eq!(std::fs::read_dir(&probes).unwrap().count(), 2);
+    assert_eq!(std::fs::read_dir(&probes).unwrap().count(), 4);
+    let refused_upload = advance();
+    assert!(!refused_upload.status.success());
+    assert!(refused_upload.stdout.is_empty());
+    assert_eq!(
+        std::fs::read(
+            f.temp
+                .path()
+                .join("recovery")
+                .join(f.pointer.payload().sha256())
+        )
+        .unwrap(),
+        source
+    );
 
     let restored = std::fs::read_dir(restore.join("a".repeat(64)))
         .unwrap()
