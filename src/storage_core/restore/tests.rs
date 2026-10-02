@@ -301,3 +301,145 @@ fn publication_race_preserves_operator_destination_and_verified_capture() {
         bytes
     );
 }
+
+#[tokio::test]
+#[ignore = "requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-built binary"]
+async fn real_cold_recovery_restores_large_encrypted_asset_without_original_source() {
+    use std::process::{Command, Stdio};
+    let binary = PathBuf::from(std::env::var_os("DRACON_STORAGE_TEST_WARDEN").unwrap());
+    let temp = tempfile::tempdir().unwrap();
+    let repo = temp.path().join("producer");
+    std::fs::create_dir_all(repo.join(".git")).unwrap();
+    let home = temp.path().join("keys-home");
+    std::fs::create_dir_all(home.join(".dracon/keys")).unwrap();
+    let keys = home.join(".dracon/keys/identity.age");
+    assert!(Command::new("age-keygen")
+        .args(["-o"])
+        .arg(&keys)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .unwrap()
+        .success());
+    std::fs::set_permissions(&keys, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let source_path = temp.path().join("original-source");
+    let mut source = journal::open_private(&source_path, true, true).unwrap();
+    let bytes = 101 * 1024 * 1024u64;
+    let chunk = [0x39u8; 64 * 1024];
+    let mut hash = Sha256::new();
+    for _ in 0..bytes / chunk.len() as u64 {
+        source.write_all(&chunk).unwrap();
+        hash.update(chunk);
+    }
+    let expected = Fingerprint::new(format!("{:x}", hash.finalize()), bytes).unwrap();
+    source.seek(SeekFrom::Start(0)).unwrap();
+    let cipher_path = temp.path().join("original-ciphertext");
+    let mut cipher = journal::open_private(&cipher_path, true, true).unwrap();
+    assert!(Command::new(&binary)
+        .args(["storage-encrypt", "--repo"])
+        .arg(&repo)
+        .args(["--max-bytes", &bytes.to_string()])
+        .env("HOME", &home)
+        .env_remove("ARCANE_MACHINE_KEY")
+        .stdin(Stdio::from(source))
+        .stdout(Stdio::from(cipher.try_clone().unwrap()))
+        .stderr(Stdio::null())
+        .status()
+        .unwrap()
+        .success());
+    cipher.seek(SeekFrom::Start(0)).unwrap();
+    let object_root = temp.path().join("recovery-objects");
+    let backend = LocalBackend::open(&object_root, bytes * 2).unwrap();
+    let payload = backend.put(&mut cipher).unwrap();
+    let manifest = Manifest::new(
+        "a".repeat(64),
+        vec![Enrollment {
+            path_hex: encode_relative_path(b"assets/private-video.mp4").unwrap(),
+            contract_sha256: "b".repeat(64),
+            primary: "recovery".into(),
+            required_copies: vec!["recovery".into()],
+            encryption: Encryption::WardenAge,
+            payload: Some(payload.clone()),
+        }],
+    )
+    .unwrap();
+    let original_metadata = temp.path().join("original-metadata");
+    let metadata =
+        MetadataStore::open(&original_metadata, manifest.repo_id(), Limits::default()).unwrap();
+    let adapter = WardenAdapter::new(&binary, &repo, manifest.repo_id(), Duration::from_secs(180))
+        .unwrap()
+        .with_identity_home(&home)
+        .unwrap();
+    let prepared = metadata
+        .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+        .await
+        .unwrap();
+    let mut protected = Vec::new();
+    metadata
+        .open_prepared(&prepared)
+        .unwrap()
+        .read_to_end(&mut protected)
+        .unwrap();
+    let metadata_payload = prepared.payload().clone();
+    drop(metadata);
+    drop(cipher);
+    drop(backend);
+    // Remove only test-owned originals. Cold recovery has immutable objects,
+    // committed metadata bytes and independently retained authorized keys.
+    std::fs::remove_file(source_path).unwrap();
+    std::fs::remove_file(cipher_path).unwrap();
+    std::fs::remove_dir_all(original_metadata).unwrap();
+    let moved = temp.path().join("cold-checkout");
+    std::fs::create_dir_all(moved.join(".git")).unwrap();
+    let warden = WardenAdapter::new(
+        &binary,
+        &moved,
+        manifest.repo_id(),
+        Duration::from_secs(180),
+    )
+    .unwrap()
+    .with_identity_home(&home)
+    .unwrap();
+    let metadata = MetadataStore::open(
+        &temp.path().join("cold-metadata"),
+        manifest.repo_id(),
+        Limits::default(),
+    )
+    .unwrap();
+    let (prepared, decoded) = metadata
+        .import(
+            &mut protected.as_slice(),
+            &metadata_payload,
+            &"b".repeat(64),
+            &warden,
+        )
+        .await
+        .unwrap();
+    let backend = LocalBackend::open_existing(&object_root, bytes * 2).unwrap();
+    let grant = RestoreBinding::new(
+        manifest.repo_id().into(),
+        "recovery".into(),
+        ApprovedBackend::encrypted(&backend),
+    )
+    .unwrap();
+    let store = RestoreStore::open(
+        &temp.path().join("restored"),
+        manifest.repo_id(),
+        Limits::default(),
+    )
+    .unwrap();
+    let restored = store
+        .recover(
+            &metadata,
+            &prepared,
+            &decoded,
+            &manifest.enrollments()[0].path_hex,
+            &grant,
+            Some(&warden),
+        )
+        .await
+        .unwrap();
+    assert_eq!(restored.bytes(), bytes);
+    journal::verify_snapshot(restored.path(), &expected).unwrap();
+    assert!(!moved.join("assets/private-video.mp4").exists());
+}
