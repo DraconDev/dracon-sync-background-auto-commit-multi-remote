@@ -99,6 +99,7 @@ impl HydrationStore {
         check_placement: impl FnOnce(&git2::Repository) -> Result<()>,
     ) -> Result<HydratedAsset> {
         let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
+        let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
         self.hydrate_locked(repo, asset, manifest_path, selected_commit, check_placement)
     }
 
@@ -112,6 +113,7 @@ impl HydrationStore {
         check_placement: impl FnOnce(&git2::Repository) -> Result<()>,
     ) -> Result<HydratedAsset> {
         let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
+        let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
         let path_hex = journal::encode_relative_path(asset_path.as_os_str().as_bytes())?;
         let commit = repo.head()?.peel_to_commit()?.id();
         let workdir = repo
@@ -215,7 +217,6 @@ impl HydrationStore {
         if asset.repo_id != self.repo_id || asset.source.bytes() > self.limits.max_snapshot_bytes {
             bail!("hydration recovery binding or output budget mismatch");
         }
-        let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
         if repo.head()?.peel_to_commit()?.id() != selected_commit {
             bail!("hydration requires the selected checked-out commit");
         }

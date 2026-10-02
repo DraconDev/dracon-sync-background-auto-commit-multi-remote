@@ -74,7 +74,7 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
     std::fs::write(f.repo.join("asset [version].bin"), f.pointer.encode()).unwrap();
     let policy = f.temp.path().join("hydrate-policy.toml");
     std::fs::write(&policy, format!("[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("recovery").display())).unwrap();
-    let run = |revision: Option<&str>| {
+    let run = |revision: Option<&str>, resume_local: bool| {
         let mut command = Command::new(env!("CARGO_BIN_EXE_dracon-sync"));
         command
             .args(["storage", "hydrate", "--repo"])
@@ -93,13 +93,16 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
             .arg(f.temp.path().join("recovered"))
             .arg("--hydration-root")
             .arg(f.temp.path().join("hydration"));
+        if resume_local {
+            command.arg("--resume-local");
+        }
         if let Some(revision) = revision {
             command.args(["--revision", revision]);
         }
         command.output().unwrap()
     };
     // Missing guard binding fails before any recovery/cache write.
-    assert!(!run(None).status.success());
+    assert!(!run(None, false).status.success());
     assert!(!f.temp.path().join("recovered").exists());
     assert_eq!(
         std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
@@ -119,7 +122,7 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
         String::from_utf8_lossy(&setup.stderr)
     );
     let index = std::fs::read(f.repo.join(".git/index")).unwrap();
-    let output = run(None);
+    let output = run(None, false);
     assert!(
         output.status.success(),
         "{}",
@@ -130,7 +133,7 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
         source
     );
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
-    assert!(run(None).status.success());
+    assert!(run(None, false).status.success());
     let diff = git(&f.repo, &["diff", "--", "asset [version].bin"]);
     assert!(
         diff.status.success(),
@@ -142,12 +145,30 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
         git(&f.repo, &["show", ":asset [version].bin"]).stdout,
         f.pointer.encode()
     );
+    std::fs::rename(
+        f.temp.path().join("recovery"),
+        f.temp.path().join("recovery-offline"),
+    )
+    .unwrap();
+    std::fs::remove_dir_all(f.temp.path().join("recovered")).unwrap();
+    assert!(!run(None, false).status.success());
+    let resumed = run(None, true);
+    assert!(
+        resumed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&resumed.stderr)
+    );
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        source
+    );
+    assert!(!f.temp.path().join("recovered").exists());
     std::fs::write(
         f.repo.join("asset [version].bin"),
         b"operator edit preserved",
     )
     .unwrap();
-    assert!(!run(None).status.success());
+    assert!(!run(None, false).status.success());
     assert_eq!(
         std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
         b"operator edit preserved"
@@ -162,7 +183,7 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
     )
     .status
     .success());
-    assert!(!run(Some(&revision)).status.success());
+    assert!(!run(Some(&revision), false).status.success());
     assert_eq!(
         std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
         b"operator edit preserved"
