@@ -267,6 +267,41 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Recover an exact committed asset into a private cache; checkout is unchanged.
+    RestoreAsset {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        manifest_path: PathBuf,
+        #[arg(long)]
+        path: PathBuf,
+        #[arg(long, default_value = "HEAD")]
+        revision: String,
+        /// Operator configuration; repository overrides cannot define adapters.
+        #[arg(long)]
+        policy: Option<PathBuf>,
+        /// Select an approved required copy; defaults to the declared primary.
+        #[arg(long)]
+        backend: Option<String>,
+        #[arg(long)]
+        restore_root: PathBuf,
+        #[arg(long)]
+        warden: Option<PathBuf>,
+        #[arg(long)]
+        identity_home: Option<PathBuf>,
+        #[arg(long, default_value_t = 30)]
+        timeout_secs: u64,
+        #[arg(long, default_value_t = 2 * 1024 * 1024 * 1024)]
+        max_payload_bytes: u64,
+        #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+        max_output_bytes: u64,
+        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+        max_retained_bytes: u64,
+    },
     /// Import authenticated committed metadata into a private cold-recovery cache.
     ImportManifest {
         #[arg(long)]
@@ -972,6 +1007,9 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    if matches!(command, StorageCommand::RestoreAsset { .. }) {
+        return restore_asset(command).await;
+    }
     if matches!(command, StorageCommand::ImportManifest { .. }) {
         return import_manifest(command).await;
     }
@@ -1043,7 +1081,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         | StorageCommand::VerifyIndex { .. }
         | StorageCommand::SetupGuard { .. }
         | StorageCommand::VerifyConfiguredIndex { .. }
-        | StorageCommand::ImportManifest { .. } => {
+        | StorageCommand::ImportManifest { .. }
+        | StorageCommand::RestoreAsset { .. } => {
             unreachable!("local command handled before policy resolution")
         }
         StorageCommand::Plan {
@@ -1105,6 +1144,186 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
 
 #[cfg(test)]
 mod tests;
+
+async fn restore_asset(command: &StorageCommand) -> Result<()> {
+    let StorageCommand::RestoreAsset {
+        repo,
+        repo_id,
+        metadata_root,
+        manifest_path,
+        path,
+        revision,
+        policy,
+        backend,
+        restore_root,
+        warden,
+        identity_home,
+        timeout_secs,
+        max_payload_bytes,
+        max_output_bytes,
+        max_retained_bytes,
+    } = command
+    else {
+        bail!("expected explicit recovery bindings");
+    };
+    use dracon_sync::storage_core::{
+        backend::LocalBackend,
+        bindings::{ApprovedBackend, RestoreBinding},
+        journal::{Encryption, Limits},
+        metadata::{MetadataStore, MAX_PROTECTED_MANIFEST_BYTES},
+        reference::{validate_sha256, Fingerprint, Pointer},
+        restore::RestoreStore,
+        security::WardenAdapter,
+    };
+    use sha2::{Digest, Sha256};
+    validate_sha256(repo_id)?;
+    let repo = repo.canonicalize()?;
+    let repository = git2::Repository::open(&repo)?;
+    if repository
+        .workdir()
+        .context("recovery requires a checkout")?
+        .canonicalize()?
+        != repo
+        || repository
+            .config()?
+            .open_level(git2::ConfigLevel::Local)?
+            .get_string("dracon.storageRepoId")
+            .ok()
+            .as_deref()
+            != Some(repo_id.as_str())
+    {
+        bail!("recovery repository binding does not match");
+    }
+    #[cfg(unix)]
+    let path_hex = {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(
+            manifest_path.as_os_str().as_bytes(),
+        )?;
+        dracon_sync::storage_core::journal::encode_relative_path(path.as_os_str().as_bytes())?
+    };
+    #[cfg(not(unix))]
+    let path_hex = {
+        dracon_sync::storage_core::journal::encode_relative_path(
+            manifest_path
+                .to_str()
+                .context("unsupported manifest path")?
+                .as_bytes(),
+        )?;
+        dracon_sync::storage_core::journal::encode_relative_path(
+            path.to_str().context("unsupported asset path")?.as_bytes(),
+        )?
+    };
+    let commit = repository.revparse_single(revision)?.peel_to_commit()?;
+    let tree = commit.tree()?;
+    let entry = tree.get_path(manifest_path)?;
+    let (bytes, kind) = repository.odb()?.read_header(entry.id())?;
+    if entry.filemode() != 0o100644
+        || kind != git2::ObjectType::Blob
+        || bytes as u64 > MAX_PROTECTED_MANIFEST_BYTES
+    {
+        bail!("invalid committed metadata mode or byte budget");
+    }
+    let blob = repository.find_blob(entry.id())?;
+    let payload = Fingerprint::new(
+        format!("{:x}", Sha256::digest(blob.content())),
+        bytes as u64,
+    )?;
+    let metadata = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
+    let (prepared, manifest) = metadata.load_prepared_payload(&payload)?;
+    let enrolled = manifest
+        .enrollment(&path_hex)
+        .context("asset is not enrolled in this committed version")?;
+    let reference = tree.get_path(path)?;
+    let (bytes, kind) = repository.odb()?.read_header(reference.id())?;
+    if !matches!(reference.filemode(), 0o100644 | 0o100755)
+        || kind != git2::ObjectType::Blob
+        || bytes > 1024
+    {
+        bail!("committed asset is not an ordinary bounded reference");
+    }
+    let pointer = Pointer::parse(repository.find_blob(reference.id())?.content())?;
+    if !enrolled.matches_pointer(&pointer) {
+        bail!("committed reference and manifest disagree");
+    }
+    let selected = backend.as_deref().unwrap_or(&enrolled.primary);
+    if !enrolled.required_copies.iter().any(|id| id == selected) {
+        bail!("selected copy is not required by this enrollment");
+    }
+    let (global, _) = load_configuration(&repo, policy.as_deref())?;
+    CompiledPolicy::new(global.storage.clone())?;
+    let binding = global
+        .storage
+        .backends
+        .get(selected)
+        .context("selected copy lacks an operator backend binding")?;
+    let BackendBinding::Local {
+        root,
+        allowed_security,
+    } = binding
+    else {
+        bail!("S3 recovery adapter is not available yet");
+    };
+    let local = LocalBackend::open_existing(root, *max_payload_bytes)?;
+    let granted = ApprovedBackend::for_security(
+        &local,
+        allowed_security
+            .iter()
+            .map(|class| match class {
+                Security::NonSensitive => Encryption::None,
+                Security::WardenEncrypted => Encryption::WardenAge,
+            })
+            .collect(),
+    )?;
+    let binding = RestoreBinding::new(repo_id.clone(), selected.into(), granted)?;
+    if identity_home.is_some() && warden.is_none() {
+        bail!("identity home requires a selected Warden executable");
+    }
+    let mut adapter = warden
+        .as_ref()
+        .map(|binary| {
+            WardenAdapter::new(
+                binary,
+                &repo,
+                repo_id,
+                std::time::Duration::from_secs(*timeout_secs),
+            )
+        })
+        .transpose()?;
+    if let Some(home) = identity_home {
+        adapter = Some(
+            adapter
+                .take()
+                .context("selected Warden executable missing")?
+                .with_identity_home(home)?,
+        );
+    }
+    let restored = RestoreStore::open(
+        restore_root,
+        repo_id,
+        Limits {
+            max_payload_bytes: *max_payload_bytes,
+            max_snapshot_bytes: *max_output_bytes,
+            max_retained_snapshot_bytes: *max_retained_bytes,
+            ..Limits::default()
+        },
+    )?
+    .recover(
+        &metadata,
+        &prepared,
+        &manifest,
+        &path_hex,
+        &binding,
+        adapter.as_ref(),
+    )
+    .await?;
+    println!(
+        "Verified recovery: {} bytes at {}",
+        restored.bytes(),
+        restored.path().display()
+    );
+    Ok(())
+}
 
 async fn import_manifest(command: &StorageCommand) -> Result<()> {
     let StorageCommand::ImportManifest {
