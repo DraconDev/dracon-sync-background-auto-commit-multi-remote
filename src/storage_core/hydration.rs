@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::ffi::{CString, OsStr};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::MetadataExt;
@@ -102,6 +102,7 @@ impl HydrationStore {
         // The immutable recovered file is independently verified before any
         // working-tree operation; its inode is never shared with editable output.
         let mut source = journal::verify_snapshot(&asset.path, &asset.source)?;
+        source.seek(SeekFrom::Start(0))?;
         let mut hash = Sha256::new();
         hash.update(b"dracon-checkout-hydration-v1\0");
         hash.update(intent.repo_id.as_bytes()); hash.update(intent.path_hex.as_bytes());
@@ -119,7 +120,8 @@ impl HydrationStore {
             }
             if !matches_pointer(file, &asset.payload)? { bail!("working asset has local edits; hydration refused"); }
         }
-        self.check_budget(&id, asset.source.bytes())?;
+        let original_reservation = if existing.is_some() { Pointer::new(asset.payload.clone())?.encode().len() as u64 } else { 0 };
+        self.check_budget(&id, asset.source.bytes(), original_reservation)?;
         let transaction = child_directory(&self.namespace, OsStr::new(&id), true)?;
         let private_path = fd_path(&transaction);
         let raw = serde_json::to_vec(&intent)?;
@@ -176,7 +178,7 @@ impl HydrationStore {
         Ok(receipt(file_at(&transaction, OsStr::new("original"))?.is_some().then_some(backup)))
     }
 
-    fn check_budget(&self, id: &str, additional: u64) -> Result<()> {
+    fn check_budget(&self, id: &str, additional: u64, original_reservation: u64) -> Result<()> {
         let mut count = 0usize;
         let mut retained = 0u64;
         let mut selected = 0u64;
@@ -202,7 +204,7 @@ impl HydrationStore {
             }
         }
         if (count == self.limits.max_records && !fd_path(&self.namespace).join(id).try_exists()?)
-            || retained.checked_add(additional.saturating_sub(selected)).context("hydration budget overflow")? > self.limits.max_retained_snapshot_bytes {
+            || retained.checked_add(additional.saturating_sub(selected)).and_then(|bytes| bytes.checked_add(original_reservation)).context("hydration budget overflow")? > self.limits.max_retained_snapshot_bytes {
             bail!("hydration retention capacity exceeded; previous versions preserved");
         }
         Ok(())
@@ -257,12 +259,14 @@ fn matches_pointer(file: &File, payload: &Fingerprint) -> Result<bool> {
     let expected = Pointer::new(payload.clone())?.encode();
     if file.metadata()?.len() != expected.len() as u64 { return Ok(false); }
     let mut bytes = Vec::new();
-    file.try_clone()?.take(expected.len() as u64 + 1).read_to_end(&mut bytes)?;
+    let mut reader = file.try_clone()?;
+    reader.seek(SeekFrom::Start(0))?;
+    reader.take(expected.len() as u64 + 1).read_to_end(&mut bytes)?;
     Ok(bytes == expected)
 }
 fn matches_fingerprint(file: &File, expected: &Fingerprint) -> Result<bool> {
     if file.metadata()?.len() != expected.bytes() { return Ok(false); }
-    let mut reader = file.try_clone()?; let mut hash = Sha256::new();
+    let mut reader = file.try_clone()?; reader.seek(SeekFrom::Start(0))?; let mut hash = Sha256::new();
     let mut bytes = 0u64; let mut buffer = [0u8; 64 * 1024];
     loop { let count = reader.read(&mut buffer)?; if count == 0 { break; }
         bytes = bytes.checked_add(count as u64).context("hydration length overflow")?;
