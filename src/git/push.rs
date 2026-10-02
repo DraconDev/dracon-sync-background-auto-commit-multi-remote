@@ -539,6 +539,96 @@ pub(crate) async fn force_push_after_rewrite(
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn daemon_push_paths_honor_pre_push_hooks() {
+        use std::os::unix::fs::PermissionsExt;
+        let _git_bin = crate::test_helpers::GitBinRestorer::new("/usr/bin/git");
+        for route in ["normal", "mirror", "maintenance"] {
+            let fixture = tempfile::tempdir().unwrap();
+            let repo = fixture.path().join("repo");
+            let bare = fixture.path().join("remote.git");
+            let hooks = fixture.path().join("hooks");
+            std::fs::create_dir_all(&repo).unwrap();
+            std::fs::create_dir_all(&hooks).unwrap();
+            let git = |cwd: &Path, args: &[&str]| {
+                let output = std::process::Command::new("/usr/bin/git")
+                    .args([
+                        "-c",
+                        "core.hooksPath=/dev/null",
+                        "-c",
+                        "user.name=Audit Fixture",
+                        "-c",
+                        "user.email=audit-fixture@invalid",
+                    ])
+                    .args(args)
+                    .current_dir(cwd)
+                    .output()
+                    .unwrap();
+                assert!(
+                    output.status.success(),
+                    "{}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                String::from_utf8(output.stdout).unwrap().trim().to_owned()
+            };
+            git(
+                fixture.path(),
+                &["init", "--bare", "--quiet", bare.to_str().unwrap()],
+            );
+            git(&repo, &["init", "--quiet", "-b", "main"]);
+            git(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]);
+            std::fs::write(repo.join("file"), "harmless fixture").unwrap();
+            git(&repo, &["add", "--", "file"]);
+            git(&repo, &["commit", "--quiet", "-m", "fixture"]);
+            // Set a repository-local hook; the daemon's commands must honor it.
+            git(
+                &repo,
+                &["config", "core.hooksPath", hooks.to_str().unwrap()],
+            );
+            let hook = hooks.join("pre-push");
+            std::fs::write(
+                &hook,
+                "#!/bin/sh\nprintf '%s' \"${DRACON_ALLOW_REWRITE:-0}\" > hook-ran\nexit 1\n",
+            )
+            .unwrap();
+            std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let result = match route {
+                "normal" => push_with_transport_fallbacks(&repo, 10, "fixture").await,
+                "mirror" => {
+                    super::super::multi_remote::push_to_named_remote(&repo, "origin", 10, 0, false)
+                        .await
+                }
+                _ => force_push_after_rewrite(&repo, "origin", "main", &None, 10).await,
+            };
+            assert!(result.is_err(), "{route} bypassed the rejecting hook");
+            assert_eq!(
+                std::fs::read_to_string(repo.join("hook-ran")).unwrap(),
+                if route == "maintenance" { "1" } else { "0" }
+            );
+            assert!(git(&bare, &["for-each-ref", "--format=%(refname)"]).is_empty());
+            // An accepting hook permits the same operation and is still called.
+            std::fs::write(&hook, "#!/bin/sh\nprintf 'accepted' > hook-ran\nexit 0\n").unwrap();
+            match route {
+                "normal" => push_with_transport_fallbacks(&repo, 10, "fixture").await,
+                "mirror" => {
+                    super::super::multi_remote::push_to_named_remote(&repo, "origin", 10, 0, false)
+                        .await
+                }
+                _ => force_push_after_rewrite(&repo, "origin", "main", &None, 10).await,
+            }
+            .unwrap();
+            assert_eq!(
+                std::fs::read_to_string(repo.join("hook-ran")).unwrap(),
+                "accepted"
+            );
+            assert_eq!(
+                git(&bare, &["rev-parse", "refs/heads/main"]),
+                git(&repo, &["rev-parse", "HEAD"])
+            );
+        }
+    }
+
     #[test]
     fn test_is_permanent_push_rejection_recognises_gitlab_protected_branch() {
         let msg = "GitLab: You are not allowed to push code to protected branches on this project.\npre-receive hook declined";

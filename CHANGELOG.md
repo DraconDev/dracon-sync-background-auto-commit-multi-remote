@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (workspace audit 2026-10-02)
+
+- Daemon pushes now run repository/global pre-push hooks on normal, mirror, HTTPS fallback and maintenance routes (audit A6, 2026-10-02). Approved large-blob maintenance uses the narrow `DRACON_ALLOW_REWRITE=1` exception while retaining secret scans and chained operator hooks. Real local-remote regressions verify refusing and accepting hooks.
+
 ### Added
 
 - Unreleased `storage capture` connects enabled placement rules to bounded private
