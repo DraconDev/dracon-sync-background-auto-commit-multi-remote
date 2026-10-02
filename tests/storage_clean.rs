@@ -946,6 +946,50 @@ async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
         b"unstaged edit preserved"
     );
     assert!(run().status.success());
+    std::fs::remove_dir_all(f.temp.path().join("journal")).unwrap();
+    let policy = f.temp.path().join("recovery-policy.toml");
+    std::fs::write(&policy, format!("[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("recovery").display())).unwrap();
+    let restore_root = f.temp.path().join("private-restored-assets");
+    let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "restore-asset", "--repo"])
+        .arg(&cold)
+        .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+        .arg(&root)
+        .args([
+            "--manifest-path",
+            ".dracon/assets.manifest",
+            "--path",
+            "asset [version].bin",
+            "--policy",
+        ])
+        .arg(&policy)
+        .args(["--backend", "recovery", "--restore-root"])
+        .arg(&restore_root)
+        .output()
+        .unwrap();
+    assert!(
+        recovered.status.success(),
+        "{}",
+        String::from_utf8_lossy(&recovered.stderr)
+    );
+    let restored = std::fs::read_dir(restore_root.join("a".repeat(64)))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "source"))
+        .unwrap();
+    assert_eq!(
+        std::fs::read(restored).unwrap(),
+        b"approved private source content for the isolated clean fixture"
+    );
+    assert_eq!(
+        std::fs::read(cold.join(".git/index")).unwrap(),
+        index_before
+    );
+    assert_eq!(
+        std::fs::read(cold.join("asset [version].bin")).unwrap(),
+        pointer_before
+    );
+
     assert!(!git(
         &cold,
         &["config", "--local", "--get", "dracon.storageGuardVersion"]
