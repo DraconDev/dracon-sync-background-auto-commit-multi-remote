@@ -267,6 +267,18 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Check indexed enrolled references against locally verified protected metadata.
+    /// Independent of Git's stat cache; no backend availability claim.
+    VerifyIndex {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        manifest_path: PathBuf,
+    },
     /// Networkless Git clean driver selecting the exact indexed manifest version.
     /// Writes only a verified canonical pointer to stdout; does not install filters.
     FilterClean {
@@ -789,6 +801,22 @@ fn journal_status(
 }
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::VerifyIndex {
+        repo,
+        repo_id,
+        metadata_root,
+        manifest_path,
+    } = command
+    {
+        let indexed = indexed_manifest(repo, repo_id, metadata_root, manifest_path)?;
+        dracon_sync::storage_core::index::verify_manifest_entries(
+            &indexed.repo,
+            &indexed.index,
+            &indexed.manifest,
+        )?;
+        println!("Indexed storage references match protected metadata; backends were not checked.");
+        return Ok(());
+    }
     if matches!(command, StorageCommand::FilterClean { .. }) {
         return filter_clean(command);
     }
@@ -816,7 +844,9 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
-        StorageCommand::Status { .. } | StorageCommand::FilterClean { .. } => {
+        StorageCommand::Status { .. }
+        | StorageCommand::FilterClean { .. }
+        | StorageCommand::VerifyIndex { .. } => {
             unreachable!("local command handled before policy resolution")
         }
         StorageCommand::Plan {
@@ -894,8 +924,49 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
     use dracon_sync::storage_core::{
         clean::PreparedClean,
         journal::{Journal, Limits},
-        metadata::MetadataStore,
     };
+    if !journal_root.is_absolute() || !journal_root.join(repo_id).is_dir() {
+        bail!("clean driver requires an existing absolute private journal binding");
+    }
+    let indexed = indexed_manifest(repo, repo_id, metadata_root, manifest_path)?;
+    #[cfg(unix)]
+    let path_hex = {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(path.as_os_str().as_bytes())?
+    };
+    #[cfg(not(unix))]
+    let path_hex = dracon_sync::storage_core::journal::encode_relative_path(
+        path.to_str()
+            .context("unsupported path encoding")?
+            .as_bytes(),
+    )?;
+    let journal = Journal::open(journal_root, repo_id, Limits::default())?;
+    let lease = journal.lease_enrolled(&indexed.manifest, &path_hex)?;
+    let clean = PreparedClean::new(
+        &indexed.store,
+        &indexed.prepared,
+        &indexed.manifest,
+        &path_hex,
+        &lease,
+    )?;
+    clean.clean(&mut std::io::stdin().lock(), &mut std::io::stdout().lock())
+}
+
+struct IndexedManifest {
+    repo: git2::Repository,
+    index: git2::Index,
+    store: dracon_sync::storage_core::metadata::MetadataStore,
+    prepared: dracon_sync::storage_core::metadata::PreparedMetadata,
+    manifest: dracon_sync::storage_core::manifest::Manifest,
+}
+
+fn indexed_manifest(
+    repo: &Path,
+    repo_id: &str,
+    metadata_root: &Path,
+    manifest_path: &Path,
+) -> Result<IndexedManifest> {
+    use dracon_sync::storage_core::{journal::Limits, metadata::MetadataStore};
     dracon_sync::storage_core::reference::validate_sha256(repo_id)?;
     let repository = git2::Repository::open(repo)?;
     let workdir = repository
@@ -912,22 +983,11 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
     {
         bail!("clean driver repository binding does not match");
     }
-    for root in [journal_root, metadata_root] {
+    for root in [metadata_root] {
         if !root.is_absolute() || !root.join(repo_id).is_dir() {
             bail!("clean driver requires existing absolute private state bindings");
         }
     }
-    #[cfg(unix)]
-    let path_hex = {
-        use std::os::unix::ffi::OsStrExt;
-        dracon_sync::storage_core::journal::encode_relative_path(path.as_os_str().as_bytes())?
-    };
-    #[cfg(not(unix))]
-    let path_hex = dracon_sync::storage_core::journal::encode_relative_path(
-        path.to_str()
-            .context("unsupported path encoding")?
-            .as_bytes(),
-    )?;
     #[cfg(unix)]
     let manifest_hex = {
         use std::os::unix::ffi::OsStrExt;
@@ -996,8 +1056,11 @@ fn filter_clean(command: &StorageCommand) -> Result<()> {
     if manifest.enrollment(&manifest_hex).is_some() {
         bail!("metadata path cannot be an enrolled asset");
     }
-    let journal = Journal::open(journal_root, repo_id, Limits::default())?;
-    let lease = journal.lease_enrolled(&manifest, &path_hex)?;
-    let clean = PreparedClean::new(&store, &prepared, &manifest, &path_hex, &lease)?;
-    clean.clean(&mut std::io::stdin().lock(), &mut std::io::stdout().lock())
+    Ok(IndexedManifest {
+        repo: repository,
+        index,
+        store,
+        prepared,
+        manifest,
+    })
 }

@@ -497,6 +497,35 @@ fn bounded_pointer(repo: &Repository, oid: Oid) -> Result<Option<Pointer>> {
     Ok(Pointer::parse(repo.find_blob(oid)?.content()).ok())
 }
 
+/// Verify every enrolled reference/tombstone in an actual Git index.
+/// Callers must first establish repository ownership and verify its protected
+/// manifest ciphertext. This checks correspondence, not backend availability.
+/// It reads index blobs independently of Git's working-file stat/filter cache.
+pub fn verify_manifest_entries(
+    repo: &Repository,
+    index: &Index,
+    manifest: &super::manifest::Manifest,
+) -> Result<()> {
+    if index.has_conflicts() {
+        bail!("unresolved index conflicts block storage verification");
+    }
+    for enrolled in manifest.enrollments() {
+        let path = decode_path(&enrolled.path_hex)?;
+        let entry = index.get_path(&os_path(&path)?, 0);
+        match (&enrolled.payload, entry) {
+            (None, None) => {}
+            (Some(payload), Some(entry))
+                if matches!(entry.mode, 0o100644 | 0o100755)
+                    && bounded_pointer(repo, entry.id)?
+                        .as_ref()
+                        .map(Pointer::payload)
+                        == Some(payload) => {}
+            _ => bail!("indexed storage references do not match protected metadata"),
+        }
+    }
+    Ok(())
+}
+
 fn desired(
     repo: &Repository,
     index: &Index,
