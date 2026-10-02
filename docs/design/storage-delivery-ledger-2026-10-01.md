@@ -322,3 +322,11 @@ resolved from its own manifest to include the new direct dependency and earlier
 storage additions. Workspace tests and the expanded focused run are recorded
 below after completion. Working-file races, filter/setup integration, outgoing
 commit validation, S3, packaged restoration and daemon wiring remain unfinished.
+
+The expanded focused transaction run passed nine tests (one ignored helper),
+including the changed-reference/unknown-prior-metadata regression. It took
+111.18 seconds during measured host I/O pressure; process inspection confirmed
+filesystem journal waits, and the existing run completed without restarting it.
+The final all-target Sync Clippy check passed. Formatting is clean for Sync;
+workspace-wide formatting also reported independent edits in dracon-system,
+which this work did not change.
