@@ -1,4 +1,4 @@
-//! External-storage planning. All operations in this milestone are read-only.
+//! External-storage planning and explicit networkless prepared clean transformation.
 
 use anyhow::{bail, Context, Result};
 use clap::Subcommand;
@@ -267,6 +267,24 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Networkless Git clean driver for an explicitly bound prepared asset version.
+    /// Writes only a verified canonical pointer to stdout; does not install filters.
+    FilterClean {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        journal_root: PathBuf,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        metadata_id: String,
+        #[arg(long)]
+        job_id: String,
+        /// Exact repository-relative Git path (normally supplied as Git's %f).
+        path: PathBuf,
+    },
     /// Inspect durable job evidence without creating state or contacting backends.
     Status {
         #[arg(long, default_value = ".")]
@@ -772,6 +790,26 @@ fn journal_status(
 }
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::FilterClean {
+        repo,
+        repo_id,
+        journal_root,
+        metadata_root,
+        metadata_id,
+        job_id,
+        path,
+    } = command
+    {
+        return filter_clean(
+            repo,
+            repo_id,
+            journal_root,
+            metadata_root,
+            metadata_id,
+            job_id,
+            path,
+        );
+    }
     if let StorageCommand::Status {
         repo,
         state_dir,
@@ -796,7 +834,9 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
-        StorageCommand::Status { .. } => unreachable!("status handled before policy resolution"),
+        StorageCommand::Status { .. } | StorageCommand::FilterClean { .. } => {
+            unreachable!("local command handled before policy resolution")
+        }
         StorageCommand::Plan {
             repo, policy, json, ..
         }
@@ -856,3 +896,56 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
 
 #[cfg(test)]
 mod tests;
+
+fn filter_clean(
+    repo: &Path,
+    repo_id: &str,
+    journal_root: &Path,
+    metadata_root: &Path,
+    metadata_id: &str,
+    job_id: &str,
+    path: &Path,
+) -> Result<()> {
+    use dracon_sync::storage_core::{
+        clean::PreparedClean,
+        journal::{Journal, Limits},
+        metadata::MetadataStore,
+    };
+    dracon_sync::storage_core::reference::validate_sha256(repo_id)?;
+    let repository = git2::Repository::open(repo)?;
+    if repository
+        .workdir()
+        .is_none_or(|root| root.canonicalize().ok() != repo.canonicalize().ok())
+        || repository
+            .config()?
+            .open_level(git2::ConfigLevel::Local)?
+            .get_string("dracon.storageRepoId")
+            .ok()
+            .as_deref()
+            != Some(repo_id)
+    {
+        bail!("clean driver repository binding does not match");
+    }
+    for root in [journal_root, metadata_root] {
+        if !root.is_absolute() || !root.join(repo_id).is_dir() {
+            bail!("clean driver requires existing absolute private state bindings");
+        }
+    }
+    #[cfg(unix)]
+    let path_hex = {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(path.as_os_str().as_bytes())?
+    };
+    #[cfg(not(unix))]
+    let path_hex = dracon_sync::storage_core::journal::encode_relative_path(
+        path.to_str()
+            .context("unsupported path encoding")?
+            .as_bytes(),
+    )?;
+    let journal = Journal::open(journal_root, repo_id, Limits::default())?;
+    let lease = journal.lease(job_id)?;
+    let store = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
+    let (prepared, manifest) = store.load_prepared_manifest(metadata_id)?;
+    let clean = PreparedClean::new(&store, &prepared, &manifest, &path_hex, &lease)?;
+    clean.clean(&mut std::io::stdin().lock(), &mut std::io::stdout().lock())
+}

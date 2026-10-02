@@ -289,9 +289,13 @@ impl MetadataStore {
         let mut source = self.source(&record)?;
         source.seek(SeekFrom::Start(0))?;
         let mut raw = Vec::new();
-        source.take(MAX_MANIFEST_BYTES as u64 + 1).read_to_end(&mut raw)?;
+        source
+            .take(MAX_MANIFEST_BYTES as u64 + 1)
+            .read_to_end(&mut raw)?;
         let manifest = Manifest::parse_private(&raw)?;
-        if manifest.repo_id() != self.repo_id { bail!(BackendFailure::Security); }
+        if manifest.repo_id() != self.repo_id {
+            bail!(BackendFailure::Security);
+        }
         Ok((prepared, manifest))
     }
 
