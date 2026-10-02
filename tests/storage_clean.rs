@@ -204,6 +204,7 @@ async fn fixture() -> Fixture {
 async fn policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sources() {
     let f = fixture().await;
     let path = f.repo.join("newasset.data");
+    let index_before = std::fs::read(f.repo.join(".git/index")).unwrap();
     std::fs::write(&path, b"first captured version").unwrap();
     let policy = f.temp.path().join("capture-policy.toml");
     let config = format!("[storage]\nenabled = true\n[[storage.rules]]\npaths = [\"newasset.data\", \"ignored.bin\", \"nested/**\", \"link\"]\nplacement = \"external\"\nbackend = \"primary\"\nrequired_copies = [\"recovery\"]\nsecurity = \"non-sensitive\"\n[storage.backends.primary]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("primary").display(), f.temp.path().join("recovery").display());
@@ -263,6 +264,10 @@ async fn policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sour
         .unwrap();
     assert_eq!(retained, b"first captured version");
     drop(lease);
+    assert_eq!(
+        std::fs::read(f.repo.join(".git/index")).unwrap(),
+        index_before
+    );
     std::fs::write(f.repo.join(".gitignore"), "ignored.bin\n").unwrap();
     std::fs::write(f.repo.join("ignored.bin"), b"ignored").unwrap();
     std::fs::create_dir(f.repo.join("nested")).unwrap();
@@ -291,6 +296,16 @@ async fn policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sour
     )
     .unwrap();
     assert!(!run("newasset.data").status.success());
+    std::fs::write(&policy, &config).unwrap();
+    std::fs::write(f.repo.join(".dracon/dracon-sync.toml"), "owned = false\n").unwrap();
+    assert!(!run("newasset.data").status.success());
+    std::fs::write(f.repo.join(".dracon/dracon-sync.toml"), "").unwrap();
+    assert!(git(&f.repo, &["add", "--", "newasset.data"])
+        .status
+        .success());
+    let tracked = run("newasset.data");
+    assert!(!tracked.status.success());
+    assert!(String::from_utf8_lossy(&tracked.stderr).contains("tracked content"));
     assert!(!f.repo.join(".git/index.lock").exists());
 }
 
@@ -1468,7 +1483,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBmNzZnVDdYWk02Ukh2aWlnNFdGb2o5R0hUNkJIL0pieWFYcVVLWHRFckRBCk9zaWZzNEFUMndUM1VPV2VPTWw0QkJEWTFDOU9SSXhJWUFabFUzK20xRjQKLT4gWDI1NTE5IE81bWtCSUpITGtCZC9WNkRGTE5zWTJtUm0yVU93SFFUUjJUN3RSMGwxUWMKSUpwbnpOTWp2RUpVNEEyRHQwRncweXJHdHpWVDJhaGpIZmJIQi9OYmdTUQotPiBYMjU1MTkgdTl2U2JZTVE0dUlHNndUcnBxeTJBVEIwSTV1RUtCMEhpd1FwRjNKREx6SQoycDc2Y2NNRGdRWjl1UHlwRi9Bd3hWVEZDMGVJc1NGZG96akljd0pPYWJjCi0+IFgyNTUxOSBaSVFvWVMxc1A1RFdiNVA2OXpiVkk2cklSTWJkUHcxWWdPNC90bjJYTlZFCnI4THhGWTBLeDFockgzdU5uUDZKUGFpZ2lOcEs4MGMvaW9hY2h2azZFZlUKLT4gWDI1NTE5IGFjemFHYjViRU9ROG05bDFwbTRIN3A2MkRmTFh1WTVvWVNqYVJWTGZ1V0UKMTE3QjhHZ1d0NkF0WkE5L01hQitRYVdteUsza0FNdUxJaWpKT2NwNXVMUQotPiAvT0JbfCU6aC1ncmVhc2UgRk8KOEZhcGMrbTM3V0Nld3M3aDFqMUlScXBmMlVCRjloTVduODB4Ym00WG5UbUM4K3RuUVEKLS0tIGNjaTFxaWUySjFDQ1QwQzM5Y1IxUjhEMUdiK0Z5VHVOMjZydldJSll2a2cKXUCFGNmjyazvS8lsjrdJgqmneRngusZ5QcjBMsqr30eHmfj5Z7f4smSS6KpzBXVCMXNDfQ==]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDTlJ1YU9FZlErR1pEYXRUekFrVGQ3NlJPMGlhVnQ1OGdZQlJFbjRibVR3CkhFdGRON0NEbFlMMDByVTQ2aEppbTJtU2wxVFc2a0QxM0F6ZkFLZ1BWQjgKLT4gWDI1NTE5IDdXaFA4Zjd5dlFUQ3BrYmp1UDc2U21Cbzd6MEhEQzA2N0dVQXRyeWovWEEKT0IvWGM5VzJ1MlFZWmRyZ0Qxb2p1Vkl3Z3ZaYjhmMWRYK0RPMm95bWE4RQotPiBYMjU1MTkgR0pxSFBHMDBRa1ZxRVcybkZJZmpmQUREOEp5akI1MThuTHhXYzRHdG1HQQpyZk1UL3p4VFRQMEV2Q3NpOW5oTTU2M2pSZHJZSWYyNWJTVXE1MnBMeWljCi0+IFgyNTUxOSB5M0g2VlpRVlVZN0NCcnBZVDJscDlTbjg1a2ZtdW16M0plSlR3MWpQZzJzCnVscTlYSnhpMThlL1gwRXlxN3p4bVR5amRQUHVOeFVVYXFMUGx2M3dicUUKLT4gWDI1NTE5IFlOZG1CclAySHRJcEIxTmJSQ0pGTGtSc3g4bklKa1FLK3hrVTc0WXdyVGcKRC9mNGYvSXdQblJRS3BLZTN4aG9YOVYzZXM2UXd5a0FwTys0TXl6VHlDZwotPiBFLWdyZWFzZQpVY1BJZEY4Ci0tLSBMc0ljY3FUQ2VjN3dzM083Z2RWTWtzWEU5YkZmY0tsN3B0ejNDY3o1NkNFClIEAQHz6rVuDpPaKnQHH0khYGLh+1YbXJ0HB5uINryfJOVAUqJxE8rAxqvKjUvIErmGogI=]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
