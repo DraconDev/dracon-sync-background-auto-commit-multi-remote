@@ -308,8 +308,26 @@ pub(crate) struct RecoveryOptions {
     max_retained_bytes: u64,
 }
 
+#[derive(Debug, Clone, clap::Args)]
+pub(crate) struct ProbeOptions {
+    #[arg(long, default_value = ".")]
+    repo: PathBuf,
+    #[arg(long)]
+    policy: Option<PathBuf>,
+    #[arg(long)]
+    backend: String,
+    #[arg(long)]
+    credentials_root: PathBuf,
+    #[arg(long, default_value_t = 30)]
+    timeout_secs: u64,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Probe S3 write refusal/readback; retains one synthetic 64-byte control object.
+    ProbeBackend(Box<ProbeOptions>),
     /// Recover an exact committed asset into a private cache; checkout is unchanged.
     RestoreAsset(Box<RecoveryOptions>),
     /// Hydrate one checked-out asset using a private retained transaction (Linux).
@@ -1027,6 +1045,12 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::ProbeBackend(options) = command {
+        let options = options.clone();
+        return tokio::task::spawn_blocking(move || probe_backend(&options))
+            .await
+            .map_err(|_| anyhow::anyhow!("backend probe worker failed"))?;
+    }
     if matches!(
         command,
         StorageCommand::RestoreAsset(_) | StorageCommand::Hydrate { .. }
@@ -1099,7 +1123,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
         return Ok(());
     }
     let (repo, policy_path, json) = match command {
-        StorageCommand::Status { .. }
+        StorageCommand::ProbeBackend(_)
+        | StorageCommand::Status { .. }
         | StorageCommand::FilterClean { .. }
         | StorageCommand::VerifyIndex { .. }
         | StorageCommand::SetupGuard { .. }
@@ -1168,6 +1193,72 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
 
 #[cfg(test)]
 mod tests;
+
+fn resolve_s3(
+    binding: &BackendBinding,
+    credentials_root: Option<&Path>,
+    timeout_secs: u64,
+) -> Result<dracon_sync::storage_core::s3::http::SignedHttpTransport> {
+    use dracon_sync::storage_core::s3::{
+        credentials,
+        http::{HttpConfig, SignedHttpTransport},
+    };
+    let BackendBinding::S3 {
+        endpoint,
+        bucket,
+        credential_ref,
+        region,
+        prefix,
+        ..
+    } = binding
+    else {
+        bail!("selected backend is not an S3 binding");
+    };
+    let region = region
+        .as_ref()
+        .context("approved S3 binding requires an explicit signing region")?;
+    let root =
+        credentials_root.context("S3 operation requires an explicit operator credentials root")?;
+    SignedHttpTransport::new(
+        HttpConfig {
+            endpoint: endpoint.clone(),
+            bucket: bucket.clone(),
+            region: region.clone(),
+            prefix: prefix.clone(),
+            timeout: std::time::Duration::from_secs(timeout_secs),
+        },
+        credentials::load(root, credential_ref)?,
+    )
+}
+
+fn probe_backend(options: &ProbeOptions) -> Result<()> {
+    let repo = root(&options.repo)?;
+    let (global, _) = load_configuration(&repo, options.policy.as_deref())?;
+    CompiledPolicy::new(global.storage.clone())?;
+    let binding = global
+        .storage
+        .backends
+        .get(&options.backend)
+        .context("selected backend lacks an operator binding")?;
+    let verified = resolve_s3(
+        binding,
+        Some(&options.credentials_root),
+        options.timeout_secs,
+    )?
+    .verify_conditional_writes()?;
+    if options.json {
+        println!(
+            "{}",
+            serde_json::json!({"schema_version":1,"backend":options.backend,
+            "competing_creates_verified":true,"conflicting_write_refused":true,"full_readback_verified":true,
+            "probe_object_retained":true,"probe_object_bytes":verified.probe_object().bytes(),
+            "checked_at_unix":verified.verified_at_unix(),"live_provider_certified":false})
+        );
+    } else {
+        println!("Backend {}: competing creates, conflicting-write refusal and exact readback verified; 64-byte control object retained.", options.backend);
+    }
+    Ok(())
+}
 
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
     let command = command.clone();
@@ -1330,37 +1421,14 @@ async fn restore_asset_inner(command: &StorageCommand) -> Result<()> {
             allowed_security,
         ),
         BackendBinding::S3 {
-            endpoint,
-            bucket,
-            credential_ref,
-            region,
-            prefix,
-            allowed_security,
+            allowed_security, ..
         } => {
-            use dracon_sync::storage_core::s3::{
-                credentials,
-                http::{HttpConfig, SignedHttpTransport},
-                S3Backend,
-            };
-            let region = region
-                .as_ref()
-                .context("approved S3 binding requires an explicit signing region")?;
-            let root = credentials_root
-                .as_ref()
-                .context("S3 recovery requires an explicit operator credentials root")?;
-            let credentials = credentials::load(root, credential_ref)?;
-            let transport = SignedHttpTransport::new(
-                HttpConfig {
-                    endpoint: endpoint.clone(),
-                    bucket: bucket.clone(),
-                    region: region.clone(),
-                    prefix: prefix.clone(),
-                    timeout: std::time::Duration::from_secs(*timeout_secs),
-                },
-                credentials,
-            )?;
+            use dracon_sync::storage_core::s3::S3Backend;
             (
-                Box::new(S3Backend::new(transport, *max_payload_bytes)?),
+                Box::new(S3Backend::new(
+                    resolve_s3(binding, credentials_root.as_deref(), *timeout_secs)?,
+                    *max_payload_bytes,
+                )?),
                 allowed_security,
             )
         }
