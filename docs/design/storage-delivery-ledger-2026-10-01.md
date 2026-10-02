@@ -632,3 +632,45 @@ to that pass count. Logs: `/tmp/dracon-cold-import-workspace.log`,
 `/tmp/dracon-cold-import-deny.log`. Formatting/diff checks passed. This validates
 the cold-metadata import milestone; packaged asset hydration and the wider
 production storage feature remain unfinished and unreleased.
+
+## Exact private asset recovery (2026-10-02)
+
+`RestoreStore` and unreleased `storage restore-asset` recover an exact manifest
+version into a dedicated private namespace. The CLI pins one committed manifest
+and pointer, requires their correspondence and explicit local repository ID,
+then selects a required copy from operator backend bindings. Repository overrides
+cannot inject adapters. Local adapters are supported; S3 is still pending.
+Encrypted assets require a matching Warden adapter and authorized existing keys;
+non-sensitive assets require an explicit class grant without asset decryption.
+
+Fetched ciphertext receives an independent bounded length/digest check even if a
+backend incorrectly reports success. Decryption writes only anonymous private
+output; failed authentication never publishes it. Successful output is retained
+as a verified mode-0600 file under an opaque enrollment/version-derived name.
+One namespace lease bounds concurrent spools. Payload, output, retained bytes and
+version limits refuse overflow without evicting previous versions. Tombstones
+cannot recover a current payload; an older selected manifest remains usable.
+The shared snapshot primitive now publishes by create-only hard linking rather
+than replacement rename. A race test verifies concurrently created operator
+content survives and the verified capture is preserved on conflict.
+
+Focused storage-core results: **83 passed, zero failed, 12 ignored** in
+`/tmp/dracon-restore-core.log`, covering snapshot/index/import crash recovery and
+five recovery tests, including version and retention limits. The cold-clone CLI
+case passed with both the original metadata cache and original job journal
+removed. It recovered bytes from the declared secondary copy while preserving
+working manifest edits, pointer, index and filter/guard configuration. Evidence:
+`/tmp/dracon-restore-cli-git.log`.
+
+A separately invoked actual Warden/age test passed for **101 MiB** of encrypted
+asset data. It deleted the original test-owned plaintext, ciphertext spool and
+metadata cache, moved to a cold checkout, imported committed metadata with the
+retained authorized keys and recovered byte-exact output from the reopened local
+object store. Evidence: `/tmp/dracon-restore-real-crypto.log`. This proves private
+exact-version recovery with keys, not independent-provider durability or safe
+working-file hydration. No operator keys or live data were deleted or changed.
+
+The broader workspace, strict Clippy, release and dependency checks are in
+progress for this milestone. Working-file hydration, S3, automatic worker/routing,
+complete outgoing-history guards, reviewed pilots and production release retain
+the full original scope. No installed binary or live enrollment changed.
