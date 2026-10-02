@@ -129,9 +129,6 @@ pub(crate) async fn push_with_transport_fallbacks(
         timeout_secs,
         &format!("{op_label}-ssh-hardened"),
         &[
-            // This specific maintenance operation is policy-approved. Keep
-            // pre-push content checks and operator hook chaining enabled.
-            ("DRACON_ALLOW_REWRITE", "1"),
             ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
             ("GIT_TERMINAL_PROMPT", "0"),
         ],
@@ -528,6 +525,9 @@ pub(crate) async fn force_push_after_rewrite(
         timeout_secs,
         &format!("push-after-rewrite ({})", remote),
         &[
+            // This specific maintenance operation is policy-approved. Keep
+            // pre-push content checks and operator hook chaining enabled.
+            ("DRACON_ALLOW_REWRITE", "1"),
             ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
             ("GIT_TERMINAL_PROMPT", "0"),
         ],
