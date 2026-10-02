@@ -813,3 +813,59 @@ installed daemon, live bucket, keys or fleet configuration changed. See
 The completed locked workspace run passed **2066 tests, zero failed,
 23 ignored** across 35 suites. Evidence: `/tmp/dracon-s3-protocol-workspace.log`
 (terminal exit 0), including the existing actual Warden large-stream test.
+
+## Signed HTTPS and explicit S3 recovery (2026-10-02)
+
+The S3 adapter now performs payload-signed, create-only HTTP PUT and complete GET
+requests with explicit region/prefix/operator credentials. HTTPS origins are
+validated; redirects, inherited proxies and decompression are disabled. Signed
+headers include the overwrite condition, ciphertext hash, content length and
+session token. Optional credential expiry is checked per request. Request/body
+deadlines prevent trickled responses from extending a transfer indefinitely.
+Provider bodies and arbitrary URL-bearing HTTP errors are never surfaced;
+capacity/security/integrity/transient failures remain redacted and classifiable.
+
+The read-only named credential resolver traverses directories through pinned
+file descriptors, refuses links, non-private/unowned files, hard links, oversized
+records, invalid/unknown JSON and expired credentials. Tracked or unignored
+credential files in a checkout are refused without modifying index/ignores.
+Credentials and signing keys use zeroizing owned buffers, with no credential
+Debug/Serialize implementation. The caller explicitly supplies a private operator
+directory; there is no environment/search fallback or key mutation.
+
+Global S3 bindings add an optional signing region and prefix while old planning
+bindings still deserialize. Runtime requires the region and operator credential
+root. `restore-asset`/`hydrate` now select a required globally approved S3 copy and
+execute the synchronous network adapter on a blocking worker. Protected manifest
+selection, security grants, authenticated Warden decryption, private retention
+and index-preserving publication remain the existing recovery boundaries.
+`--resume-local` still does no provider/credential lookup.
+
+Twenty focused tests passed: seven protocol, nine HTTP and four credential tests.
+Two published AWS GET/PUT signing vectors match; wire tests verify actual signed
+headers/body/path/readback, conditional conflicts, redaction, session credentials,
+length/encoding/range refusal, redirect refusal and total body deadlines.
+Evidence: `/tmp/dracon-s3-recovery-core-tests.log`.
+
+The operational CLI suite passed **13 tests, zero failed/ignored**, including the
+existing real Warden hook test and a new cold-clone signed HTTPS recovery. The
+latter uses a temporary CA, published test credentials in a private JSON vault,
+a local TLS provider and synthetic protected metadata. Original job/metadata
+state is absent; recovered bytes and unchanged index/working pointer are checked.
+It proves actual CLI binding/TLS/signature/fetch correspondence, not an actual-key
+encrypted S3 or independent-provider durability certificate. Evidence:
+`/tmp/dracon-s3-recovery-operational-cli.log` and `/tmp/dracon-s3-https-cli.log`.
+
+Final strict all-target Clippy, release build, dependency policy and formatting/
+diff checks passed. Logs: `/tmp/dracon-s3-recovery-clippy.log`,
+`/tmp/dracon-s3-recovery-release.log`, `/tmp/dracon-s3-recovery-deny.log`.
+Parent and standalone lockfiles resolve the new direct HMAC/clock/zeroize
+requirements; standalone resolution was performed offline without updating
+unrelated dependency versions. New directly selected dependency MSRVs remain
+below the declared Rust 1.89 floor; no new full MSRV build is claimed.
+
+No installed daemon/hooks, live provider, operator keys or fleet configuration
+changed. Automatic capture/upload/routing/enrollment, live endpoint capability
+approval, actual-key encrypted independent-provider cold recovery, complete
+outgoing-history coverage, growth benchmarks, reviewed pilots and release remain
+open within the original roadmap.
