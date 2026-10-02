@@ -670,7 +670,12 @@ object store. Evidence: `/tmp/dracon-restore-real-crypto.log`. This proves priva
 exact-version recovery with keys, not independent-provider durability or safe
 working-file hydration. No operator keys or live data were deleted or changed.
 
-The broader workspace, strict Clippy, release and dependency checks are in
-progress for this milestone. Working-file hydration, S3, automatic worker/routing,
+The full locked workspace passed: **2043 passed, zero failed, 22 ignored**.
+Strict all-target Clippy, locked release build, dependency policy, formatting and
+diff checks passed; the source-built release recovery help page ran. Evidence:
+`/tmp/dracon-restore-workspace.log`, `/tmp/dracon-restore-clippy.log`,
+`/tmp/dracon-restore-release.log`, `/tmp/dracon-restore-deny.log`.
+The separately invoked real-key recovery test is not added to workspace totals.
+Working-file hydration, S3, automatic worker/routing,
 complete outgoing-history guards, reviewed pilots and production release retain
 the full original scope. No installed binary or live enrollment changed.
