@@ -311,6 +311,27 @@ async fn missing_metadata_and_alternate_index_cannot_stage_an_unrestorable_point
         String::from_utf8_lossy(&accepted.stderr)
     );
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
+    let metadata = std::fs::read(f.repo.join(".dracon/assets.manifest")).unwrap();
+    std::fs::write(
+        f.repo.join(".dracon/assets.manifest"),
+        b"age-encryption.org/v1\nwrong prepared metadata",
+    )
+    .unwrap();
+    assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
+        .status
+        .success());
+    let wrong_index = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(
+        std::fs::read(f.repo.join(".git/index")).unwrap(),
+        wrong_index
+    );
+    std::fs::write(f.repo.join(".dracon/assets.manifest"), metadata).unwrap();
+    assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
+        .status
+        .success());
     assert!(git(
         &f.repo,
         &["rm", "--cached", "--", ".dracon/assets.manifest"]

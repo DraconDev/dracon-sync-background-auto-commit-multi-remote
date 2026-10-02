@@ -1137,6 +1137,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn oversized_physical_index_is_rejected_before_libgit2_decode() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let path = f.transaction.repo.path().join("index");
+        let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        file.set_len(MAX_INDEX_BYTES + 1).unwrap();
+        let error = fresh_index(&f.transaction.repo).err().unwrap();
+        assert!(matches!(
+            error.downcast_ref::<BackendFailure>(),
+            Some(BackendFailure::Capacity)
+        ));
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), MAX_INDEX_BYTES + 1);
+        assert_eq!(
+            f.journal.lease(&f.job).unwrap().load().unwrap().phase(),
+            Phase::ReadyToStage
+        );
+    }
+
+    #[tokio::test]
     #[ignore = "subprocess helper invoked by crash recovery test"]
     async fn index_crash_helper() {
         let root = std::env::var_os("DRACON_INDEX_TEST_ROOT").unwrap();
