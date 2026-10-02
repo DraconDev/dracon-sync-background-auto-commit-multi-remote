@@ -275,3 +275,52 @@ async fn wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw() 
     assert!(output.stdout.is_empty());
     assert!(f.temp.path().join("journal").exists());
 }
+
+#[tokio::test]
+async fn missing_metadata_and_alternate_index_cannot_stage_an_unrestorable_pointer() {
+    let f = fixture().await;
+    let index = std::fs::read(f.repo.join(".git/index")).unwrap();
+    let alternate = f.temp.path().join("alternate-index");
+    let empty = Command::new("git")
+        .current_dir(&f.repo)
+        .env("GIT_INDEX_FILE", &alternate)
+        .args(["read-tree", "--empty"])
+        .output()
+        .unwrap();
+    assert!(empty.status.success());
+    let before = std::fs::read(&alternate).unwrap();
+    let rejected = Command::new("git")
+        .current_dir(&f.repo)
+        .env("GIT_INDEX_FILE", &alternate)
+        .args(["add", "--", "asset [version].bin"])
+        .output()
+        .unwrap();
+    assert!(!rejected.status.success());
+    assert_eq!(std::fs::read(&alternate).unwrap(), before);
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
+    std::fs::copy(f.repo.join(".git/index"), &alternate).unwrap();
+    let accepted = Command::new("git")
+        .current_dir(&f.repo)
+        .env("GIT_INDEX_FILE", &alternate)
+        .args(["add", "--", "asset [version].bin"])
+        .output()
+        .unwrap();
+    assert!(
+        accepted.status.success(),
+        "{}",
+        String::from_utf8_lossy(&accepted.stderr)
+    );
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
+    assert!(git(
+        &f.repo,
+        &["rm", "--cached", "--", ".dracon/assets.manifest"]
+    )
+    .status
+    .success());
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    assert!(f.repo.join("asset [version].bin").exists());
+}
