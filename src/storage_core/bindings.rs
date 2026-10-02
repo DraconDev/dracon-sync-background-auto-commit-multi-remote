@@ -80,3 +80,33 @@ impl<'a> CopyBindings<'a> {
         self.backends[id].backend
     }
 }
+
+/// An explicitly approved copy for recovery; decoded manifests cannot create it.
+pub struct RestoreBinding<'a> {
+    repo_id: String,
+    backend_id: String,
+    approved: ApprovedBackend<'a>,
+}
+
+impl<'a> RestoreBinding<'a> {
+    /// Bind an operator-selected adapter, security grant and portable copy ID.
+    pub fn new(repo_id: String, backend_id: String, approved: ApprovedBackend<'a>) -> Result<Self> {
+        validate_sha256(&repo_id)?;
+        identifier(&backend_id)?;
+        Ok(Self { repo_id, backend_id, approved })
+    }
+
+    pub(crate) fn backend_for(
+        &self,
+        manifest: &super::manifest::Manifest,
+        enrollment: &super::manifest::Enrollment,
+    ) -> Result<&dyn ImmutableBackend> {
+        if self.repo_id != manifest.repo_id()
+            || !enrollment.required_copies.contains(&self.backend_id)
+            || !self.approved.allowed.contains(&enrollment.encryption)
+        {
+            bail!("restore binding does not authorize repository, copy or security");
+        }
+        Ok(self.approved.backend)
+    }
+}

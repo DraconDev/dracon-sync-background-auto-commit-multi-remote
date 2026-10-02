@@ -13,6 +13,7 @@ pub mod journal;
 pub mod manifest;
 pub mod metadata;
 pub mod reference;
+pub mod restore;
 pub mod security;
 pub mod staging;
 pub mod transfer;
