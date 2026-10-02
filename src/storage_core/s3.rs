@@ -1,6 +1,9 @@
 //! Create-only S3 protocol driver. Credential resolution and signed HTTP transport
 //! are separate operator-owned responsibilities; this module performs no discovery.
 
+/// Operator-bound signed HTTP transport.
+pub mod http;
+
 use anyhow::{bail, Result};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};

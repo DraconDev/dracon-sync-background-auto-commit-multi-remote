@@ -32,6 +32,9 @@ reqwest = { version = "0.12", features = ["json", "blocking"] }
 futures = "0.3"
 globset = "0.4.20"
 sha2 = "0.10.9"
+hmac = "0.12.1"
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+zeroize = "1.9.0"
 toml = "0.8"
 dracon-git = "94.7.2"
 git2 = "0.21"
