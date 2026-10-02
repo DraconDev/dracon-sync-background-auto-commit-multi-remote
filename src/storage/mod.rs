@@ -280,6 +280,9 @@ pub(crate) enum StorageCommand {
         metadata_root: PathBuf,
         #[arg(long)]
         metadata_id: String,
+        /// Reserved repository-relative protected metadata path in the Git index.
+        #[arg(long)]
+        manifest_path: PathBuf,
         #[arg(long)]
         job_id: String,
         /// Exact repository-relative Git path (normally supplied as Git's %f).
@@ -798,17 +801,10 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
         metadata_id,
         job_id,
         path,
+        ..
     } = command
     {
-        return filter_clean(
-            repo,
-            repo_id,
-            journal_root,
-            metadata_root,
-            metadata_id,
-            job_id,
-            path,
-        );
+        return filter_clean(command);
     }
     if let StorageCommand::Status {
         repo,
