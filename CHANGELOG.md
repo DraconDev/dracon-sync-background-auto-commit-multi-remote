@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased S3 protocol driver captures bounded private spools, requires atomic
+  create-only transport writes and independently verifies complete readback for
+  both new and existing objects. Corrupt objects, failed transfers and oversized
+  streams cannot produce successful receipts. Signed HTTP transport and fleet
+  integration remain unfinished; no live bucket is connected by this change.
+
 - Unreleased Linux `storage hydrate` publishes a verified asset only for the
   checked-out commit and matching configured guard/index metadata. Private
   pointer backups, create-only publication and process-backed leases preserve
