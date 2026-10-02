@@ -43,7 +43,13 @@ ProtectClock=true
 ProtectHostname=true
 ProtectControlGroups=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
+# NO MemoryDenyWriteExecute: since the Oct-2026 audit fix the daemon honors
+# repo pre-push hooks (no more --no-verify), and hooks legitimately spawn
+# JIT runtimes (node/V8 needs PROT_EXEC at isolate init; mprotect fails
+# under MDWE with SIGTRAP, failing every guarded push). Hook children
+# inherit the unit's seccomp filter and cannot relax it, so MDWE and
+# honored hooks are mutually exclusive. Removed 2026-10-02 (fleet-wide
+# push-stuck incident: platform + 8 nested games).
 RestrictRealtime=true
 RestrictSUIDSGID=true
 RemoveIPC=true
