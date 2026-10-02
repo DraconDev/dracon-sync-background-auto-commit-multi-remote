@@ -572,3 +572,54 @@ fn ordinary_repo_has_no_storage_commit_or_guard_requirement() {
     assert!(!verify_configured_index(dir.path(), false).unwrap());
     assert!(!commit_configured_storage(dir.path(), "ordinary").unwrap());
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn storage_bootstrap_cannot_bypass_guard_with_no_verify() {
+    for valid in [true, false] {
+        let dir = guarded_fixture().await;
+        let repo = dir.path();
+        setup_guard(
+            repo,
+            &"a".repeat(64),
+            &repo.join(".git/metadata"),
+            Path::new("assets.manifest"),
+        )
+        .unwrap();
+        if !valid {
+            std::fs::write(repo.join("asset.bin"), b"unverified raw bytes").unwrap();
+            git_fixture_command(repo, &["add", "--", "asset.bin"]);
+        }
+        // Bootstrap has work to stage in addition to the previously staged pair.
+        std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
+        let policy: crate::policy::SyncPolicy = toml::from_str(
+            r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+        )
+        .unwrap();
+        let result =
+            crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+                .await
+                .unwrap();
+        assert_eq!(result, valid);
+        let repository = git2::Repository::open(repo).unwrap();
+        assert_eq!(repository.head().is_ok(), valid);
+        assert_eq!(
+            std::fs::read(repo.join("README.md")).unwrap(),
+            b"bootstrap fixture\n"
+        );
+        if !valid {
+            assert_eq!(
+                std::fs::read(repo.join("asset.bin")).unwrap(),
+                b"unverified raw bytes"
+            );
+        }
+        assert!(!repo.join(".git/index.lock").exists());
+    }
+}
