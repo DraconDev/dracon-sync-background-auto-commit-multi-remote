@@ -43,6 +43,8 @@ struct Intent {
     repo_id: String,
     path_hex: String,
     payload: Fingerprint,
+    manifest_payload: Fingerprint,
+    commit: String,
     source: Fingerprint,
     mode: u32,
     root: (u64, u64),
@@ -88,18 +90,32 @@ impl HydrationStore {
     /// Publish a verified recovery only over its exact working pointer, or into
     /// a missing path. Refuse local edits; capture-before-publish is resumable.
     /// No replacement operation writes over a concurrently created destination.
-    pub fn hydrate(&self, repo: &git2::Repository, asset: &RestoredAsset) -> Result<HydratedAsset> {
+    pub fn hydrate(&self, repo: &git2::Repository, asset: &RestoredAsset, manifest_path: &Path,
+        selected_commit: git2::Oid, check_placement: impl FnOnce(&git2::Repository) -> Result<()>) -> Result<HydratedAsset> {
         if asset.repo_id != self.repo_id || asset.source.bytes() > self.limits.max_snapshot_bytes {
             bail!("hydration recovery binding or output budget mismatch");
         }
         let _lease = journal::try_lock(&fd_path(&self.namespace).join("hydrate.lock"))?;
         let _index_lock = CommitLock::acquire(repo, &self.repo_id)?;
+        if repo.head()?.peel_to_commit()?.id() != selected_commit { bail!("hydration requires the selected checked-out commit"); }
+        check_placement(repo)?;
         let relative = PathBuf::from(OsStr::from_bytes(&super::staging::decode_path(
             &asset.path_hex,
         )?));
         let index = repo.index()?;
         if index.has_conflicts() {
             bail!("hydration requires a resolved index");
+        }
+        journal::encode_relative_path(manifest_path.as_os_str().as_bytes())?;
+        let metadata = index.get_path(manifest_path, 0).context("hydration metadata is not staged")?;
+        let (bytes, kind) = repo.odb()?.read_header(metadata.id)?;
+        if metadata.mode != 0o100644 || kind != git2::ObjectType::Blob
+            || bytes as u64 != asset.manifest_payload.bytes()
+            || bytes as u64 > super::metadata::MAX_PROTECTED_MANIFEST_BYTES {
+            bail!("hydration metadata and verified recovery disagree");
+        }
+        if format!("{:x}", Sha256::digest(repo.find_blob(metadata.id)?.content())) != asset.manifest_payload.sha256() {
+            bail!("hydration metadata and verified recovery disagree");
         }
         let entry = index
             .get_path(&relative, 0)
@@ -128,6 +144,8 @@ impl HydrationStore {
             repo_id: self.repo_id.clone(),
             path_hex: asset.path_hex.clone(),
             payload: asset.payload.clone(),
+            manifest_payload: asset.manifest_payload.clone(),
+            commit: selected_commit.to_string(),
             source: asset.source.clone(),
             mode: entry.mode,
             root: identity(&root)?,
@@ -143,6 +161,8 @@ impl HydrationStore {
         hash.update(intent.path_hex.as_bytes());
         hash.update(intent.payload.sha256().as_bytes());
         hash.update(intent.payload.bytes().to_be_bytes());
+        hash.update(intent.manifest_payload.sha256().as_bytes());
+        hash.update(intent.commit.as_bytes());
         hash.update(intent.mode.to_be_bytes());
         for value in [
             intent.root.0,

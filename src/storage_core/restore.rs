@@ -21,6 +21,7 @@ pub struct RestoredAsset {
     pub(super) repo_id: String,
     pub(super) path_hex: String,
     pub(super) payload: Fingerprint,
+    pub(super) manifest_payload: Fingerprint,
 }
 
 impl RestoredAsset {
@@ -183,6 +184,7 @@ impl RestoreStore {
             repo_id: self.repo_id.clone(),
             path_hex: enrollment.path_hex.clone(),
             payload: payload.clone(),
+            manifest_payload: prepared.payload().clone(),
         })
     }
 }
