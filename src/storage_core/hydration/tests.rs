@@ -163,6 +163,83 @@ fn missing_working_file_is_published_without_a_backup_or_index_changes() {
 }
 
 #[test]
+fn selected_commit_manifest_repo_and_placement_must_match_before_publication() {
+    for mismatch in ["commit", "manifest", "repo", "placement"] {
+        let f = Fixture::new(0o100644);
+        let repo = f.repo();
+        let store = f.store(Limits::default());
+        let mut asset = f.asset();
+        let mut commit = repo.head().unwrap().peel_to_commit().unwrap().id();
+        if mismatch == "commit" {
+            commit = git2::Oid::zero();
+        }
+        if mismatch == "repo" {
+            asset.repo_id = "c".repeat(64);
+        }
+        if mismatch == "manifest" {
+            let mut index = repo.index().unwrap();
+            let mut entry = index.get_path(Path::new("assets.manifest"), 0).unwrap();
+            entry.id = repo.blob(b"operator staged other metadata").unwrap();
+            index.add(&entry).unwrap();
+            index.write().unwrap();
+        }
+        let index = std::fs::read(repo.path().join("index")).unwrap();
+        assert!(
+            store
+                .hydrate(&repo, &asset, Path::new("assets.manifest"), commit, |_| {
+                    if mismatch == "placement" {
+                        bail!("placement verification refused");
+                    }
+                    Ok(())
+                })
+                .is_err(),
+            "{mismatch}"
+        );
+        assert_eq!(
+            std::fs::read(f.working()).unwrap(),
+            Pointer::new(payload()).unwrap().encode()
+        );
+        assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), index);
+        assert!(!repo.path().join("index.lock").exists());
+    }
+}
+
+#[test]
+fn hydration_version_capacity_preserves_prior_backup_and_verified_cache() {
+    let f = Fixture::new(0o100644);
+    let repo = f.repo();
+    let store = f.store(Limits {
+        max_records: 1,
+        ..Limits::default()
+    });
+    let first = hydrate(&store, &repo, &f.asset()).unwrap();
+    std::fs::write(f.working(), Pointer::new(payload()).unwrap().encode()).unwrap();
+    let parent = repo.head().unwrap().peel_to_commit().unwrap();
+    let tree = parent.tree().unwrap();
+    let signature = git2::Signature::now("DraconDev", "dracsharp@gmail.com").unwrap();
+    // A forward-only new checked-out version requires another durable binding.
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "next hydration fixture",
+        &tree,
+        &[&parent],
+    )
+    .unwrap();
+    assert!(hydrate(&store, &repo, &f.asset()).is_err());
+    assert_eq!(
+        std::fs::read(first.backup().unwrap()).unwrap(),
+        Pointer::new(payload()).unwrap().encode()
+    );
+    assert_eq!(
+        std::fs::read(f.working()).unwrap(),
+        Pointer::new(payload()).unwrap().encode()
+    );
+    assert_eq!(std::fs::read(f.asset().path()).unwrap(), DATA);
+}
+
+#[test]
 fn local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working_bytes() {
     for failure in [
         "edits",
