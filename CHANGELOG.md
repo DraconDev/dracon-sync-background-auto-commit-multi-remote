@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Storage guards now detect staged/HEAD `filter=dracon-storage` declarations
+  even without local filter settings, protecting cold clones and staged
+  attribute deletion. Inherited filter settings also require a local binding.
+  Bounded declaration checks do not run filters or change index/worktree bytes.
+
 - Unreleased `storage restore-asset` verifies an exact committed reference and
   approved manifest, reads an explicitly authorized local copy and recovers
   verified/decrypted bytes into a private cache. It preserves previous versions

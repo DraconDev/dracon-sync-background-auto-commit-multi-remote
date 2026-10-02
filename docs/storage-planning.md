@@ -284,6 +284,20 @@ owned Git index lock while validating and committing the immutable tree; foreign
 locks and rejected index/worktree contents are preserved. Its own lock can be
 recovered after process death. Ordinary repositories retain their existing path.
 A storage driver without the explicit guard binding blocks this commit path.
+The guard also detects `filter=dracon-storage` declarations in staged or HEAD
+`.gitattributes`, including nested files and macros. A fresh clone therefore
+requires its local binding even when it has no local filter configuration.
+Staging attribute deletion cannot erase HEAD's declaration. Declarations reserve
+storage routing even when no current asset matches; comments and quoted pattern
+names containing the assignment do not activate it. Inherited filter settings
+also require a local guard binding. A repository ID alone remains inactive.
+
+Portable declaration detection checks ordinary attribute blobs without running
+filters: at most 4 MiB per blob, 16 MiB across staged/HEAD attributes, a 64 MiB
+ordinary owned index and a 30-second HEAD traversal deadline. Missing/corrupt
+objects and exceeded budgets refuse the commit. This detects the local binding
+requirement; full validation of every outgoing historical version is still a
+separate unfinished gate.
 
 The new Warden pre-commit template invokes the pinned guard after existing user
 hooks, propagates failure and retains Warden encryption checks. Installing that
