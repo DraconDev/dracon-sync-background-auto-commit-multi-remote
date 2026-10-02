@@ -623,3 +623,104 @@ trusted_authors = ["DraconDev"]
         assert!(!repo.join(".git/index.lock").exists());
     }
 }
+
+#[test]
+fn attribute_response_rejects_duplicates_excess_fields_and_large_values() {
+    let paths = BTreeSet::from([PathBuf::from("a.bin"), PathBuf::from("b.bin")]);
+    let good = b"a.bin\0filter\0dracon-storage\0b.bin\0filter\0unspecified\0";
+    assert_eq!(parse_attribute_response(good, &paths).unwrap().len(), 2);
+    for response in [
+        &b"a.bin\0filter\0dracon-storage"[..],
+        &b"a.bin\0filter\0dracon-storage\0a.bin\0filter\0unspecified\0"[..],
+        &b"other.bin\0filter\0dracon-storage\0b.bin\0filter\0unspecified\0"[..],
+        &b"a.bin\0other\0dracon-storage\0b.bin\0filter\0unspecified\0"[..],
+    ] {
+        assert!(parse_attribute_response(response, &paths).is_err());
+    }
+    let mut excess = good.to_vec();
+    excess.extend_from_slice(b"c.bin\0filter\0unspecified\0");
+    assert!(parse_attribute_response(&excess, &paths).is_err());
+    let mut oversized = b"a.bin\0filter\0".to_vec();
+    oversized.extend_from_slice(&[b'x'; 1025]);
+    oversized.extend_from_slice(b"\0b.bin\0filter\0unspecified\0");
+    assert!(parse_attribute_response(&oversized, &paths).is_err());
+    assert!(parse_attribute_response(&[], &BTreeSet::new())
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn real_attribute_query_drains_full_pipes_and_enforces_input_budget() {
+    let dir = git_fixture();
+    std::fs::write(
+        dir.path().join(".gitattributes"),
+        "*.bin filter=dracon-storage\n",
+    )
+    .unwrap();
+    let paths = (0..12_000)
+        .map(|n| PathBuf::from(format!("file-{n:05}.bin")))
+        .collect();
+    let filters = inventory_filters(dir.path(), &paths).unwrap();
+    assert_eq!(filters.len(), 12_000);
+    assert!(filters.values().all(|value| value == "dracon-storage"));
+    let oversized = BTreeSet::from([PathBuf::from("x".repeat(16 * 1024 * 1024))]);
+    let error = inventory_filters(dir.path(), &oversized).unwrap_err();
+    assert!(error.to_string().contains("input budget"));
+}
+
+#[cfg(unix)]
+fn attribute_test_command(script: &str, repo: &Path) -> std::process::Command {
+    let mut command = std::process::Command::new("sh");
+    command
+        .current_dir(repo)
+        .args(["-c", script])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    command
+}
+
+#[cfg(unix)]
+#[test]
+fn attribute_query_caps_output_and_deadlines_blocked_input() {
+    let temp = tempfile::tempdir().unwrap();
+    let flooding =
+        attribute_test_command("while :; do printf 'oversized-output'; done", temp.path());
+    let error = bounded_attribute_query(
+        flooding,
+        Vec::new(),
+        1024,
+        std::time::Duration::from_secs(2),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("output budget"), "{error}");
+    let blocked = attribute_test_command("exec sleep 60", temp.path());
+    let started = std::time::Instant::now();
+    let error = bounded_attribute_query(
+        blocked,
+        vec![b'x'; 1024 * 1024],
+        1024,
+        std::time::Duration::from_millis(250),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("timed out"), "{error}");
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn attribute_query_kills_descendants_holding_stdout_after_parent_exit() {
+    let temp = tempfile::tempdir().unwrap();
+    let command = attribute_test_command(
+        "sh -c 'echo $$ > descendant.pid; exec sleep 60' & exit 0",
+        temp.path(),
+    );
+    let error =
+        bounded_attribute_query(command, Vec::new(), 1024, std::time::Duration::from_secs(1))
+            .unwrap_err();
+    assert!(error.to_string().contains("timed out"), "{error}");
+    let pid = std::fs::read_to_string(temp.path().join("descendant.pid")).unwrap();
+    let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
+    // SIGKILL may leave a zombie briefly until its new parent reaps it.
+    assert!(stat.is_err() || stat.unwrap().split_once(") ").unwrap().1.starts_with('Z'));
+}
