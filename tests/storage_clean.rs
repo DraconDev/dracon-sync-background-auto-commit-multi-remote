@@ -310,6 +310,120 @@ async fn policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sour
 }
 
 #[tokio::test]
+#[ignore = "requires source-built Warden and age/age-keygen for isolated encryption"]
+async fn policy_capture_and_advance_encrypt_exact_version_with_actual_warden() {
+    let binary =
+        PathBuf::from(std::env::var_os("DRACON_STORAGE_TEST_WARDEN").expect("built Warden binary"));
+    let f = fixture().await;
+    let home = f.temp.path().join("identity-home");
+    std::fs::create_dir_all(home.join(".dracon/keys")).unwrap();
+    let keys = home.join(".dracon/keys/identity.age");
+    assert!(Command::new("age-keygen")
+        .arg("-o")
+        .arg(&keys)
+        .output()
+        .unwrap()
+        .status
+        .success());
+    std::fs::set_permissions(&keys, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let source = b"private exact version from an isolated operational fixture";
+    std::fs::write(f.repo.join("private.data"), source).unwrap();
+    let index = std::fs::read(f.repo.join(".git/index")).unwrap();
+    let primary_root = f.temp.path().join("encrypted-primary");
+    let recovery_root = f.temp.path().join("encrypted-recovery");
+    LocalBackend::open(&primary_root, 1024 * 1024).unwrap();
+    LocalBackend::open(&recovery_root, 1024 * 1024).unwrap();
+    let policy = f.temp.path().join("encrypted-capture-policy.toml");
+    std::fs::write(&policy, format!("[storage]\nenabled = true\n[[storage.rules]]\npaths = [\"private.data\"]\nplacement = \"external\"\nbackend = \"primary\"\nrequired_copies = [\"recovery\"]\nsecurity = \"warden-encrypted\"\n[storage.backends.primary]\ntype = \"local\"\nroot = \"{}\"\n[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\n", primary_root.display(), recovery_root.display())).unwrap();
+    let captured = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "capture", "--repo"])
+        .arg(&f.repo)
+        .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+        .arg(f.temp.path().join("journal"))
+        .arg("--policy")
+        .arg(&policy)
+        .args(["--git-target", "github", "--json", "private.data"])
+        .output()
+        .unwrap();
+    assert!(
+        captured.status.success(),
+        "{}",
+        String::from_utf8_lossy(&captured.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&captured.stdout).unwrap();
+    let id = report["job_id"].as_str().unwrap();
+    let advance = |with_warden: bool| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_dracon-sync"));
+        command
+            .args(["storage", "advance-job", "--repo"])
+            .arg(&f.repo)
+            .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+            .arg(f.temp.path().join("journal"))
+            .args(["--job-id", id, "--policy"])
+            .arg(&policy)
+            .arg("--json");
+        if with_warden {
+            command
+                .arg("--warden")
+                .arg(&binary)
+                .arg("--identity-home")
+                .arg(&home);
+        }
+        command.output().unwrap()
+    };
+    assert!(!advance(false).status.success());
+    assert_eq!(
+        f.journal.lease(id).unwrap().load().unwrap().phase(),
+        Phase::Captured
+    );
+    std::fs::write(
+        f.repo.join("private.data"),
+        b"newer private edits preserved",
+    )
+    .unwrap();
+    let ready = advance(true);
+    assert!(
+        ready.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ready.stderr)
+    );
+    let payload = f
+        .journal
+        .lease(id)
+        .unwrap()
+        .load()
+        .unwrap()
+        .payload()
+        .unwrap()
+        .clone();
+    assert_ne!(payload.sha256(), format!("{:x}", Sha256::digest(source)));
+    let cipher = std::fs::read(primary_root.join(payload.sha256())).unwrap();
+    assert!(cipher.starts_with(b"age-encryption.org/v1\n"));
+    assert_eq!(
+        std::fs::read(recovery_root.join(payload.sha256())).unwrap(),
+        cipher
+    );
+    let decoded = Command::new("age")
+        .args(["--decrypt", "--identity"])
+        .arg(&keys)
+        .arg(recovery_root.join(payload.sha256()))
+        .output()
+        .unwrap();
+    assert!(decoded.status.success());
+    assert_eq!(decoded.stdout, source);
+    assert!(advance(false).status.success());
+    assert_eq!(
+        f.journal.lease(id).unwrap().load().unwrap().payload(),
+        Some(&payload)
+    );
+    assert_eq!(
+        std::fs::read(f.repo.join("private.data")).unwrap(),
+        b"newer private edits preserved"
+    );
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), index);
+}
+
+#[tokio::test]
 async fn advance_job_copies_retained_version_without_touching_git_or_current_edits() {
     let f = fixture().await;
     let bytes = b"approved private source content for the isolated clean fixture";
@@ -1483,7 +1597,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDTlJ1YU9FZlErR1pEYXRUekFrVGQ3NlJPMGlhVnQ1OGdZQlJFbjRibVR3CkhFdGRON0NEbFlMMDByVTQ2aEppbTJtU2wxVFc2a0QxM0F6ZkFLZ1BWQjgKLT4gWDI1NTE5IDdXaFA4Zjd5dlFUQ3BrYmp1UDc2U21Cbzd6MEhEQzA2N0dVQXRyeWovWEEKT0IvWGM5VzJ1MlFZWmRyZ0Qxb2p1Vkl3Z3ZaYjhmMWRYK0RPMm95bWE4RQotPiBYMjU1MTkgR0pxSFBHMDBRa1ZxRVcybkZJZmpmQUREOEp5akI1MThuTHhXYzRHdG1HQQpyZk1UL3p4VFRQMEV2Q3NpOW5oTTU2M2pSZHJZSWYyNWJTVXE1MnBMeWljCi0+IFgyNTUxOSB5M0g2VlpRVlVZN0NCcnBZVDJscDlTbjg1a2ZtdW16M0plSlR3MWpQZzJzCnVscTlYSnhpMThlL1gwRXlxN3p4bVR5amRQUHVOeFVVYXFMUGx2M3dicUUKLT4gWDI1NTE5IFlOZG1CclAySHRJcEIxTmJSQ0pGTGtSc3g4bklKa1FLK3hrVTc0WXdyVGcKRC9mNGYvSXdQblJRS3BLZTN4aG9YOVYzZXM2UXd5a0FwTys0TXl6VHlDZwotPiBFLWdyZWFzZQpVY1BJZEY4Ci0tLSBMc0ljY3FUQ2VjN3dzM083Z2RWTWtzWEU5YkZmY0tsN3B0ejNDY3o1NkNFClIEAQHz6rVuDpPaKnQHH0khYGLh+1YbXJ0HB5uINryfJOVAUqJxE8rAxqvKjUvIErmGogI=]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAvSjJQZXprc1lHZnpQbVdDWFhxS0hleWdwb3R5ZTFTdERnRDltK1Z3eWdrCndsLzVsNmNlY1JTbzNUZWRrRkhqazZTRmpuZXBBOXdSZjJhT1dUaHA0Z2sKLT4gWDI1NTE5IFovZzlCdHFFdlpHajNzWmRONkZLYndlbVd2YUtsbm5hVmNqellVN05FaE0KbjE1R3dyQ2xGRUhIUEdiWFYrQ0Y4OW9wWHhybkExanhHUU9ubFI3VU1CVQotPiBYMjU1MTkgc0hPdU5CeE5ZWWRxdEJJaWx1dVBoalZhZkYxU2VreE1NU2VjS05GdHpGSQo1SC9LSGh2WEFvWDRvalRXZkpCdTl5ZTI5bnJINmNaL3l6L1ZtU1Y5L1pvCi0+IFgyNTUxOSBIeTFzdnJhcE5MZUNacGNBSU9HTUJnRXhQWTA1alZiWlg3eUlNc0Iya0RnClRJZUgrajJQTDVsMTg4OFJyZWlkL3d1MVJsMWV6TURhYWtGUEJnZlcyVk0KLT4gWDI1NTE5IGhYWnNlZG15d2lPc2kxcHZQMlpUQTVjallpbUFDc0l5Nk9JcDBUZjNEMTQKejI2b1lrcG9zNmRBaDFqSzNQdW0rWFdkWjVSVTJxSEU0dHZXZE1YV0JhcwotPiBpLWdyZWFzZSBpdl1ydi1UCjYvdnFudwotLS0gaXB0b1kveEN2a1ZoQ21WWkRrUm5KZVh1WlNTREpiTUZvNzlFdWRwcFE2YwokVf7V5k4ESmUgz9S2C5hqhf9x/UALSFScIU3tWwcdOixeMGlwRnqAz81hOJ0FTXnZffGM]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
