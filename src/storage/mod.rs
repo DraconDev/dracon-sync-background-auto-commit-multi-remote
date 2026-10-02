@@ -267,6 +267,22 @@ impl CompiledPolicy {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Bind already validated storage to a commit guard; no filter/hook installation.
+    SetupGuard {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        manifest_path: PathBuf,
+    },
+    /// Validate the actual index using explicit local guard bindings.
+    VerifyConfiguredIndex {
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+    },
     /// Check indexed enrolled references against locally verified protected metadata.
     /// Independent of Git's stat cache; no backend availability claim.
     VerifyIndex {
@@ -845,6 +861,25 @@ fn journal_status(
 }
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
+    if let StorageCommand::SetupGuard {
+        repo,
+        repo_id,
+        metadata_root,
+        manifest_path,
+    } = command
+    {
+        setup_guard(repo, repo_id, metadata_root, manifest_path)?;
+        println!(
+            "Storage commit guard bound; hook/filter installation and transfers were not enabled."
+        );
+        return Ok(());
+    }
+    if let StorageCommand::VerifyConfiguredIndex { repo } = command {
+        if !verify_configured_index(repo, true)? {
+            bail!("repository has no configured storage guard");
+        }
+        return Ok(());
+    }
     if let StorageCommand::VerifyIndex {
         repo,
         repo_id,
@@ -891,7 +926,9 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
     let (repo, policy_path, json) = match command {
         StorageCommand::Status { .. }
         | StorageCommand::FilterClean { .. }
-        | StorageCommand::VerifyIndex { .. } => {
+        | StorageCommand::VerifyIndex { .. }
+        | StorageCommand::SetupGuard { .. }
+        | StorageCommand::VerifyConfiguredIndex { .. } => {
             unreachable!("local command handled before policy resolution")
         }
         StorageCommand::Plan {
@@ -1012,6 +1049,16 @@ fn indexed_manifest(
     metadata_root: &Path,
     manifest_path: &Path,
 ) -> Result<IndexedManifest> {
+    indexed_manifest_at(repo, repo_id, metadata_root, manifest_path, None)
+}
+
+fn indexed_manifest_at(
+    repo: &Path,
+    repo_id: &str,
+    metadata_root: &Path,
+    manifest_path: &Path,
+    explicit_index: Option<PathBuf>,
+) -> Result<IndexedManifest> {
     use dracon_sync::storage_core::{journal::Limits, metadata::MetadataStore};
     dracon_sync::storage_core::reference::validate_sha256(repo_id)?;
     let repository = git2::Repository::open(repo)?;
@@ -1046,8 +1093,8 @@ fn indexed_manifest(
             .context("unsupported path encoding")?
             .as_bytes(),
     )?;
-    let index_path = std::env::var_os("GIT_INDEX_FILE")
-        .map(PathBuf::from)
+    let index_path = explicit_index
+        .or_else(|| std::env::var_os("GIT_INDEX_FILE").map(PathBuf::from))
         .unwrap_or_else(|| repository.path().join("index"));
     let index_path = if index_path.is_absolute() {
         index_path
@@ -1153,4 +1200,147 @@ fn decode_manifest_path(hex: &str) -> Result<Vec<u8>> {
         .chunks_exact(2)
         .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
         .collect()
+}
+
+const GUARD_VERSION_KEY: &str = "dracon.storageGuardVersion";
+const GUARD_METADATA_KEY: &str = "dracon.storageMetadataRoot";
+const GUARD_MANIFEST_KEY: &str = "dracon.storageManifestPath";
+const GUARD_EXECUTABLE_KEY: &str = "dracon.storageSyncExecutable";
+
+fn verify_guard_entries(indexed: &IndexedManifest) -> Result<()> {
+    dracon_sync::storage_core::index::verify_manifest_entries(
+        &indexed.repo,
+        &indexed.index,
+        &indexed.manifest,
+    )?;
+    verify_storage_attributes(indexed)
+}
+
+/// Direct daemon and manual-hook entrypoint. No storage marker means no change.
+/// The daemon passes false to inspect its actual libgit2 index, ignoring an
+/// ambient alternate-index environment. Manual Git hooks pass true for Git's index.
+pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Result<bool> {
+    let repository = git2::Repository::open(repo)?;
+    let local = repository.config()?.open_level(git2::ConfigLevel::Local)?;
+    let version = match local.get_string(GUARD_VERSION_KEY) {
+        Ok(version) => Some(version),
+        Err(error) if error.code() == git2::ErrorCode::NotFound => None,
+        Err(error) => return Err(error).context("cannot read storage guard version"),
+    };
+    let driver_present = [
+        "filter.dracon-storage.clean",
+        "filter.dracon-storage.process",
+        "filter.dracon-storage.required",
+    ]
+    .iter()
+    .any(|key| local.get_entry(key).is_ok());
+    if version.is_none() && !driver_present {
+        return Ok(false);
+    }
+    if version.as_deref() != Some("1") {
+        bail!("storage driver requires an explicit version-1 guard binding");
+    }
+    let repo_id = local
+        .get_string("dracon.storageRepoId")
+        .context("storage guard repo identity missing")?;
+    let metadata_root = PathBuf::from(
+        local
+            .get_string(GUARD_METADATA_KEY)
+            .context("storage guard metadata binding missing")?,
+    );
+    let manifest_path = PathBuf::from(
+        local
+            .get_string(GUARD_MANIFEST_KEY)
+            .context("storage guard manifest binding missing")?,
+    );
+    let executable = PathBuf::from(
+        local
+            .get_string(GUARD_EXECUTABLE_KEY)
+            .context("storage guard executable binding missing")?,
+    );
+    if !executable.is_absolute() || !executable.is_file() {
+        bail!("storage guard executable unavailable");
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if executable.metadata()?.permissions().mode() & 0o111 == 0 {
+            bail!("storage guard executable is not executable");
+        }
+    }
+    let explicit_index = (!honor_git_index).then(|| repository.path().join("index"));
+    let indexed = indexed_manifest_at(
+        repo,
+        &repo_id,
+        &metadata_root,
+        &manifest_path,
+        explicit_index,
+    )?;
+    verify_guard_entries(&indexed)?;
+    Ok(true)
+}
+
+fn setup_guard(
+    repo: &Path,
+    repo_id: &str,
+    metadata_root: &Path,
+    manifest_path: &Path,
+) -> Result<()> {
+    let indexed = indexed_manifest_at(
+        repo,
+        repo_id,
+        metadata_root,
+        manifest_path,
+        Some(git2::Repository::open(repo)?.path().join("index")),
+    )?;
+    verify_guard_entries(&indexed)?;
+    let executable = std::env::current_exe()?.canonicalize()?;
+    let metadata_root = metadata_root.canonicalize()?;
+    let values = [
+        (
+            GUARD_METADATA_KEY,
+            metadata_root
+                .to_str()
+                .context("guard metadata binding must be UTF-8")?,
+        ),
+        (
+            GUARD_MANIFEST_KEY,
+            manifest_path
+                .to_str()
+                .context("guard manifest binding must be UTF-8")?,
+        ),
+        (
+            GUARD_EXECUTABLE_KEY,
+            executable
+                .to_str()
+                .context("guard executable binding must be UTF-8")?,
+        ),
+    ];
+    let mut local = indexed
+        .repo
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?;
+    match local.get_string(GUARD_VERSION_KEY) {
+        Ok(version) if version != "1" => {
+            bail!("unknown guard version requires explicit maintenance")
+        }
+        Ok(_) => {
+            if values
+                .iter()
+                .any(|(key, value)| local.get_string(key).ok().as_deref() != Some(*value))
+            {
+                bail!("existing guard binding differs; explicit rebinding maintenance required");
+            }
+            return Ok(());
+        }
+        Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+        Err(error) => return Err(error).context("cannot read existing storage guard binding"),
+    }
+    // Publish the activation marker last. A crash cannot expose an enabled guard
+    // with newly missing fields; an existing driver already fails closed meanwhile.
+    for (key, value) in values {
+        local.set_str(key, value)?;
+    }
+    local.set_str(GUARD_VERSION_KEY, "1")?;
+    Ok(())
 }
