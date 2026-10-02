@@ -296,6 +296,35 @@ impl MetadataStore {
         self.open_prepared(prepared)
     }
 
+    /// Recover decoded metadata only from a locally verified preparation.
+    /// A cold checkout needs an approved decrypt/import path before index changes.
+    pub(crate) fn retained_manifest(&self, payload: &Fingerprint) -> Result<Manifest> {
+        let mut count = 0;
+        for entry in std::fs::read_dir(&self.directory)? {
+            let path = entry?.path();
+            if path.extension().is_none_or(|extension| extension != "json") {
+                continue;
+            }
+            count += 1;
+            if count > self.limits.max_records {
+                bail!(BackendFailure::Capacity);
+            }
+            let id = path.file_stem().and_then(|stem| stem.to_str())
+                .ok_or(BackendFailure::Integrity)?;
+            let record = self.read(id)?;
+            if record.phase != Phase::Prepared || record.approved.as_ref() != Some(payload) {
+                continue;
+            }
+            self.open_prepared(&record.prepared()?)?;
+            let mut source = self.source(&record)?;
+            source.seek(SeekFrom::Start(0))?;
+            let mut raw = Vec::new();
+            source.take(MAX_MANIFEST_BYTES as u64 + 1).read_to_end(&mut raw)?;
+            return Manifest::parse_private(&raw);
+        }
+        bail!("prior manifest requires approved decryption/import before staging")
+    }
+
     /// Clear a failed preparation explicitly; this does not establish new evidence.
     pub fn clear_failure(&self, id: &str) -> Result<()> {
         validate_sha256(id)?;

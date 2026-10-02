@@ -16,6 +16,7 @@ use super::reference::Pointer;
 /// A local validated bundle retaining asset leases until Git verification completes.
 /// It grants no new destinations and never includes raw source fingerprints.
 pub struct StageBundle<'a> {
+    store: &'a MetadataStore,
     repo_id: String,
     manifest: Manifest,
     metadata: File,
@@ -29,7 +30,7 @@ impl<'a> StageBundle<'a> {
     /// The caller must approve the complete manifest/enrollment contract and hold
     /// the supplied leases in a consistent order. No Git/filter/backend I/O runs.
     pub fn build(
-        store: &MetadataStore,
+        store: &'a MetadataStore,
         prepared: &PreparedMetadata,
         manifest: &Manifest,
         leases: Vec<&'a JobLease>,
@@ -70,6 +71,7 @@ impl<'a> StageBundle<'a> {
         }
         pointers.sort_by(|left, right| left.0.cmp(&right.0));
         Ok(Self {
+            store,
             repo_id: manifest.repo_id().into(),
             manifest: manifest.clone(),
             metadata,
@@ -93,6 +95,10 @@ impl<'a> StageBundle<'a> {
     /// Keep this private; it is not the metadata bytes to publish in Git.
     pub(crate) fn manifest(&self) -> &Manifest {
         &self.manifest
+    }
+
+    pub(crate) fn previous_manifest(&self, payload: &super::reference::Fingerprint) -> Result<Manifest> {
+        self.store.retained_manifest(payload)
     }
 
     pub(crate) fn metadata(&self) -> Result<File> {
