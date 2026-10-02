@@ -432,3 +432,14 @@ replaced in current docs. Production hook chaining/setup, Warden composition,
 working-source races and daemon commit/push integration are still unfinished.
 S3, cold import/hydration, independent-copy drills and release/pilots retain the
 full roadmap scope. No fleet filters, live buckets or installed binary changed.
+
+The full workspace run completed successfully: 2019 passed, zero failed and
+18 ignored. It includes all eight real-Git driver/guard checks and both actual
+Warden storage streaming integration tests. Strict all-target workspace Clippy,
+the locked release build, dependency policy, Sync formatting and diff checks
+passed. Both updated release CLI help pages ran with the documented stable
+repository arguments. No installed binary or production enrollment changed.
+Evidence: `/tmp/dracon-selected-clean-workspace.log`,
+`/tmp/dracon-selected-clean-core.log`, `/tmp/dracon-selected-clean-guard.log`,
+`/tmp/dracon-selected-clean-clippy.log`, `/tmp/dracon-selected-clean-release.log`,
+`/tmp/dracon-selected-clean-deny.log`.
