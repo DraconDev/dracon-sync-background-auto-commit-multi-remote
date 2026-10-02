@@ -1008,3 +1008,47 @@ registry expectation. Its targeted regression passed
 and lint were rerun successfully. No System behavior was reverted or modified
 for the capture work; routine workspace formatting applied only whitespace to
 a concurrently updated quarantine test.
+
+
+## Enrolled-path capture updates (2026-10-02)
+
+Source `storage capture-update` retains a new exact version of an already
+enrolled path under its recorded contract. The placement digest, primary,
+required copies and encryption are read from verified protected metadata at
+the selected committed revision (default HEAD), never from current policy
+rules or sizes: a file stays external even if rules change or a size
+threshold would now exclude it. The committed reference must agree with that
+enrollment first (tombstoned paths must have no committed reference), so a
+diverged repository needs repair before new versions are retained.
+
+An unhydrated checkout -- any pointer-shaped working file, current or stale --
+is refused as new asset bytes; hydrate before capturing. The path must keep
+the verified `dracon-storage` filter so a later `git add` cannot stage raw
+bytes. Ownership opt-out, Git ignores, existing Sync exclusions and Unix
+descriptor containment behave as in `storage capture`. The command creates a
+private job with the same report schema; it performs no upload, enrollment,
+Git mutation or push. Manifest publication for the new version and
+tracked-file migration remain separate steps.
+
+Evidence:
+- `/tmp/dracon-storage-update-workspace.log`: full locked workspace run,
+  **2,104 passed, 0 failed, 25 ignored across 35 suites**, including the new
+  `enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers` CLI
+  case (sticky contract under an excluding size rule, verified advance to
+  ReadyToStage, current/stale pointer refusal, unenrolled refusal, missing
+  filter refusal, tombstone revive with the same contract, index/edits
+  preserved). The 3 ignored storage cases are the pre-existing operational
+  fixtures (source-built Warden, HTTPS S3); they were not re-run because this
+  change touches neither path.
+- `/tmp/dracon-storage-update-release.log`: locked release build passed; the
+  artifact exposes `storage capture-update --help`. No installed daemon was
+  replaced.
+- `/tmp/dracon-storage-update-clippy.log`: strict workspace/all-target Clippy
+  passed. `/tmp/dracon-storage-update-deny.log`: dependency deny passed.
+  Formatting and diff checks passed.
+
+The installed daemon, operator policies, hooks, identity/trust settings and
+live buckets remain unchanged. Automatic routing/enrollment, outgoing
+all-version validation, production reconciliation, actual independent provider
+recovery, pilots, package/release and sanctioned legacy maintenance remain
+open. The full roadmap remains active.
