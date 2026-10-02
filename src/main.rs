@@ -223,7 +223,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Read-only external-storage policy simulation and validation.
+    /// Local storage planning, inspection and prepared Git clean transformation.
     Storage {
         #[command(subcommand)]
         cmd: storage::StorageCommand,

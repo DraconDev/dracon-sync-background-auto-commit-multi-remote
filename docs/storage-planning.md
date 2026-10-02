@@ -1,9 +1,11 @@
 # External-storage planning preview
 
 This is an unreleased source-build preview. The installed 0.113.92 daemon does
-not automatically move files into a bucket. The new commands are read-only;
-`storage.enabled` currently enables rule simulation, not transfers. No command
-in this preview stages files, installs filters, migrates history, or uploads.
+not automatically move files into a bucket. Planning and status commands are
+read-only; `storage.enabled` currently enables rule simulation, not transfers.
+The explicit prepared clean driver described below writes a verified pointer
+to stdout. No preview command stages files, installs filters, migrates history,
+or uploads.
 
 From a source checkout, build `cargo build --locked`, then run the built binary:
 
@@ -187,3 +189,39 @@ DRACON_STORAGE_TEST_WARDEN=/absolute/source-build/dracon-warden cargo test -p dr
 The test also requires `age-keygen`. Its keys, source snapshots and backend roots
 are temporary fixtures. Test copies share a physical filesystem and are not
 certified independent recovery storage.
+
+## Explicit prepared clean driver
+
+`storage filter-clean` is an unreleased local driver for already prepared
+versions, not an enrollment or upload command. Operator-supplied arguments bind
+an exact repo, existing private state roots, prepared metadata and job. The
+local Git config `dracon.storageRepoId` must match that binding. The actual Git
+index must already contain the exact protected metadata at its reserved path.
+The driver honors `GIT_INDEX_FILE`, so an alternate index cannot borrow restore
+metadata from the ordinary index. Symlinked/nonregular/foreign-owned or oversized
+index files are refused.
+
+```sh
+dracon-sync storage filter-clean \
+  --repo /path/to/repo --repo-id "$REPO_ID" \
+  --journal-root /private/storage-journal \
+  --metadata-root /private/storage-metadata \
+  --metadata-id "$PREPARED_METADATA_ID" \
+  --manifest-path .dracon/assets.manifest --job-id "$PREPARED_JOB_ID" \
+  -- 'assets/example.bin' < 'assets/example.bin'
+```
+
+Its stdout contains only a canonical pointer after complete source verification.
+Changed bytes (including same-size edits), missing snapshots, failed jobs,
+wrong paths/repositories/contracts or missing/mismatched indexed metadata cause
+failure without raw fallback. An unhydrated checkout may supply the same exact
+canonical pointer. A different pointer is not adopted. Reads and memory are
+bounded; private source fingerprints never appear in the output reference.
+
+A manually configured Git driver must be **required** and use Git's `%f` for the
+path after `--`. Production setup must preserve unrelated attributes, resolve
+Warden composition and maintain exact prepared-version bindings. Those setup,
+worker and outgoing-commit validation gates are still unfinished. Tests install
+a required driver only inside isolated temporary repositories; this preview
+installs nothing in the fleet. The driver does not update journal phases or
+claim a matching metadata/pointer group was committed or pushed.

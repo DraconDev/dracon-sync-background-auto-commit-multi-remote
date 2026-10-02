@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Production configuration resolution, working-file/filter integration, S3,
   packaged restoration and daemon transfers remain gated;
   this infrastructure is not automatic bucket migration.
+- Explicit networkless `storage filter-clean` driver checks a repo/path-bound
+  prepared job, exact current source bytes and the matching protected metadata
+  in Git's actual index. It emits only the canonical pointer, refuses changed
+  or unprepared content, and performs no upload, encryption or filter setup.
 - Private runtime isolation for journal/local-store writes, including refusal
   of tracked paths, project roots, unmarked nonempty directories and tampered
   protection. Operator files and existing project ignore rules are preserved.
