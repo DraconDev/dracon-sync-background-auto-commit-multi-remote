@@ -11,7 +11,9 @@ use super::reference::Fingerprint;
 /// Result of an atomic `PutObject` with a signed `If-None-Match: *` condition.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConditionalPut {
+    /// The service accepted creation of a previously absent object.
     Created,
+    /// The service refused creation because the key already exists.
     AlreadyExists,
 }
 
@@ -35,6 +37,7 @@ pub struct S3Backend<T> {
 }
 
 impl<T: S3Transport> S3Backend<T> {
+    /// Bind an approved transport to a positive per-object byte budget.
     pub fn new(transport: T, max_object_bytes: u64) -> Result<Self> {
         if max_object_bytes == 0 {
             bail!(BackendFailure::Capacity);

@@ -23,8 +23,10 @@ and concurrent deletion conflicts as HTTP 409; conditional requests require
 Signature Version 4. See [AWS conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
 The transport maps only successful creation and 412 into the two driver results.
 A conflict remains an error for the durable worker's retry policy; it must not
-fall back to an unconditional write. A provider ignoring the conditional header
-cannot be approved merely because normal round trips pass.
+fall back to an unconditional write. Cloudflare also lists conditional `PutObject` support in its
+[R2 compatibility table](https://developers.cloudflare.com/r2/api/s3/api/).
+This documented support still requires an actual endpoint capability test.
+A provider ignoring the conditional header cannot be approved merely because normal round trips pass.
 
 ## Signed HTTP transport remains required
 
