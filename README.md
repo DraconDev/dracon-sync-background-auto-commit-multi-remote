@@ -486,3 +486,8 @@ commands. They explain configurable placement rules, operator-approved backend
 bindings, existing filters, and optional Git history measurements. They do not
 automatically upload or migrate files. See [preview usage](docs/storage-planning.md)
 and the [implementation roadmap](docs/design/object-storage-roadmap-2026-10-01.md).
+
+Source builds also provide explicit protected-manifest import, private asset
+recovery and Linux checkout hydration with local crash resume. These operations
+remain an unreleased preview; automatic routing and S3 transfers are unfinished.
+The preview usage above documents the required bindings and limitations.

@@ -766,14 +766,14 @@ manifest entries; this proves crypto/filesystem correspondence, not a production
 filter deployment or independent-provider certificate. Evidence:
 `/tmp/dracon-hydration-real-crypto.log`.
 
-The locked workspace passed **2059 tests, zero failed, 23 ignored** before a
-CLI-only indirection fix. Shared recovery arguments were boxed to satisfy strict
-Clippy's enum-size lint without changing flags; final all-target Clippy, release
-build and CLI regressions passed. Dependency policy and formatting/diff checks
+The final locked workspace passed **2059 tests, zero failed, 23 ignored**.
+Shared recovery arguments were boxed to satisfy strict Clippy's enum-size lint
+without changing flags; final all-target Clippy, release build and CLI regressions
+passed. Dependency policy and formatting/diff checks
 passed. Logs: `/tmp/dracon-hydration-workspace.log`,
 `/tmp/dracon-hydration-clippy.log`, `/tmp/dracon-hydration-release.log`,
-`/tmp/dracon-hydration-deny.log`. The source-built release help page ran. A final
-workspace run is in progress for the completed source.
+`/tmp/dracon-hydration-deny.log`. The source-built release help page ran. Final workspace evidence is recorded in
+`/tmp/dracon-hydration-final-workspace.log`.
 
 No installed daemon/hooks, fleet enrollment, operator keys or live buckets were
 changed. Hydration is explicit and Linux-only; supported filesystems must provide
