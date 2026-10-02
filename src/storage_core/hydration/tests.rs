@@ -4,6 +4,7 @@ use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::process::Command;
 
 const DATA: &[u8] = b"verified original asset";
+const METADATA: &[u8] = b"age-encryption.org/v1\nsynthetic protected metadata";
 const REPO_ID: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 struct Fixture {
@@ -38,6 +39,25 @@ impl Fixture {
             })
             .unwrap();
         index.write().unwrap();
+        let mut metadata = index.get_path(Path::new("assets/private.bin"), 0).unwrap();
+        metadata.path = b"assets.manifest".to_vec();
+        metadata.mode = 0o100644;
+        metadata.file_size = METADATA.len() as u32;
+        metadata.id = repo.blob(METADATA).unwrap();
+        index.add(&metadata).unwrap();
+        index.write().unwrap();
+        let tree_id = index.write_tree().unwrap();
+        let tree = repo.find_tree(tree_id).unwrap();
+        let signature = git2::Signature::now("DraconDev", "dracsharp@gmail.com").unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            "hydration fixture",
+            &tree,
+            &[],
+        )
+        .unwrap();
         std::fs::write(temp.path().join("verified.source"), DATA).unwrap();
         std::fs::set_permissions(
             temp.path().join("verified.source"),
@@ -72,7 +92,29 @@ fn asset(root: &Path) -> RestoredAsset {
         repo_id: REPO_ID.into(),
         path_hex: journal::encode_relative_path(b"assets/private.bin").unwrap(),
         payload: payload(),
+        manifest_payload: Fingerprint::new(
+            format!("{:x}", Sha256::digest(METADATA)),
+            METADATA.len() as u64,
+        )
+        .unwrap(),
     }
+}
+
+fn hydrate(
+    store: &HydrationStore,
+    repo: &git2::Repository,
+    asset: &RestoredAsset,
+) -> Result<HydratedAsset> {
+    store.hydrate(
+        repo,
+        asset,
+        Path::new("assets.manifest"),
+        repo.head()?.peel_to_commit()?.id(),
+        |repo| {
+            assert!(repo.path().join("index.lock").exists());
+            Ok(())
+        },
+    )
 }
 
 #[test]
@@ -82,7 +124,7 @@ fn hydration_preserves_index_backup_and_cache_and_restores_executable_mode() {
         let repo = f.repo();
         let index = std::fs::read(repo.path().join("index")).unwrap();
         let store = f.store(Limits::default());
-        let result = store.hydrate(&repo, &f.asset()).unwrap();
+        let result = hydrate(&store, &repo, &f.asset()).unwrap();
         assert_eq!(result.path(), f.working());
         assert_eq!(std::fs::read(result.path()).unwrap(), DATA);
         assert_eq!(
@@ -98,12 +140,12 @@ fn hydration_preserves_index_backup_and_cache_and_restores_executable_mode() {
                 & 0o777,
             if mode == 0o100755 { 0o700 } else { 0o600 }
         );
-        let again = store.hydrate(&repo, &f.asset()).unwrap();
+        let again = hydrate(&store, &repo, &f.asset()).unwrap();
         assert_eq!(again.path(), result.path());
         assert!(!repo.path().join("index.lock").exists());
         std::fs::write(result.path(), b"operator edit").unwrap();
         assert_eq!(std::fs::read(f.asset().path()).unwrap(), DATA);
-        assert!(store.hydrate(&repo, &f.asset()).is_err());
+        assert!(hydrate(&store, &repo, &f.asset()).is_err());
         assert_eq!(std::fs::read(result.path()).unwrap(), b"operator edit");
     }
 }
@@ -114,10 +156,7 @@ fn missing_working_file_is_published_without_a_backup_or_index_changes() {
     let repo = f.repo();
     std::fs::remove_file(f.working()).unwrap();
     let index = std::fs::read(repo.path().join("index")).unwrap();
-    let result = f
-        .store(Limits::default())
-        .hydrate(&repo, &f.asset())
-        .unwrap();
+    let result = hydrate(&f.store(Limits::default()), &repo, &f.asset()).unwrap();
     assert!(result.backup().is_none());
     assert_eq!(std::fs::read(result.path()).unwrap(), DATA);
     assert_eq!(std::fs::read(repo.path().join("index")).unwrap(), index);
@@ -176,7 +215,7 @@ fn local_edits_corrupt_cache_wrong_references_and_capacity_never_replace_working
         let before = std::fs::read(f.working()).unwrap();
         let index = std::fs::read(repo.path().join("index")).unwrap();
         assert!(
-            f.store(limits).hydrate(&repo, &f.asset()).is_err(),
+            hydrate(&f.store(limits), &repo, &f.asset()).is_err(),
             "{failure}"
         );
         assert_eq!(std::fs::read(f.working()).unwrap(), before, "{failure}");
@@ -212,10 +251,7 @@ fn crash_recovery_resumes_capture_and_publication_without_original_cache_changes
             "{phase}: {}",
             String::from_utf8_lossy(&result.stderr)
         );
-        let receipt = f
-            .store(Limits::default())
-            .hydrate(&repo, &f.asset())
-            .unwrap();
+        let receipt = hydrate(&f.store(Limits::default()), &repo, &f.asset()).unwrap();
         assert_eq!(std::fs::read(receipt.path()).unwrap(), DATA);
         assert_eq!(
             std::fs::read(receipt.backup().unwrap()).unwrap(),
@@ -233,7 +269,7 @@ fn crash_helper() {
     let root = PathBuf::from(std::env::var_os("DRACON_HYDRATION_TEST_ROOT").unwrap());
     let repo = git2::Repository::open(root.join("repo")).unwrap();
     let store = HydrationStore::open(&root.join("hydration"), REPO_ID, Limits::default()).unwrap();
-    let result = store.hydrate(&repo, &asset(&root));
+    let result = hydrate(&store, &repo, &asset(&root));
     if std::env::var_os("DRACON_HYDRATION_TEST_RACE").is_some() {
         assert!(result.is_err());
     } else {
