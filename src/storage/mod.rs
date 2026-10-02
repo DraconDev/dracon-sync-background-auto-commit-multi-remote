@@ -454,8 +454,32 @@ fn inventory_filters_at(
     let mut command = crate::policy::std_git_command();
     command.current_dir(repo).env("GIT_OPTIONAL_LOCKS", "0");
     if let Some(index) = index {
+        for name in [
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_COMMON_DIR",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_CONFIG_COUNT",
+            "GIT_CONFIG_PARAMETERS",
+        ] {
+            command.env_remove(name);
+        }
+        for (name, _) in std::env::vars_os() {
+            if name.to_str().is_some_and(|name| {
+                name.starts_with("GIT_CONFIG_KEY_") || name.starts_with("GIT_CONFIG_VALUE_")
+            }) {
+                command.env_remove(name);
+            }
+        }
         command
             .env("GIT_INDEX_FILE", index)
+            .args([
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "core.fsmonitor=false",
+            ])
             .arg("--literal-pathspecs");
     }
     command.arg("check-attr");
