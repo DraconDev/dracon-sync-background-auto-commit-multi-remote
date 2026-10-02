@@ -45,6 +45,11 @@ fn quote(argument: &str) -> String {
 }
 
 async fn fixture() -> Fixture {
+    fixture_path(b"asset [version].bin").await
+}
+
+async fn fixture_path(asset_path: &[u8]) -> Fixture {
+    use std::os::unix::ffi::OsStringExt;
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
     let repo = root.join("repo");
@@ -57,12 +62,16 @@ async fn fixture() -> Fixture {
     .status
     .success());
     let bytes = b"approved private source content for the isolated clean fixture";
-    std::fs::write(repo.join("asset [version].bin"), bytes).unwrap();
+    std::fs::write(
+        repo.join(std::ffi::OsString::from_vec(asset_path.to_vec())),
+        bytes,
+    )
+    .unwrap();
     let fingerprint =
         Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
     let spec = JobSpec {
         repo_id: "a".repeat(64),
-        path_hex: encode_relative_path(b"asset [version].bin").unwrap(),
+        path_hex: encode_relative_path(asset_path).unwrap(),
         source: fingerprint.clone(),
         policy_sha256: "b".repeat(64),
         primary: "primary".into(),
@@ -344,4 +353,32 @@ async fn missing_metadata_and_alternate_index_cannot_stage_an_unrestorable_point
         .success());
     assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
     assert!(f.repo.join("asset [version].bin").exists());
+}
+
+#[tokio::test]
+async fn real_git_clean_preserves_non_utf8_path_identity() {
+    use std::os::unix::ffi::OsStringExt;
+    let raw = b"asset [raw] \xff.bin";
+    let f = fixture_path(raw).await;
+    let path = PathBuf::from(std::ffi::OsString::from_vec(raw.to_vec()));
+    let source = std::fs::read(f.repo.join(&path)).unwrap();
+    let result = Command::new("git")
+        .current_dir(&f.repo)
+        .args(["add", "--"])
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let repo = git2::Repository::open(&f.repo).unwrap();
+    let index = repo.index().unwrap();
+    let entry = index.get_path(&path, 0).unwrap();
+    assert_eq!(
+        repo.find_blob(entry.id).unwrap().content(),
+        f.pointer.encode()
+    );
+    assert_eq!(std::fs::read(f.repo.join(&path)).unwrap(), source);
 }
