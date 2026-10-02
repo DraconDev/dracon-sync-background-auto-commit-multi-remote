@@ -936,3 +936,56 @@ workspace/all-target Clippy, dependency deny, formatting and diff checks passed
 `/tmp/dracon-storage-advance-clippy.log`,
 `/tmp/dracon-storage-advance-deny.log`). The release artifact's `storage advance-job
 --help` also exposes the documented command; no installed binary was replaced.
+
+
+## Policy-selected capture entrypoint (2026-10-02)
+
+Source `storage capture` now resolves enabled global/per-repository placement
+rules into durable source jobs. Rules add optional `required_copies`; primary is
+always required and extra copies need distinct global bindings approving the
+selected security class. Planning JSON explains the required copy set, and
+validation refuses missing, repeated, differently classified or Git-rule copies.
+The private contract hashes only the portable rule and required Git identifiers,
+not endpoint locations or credentials. No universal threshold, extension list,
+new identity or remote namespace is introduced.
+
+Capture requires the exact existing local repository ID, honors ownership opt-out,
+Git ignores and existing Sync exclusions, and refuses current index/HEAD content
+or unapproved existing filters. It currently adopts new paths into private jobs,
+not sticky Git enrollments. Verified enrolled-path updates, reviewed tracked
+migration and automatic scheduling still need integration with protected metadata
+and the Git transaction worker; these are not removed from the roadmap.
+
+Unix source selection walks pinned descriptors with no-follow opens, fences
+nested `.git` markers, and refuses traversal/Git internals, links and special
+files. Nonblocking FIFO opens cannot hang before regular-file validation. Reads
+are bounded to 64 KiB buffers and a positive configured source budget. The
+selected file is rewound and independently reverified by journal capture;
+pathname replacement cannot redirect the selected descriptor. Other platforms
+fail closed until equivalent containment is implemented. Changed source bytes
+retain another job; no versions are evicted. Capture reads no credentials and
+performs no encryption/network/Git mutation or push.
+
+Evidence:
+- `/tmp/dracon-storage-capture-core.log`: two source containment/budget tests
+  passed; the final workspace run also checks the added descriptor-replacement
+  assertion.
+- `/tmp/dracon-storage-capture-policy-tests.log`: 28 policy/guard tests passed,
+  including required-copy explanation and invalid copy/security conditions.
+- `/tmp/dracon-storage-capture-cli.log`: policy capture, separate changed version,
+  exact older-version transfer and refusal of ignores, nested ownership, links,
+  filters, tracked paths, disabled storage, missing copies and ownership opt-out
+  passed. The index is unchanged before the fixture's deliberate tracked-path
+  refusal setup.
+- `/tmp/dracon-storage-capture-operational.log`: all 16 CLI operational cases
+  passed with ignored cases enabled and source-built Warden selected. The added
+  actual-Warden pipeline captures encrypted policy, refuses missing security,
+  prepares ciphertext, verifies two local copies, decrypts exact original bytes,
+  preserves newer edits/index and reuses ciphertext on retry without keys.
+  This is a real encryption composition test, not an independent-provider drill.
+
+The installed daemon, operator policies, hooks, identity/trust settings and live
+buckets remain unchanged. Automatic routing/enrollment, outgoing all-version
+validation, production reconciliation/resource qualification, actual independent
+provider recovery, pilots, package/release and sanctioned legacy maintenance
+remain open. The full roadmap remains active.
