@@ -1257,6 +1257,7 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
     }
     let (repo, policy_path, json) = match command {
         StorageCommand::Capture { .. }
+        | StorageCommand::CaptureUpdate { .. }
         | StorageCommand::AdvanceJob(_)
         | StorageCommand::ProbeBackend(_)
         | StorageCommand::Status { .. }
@@ -1525,7 +1526,7 @@ fn capture_update_job(command: &StorageCommand) -> Result<()> {
     // asset bytes; hydrating first keeps the retained version faithful.
     if fingerprint.bytes() <= 1024 {
         let mut prefix = Vec::new();
-        source.take(1025).read_to_end(&mut prefix)?;
+        (&source).take(1025).read_to_end(&mut prefix)?;
         source.rewind()?;
         if Pointer::parse(&prefix).is_ok() {
             bail!("working file is an unhydrated reference; hydrate before capturing");
