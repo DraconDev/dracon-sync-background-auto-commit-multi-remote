@@ -443,3 +443,53 @@ Evidence: `/tmp/dracon-selected-clean-workspace.log`,
 `/tmp/dracon-selected-clean-core.log`, `/tmp/dracon-selected-clean-guard.log`,
 `/tmp/dracon-selected-clean-clippy.log`, `/tmp/dracon-selected-clean-release.log`,
 `/tmp/dracon-selected-clean-deny.log`.
+
+## Direct commit protection and Warden hook binding (2026-10-02)
+
+The source daemon now uses a direct storage guard for configured repositories,
+including bootstrap commits: libgit2 bypasses Git pre-commit hooks, so a hook
+alone cannot protect that path. The guard holds a process-backed owned index
+lock, validates the canonical index/manifest/staged attributes, writes the
+validated immutable tree to the explicit repository and commits that tree.
+A real test caught and fixed the initially incorrect repository-less write-tree
+call. Unconfigured repositories retain their ordinary commit path; configured
+storage failures have no unguarded fallback.
+
+`storage setup-guard` verifies the staged pair before publishing version-1 local
+bindings and pins the invoked executable. Identical setup is idempotent; changed
+bindings/unknown versions refuse. `verify-configured-index` honors alternate
+indexes for manual Git use. No filter/hook installation, source rewrite, transfer
+or production enrollment occurs during binding setup.
+
+Warden's source pre-commit template runs the pinned guard after foreign/user
+hook chains and retains its encryption gate. Missing, empty or unknown guard
+versions and unavailable/non-absolute executables fail closed when configured.
+A UUID by itself does not enroll an ordinary repository. Shell subprocess tests
+prove quoted executable paths, failure propagation and retained encryption checks.
+
+Focused evidence: 12 index tests passed (two subprocess helpers ignored),
+including owned-lock recovery after process death and preserving foreign locks.
+The native commit test passed for a valid root tree, rejected raw bytes and
+preserved HEAD/index/worktree on rejection. Bootstrap passed valid and invalid
+cases, proving the legacy --no-verify path cannot bypass the configured guard.
+The real CLI binding test passed for incomplete setup refusal, idempotence and
+alternate-index rejection. The actual source Warden installer + Sync executable
++ real Git commit test passed: user-hook chaining survives, a verified pair
+commits and a raw staged payload blocks. Git itself refreshes its TREE cache
+before pre-commit; staged content/modes/paths and worktree bytes remain unchanged
+on rejection. Synthetic metadata fixtures prove Git mechanics, not cryptography.
+
+Evidence logs: `/tmp/dracon-guard-lock-tests.log`,
+`/tmp/dracon-native-guard-tests.log`, `/tmp/dracon-storage-bootstrap.log`,
+`/tmp/dracon-guard-binding-git.log`, `/tmp/dracon-cross-utility-guard.log`.
+The cross-utility test is explicitly invoked with DRACON_STORAGE_TEST_WARDEN;
+it is not silently counted as ordinary workspace coverage. Final workspace,
+release, lint and policy gate results are recorded after the running checks end.
+
+No live buckets, installed binaries, fleet drivers or hooks changed. Production
+attribute/filter composition, enrollment/worker reconciliation, working-source
+race protection, outgoing-history/pre-push coverage, S3 and packaged cold
+restoration remain unfinished. In particular, this is not complete outgoing
+protection against manual --no-verify commits or removal of every local guard
+marker. All remaining roadmap packages retain their full scope; no release or
+production readiness is claimed.
