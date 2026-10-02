@@ -200,6 +200,83 @@ mod tests {
     }
 
     #[test]
+    fn streaming_payload_above_git_limit_uses_bounded_reads() {
+        struct Source {
+            remaining: u64,
+            largest: usize,
+        }
+        impl Read for Source {
+            fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+                self.largest = self.largest.max(buf.len());
+                let count = self.remaining.min(buf.len() as u64) as usize;
+                buf[..count].fill(0x7a);
+                self.remaining -= count as u64;
+                Ok(count)
+            }
+        }
+        // Transport echoes a private seekable object rather than retaining a
+        // payload-sized Vec, so this test covers the driver's streaming boundary.
+        #[derive(Default)]
+        struct StreamingProvider {
+            object: RefCell<Option<File>>,
+        }
+        impl S3Transport for StreamingProvider {
+            fn put_if_absent(&self, _: &Fingerprint, source: File) -> Result<ConditionalPut> {
+                *self.object.borrow_mut() = Some(source);
+                Ok(ConditionalPut::Created)
+            }
+            fn get(&self, _: &Fingerprint) -> Result<Box<dyn Read>> {
+                let mut file = self.object.borrow().as_ref().unwrap().try_clone()?;
+                file.seek(SeekFrom::Start(0))?;
+                Ok(Box::new(file))
+            }
+        }
+        let bytes = 101 * 1024 * 1024;
+        let backend = S3Backend::new(StreamingProvider::default(), bytes).unwrap();
+        let mut source = Source {
+            remaining: bytes,
+            largest: 0,
+        };
+        let id = backend.put(&mut source).unwrap();
+        assert_eq!(id.bytes(), bytes);
+        assert_eq!(source.largest, 64 * 1024);
+        backend.get_verified(&id, &mut std::io::sink()).unwrap();
+    }
+
+    #[test]
+    fn interrupted_provider_body_and_destination_errors_fail_verification() {
+        struct BrokenReader;
+        impl Read for BrokenReader {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("transport failed"))
+            }
+        }
+        struct InterruptedTransport;
+        impl S3Transport for InterruptedTransport {
+            fn put_if_absent(&self, _: &Fingerprint, _: File) -> Result<ConditionalPut> {
+                Ok(ConditionalPut::Created)
+            }
+            fn get(&self, _: &Fingerprint) -> Result<Box<dyn Read>> {
+                Ok(Box::new(BrokenReader))
+            }
+        }
+        let backend = S3Backend::new(InterruptedTransport, 1024).unwrap();
+        assert!(backend.put(&mut &b"original"[..]).is_err());
+        struct BrokenOutput;
+        impl Write for BrokenOutput {
+            fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("destination full"))
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let backend = S3Backend::new(Provider::default(), 1024).unwrap();
+        let id = backend.put(&mut &b"original"[..]).unwrap();
+        assert!(backend.get_verified(&id, &mut BrokenOutput).is_err());
+    }
+
+    #[test]
     fn interrupted_source_cannot_contact_provider() {
         struct Failed;
         impl Read for Failed {
