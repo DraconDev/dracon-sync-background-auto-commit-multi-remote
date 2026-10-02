@@ -122,6 +122,20 @@ async fn fixture() -> Fixture {
         .prepare(&manifest, &"b".repeat(64), &adapter, 1)
         .await
         .unwrap();
+    // Prepare the matched metadata entry before the required clean driver can
+    // publish any asset pointer. This is test-only index setup, not auto enrollment.
+    let mut ciphertext = Vec::new();
+    use std::io::Read;
+    store
+        .open_prepared(&prepared)
+        .unwrap()
+        .read_to_end(&mut ciphertext)
+        .unwrap();
+    std::fs::create_dir(repo.join(".dracon")).unwrap();
+    std::fs::write(repo.join(".dracon/assets.manifest"), ciphertext).unwrap();
+    assert!(git(&repo, &["add", "--", ".dracon/assets.manifest"])
+        .status
+        .success());
     let args = vec![
         "storage".into(),
         "filter-clean".into(),
@@ -135,6 +149,8 @@ async fn fixture() -> Fixture {
         metadata_root.to_str().unwrap().into(),
         "--metadata-id".into(),
         prepared.id().into(),
+        "--manifest-path".into(),
+        ".dracon/assets.manifest".into(),
         "--job-id".into(),
         job.id().into(),
     ];

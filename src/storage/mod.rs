@@ -793,17 +793,7 @@ fn journal_status(
 }
 
 pub(crate) fn run(command: &StorageCommand) -> Result<()> {
-    if let StorageCommand::FilterClean {
-        repo,
-        repo_id,
-        journal_root,
-        metadata_root,
-        metadata_id,
-        job_id,
-        path,
-        ..
-    } = command
-    {
+    if matches!(command, StorageCommand::FilterClean { .. }) {
         return filter_clean(command);
     }
     if let StorageCommand::Status {
@@ -893,15 +883,20 @@ pub(crate) fn run(command: &StorageCommand) -> Result<()> {
 #[cfg(test)]
 mod tests;
 
-fn filter_clean(
-    repo: &Path,
-    repo_id: &str,
-    journal_root: &Path,
-    metadata_root: &Path,
-    metadata_id: &str,
-    job_id: &str,
-    path: &Path,
-) -> Result<()> {
+fn filter_clean(command: &StorageCommand) -> Result<()> {
+    let StorageCommand::FilterClean {
+        repo,
+        repo_id,
+        journal_root,
+        metadata_root,
+        metadata_id,
+        manifest_path,
+        job_id,
+        path,
+    } = command
+    else {
+        bail!("expected explicit clean bindings");
+    };
     use dracon_sync::storage_core::{
         clean::PreparedClean,
         journal::{Journal, Limits},
@@ -942,6 +937,70 @@ fn filter_clean(
     let lease = journal.lease(job_id)?;
     let store = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
     let (prepared, manifest) = store.load_prepared_manifest(metadata_id)?;
+    #[cfg(unix)]
+    let manifest_hex = {
+        use std::os::unix::ffi::OsStrExt;
+        dracon_sync::storage_core::journal::encode_relative_path(
+            manifest_path.as_os_str().as_bytes(),
+        )?
+    };
+    #[cfg(not(unix))]
+    let manifest_hex = dracon_sync::storage_core::journal::encode_relative_path(
+        manifest_path
+            .to_str()
+            .context("unsupported path encoding")?
+            .as_bytes(),
+    )?;
+    if manifest.enrollment(&manifest_hex).is_some() {
+        bail!("metadata path cannot be an enrolled asset");
+    }
+    let index_path = std::env::var_os("GIT_INDEX_FILE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| repository.path().join("index"));
+    let index_path = if index_path.is_absolute() {
+        index_path
+    } else {
+        std::env::current_dir()?.join(index_path)
+    };
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    }
+    let file = options.open(&index_path)?;
+    let info = file.metadata()?;
+    if !info.is_file() || info.len() > 64 * 1024 * 1024 {
+        bail!("clean driver index unavailable or exceeds budget");
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if info.uid() != unsafe { libc::geteuid() } {
+            bail!("clean driver index owner mismatch");
+        }
+    }
+    let index = git2::Index::open(&index_path)?;
+    if index.has_conflicts() {
+        bail!("clean driver requires a resolved index");
+    }
+    let entry = index
+        .get_path(manifest_path, 0)
+        .context("matching protected metadata must already be staged")?;
+    if entry.mode != 0o100644 {
+        bail!("invalid protected metadata index mode");
+    }
+    let blob = repository.find_blob(entry.id)?;
+    if blob.size() as u64 > dracon_sync::storage_core::metadata::MAX_PROTECTED_MANIFEST_BYTES {
+        bail!("protected metadata exceeds budget");
+    }
+    use sha2::{Digest, Sha256};
+    if blob.size() as u64 != prepared.payload().bytes()
+        || format!("{:x}", Sha256::digest(blob.content())) != prepared.payload().sha256()
+    {
+        bail!("indexed protected metadata does not match prepared asset");
+    }
     let clean = PreparedClean::new(&store, &prepared, &manifest, &path_hex, &lease)?;
     clean.clean(&mut std::io::stdin().lock(), &mut std::io::stdout().lock())
 }
