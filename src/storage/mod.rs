@@ -1319,7 +1319,7 @@ pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bo
         Some(repository.path().join("index")),
     )?;
     verify_guard_entries(&indexed)?;
-    let tree_id = indexed.index.write_tree()?;
+    let tree_id = indexed.index.write_tree_to(&repository)?;
     let tree = repository.find_tree(tree_id)?;
     let signature = repository.signature()?;
     let parent = match repository.head() {

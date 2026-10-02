@@ -248,3 +248,39 @@ exact prepared versions. Those setup and worker gates remain unfinished.
 The tests install required drivers only in isolated temporary repositories;
 no preview command installs a filter or hook in the fleet. Cold-checkout metadata
 import/hydration, S3 and automatic transfers also remain separate gates.
+
+
+## Binding the commit guard (unreleased)
+
+For an already prepared and verified index, explicitly bind the local guard:
+
+```sh
+dracon-sync storage setup-guard \
+  --repo /path/to/repo --repo-id "$REPO_ID" \
+  --metadata-root /private/storage-metadata \
+  --manifest-path .dracon/assets.manifest
+
+dracon-sync storage verify-configured-index --repo /path/to/repo
+```
+
+Setup verifies references and staged attributes before saving local configuration.
+It pins the invoked Sync executable, private metadata root and manifest path,
+then publishes the version marker last. Repeating the same binding is harmless;
+a different active binding requires explicit maintenance. No driver, attributes,
+hooks, upload or enrollment is installed by this command.
+
+The source daemon now commits configured storage repositories through a direct
+validated-tree path because libgit2 commits bypass pre-commit hooks. It holds an
+owned Git index lock while validating and committing the immutable tree; foreign
+locks and rejected index/worktree contents are preserved. Its own lock can be
+recovered after process death. Ordinary repositories retain their existing path.
+A storage driver without the explicit guard binding blocks this commit path.
+
+The new Warden pre-commit template invokes the pinned guard after existing user
+hooks, propagates failure and retains Warden encryption checks. Installing that
+new template is a separate deployment step. Manual checks honor Git's alternate
+index; daemon commits inspect the canonical index. A repo UUID alone does not
+activate storage. These checks establish local index correspondence; they do not
+certify backend availability. Outgoing-history/push protection, production
+attribute/filter composition and enrollment remain unfinished. No installed
+fleet binaries or hooks have been changed by this development work.

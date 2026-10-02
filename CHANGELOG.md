@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased storage commit guard binding and configured-index verification.
+  Configured daemon commits validate the immutable staged tree under an owned
+  Git index lock, including bootstrap commits, instead of relying on hooks that
+  libgit2 bypasses. Binding setup does not install filters or transfer data.
+
 - Optional storage policy and read-only `storage plan`, `storage validate`, and
   redacted `storage status` previews for generic repositories. External placement
   remains disabled by default; these commands do not upload or change Git data.
