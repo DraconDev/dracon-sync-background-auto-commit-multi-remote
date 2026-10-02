@@ -163,6 +163,11 @@ async fn hydrate_checked_out_version_uses_required_clean_and_preserves_edits() {
         source
     );
     assert!(!f.temp.path().join("recovered").exists());
+    std::fs::rename(
+        f.temp.path().join("recovery-offline"),
+        f.temp.path().join("recovery"),
+    )
+    .unwrap();
     std::fs::write(
         f.repo.join("asset [version].bin"),
         b"operator edit preserved",
