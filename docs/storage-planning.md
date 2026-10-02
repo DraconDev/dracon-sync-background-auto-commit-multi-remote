@@ -293,3 +293,49 @@ activate storage. These checks establish local index correspondence; they do not
 certify backend availability. Outgoing-history/push protection, production
 attribute/filter composition and enrollment remain unfinished. No installed
 fleet binaries or hooks have been changed by this development work.
+
+
+## Importing protected metadata on a cold checkout (unreleased)
+
+A fresh clone has committed ciphertext, but no locally prepared metadata cache.
+Explicitly bind the checkout to the backed-up repository ID, then import a
+committed manifest with the authorized Warden keys:
+
+```sh
+git -C /path/to/cold-checkout config --local dracon.storageRepoId "$REPO_ID"
+dracon-sync storage import-manifest \
+  --repo /path/to/cold-checkout --repo-id "$REPO_ID" \
+  --metadata-root /private/cold-metadata \
+  --manifest-path .dracon/assets.manifest --revision HEAD \
+  --policy-sha256 "$IMPORT_POLICY_SHA256" \
+  --warden /absolute/path/to/dracon-warden \
+  --identity-home /path/to/authorized-identity-home
+```
+
+The repository ID and policy digest come from operator-approved recovery
+bindings, not from an untrusted manifest. The identity-home option uses existing
+keys; importing never creates keys. Omit it to use Warden's existing identity
+configuration. The default processing deadline is 30 seconds; `--timeout-secs`
+sets a positive explicit override.
+
+Import pins the selected commit and reads its ordinary-file Git blob, ignoring
+unstaged manifest edits and alternate indexes. It checks the ciphertext's exact
+length/digest and age header, decrypts into anonymous private temporary files,
+then validates canonical bounded metadata and its repository ID before retaining
+an approved cache record. Current support is for age-protected metadata only.
+Neither an enrollment nor a backend identifier grants network access.
+
+Imported records include ciphertext in their private identity, so independent
+ciphertext versions of the same manifest coexist without replacing locally
+prepared records. Existing version-1 record encodings/identities remain valid.
+Limits and corrupted/ambiguous cache records fail closed; previous versions are
+never evicted to make room. Interrupted approval/publication resumes from the
+exact retained bytes. Timeout/cancellation terminates the owned Unix security
+process group and releases the namespace lease.
+
+This command creates only the requested private cache and its runtime markers.
+It does not hydrate assets, change working assets/index, install filters/hooks,
+activate guard bindings, upload or verify backend copies. Importing a manifest
+also does not certify that the selected commit's pointers match it: use the
+independent guard after explicitly binding the intended index. Packaged asset
+hydration and outgoing-history validation remain separate unfinished gates.

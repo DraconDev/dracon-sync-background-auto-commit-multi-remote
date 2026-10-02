@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased `storage import-manifest` rebuilds a private protected-metadata
+  cache from an explicitly selected Git commit and authorized Warden keys.
+  Imported ciphertext versions coexist with original preparations; canonical
+  decoding, identity checks, bounded I/O and resumable approval fail closed.
+  This does not hydrate assets, grant backend access or install filters/hooks.
+  Warden adapter cancellation/timeout now terminates its owned Unix process
+  group, including descendants holding pipes. The existing locked `tempfile`
+  dependency is also used at runtime for anonymous private import spools.
+
 - Unreleased storage commit guard binding and configured-index verification.
   Configured daemon commits validate the immutable staged tree under an owned
   Git index lock, including bootstrap commits, instead of relying on hooks that

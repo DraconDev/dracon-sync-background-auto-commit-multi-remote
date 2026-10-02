@@ -243,3 +243,17 @@ working-source races, outgoing commit/push enforcement, cold metadata import
 and scalable/budgeted worker scheduling retain their roadmap scope. Local
 catalog scans are correctness infrastructure; performance qualification remains
 required before enabling high-churn fleet-wide use.
+
+
+## Cold import evidence and cache identity
+
+The unreleased import path decrypts exact committed age ciphertext into private
+unpublished temporary files, requires the canonical version-1 manifest encoding
+and approved repository binding, and retains immutable source/ciphertext proof.
+Import approval is correspondence evidence, not enrollment/backend authorization.
+Imported private cache specifications use version 2 and include the ciphertext
+fingerprint in their identity; original version-1 specifications omit the new
+optional field and retain their original serialization and IDs. This does not
+change the portable committed manifest format. Repeated imports preserve record
+bytes; separate ciphertext versions do not replace one another. Aggregate limits,
+crash recovery and ambiguity refusal apply across both cache record kinds.
