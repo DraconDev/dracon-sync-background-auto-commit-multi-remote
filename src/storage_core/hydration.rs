@@ -501,7 +501,9 @@ fn identity(file: &File) -> Result<(u64, u64)> {
 }
 fn transaction_id(intent: &Intent) -> Result<String> {
     let raw = serde_json::to_vec(intent)?;
-    if raw.len() > 16 * 1024 { bail!("hydration intent exceeds budget"); }
+    if raw.len() > 16 * 1024 {
+        bail!("hydration intent exceeds budget");
+    }
     let mut hash = Sha256::new();
     hash.update(b"dracon-checkout-hydration-v1\0");
     hash.update(raw);

@@ -311,6 +311,9 @@ pub(crate) enum StorageCommand {
         recovery: RecoveryOptions,
         #[arg(long)]
         hydration_root: PathBuf,
+        /// Resume a matching retained local transaction without fetching/decrypting.
+        #[arg(long)]
+        resume_local: bool,
     },
     /// Import authenticated committed metadata into a private cold-recovery cache.
     ImportManifest {
@@ -1160,12 +1163,13 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
 mod tests;
 
 async fn restore_asset(command: &StorageCommand) -> Result<()> {
-    let (options, hydration_root) = match command {
-        StorageCommand::RestoreAsset(options) => (options, None),
+    let (options, hydration_root, resume_local) = match command {
+        StorageCommand::RestoreAsset(options) => (options, None, false),
         StorageCommand::Hydrate {
             recovery,
             hydration_root,
-        } => (recovery, Some(hydration_root)),
+            resume_local,
+        } => (recovery, Some(hydration_root), *resume_local),
         _ => unreachable!("recovery command was matched"),
     };
     let RecoveryOptions {
@@ -1240,8 +1244,24 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         if repository.head()?.peel_to_commit()?.id() != commit.id() {
             bail!("hydrate requires the selected checked-out commit; use restore-asset for historical recovery");
         }
-        if !verify_configured_index(&repo, false)? {
-            bail!("hydrate requires an explicitly configured storage guard");
+        verify_hydration_binding(&repo, repo_id, metadata_root, manifest_path)?;
+        if resume_local {
+            #[cfg(target_os = "linux")]
+            {
+                let root = hydration_root.context("hydration root missing")?;
+                let hydrated = dracon_sync::storage_core::hydration::HydrationStore::open(root, repo_id, Limits {
+                    max_snapshot_bytes: *max_output_bytes,
+                    max_retained_snapshot_bytes: *max_retained_bytes,
+                    ..Limits::default()
+                })?.resume(&repository, manifest_path, path, |_| {
+                    verify_hydration_binding(&repo, repo_id, metadata_root, manifest_path)
+                }).with_context(|| format!("local hydration resume refused; retained transaction files preserved under {}", root.display()))?;
+                println!("Verified local hydration at {}", hydrated.path().display());
+                if let Some(backup) = hydrated.backup() {
+                    println!("Original retained at {}", backup.display());
+                }
+                return Ok(());
+            }
         }
     }
     let tree = commit.tree()?;
@@ -1354,8 +1374,7 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
                 max_retained_snapshot_bytes: *max_retained_bytes,
                 ..Limits::default()
             })?.hydrate(&repository, &restored, manifest_path, commit.id(), |_| {
-                if !verify_configured_index(&repo, false)? { bail!("hydrate requires the storage guard binding"); }
-                Ok(())
+                verify_hydration_binding(&repo, repo_id, metadata_root, manifest_path)
             }).with_context(|| format!("hydration refused; retained recovery/transaction files preserved under {} and {}", restore_root.display(), hydration_root.display()))?;
             println!(
                 "Verified hydration: {} bytes at {}",
@@ -1373,6 +1392,26 @@ async fn restore_asset(command: &StorageCommand) -> Result<()> {
         restored.bytes(),
         restored.path().display()
     );
+    Ok(())
+}
+
+fn verify_hydration_binding(
+    repo: &Path,
+    repo_id: &str,
+    metadata_root: &Path,
+    manifest_path: &Path,
+) -> Result<()> {
+    let binding = configured_guard(repo, false)?
+        .context("hydrate requires an explicitly configured storage guard")?;
+    if binding.repo_id != repo_id
+        || binding.metadata_root.canonicalize()? != metadata_root.canonicalize()?
+        || binding.manifest_path != manifest_path
+    {
+        bail!("hydration arguments and configured storage guard disagree");
+    }
+    if !verify_configured_index(repo, false)? {
+        bail!("hydrate requires the storage guard binding");
+    }
     Ok(())
 }
 
