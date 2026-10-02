@@ -67,10 +67,11 @@ Synthetic transport tests cover new and existing full readback, unchanged corrup
 existing objects, conflicting writes, failed readback, source failures, provider
 body failures, destination failures and byte budgets. A seekable private-file
 transport exercises a 101 MiB stream with 64 KiB read requests and exact readback
-without a payload-sized memory buffer. Nine adapter tests additionally check two published AWS signatures, actual
+without a payload-sized memory buffer. Thirteen adapter tests additionally check two published AWS signatures, actual
 loopback HTTP headers/body/path/readback, session-token signing and expiry,
 conditional conflicts, redacted provider errors, response lengths, partial/encoded
-responses, redirect refusal and a total deadline under trickled bytes. Loopback
+responses, redirect refusal, a total deadline under trickled bytes, competing
+creates, conflicting-write/readback integrity and scoped approval expiry. Loopback
 HTTP is accessible only through the private test constructor; production
 construction rejects plaintext HTTP. These tests prove protocol and signing
 behavior, not an endpoint capability certificate. A separate operational cold-clone test now exercises actual signed HTTPS CLI
