@@ -104,19 +104,28 @@ impl RestoreStore {
         hash.update(self.repo_id.as_bytes());
         hash.update(serde_json::to_vec(enrollment)?);
         let id = format!("{:x}", hash.finalize());
-        let versions: std::collections::BTreeSet<_> = std::fs::read_dir(&self.directory)?
-            .map(|entry| entry.map(|entry| entry.path()))
-            .collect::<std::io::Result<Vec<_>>>()?
-            .into_iter()
-            .filter(|path| {
-                path.extension()
-                    .is_some_and(|ext| ext == "source" || ext == "capture")
-            })
-            .filter_map(|path| path.file_stem().map(|stem| stem.to_owned()))
-            .collect();
-        if versions.len() > self.limits.max_records
-            || versions.len() == self.limits.max_records
-                && !versions.contains(std::ffi::OsStr::new(&id))
+        let mut versions = std::collections::BTreeSet::new();
+        let mut scanned = 0usize;
+        for entry in std::fs::read_dir(&self.directory)? {
+            scanned = scanned.saturating_add(1);
+            if scanned > self.limits.max_records.saturating_mul(4).saturating_add(32) {
+                bail!(BackendFailure::Capacity);
+            }
+            let path = entry?.path();
+            if path
+                .extension()
+                .is_some_and(|ext| ext == "source" || ext == "capture")
+            {
+                if let Some(stem) = path.file_stem() {
+                    versions.insert(stem.to_owned());
+                }
+                if versions.len() > self.limits.max_records {
+                    bail!(BackendFailure::Capacity);
+                }
+            }
+        }
+        if versions.len() == self.limits.max_records
+            && !versions.contains(std::ffi::OsStr::new(&id))
         {
             bail!(BackendFailure::Capacity);
         }
