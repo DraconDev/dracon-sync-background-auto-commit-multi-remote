@@ -18,7 +18,7 @@ pub(crate) async fn push_https_fallback(
     if let Some(https) = super::github_https_url(remote_url) {
         let result = super::run_git_with_timeout_env_progress(
             repo,
-            &["push", "--no-verify", &https, refspec],
+            &["push", &https, refspec],
             timeout_secs,
             &format!("{}-github-https", op_label),
             no_prompt,
@@ -36,7 +36,7 @@ pub(crate) async fn push_https_fallback(
                     let _askpass_guard = super::AskpassScript::new(askpass.clone());
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
-                        &["push", "--no-verify", &https, refspec],
+                        &["push", &https, refspec],
                         timeout_secs,
                         &format!("{}-gitlab-https", op_label),
                         &[
@@ -63,7 +63,7 @@ pub(crate) async fn push_https_fallback(
                     let _askpass_guard = super::AskpassScript::new(askpass.clone());
                     let result = super::run_git_with_timeout_env_progress(
                         repo,
-                        &["push", "--no-verify", &https, refspec],
+                        &["push", &https, refspec],
                         timeout_secs,
                         &format!("{}-codeberg-https", op_label),
                         &[
@@ -125,7 +125,7 @@ pub(crate) async fn push_with_transport_fallbacks(
     };
     match super::run_git_with_timeout_env_progress(
         repo,
-        &["push", "--no-verify", "origin", &ssh_refspec],
+        &["push", "origin", &ssh_refspec],
         timeout_secs,
         &format!("{op_label}-ssh-hardened"),
         &[
@@ -200,7 +200,7 @@ pub(crate) async fn push_with_retries(
         };
         match super::run_git_with_timeout_env_progress(
             repo,
-            &["push", "--no-verify", "origin", &ssh_refspec],
+            &["push", "origin", &ssh_refspec],
             timeout_secs,
             op_label,
             &[
@@ -521,7 +521,7 @@ pub(crate) async fn force_push_after_rewrite(
     let ssh_hardening = crate::git::git_ssh_hardening();
     super::run_git_with_timeout_env_progress(
         repo,
-        &["push", "--no-verify", &lease_flag, remote, &refspec],
+        &["push", &lease_flag, remote, &refspec],
         timeout_secs,
         &format!("push-after-rewrite ({})", remote),
         &[

@@ -652,7 +652,7 @@ async fn push_to_named_remote_inner(
 
     let attempt_ssh = run_git_with_timeout_env_progress(
         repo,
-        &["push", "--no-verify", remote_name, &refspec],
+        &["push", remote_name, &refspec],
         timeout_secs,
         &format!("push-to-{}", remote_name),
         &[
@@ -688,7 +688,7 @@ async fn push_to_named_remote_inner(
         // is safe for both attached and detached HEADs.
         match run_git_with_timeout_env_progress(
             repo,
-            &["push", "--no-verify", remote_name, &refspec],
+            &["push", remote_name, &refspec],
             timeout_secs,
             &format!("push-to-{}", remote_name),
             &[
@@ -717,7 +717,6 @@ async fn push_to_named_remote_inner(
                                 &[
                                     "push",
                                     "--force-with-lease",
-                                    "--no-verify",
                                     remote_name,
                                     &format!("HEAD:refs/heads/{}", branch),
                                 ],
