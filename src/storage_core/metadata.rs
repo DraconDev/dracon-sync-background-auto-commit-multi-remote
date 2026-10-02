@@ -42,18 +42,34 @@ struct Spec {
     repo_id: String,
     source: Fingerprint,
     policy_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    imported_payload: Option<Fingerprint>,
 }
 
 impl Spec {
     fn id(&self) -> Result<String> {
-        if self.version != 1 || self.source.bytes() > MAX_MANIFEST_BYTES as u64 {
-            bail!("unsupported protected metadata specification");
+        match (self.version, &self.imported_payload) {
+            (1, None) => {}
+            (2, Some(payload)) => {
+                payload.validate()?;
+                if payload.bytes() > MAX_PROTECTED_MANIFEST_BYTES {
+                    bail!(BackendFailure::Capacity);
+                }
+            }
+            _ => bail!("unsupported protected metadata specification"),
+        }
+        if self.source.bytes() > MAX_MANIFEST_BYTES as u64 {
+            bail!(BackendFailure::Capacity);
         }
         validate_sha256(&self.repo_id)?;
         validate_sha256(&self.policy_sha256)?;
         self.source.validate()?;
         let mut hash = Sha256::new();
-        hash.update(b"dracon-protected-manifest-v1\0");
+        hash.update(if self.version == 1 {
+            &b"dracon-protected-manifest-v1\0"[..]
+        } else {
+            &b"dracon-imported-manifest-v1\0"[..]
+        });
         hash.update(serde_json::to_vec(self)?);
         Ok(format!("{:x}", hash.finalize()))
     }
@@ -78,6 +94,14 @@ impl Record {
             bail!("invalid protected metadata approval state");
         }
         if let Some(identity) = &self.approved {
+            if self
+                .spec
+                .imported_payload
+                .as_ref()
+                .is_some_and(|expected| expected != identity)
+            {
+                bail!(BackendFailure::Integrity);
+            }
             identity.validate()?;
             if identity.bytes() > MAX_PROTECTED_MANIFEST_BYTES {
                 bail!(BackendFailure::Capacity);
@@ -186,6 +210,7 @@ impl MetadataStore {
             repo_id: self.repo_id.clone(),
             source: Fingerprint::new(format!("{:x}", Sha256::digest(&raw)), raw.len() as u64)?,
             policy_sha256: policy_sha256.into(),
+            imported_payload: None,
         };
         let id = spec.id()?;
         let _lease = journal::try_lock(&self.directory.join(format!("{id}.lock")))?;
@@ -260,6 +285,99 @@ impl MetadataStore {
         metadata_crash("after-metadata-approval");
         self.finish(&mut record)?;
         record.prepared()
+    }
+
+    /// Authenticate and retain exact committed ciphertext on a cold machine.
+    /// Caller-selected repo/policy/Warden bindings are required; decoded contents
+    /// never grant enrollment, backend access, staging or ownership permission.
+    /// Output stays private until decryption, canonical decoding and repo checks
+    /// succeed. Imported record IDs include ciphertext, preserving all versions.
+    pub async fn import(
+        &self,
+        input: &mut dyn Read,
+        payload: &Fingerprint,
+        policy_sha256: &str,
+        adapter: &WardenAdapter,
+    ) -> Result<(PreparedMetadata, Manifest)> {
+        adapter.require_repo(&self.repo_id)?;
+        validate_sha256(policy_sha256)?;
+        payload.validate()?;
+        if payload.bytes() > self.limits.max_payload_bytes {
+            bail!(BackendFailure::Capacity);
+        }
+        journal::runtime::protect(&self.directory)?;
+        // Bound transient disk use to one import per namespace. Anonymous files
+        // disappear after cancellation/process death and never enter Git.
+        let _import = journal::try_lock(&self.directory.join("import.lock"))?;
+        let mut ciphertext = tempfile::tempfile_in(&self.directory)?;
+        copy_exact(input, &mut ciphertext, payload)?;
+        require_age_header(&mut ciphertext).map_err(|_| BackendFailure::Security)?;
+        ciphertext.seek(SeekFrom::Start(0))?;
+        let mut decoded = tempfile::tempfile_in(&self.directory)?;
+        let source = adapter
+            .decrypt(
+                ciphertext.try_clone()?,
+                payload.bytes(),
+                &mut decoded,
+                self.limits.max_snapshot_bytes,
+            )
+            .await?;
+        decoded.seek(SeekFrom::Start(0))?;
+        let mut raw = Vec::new();
+        decoded
+            .take(MAX_MANIFEST_BYTES as u64 + 1)
+            .read_to_end(&mut raw)?;
+        let manifest = Manifest::parse_private(&raw)?;
+        if manifest.repo_id() != self.repo_id || manifest.encode_private()? != raw {
+            bail!(BackendFailure::Security);
+        }
+        // Recheck the private input after the subprocess before retaining proof.
+        ciphertext.seek(SeekFrom::Start(0))?;
+        copy_exact(&mut ciphertext, &mut std::io::sink(), payload)?;
+        let spec = Spec {
+            version: 2,
+            repo_id: self.repo_id.clone(),
+            source,
+            policy_sha256: policy_sha256.into(),
+            imported_payload: Some(payload.clone()),
+        };
+        let id = spec.id()?;
+        let _lease = journal::try_lock(&self.path(&id, "lock"))?;
+        let mut record = self.create_or_load(spec)?;
+        if record.failure.is_some() {
+            bail!("import record requires explicit intervention");
+        }
+        if record.phase == Phase::PendingCapture {
+            journal::retain_snapshot(
+                &self.directory,
+                &id,
+                SnapshotKind::Source,
+                self.limits,
+                &mut raw.as_slice(),
+                &record.spec.source,
+            )?;
+            record.phase = Phase::Captured;
+            self.save(&mut record)?;
+        }
+        ciphertext.seek(SeekFrom::Start(0))?;
+        journal::retain_snapshot(
+            &self.directory,
+            &id,
+            SnapshotKind::Payload,
+            self.limits,
+            &mut ciphertext,
+            payload,
+        )?;
+        if record.approved.is_none() {
+            metadata_crash("before-import-approval");
+            record.approved = Some(payload.clone());
+            self.save(&mut record)?;
+            metadata_crash("after-import-approval");
+        }
+        self.finish(&mut record)?;
+        let prepared = record.prepared()?;
+        self.check_manifest(&prepared, &manifest)?;
+        Ok((prepared, manifest))
     }
 
     /// Open verified retained ciphertext for the future Git transaction.
@@ -511,6 +629,34 @@ impl MetadataStore {
     }
 }
 
+fn copy_exact(
+    input: &mut dyn Read,
+    output: &mut dyn std::io::Write,
+    expected: &Fingerprint,
+) -> Result<()> {
+    let mut total = 0u64;
+    let mut digest = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let count = input.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        total = total
+            .checked_add(count as u64)
+            .ok_or(BackendFailure::Capacity)?;
+        if total > expected.bytes() {
+            bail!(BackendFailure::Integrity);
+        }
+        digest.update(&buffer[..count]);
+        output.write_all(&buffer[..count])?;
+    }
+    if total != expected.bytes() || format!("{:x}", digest.finalize()) != expected.sha256() {
+        bail!(BackendFailure::Integrity);
+    }
+    Ok(())
+}
+
 fn metadata_failure(error: &anyhow::Error) -> FailureCode {
     if error.downcast_ref::<BackendFailure>().is_some()
         || error.downcast_ref::<std::io::Error>().is_some()
@@ -614,6 +760,7 @@ mod tests {
             source: Fingerprint::new(format!("{:x}", Sha256::digest(&raw)), raw.len() as u64)
                 .unwrap(),
             policy_sha256: "b".repeat(64),
+            imported_payload: None,
         }
         .id()
         .unwrap()

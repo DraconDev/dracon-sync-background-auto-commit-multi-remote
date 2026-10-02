@@ -126,13 +126,47 @@ impl WardenAdapter {
         output_file: &mut File,
         capacity: u64,
     ) -> Result<Fingerprint> {
+        self.transform_mode(source, source_bytes, output_file, capacity, false)
+            .await
+    }
+
+    /// Authenticated decryption into caller-owned private unpublished output.
+    pub(crate) async fn decrypt(
+        &self,
+        mut source: File,
+        source_bytes: u64,
+        output_file: &mut File,
+        capacity: u64,
+    ) -> Result<Fingerprint> {
+        require_age_header(&mut source).map_err(|_| BackendFailure::Security)?;
+        source.seek(SeekFrom::Start(0))?;
+        self.transform_mode(source, source_bytes, output_file, capacity, true)
+            .await
+    }
+
+    async fn transform_mode(
+        &self,
+        source: File,
+        source_bytes: u64,
+        output_file: &mut File,
+        capacity: u64,
+        decrypt: bool,
+    ) -> Result<Fingerprint> {
         let mut command = tokio::process::Command::new(&self.executable);
         command
-            .arg("storage-encrypt")
+            .arg(if decrypt {
+                "storage-decrypt"
+            } else {
+                "storage-encrypt"
+            })
             .arg("--repo")
             .arg(&self.repo)
             .arg("--max-bytes")
-            .arg(source_bytes.max(1).to_string())
+            .arg(
+                if decrypt { capacity } else { source_bytes }
+                    .max(1)
+                    .to_string(),
+            )
             .current_dir(&self.repo)
             .stdin(Stdio::from(source))
             .stdout(Stdio::piped())
@@ -148,7 +182,9 @@ impl WardenAdapter {
             if !child.wait().await?.success() {
                 bail!(BackendFailure::Security);
             }
-            require_age_header(output_file).map_err(|_| BackendFailure::Security)?;
+            if !decrypt {
+                require_age_header(output_file).map_err(|_| BackendFailure::Security)?;
+            }
             Ok::<_, anyhow::Error>(identity)
         })
         .await;
