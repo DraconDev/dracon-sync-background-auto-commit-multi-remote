@@ -324,9 +324,14 @@ impl MetadataStore {
     /// Resolve the exact ciphertext indexed by Git to its verified local preparation.
     /// Never selects a newer manifest or silently decrypts unknown ciphertext.
     /// Ambiguous decoded source identities and excessive catalog size fail closed.
-    pub fn load_prepared_payload(&self, payload: &Fingerprint) -> Result<(PreparedMetadata, Manifest)> {
+    pub fn load_prepared_payload(
+        &self,
+        payload: &Fingerprint,
+    ) -> Result<(PreparedMetadata, Manifest)> {
         payload.validate()?;
-        if payload.bytes() > MAX_PROTECTED_MANIFEST_BYTES { bail!(BackendFailure::Capacity); }
+        if payload.bytes() > MAX_PROTECTED_MANIFEST_BYTES {
+            bail!(BackendFailure::Capacity);
+        }
         let mut count = 0;
         let mut selected: Option<(String, Fingerprint)> = None;
         for entry in std::fs::read_dir(&self.directory)? {
@@ -348,8 +353,12 @@ impl MetadataStore {
             }
             record.prepared()?;
             if let Some((selected_id, source)) = &mut selected {
-                if *source != record.spec.source { bail!(BackendFailure::Integrity); }
-                if id < selected_id.as_str() { *selected_id = id.to_owned(); }
+                if *source != record.spec.source {
+                    bail!(BackendFailure::Integrity);
+                }
+                if id < selected_id.as_str() {
+                    *selected_id = id.to_owned();
+                }
             } else {
                 selected = Some((id.to_owned(), record.spec.source));
             }

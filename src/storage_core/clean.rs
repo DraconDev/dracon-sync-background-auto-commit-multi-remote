@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 
 use super::backend::BackendFailure;
-use super::journal::{JobLease, Phase};
+use super::journal::{eligible_clean, matches_enrollment, JobLease};
 use super::manifest::Manifest;
 use super::metadata::{MetadataStore, PreparedMetadata};
 use super::reference::{Fingerprint, Pointer};
@@ -37,26 +37,15 @@ impl<'a> PreparedClean<'a> {
         let job = lease.load()?;
         if job.spec().repo_id != manifest.repo_id()
             || job.spec().path_hex != path_hex
-            || !matches!(
-                job.phase(),
-                Phase::ReadyToStage | Phase::Staged | Phase::Committed | Phase::Preserved
-            )
-            || job.failure().is_some()
+            || !eligible_clean(&job)
         {
             bail!("asset has no eligible exact-version clean reference");
         }
         let enrolled = manifest
             .enrollment(path_hex)
             .ok_or(BackendFailure::Security)?;
-        let mut copies = job.spec().required_copies.clone();
-        copies.sort();
         let pointer = Pointer::new(job.payload().cloned().ok_or(BackendFailure::Integrity)?)?;
-        if enrolled.contract_sha256 != job.spec().policy_sha256
-            || enrolled.primary != job.spec().primary
-            || enrolled.required_copies != copies
-            || enrolled.encryption != job.spec().encryption
-            || !enrolled.matches_pointer(&pointer)
-        {
+        if !matches_enrollment(&job, enrolled) {
             bail!(BackendFailure::Security);
         }
         lease.source_snapshot()?;

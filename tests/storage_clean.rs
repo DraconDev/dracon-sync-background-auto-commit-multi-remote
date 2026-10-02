@@ -156,12 +156,8 @@ async fn fixture_path(asset_path: &[u8]) -> Fixture {
         journal_root.to_str().unwrap().into(),
         "--metadata-root".into(),
         metadata_root.to_str().unwrap().into(),
-        "--metadata-id".into(),
-        prepared.id().into(),
         "--manifest-path".into(),
         ".dracon/assets.manifest".into(),
-        "--job-id".into(),
-        job.id().into(),
     ];
     let driver = std::iter::once(env!("CARGO_BIN_EXE_dracon-sync").to_owned())
         .chain(args.iter().cloned())

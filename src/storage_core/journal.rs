@@ -827,6 +827,25 @@ fn crash_point(phase: &str) {
     }
 }
 
+pub(crate) fn eligible_clean(job: &Job) -> bool {
+    matches!(
+        job.phase,
+        Phase::ReadyToStage | Phase::Staged | Phase::Committed | Phase::Preserved
+    ) && job.failure.is_none()
+}
+
+pub(crate) fn matches_enrollment(job: &Job, enrolled: &super::manifest::Enrollment) -> bool {
+    let mut copies = job.spec.required_copies.clone();
+    copies.sort();
+    job.spec.path_hex == enrolled.path_hex
+        && job.spec.policy_sha256 == enrolled.contract_sha256
+        && job.spec.primary == enrolled.primary
+        && copies == enrolled.required_copies
+        && job.spec.encryption == enrolled.encryption
+        && enrolled.payload.is_some()
+        && job.payload.as_ref() == enrolled.payload.as_ref()
+}
+
 impl Journal {
     /// Create/open a private namespace. No existing records or payloads are deleted.
     pub fn open(root: &Path, repo_id: &str, limits: Limits) -> Result<Self> {
@@ -868,26 +887,48 @@ impl Journal {
     /// Resolve and lease the exact prepared version named by an approved manifest.
     /// Scans only bounded private local records; no source bytes or backend I/O.
     /// Historical indexed versions are selected exactly, never by recency.
-    pub fn lease_enrolled(&self, manifest: &super::manifest::Manifest, path_hex: &str) -> Result<JobLease> {
-        if manifest.repo_id() != self.repo_id { bail!("manifest repository binding mismatch"); }
+    pub fn lease_enrolled(
+        &self,
+        manifest: &super::manifest::Manifest,
+        path_hex: &str,
+    ) -> Result<JobLease> {
+        if manifest.repo_id() != self.repo_id {
+            bail!("manifest repository binding mismatch");
+        }
         validate_path_hex(path_hex)?;
-        let enrolled = manifest.enrollment(path_hex).context("path is not enrolled")?;
-        if enrolled.payload.is_none() { bail!("deleted path has no clean reference"); }
+        let enrolled = manifest
+            .enrollment(path_hex)
+            .context("path is not enrolled")?;
+        if enrolled.payload.is_none() {
+            bail!("deleted path has no clean reference");
+        }
         let mut selected: Option<Job> = None;
         let mut count = 0;
         for entry in std::fs::read_dir(&self.directory)? {
             let path = entry?.path();
-            if path.extension().is_none_or(|extension| extension != "json") { continue; }
+            if path.extension().is_none_or(|extension| extension != "json") {
+                continue;
+            }
             count += 1;
-            if count > self.limits.max_records { bail!(super::backend::BackendFailure::Capacity); }
+            if count > self.limits.max_records {
+                bail!(super::backend::BackendFailure::Capacity);
+            }
             let job = read_job(&path)?;
-            if path.file_stem().and_then(|id| id.to_str()) != Some(job.id()) || job.spec.repo_id != self.repo_id {
+            if path.file_stem().and_then(|id| id.to_str()) != Some(job.id())
+                || job.spec.repo_id != self.repo_id
+            {
                 bail!("journal record identity mismatch");
             }
-            if !eligible_clean(&job) || !matches_enrollment(&job, enrolled) { continue; }
+            if !eligible_clean(&job) || !matches_enrollment(&job, enrolled) {
+                continue;
+            }
             if let Some(previous) = &selected {
-                if previous.spec.source != job.spec.source { bail!("ambiguous clean source identity"); }
-                if previous.id <= job.id { continue; }
+                if previous.spec.source != job.spec.source {
+                    bail!("ambiguous clean source identity");
+                }
+                if previous.id <= job.id {
+                    continue;
+                }
             }
             selected = Some(job);
         }
