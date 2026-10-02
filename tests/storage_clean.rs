@@ -378,3 +378,167 @@ async fn real_git_clean_preserves_non_utf8_path_identity() {
     );
     assert_eq!(std::fs::read(f.repo.join(&path)).unwrap(), source);
 }
+
+fn enrolled(job: &dracon_sync::storage_core::journal::Job) -> Enrollment {
+    let spec = job.spec();
+    let mut copies = spec.required_copies.clone();
+    copies.sort();
+    Enrollment {
+        path_hex: spec.path_hex.clone(),
+        contract_sha256: spec.policy_sha256.clone(),
+        primary: spec.primary.clone(),
+        required_copies: copies,
+        encryption: spec.encryption,
+        payload: job.payload().cloned(),
+    }
+}
+
+fn record_version(f: &Fixture, path: &[u8], bytes: &[u8]) -> Enrollment {
+    use std::os::unix::ffi::OsStringExt;
+    std::fs::write(
+        f.repo.join(std::ffi::OsString::from_vec(path.to_vec())),
+        bytes,
+    )
+    .unwrap();
+    let fp = Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+    let spec = JobSpec {
+        repo_id: "a".repeat(64),
+        path_hex: encode_relative_path(path).unwrap(),
+        source: fp.clone(),
+        policy_sha256: "b".repeat(64),
+        primary: "primary".into(),
+        required_copies: vec!["primary".into(), "recovery".into()],
+        required_git_targets: vec!["github".into()],
+        encryption: Encryption::None,
+    };
+    let job = f.journal.create(spec).unwrap();
+    let lease = f.journal.lease(job.id()).unwrap();
+    lease.capture_snapshot(&mut &bytes[..]).unwrap();
+    lease.retain_payload(&mut &bytes[..], &fp).unwrap();
+    let primary = LocalBackend::open(&f.temp.path().join("primary"), 1024).unwrap();
+    let recovery = LocalBackend::open(&f.temp.path().join("recovery"), 1024).unwrap();
+    let grants = CopyBindings::new(
+        "a".repeat(64),
+        BTreeMap::from([
+            (
+                "primary".into(),
+                ApprovedBackend::for_security(&primary, vec![Encryption::None]).unwrap(),
+            ),
+            (
+                "recovery".into(),
+                ApprovedBackend::for_security(&recovery, vec![Encryption::None]).unwrap(),
+            ),
+        ]),
+    )
+    .unwrap();
+    transfer_copies(&lease, &grants, 1).unwrap();
+    enrolled(&lease.load().unwrap())
+}
+
+async fn index_manifest(f: &Fixture, entries: Vec<Enrollment>) {
+    use std::io::Read;
+    let manifest = Manifest::new("a".repeat(64), entries).unwrap();
+    let store = MetadataStore::open(
+        &f.temp.path().join("metadata"),
+        manifest.repo_id(),
+        Limits::default(),
+    )
+    .unwrap();
+    let adapter = WardenAdapter::new(
+        &f.temp.path().join("warden-fixture"),
+        &f.repo,
+        manifest.repo_id(),
+        Duration::from_secs(5),
+    )
+    .unwrap();
+    let prepared = store
+        .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+        .await
+        .unwrap();
+    let mut bytes = Vec::new();
+    store
+        .open_prepared(&prepared)
+        .unwrap()
+        .read_to_end(&mut bytes)
+        .unwrap();
+    std::fs::write(f.repo.join(".dracon/assets.manifest"), bytes).unwrap();
+    assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
+        .status
+        .success());
+}
+
+#[tokio::test]
+async fn one_repository_driver_selects_multiple_paths_and_exact_historical_versions() {
+    let f = fixture().await;
+    let driver = git(&f.repo, &["config", "--get", "filter.dracon-storage.clean"]).stdout;
+    let old_source = std::fs::read(f.repo.join("asset [version].bin")).unwrap();
+    let old_metadata = std::fs::read(f.repo.join(".dracon/assets.manifest")).unwrap();
+    let old = enrolled(&f.journal.lease(&f.job).unwrap().load().unwrap());
+    let second = record_version(&f, b"second.bin", b"independently prepared second asset");
+    index_manifest(&f, vec![old, second.clone()]).await;
+    let first_add = git(&f.repo, &["add", "--", "asset [version].bin", "second.bin"]);
+    assert!(
+        first_add.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first_add.stderr)
+    );
+    assert_eq!(
+        git(&f.repo, &["show", ":second.bin"]).stdout,
+        Pointer::new(second.payload.clone().unwrap())
+            .unwrap()
+            .encode()
+    );
+    let newer = record_version(
+        &f,
+        b"asset [version].bin",
+        b"newer prepared first asset version",
+    );
+    index_manifest(&f, vec![newer.clone(), second]).await;
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(
+        git(&f.repo, &["show", ":asset [version].bin"]).stdout,
+        Pointer::new(newer.payload.unwrap()).unwrap().encode()
+    );
+    assert_eq!(
+        git(&f.repo, &["config", "--get", "filter.dracon-storage.clean"]).stdout,
+        driver
+    );
+    // An older indexed manifest selects its older local version, even with
+    // newer prepared sources retained. It must not silently bless newer bytes.
+    std::fs::write(f.repo.join(".dracon/assets.manifest"), old_metadata).unwrap();
+    assert!(git(&f.repo, &["add", "--", ".dracon/assets.manifest"])
+        .status
+        .success());
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    std::fs::write(f.repo.join("asset [version].bin"), old_source).unwrap();
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(
+        git(&f.repo, &["show", ":asset [version].bin"]).stdout,
+        f.pointer.encode()
+    );
+    assert!(!git(&f.repo, &["add", "--", "second.bin"]).status.success());
+}
+
+#[tokio::test]
+async fn busy_selected_job_fails_without_selecting_or_creating_another_version() {
+    let f = fixture().await;
+    let lease = f.journal.lease(&f.job).unwrap();
+    let before = std::fs::read(f.repo.join(".git/index")).unwrap();
+    assert!(!git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert_eq!(std::fs::read(f.repo.join(".git/index")).unwrap(), before);
+    assert_eq!(lease.load().unwrap().phase(), Phase::ReadyToStage);
+    drop(lease);
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+}
