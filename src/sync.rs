@@ -10648,6 +10648,110 @@ auto_bump_versions = false
     }
 
     #[tokio::test]
+    async fn test_filter_only_skip_still_pushes_ahead() {
+        // Deathrun 2026-10-02: the late filter-only branch (staged diff
+        // empty after add) returned NothingToDo WITHOUT pushing
+        // pre-existing ahead — 8 commits sat 4h+ unpushed with zero push
+        // attempts while every cycle reported no sync changes. The fix
+        // pushes the backlog first (mirroring the early filter-only
+        // site fix, junk-runner 2026-07-26) while keeping this
+        // branch's NothingToDo outcome contract.
+        let tmp = tempfile::tempdir().unwrap();
+        let origin_bare = tmp.path().join("origin.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "main"])
+            .arg(&origin_bare)
+            .status()
+            .unwrap();
+        let repo = tmp.path().join("filter-only-push-ahead");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [
+            ("user.email", "audit-fixture@invalid"),
+            ("user.name", "test"),
+        ] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        // Empty hooks dir so no global hook runs during the push.
+        let hooks = tmp.path().join("hooks");
+        std::fs::create_dir_all(&hooks).unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "core.hooksPath",
+                &hooks.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        std::fs::write(repo.join("file.txt"), "v1\n").unwrap();
+        git_cmd(&repo, &["add", "file.txt"]);
+        git_cmd(&repo, &["commit", "--no-verify", "-m", "init"]);
+        git_cmd(&repo, &["remote", "add", "origin", &origin_bare.to_string_lossy()]);
+        git_cmd(&repo, &["push", "-q", "-u", "origin", "main"]);
+        // Two ahead commits with real upstream tracking.
+        std::fs::write(repo.join("file.txt"), "v2\n").unwrap();
+        git_cmd(&repo, &["commit", "--no-verify", "-am", "ahead one"]);
+        std::fs::write(repo.join("file.txt"), "v3\n").unwrap();
+        git_cmd(&repo, &["commit", "--no-verify", "-am", "ahead two"]);
+        // Dirty-but-empty-diff state: modify the tracked file, then a
+        // fake index.lock makes `git add` stage nothing (same mechanism
+        // as test_filter_only_reset_failure_is_non_fatal).
+        std::fs::write(repo.join("file.txt"), "v4-dirty\n").unwrap();
+        std::fs::write(repo.join(".git").join("index.lock"), "concurrent").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["audit-fixture@invalid"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+
+        // The ahead commits must reach the origin despite the
+        // filter-only commit skip.
+        let bare_head = crate::git::git_cmd()
+            .args([
+                "--git-dir",
+                &origin_bare.to_string_lossy(),
+                "rev-parse",
+                "main",
+            ])
+            .output()
+            .unwrap();
+        let local_head = crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&bare_head.stdout),
+            String::from_utf8_lossy(&local_head.stdout),
+            "ahead must push even when the commit is skipped as filter-only"
+        );
+        assert!(
+            matches!(
+                result,
+                Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::Synced)
+            ),
+            "filter-only branch keeps its outcome contract, got {:?}",
+            result
+        );
+
+        let _ = std::fs::remove_file(repo.join(".git").join("index.lock"));
+    }
+
+    #[tokio::test]
     async fn test_index_lock_contention_preserves_work_and_recovers() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = init_test_repo(&tmp, "lock-recovery-repo");
