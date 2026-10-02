@@ -838,3 +838,128 @@ async fn actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook() 
         source
     );
 }
+
+#[tokio::test]
+async fn cold_clone_imports_only_committed_manifest_without_original_cache() {
+    let f = fixture().await;
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    for (key, value) in [
+        ("user.name", "DraconDev"),
+        ("user.email", "dracsharp@gmail.com"),
+        ("commit.gpgsign", "false"),
+        ("core.hooksPath", "/dev/null"),
+    ] {
+        assert!(git(&f.repo, &["config", "--local", key, value])
+            .status
+            .success());
+    }
+    assert!(git(
+        &f.repo,
+        &["commit", "--quiet", "-m", "prepared reference and manifest"]
+    )
+    .status
+    .success());
+    let cold = f.temp.path().join("moved-cold-clone");
+    assert!(git(
+        f.temp.path(),
+        &[
+            "-c",
+            "core.hooksPath=/dev/null",
+            "clone",
+            "--quiet",
+            "--no-local",
+            f.repo.to_str().unwrap(),
+            cold.to_str().unwrap()
+        ]
+    )
+    .status
+    .success());
+    assert!(git(
+        &cold,
+        &["config", "--local", "dracon.storageRepoId", &"a".repeat(64)]
+    )
+    .status
+    .success());
+    let binary = f.temp.path().join("decode-fixture");
+    std::fs::write(
+        &binary,
+        "#!/bin/sh\n[ \"$1\" = storage-decrypt ] || exit 99\ntail -n +2\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let root = f.temp.path().join("cold-private-cache");
+    let index_before = std::fs::read(cold.join(".git/index")).unwrap();
+    let pointer_before = std::fs::read(cold.join("asset [version].bin")).unwrap();
+    let committed = std::fs::read(cold.join(".dracon/assets.manifest")).unwrap();
+    // A working-file edit must not substitute for the committed ciphertext.
+    std::fs::write(
+        cold.join(".dracon/assets.manifest"),
+        b"unstaged edit preserved",
+    )
+    .unwrap();
+    let run = || {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .args(["storage", "import-manifest", "--repo"])
+            .arg(&cold)
+            .args(["--repo-id", &"a".repeat(64), "--metadata-root"])
+            .arg(&root)
+            .args([
+                "--manifest-path",
+                ".dracon/assets.manifest",
+                "--policy-sha256",
+                &"b".repeat(64),
+                "--warden",
+            ])
+            .arg(&binary)
+            .output()
+            .unwrap()
+    };
+    let output = run();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let store = MetadataStore::open(&root, &"a".repeat(64), Limits::default()).unwrap();
+    let payload = Fingerprint::new(
+        format!("{:x}", Sha256::digest(&committed)),
+        committed.len() as u64,
+    )
+    .unwrap();
+    let (_, manifest) = store.load_prepared_payload(&payload).unwrap();
+    assert_eq!(manifest.enrollments().len(), 1);
+    assert_eq!(
+        std::fs::read(cold.join(".git/index")).unwrap(),
+        index_before
+    );
+    assert_eq!(
+        std::fs::read(cold.join("asset [version].bin")).unwrap(),
+        pointer_before
+    );
+    assert_eq!(
+        std::fs::read(cold.join(".dracon/assets.manifest")).unwrap(),
+        b"unstaged edit preserved"
+    );
+    assert!(run().status.success());
+    assert!(!git(
+        &cold,
+        &["config", "--local", "--get", "dracon.storageGuardVersion"]
+    )
+    .status
+    .success());
+    assert!(!git(
+        &cold,
+        &["config", "--local", "--get", "filter.dracon-storage.clean"]
+    )
+    .status
+    .success());
+    assert!(git(
+        &cold,
+        &["config", "--local", "dracon.storageRepoId", &"c".repeat(64)]
+    )
+    .status
+    .success());
+    assert!(!run().status.success());
+}

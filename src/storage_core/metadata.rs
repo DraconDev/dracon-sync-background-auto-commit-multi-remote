@@ -294,7 +294,7 @@ impl MetadataStore {
     /// succeed. Imported record IDs include ciphertext, preserving all versions.
     pub async fn import(
         &self,
-        input: &mut dyn Read,
+        input: &mut (dyn Read + Send),
         payload: &Fingerprint,
         policy_sha256: &str,
         adapter: &WardenAdapter,
