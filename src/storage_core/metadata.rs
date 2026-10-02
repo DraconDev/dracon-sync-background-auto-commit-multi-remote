@@ -558,6 +558,54 @@ mod tests {
         (store, manifest, adapter)
     }
 
+    #[tokio::test]
+    async fn ciphertext_selection_refuses_ambiguous_manifests_and_excessive_catalogs() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(temp.path(), APPROVED, Limits::default());
+        let first = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let repeated = store
+            .prepare(&manifest, &"c".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        assert_eq!(first.payload(), repeated.payload());
+        assert!(store.load_prepared_payload(first.payload()).is_ok());
+        let bounded = MetadataStore::open(
+            &temp.path().join("metadata"),
+            &"a".repeat(64),
+            Limits {
+                max_records: 1,
+                ..Limits::default()
+            },
+        )
+        .unwrap();
+        assert!(bounded.load_prepared_payload(first.payload()).is_err());
+        let changed = Manifest::new(
+            "a".repeat(64),
+            vec![super::super::manifest::Enrollment {
+                path_hex: journal::encode_relative_path(b"asset.bin").unwrap(),
+                contract_sha256: "b".repeat(64),
+                primary: "primary".into(),
+                required_copies: vec!["primary".into()],
+                encryption: super::super::journal::Encryption::None,
+                payload: Some(Fingerprint::new("c".repeat(64), 200).unwrap()),
+            }],
+        )
+        .unwrap();
+        // This deliberately constant synthetic subprocess output cannot prove
+        // which decoded manifest belongs to the same alleged ciphertext.
+        let conflicting = store
+            .prepare(&changed, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        assert_eq!(conflicting.payload(), first.payload());
+        assert!(store.load_prepared_payload(first.payload()).is_err());
+        assert!(store.open_prepared(&first).is_ok());
+        assert!(store.open_prepared(&conflicting).is_ok());
+    }
+
     fn id(manifest: &Manifest) -> String {
         let raw = manifest.encode_private().unwrap();
         Spec {

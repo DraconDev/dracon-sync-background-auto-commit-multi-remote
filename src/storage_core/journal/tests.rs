@@ -747,3 +747,71 @@ fn unmarked_nonempty_root_does_not_hide_or_overwrite_existing_user_files() {
     assert!(!root.join(".gitignore").exists());
     assert!(!root.join(".runtime-ignore.lock").exists());
 }
+
+#[test]
+fn enrolled_clean_selection_refuses_ambiguous_sources_and_catalog_over_budget() {
+    use crate::storage_core::manifest::{Enrollment, Manifest};
+    let (temp, journal, mut first) = fixture();
+    {
+        let lease = journal.lease(first.id()).unwrap();
+        prepare(&lease, &mut first);
+        first
+            .record_copy("primary", fingerprint('d', 200), 1)
+            .unwrap();
+        first
+            .record_copy("recovery", fingerprint('d', 200), 1)
+            .unwrap();
+        lease.save(&mut first).unwrap();
+    }
+    let enrolled = Enrollment {
+        path_hex: first.spec.path_hex.clone(),
+        contract_sha256: first.spec.policy_sha256.clone(),
+        primary: "primary".into(),
+        required_copies: vec!["primary".into(), "recovery".into()],
+        encryption: Encryption::WardenAge,
+        payload: Some(fingerprint('d', 200)),
+    };
+    let manifest = Manifest::new("a".repeat(64), vec![enrolled]).unwrap();
+    let lease = journal
+        .lease_enrolled(&manifest, &first.spec.path_hex)
+        .unwrap();
+    assert_eq!(lease.load().unwrap().id(), first.id());
+    drop(lease);
+    let mut other = spec();
+    other.source = fingerprint('e', 100);
+    let mut second = journal.create(other).unwrap();
+    {
+        let lease = journal.lease(second.id()).unwrap();
+        prepare(&lease, &mut second);
+        second
+            .record_copy("primary", fingerprint('d', 200), 1)
+            .unwrap();
+        second
+            .record_copy("recovery", fingerprint('d', 200), 1)
+            .unwrap();
+        lease.save(&mut second).unwrap();
+    }
+    // Synthetic receipt fixtures isolate selection: the public clean constructor
+    // independently verifies retained snapshots before emitting any pointer.
+    assert!(journal
+        .lease_enrolled(&manifest, &first.spec.path_hex)
+        .is_err());
+    let bounded = Journal::open(
+        &temp.path().join("journal"),
+        &"a".repeat(64),
+        Limits {
+            max_records: 1,
+            ..Limits::default()
+        },
+    )
+    .unwrap();
+    assert!(bounded
+        .lease_enrolled(&manifest, &first.spec.path_hex)
+        .is_err());
+    assert_eq!(
+        Journal::inspect(&temp.path().join("journal"), &"a".repeat(64))
+            .unwrap()
+            .records,
+        2
+    );
+}
