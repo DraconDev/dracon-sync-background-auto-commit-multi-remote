@@ -125,10 +125,14 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         std::fs::write(root.path().join("asset"), b"exact retained bytes").unwrap();
         let (mut input, identity) = select_source(root.path(), Path::new("asset"), 20).unwrap();
+        // A path replacement cannot redirect the already selected descriptor.
+        std::fs::remove_file(root.path().join("asset")).unwrap();
+        std::fs::write(root.path().join("asset"), b"newer edits preserved").unwrap();
         let mut bytes = Vec::new();
         input.read_to_end(&mut bytes).unwrap();
         assert_eq!(bytes, b"exact retained bytes");
         assert_eq!(identity.bytes(), 20);
+        assert_eq!(std::fs::read(root.path().join("asset")).unwrap(), b"newer edits preserved");
         assert!(select_source(root.path(), Path::new("asset"), 19).is_err());
     }
     #[test]
