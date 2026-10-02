@@ -4,7 +4,9 @@
 //! Production setup, working-file races and outgoing-commit validation remain
 //! caller responsibilities. Existing raw tracked paths require reviewed migration.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
+#[cfg(not(unix))]
+use anyhow::Context;
 use git2::{Index, IndexEntry, IndexTime, ObjectType, Oid, Repository};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -15,7 +17,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::backend::BackendFailure;
 use super::journal::{self, Phase};
-use super::manifest::Manifest;
 use super::reference::{Fingerprint, Pointer};
 use super::staging::{decode_path, StageBundle};
 
@@ -162,6 +163,9 @@ impl IndexTransaction {
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let filename = format!(".dracon-storage-index-{}-{sequence}", std::process::id());
         let temporary = self.repo.path().join(&filename);
+        if journal::exists_without_symlink(&temporary)? {
+            bail!("staging candidate filename is already occupied");
+        }
         let result = (|| -> Result<()> {
             if snapshot.0.is_some() {
                 let mut source = owned_file(&self.repo.path().join("index"))?;
@@ -355,6 +359,7 @@ impl IndexTransaction {
             File::open(self.repo.path())?.sync_all()?;
         }
         if self.snapshot()?.0 != intent.base {
+            self.cleanup(intent)?;
             bail!("manual index change conflicts with saved staging");
         }
         index_crash("before-index-publish");
