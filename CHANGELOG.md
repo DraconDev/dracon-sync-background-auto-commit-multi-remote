@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unreleased `storage restore-asset` verifies an exact committed reference and
+  approved manifest, reads an explicitly authorized local copy and recovers
+  verified/decrypted bytes into a private cache. It preserves previous versions
+  and refuses corrupt output or capacity overflow without replacing checkout
+  files. Encrypted recovery requires authorized Warden keys. S3 and automatic
+  working-file hydration remain unfinished. Shared snapshot publication now
+  uses create-only linking to preserve a concurrently created destination.
+
 - Unreleased `storage import-manifest` rebuilds a private protected-metadata
   cache from an explicitly selected Git commit and authorized Warden keys.
   Imported ciphertext versions coexist with original preparations; canonical

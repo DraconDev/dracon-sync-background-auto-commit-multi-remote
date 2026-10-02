@@ -339,3 +339,60 @@ activate guard bindings, upload or verify backend copies. Importing a manifest
 also does not certify that the selected commit's pointers match it: use the
 independent guard after explicitly binding the intended index. Packaged asset
 hydration and outgoing-history validation remain separate unfinished gates.
+
+## Recovering an exact asset into a private cache (unreleased)
+
+After importing the selected commit's metadata, recover a named asset from an
+operator-approved local copy:
+
+```sh
+dracon-sync storage restore-asset \
+  --repo /path/to/cold-checkout --repo-id "$REPO_ID" \
+  --metadata-root /private/cold-metadata \
+  --manifest-path .dracon/assets.manifest --revision HEAD \
+  --path assets/private-video.mp4 \
+  --policy /path/to/operator.toml --backend recovery \
+  --restore-root /private/restored-assets \
+  --warden /absolute/path/to/dracon-warden \
+  --identity-home /path/to/authorized-identity-home
+```
+
+The operator policy supplies the adapter and permitted security class:
+
+```toml
+[storage.backends.recovery]
+type = "local"
+root = "/absolute/existing/recovery-objects"
+allowed_security = ["warden-encrypted"]
+```
+
+The selected backend must also be a required copy in that exact enrollment.
+Omitting `--backend` selects its declared primary; there is no automatic fallback.
+Repository overrides and manifests cannot supply adapter endpoints or grant
+permissions. The local object store must already exist. S3 recovery is not yet
+implemented. A non-sensitive enrollment requires an explicit `non-sensitive`
+grant; recovering that asset needs no Warden adapter. The protected metadata
+import still requires authorized keys.
+
+Recovery pins one Git commit and checks its committed pointer against the
+approved manifest. Working asset/manifest edits and alternate indexes do not
+select the recovered version. It verifies payload length and SHA-256 while
+fetching, and requires successful authenticated decryption for encrypted assets
+before publishing private output. Missing keys, corrupt payloads, deleted
+enrollments, mismatched references and failed decryption publish no asset.
+
+The command prints the verified byte count and an opaque private file path.
+It leaves the checkout, index, filters, hooks and daemon bindings unchanged.
+Working-file hydration remains unfinished; this command does not replace a
+working pointer or overwrite concurrent edits. Existing recovery files are
+verified and preserved, and conflicting content is refused. Versions are never
+evicted to make room. Publication uses a create-only operation so a concurrently
+created destination survives.
+
+Default limits are 2 GiB per fetched payload, 1 GiB per recovered output, 4 GiB
+of retained output and 10,000 retained versions per repository namespace.
+Positive `--max-payload-bytes`, `--max-output-bytes` and
+`--max-retained-bytes` override the byte limits; total retention must be at least
+the per-output limit. These are recovery resource budgets, unrelated to a
+forge's push limits. Anonymous transient files separately hold bounded payload
+and decrypted output; failed attempts retain no published partial output.
