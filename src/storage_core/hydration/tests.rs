@@ -171,7 +171,7 @@ fn selected_commit_manifest_repo_and_placement_must_match_before_publication() {
         let mut asset = f.asset();
         let mut commit = repo.head().unwrap().peel_to_commit().unwrap().id();
         if mismatch == "commit" {
-            commit = git2::Oid::zero();
+            commit = git2::Oid::ZERO_SHA1;
         }
         if mismatch == "repo" {
             asset.repo_id = "c".repeat(64);
