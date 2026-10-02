@@ -378,6 +378,9 @@ impl MetadataStore {
         self.finish(&mut record)?;
         let prepared = record.prepared()?;
         self.check_manifest(&prepared, &manifest)?;
+        if self.load_prepared_payload(payload)?.1 != manifest {
+            bail!(BackendFailure::Integrity);
+        }
         Ok((prepared, manifest))
     }
 
@@ -1277,6 +1280,53 @@ mod tests {
             .0;
         assert!(cold.load_prepared_payload(&payload).unwrap().1 == manifest);
         assert!(cold.check_manifest(&imported, &manifest).is_ok());
+    }
+
+    #[tokio::test]
+    async fn cold_import_honors_retention_limits_and_preserves_corrupted_source() {
+        let temp = tempfile::tempdir().unwrap();
+        let (store, manifest, adapter) = fixture(
+            temp.path(),
+            IMPORT_ADAPTER,
+            Limits {
+                max_records: 1,
+                ..Limits::default()
+            },
+        );
+        let local = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let before = std::fs::read(store.path(local.id(), "json")).unwrap();
+        let (cipher, payload) = import_bytes(&manifest);
+        assert!(store
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .is_err());
+        assert_eq!(
+            std::fs::read(store.path(local.id(), "json")).unwrap(),
+            before
+        );
+        assert!(store.open_prepared(&local).is_ok());
+        let cold = MetadataStore::open(
+            &temp.path().join("cold"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        let imported = cold
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .unwrap()
+            .0;
+        let path = cold.path(imported.id(), "source");
+        std::fs::write(&path, b"corrupted private cache").unwrap();
+        assert!(cold
+            .import(&mut cipher.as_slice(), &payload, &"b".repeat(64), &adapter)
+            .await
+            .is_err());
+        assert_eq!(std::fs::read(path).unwrap(), b"corrupted private cache");
+        assert!(cold.load_prepared_payload(&payload).is_err());
     }
 
     #[tokio::test]
