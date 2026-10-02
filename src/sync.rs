@@ -4362,7 +4362,7 @@ async fn stage_commit_and_push(
         // test_filter_only_reset_failure_is_non_fatal): only a
         // genuine push failure escalates to PushFailed.
         // v0.113.69 commit-only: never attempt the push here either.
-        if !ctx.commit_only {
+        if !ctx.commit_only && false {
             match handle_ahead_push(ctx, svc).await? {
                 PushReport::AllPaused => {}
                 PushReport::Attempted { ok: false, .. } => {
