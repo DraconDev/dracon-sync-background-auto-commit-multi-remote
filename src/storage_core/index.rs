@@ -658,3 +658,342 @@ fn index_crash(point: &str) {
         std::process::exit(75);
     }
 }
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use crate::storage_core::backend::LocalBackend;
+    use crate::storage_core::bindings::{ApprovedBackend, CopyBindings};
+    use crate::storage_core::journal::{Encryption, JobSpec, Journal, Limits};
+    use crate::storage_core::manifest::{Enrollment, Manifest};
+    use crate::storage_core::metadata::{MetadataStore, PreparedMetadata};
+    use crate::storage_core::security::WardenAdapter;
+    use crate::storage_core::transfer::transfer_copies;
+    use std::collections::BTreeMap;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    struct Fixture {
+        journal: Journal,
+        job: String,
+        store: MetadataStore,
+        manifest: Manifest,
+        prepared: PreparedMetadata,
+        transaction: IndexTransaction,
+        adapter: WardenAdapter,
+    }
+
+    async fn fixture(root: &Path) -> Fixture {
+        let repo_path = root.join("repo");
+        let repo = Repository::init(&repo_path).unwrap();
+        repo.config()
+            .unwrap()
+            .set_str("dracon.storageRepoId", &"a".repeat(64))
+            .unwrap();
+        if repo.head().is_err() {
+            let oid = repo.blob(b"original note").unwrap();
+            let mut index = repo.index().unwrap();
+            index.add(&entry(b"note.md", oid, 0o100644, 13)).unwrap();
+            index.write().unwrap();
+            let tree = index.write_tree().unwrap();
+            let signature = git2::Signature::now("DraconDev", "dracsharp@gmail.com").unwrap();
+            repo.commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                "fixture",
+                &repo.find_tree(tree).unwrap(),
+                &[],
+            )
+            .unwrap();
+        }
+        let bytes = b"explicitly approved non-sensitive fixture asset";
+        std::fs::write(repo_path.join("asset.bin"), bytes).unwrap();
+        let payload =
+            Fingerprint::new(format!("{:x}", Sha256::digest(bytes)), bytes.len() as u64).unwrap();
+        let spec = JobSpec {
+            repo_id: "a".repeat(64),
+            path_hex: journal::encode_relative_path(b"asset.bin").unwrap(),
+            source: payload.clone(),
+            policy_sha256: "b".repeat(64),
+            primary: "primary".into(),
+            required_copies: vec!["primary".into(), "recovery".into()],
+            required_git_targets: vec!["github".into()],
+            encryption: Encryption::None,
+        };
+        let journal =
+            Journal::open(&root.join("journal"), &spec.repo_id, Limits::default()).unwrap();
+        let job = journal.create(spec.clone()).unwrap();
+        {
+            let lease = journal.lease(job.id()).unwrap();
+            if lease.load().unwrap().phase() < Phase::Prepared {
+                lease.capture_snapshot(&mut &bytes[..]).unwrap();
+                lease.retain_payload(&mut &bytes[..], &payload).unwrap();
+            }
+            if lease.load().unwrap().phase() < Phase::ReadyToStage {
+                let primary = LocalBackend::open(&root.join("primary"), 1024).unwrap();
+                let recovery = LocalBackend::open(&root.join("recovery"), 1024).unwrap();
+                let bindings = CopyBindings::new(
+                    spec.repo_id.clone(),
+                    BTreeMap::from([
+                        (
+                            "primary".into(),
+                            ApprovedBackend::for_security(&primary, vec![Encryption::None])
+                                .unwrap(),
+                        ),
+                        (
+                            "recovery".into(),
+                            ApprovedBackend::for_security(&recovery, vec![Encryption::None])
+                                .unwrap(),
+                        ),
+                    ]),
+                )
+                .unwrap();
+                transfer_copies(&lease, &bindings, 1).unwrap();
+            }
+        }
+        let manifest = Manifest::new(
+            spec.repo_id.clone(),
+            vec![Enrollment {
+                path_hex: spec.path_hex,
+                contract_sha256: spec.policy_sha256,
+                primary: spec.primary,
+                required_copies: spec.required_copies,
+                encryption: spec.encryption,
+                payload: Some(payload),
+            }],
+        )
+        .unwrap();
+        let binary = root.join("warden-fixture");
+        // Synthetic subprocess contract fixture, not a cryptography test.
+        std::fs::write(
+            &binary,
+            "#!/bin/sh\nprintf 'age-encryption.org/v1\\n'\ncat\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let adapter = WardenAdapter::new(
+            &binary,
+            &repo_path,
+            manifest.repo_id(),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        let store = MetadataStore::open(
+            &root.join("metadata"),
+            manifest.repo_id(),
+            Limits::default(),
+        )
+        .unwrap();
+        let prepared = store
+            .prepare(&manifest, &"b".repeat(64), &adapter, 1)
+            .await
+            .unwrap();
+        let transaction = IndexTransaction::open(
+            &repo_path,
+            manifest.repo_id(),
+            &root.join("transactions"),
+            b".dracon/assets.manifest",
+        )
+        .unwrap();
+        Fixture {
+            journal,
+            job: job.id().into(),
+            store,
+            manifest,
+            prepared,
+            transaction,
+            adapter,
+        }
+    }
+
+    fn stage(f: &Fixture) -> Result<IndexProof> {
+        let lease = f.journal.lease(&f.job)?;
+        let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease])?;
+        f.transaction.stage(&f.transaction.snapshot()?, &bundle)
+    }
+
+    #[tokio::test]
+    async fn matched_index_pair_preserves_unrelated_staging_and_source() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let repo = &f.transaction.repo;
+        let oid = repo.blob(b"operator staged note").unwrap();
+        let mut index = repo.index().unwrap();
+        index.add(&entry(b"note.md", oid, 0o100644, 20)).unwrap();
+        index.write().unwrap();
+        let source = std::fs::read(repo.workdir().unwrap().join("asset.bin")).unwrap();
+        let proof = stage(&f).unwrap();
+        let index = repo.index().unwrap();
+        assert_eq!(index.get_path(Path::new("note.md"), 0).unwrap().id, oid);
+        let asset = index.get_path(Path::new("asset.bin"), 0).unwrap();
+        assert!(f.manifest.enrollments()[0].matches_pointer(
+            &Pointer::parse(repo.find_blob(asset.id).unwrap().content()).unwrap()
+        ));
+        let meta = index
+            .get_path(Path::new(".dracon/assets.manifest"), 0)
+            .unwrap();
+        assert_eq!(meta.id.to_string(), proof.metadata_oid());
+        assert_eq!(
+            format!(
+                "{:x}",
+                Sha256::digest(repo.find_blob(meta.id).unwrap().content())
+            ),
+            f.prepared.payload().sha256()
+        );
+        assert_eq!(
+            std::fs::read(repo.workdir().unwrap().join("asset.bin")).unwrap(),
+            source
+        );
+        assert_eq!(
+            f.journal.lease(&f.job).unwrap().load().unwrap().phase(),
+            Phase::Staged
+        );
+        assert!(stage(&f).is_ok());
+        assert!(!repo.path().join("index.lock").exists());
+    }
+
+    #[tokio::test]
+    async fn manual_index_changes_and_foreign_locks_are_preserved() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let snapshot = f.transaction.snapshot().unwrap();
+        let lease = f.journal.lease(&f.job).unwrap();
+        let bundle = StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).unwrap();
+        let mut index = f.transaction.repo.index().unwrap();
+        let oid = f
+            .transaction
+            .repo
+            .blob(b"manually staged raw bytes")
+            .unwrap();
+        index.add(&entry(b"asset.bin", oid, 0o100644, 25)).unwrap();
+        index.write().unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(f.transaction.stage(&snapshot, &bundle).is_err());
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+        index.remove_path(Path::new("asset.bin")).unwrap();
+        index.write().unwrap();
+        let lock = f.transaction.repo.path().join("index.lock");
+        std::fs::write(&lock, b"foreign Git process owns this").unwrap();
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(&lock).unwrap(),
+            b"foreign Git process owns this"
+        );
+        assert_eq!(lease.load().unwrap().phase(), Phase::ReadyToStage);
+        // Test-owned foreign lock only.
+        std::fs::remove_file(lock).unwrap();
+        f.transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn approved_metadata_cannot_be_substituted_for_another_manifest() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        let lease = f.journal.lease(&f.job).unwrap();
+        let wrong = Manifest::new("a".repeat(64), vec![]).unwrap();
+        assert!(StageBundle::build(&f.store, &f.prepared, &wrong, vec![&lease]).is_err());
+        assert!(
+            StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease, &lease]).is_err()
+        );
+        let mut job = lease.load().unwrap();
+        job.note_failure(journal::FailureCode::Integrity, None)
+            .unwrap();
+        lease.save(&mut job).unwrap();
+        assert!(StageBundle::build(&f.store, &f.prepared, &f.manifest, vec![&lease]).is_err());
+        assert!(f
+            .transaction
+            .repo
+            .index()
+            .unwrap()
+            .get_path(Path::new("asset.bin"), 0)
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn sticky_contracts_cannot_disappear_or_change_without_migration() {
+        let temp = tempfile::tempdir().unwrap();
+        let f = fixture(temp.path()).await;
+        stage(&f).unwrap();
+        let empty = Manifest::new("a".repeat(64), vec![]).unwrap();
+        let prepared = f
+            .store
+            .prepare(&empty, &"b".repeat(64), &f.adapter, 1)
+            .await
+            .unwrap();
+        let bundle = StageBundle::build(&f.store, &prepared, &empty, vec![]).unwrap();
+        let before = std::fs::read(f.transaction.repo.path().join("index")).unwrap();
+        assert!(f
+            .transaction
+            .stage(&f.transaction.snapshot().unwrap(), &bundle)
+            .is_err());
+        assert_eq!(
+            std::fs::read(f.transaction.repo.path().join("index")).unwrap(),
+            before
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "subprocess helper invoked by crash recovery test"]
+    async fn index_crash_helper() {
+        let root = std::env::var_os("DRACON_INDEX_TEST_ROOT").unwrap();
+        let f = fixture(Path::new(&root)).await;
+        stage(&f).unwrap();
+        panic!("crash point was not reached");
+    }
+
+    #[tokio::test]
+    async fn matched_pair_recovers_before_and_after_atomic_publication() {
+        for point in [
+            "after-index-intent",
+            "before-index-publish",
+            "after-index-publish",
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "storage_core::index::tests::index_crash_helper",
+                    "--ignored",
+                    "--exact",
+                ])
+                .env("DRACON_INDEX_TEST_ROOT", temp.path())
+                .env("DRACON_INDEX_CRASH_POINT", point)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .unwrap();
+            assert_eq!(status.code(), Some(75), "{point}");
+            let f = fixture(temp.path()).await;
+            let index = f.transaction.repo.index().unwrap();
+            assert_eq!(
+                index.get_path(Path::new("asset.bin"), 0).is_some(),
+                point == "after-index-publish"
+            );
+            assert_eq!(
+                index
+                    .get_path(Path::new(".dracon/assets.manifest"), 0)
+                    .is_some(),
+                point == "after-index-publish"
+            );
+            stage(&f).unwrap();
+            assert!(!f.transaction.state.join("intent.json").exists());
+            assert!(!f.transaction.repo.path().join("index.lock").exists());
+            assert_eq!(
+                f.journal.lease(&f.job).unwrap().load().unwrap().phase(),
+                Phase::Staged
+            );
+        }
+    }
+}
