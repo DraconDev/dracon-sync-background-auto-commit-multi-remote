@@ -1193,7 +1193,7 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
             );
         } else {
             println!(
-                "Storage policy valid. Read-only planning; transfers are not implemented yet."
+                "Storage policy valid. Read-only planning; automatic transfers are not enabled."
             );
         }
         return Ok(());
@@ -1394,6 +1394,11 @@ async fn advance_job(options: &AdvanceOptions) -> Result<()> {
         && adapter.is_none()
     {
         bail!("captured encrypted job requires an approved Warden adapter");
+    }
+    // Reject damaged retained inputs before even publishing a capability control.
+    lease.source_snapshot()?;
+    if job.phase() != Phase::Captured {
+        lease.payload_snapshot()?;
     }
     let mut adapters: BTreeMap<String, Box<dyn ImmutableBackend>> = BTreeMap::new();
     for id in &job.spec().required_copies {
