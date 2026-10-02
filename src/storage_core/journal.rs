@@ -865,6 +865,41 @@ impl Journal {
         })
     }
 
+    /// Resolve and lease the exact prepared version named by an approved manifest.
+    /// Scans only bounded private local records; no source bytes or backend I/O.
+    /// Historical indexed versions are selected exactly, never by recency.
+    pub fn lease_enrolled(&self, manifest: &super::manifest::Manifest, path_hex: &str) -> Result<JobLease> {
+        if manifest.repo_id() != self.repo_id { bail!("manifest repository binding mismatch"); }
+        validate_path_hex(path_hex)?;
+        let enrolled = manifest.enrollment(path_hex).context("path is not enrolled")?;
+        if enrolled.payload.is_none() { bail!("deleted path has no clean reference"); }
+        let mut selected: Option<Job> = None;
+        let mut count = 0;
+        for entry in std::fs::read_dir(&self.directory)? {
+            let path = entry?.path();
+            if path.extension().is_none_or(|extension| extension != "json") { continue; }
+            count += 1;
+            if count > self.limits.max_records { bail!(super::backend::BackendFailure::Capacity); }
+            let job = read_job(&path)?;
+            if path.file_stem().and_then(|id| id.to_str()) != Some(job.id()) || job.spec.repo_id != self.repo_id {
+                bail!("journal record identity mismatch");
+            }
+            if !eligible_clean(&job) || !matches_enrollment(&job, enrolled) { continue; }
+            if let Some(previous) = &selected {
+                if previous.spec.source != job.spec.source { bail!("ambiguous clean source identity"); }
+                if previous.id <= job.id { continue; }
+            }
+            selected = Some(job);
+        }
+        let selected = selected.context("indexed path has no verified prepared local job")?;
+        let lease = self.lease(selected.id())?;
+        let current = lease.load()?;
+        if !eligible_clean(&current) || !matches_enrollment(&current, enrolled) {
+            bail!("prepared clean version changed before its lease");
+        }
+        Ok(lease)
+    }
+
     /// Durably create a pending job, or return the identical already-recorded version.
     pub fn create(&self, spec: JobSpec) -> Result<Job> {
         if spec.repo_id != self.repo_id {

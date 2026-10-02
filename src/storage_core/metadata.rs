@@ -318,7 +318,17 @@ impl MetadataStore {
     /// Recover decoded metadata only from a locally verified preparation.
     /// A cold checkout needs an approved decrypt/import path before index changes.
     pub(crate) fn retained_manifest(&self, payload: &Fingerprint) -> Result<Manifest> {
+        Ok(self.load_prepared_payload(payload)?.1)
+    }
+
+    /// Resolve the exact ciphertext indexed by Git to its verified local preparation.
+    /// Never selects a newer manifest or silently decrypts unknown ciphertext.
+    /// Ambiguous decoded source identities and excessive catalog size fail closed.
+    pub fn load_prepared_payload(&self, payload: &Fingerprint) -> Result<(PreparedMetadata, Manifest)> {
+        payload.validate()?;
+        if payload.bytes() > MAX_PROTECTED_MANIFEST_BYTES { bail!(BackendFailure::Capacity); }
         let mut count = 0;
+        let mut selected: Option<(String, Fingerprint)> = None;
         for entry in std::fs::read_dir(&self.directory)? {
             let path = entry?.path();
             if path.extension().is_none_or(|extension| extension != "json") {
@@ -336,16 +346,16 @@ impl MetadataStore {
             if record.phase != Phase::Prepared || record.approved.as_ref() != Some(payload) {
                 continue;
             }
-            self.open_prepared(&record.prepared()?)?;
-            let mut source = self.source(&record)?;
-            source.seek(SeekFrom::Start(0))?;
-            let mut raw = Vec::new();
-            source
-                .take(MAX_MANIFEST_BYTES as u64 + 1)
-                .read_to_end(&mut raw)?;
-            return Manifest::parse_private(&raw);
+            record.prepared()?;
+            if let Some((selected_id, source)) = &mut selected {
+                if *source != record.spec.source { bail!(BackendFailure::Integrity); }
+                if id < selected_id.as_str() { *selected_id = id.to_owned(); }
+            } else {
+                selected = Some((id.to_owned(), record.spec.source));
+            }
         }
-        bail!("prior manifest requires approved decryption/import before staging")
+        let (id, _) = selected.context("indexed manifest requires approved decryption/import")?;
+        self.load_prepared_manifest(&id)
     }
 
     /// Clear a failed preparation explicitly; this does not establish new evidence.
