@@ -280,6 +280,21 @@ impl MetadataStore {
         Ok(file)
     }
 
+    /// Load an already prepared local manifest without decrypting or contacting storage.
+    /// Plaintext metadata stays private; the returned version is not enrollment authority.
+    pub fn load_prepared_manifest(&self, id: &str) -> Result<(PreparedMetadata, Manifest)> {
+        let record = self.read(id)?;
+        let prepared = record.prepared()?;
+        self.open_prepared(&prepared)?;
+        let mut source = self.source(&record)?;
+        source.seek(SeekFrom::Start(0))?;
+        let mut raw = Vec::new();
+        source.take(MAX_MANIFEST_BYTES as u64 + 1).read_to_end(&mut raw)?;
+        let manifest = Manifest::parse_private(&raw)?;
+        if manifest.repo_id() != self.repo_id { bail!(BackendFailure::Security); }
+        Ok((prepared, manifest))
+    }
+
     /// Check that retained ciphertext was prepared from this exact decoded manifest.
     /// Returns verified ciphertext without exposing the private source fingerprint.
     /// This is content correspondence, not authorization of enrollment/policy.
