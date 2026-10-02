@@ -704,7 +704,15 @@ clone with all local settings absent, preservation after staged attribute/pointe
 removal, a daemon bootstrap with hydrated bytes and no local driver, declarations
 and benign comments, unreadable/oversized/symlinked inputs and included driver
 settings. Refused commits preserve the HEAD/index/worktree where applicable and
-do not leave an index lock. Broader checks are running for the final source.
+do not leave an index lock. The final locked workspace passed:
+**2049 passed, zero failed, 22 ignored**. Strict all-target Clippy, locked release
+build, dependency policy, formatting and diff checks passed. Evidence:
+`/tmp/dracon-portable-guard-workspace.log`,
+`/tmp/dracon-portable-guard-clippy.log`,
+`/tmp/dracon-portable-guard-release.log`, `/tmp/dracon-portable-guard-deny.log`.
+The separately invoked actual source Warden hook test also passed and preserved
+the existing user hook: `/tmp/dracon-portable-guard-warden-hook.log`. It is not
+added to workspace totals.
 
 No installed daemon, operator keys, live hooks or enrollment changed. Safe
 working-file hydration, S3 adapters, automatic routing/worker scheduling,
