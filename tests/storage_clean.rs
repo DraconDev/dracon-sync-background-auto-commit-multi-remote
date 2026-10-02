@@ -310,6 +310,176 @@ async fn policy_capture_and_advance_preserve_versions_and_refuse_ineligible_sour
 }
 
 #[tokio::test]
+async fn enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers() {
+    use std::io::Read;
+    let f = fixture().await;
+    assert!(git(&f.repo, &["add", "--", "asset [version].bin"])
+        .status
+        .success());
+    for (key, value) in [
+        ("user.name", "DraconDev"),
+        ("user.email", "dracsharp@gmail.com"),
+        ("commit.gpgsign", "false"),
+        ("core.hooksPath", "/dev/null"),
+    ] {
+        assert!(git(&f.repo, &["config", "--local", key, value])
+            .status
+            .success());
+    }
+    assert!(git(&f.repo, &["commit", "--quiet", "-m", "v1 enrolled reference"])
+        .status
+        .success());
+    let index_after_commit = std::fs::read(f.repo.join(".git/index")).unwrap();
+    // Current rules exclude the file by size; the recorded enrollment contract
+    // must still govern updates.
+    let policy = f.temp.path().join("update-policy.toml");
+    std::fs::write(
+        &policy,
+        format!("[storage]\nenabled = true\n[[storage.rules]]\npaths = [\"*.bin\"]\nplacement = \"external\"\nmin_bytes = 1073741824\nbackend = \"primary\"\nrequired_copies = [\"recovery\"]\nsecurity = \"non-sensitive\"\n[storage.backends.primary]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n[storage.backends.recovery]\ntype = \"local\"\nroot = \"{}\"\nallowed_security = [\"non-sensitive\"]\n", f.temp.path().join("primary").display(), f.temp.path().join("recovery").display()),
+    )
+    .unwrap();
+    let update = |source: &str| {
+        Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+            .args(["storage", "capture-update", "--repo"])
+            .arg(&f.repo)
+            .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+            .arg(f.temp.path().join("journal"))
+            .args(["--metadata-root"])
+            .arg(f.temp.path().join("metadata"))
+            .args(["--manifest-path", ".dracon/assets.manifest", "--policy"])
+            .arg(&policy)
+            .args(["--git-target", "github", "--json", source])
+            .output()
+            .unwrap()
+    };
+    std::fs::write(
+        f.repo.join("asset [version].bin"),
+        b"second enrolled version",
+    )
+    .unwrap();
+    let second = update("asset [version].bin");
+    assert!(
+        second.status.success(),
+        "{}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&second.stdout).unwrap();
+    let id = report["job_id"].as_str().unwrap().to_owned();
+    assert_eq!(report["phase"], "captured");
+    assert_ne!(id, f.job);
+    let job = f.journal.lease(&id).unwrap().load().unwrap();
+    assert_eq!(job.spec().policy_sha256, "b".repeat(64));
+    assert_eq!(job.spec().primary, "primary");
+    assert_eq!(job.spec().required_copies, ["primary", "recovery"]);
+    assert!(matches!(job.spec().encryption, Encryption::None));
+    let advance = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
+        .args(["storage", "advance-job", "--repo"])
+        .arg(&f.repo)
+        .args(["--repo-id", &"a".repeat(64), "--journal-root"])
+        .arg(f.temp.path().join("journal"))
+        .args(["--job-id", &id, "--policy"])
+        .arg(&policy)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(
+        advance.status.success(),
+        "{}",
+        String::from_utf8_lossy(&advance.stderr)
+    );
+    assert_eq!(
+        f.journal.lease(&id).unwrap().load().unwrap().phase(),
+        Phase::ReadyToStage
+    );
+    let lease = f.journal.lease(&id).unwrap();
+    let mut retained = Vec::new();
+    lease
+        .source_snapshot()
+        .unwrap()
+        .read_to_end(&mut retained)
+        .unwrap();
+    drop(lease);
+    assert_eq!(retained, b"second enrolled version");
+    assert_eq!(
+        std::fs::read(f.repo.join("asset [version].bin")).unwrap(),
+        b"second enrolled version"
+    );
+    assert_eq!(
+        std::fs::read(f.repo.join(".git/index")).unwrap(),
+        index_after_commit
+    );
+    // Current and stale unhydrated references are not new asset bytes.
+    let stale = Pointer::new(Fingerprint::new("d".repeat(64), 5).unwrap()).unwrap();
+    for reference in [f.pointer.encode(), stale.encode()] {
+        std::fs::write(f.repo.join("asset [version].bin"), &reference).unwrap();
+        let refused = update("asset [version].bin");
+        assert!(!refused.status.success());
+        assert!(refused.stdout.is_empty());
+        assert!(
+            String::from_utf8_lossy(&refused.stderr).contains("unhydrated"),
+            "{}",
+            String::from_utf8_lossy(&refused.stderr)
+        );
+    }
+    std::fs::write(f.repo.join("stranger.bin"), b"never enrolled").unwrap();
+    let unenrolled = update("stranger.bin");
+    assert!(!unenrolled.status.success());
+    assert!(unenrolled.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&unenrolled.stderr).contains("not enrolled"),
+        "{}",
+        String::from_utf8_lossy(&unenrolled.stderr)
+    );
+    // Without the verified driver a later `git add` would stage raw bytes.
+    let attributes = std::fs::read(f.repo.join(".gitattributes")).unwrap();
+    std::fs::write(f.repo.join(".gitattributes"), "*.bin -text\n").unwrap();
+    std::fs::write(
+        f.repo.join("asset [version].bin"),
+        b"second enrolled version",
+    )
+    .unwrap();
+    let unfiltered = update("asset [version].bin");
+    assert!(!unfiltered.status.success());
+    assert!(
+        String::from_utf8_lossy(&unfiltered.stderr).contains("verified storage filter"),
+        "{}",
+        String::from_utf8_lossy(&unfiltered.stderr)
+    );
+    std::fs::write(f.repo.join(".gitattributes"), attributes).unwrap();
+    // A deleted-but-enrolled path keeps its contract when bytes return.
+    let mut tombstone = enrolled(&f.journal.lease(&f.job).unwrap().load().unwrap());
+    tombstone.payload = None;
+    index_manifest(&f, vec![tombstone]).await;
+    assert!(git(&f.repo, &["rm", "--quiet", "--", "asset [version].bin"])
+        .status
+        .success());
+    assert!(git(&f.repo, &["commit", "--quiet", "-m", "tombstone enrolled path"])
+        .status
+        .success());
+    std::fs::write(
+        f.repo.join("asset [version].bin"),
+        b"revived after tombstone",
+    )
+    .unwrap();
+    let revived = update("asset [version].bin");
+    assert!(
+        revived.status.success(),
+        "{}",
+        String::from_utf8_lossy(&revived.stderr)
+    );
+    let revived: serde_json::Value = serde_json::from_slice(&revived.stdout).unwrap();
+    let revived_job = f
+        .journal
+        .lease(revived["job_id"].as_str().unwrap())
+        .unwrap()
+        .load()
+        .unwrap();
+    assert_eq!(revived_job.spec().policy_sha256, "b".repeat(64));
+    assert_eq!(revived_job.spec().required_copies, ["primary", "recovery"]);
+    assert!(!f.repo.join(".git/index.lock").exists());
+}
+
+#[tokio::test]
 #[ignore = "requires source-built Warden and age/age-keygen for isolated encryption"]
 async fn policy_capture_and_advance_encrypt_exact_version_with_actual_warden() {
     let binary =
@@ -1597,7 +1767,7 @@ server.serve_forever()
     std::fs::create_dir(&credentials).unwrap();
     std::fs::set_permissions(&credentials, std::fs::Permissions::from_mode(0o700)).unwrap();
     let credential = credentials.join("fixture.json");
-    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAvSjJQZXprc1lHZnpQbVdDWFhxS0hleWdwb3R5ZTFTdERnRDltK1Z3eWdrCndsLzVsNmNlY1JTbzNUZWRrRkhqazZTRmpuZXBBOXdSZjJhT1dUaHA0Z2sKLT4gWDI1NTE5IFovZzlCdHFFdlpHajNzWmRONkZLYndlbVd2YUtsbm5hVmNqellVN05FaE0KbjE1R3dyQ2xGRUhIUEdiWFYrQ0Y4OW9wWHhybkExanhHUU9ubFI3VU1CVQotPiBYMjU1MTkgc0hPdU5CeE5ZWWRxdEJJaWx1dVBoalZhZkYxU2VreE1NU2VjS05GdHpGSQo1SC9LSGh2WEFvWDRvalRXZkpCdTl5ZTI5bnJINmNaL3l6L1ZtU1Y5L1pvCi0+IFgyNTUxOSBIeTFzdnJhcE5MZUNacGNBSU9HTUJnRXhQWTA1alZiWlg3eUlNc0Iya0RnClRJZUgrajJQTDVsMTg4OFJyZWlkL3d1MVJsMWV6TURhYWtGUEJnZlcyVk0KLT4gWDI1NTE5IGhYWnNlZG15d2lPc2kxcHZQMlpUQTVjallpbUFDc0l5Nk9JcDBUZjNEMTQKejI2b1lrcG9zNmRBaDFqSzNQdW0rWFdkWjVSVTJxSEU0dHZXZE1YV0JhcwotPiBpLWdyZWFzZSBpdl1ydi1UCjYvdnFudwotLS0gaXB0b1kveEN2a1ZoQ21WWkRrUm5KZVh1WlNTREpiTUZvNzlFdWRwcFE2YwokVf7V5k4ESmUgz9S2C5hqhf9x/UALSFScIU3tWwcdOixeMGlwRnqAz81hOJ0FTXnZffGM]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
+    std::fs::write(&credential,br#"{"version":1,"access_key_id":"[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBKdFFtTVlQcTNFZ1JaV3hZUVNGSUhBTTN1UXd1SVVYNGJvNC9YR2RzSURRCkVBSURPejliTjg0S0Z0Vnczb25ZZTdEd1p2ekNGZWJWdm1rVUpzYnVyN00KLT4gWDI1NTE5IHNsR2dHRjhSWmZxNEY0NldmKzN1Qi9sTE1Xa280eXFoUUxZVGhkNGdmbjQKbU1aQUpsRUxJRGJTQmRtM1NvMmVCNHpBNjV2d1RvMjBRQ0pkUEZjTEpDSQotPiBYMjU1MTkgNUVQaGcySVl3Tnhod0xVTHRBWnRhNlFEVWdVc3JaUHV3bnptSnRici9VSQpvY0lYTEVmTEtxSGozcjRoNkE1Ky85ZUd2anExSnlUSmh2NEpSMnlGRDlVCi0+IFgyNTUxOSB2L0YvUHdFbDJwcW5lU1Q5b284TmlUYkdhZjI0ODlEczhLNFpKOGZOMlFvCjZPNmhCZXVLUmRqTXVpSUxvemdkSmhrYmkvbG5ISVN5TVpNc0NoTjU1aFUKLT4gWDI1NTE5IGUrbHZBaE92RDNrSmMyTEJGemNkOU16ZGlETWxJRnZNWWpJY2ZjNFlyemsKSHAzeGhqdlVwalZVTU1DbnpaQXR5ZnRrWjdMQzl0aEZvNUlKdVZVd3pUTQotPiBBOS1ncmVhc2UgZlQoSS4yRnsKTnd5RXdPc0RHRXg5TCticDBOUQotLS0gb05FVUo5dHpuN3lOQnQ0aVlCcVlPeDBLOTdtOFc4QlloRjhMbUNmL01MYwowwA1d6c6BOp5eCaMhbPmKExgtkgZOlsRvEGfm2Ov/tReXp2rlEQdfLyF9lSK4Yo7iutER]","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}"#).unwrap();
     std::fs::set_permissions(&credential, std::fs::Permissions::from_mode(0o600)).unwrap();
     let restore = f.temp.path().join("s3-private-restored");
     let recovered = Command::new(env!("CARGO_BIN_EXE_dracon-sync"))
