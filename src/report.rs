@@ -6450,21 +6450,11 @@ fn print_repos_summary(
     full_path: bool,
     by_severity: bool,
 ) {
-    println!(
-        "{}",
-        build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
-    );
-}
-
-fn build_repos_rich_table(
-    rows: &[RepoReportRow],
-    full_path: bool,
-    terminal_columns: u16,
-) -> comfy_table::Table {
     use comfy_table::{
-        modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY, Cell, CellAlignment, Color,
-        ColumnConstraint, ContentArrangement, Table, TableComponent, Width,
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
+        Width,
     };
+    let _ = _filter;
 
     // Sort: severity (concern → warn → active → clean) ascending
     // by default, but skip the sort when the operator didn't ask
@@ -6474,7 +6464,7 @@ fn build_repos_rich_table(
         indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
     }
 
-    let width = terminal_columns as usize;
+    let width = terminal_width().unwrap_or(120) as usize;
     // Width budget split:
     //   - # column: 4 chars ("1.")
     //   - STATUS column: 12 chars (the longest is "❌ CONCERN" = 10)
@@ -6493,14 +6483,12 @@ fn build_repos_rich_table(
         .max(20);
 
     let mut table = Table::new();
-    table.load_preset(UTF8_BORDERS_ONLY);
-    table.apply_modifier(UTF8_ROUND_CORNERS);
-    table.set_style(TableComponent::LeftHeaderIntersection, '├');
-    table.set_style(TableComponent::HeaderLines, '─');
-    table.set_style(TableComponent::RightHeaderIntersection, '┤');
+    table.load_preset(UTF8_FULL_CONDENSED);
     table.set_content_arrangement(ContentArrangement::Dynamic);
-    if (40..=2000).contains(&terminal_columns) {
-        table.set_width(terminal_columns);
+    if let Some(w) = terminal_width() {
+        if (40..=2000).contains(&w) {
+            table.set_width(w);
+        }
     }
 
     // Header row. Header cells are styled white-bold for contrast
@@ -6556,14 +6544,12 @@ fn build_repos_rich_table(
         table.add_row(vec![
             Cell::new(format!("{}", display_idx + 1)).fg(Color::DarkGrey),
             Cell::new(status_text).fg(status_color),
-            Cell::new(repo_short)
-                .fg(Color::White)
-                .add_attribute(comfy_table::Attribute::Bold),
+            Cell::new(repo_short).fg(Color::White),
             Cell::new(what).fg(Color::White),
         ]);
     }
 
-    table
+    println!("{table}");
 }
 
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
@@ -7014,7 +7000,7 @@ fn build_repos_rich_table(
         table.add_row(cells);
     }
 
-    println!("{table}");
+    table
 }
 
 // ---------------------------------------------------------------------------
@@ -11802,9 +11788,9 @@ mod tests {
         let mut stalled =
             make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
         stalled.repo = "/tmp/dracon-platform".into();
+        let rows = [clean, stalled];
         for width in [165, 200, 320] {
-            let rendered =
-                build_repos_rich_table(&[clean.clone(), stalled.clone()], false, width).to_string();
+            let rendered = build_repos_rich_table(&rows, false, width).to_string();
             let lines: Vec<_> = rendered.lines().collect();
             assert_eq!(lines.len(), 6, "wrapped rows at {width}: {rendered}");
             for line in &lines {
