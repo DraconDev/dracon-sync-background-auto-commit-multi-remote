@@ -450,21 +450,34 @@ fn inventory_filters_at(
     paths: &BTreeSet<PathBuf>,
     index: Option<&Path>,
 ) -> Result<BTreeMap<PathBuf, String>> {
-    use std::io::Write;
     use std::process::Stdio;
+    const MAX_INPUT: usize = 16 * 1024 * 1024;
+    const MAX_PATHS: usize = 100_000;
+    if paths.len() > MAX_PATHS {
+        bail!("attribute inventory path budget exceeded");
+    }
     let mut input = Vec::new();
     for path in paths {
         #[cfg(unix)]
         {
             use std::os::unix::ffi::OsStrExt;
-            input.extend_from_slice(path.as_os_str().as_bytes());
+            let bytes = path.as_os_str().as_bytes();
+            if bytes.len() >= MAX_INPUT.saturating_sub(input.len()) {
+                bail!("attribute inventory input budget exceeded");
+            }
+            input.extend_from_slice(bytes);
         }
         #[cfg(not(unix))]
-        input.extend_from_slice(
-            path.to_str()
+        {
+            let bytes = path
+                .to_str()
                 .context("unsupported path encoding")?
-                .as_bytes(),
-        );
+                .as_bytes();
+            if bytes.len() >= MAX_INPUT.saturating_sub(input.len()) {
+                bail!("attribute inventory input budget exceeded");
+            }
+            input.extend_from_slice(bytes);
+        }
         input.push(0);
     }
     let mut command = crate::policy::std_git_command();
@@ -502,51 +515,126 @@ fn inventory_filters_at(
     if index.is_some() {
         command.arg("--cached");
     }
-    let mut child = command
+    command
         .args(["-z", "--stdin", "filter"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()?;
-    let mut stdin = child
-        .stdin
-        .take()
-        .context("missing attribute inventory stdin")?;
-    // Drain stdout concurrently; large inventories otherwise deadlock full pipes.
-    let writer = std::thread::spawn(move || stdin.write_all(&input));
-    let output = child.wait_with_output();
-    let written = writer
-        .join()
-        .map_err(|_| anyhow::anyhow!("attribute input thread failed"))?;
-    let output = output?;
-    written?;
-    if !output.status.success() {
-        bail!("attribute inventory failed");
+        .stderr(Stdio::null());
+    let output = bounded_attribute_query(
+        command,
+        input,
+        32 * 1024 * 1024,
+        std::time::Duration::from_secs(30),
+    )?;
+    parse_attribute_response(&output, paths)
+}
+
+/// Use a dedicated runtime thread because callers include synchronous CLI code
+/// running inside Tokio and daemon spawn_blocking workers. All pipe operations
+/// share one deadline; no writer/reader thread can outlive a failed query.
+fn bounded_attribute_query(
+    mut command: std::process::Command,
+    input: Vec<u8>,
+    output_budget: usize,
+    timeout: std::time::Duration,
+) -> Result<Vec<u8>> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
     }
-    let pieces: Vec<&[u8]> = output.stdout.split(|b| *b == 0).collect();
-    let pieces = if pieces.last() == Some(&&b""[..]) {
-        &pieces[..pieces.len() - 1]
-    } else {
-        &pieces[..]
-    };
-    if pieces.len() % 3 != 0 {
-        bail!("invalid attribute inventory response");
+    std::thread::spawn(move || -> Result<Vec<u8>> {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        runtime.block_on(async move {
+            let mut child = tokio::process::Command::from(command)
+                .kill_on_drop(true)
+                .spawn()?;
+            let pid = child.id();
+            let mut stdin = child.stdin.take().context("missing attribute stdin")?;
+            let stdout = child.stdout.take().context("missing attribute stdout")?;
+            let exchange = async {
+                let write = async {
+                    stdin.write_all(&input).await?;
+                    drop(stdin);
+                    Ok::<_, anyhow::Error>(())
+                };
+                let read = async {
+                    let mut output = Vec::new();
+                    stdout
+                        .take(output_budget as u64 + 1)
+                        .read_to_end(&mut output)
+                        .await?;
+                    if output.len() > output_budget {
+                        bail!("attribute inventory output budget exceeded");
+                    }
+                    Ok::<_, anyhow::Error>(output)
+                };
+                let wait = async { Ok::<_, anyhow::Error>(child.wait().await?) };
+                let (_, output, status) = tokio::try_join!(write, read, wait)?;
+                if !status.success() {
+                    bail!("attribute inventory failed");
+                }
+                Ok(output)
+            };
+            let result = match tokio::time::timeout(timeout, exchange).await {
+                Ok(result) => result,
+                Err(_) => Err(anyhow::anyhow!("attribute inventory timed out")),
+            };
+            if result.is_err() {
+                #[cfg(unix)]
+                if let Some(pid) = pid {
+                    // The child was created in its own process group. Kill that
+                    // group even if the parent exited while descendants held pipes.
+                    unsafe {
+                        libc::kill(-(pid as i32), libc::SIGKILL);
+                    }
+                }
+                #[cfg(not(unix))]
+                let _ = pid;
+                let _ = child.start_kill();
+                let _ = tokio::time::timeout(std::time::Duration::from_secs(5), child.wait()).await;
+            }
+            result
+        })
+    })
+    .join()
+    .map_err(|_| anyhow::anyhow!("attribute query thread failed"))?
+}
+
+fn parse_attribute_response(
+    output: &[u8],
+    paths: &BTreeSet<PathBuf>,
+) -> Result<BTreeMap<PathBuf, String>> {
+    if !output.is_empty() && !output.ends_with(&[0]) {
+        bail!("unterminated attribute inventory response");
     }
+    let mut pieces = output.split(|b| *b == 0);
     let mut result = BTreeMap::new();
-    for triple in pieces.chunks_exact(3) {
-        if triple[1] != b"filter" {
-            bail!("unexpected attribute inventory response");
+    for _ in 0..paths.len() {
+        let path = pieces.next().context("missing attribute path")?;
+        let attribute = pieces.next().context("missing attribute name")?;
+        let value = pieces.next().context("missing attribute value")?;
+        if attribute != b"filter" || value.len() > 1024 {
+            bail!("unexpected or oversized attribute inventory response");
+        }
+        let path = path_from_bytes(path)?;
+        if !paths.contains(&path) || result.contains_key(&path) {
+            bail!("unexpected or duplicate attribute inventory path");
         }
         result.insert(
-            path_from_bytes(triple[0])?,
-            std::str::from_utf8(triple[2])
+            path,
+            std::str::from_utf8(value)
                 .context("unsupported filter encoding")?
                 .to_owned(),
         );
     }
-    if result.len() != paths.len() || !paths.iter().all(|path| result.contains_key(path)) {
-        bail!("incomplete attribute inventory response");
+    if pieces.next() != Some(&b""[..]) || pieces.next().is_some() {
+        bail!("extra attribute inventory response");
     }
+
     Ok(result)
 }
 
