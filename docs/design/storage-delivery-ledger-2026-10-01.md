@@ -679,3 +679,33 @@ The separately invoked real-key recovery test is not added to workspace totals.
 Working-file hydration, S3, automatic worker/routing,
 complete outgoing-history guards, reviewed pilots and production release retain
 the full original scope. No installed binary or live enrollment changed.
+
+## Portable guard requirement on cold clones (2026-10-02)
+
+The native commit guard now detects `filter=dracon-storage` declarations in
+staged and HEAD attribute blobs, independent of local driver settings. Cold
+clones cannot silently take the ordinary commit path. Staging attribute removal
+cannot erase HEAD's requirement. Nested attributes, macro definitions, quoted
+and non-UTF-8 patterns and declarations without currently matching files are
+covered. Comments and quoted filenames containing the assignment do not activate
+storage. Driver configuration is also inspected through the effective Git
+configuration so included/inherited settings cannot bypass a local binding.
+
+Detection reads bounded ordinary attribute blobs and an owned ordinary index
+without running filters. Blob/type/size errors, symlinked indexes and a HEAD
+traversal timeout refuse commits. Existing configured-index/tree validation and
+its commit lease remain authoritative after a binding is present. This closes
+the missing-local-settings recognition gap; it does not certify backend copies
+or supply complete outgoing-history/push protection.
+
+Focused results: **28 passed, zero failed** in
+`/tmp/dracon-portable-guard-tests.log`. Six additional tests cover a real cold
+clone with all local settings absent, preservation after staged attribute/pointer
+removal, a daemon bootstrap with hydrated bytes and no local driver, declarations
+and benign comments, unreadable/oversized/symlinked inputs and included driver
+settings. Refused commits preserve the HEAD/index/worktree where applicable and
+do not leave an index lock. Broader checks are running for the final source.
+
+No installed daemon, operator keys, live hooks or enrollment changed. Safe
+working-file hydration, S3 adapters, automatic routing/worker scheduling,
+complete outgoing-history coverage, pilots and release remain unfinished.
