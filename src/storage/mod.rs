@@ -1331,7 +1331,10 @@ fn resolve_s3(
 
 fn probe_backend(options: &ProbeOptions) -> Result<()> {
     let repo = root(&options.repo)?;
-    let (global, _) = load_configuration(&repo, options.policy.as_deref())?;
+    let (global, local) = load_configuration(&repo, options.policy.as_deref())?;
+    if local.owned == Some(false) {
+        bail!("repository opted out of Sync ownership");
+    }
     CompiledPolicy::new(global.storage.clone())?;
     let binding = global
         .storage
