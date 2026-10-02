@@ -214,3 +214,32 @@ preserve attributes, maintain selected version bindings, compose Warden routing,
 verify source races for daemon index plumbing and validate outgoing commits.
 Manual users can disable local filters/hooks; this driver does not certify
 backend availability or independent-copy durability after prior verification.
+
+## Indexed version selection and independent validation (2026-10-02)
+
+The repository-wide driver supersedes per-version CLI arguments. It reads the
+actual indexed protected manifest and resolves that ciphertext fingerprint to
+one unambiguous verified local decoded version. The journal then selects a
+repo/path/contract/security/copy/payload match in an eligible phase, acquires its
+nonblocking lease and rechecks eligibility. Selection is bounded by catalog
+limits and independent of recency. Ambiguous source identities, unknown local
+metadata, corrupt records or a busy selected job fail rather than choosing
+another version. No new source capture or encryption is performed.
+
+Real Git testing exposed an additional gate: unchanged-file stat caching can
+skip the clean driver after metadata changes. `storage verify-index` therefore
+inspects actual pointer blobs and tombstones independently of filtering. It
+also checks staged effective attributes for the fixed `dracon-storage` driver:
+all enrolled paths must route to that locally required driver, and tracked
+paths using it must be enrolled. An older manifest with a leftover newer path
+cannot be certified merely because its other pointers match. Unstaged attribute
+edits do not replace attributes going into the commit. Cached attribute lookup
+uses the selected index and suppresses hooks/fsmonitor and ambient repository/
+config overrides.
+
+This guard does not inspect remote durability and has not been installed as a
+production hook or wired into daemon commits. Hook chaining, Warden composition,
+working-source races, outgoing commit/push enforcement, cold metadata import
+and scalable/budgeted worker scheduling retain their roadmap scope. Local
+catalog scans are correctness infrastructure; performance qualification remains
+required before enabling high-churn fleet-wide use.

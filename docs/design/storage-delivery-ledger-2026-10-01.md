@@ -401,3 +401,34 @@ filter/attribute contract, and add outgoing-commit and working-source race
 checks. The command's explicit version binding is an infrastructure interface,
 not the final automatically configured fleet workflow. All remaining roadmap
 packages retain their original scope; no production release is claimed.
+
+## Repository-wide indexed selection and guard (2026-10-02)
+
+One clean driver now handles all enrolled paths/versions without changing its
+command for each prepared artifact. Indexed ciphertext selects a verified
+local manifest; repo/path/contract/security/copies/payload select and lease an
+eligible local job. Historical indexed versions resolve exactly even with newer
+versions retained. Record budgets, ambiguous decoded/source identities,
+corruption and busy leases fail closed. No recency fallback, upload, capture or
+encryption occurs during selection.
+
+An actual historical-manifest test exposed Git's unchanged-file stat cache:
+ordinary add can omit the clean callback and leave a mismatched pointer group.
+The independent `storage verify-index` primitive/CLI now checks actual reference
+blobs and tombstones, plus staged attributes and the local required driver.
+Raw/missing/mismatched entries, removed routes and unenrolled driver paths fail.
+The guard uses the real/alternate index, suppresses hooks/fsmonitor and ambient
+Git repo/config overrides, and does not change index or working files.
+
+The focused core run passed 70 tests (nine ignored), including ambiguity and
+catalog-limit refusal. Eight real-Git tests passed for generic multi-path and
+historical selection, lease contention, byte/path fidelity, alternate indexes,
+stat-cache-independent validation and staged required-driver attributes.
+Synthetic metadata fixtures test mechanics; the real Warden integration checks
+remain the separate crypto evidence. Full workspace/release/lint results follow.
+
+The former per-version CLI arguments were unreleased infrastructure and are
+replaced in current docs. Production hook chaining/setup, Warden composition,
+working-source races and daemon commit/push integration are still unfinished.
+S3, cold import/hydration, independent-copy drills and release/pilots retain the
+full roadmap scope. No fleet filters, live buckets or installed binary changed.
