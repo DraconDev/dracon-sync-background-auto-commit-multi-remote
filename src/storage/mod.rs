@@ -385,6 +385,34 @@ pub(crate) struct AdvanceOptions {
 
 #[derive(Debug, Clone, Subcommand)]
 pub(crate) enum StorageCommand {
+    /// Capture an updated version of an enrolled path; keeps the recorded
+    /// contract and refuses unhydrated references; no upload or Git mutation.
+    CaptureUpdate {
+        #[arg(long)]
+        repo: PathBuf,
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long)]
+        journal_root: PathBuf,
+        #[arg(long)]
+        metadata_root: PathBuf,
+        #[arg(long)]
+        manifest_path: PathBuf,
+        #[arg(long, default_value = "HEAD")]
+        revision: String,
+        #[arg(long)]
+        policy: Option<PathBuf>,
+        /// Required logical Git destinations for later preservation acknowledgment.
+        #[arg(long, required = true)]
+        git_target: Vec<String>,
+        #[arg(long, default_value_t = 1024 * 1024 * 1024)]
+        max_snapshot_bytes: u64,
+        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+        max_retained_snapshot_bytes: u64,
+        #[arg(long)]
+        json: bool,
+        path: PathBuf,
+    },
     /// Capture a policy-selected new path; no upload, enrollment or Git mutation.
     Capture {
         #[arg(long)]
@@ -1127,11 +1155,20 @@ fn journal_status(
 }
 
 pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
-    if matches!(command, StorageCommand::Capture { .. }) {
+    if matches!(
+        command,
+        StorageCommand::Capture { .. } | StorageCommand::CaptureUpdate { .. }
+    ) {
         let command = command.clone();
-        return tokio::task::spawn_blocking(move || capture_job(&command))
-            .await
-            .map_err(|_| anyhow::anyhow!("capture worker failed"))?;
+        return tokio::task::spawn_blocking(move || {
+            if matches!(command, StorageCommand::Capture { .. }) {
+                capture_job(&command)
+            } else {
+                capture_update_job(&command)
+            }
+        })
+        .await
+        .map_err(|_| anyhow::anyhow!("capture worker failed"))?;
     }
     if let StorageCommand::AdvanceJob(options) = command {
         let options = options.clone();
@@ -1357,6 +1394,185 @@ fn probe_backend(options: &ProbeOptions) -> Result<()> {
         );
     } else {
         println!("Backend {}: competing creates, conflicting-write refusal and exact readback verified; 64-byte control object retained.", options.backend);
+    }
+    Ok(())
+}
+
+fn capture_update_job(command: &StorageCommand) -> Result<()> {
+    use dracon_sync::storage_core::{
+        capture::select_source,
+        journal::{encode_relative_path, JobSpec, Journal, Limits, Phase},
+        metadata::{MetadataStore, MAX_PROTECTED_MANIFEST_BYTES},
+        reference::{validate_sha256, Fingerprint, Pointer},
+    };
+    use sha2::{Digest, Sha256};
+    use std::io::{Read, Seek};
+    let StorageCommand::CaptureUpdate {
+        repo,
+        repo_id,
+        journal_root,
+        metadata_root,
+        manifest_path,
+        revision,
+        policy,
+        git_target,
+        max_snapshot_bytes,
+        max_retained_snapshot_bytes,
+        json,
+        path,
+    } = command
+    else {
+        unreachable!("capture-update matched")
+    };
+    validate_sha256(repo_id)?;
+    let repo = root(repo)?;
+    // Validate confinement before any Git query or source access.
+    let path_hex = encode_relative_path(path.as_os_str().as_encoded_bytes())?;
+    encode_relative_path(manifest_path.as_os_str().as_encoded_bytes())?;
+    let repository = git2::Repository::open(&repo)?;
+    if repository
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?
+        .get_string("dracon.storageRepoId")
+        .ok()
+        .as_deref()
+        != Some(repo_id.as_str())
+    {
+        bail!("capture repository binding does not match");
+    }
+    let (global, local) = load_configuration(&repo, policy.as_deref())?;
+    if local.owned == Some(false) {
+        bail!("repository opted out of Sync ownership");
+    }
+    // The sticky enrollment contract comes from verified protected metadata at
+    // the selected committed revision, never from current policy rules or sizes.
+    let commit = repository.revparse_single(revision)?.peel_to_commit()?;
+    let tree = commit.tree()?;
+    let entry = tree.get_path(manifest_path)?;
+    let (bytes, kind) = repository.odb()?.read_header(entry.id())?;
+    if entry.filemode() != 0o100644
+        || kind != git2::ObjectType::Blob
+        || bytes as u64 > MAX_PROTECTED_MANIFEST_BYTES
+    {
+        bail!("invalid committed metadata mode or byte budget");
+    }
+    let blob = repository.find_blob(entry.id())?;
+    let payload = Fingerprint::new(
+        format!("{:x}", Sha256::digest(blob.content())),
+        bytes as u64,
+    )?;
+    drop(blob);
+    let metadata = MetadataStore::open(metadata_root, repo_id, Limits::default())?;
+    let (_prepared, manifest) = metadata.load_prepared_payload(&payload)?;
+    if manifest.repo_id() != repo_id.as_str() {
+        bail!("prepared manifest repository binding does not match");
+    }
+    let enrolled = manifest
+        .enrollment(&path_hex)
+        .context("asset is not enrolled in this committed version")?
+        .clone();
+    // The committed reference must agree with the enrollment before a new
+    // version is retained; otherwise the repository needs repair first.
+    match tree.get_path(path) {
+        Ok(reference) => {
+            let expected = enrolled.payload.as_ref().context(
+                "tombstoned path still has a committed reference; repair before capturing",
+            )?;
+            let (bytes, kind) = repository.odb()?.read_header(reference.id())?;
+            if !matches!(reference.filemode(), 0o100644 | 0o100755)
+                || kind != git2::ObjectType::Blob
+                || bytes > 1024
+            {
+                bail!("committed asset is not an ordinary bounded reference");
+            }
+            let pointer = Pointer::parse(repository.find_blob(reference.id())?.content())?;
+            if pointer.payload() != expected {
+                bail!("committed reference and manifest disagree");
+            }
+        }
+        Err(error) if error.code() == git2::ErrorCode::NotFound => {
+            if enrolled.payload.is_some() {
+                bail!("committed reference and manifest disagree");
+            }
+        }
+        Err(error) => return Err(error.into()),
+    }
+    let exclusions = crate::exclude::excluded_dir_names_set(&global);
+    let auto = local
+        .auto_commit_exclude_patterns
+        .as_ref()
+        .unwrap_or(&global.auto_commit_exclude_patterns);
+    if repository.is_path_ignored(path)?
+        || crate::exclude::is_excluded_change_path(path, &exclusions)
+        || crate::exclude::is_excluded_file(path, &global.exclude_file_patterns)
+        || crate::exclude::matches_untracked_exclude(&repo, path, auto)
+        || crate::exclude::matches_untracked_exclude(
+            &repo,
+            path,
+            &global.untracked_exclude_patterns,
+        )
+    {
+        bail!("source excluded by existing Git/Sync policy");
+    }
+    // An enrolled path must keep the known-good driver: without it a later
+    // `git add` would stage raw bytes instead of a verified reference.
+    let filters = inventory_filters(&repo, &BTreeSet::from([path.clone()]))?;
+    if filters.get(path).is_some_and(|filter| filter != "dracon-storage") {
+        bail!("enrolled path requires the verified storage filter");
+    }
+    let (mut source, fingerprint) = select_source(&repo, path, *max_snapshot_bytes)?;
+    // An unhydrated checkout (or any pointer-shaped working file) is not new
+    // asset bytes; hydrating first keeps the retained version faithful.
+    if fingerprint.bytes() <= 1024 {
+        let mut prefix = Vec::new();
+        source.take(1025).read_to_end(&mut prefix)?;
+        source.rewind()?;
+        if Pointer::parse(&prefix).is_ok() {
+            bail!("working file is an unhydrated reference; hydrate before capturing");
+        }
+    }
+    let mut targets = git_target.clone();
+    targets.sort();
+    let spec = JobSpec {
+        repo_id: repo_id.clone(),
+        path_hex,
+        source: fingerprint,
+        policy_sha256: enrolled.contract_sha256.clone(),
+        primary: enrolled.primary.clone(),
+        required_copies: enrolled.required_copies.clone(),
+        required_git_targets: targets,
+        encryption: enrolled.encryption,
+    };
+    spec.validate()?;
+    let journal = Journal::open(
+        journal_root,
+        repo_id,
+        Limits {
+            max_snapshot_bytes: *max_snapshot_bytes,
+            max_retained_snapshot_bytes: *max_retained_snapshot_bytes,
+            ..Limits::default()
+        },
+    )?;
+    let job = journal.create(spec)?;
+    let lease = journal.lease(job.id())?;
+    let captured = match job.phase() {
+        Phase::PendingCapture | Phase::Captured => lease.capture_snapshot(&mut source)?,
+        Phase::Cancelled => bail!("selected version was cancelled"),
+        _ => {
+            lease.source_snapshot()?;
+            lease.load()?
+        }
+    };
+    if *json {
+        println!(
+            "{}",
+            serde_json::json!({"schema_version":1,"job_id":captured.id(),"source_captured":true,"phase":captured.phase(),"git_changed":false,"uploaded":false})
+        );
+    } else {
+        println!(
+            "Job {}: enrolled update captured under the recorded contract; no upload or Git change.",
+            captured.id()
+        );
     }
     Ok(())
 }
