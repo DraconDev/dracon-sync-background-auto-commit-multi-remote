@@ -196,13 +196,20 @@ pub(crate) fn validate_policy(policy: &StoragePolicy) -> Result<()> {
                     if !copies.insert(copy) || copy == backend {
                         bail!("storage rule {index} repeats a required copy");
                     }
-                    if !policy.backends.get(copy).is_some_and(|b| b.allowed_security().contains(&security)) {
+                    if !policy
+                        .backends
+                        .get(copy)
+                        .is_some_and(|b| b.allowed_security().contains(&security))
+                    {
                         bail!("storage rule {index} requires an unapproved copy/security class");
                     }
                 }
             }
             Placement::Git => {
-                if rule.backend.is_some() || rule.security.is_some() || !rule.required_copies.is_empty() {
+                if rule.backend.is_some()
+                    || rule.security.is_some()
+                    || !rule.required_copies.is_empty()
+                {
                     bail!("Git rule {index} cannot set external backend/security");
                 }
             }
@@ -261,7 +268,12 @@ impl CompiledPolicy {
                         rule: Some(index),
                         backend: rule.backend.clone(),
                         security: rule.security,
-                        required_copies: rule.backend.iter().cloned().chain(rule.required_copies.iter().cloned()).collect(),
+                        required_copies: rule
+                            .backend
+                            .iter()
+                            .cloned()
+                            .chain(rule.required_copies.iter().cloned())
+                            .collect(),
                         reason: "first matching path and size condition; proposed placement only"
                             .into(),
                     };
@@ -1118,7 +1130,8 @@ pub(crate) async fn run(command: &StorageCommand) -> Result<()> {
     if matches!(command, StorageCommand::Capture { .. }) {
         let command = command.clone();
         return tokio::task::spawn_blocking(move || capture_job(&command))
-            .await.map_err(|_| anyhow::anyhow!("capture worker failed"))?;
+            .await
+            .map_err(|_| anyhow::anyhow!("capture worker failed"))?;
     }
     if let StorageCommand::AdvanceJob(options) = command {
         let options = options.clone();
@@ -1341,6 +1354,147 @@ fn probe_backend(options: &ProbeOptions) -> Result<()> {
         );
     } else {
         println!("Backend {}: competing creates, conflicting-write refusal and exact readback verified; 64-byte control object retained.", options.backend);
+    }
+    Ok(())
+}
+
+fn capture_job(command: &StorageCommand) -> Result<()> {
+    use dracon_sync::storage_core::{
+        capture::select_source,
+        journal::{encode_relative_path, Encryption, JobSpec, Journal, Limits, Phase},
+    };
+    use sha2::{Digest, Sha256};
+    let StorageCommand::Capture {
+        repo,
+        repo_id,
+        journal_root,
+        policy,
+        git_target,
+        max_snapshot_bytes,
+        max_retained_snapshot_bytes,
+        json,
+        path,
+    } = command
+    else {
+        unreachable!("capture matched")
+    };
+    let repo = root(repo)?;
+    // Validate confinement before any Git query or source access.
+    let path_hex = encode_relative_path(path.as_os_str().as_encoded_bytes())?;
+    let repository = git2::Repository::open(&repo)?;
+    if repository
+        .config()?
+        .open_level(git2::ConfigLevel::Local)?
+        .get_string("dracon.storageRepoId")
+        .ok()
+        .as_deref()
+        != Some(repo_id.as_str())
+    {
+        bail!("capture repository binding does not match");
+    }
+    let (global, local) = load_configuration(&repo, policy.as_deref())?;
+    if local.owned == Some(false) {
+        bail!("repository opted out of Sync ownership");
+    }
+    let compiled = CompiledPolicy::new(effective_policy(&global.storage, local.storage.as_ref()))?;
+    if !compiled.policy.enabled {
+        bail!("external storage is disabled");
+    }
+    let index = repository.index()?;
+    if index.get_path(path, 0).is_some() {
+        bail!("tracked content requires verified enrollment or reviewed forward migration");
+    }
+    match repository.head() {
+        Ok(head) => match head.peel_to_tree()?.get_path(path) {
+            Ok(_) => bail!("historically tracked content requires reviewed forward migration"),
+            Err(error) if error.code() == git2::ErrorCode::NotFound => {}
+            Err(error) => return Err(error.into()),
+        },
+        Err(error)
+            if matches!(
+                error.code(),
+                git2::ErrorCode::UnbornBranch | git2::ErrorCode::NotFound
+            ) => {}
+        Err(error) => return Err(error.into()),
+    }
+    let exclusions = crate::exclude::excluded_dir_names_set(&global);
+    let auto = local
+        .auto_commit_exclude_patterns
+        .as_ref()
+        .unwrap_or(&global.auto_commit_exclude_patterns);
+    if repository.is_path_ignored(path)?
+        || crate::exclude::is_excluded_change_path(path, &exclusions)
+        || crate::exclude::is_excluded_file(path, &global.exclude_file_patterns)
+        || crate::exclude::matches_untracked_exclude(&repo, path, auto)
+        || crate::exclude::matches_untracked_exclude(
+            &repo,
+            path,
+            &global.untracked_exclude_patterns,
+        )
+    {
+        bail!("source excluded by existing Git/Sync policy");
+    }
+    let filters = inventory_filters(&repo, &BTreeSet::from([path.clone()]))?;
+    if filters
+        .get(path)
+        .is_some_and(|filter| filter != "unspecified" && filter != "unset")
+    {
+        bail!("existing Git filter requires verified composition before enrollment");
+    }
+    let (mut source, fingerprint) = select_source(&repo, path, *max_snapshot_bytes)?;
+    let decision = compiled.decide(path, fingerprint.bytes());
+    if decision.placement != Placement::External {
+        bail!("source is not selected for external preservation");
+    }
+    let mut copies = decision.required_copies.clone();
+    copies.sort();
+    let mut targets = git_target.clone();
+    targets.sort();
+    // Hash only the portable declared contract, never credentials/backend locations.
+    let contract = serde_json::json!({"version":1,"rule":compiled.policy.rules[decision.rule.context("selected rule missing")?], "required_git_targets":targets});
+    let spec = JobSpec {
+        repo_id: repo_id.clone(),
+        path_hex,
+        source: fingerprint,
+        policy_sha256: format!("{:x}", Sha256::digest(serde_json::to_vec(&contract)?)),
+        primary: decision.backend.context("selected primary missing")?,
+        required_copies: copies,
+        required_git_targets: targets,
+        encryption: match decision.security.context("selected security missing")? {
+            Security::NonSensitive => Encryption::None,
+            Security::WardenEncrypted => Encryption::WardenAge,
+        },
+    };
+    spec.validate()?;
+    let journal = Journal::open(
+        journal_root,
+        repo_id,
+        Limits {
+            max_snapshot_bytes: *max_snapshot_bytes,
+            max_retained_snapshot_bytes: *max_retained_snapshot_bytes,
+            ..Limits::default()
+        },
+    )?;
+    let job = journal.create(spec)?;
+    let lease = journal.lease(job.id())?;
+    let captured = match job.phase() {
+        Phase::PendingCapture | Phase::Captured => lease.capture_snapshot(&mut source)?,
+        Phase::Cancelled => bail!("selected version was cancelled"),
+        _ => {
+            lease.source_snapshot()?;
+            lease.load()?
+        }
+    };
+    if *json {
+        println!(
+            "{}",
+            serde_json::json!({"schema_version":1,"job_id":captured.id(),"source_captured":true,"phase":captured.phase(),"git_changed":false,"uploaded":false})
+        );
+    } else {
+        println!(
+            "Job {}: exact source captured; no upload or Git change.",
+            captured.id()
+        );
     }
     Ok(())
 }
