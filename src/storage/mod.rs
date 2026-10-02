@@ -1663,7 +1663,7 @@ struct GuardBinding {
 /// Direct daemon and manual-hook entrypoint. No storage marker means no change.
 /// The daemon passes false to inspect its actual libgit2 index, ignoring an
 /// ambient alternate-index environment. Manual Git hooks pass true for Git's index.
-fn configured_guard(repo: &Path) -> Result<Option<GuardBinding>> {
+fn configured_guard(repo: &Path, honor_git_index: bool) -> Result<Option<GuardBinding>> {
     let repository = git2::Repository::open(repo)?;
     let local = repository.config()?.open_level(git2::ConfigLevel::Local)?;
     let version = match local.get_string(GUARD_VERSION_KEY) {
@@ -1677,9 +1677,12 @@ fn configured_guard(repo: &Path) -> Result<Option<GuardBinding>> {
         "filter.dracon-storage.required",
     ]
     .iter()
-    .any(|key| local.get_entry(key).is_ok());
+    .any(|key| repository.config().is_ok_and(|config| config.get_entry(key).is_ok()));
     if version.is_none() && !driver_present {
-        return Ok(None);
+        if !portable_storage_declaration(&repository, honor_git_index)? {
+            return Ok(None);
+        }
+        bail!("committed or staged storage attributes require an explicit version-1 guard binding");
     }
     if version.as_deref() != Some("1") {
         bail!("storage driver requires an explicit version-1 guard binding");
@@ -1720,7 +1723,7 @@ fn configured_guard(repo: &Path) -> Result<Option<GuardBinding>> {
 }
 
 pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Result<bool> {
-    let Some(binding) = configured_guard(repo)? else {
+    let Some(binding) = configured_guard(repo, honor_git_index)? else {
         return Ok(false);
     };
     let explicit_index = if honor_git_index {
@@ -1743,7 +1746,7 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
 /// Returns false only for a repository without storage markers. No fallback
 /// bypasses validation; callers retain the ordinary path solely for that case.
 pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bool> {
-    let Some(binding) = configured_guard(repo)? else {
+    let Some(binding) = configured_guard(repo, false)? else {
         return Ok(false);
     };
     let repository = git2::Repository::open(repo)?;
