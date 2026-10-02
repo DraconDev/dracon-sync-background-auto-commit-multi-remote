@@ -12,7 +12,7 @@ use std::io::Read;
 /// The caller must authorize the backend bindings and successfully complete
 /// security processing before retaining the payload. The exact copy set, owning
 /// repo ID and allowed security classes are checked before any upload/readback.
-/// No source file is read,
+/// No working-tree source file is read,
 /// encrypted again, staged, committed or deleted here. Retries always use the
 /// same private prepared snapshot and reverify every required copy, even when
 /// historical receipts exist. This holds only the job lease, never a Git lock.
@@ -412,7 +412,11 @@ mod tests {
                 self.local.get_verified(id, output)
             }
         }
-        for replacement in [vec![b'z'; 31], b"short".to_vec(), vec![b'z'; 100]] {
+        for replacement in [
+            vec![b'z'; b"approved retained representation".len()],
+            b"short".to_vec(),
+            vec![b'z'; 100],
+        ] {
             let temp = tempfile::tempdir().unwrap();
             let (journal, job) = fixture(temp.path());
             let source = std::fs::read(
@@ -475,5 +479,95 @@ mod tests {
         assert!(selected.read(&mut [0; 64]).is_err());
         assert!(selected.read(&mut [0; 64]).is_err());
         assert!(!selected.finished);
+    }
+    #[test]
+    fn incomplete_consumption_cannot_produce_a_copy_receipt() {
+        struct Partial(Fingerprint);
+        impl ImmutableBackend for Partial {
+            fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
+                input.read_exact(&mut [0; 1])?;
+                Ok(self.0.clone())
+            }
+            fn get_verified(&self, _: &Fingerprint, _: &mut dyn Write) -> Result<()> {
+                panic!("unfinished upload must not reach readback")
+            }
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job) = fixture(temp.path());
+        let backend = Partial(job.payload().unwrap().clone());
+        let bindings = approved(BTreeMap::from([
+            ("primary".into(), &backend as &dyn ImmutableBackend),
+            ("recovery".into(), &backend as &dyn ImmutableBackend),
+        ]));
+        let lease = journal.lease(job.id()).unwrap();
+        assert!(transfer_copies(&lease, &bindings, 1).is_err());
+        assert_eq!(
+            lease.load().unwrap().failure(),
+            Some(FailureCode::Integrity)
+        );
+    }
+
+    #[test]
+    fn changed_snapshot_cannot_reach_s3_transport() {
+        use crate::storage_core::s3::{ConditionalPut, S3Backend, S3Transport};
+        use std::cell::Cell;
+        use std::fs::File;
+        struct Transport(Cell<usize>);
+        impl S3Transport for Transport {
+            fn put_if_absent(&self, _: &Fingerprint, _: File) -> Result<ConditionalPut> {
+                self.0.set(self.0.get() + 1);
+                bail!("unexpected remote publication")
+            }
+            fn get(&self, _: &Fingerprint) -> Result<Box<dyn Read>> {
+                panic!("unexpected readback")
+            }
+        }
+        struct Changed<'a> {
+            backend: S3Backend<&'a Transport>,
+            path: std::path::PathBuf,
+        }
+        // Borrowed transports keep the witness counter available after transfer.
+        impl S3Transport for &Transport {
+            fn put_if_absent(&self, id: &Fingerprint, file: File) -> Result<ConditionalPut> {
+                (*self).put_if_absent(id, file)
+            }
+            fn get(&self, id: &Fingerprint) -> Result<Box<dyn Read>> {
+                (*self).get(id)
+            }
+        }
+        impl ImmutableBackend for Changed<'_> {
+            fn put(&self, input: &mut dyn Read) -> Result<Fingerprint> {
+                std::fs::write(
+                    &self.path,
+                    vec![b'z'; b"approved retained representation".len()],
+                )?;
+                self.backend.put(input)
+            }
+            fn get_verified(&self, id: &Fingerprint, output: &mut dyn Write) -> Result<()> {
+                self.backend.get_verified(id, output)
+            }
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let (journal, job) = fixture(temp.path());
+        let transport = Transport(Cell::new(0));
+        let backend = Changed {
+            backend: S3Backend::new(&transport, 1024).unwrap(),
+            path: temp
+                .path()
+                .join("journal")
+                .join("a".repeat(64))
+                .join(format!("{}.payload", job.id())),
+        };
+        let bindings = approved(BTreeMap::from([
+            ("primary".into(), &backend as &dyn ImmutableBackend),
+            ("recovery".into(), &backend as &dyn ImmutableBackend),
+        ]));
+        let lease = journal.lease(job.id()).unwrap();
+        assert!(transfer_copies(&lease, &bindings, 1).is_err());
+        assert_eq!(
+            lease.load().unwrap().failure(),
+            Some(FailureCode::Integrity)
+        );
+        assert_eq!(transport.0.get(), 0);
     }
 }
