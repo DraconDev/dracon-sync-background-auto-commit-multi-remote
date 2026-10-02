@@ -290,3 +290,35 @@ checks passed for advisories, bans, licenses and sources.
 No dependencies or configuration knobs were added. Production policy derivation,
 root separation/approval, manifest group consistency, atomic Git staging,
 historical-key drills, packaged restoration and daemon wiring remain gates.
+
+## Atomic Git index infrastructure (2026-10-02)
+
+Exact-version staging bundles now bind retained protected metadata to verified
+leased asset jobs. The repository-bound index transaction builds matched pointer
+and ciphertext entries, preserves unrelated staging and compares the actual
+index fingerprint under Git's lock. A private intent and complete immutable
+candidate reconcile process death before/after atomic replacement. Recovery
+recognizes its own lock by device/inode, preserves foreign locks and releases
+its artifacts when a manual edit changes the baseline. Verification forces a
+fresh index read; libgit2's cached index is not publication evidence.
+
+Sticky contracts cannot disappear/change during ordinary updates. Changed
+payloads require verified jobs; existing raw tracked paths require migration.
+Prior encrypted metadata must resolve to a locally retained verified preparation.
+Cold-checkout approved decryption/import remains an explicit integration gate.
+Index staging does not write working files, install filters, commit or push.
+
+The initial focused run passed eight tests (one ignored subprocess helper,
+explicitly invoked by crash tests), covering manual edits/deletions, unrelated
+staging, foreign locks, conflicting intents, lossless paths and tombstones.
+A further regression checks changed references without jobs and unknown prior
+metadata. Fixtures use synthetic subprocess output for transaction mechanics;
+they do not replace the earlier actual Warden encryption/restore evidence.
+
+Strict all-target workspace Clippy, dependency policy and the locked release
+build passed. The direct git2 dependency uses the existing resolved 0.21 crate;
+no new dependency version was introduced. The standalone package lock was
+resolved from its own manifest to include the new direct dependency and earlier
+storage additions. Workspace tests and the expanded focused run are recorded
+below after completion. Working-file races, filter/setup integration, outgoing
+commit validation, S3, packaged restoration and daemon wiring remain unfinished.
