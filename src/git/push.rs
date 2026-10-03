@@ -746,7 +746,10 @@ mod tests {
             .unwrap();
             std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
             let result = match route {
-                "normal" => push_with_transport_fallbacks(&repo, 10, "fixture").await,
+                // CHANGED 2026-10-03 (audit R4-SC-13): the sweep is
+                // gone; the production entry is push_with_retries
+                // (retries=0 → exactly one attempt).
+                "normal" => push_with_retries(&repo, 10, 0, "fixture").await,
                 "mirror" => {
                     super::super::multi_remote::push_to_named_remote(&repo, "origin", 10, 0, false)
                         .await
@@ -762,7 +765,8 @@ mod tests {
             // An accepting hook permits the same operation and is still called.
             std::fs::write(&hook, "#!/bin/sh\nprintf 'accepted' > hook-ran\nexit 0\n").unwrap();
             match route {
-                "normal" => push_with_transport_fallbacks(&repo, 10, "fixture").await,
+                // CHANGED 2026-10-03 (audit R4-SC-13): see above.
+                "normal" => push_with_retries(&repo, 10, 0, "fixture").await,
                 "mirror" => {
                     super::super::multi_remote::push_to_named_remote(&repo, "origin", 10, 0, false)
                         .await
