@@ -4919,7 +4919,7 @@ pub(crate) async fn run_repos_report(
             "full" | "f" => LayoutTier::Full,
             other => {
                 eprintln!(
-                    "⚠️ unknown --layout value {:?}; expected one of vertical|compact|full. Using auto-detected tier.",
+                    "⚠️ unknown --layout value {:?}; expected one of rich|vertical|compact|full. Using auto-detected tier.",
                     other
                 );
                 choose_layout_tier()
@@ -5557,7 +5557,10 @@ fn print_repos_compact_table(
     // Set minimum widths so the table never letter-wraps content.
     // Each minimum = max(header_text_width + 2 padding, content_min_width).
     // Sum: 3+11+18+7+11+18+8+8+7+9+11+13+18+18+17+22 = 199 + 16 borders = 215 cols min
-    // Compact tier is 250-299 cols so this fits comfortably.
+    // CORRECTED 2026-10-03 (audit R3-L37): was "Compact tier is 250-299
+    // cols" — Compact is auto-picked for < 165 (opt-in otherwise), so
+    // the 215 floor EXCEEDS narrow terminals and comfy-table squashes
+    // gracefully (Dynamic arrangement); the floor is advisory.
     // F30v2 (2026-07-19): LAST COMMIT and HINT must be Absolute, not
     // LowerBoundary, so long content is truncated in the cell (not
     // wrapped). PUSH-TO is a string with multi-word remotes — keep
@@ -6821,8 +6824,9 @@ fn build_repos_rich_table(
     // so it stays inside the same 9-content-cell budget and the
     // 165-column rich-tier floor is unchanged.
     const SIZE_COL: usize = 11;
-    // TOUCHED column: `<10-char author> <when>` = up to 14 chars +
-    // 2 padding = 16; absolute 16 fits `Virtual-Pet 14m` cleanly.
+    // TOUCHED column: author only (v0.113.30 dropped the age — ACTIVITY
+    // already carries timing), up to 13 content + 2 padding = 15.
+    // CORRECTED 2026-10-03 (audit R3-L37): was "<author> <when> = 16".
     const TOUCHED_COL: usize = 15;
     // Borders: N+1 separators in UTF8_FULL_CONDENSED for N columns.
     // Cell padding: 2 chars per cell × N cells.
