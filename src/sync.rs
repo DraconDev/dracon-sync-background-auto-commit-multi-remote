@@ -11693,6 +11693,64 @@ trusted_authors = ["test"]
         assert_eq!(blob.stdout, b"pending work\n");
     }
 
+    /// Unit test for R4-SC-15's predicate: only genuine lock failures
+    /// route to retry/Blocked. A file merely NAMED index.lock
+    /// (pathspec errors) must not misroute there.
+    #[test]
+    fn test_is_index_lock_failure_matches_only_lock_errors() {
+        assert!(is_index_lock_failure(
+            "fatal: Unable to create '/r/.git/index.lock': File exists."
+        ));
+        assert!(is_index_lock_failure(
+            "fatal: Unable to create '/r/.git/index.lock': Permission denied."
+        ));
+        assert!(!is_index_lock_failure(
+            "fatal: pathspec 'index.lock' did not match any files"
+        ));
+        assert!(!is_index_lock_failure("fatal: unable to stat 'gone.txt'"));
+    }
+
+    /// Regression test for R4-SC-15's backoff: a lock released
+    /// mid-backoff lets the SAME sync succeed via retry (no Blocked,
+    /// no next-cycle wait). The holder drops at ~100ms; retries fire
+    /// at ~250/750ms, so even a heavily loaded box lands a retry.
+    #[tokio::test]
+    async fn test_index_lock_contention_retries_then_succeeds() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_repo(&tmp, "lock-retry-repo");
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
+            auto_github_private = false
+            auto_commit = true
+            auto_pull = false
+            auto_push = false
+            auto_bump_versions = false
+        "#,
+        )
+        .unwrap();
+        policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
+        std::fs::write(repo.join("pending.txt"), "pending work\n").unwrap();
+        let lock = repo.join(".git/index.lock");
+        std::fs::write(&lock, "concurrent").unwrap();
+        let holder = lock.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            let _ = std::fs::remove_file(&holder);
+        });
+        let result = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("retry must be bounded");
+        assert!(
+            matches!(result, Ok(SyncOutcome::Synced)),
+            "lock released mid-backoff must succeed via retry, got: {result:?}"
+        );
+        let blob = git_cmd(&repo, &["show", "HEAD:pending.txt"]);
+        assert!(blob.status.success());
+    }
+
     #[tokio::test]
     async fn test_sync_repo_with_duplicate_subjects_succeeds() {
         let tmp = tempfile::tempdir().unwrap();
