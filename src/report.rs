@@ -8355,8 +8355,11 @@ async fn verify_resolution(
         // `verify_resolution_still_concern`), so a size-only concern
         // stays "still concerned" until the operator actually
         // shrinks the repo.
-        let pack_still =
-            pack_too_large_forces_concern(crate::git::github_pack_too_large(repo, None));
+        // R4-SC-04: async wrapper — the measurement runs on
+        // the blocking pool, never inline on this tokio worker.
+        let pack_still = pack_too_large_forces_concern(
+            crate::git::github_pack_too_large_async(repo, None).await,
+        );
         let still_concern = verify_resolution_still_concern(
             next.ahead,
             next.behind,
@@ -8597,7 +8600,9 @@ pub(crate) async fn run_repair_concerns(
         // a contract violation. The same PACK_SIZE_WARNING short-circuit
         // guard below then ensures the repair is a no-op (the daemon
         // has no code that shrinks a repo).
-        let size_info = crate::git::github_pack_too_large(&repo, None);
+        // R4-SC-04: async wrapper — the measurement runs on
+        // the blocking pool, never inline on this tokio worker.
+        let size_info = crate::git::github_pack_too_large_async(&repo, None).await;
         let pack_too_large = pack_too_large_forces_concern(size_info);
         if !is_concern && !pack_too_large {
             continue;
