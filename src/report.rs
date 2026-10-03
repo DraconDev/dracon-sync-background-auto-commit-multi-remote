@@ -1293,8 +1293,9 @@ fn parse_porcelain_z(stdout: &[u8]) -> Vec<(u8, u8, String)> {
 
 /// Classify a dirty repo's porcelain entries into committable vs excluded.
 /// `untracked_excludes` are the global `untracked_exclude_patterns` (daemon
-/// won't stage those either); `auto_commit_excludes` are the effective
-/// per-repo (fallback global) `auto_commit_exclude_patterns`.
+/// won't stage those either); `auto_commit_excludes` are the UNION of the
+/// global list and the per-repo override
+/// (`effective_auto_commit_excludes`, R3-M2 contract — per-repo EXTENDS).
 ///
 /// v0.113.89 (b): the "fast: no clean-filter pass" claim in the comment
 /// above is FALSE and cost the operator the whole `repos` command. `git
@@ -3955,13 +3956,16 @@ pub(crate) async fn run_repos_report(
         // WARN escalation, JSON) sees "what the daemon will act on".
         let mut excluded_dirty = 0usize;
         if effective_status.modified_files + effective_status.staged_files > 0 {
-            let auto_commit_excludes: &[String] = repo_override
-                .auto_commit_exclude_patterns
-                .as_deref()
-                .unwrap_or(&policy.auto_commit_exclude_patterns);
+            // FIXED 2026-10-03 (audit R4-SR-02): UNION, not REPLACE —
+            // the old `unwrap_or` dropped the global list whenever a
+            // per-repo list existed, so excluded_dirty was undercounted
+            // (committable overcounted) and `repos` disagreed with what
+            // the daemon stages. Same helper as the daemon gates.
+            let auto_commit_excludes =
+                crate::policy::effective_auto_commit_excludes(policy, &repo_override);
             let cls = classify_dirty_entries(
                 &repo,
-                auto_commit_excludes,
+                &auto_commit_excludes,
                 &policy.untracked_exclude_patterns,
             )
             .await;
