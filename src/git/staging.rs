@@ -232,7 +232,6 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
         );
         to_unstage.push(path);
     }
-    eprintln!("DBG candidates={candidates:?} measurable={measurable:?}");
     for (path, size) in staged_blob_sizes(repo, &measurable).await {
         match size {
             Some(n) if n > max_bytes => to_unstage.push(path),
@@ -854,22 +853,8 @@ mod tests {
         // worktree file. Small staged files stay; staged deletions of
         // large files stay (removals shrink the repo).
         let repo = create_test_repo();
-        // Case 1: 2 KiB staged blob, worktree truncated after staging.
-        std::fs::write(repo.join("big.bin"), vec![b'x'; 2048]).unwrap();
-        test_git_cmd()
-            .args(["add", "big.bin"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        std::fs::write(repo.join("big.bin"), b"tiny").unwrap();
-        // Case 2: small staged file stays staged.
-        std::fs::write(repo.join("small.txt"), b"small\n").unwrap();
-        test_git_cmd()
-            .args(["add", "small.txt"])
-            .current_dir(&repo)
-            .output()
-            .unwrap();
-        // Case 3: staged deletion of a large file stays staged.
+        // Case 3 setup first (its commit must not sweep the other cases):
+        // staged deletion of a large file stays staged.
         std::fs::write(repo.join("gone.bin"), vec![b'y'; 2048]).unwrap();
         test_git_cmd()
             .args(["add", "gone.bin"])
@@ -883,6 +868,21 @@ mod tests {
             .unwrap();
         test_git_cmd()
             .args(["rm", "-q", "gone.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        // Case 1: 2 KiB staged blob, worktree truncated after staging.
+        std::fs::write(repo.join("big.bin"), vec![b'x'; 2048]).unwrap();
+        test_git_cmd()
+            .args(["add", "big.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("big.bin"), b"tiny").unwrap();
+        // Case 2: small staged file stays staged.
+        std::fs::write(repo.join("small.txt"), b"small\n").unwrap();
+        test_git_cmd()
+            .args(["add", "small.txt"])
             .current_dir(&repo)
             .output()
             .unwrap();
