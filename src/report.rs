@@ -4696,7 +4696,13 @@ pub(crate) async fn run_repos_report(
 
     let concern_count_all = rows.iter().filter(|r| r.concern).count();
     let active_count_all = rows.iter().filter(|r| r.active && !r.concern).count();
-    let warn_count_all = rows.iter().filter(|r| r.warn && !r.active).count();
+    let warn_count_all = rows
+        .iter()
+        // FIXED 2026-10-03 (audit R3-L09): a warn&&concern row used to
+        // count in BOTH buckets (warn excluded active but not concern),
+        // so ok+active+warn+concern exceeded repos. Concern wins.
+        .filter(|r| r.warn && !r.active && !r.concern)
+        .count();
     let ok_count_all = rows
         .len()
         .saturating_sub(concern_count_all + active_count_all + warn_count_all);
@@ -4763,7 +4769,13 @@ pub(crate) async fn run_repos_report(
 
     let concern_count = rows.iter().filter(|r| r.concern).count();
     let active_count = rows.iter().filter(|r| r.active && !r.concern).count();
-    let warn_count = rows.iter().filter(|r| r.warn && !r.active).count();
+    let warn_count = rows
+        .iter()
+        // FIXED 2026-10-03 (audit R3-L09): a warn&&concern row used to
+        // count in BOTH buckets (warn excluded active but not concern),
+        // so ok+active+warn+concern exceeded repos. Concern wins.
+        .filter(|r| r.warn && !r.active && !r.concern)
+        .count();
     let ok_count = rows
         .len()
         .saturating_sub(concern_count + active_count + warn_count);
