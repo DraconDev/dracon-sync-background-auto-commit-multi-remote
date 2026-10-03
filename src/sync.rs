@@ -4336,6 +4336,20 @@ async fn stage_commit_and_push(
         git_rm_missing(repo, &missing, dry_run).await?;
     }
 
+    // FIXED 2026-10-03 (audit R4-SC-05): post-stage hygiene sweep.
+    // clean_staged_paths ran BEFORE staging; stage-large-then-truncate
+    // in the same cycle — or a concurrent operator/git-add of a large
+    // or excluded file between clean and commit — was swept into the
+    // commit unchecked (the bootstrap path got this sweep in R3-M1;
+    // steady state did not). Re-run the same sweep (staged-blob
+    // oversize sizing + excluded-index rescan) now that staging is
+    // done, so the commit below only sees post-sweep content. The
+    // build-artifact leg is idempotent (second run finds nothing).
+    // Dry-run stages nothing, so there is nothing to re-sweep.
+    if !dry_run {
+        clean_staged_paths(ctx).await?;
+    }
+
     let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
     let committed_entries: Vec<dracon_git::types::DiffFile> = staged
         .into_iter()
