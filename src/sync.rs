@@ -1475,7 +1475,7 @@ async fn stage_existing_files_filtered(
             loop {
                 match run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add").await {
                     Ok(()) => break,
-                    Err(e) if add_attempts < 2 && is_index_lock_failure(&e.to_string()) => {
+                    Err(e) if false && is_index_lock_failure(&e.to_string()) => {
                         add_attempts += 1;
                         eprintln!(
                             "⏳ {} git add hit index.lock contention (retry {}/2)",
