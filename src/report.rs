@@ -13733,6 +13733,28 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn test_rich_hint_link_out() {
+        // ADDED 2026-10-03 (audit L15): rich has no HINT column — the
+        // link-out line appears iff some row carries a hint.
+        let clean = RepoReportRow::for_tests("/tmp/clean");
+        assert_eq!(rich_hint_link_out(&[clean]), None);
+        let mut dash = RepoReportRow::for_tests("/tmp/dash");
+        dash.hint = "-".to_string();
+        assert_eq!(rich_hint_link_out(&[dash]), None, "'-' means no hint");
+        let mut hinted = RepoReportRow::for_tests("/tmp/hinted");
+        hinted.hint = "run dracon-sync repair concerns --apply".to_string();
+        let line = rich_hint_link_out(std::slice::from_ref(&hinted)).expect("link-out");
+        assert!(line.contains("1 repo"), "counts hinted rows: {line}");
+        assert!(
+            line.contains("repos <n|name>"),
+            "names the drill-down: {line}"
+        );
+        let line2 = rich_hint_link_out(&[hinted.clone(), hinted]).expect("link-out");
+        assert!(line2.contains("2 repos"), "pluralizes: {line2}");
+    }
+
+    #[test]
     fn test_rich_table_fits_narrow_terminal() {
         // Mirror the constants in print_repos_rich_table. If you bump a
         // column width, also bump this test and re-check on 165-col terminals.
