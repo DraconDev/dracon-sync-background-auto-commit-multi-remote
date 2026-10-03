@@ -13826,7 +13826,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_rich_hint_link_out() {
         // ADDED 2026-10-03 (audit L15): rich has no HINT column — the
         // link-out line appears iff some row carries a hint.
