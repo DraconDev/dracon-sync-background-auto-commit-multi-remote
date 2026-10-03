@@ -9970,6 +9970,143 @@ push_url = "{}"
         );
     }
 
+    /// ADDED 2026-10-03 (audit R4-SC-01): the M3 mirror-only
+    /// no-push guarantee must NOT extend to a mirror that is
+    /// genuinely behind HEAD. Pre-fix, an attached mirror-only
+    /// repo with a stale mirror tracking ref computed ahead=0,
+    /// skipped the push, and returned NothingToDo — which the
+    /// daemon reads as success and clears the stuck ledger with.
+    /// The failed mirror push was never retried and every
+    /// dispatched cycle wiped the stuck entry. Post-fix the
+    /// worker consults the same mirror-ahead helper as the
+    /// dispatcher, attempts the push, and records the failure
+    /// (PushFailed + stuck-ledger entry) so retry/backoff engage.
+    #[tokio::test]
+    async fn test_sc01_stale_mirror_tracking_ref_retries_push() {
+        let state_dir = tempfile::tempdir().unwrap();
+        let _state_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state_dir.path().to_string_lossy().as_ref(),
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let mirror_bare = tmp.path().join("mirror.git");
+        crate::git::git_cmd()
+            .args(["init", "--bare", "-q", "-b", "main"])
+            .arg(&mirror_bare)
+            .status()
+            .unwrap();
+
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        // Neutralize ambient global warden hooks: this fixture
+        // attempts a real push of a test-identity commit and the
+        // BAD_AUTHORS pre-push would (correctly) block it. Local
+        // config wins over global; production is unchanged.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "core.hooksPath",
+                "/dev/null",
+            ])
+            .status()
+            .unwrap();
+        // Mirror-only: no `origin`, no upstream. The remote is
+        // named `github` so the mirror-tracking-ref helper
+        // (refs/remotes/github/main) observes it.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "add",
+                "github",
+                &mirror_bare.to_string_lossy(),
+            ])
+            .status()
+            .unwrap();
+        for msg in ["init", "second"] {
+            crate::git::git_cmd()
+                .args([
+                    "-C",
+                    &repo.to_string_lossy(),
+                    "commit",
+                    "--no-verify",
+                    "--allow-empty",
+                    "-m",
+                    msg,
+                ])
+                .status()
+                .unwrap();
+        }
+        // Push only the first commit: the tracking ref lags HEAD
+        // by one afterwards — the stale-mirror state.
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "push", "github", "HEAD~1:main"])
+            .status()
+            .unwrap();
+
+        // Repoint at a dead URL so the retried push fails fast
+        // (connection refused) instead of succeeding quietly.
+        let dead_mirror_url = "ssh://127.0.0.1:1/dead.git";
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "remote",
+                "set-url",
+                "github",
+                dead_mirror_url,
+            ])
+            .status()
+            .unwrap();
+        let toml_str = format!(
+            r#"
+auto_github_private = false
+auto_commit = false
+auto_pull = false
+auto_push = true
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+
+[[remotes]]
+name = "github"
+push_url = "{}"
+"#,
+            dead_mirror_url
+        );
+        let policy: SyncPolicy = toml::from_str(&toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(
+            matches!(result, Ok(SyncOutcome::PushFailed)),
+            "stale mirror ref must attempt the push and report PushFailed, got: {:?}",
+            result
+        );
+
+        // The attempt must be recorded — pre-fix nothing was
+        // attempted and NothingToDo would have cleared the entry.
+        let stuck_path = state_dir.path().join("dracon-sync-stuck-push-repos.json");
+        let content = std::fs::read_to_string(&stuck_path).unwrap_or_default();
+        assert!(
+            content.contains(repo.to_string_lossy().as_ref()),
+            "stuck-push ledger must list the repo after the failed retry; ledger: {:?}",
+            content
+        );
+    }
+
     /// ADDED 2026-07-27 (v0.113.5, audit M3 follow-up): preserve
     /// the v0.112.30 bootstrap behavior — a repo whose upstream is
     /// configured but whose remote-tracking ref does not yet exist
