@@ -403,9 +403,6 @@ mod tests {
         assert_eq!(readable_scope(0o100600), None);
         assert_eq!(readable_scope(0o100604), Some("world-readable"));
         assert_eq!(readable_scope(0o100640), Some("group-readable"));
-        assert_eq!(
-            readable_scope(0o100644),
-            Some("group- and world-readable")
-        );
+        assert_eq!(readable_scope(0o100644), Some("group- and world-readable"));
     }
 }
