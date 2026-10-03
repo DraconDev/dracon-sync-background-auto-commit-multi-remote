@@ -5494,8 +5494,11 @@ pub(crate) async fn sync_repo_with_ahead_since(
                 )
             });
         if debug_enabled() {
+            // FIXED 2026-10-03 (audit R3-L01): label gate semantics,
+            // not outcomes — these are pre-stage candidates vs
+            // gate-rejected (staging itself can still skip/fail).
             eprintln!(
-                "🐛 {} to_stage={} to_restore={}",
+                "🐛 {} stage_candidates={} gate_rejected={}",
                 repo.display(),
                 to_stage.len(),
                 to_restore.len()
