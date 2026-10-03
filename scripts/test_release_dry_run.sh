@@ -110,6 +110,21 @@ fi
 git -C "$repo" diff --name-only | grep -Fx 'Cargo.toml' >/dev/null
 git -C "$repo" diff --name-only | grep -Fx 'CHANGELOG.md' >/dev/null
 test -e "$repo/release-notes-v0.1.1.md"
+# R4-M-03: generated notes must link the UTILITY repo — GH_PATH from the
+# github remote with `.git` stripped (bash ERE `+?` is greedy, so the
+# regex keeps the suffix), the full ${TAG} compare endpoint (v${VERSION}
+# never exists; tags are dracon-sync-vX.Y.Z), and the unit curl must hit
+# the utility root (the parent has no dracon-sync/ dir post-D1).
+grep -F 'https://github.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/compare/dracon-sync-v0.0.0...dracon-sync-v0.1.1' "$repo/release-notes-v0.1.1.md" >/dev/null
+grep -F 'https://raw.githubusercontent.com/DraconDev/dracon-sync-background-auto-commit-multi-remote/main/dracon-sync.service' "$repo/release-notes-v0.1.1.md" >/dev/null
+if grep -F '.git/compare' "$repo/release-notes-v0.1.1.md" >/dev/null; then
+    echo 'GH_PATH leaked a .git suffix into release links' >&2
+    exit 1
+fi
+if grep -F 'dracon-utilities' "$repo/release-notes-v0.1.1.md" >/dev/null; then
+    echo 'release notes still link the parent repo' >&2
+    exit 1
+fi
 
 DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     timeout 120 "$repo/scripts/release.sh" --abort \
