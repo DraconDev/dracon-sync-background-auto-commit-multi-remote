@@ -2461,7 +2461,7 @@ mod tests {
                                 && bytes[j + 1..].starts_with(&vec![b'#'; raw_hashes])
                                 && bytes
                                     .get(j + 1 + raw_hashes)
-                                    .map(|b| ![b'#', b'"'].contains(b))
+                                    .map(|b| !b"#\"".contains(b))
                                     .unwrap_or(true)
                             {
                                 in_raw = false;
