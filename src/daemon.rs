@@ -823,6 +823,28 @@ pub(crate) fn apply_outcome(
     stuck_push_repos: &mut HashMap<PathBuf, StuckRepoEntry>,
     is_late: bool,
 ) -> ApplyOutcome {
+    // FIXED 2026-10-03 (audit R4-SC-02): a wedged-task abort (or
+    // daemon shutdown) arrives here as Err(JoinError{cancelled})
+    // with an EMPTY remote_failures map (see the spawn wrapper).
+    // The old code fell into the unconditional overwrite below —
+    // wiping the sick remotes' pause counters, so the next cycle
+    // re-hammered backing-off remotes — and returned Failure,
+    // burning failure_count toward MAX_FAILURES for an outcome
+    // that is unknown, not failed. Treat it like PushPaused
+    // (retain activity, no count, no cooldown, no ledger touch),
+    // mirroring the push-level R3-L13 cancellation mapping. A
+    // panicked worker (JoinError, NOT cancelled) still falls
+    // through to the genuine-Failure arm below.
+    if let Err(e) = sync_res {
+        if push_error_is_cancellation(e) {
+            eprintln!(
+                "⏭️ {} sync task cancelled{} (wedge abort or shutdown — outcome unknown, not failed; retaining pause memory)",
+                repo.display(),
+                if is_late { " (late)" } else { "" }
+            );
+            return ApplyOutcome::PushPaused;
+        }
+    }
     entry.remote_failures = remote_failures;
     // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
     // populate `mirror_consecutive_fails` from the per-remote
