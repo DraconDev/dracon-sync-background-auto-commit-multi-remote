@@ -6595,6 +6595,20 @@ fn print_repos_summary(
     println!("{table}");
 }
 
+/// ADDED 2026-10-03 (audit L19): compact count for the 3-content
+/// CHG cells — exact below 1000, `k`-abbreviated above, so a 4-digit
+/// dirty count never renders as a clipped wrong number (`10…`, same
+/// class as the A/B L7 bug). Widening the columns was rejected: the
+/// 165-col rich floor is pinned and every other column is spoken for.
+/// Counts ≥100000 cap at `99k` (absurd tail — documented, not silent).
+fn format_compact_count(n: usize) -> String {
+    if n < 1000 {
+        n.to_string()
+    } else {
+        format!("{}k", (n / 1000).min(99))
+    }
+}
+
 /// ADDED 2026-10-03 (audit L15): the rich tier has no HINT column —
 /// return the link-out line when at least one row carries a hint, so
 /// the default wide view still surfaces that the detail exists. `None`
@@ -6925,8 +6939,11 @@ fn build_repos_rich_table(
     let repo_budget = repo_col.saturating_sub(2);
     let activity_budget = ACTIVITY_COL.saturating_sub(2);
     // v0.113.19: per-class change columns — 3-cell content budget
-    // (col width 5 − 2 padding) holds any realistic count.
-    let chg_budget = 3;
+    // (col width 5 − 2 padding). FIXED 2026-10-03 (audit L19): derived
+    // from the const (was a hardcoded 3 that could skew), and counts
+    // ≥1000 abbreviate via `format_compact_count` instead of clipping
+    // to a wrong number.
+    let chg_budget = CHG_MOD_COL.saturating_sub(2);
     let ab_budget = AB_COL.saturating_sub(2);
     let touched_budget = TOUCHED_COL.saturating_sub(2);
     for (display_idx, (_orig_idx, row)) in indexed.iter().enumerate() {
@@ -6979,7 +6996,8 @@ fn build_repos_rich_table(
         // columns so clean classes don't shout).
         let chg = |n: usize| {
             if n > 0 {
-                Cell::new(truncate_unicode_width(&n.to_string(), chg_budget)).fg(Color::White)
+                Cell::new(truncate_unicode_width(&format_compact_count(n), chg_budget))
+                    .fg(Color::White)
             } else {
                 Cell::new("—").fg(Color::DarkGrey)
             }
