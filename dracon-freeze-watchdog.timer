@@ -1,0 +1,14 @@
+# Shipped by dracon-utilities (audit M8, 2026-10-02): previously live-only.
+# install.sh copies this to ~/.config/systemd/user/ and enables the timer.
+[Unit]
+Description=Run dracon-freeze-watchdog every 2 minutes
+Documentation=https://github.com/DraconDev/dracon-utilities
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

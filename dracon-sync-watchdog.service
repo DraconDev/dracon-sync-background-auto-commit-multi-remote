@@ -1,0 +1,15 @@
+# Shipped by dracon-utilities (audit M8, 2026-10-02): previously live-only.
+# install.sh copies this to ~/.config/systemd/user/ and enables the timer.
+[Unit]
+Description=Dracon sync watchdog (restart daemon if stopped)
+Documentation=https://github.com/DraconDev/dracon-utilities
+After=timers.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.dracon/sync-notify/dracon-sync-watchdog.sh
+# Hard timeout: the check is a couple of systemctl calls, never slow.
+TimeoutStartSec=15
+# Capture output for debugging
+StandardOutput=journal
+StandardError=journal

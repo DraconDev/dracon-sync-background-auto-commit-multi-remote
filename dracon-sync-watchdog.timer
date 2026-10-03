@@ -1,0 +1,20 @@
+# Shipped by dracon-utilities (audit M8, 2026-10-02): previously live-only.
+# install.sh copies this to ~/.config/systemd/user/ and enables the timer.
+[Unit]
+Description=Run dracon-sync-watchdog.service every 2 minutes
+Documentation=https://github.com/DraconDev/dracon-utilities
+
+[Timer]
+# Run 2 minutes after boot, then every 2 minutes.
+# 2 minutes bounds the worst case "daemon stopped by mistake" window
+# to ~2.5 minutes (timer period + jitter). Intentional downtime is
+# covered by ~/.dracon/dracon-sync.maintenance-hold.
+OnBootSec=2min
+OnUnitActiveSec=2min
+# Add jitter so multiple timer-based services don't all fire at the
+# same wall-clock second.
+RandomizedDelaySec=30
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

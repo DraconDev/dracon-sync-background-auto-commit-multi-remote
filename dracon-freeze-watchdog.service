@@ -1,0 +1,13 @@
+# Shipped by dracon-utilities (audit M8, 2026-10-02): previously live-only.
+# install.sh copies this to ~/.config/systemd/user/ and enables the timer.
+[Unit]
+Description=Dracon freeze watchdog (warn/auto-clear forgotten pause)
+Documentation=https://github.com/DraconDev/dracon-utilities
+After=timers.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.dracon/sync-notify/dracon-freeze-watchdog.sh
+TimeoutStartSec=10
+StandardOutput=journal
+StandardError=journal
