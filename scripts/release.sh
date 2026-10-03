@@ -534,6 +534,19 @@ warn ""
 warn "after 'cargo install dracon-sync --version ${VERSION}', run the fixture check:"
 warn "    ${RELPFX}scripts/verify-install.sh"
 
+# A released unit that is never copied to ~/.config/systemd/user leaves the live
+# service on the old unit, silently: MemoryDenyWriteExecute=true (2026-10-02)
+# killed the daemon on regex JIT while the removal sat in the repo. Nothing in
+# a release can own host deployment state, so surface it here instead —
+# advisory, never fatal, because a stale local unit must not block a release.
+if [[ -x "${RELPFX}scripts/check-unit-deployment.sh" ]]; then
+    warn ""
+    if ! "${RELPFX}scripts/check-unit-deployment.sh"; then
+        warn "the deployed systemd unit is out of date with this release (see above)."
+        warn "    install -m 644 ${RELPFX}dracon-sync.service ~/.config/systemd/user/dracon-sync.service && systemctl --user daemon-reload"
+    fi
+fi
+
 if [[ $DRY_RUN -eq 1 ]]; then
     echo ""
     warn "This was a --dry-run. Local files were modified but no remote state was changed."
