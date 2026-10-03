@@ -55,20 +55,66 @@ pub(crate) async fn push_https_fallback(
     let mut failures: Vec<String> = Vec::new();
 
     if let Some(https) = super::github_https_url(remote_url) {
-        let result = super::run_git_with_timeout_env_progress(
-            repo,
-            &["push", &https, refspec],
-            timeout_secs,
-            &format!("{}-github-https", op_label),
-            no_prompt,
-        )
-        .await;
-        match result {
-            Ok(()) => return Ok(()),
-            Err(e) => failures.push(format!(
-                "github: {}",
-                clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-            )),
+        // FIXED 2026-10-03 (audit R4-SC-06): wire GH_TOKEN through
+        // git_askpass_script like the gitlab/codeberg legs — the old
+        // leg pushed with no credentials at all, so the transport
+        // fallback was ineffective exactly for github-primary repos.
+        // Unlike those legs, a missing token does NOT skip: the
+        // operator's `store` credential helper (verified live:
+        // github.com entry present) rescues the unauthenticated
+        // attempt, so skipping would regress working pushes.
+        if let Some(token) = super::load_secret("GH_TOKEN") {
+            match super::git_askpass_script(&token).await {
+                Ok(askpass) => {
+                    // HARDENED 2026-10-03 (unmapped; not a numbered R3 finding): a non-UTF8
+                    // askpass path fails LOUD per-forge instead of
+                    // silently pointing GIT_ASKPASS at /bin/false
+                    // (every push then fails with a misleading error).
+                    if let Some(askpass_str) = askpass.to_str() {
+                        let _askpass_guard = super::AskpassScript::new(askpass.clone());
+                        let result = super::run_git_with_timeout_env_progress(
+                            repo,
+                            &["push", &https, refspec],
+                            timeout_secs,
+                            &format!("{}-github-https", op_label),
+                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                        )
+                        .await;
+                        match result {
+                            Ok(()) => return Ok(()),
+                            Err(e) => failures.push(format!(
+                                "github: {}",
+                                clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                            )),
+                        }
+                    } else {
+                        eprintln!("⚠️ GIT_ASKPASS path is not UTF-8 for GitHub; skipping forge");
+                        failures.push("github: askpass path not UTF-8".to_string());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("⚠️ failed to create GIT_ASKPASS helper for GitHub: {}", e);
+                    failures.push("github: askpass setup failed".to_string());
+                }
+            }
+        } else {
+            // No GH_TOKEN: ambient credential helpers (e.g. `store`
+            // with a github.com entry) may still authenticate this.
+            let result = super::run_git_with_timeout_env_progress(
+                repo,
+                &["push", &https, refspec],
+                timeout_secs,
+                &format!("{}-github-https", op_label),
+                no_prompt,
+            )
+            .await;
+            match result {
+                Ok(()) => return Ok(()),
+                Err(e) => failures.push(format!(
+                    "github: {}",
+                    clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                )),
+            }
         }
     }
 
