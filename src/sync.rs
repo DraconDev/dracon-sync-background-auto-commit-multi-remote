@@ -9719,6 +9719,7 @@ push_url = "http://127.0.0.1:{}/{}.git"
             false,
         )
         .await;
+        eprintln!("DEBUG out_a2 = {:?}", out_a2);
         assert!(matches!(out_a2.unwrap(), SyncOutcome::PushPaused));
         assert_eq!(
             crate::daemon::load_stuck_push_repos()
