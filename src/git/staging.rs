@@ -123,10 +123,10 @@ async fn staged_blob_sizes(
 /// the size gate.
 pub(crate) async fn staged_blob_sizes_for(
     repo: &Path,
-    paths: &[std::path::PathBuf],
+    paths: Vec<std::path::PathBuf>,
 ) -> Result<std::collections::BTreeMap<std::path::PathBuf, Option<u64>>> {
     let mut candidates: Vec<std::path::PathBuf> = paths
-        .iter()
+        .into_iter()
         .filter(|path| {
             if !super::is_safe_git_path(path) {
                 eprintln!(
@@ -138,7 +138,6 @@ pub(crate) async fn staged_blob_sizes_for(
             }
             true
         })
-        .cloned()
         .collect();
     candidates.sort();
     // Map index entries (sha per path) via ls-files; :(literal) keeps
@@ -244,7 +243,7 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
     // gone): deletions shrink the repo and need no gate, so only
     // present index entries are measured. Unmeasurable entries fail
     // closed (unstaged) rather than committing blind.
-    let sizes = staged_blob_sizes_for(repo, &staged).await?;
+    let sizes = staged_blob_sizes_for(repo, staged.into_iter().collect()).await?;
     let mut to_unstage = Vec::new();
     for (path, size) in &sizes {
         match size {
