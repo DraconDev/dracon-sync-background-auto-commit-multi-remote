@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use std::ops::{Deref, DerefMut};
 use std::path::{Component, Path, PathBuf};
 use std::process::Command as StdCommand;
