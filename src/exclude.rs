@@ -44,6 +44,22 @@ mod tests {
         assert!(is_excluded_dir_name(".tmp-123", &excluded));
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-06): the glob `*` branch
+    /// compared the lowercased candidate against the RAW pattern
+    /// slice, so "Target*" never matched "target-x" despite the
+    /// documented case-insensitive contract. Both sides lowercase.
+    #[test]
+    fn test_is_excluded_dir_name_glob_case_insensitive() {
+        let excluded: BTreeSet<String> = ["Target*".to_string()].into_iter().collect();
+        // The audit repro.
+        assert!(is_excluded_dir_name("target-x", &excluded));
+        assert!(is_excluded_dir_name("TARGET-Y", &excluded));
+        assert!(is_excluded_dir_name("Target", &excluded));
+        // Non-matches still pass through.
+        assert!(!is_excluded_dir_name("src", &excluded));
+        assert!(!is_excluded_dir_name("xtarget", &excluded));
+    }
+
     #[test]
     fn test_is_excluded_dir_name_trailing_hyphen() {
         let excluded: BTreeSet<String> = [".tmp-".to_string()].into_iter().collect();
