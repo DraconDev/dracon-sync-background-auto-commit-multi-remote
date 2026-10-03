@@ -2423,8 +2423,10 @@ mod tests {
         }
         // Pass 2: drop `assert!(...)` / `assert_eq!(...)` /
         // `assert_ne!(...)` spans (paren-matched, string-aware).
+        // Byte-oriented (span boundaries are ASCII `assert`/`(`/`)`,
+        // so the kept bytes stay valid UTF-8).
         let bytes = no_comments.as_bytes();
-        let mut out = String::with_capacity(no_comments.len());
+        let mut out: Vec<u8> = Vec::with_capacity(no_comments.len());
         let mut i = 0;
         while i < bytes.len() {
             let rest = &no_comments[i..];
@@ -2503,10 +2505,10 @@ mod tests {
                     continue;
                 }
             }
-            out.push(bytes[i] as char);
+            out.push(bytes[i]);
             i += 1;
         }
-        out
+        String::from_utf8(out).expect("assert-span boundaries are ASCII")
     }
 
     #[test]
