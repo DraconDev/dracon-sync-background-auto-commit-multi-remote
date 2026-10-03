@@ -6740,12 +6740,6 @@ pub(crate) async fn run_daemon(
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
-    let mut detached_discard: HashMap<PathBuf, u64> = HashMap::new();
-    // Per-repo dispatch counter; bumped each time the daemon
-    // dispatches a new task for the repo. Used as the generation
-    // captured in `SyncTrioJoin` and compared against the wedged
-    // marker in the trailing-drain discard check.
-    let mut dispatch_gen: HashMap<PathBuf, u64> = HashMap::new();
     // Per-repo classification jobs (filter-aware `git diff HEAD` +
     // untracked listing). Spawned outside the pulse loop so a slow or
     // failing required clean filter in one repo cannot stall the
