@@ -699,6 +699,9 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 /// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
 /// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
 /// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
+/// - reason `Some("private")` excl=["github", "codeberg"] →
+///   "gitlab [github,codeberg:private]" (reason annotates the codeberg
+///   element only — R4-SR-10; never the whole list)
 ///
 /// CHANGED 2026-06-29: format changed from `codeberg −github,gitlab` (Unicode
 /// minus) to `codeberg [excl:github,gitlab]` (brackets) for consistency with
@@ -756,7 +759,33 @@ fn format_push_to_remotes_cell(
             // annotation in exactly the rows it described. Fold the
             // reason INTO the bracket: `github,gitlab [codeberg:quota]`
             // is exactly 30 cols for the common case.
-            cell_text = format!("{main} [{excl}:{reason}]");
+            //
+            // FIXED 2026-10-03 (audit R4-SR-10): the old fold attached
+            // the codeberg-specific reason to the WHOLE list —
+            // `github,codeberg [github,codeberg:private]` blamed github
+            // too. Annotate the codeberg element only; the common
+            // single-exclusion case renders byte-identical.
+            let mut matched = false;
+            let annotated = excluded_remotes
+                .iter()
+                .map(|r| {
+                    if r == "codeberg" {
+                        matched = true;
+                        format!("{r}:{reason}")
+                    } else {
+                        r.clone()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            cell_text = if matched {
+                format!("{main} [{annotated}]")
+            } else {
+                // Unreachable: the constructor only sets the reason when
+                // codeberg is excluded. Drop the annotation rather than
+                // misattribute it; the JSON row keeps the reason.
+                format!("{main} [{excl}]")
+            };
         }
         // F30v2: truncate to fit the Absolute(32) PUSH-TO column
         // minus 2 padding = 30 cols content.
