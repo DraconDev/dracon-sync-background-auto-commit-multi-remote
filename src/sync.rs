@@ -10038,9 +10038,17 @@ push_url = "{}"
                 .unwrap();
         }
         // Push only the first commit: the tracking ref lags HEAD
-        // by one afterwards — the stale-mirror state.
+        // by one afterwards — the stale-mirror state. (The
+        // destination must be a full ref: HEAD~1 resolves to a
+        // SHA, and git cannot guess the namespace for those.)
         crate::git::git_cmd()
-            .args(["-C", &repo.to_string_lossy(), "push", "github", "HEAD~1:main"])
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "push",
+                "github",
+                "HEAD~1:refs/heads/main",
+            ])
             .status()
             .unwrap();
 
