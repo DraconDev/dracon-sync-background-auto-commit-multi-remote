@@ -1174,7 +1174,13 @@ mod tests {
     #[test]
     fn test_build_filter_branch_args_escapes_single_quotes() {
         let args = build_filter_branch_args(&["we'ird.bin".to_string()]);
-        assert!(args[3].contains("'we'\\''ird.bin'"), "got: {}", args[3]);
+        // CHANGED 2026-10-03 (audit R4-SC-10): :(literal) prefixes the
+        // shell-escaped path (quoting and literal-magic compose).
+        assert!(
+            args[3].contains("':(literal)we'\\''ird.bin'"),
+            "got: {}",
+            args[3]
+        );
     }
 }
 
