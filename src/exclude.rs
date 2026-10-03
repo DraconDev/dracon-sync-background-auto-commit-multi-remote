@@ -977,15 +977,16 @@ pub(crate) fn is_excluded_dir_name(name: &str, excluded_dir_names: &BTreeSet<Str
         }
         // .tmp- prefix pattern: matches .tmp-* only (e.g., .tmp-file, .tmp-abc)
         // NOT .tmpfile (no hyphen after .tmp) or .tmp (exact match handled above)
+        // FIXED 2026-10-03 (audit R4-SR-01): the old prefix was sliced
+        // from the CANDIDATE name, so `starts_with` was tautological —
+        // the pattern's chars were never compared and any same-shape
+        // name with '-' at the same index matched ("abcd-xyz" vs
+        // ".tmp-"). Compare against the pattern itself.
         if pattern.ends_with('-')
             && pattern.starts_with('.')
-            && normalized.len() > normalized_pattern.len() - 1
-            && normalized.as_bytes()[normalized_pattern.len() - 1] == b'-'
+            && normalized.starts_with(&normalized_pattern)
         {
-            let prefix = &normalized[..normalized_pattern.len() - 1];
-            if normalized.starts_with(prefix) {
-                return true;
-            }
+            return true;
         }
         // Glob-style * suffix: .build* matches .build-debug
         if pattern.ends_with('*') && normalized.starts_with(&pattern[..pattern.len() - 1]) {
