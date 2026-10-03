@@ -2437,8 +2437,8 @@ mod tests {
                 continue;
             }
             let rest = &no_comments[i..];
-            let at_ident_start = i == 0
-                || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_');
+            let at_ident_start =
+                i == 0 || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_');
             let is_assert = at_ident_start
                 && (rest.starts_with("assert!")
                     || rest.starts_with("assert_eq!")
@@ -2545,7 +2545,11 @@ mod tests {
                     // test_helpers.rs is test support only (all uses
                     // are #[cfg(test)]-gated); its references must not
                     // satisfy the production-consumption check.
-                    if path.file_name().map(|n| n == "test_helpers.rs").unwrap_or(false) {
+                    if path
+                        .file_name()
+                        .map(|n| n == "test_helpers.rs")
+                        .unwrap_or(false)
+                    {
                         continue;
                     }
                     let source = std::fs::read_to_string(&path).expect("source is readable");

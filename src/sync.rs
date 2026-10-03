@@ -7479,7 +7479,8 @@ trusted_authors = ["test"]
         )
         .unwrap();
         #[cfg(unix)]
-        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
         let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
 
         let policy = bootstrap_test_policy("");

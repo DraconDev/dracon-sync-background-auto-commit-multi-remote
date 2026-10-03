@@ -345,7 +345,12 @@ pub(crate) fn try_count_all_head_commits(repo: &Path) -> Result<u64> {
         .args(["rev-list", "--count", "HEAD"])
         .current_dir(repo)
         .output()
-        .with_context(|| format!("rev-list --count HEAD failed to spawn for {}", repo.display()))?;
+        .with_context(|| {
+            format!(
+                "rev-list --count HEAD failed to spawn for {}",
+                repo.display()
+            )
+        })?;
     if !output.status.success() {
         if is_unborn_head(repo) {
             return Ok(0);
@@ -359,7 +364,12 @@ pub(crate) fn try_count_all_head_commits(repo: &Path) -> Result<u64> {
     String::from_utf8_lossy(&output.stdout)
         .trim()
         .parse::<u64>()
-        .with_context(|| format!("rev-list --count HEAD printed no number for {}", repo.display()))
+        .with_context(|| {
+            format!(
+                "rev-list --count HEAD printed no number for {}",
+                repo.display()
+            )
+        })
 }
 
 /// Return the known mirror tracking refs for the current branch, followed by

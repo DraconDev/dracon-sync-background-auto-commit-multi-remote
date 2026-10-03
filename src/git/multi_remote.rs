@@ -1960,12 +1960,19 @@ exit 1
             assert!(git(&["init", "-q", "-b", "main"]).status.success());
             assert!(git(&["config", "user.email", "test@test"]).status.success());
             assert!(git(&["config", "user.name", "test"]).status.success());
-            assert!(git(&["remote", "add", "mirror", "git@github.com:DraconDev/fake.git"])
-                .status
-                .success());
+            assert!(git(&[
+                "remote",
+                "add",
+                "mirror",
+                "git@github.com:DraconDev/fake.git"
+            ])
+            .status
+            .success());
             std::fs::write(repo.join("f.txt"), "x\n").expect("write");
             assert!(git(&["add", "f.txt"]).status.success());
-            assert!(git(&["commit", "-q", "--no-verify", "-m", "init"]).status.success());
+            assert!(git(&["commit", "-q", "--no-verify", "-m", "init"])
+                .status
+                .success());
 
             let count_file = tmp.path().join("push-count");
             let mock = tmp.path().join("mock-git.sh");
