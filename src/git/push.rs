@@ -839,7 +839,7 @@ mod tests {
             .filter_map(|l| l.split_whitespace().next())
             .collect();
         assert!(
-            !first_words.iter().any(|w| *w == "pull"),
+            !first_words.contains(&"pull"),
             "auto-pull must not run for a fail-fast rejection: {argv}"
         );
         assert_eq!(

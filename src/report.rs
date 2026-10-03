@@ -3804,7 +3804,6 @@ fn gitdir_signature(repo: &Path) -> u64 {
         .unwrap_or(0)
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Bucket rows into (ok, active, warn, concern) summary counts.
 /// Precedence is concern > active > warn > ok: a warn&&concern row
 /// counts ONLY as concern (FIXED 2026-10-03, audit R3-L09 — the old
@@ -3821,6 +3820,7 @@ fn row_bucket_counts(rows: &[RepoReportRow]) -> (usize, usize, usize, usize) {
     (ok, active, warn, concern)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
