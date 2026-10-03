@@ -12817,6 +12817,26 @@ mod tests {
     }
 
     #[test]
+    fn test_truncate_unicode_width_keeps_graphemes_whole() {
+        // ADDED 2026-10-03 (audit L13): the doc promises grapheme
+        // safety — ZWJ sequences and flag pairs are kept whole or
+        // dropped whole, never split mid-cluster.
+        // Family "👨‍👩‍👧" = 7 codepoints, ONE grapheme, 6 cols wide
+        // (2+0+2+0+2). Old char-iteration cut after the ZWJ.
+        let family = "👨\u{200d}👩\u{200d}👧";
+        let r = truncate_unicode_width(&format!("ab{family}cd"), 5);
+        assert_eq!(r, "ab…", "ZWJ sequence must drop whole: {r:?}");
+        // Flag "🇫🇷" = 2 regional indicators, ONE grapheme, 4 cols.
+        // Old char-iteration kept a half-flag.
+        let flag = "\u{1f1eb}\u{1f1f7}";
+        let r = truncate_unicode_width(&format!("ab{flag}cd"), 5);
+        assert_eq!(r, "ab…", "flag pair must drop whole: {r:?}");
+        // A grapheme that fits is kept whole with the ellipsis after it.
+        let r = truncate_unicode_width(&format!("a{flag}cdef"), 6);
+        assert_eq!(r, format!("a{flag}…"), "fitting grapheme kept: {r:?}");
+    }
+
+    #[test]
     fn test_choose_layout_tier_vertical() {
         let _env_guard = REPORT_ENV_GUARD
             .lock()
