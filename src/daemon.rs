@@ -4141,6 +4141,38 @@ mod daemon_tests {
         );
     }
 
+    /// Regression test for R4-SC-17: the trailing-drain seed holds
+    /// ONLY this cycle's drained repos — previous cycles'
+    /// detached-registry leftovers lingering in `in_flight` must not
+    /// inflate the "still running" count. `drained_repo_set` takes
+    /// only `to_sync`, so staleness cannot enter by construction;
+    /// this test pins that contract (reverting production to
+    /// `in_flight.clone()` orphans the helper → dead_code failure).
+    #[test]
+    fn test_trailing_drain_seed_excludes_previous_cycle_pending() {
+        use std::path::PathBuf;
+        let stale = PathBuf::from("/tmp/stale-repo");
+        let fresh_a = PathBuf::from("/tmp/fresh-repo-a");
+        let fresh_b = PathBuf::from("/tmp/fresh-repo-b");
+        // Previous cycle's detached leftover still in flight…
+        let in_flight: std::collections::HashSet<PathBuf> =
+            [stale.clone()].into_iter().collect();
+        // …while this cycle drains two fresh repos (handle type is
+        // generic — the seed only reads repo paths).
+        let to_sync: Vec<(PathBuf, u8)> =
+            vec![(fresh_a.clone(), 0), (fresh_b.clone(), 0)];
+        let seed = super::drained_repo_set(&to_sync);
+        assert_eq!(seed.len(), 2, "seed must hold exactly this cycle's drain");
+        assert!(seed.contains(&fresh_a) && seed.contains(&fresh_b));
+        assert!(
+            !seed.contains(&stale),
+            "previous-cycle in_flight leftover must not inflate the count (in_flight={in_flight:?})"
+        );
+        // Empty drain (quiet cycle with only detached pending) seeds empty.
+        let empty: Vec<(PathBuf, u8)> = Vec::new();
+        assert!(super::drained_repo_set(&empty).is_empty());
+    }
+
     #[test]
     fn test_load_stuck_push_repos_nonexistent() {
         let temp_dir = tempfile::tempdir().unwrap();
