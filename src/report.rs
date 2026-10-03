@@ -1588,9 +1588,11 @@ pub(crate) struct RepoReportRow {
     /// (see 2026-06-23 goal `mqqsyzyd-qkvna5` for rationale).
     push_to_remotes: Vec<String>,
     /// Remotes explicitly excluded from this repo by the per-repo override
-    /// (or by the global `policy.exclude_remotes`). Empty when the repo
-    /// uses the full default remote set. Always present (not Option) so
-    /// downstream callers don't have to handle None.
+    /// (`exclude_remotes` in `<repo>/.dracon/dracon-sync.toml` — there is
+    /// no global `policy.exclude_remotes`; FIXED 2026-10-03, audit
+    /// R4-SR-12: the old parenthetical claimed one existed). Empty when
+    /// the repo uses the full default remote set. Always present (not
+    /// Option) so downstream callers don't have to handle None.
     excluded_remotes: Vec<String>,
     /// Reason codeberg is in `excluded_remotes` for this repo, when the
     /// skip is driven by the `codeberg_public_only` policy rather than
