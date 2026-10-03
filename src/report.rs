@@ -8916,13 +8916,21 @@ pub(crate) async fn run_repair_warns(
                 continue;
             }
         };
+        // FIXED 2026-10-03 (audit R4-SR-08): the old call passed
+        // GLOBAL-ONLY auto-commit patterns, so per-repo-only
+        // exclusions got spurious warn-repair plans for dirt the
+        // worker would never touch. UNION contract (R3-M2), same as
+        // the worker path.
+        let repo_override = crate::policy::load_repo_override(&repo);
+        let effective_auto_commit_excludes =
+            crate::policy::effective_auto_commit_excludes(policy, &repo_override);
         let effective_dirty = has_sync_relevant_dirty_entries(
             &repo,
             &entries,
             &excluded_dir_names,
             &policy.exclude_file_patterns,
             policy.max_stage_file_bytes,
-            &policy.auto_commit_exclude_patterns,
+            &effective_auto_commit_excludes,
         );
         let has_origin = has_origin_remote(&repo);
         let has_upstream = has_tracking_upstream(&repo);
