@@ -23,8 +23,16 @@ CLEAR_SECS=1800  # 30 minutes
 
 for marker in "$HOME/.dracon/dracon-sync.freeze" "$HOME/.dracon/freeze/dracon-sync"; do
     [ -f "$marker" ] || continue
-    # stat -c %Y = mtime epoch seconds (GNU coreutils)
-    mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker" 2>/dev/null || echo 0)
+    # stat -c %Y = mtime epoch seconds (GNU coreutils); stat -f %m = BSD.
+    # FIXED 2026-10-03 (audit R3-L29): when BOTH fail (the normal
+    # `resume` racing this 2-min tick deletes the marker between the
+    # `-f` and the `stat`), SKIP — the old `|| echo 0` produced
+    # mtime=0 → huge age → a false "auto-clearing" line plus notify
+    # and logger noise misattributed to operator action.
+    mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker" 2>/dev/null || true)
+    case "$mtime" in
+        ""|*[!0-9]*) continue ;;
+    esac
     now=$(date +%s)
     age=$((now - mtime))
     if [ "$age" -gt "$CLEAR_SECS" ]; then
