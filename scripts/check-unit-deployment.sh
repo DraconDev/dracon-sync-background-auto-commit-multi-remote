@@ -253,8 +253,18 @@ effective_mount_for() {
 check_storage_root_writable() {
     local root="$1" mountinfo="$2"
     [ -n "$root" ] || return 0
+    # FIXED 2026-10-03 (audit R3-L23): match on the CANONICAL path —
+    # the old literal match false-positived on symlinked roots (live:
+    # ~/.ssh -> ~/.dracon/secrets/ssh reported read-only while the
+    # daemon writes fine through the rw bind). Unresolvable roots
+    # keep the literal (old behavior, no new failure mode).
+    local match_root="$root" canon=""
+    if command -v readlink >/dev/null 2>&1; then
+        canon="$(readlink -f "$root" 2>/dev/null || true)"
+        [ -n "$canon" ] && match_root="$canon"
+    fi
     local hit
-    if ! hit="$(effective_mount_for "$mountinfo" "$root")"; then
+    if ! hit="$(effective_mount_for "$mountinfo" "$match_root")"; then
         echo "✗ ReadWritePaths root $root is not covered by any mount in the running namespace" >&2
         echo "  the daemon cannot resolve or write it, so every state write against" >&2
         echo "  this root fails. Check ReadWritePaths= in $UNIT_NAME." >&2
@@ -265,13 +275,20 @@ check_storage_root_writable() {
         *,ro,*)
             echo "✗ ReadWritePaths root $root resolves read-only inside the running namespace" >&2
             echo "  effective mount: $point ($flags)" >&2
+            if [ "$match_root" != "$root" ]; then
+                echo "  (matched on canonical path $match_root)" >&2
+            fi
             echo "  ProtectSystem=strict remounts the parent read-only, so only a" >&2
             echo "  sub-mount restores write access — the entry has to name the path" >&2
             echo "  itself, not the disk it sits on. Fix ReadWritePaths=." >&2
             return 1
             ;;
     esac
+    if [ "$match_root" != "$root" ]; then
+    echo "  ✓ ReadWritePaths root $root is read-write in the running namespace (mount: $point; via $match_root)"
+    else
     echo "  ✓ ReadWritePaths root $root is read-write in the running namespace (mount: $point)"
+    fi
     return 0
 }
 
