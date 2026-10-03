@@ -818,7 +818,7 @@ mod tests {
             "auto-pull must not run for a fail-fast rejection: {argv}"
         );
         assert_eq!(
-            first_words.iter().filter(|w| ***w == "push").count(),
+            first_words.iter().filter(|w| **w == "push").count(),
             1,
             "fail fast: exactly one push attempt, no retry/fallback: {argv}"
         );
