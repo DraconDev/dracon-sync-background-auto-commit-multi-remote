@@ -11622,10 +11622,7 @@ mod tests {
             ("⏳".to_string(), "dirty 5m".to_string())
         );
         assert_eq!(split_activity("—"), ("—".to_string(), String::new()));
-        assert_eq!(
-            split_activity(""),
-            (String::new(), String::new())
-        );
+        assert_eq!(split_activity(""), (String::new(), String::new()));
     }
 
     #[test]
