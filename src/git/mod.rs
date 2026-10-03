@@ -3280,6 +3280,202 @@ exit 0
     }
 
     #[tokio::test]
+    async fn test_push_to_named_remote_skips_https_fallback_on_permanent_rejection() {
+        // FIX (audit M1, 2026-10-02): the mirror initial-SSH failure
+        // must fail fast on permanent/pack rejections like the origin
+        // path, instead of burning a doomed HTTPS fallback every cycle.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let real_git = real_git_path();
+        let mock_git = tmp.path().join("git");
+        let real_git_path_str = real_git.display().to_string();
+        let fallback_counter = tmp.path().join("fallback-called");
+        let fallback_counter_str = fallback_counter.display().to_string();
+        std::fs::write(
+            &mock_git,
+            format!(
+                "#!/bin/sh\n\
+            if echo \"$@\" | grep -q 'push' && echo \"$@\" | grep -q 'https://'; then\n\
+                echo fallback-called > {fallback_counter_str}\n\
+                exit 0\n\
+            fi\n\
+            if echo \"$@\" | grep -q 'push'; then\n\
+                echo 'pre-receive hook declined' >&2\n\
+                exit 1\n\
+            fi\n\
+            exec {real_git_path_str} \"$@\"\n\
+            "
+            ),
+        )
+        .expect("write mock git");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
+            .expect("chmod");
+        let repo = tmp.path().join("repo");
+        std::process::Command::new(real_git.as_path())
+            .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
+            .output()
+            .expect("git init");
+        std::process::Command::new(real_git.as_path())
+            .args(["remote", "add", "mirror", "git@github.com:example/repo.git"])
+            .current_dir(&repo)
+            .output()
+            .expect("git remote add");
+        std::fs::write(repo.join("f"), "content").expect("write file");
+        std::process::Command::new(real_git.as_path())
+            .args(["add", "f"])
+            .current_dir(&repo)
+            .output()
+            .expect("git add");
+        std::process::Command::new(real_git.as_path())
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit");
+        let _git_bin_guard = GitBinRestorer::new(&mock_git.to_string_lossy());
+        let result = multi_remote::push_to_named_remote(&repo, "mirror", 5, 0, false).await;
+        assert!(result.is_err(), "permanent rejection should fail");
+        assert!(
+            result.unwrap_err().to_string().contains("pre-receive hook declined"),
+            "original SSH error must survive the fail-fast"
+        );
+        assert!(
+            !fallback_counter.exists(),
+            "HTTPS fallback must not run after a permanent SSH rejection"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_https_fallback_retains_per_forge_errors() {
+        // FIX (audit M2, 2026-10-02): per-forge HTTPS errors must be
+        // retained (tagged + redacted) instead of replaced by the
+        // generic summary, so the classifier sees policy rejections.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let real_git = real_git_path();
+        let mock_git = tmp.path().join("git");
+        let real_git_path_str = real_git.display().to_string();
+        std::fs::write(
+            &mock_git,
+            format!(
+                "#!/bin/sh\n\
+            if echo \"$@\" | grep -q 'push' && echo \"$@\" | grep -q 'https://'; then\n\
+                echo 'GITHUB_HTTPS_MARKER_xyz pre-receive hook declined' >&2\n\
+                exit 1\n\
+            fi\n\
+            exec {real_git_path_str} \"$@\"\n\
+            "
+            ),
+        )
+        .expect("write mock git");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
+            .expect("chmod");
+        let repo = tmp.path().join("repo");
+        std::process::Command::new(real_git.as_path())
+            .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
+            .output()
+            .expect("git init");
+        let _git_bin_guard = GitBinRestorer::new(&mock_git.to_string_lossy());
+        let result = crate::git::push::push_https_fallback(
+            &repo,
+            "git@github.com:example/repo.git",
+            "HEAD:refs/heads/master",
+            5,
+            "test-https-detail",
+        )
+        .await;
+        let err = result.expect_err("all HTTPS attempts should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("GITHUB_HTTPS_MARKER_xyz"),
+            "forge detail must be retained, got: {msg}"
+        );
+        assert!(
+            msg.contains("github:"),
+            "forge detail must be tagged, got: {msg}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_transport_fallback_chains_original_ssh_error() {
+        // FIX (audit M3, 2026-10-02): the origin-path fallback failure
+        // must chain the original SSH error so the ledger records the
+        // cause, not just the symptom.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let real_git = real_git_path();
+        let mock_git = tmp.path().join("git");
+        let real_git_path_str = real_git.display().to_string();
+        std::fs::write(
+            &mock_git,
+            format!(
+                "#!/bin/sh\n\
+            if echo \"$@\" | grep -q 'push' && echo \"$@\" | grep -q 'https://'; then\n\
+                echo 'HTTPS_FALLBACK_MARKER_xyz' >&2\n\
+                exit 1\n\
+            fi\n\
+            if echo \"$@\" | grep -q 'push'; then\n\
+                echo 'SSH_ORIGINAL_MARKER_xyz connection reset by peer' >&2\n\
+                exit 1\n\
+            fi\n\
+            exec {real_git_path_str} \"$@\"\n\
+            "
+            ),
+        )
+        .expect("write mock git");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
+            .expect("chmod");
+        let repo = tmp.path().join("repo");
+        std::process::Command::new(real_git.as_path())
+            .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
+            .output()
+            .expect("git init");
+        std::process::Command::new(real_git.as_path())
+            .args(["remote", "add", "origin", "git@github.com:example/repo.git"])
+            .current_dir(&repo)
+            .output()
+            .expect("git remote add");
+        std::fs::write(repo.join("f"), "content").expect("write file");
+        std::process::Command::new(real_git.as_path())
+            .args(["add", "f"])
+            .current_dir(&repo)
+            .output()
+            .expect("git add");
+        std::process::Command::new(real_git.as_path())
+            .args(["commit", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit");
+        let _git_bin_guard = GitBinRestorer::new(&mock_git.to_string_lossy());
+        let result =
+            crate::git::push_with_transport_fallbacks(&repo, 5, "test-chain-ssh").await;
+        let err = result.expect_err("both transports should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("SSH_ORIGINAL_MARKER_xyz"),
+            "SSH cause must be chained, got: {msg}"
+        );
+        assert!(
+            msg.contains("HTTPS_FALLBACK_MARKER_xyz"),
+            "fallback symptom must be retained, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_redact_credentials_for_log() {
+        let redact = super::push::redact_credentials_for_log;
+        assert_eq!(
+            redact("push https://user:s3cret@github.com/a/b failed"),
+            "push https://***@github.com/a/b failed"
+        );
+        assert_eq!(
+            redact("push https://github.com/a/b failed"),
+            "push https://github.com/a/b failed"
+        );
+        assert_eq!(redact("ssh: connection reset"), "ssh: connection reset");
+        assert_eq!(
+            redact("https://t1@h1/x and https://t2@h2/y"),
+            "https://***@h1/x and https://***@h2/y"
+        );
+    }
+
+    #[tokio::test]
     async fn test_push_to_named_remote_ssh_success() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let real_git = real_git_path();
