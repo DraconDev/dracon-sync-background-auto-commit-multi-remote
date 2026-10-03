@@ -56,9 +56,11 @@ pub(crate) fn load_secret(env_name: &str, secrets_dir: &Path) -> Option<String> 
 ///   is stripped; the inside is kept verbatim (no comment stripping,
 ///   no escape processing). Mismatched quotes stay verbatim.
 /// - `KEY=value # comment` — an UNQUOTED value is cut at the first
-///   `#` preceded by a space/tab, then re-trimmed. A `#` with no
-///   preceding whitespace (`KEY=abc#def`) stays verbatim: it may be
-///   token material, and guessing wrong breaks auth either way.
+///   `#` preceded by a space/tab, then re-trimmed (and unquoted if
+///   the remainder is fully quoted, so `"val" # comment` works). A
+///   `#` with no preceding whitespace (`KEY=abc#def`) stays verbatim:
+///   it may be token material, and guessing wrong breaks auth either
+///   way.
 /// - Blank lines and `#`-leading lines are skipped; values with
 ///   control characters are refused (F52/M27).
 fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
@@ -144,27 +146,43 @@ fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
     None
 }
 
-/// Strip one layer of `.env` value decoration (R4-SR-15; see the
-/// dialect doc on `load_secret_from_dir`): matching surrounding
-/// quotes win over comment stripping (a `#` inside quotes is
-/// literal); otherwise cut at the first whitespace-preceded `#`.
-fn strip_env_value(value: &str) -> String {
+/// Strip one layer of matching surrounding quotes, or `None` when
+/// the value is not fully quoted.
+fn unquote_env_value(value: &str) -> Option<String> {
     let bytes = value.as_bytes();
     if bytes.len() >= 2 {
         let (first, last) = (bytes[0], bytes[bytes.len() - 1]);
         if (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'') {
-            return value[1..value.len() - 1].to_string();
+            return Some(value[1..value.len() - 1].to_string());
         }
     }
+    None
+}
+
+/// Strip one layer of `.env` value decoration (R4-SR-15; see the
+/// dialect doc on `load_secret_from_dir`): a fully-quoted value
+/// unquotes with no comment stripping (a `#` inside quotes is
+/// literal); otherwise cut at the first whitespace-preceded `#`,
+/// then unquote again (covers `"val" # comment`).
+fn strip_env_value(value: &str) -> String {
+    if let Some(inner) = unquote_env_value(value) {
+        return inner;
+    }
+    let bytes = value.as_bytes();
     let mut start = 0;
-    while let Some(hash) = value[start..].find('#') {
-        let idx = start + hash;
-        if idx > 0 && (bytes[idx - 1] == b' ' || bytes[idx - 1] == b'\t') {
-            return value[..idx].trim_end().to_string();
+    let stripped = loop {
+        match value[start..].find('#') {
+            Some(hash) => {
+                let idx = start + hash;
+                if idx > 0 && (bytes[idx - 1] == b' ' || bytes[idx - 1] == b'\t') {
+                    break value[..idx].trim_end();
+                }
+                start = idx + 1;
+            }
+            None => break value,
         }
-        start = idx + 1;
-    }
-    value.to_string()
+    };
+    unquote_env_value(stripped).unwrap_or_else(|| stripped.to_string())
 }
 
 fn preferred_secret_file_index(env_name: &str, file_name: &str) -> usize {
@@ -324,6 +342,9 @@ mod tests {
         // Unquoted trailing comments (space or tab) are cut.
         assert_eq!(strip_env_value("abc # x"), "abc");
         assert_eq!(strip_env_value("abc\t# x"), "abc");
+        // Comment AFTER a closing quote: cut, then unquote.
+        assert_eq!(strip_env_value("\"abc\" # x"), "abc");
+        assert_eq!(strip_env_value("'abc'\t# x"), "abc");
         // `#` with no preceding whitespace stays verbatim: it may
         // be token material.
         assert_eq!(strip_env_value("abc#x"), "abc#x");
@@ -353,11 +374,10 @@ mod tests {
             super::load_secret_from_dir("DIALECT_TOKEN_1", secrets_dir).as_deref(),
             Some("tok-1")
         );
-        // Quoted: comment is literal inside quotes... except the
-        // closing quote ends before the comment here.
+        // Quoted value with a trailing comment: cut, then unquote.
         assert_eq!(
             super::load_secret_from_dir("DIALECT_TOKEN_2", secrets_dir).as_deref(),
-            Some("\"tok-2\" # trailing")
+            Some("tok-2")
         );
         assert_eq!(
             super::load_secret_from_dir("DIALECT_TOKEN_3", secrets_dir).as_deref(),
