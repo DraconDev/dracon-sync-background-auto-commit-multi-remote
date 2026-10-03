@@ -1100,6 +1100,24 @@ pub(crate) fn repo_auto_repair_enabled(
     }
 }
 
+/// Effective `auto_commit_exclude_patterns`: per-repo entries EXTEND
+/// the global list (UNIFIED 2026-10-03, audit R3-M2). Four worker
+/// sites used REPLACE (`unwrap_or`, silently dropping the global
+/// list) while the dispatch gates used GLOBAL-ONLY (ignoring the
+/// override entirely) and only the stale-dirty alert used UNION.
+/// All consumers go through this helper now; AGENTS.md documents
+/// extend as the contract.
+pub(crate) fn effective_auto_commit_excludes(
+    policy: &SyncPolicy,
+    repo_override: &RepoPolicyOverride,
+) -> Vec<String> {
+    let mut effective = policy.auto_commit_exclude_patterns.clone();
+    if let Some(extra) = &repo_override.auto_commit_exclude_patterns {
+        effective.extend(extra.iter().cloned());
+    }
+    effective
+}
+
 pub(crate) fn default_exclude_dir_names() -> Vec<String> {
     [
         "target",
