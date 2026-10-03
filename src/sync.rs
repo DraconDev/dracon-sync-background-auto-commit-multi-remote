@@ -21,7 +21,8 @@ use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress, is_repo_ready,
     prune_other_default_branch, push_with_retries, restore_paths, run_git_capture_output,
-    run_git_with_timeout, unstage_excluded_paths, unstage_oversized_paths, untracked_entries,
+    run_git_with_timeout, staged_blob_sizes_for, unstage_excluded_paths, unstage_oversized_paths,
+    untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
@@ -4781,18 +4782,51 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     // `unstage_excluded_paths`) use `git reset HEAD --`, which fails
     // on an unborn branch (no HEAD), so the unborn-branch primitive
     // is `git rm --cached`.
+    // FIXED 2026-10-03 (audit R3-M1): size the STAGED blob here, not
+    // the worktree file — the old `should_stage_entry` worktree stat
+    // let stage-large-then-truncate smuggle a >max blob into the root
+    // commit (M4 covered steady state only).
+    let staged_paths: Vec<std::path::PathBuf> =
+        staged.iter().map(|(path, _)| path.clone()).collect();
+    let blob_sizes = staged_blob_sizes_for(repo, staged_paths).await?;
     let mut to_unstage: Vec<std::path::PathBuf> = Vec::new();
     for (path, _status) in &staged {
         let entry =
             dracon_git::types::DiffFile::new(path.clone(), dracon_git::types::FileStatus::Added);
-        let passes = should_stage_entry(
-            repo,
-            &entry,
-            excluded_dir_names,
-            &policy.exclude_file_patterns,
-            policy.max_stage_file_bytes,
-            auto_commit_exclude,
-        ) && !crate::exclude::matches_untracked_exclude(
+        let passes = match blob_sizes.get(path) {
+            Some(Some(staged_bytes)) => {
+                crate::exclude::should_stage_entry_with_blob_size(
+                    repo,
+                    &entry,
+                    *staged_bytes,
+                    excluded_dir_names,
+                    &policy.exclude_file_patterns,
+                    policy.max_stage_file_bytes,
+                    auto_commit_exclude,
+                )
+            }
+            // Unmeasurable blob: fail closed (unstage), like
+            // `unstage_oversized_paths`.
+            Some(None) => {
+                eprintln!(
+                    "⚠️ cannot measure staged blob for {} in {}; unstaging before root commit (fail closed)",
+                    path.display(),
+                    repo.display()
+                );
+                false
+            }
+            // Present in `diff --cached` but gone from `ls-files -s`:
+            // an index race that resolved itself (nothing staged —
+            // nothing to protect). Fall back to the worktree check.
+            None => should_stage_entry(
+                repo,
+                &entry,
+                excluded_dir_names,
+                &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes,
+                auto_commit_exclude,
+            ),
+        } && !crate::exclude::matches_untracked_exclude(
             repo,
             path,
             &policy.untracked_exclude_patterns,
