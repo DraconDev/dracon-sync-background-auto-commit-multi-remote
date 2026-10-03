@@ -2210,7 +2210,10 @@ async fn push_background(
     // measure the pushable branch via `github_pack_too_large`. gitlab/codeberg
     // have no such limit and keep working. Self-healing: once the pushed
     // branch shrinks below 2 GiB the push resumes automatically.
-    let (too_big_for_github, pushable_size) = crate::git::github_pack_too_large(repo, None);
+    // R4-SC-04: async wrapper — the measurement runs on the
+    // blocking pool, never inline on this tokio worker.
+    let (too_big_for_github, pushable_size) =
+        crate::git::github_pack_too_large_async(repo, None).await;
     // Whether github was already flagged, so we notify once per regression
     // rather than spamming the journal every cycle.
     let github_already_flagged = remote_failures

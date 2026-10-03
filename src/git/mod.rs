@@ -119,6 +119,30 @@ pub(crate) fn github_pack_too_large(
     github_pack_too_large_with_limit(repo, precomputed_size, GITHUB_PACK_LIMIT_BYTES)
 }
 
+/// Async wrapper for `github_pack_too_large` (FIXED 2026-10-03,
+/// audit R4-SC-04): the full measurement (`rev-list` /
+/// `cat-file` / `pack-objects` with a 600s internal ceiling)
+/// used to run inline on a tokio worker in the push path — one
+/// big non-converged repo pinned a runtime worker for minutes.
+/// The blocking pool absorbs that instead; the verdict logic is
+/// untouched. Deliberately NO outer tokio timeout: dropping the
+/// join handle would leak the blocking thread AND its git child
+/// on every slow repo every cycle (the staging.rs SYNC-H7 leak
+/// class), and the 600s internal ceiling already bounds the
+/// child. Callers in sync contexts (or already inside
+/// `spawn_blocking`, like the report cold path) keep using the
+/// sync entry. A panicked measurement (unreachable in practice)
+/// fails closed toward skipping the github leg.
+pub(crate) async fn github_pack_too_large_async(
+    repo: &std::path::Path,
+    precomputed_size: Option<u64>,
+) -> (bool, u64) {
+    let repo = repo.to_path_buf();
+    tokio::task::spawn_blocking(move || github_pack_too_large(&repo, precomputed_size))
+        .await
+        .unwrap_or((true, GITHUB_PACK_LIMIT_BYTES))
+}
+
 /// Limit-parameterized core (tests use small limits against fixture repos).
 fn github_pack_too_large_with_limit(
     repo: &std::path::Path,
