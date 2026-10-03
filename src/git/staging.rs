@@ -114,19 +114,19 @@ async fn staged_blob_sizes(
     out
 }
 
-/// Unstage files that exceed the max file size threshold.
-/// Returns the count of unstaged files.
-pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Result<usize> {
-    let staged = super::staged_paths(repo).await?;
-    // FIX (audit M4, 2026-10-02): size the STAGED blob (index), not the
-    // worktree file. Statting the worktree lets stage-large-then-truncate
-    // commit a >max blob past the gate (TOCTOU), and stat errors failed
-    // open. Paths absent from the index are staged deletions (or already
-    // gone): deletions shrink the repo and need no gate, so only
-    // present index entries are measured. Unmeasurable entries fail
-    // closed (unstaged) rather than committing blind.
-    let mut candidates: Vec<std::path::PathBuf> = staged
-        .into_iter()
+/// Measure staged-blob sizes for `paths` via `ls-files -s` +
+/// `cat-file --batch-check` (M4 primitive, extracted 2026-10-03 for
+/// reuse by the bootstrap sweep — R3-M1). Returns measured bytes per
+/// path; `None` marks entries that could not be measured (fail-closed
+/// candidates — the caller unstages them). Paths absent from the index
+/// (staged deletions) are omitted: removals shrink the repo and skip
+/// the size gate.
+pub(crate) async fn staged_blob_sizes_for(
+    repo: &Path,
+    paths: &[std::path::PathBuf],
+) -> Result<std::collections::BTreeMap<std::path::PathBuf, Option<u64>>> {
+    let mut candidates: Vec<std::path::PathBuf> = paths
+        .iter()
         .filter(|path| {
             if !super::is_safe_git_path(path) {
                 eprintln!(
