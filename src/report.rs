@@ -1662,9 +1662,9 @@ pub(crate) struct RepoReportRow {
 /// 3. Absent values use the `"-"` sentinel (upstream, push fields)
 ///    and `"none"` for `daemon_last_action_when` — EXCEPT four
 ///    `Option` row fields that serialize as JSON null (DOCUMENTED
-///    2026-10-03, audit R4-SR-09 — the old "never null" claim was
-///    wrong for these; switching them to sentinels or omitting them
-///    would break consumers, so null is the stable contract):
+///    2026-10-03, audit R4-SR-09 — the preferred fix direction;
+///    switching these to sentinels or omitting them would break
+///    consumers, so null is the stable contract for exactly these):
 ///    - `codeberg_skip_reason`: null = codeberg not skipped (or
 ///      skipped by manual override, which needs no annotation).
 ///    - `git_size_bytes`: null = size measurement failed/timed out.
