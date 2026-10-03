@@ -11471,6 +11471,76 @@ mod tests {
     }
 
     #[test]
+    fn test_repos_json_null_contract_exactly_four_nullable_fields() {
+        // R4-SR-09: pins the documented `repos --json` contract to the
+        // emitter. Exactly the four `Option` row fields serialize as
+        // null when absent; everything else is non-null.
+        let row = RepoReportRow {
+            frozen_secs: None,
+            repo: "/test/repo".to_string(),
+            state_flags: vec!["OK".to_string()],
+            branch: "main".to_string(),
+            upstream: "github/main".to_string(),
+            publish_state: PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            excluded_dirty: 0,
+            ahead: 0,
+            behind: 0,
+            last_hash: "abc123".to_string(),
+            last_author: "test".to_string(),
+            last_when: "2024-01-01".to_string(),
+            last_msg: "test commit".to_string(),
+            last_unix: 1700000000,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: "5m ago".to_string(),
+            push_status: "OK".to_string(),
+            push_error: String::new(),
+            push_to_remotes: vec!["github".to_string()],
+            excluded_remotes: vec![],
+            codeberg_skip_reason: None,
+            git_size_bytes: None,
+            git_modules_bytes: None,
+            token_health: TokenHealthSummary {
+                codeberg_present: true,
+                github_present: true,
+                gitlab_present: true,
+            },
+            concern: false,
+            warn: false,
+            active: false,
+            hint: "healthy".to_string(),
+            state_cause: StateCause::Healthy,
+            state_cause_label: "healthy".to_string(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: "none".to_string(),
+            missing_objects: 0,
+            pack_too_large: false,
+        };
+        let value = serde_json::to_value(&row).expect("row serializes");
+        let obj = value.as_object().expect("row is a JSON object");
+        let nulls: Vec<&str> = obj
+            .iter()
+            .filter_map(|(k, v)| v.is_null().then_some(k.as_str()))
+            .collect();
+        assert_eq!(
+            nulls,
+            vec![
+                "codeberg_skip_reason",
+                "frozen_secs",
+                "git_modules_bytes",
+                "git_size_bytes",
+            ],
+            "R4-SR-09: exactly the four documented Option fields may be null"
+        );
+    }
+
+    #[test]
     fn test_row_bucket_counts_warn_concern_counts_once() {
         // R3-L09: a warn&&concern row must count ONLY as concern, so
         // ok+active+warn+concern == rows.len() always.
