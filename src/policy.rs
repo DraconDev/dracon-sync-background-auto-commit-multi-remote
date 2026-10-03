@@ -1135,8 +1135,14 @@ pub(crate) fn repo_auto_repair_enabled(
 /// sites used REPLACE (`unwrap_or`, silently dropping the global
 /// list) while the dispatch gates used GLOBAL-ONLY (ignoring the
 /// override entirely) and only the stale-dirty alert used UNION.
-/// All consumers go through this helper now; AGENTS.md documents
-/// extend as the contract.
+/// All daemon/report consumers go through this helper now (the two
+/// report bypasses migrated under audits R4-SR-02 and R4-SR-08);
+/// AGENTS.md documents extend as the contract. REMAINING GAP
+/// (audit R4-SR-17, 2026-10-03): three `storage/mod.rs` sites still
+/// use raw REPLACE (`.as_ref().unwrap_or(&global...)`) — a storage
+/// transfer plan with a per-repo list silently drops the global
+/// list. Migrating them is a behavior change reserved for a
+/// follow-up finding with its own tests, NOT this doc fix.
 pub(crate) fn effective_auto_commit_excludes(
     policy: &SyncPolicy,
     repo_override: &RepoPolicyOverride,
