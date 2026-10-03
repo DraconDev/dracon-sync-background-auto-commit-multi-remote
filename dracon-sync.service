@@ -57,7 +57,10 @@ CapabilityBoundingSet=
 RestrictNamespaces=true
 
 # Syscall allowlist — returns EPERM instead of SIGSYS for safe discovery
+# (SystemCallErrorNumber makes the comment true: without it systemd's
+# default is SIGSYS termination. Audit M6, 2026-10-02.)
 SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
 
 [Install]
 WantedBy=default.target
