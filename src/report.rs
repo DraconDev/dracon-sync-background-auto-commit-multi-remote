@@ -14771,6 +14771,67 @@ mod v011313_tests {
         patterns.iter().map(|s| s.to_string()).collect()
     }
 
+    /// Regression test for R4-SR-08: `repair warns` must apply
+    /// the UNION of global + per-repo auto-commit excludes (R3-M2)
+    /// when computing effective dirt — not global-only. Dirt excluded
+    /// ONLY per-repo must not set the DIRTY flag in the warn reason /
+    /// ledger record. Selection itself still fires on real dirt
+    /// (deliberate: a tracked modification is WARN even when the
+    /// worker wouldn't commit it), so `planned` stays 1.
+    #[tokio::test]
+    async fn repair_warns_honors_per_repo_auto_commit_excludes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        fs::write(repo.join("scratch-note.txt"), "v1").unwrap();
+        git(&repo, &["add", "scratch-note.txt"]);
+        git(&repo, &["commit", "-q", "-m", "add note"]);
+        // Dirt excluded ONLY via the per-repo override (global empty).
+        fs::write(repo.join("scratch-note.txt"), "v2-dirty").unwrap();
+        fs::create_dir_all(repo.join(".dracon")).unwrap();
+        fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "auto_commit_exclude_patterns = [\"scratch-note.txt\"]\n",
+        )
+        .unwrap();
+        // The override itself must be committed: untracked .dracon
+        // files are relevant dirt and would mask the assertion.
+        git(&repo, &["add", ".dracon/dracon-sync.toml"]);
+        git(&repo, &["commit", "-q", "-m", "add override"]);
+        let policy_path = tmp.path().join("policy.toml");
+        fs::write(
+            &policy_path,
+            format!(
+                "pulse_interval_secs = 1\nwatch_roots = [\"{}\"]\n",
+                tmp.path().display()
+            ),
+        )
+        .unwrap();
+        let ledger = tmp.path().join("ledger.jsonl");
+        let _ledger_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_LEDGER",
+            ledger.to_str().unwrap(),
+        );
+        let summary = run_repair_warns(&policy_path, false, Some(repo.clone()), true)
+            .await
+            .unwrap();
+        assert_eq!(
+            summary.planned, 1,
+            "warn selection still fires on real dirt"
+        );
+        let ledger_text = fs::read_to_string(&ledger).unwrap();
+        let record: IncidentRecord = ledger_text
+            .lines()
+            .filter_map(|l| serde_json::from_str(l).ok())
+            .find(|r: &IncidentRecord| r.scope == "warn")
+            .expect("warn plan must append a ledger record");
+        assert!(
+            !record.reason.contains("DIRTY"),
+            "per-repo-only excluded dirt must not flag DIRTY, got reason: {}",
+            record.reason
+        );
+    }
+
     #[tokio::test]
     async fn classify_excluded_tracked_pattern_is_not_committable() {
         let tmp = tempfile::tempdir().unwrap();
