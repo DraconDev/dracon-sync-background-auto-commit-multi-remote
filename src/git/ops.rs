@@ -887,6 +887,29 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
+    async fn test_git_askpass_script_creates_distinct_paths_without_remove() {
+        // R3-L08: successive creates must yield distinct live files —
+        // the old pre-remove + fixed pid+nanos name could unlink and
+        // recreate a colliding path; creation is now exclusive-first
+        // with a retry counter in the name.
+        use super::{git_askpass_script, AskpassScript};
+        let a = git_askpass_script("[REDACTED]")
+            .await
+            .expect("create a");
+        let _guard_a = AskpassScript::new(a.clone());
+        let b = git_askpass_script("[REDACTED]")
+            .await
+            .expect("create b");
+        let _guard_b = AskpassScript::new(b.clone());
+        assert_ne!(a, b, "two creates must not share a path");
+        assert!(
+            tokio::fs::metadata(&a).await.is_ok() && tokio::fs::metadata(&b).await.is_ok(),
+            "both scripts must exist simultaneously (no clobber)"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
     async fn test_git_askpass_script_rejects_single_quote() {
         // F59: tokens with single quotes break POSIX shell quoting;
         // we refuse them outright rather than risk shell injection.

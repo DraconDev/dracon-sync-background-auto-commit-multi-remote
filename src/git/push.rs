@@ -32,6 +32,13 @@ pub(crate) fn clip_error_detail(msg: &str) -> String {
     format!("{}…", &flat[..end])
 }
 
+/// Operator-facing ledger entry for an HTTPS fallback leg skipped for
+/// lack of a token (R3-L05). Carries no token material — only the fact
+/// of the skip, so the operator checks secrets instead of transport.
+fn token_skip_entry(forge: &str) -> String {
+    format!("{forge}: no token configured (skipped)")
+}
+
 /// Push with HTTPS fallback for GitHub/GitLab/Codeberg.
 pub(crate) async fn push_https_fallback(
     repo: &Path,
@@ -107,7 +114,7 @@ pub(crate) async fn push_https_fallback(
             // token file silently skipped this leg, leaving only the
             // generic "all HTTPS push attempts failed" — the operator
             // chased transport instead of secrets. No token material.
-            failures.push("gitlab: no token configured (skipped)".to_string());
+            failures.push(token_skip_entry("gitlab"));
         }
     }
 
@@ -152,7 +159,7 @@ pub(crate) async fn push_https_fallback(
         } else {
             // FIXED 2026-10-03 (audit R3-L05): see the GitLab leg —
             // skipped legs must say so (no token material).
-            failures.push("codeberg: no token configured (skipped)".to_string());
+            failures.push(token_skip_entry("codeberg"));
         }
     }
 
