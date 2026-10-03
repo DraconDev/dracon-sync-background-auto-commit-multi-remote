@@ -8889,6 +8889,7 @@ pub(crate) async fn run_daemon(
             // next cycle consults `in_flight` and skips this repo
             // until the apply phase removes it. This is the
             // no-redispatch invariant in action.
+            let sem = sync_semaphore.clone();
             to_sync.push((
                 repo.clone(),
                 tokio::spawn(async move {
@@ -8899,6 +8900,14 @@ pub(crate) async fn run_daemon(
                             scheduler_unix_ms()
                         );
                     }
+                    // R4-SC-03: hold a concurrency permit across
+                    // the sync_repo call. Acquire fails only if
+                    // the semaphore is closed, which never
+                    // happens — fail closed (no unbounded run)
+                    // rather than panic the worker.
+                    let Ok(_permit) = sem.acquire_owned().await else {
+                        return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
+                    };
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
