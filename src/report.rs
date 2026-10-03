@@ -11481,6 +11481,33 @@ mod tests {
     }
 
     #[test]
+    fn test_split_activity_keeps_vs16_with_icon() {
+        // ADDED 2026-10-03 (audit L14): the icon is the first grapheme,
+        // not the first char — base+VS16 icons must not leak U+FE0F
+        // into the text (renders as a stray selector + skews width).
+        let pause = "⏸\u{fe0f}";
+        assert_eq!(
+            split_activity(&format!("{pause} frozen 5m")),
+            (pause.to_string(), "frozen 5m".to_string())
+        );
+        let warn = "⚠\u{fe0f}";
+        assert_eq!(
+            split_activity(&format!("{warn} stuck 1h")),
+            (warn.to_string(), "stuck 1h".to_string())
+        );
+        // Single-codepoint icons and the dash sentinel are unchanged.
+        assert_eq!(
+            split_activity("⏳ dirty 5m"),
+            ("⏳".to_string(), "dirty 5m".to_string())
+        );
+        assert_eq!(split_activity("—"), ("—".to_string(), String::new()));
+        assert_eq!(
+            split_activity(""),
+            (String::new(), String::new())
+        );
+    }
+
+    #[test]
     fn test_summary_what_clean_idle_repo() {
         // 2026-07-19 (goal `4555eaf6` v0.112.27): summary view
         // for a clean idle repo should NOT include `push: pending`
