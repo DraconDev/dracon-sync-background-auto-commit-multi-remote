@@ -4844,6 +4844,44 @@ fn test_ownership_needs_redetect_ttl() {
     ));
 }
 
+/// R3-L14: stale Owned verdicts revalidate past the TTL (the push
+/// path must not trust origin/identity forever); fresh Owned, all
+/// negatives (handled by `ownership_needs_redetect`), and
+/// never-classified (handled by the detect arm) stay out.
+#[test]
+fn test_ownership_owned_needs_revalidate_ttl() {
+    use crate::ownership::OwnershipReport;
+    let ttl = Duration::from_secs(600);
+    let now = Instant::now();
+    let owned = Some(OwnershipReport::Owned {
+        reason: "trusted_email".to_string(),
+    });
+    assert!(ownership_owned_needs_revalidate(
+        &owned,
+        Some(now - Duration::from_secs(601)),
+        now,
+        ttl
+    ));
+    assert!(ownership_owned_needs_revalidate(&owned, None, now, ttl));
+    assert!(!ownership_owned_needs_revalidate(
+        &owned,
+        Some(now - Duration::from_secs(60)),
+        now,
+        ttl
+    ));
+    let unowned = Some(OwnershipReport::Unowned {
+        reason: "untrusted_email".to_string(),
+        detail: "x".to_string(),
+    });
+    assert!(!ownership_owned_needs_revalidate(
+        &unowned,
+        Some(now - Duration::from_secs(3600)),
+        now,
+        ttl
+    ));
+    assert!(!ownership_owned_needs_revalidate(&None, None, now, ttl));
+}
+
 // ---- stuck_decision + ledger accumulation (v0.112.31, audit H5/F1.2) ----
 
 #[cfg(test)]
