@@ -14049,6 +14049,25 @@ mod tests {
         );
         assert_eq!(cell.content(), "codeberg,github,gitlab");
 
+        // Case 1b (R3-L35): a 4-remote fleet (28 chars) must NOT clip
+        // on the green path — the old budget-22 truncated it while the
+        // Absolute(32) column holds 30.
+        let cell = format_push_to_remotes_cell(
+            &[
+                "codeberg".to_string(),
+                "github".to_string(),
+                "gitlab".to_string(),
+                "gitea".to_string(),
+            ],
+            &[],
+            None,
+        );
+        assert_eq!(
+            cell.content(),
+            "codeberg,github,gitlab,gitea",
+            "green path must share the 30-col budget"
+        );
+
         // Case 2: subset (dracon-platform case) → bracket annotation
         let cell = format_push_to_remotes_cell(
             &["codeberg".to_string()],
