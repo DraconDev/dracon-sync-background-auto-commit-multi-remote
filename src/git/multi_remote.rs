@@ -1934,6 +1934,82 @@ exit 1
     /// Regression test for goal `87c1bf4d`: the sequential
     /// implementation must handle the empty case without
     /// panicking or returning a spurious empty Ok entry.
+    /// ADDED 2026-10-02 (audit L5): `retries` counts TOTAL push
+    /// attempts (min 1), unified with `push_with_retries` — retries=0
+    /// used to perform 3 attempts (SSH + HTTPS + one loop iteration).
+    /// A counting mock git fails every push transiently; the test
+    /// asserts the exact spawn count. No forge tokens (HOME isolated
+    /// + token env removed), so the HTTPS fallback spawns exactly the
+    /// github URL attempt.
+    #[tokio::test]
+    async fn test_push_retries_counts_total_attempts() {
+        use crate::test_helpers::GitBinRestorer;
+
+        async fn push_spawns_for_retries(retries: u32) -> usize {
+            let tmp = tempfile::TempDir::new().expect("temp dir");
+            let repo = tmp.path().join("repo");
+            std::fs::create_dir_all(&repo).expect("mkdir");
+            let real_git = crate::policy::git_binary();
+            let git = |args: &[&str]| {
+                std::process::Command::new(&real_git)
+                    .args(args)
+                    .current_dir(&repo)
+                    .output()
+                    .expect("git setup")
+            };
+            assert!(git(&["init", "-q", "-b", "main"]).status.success());
+            assert!(git(&["config", "user.email", "test@test"]).status.success());
+            assert!(git(&["config", "user.name", "test"]).status.success());
+            assert!(git(&["remote", "add", "mirror", "git@github.com:DraconDev/fake.git"])
+                .status
+                .success());
+            std::fs::write(repo.join("f.txt"), "x\n").expect("write");
+            assert!(git(&["add", "f.txt"]).status.success());
+            assert!(git(&["commit", "-q", "--no-verify", "-m", "init"]).status.success());
+
+            let count_file = tmp.path().join("push-count");
+            let mock = tmp.path().join("mock-git.sh");
+            std::fs::write(
+                &mock,
+                format!(
+                    "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then printf '.\\n' >> \"{}\" 2>/dev/null; echo \"mock: transient push failure\" >&2; exit 1; fi\nexec \"{}\" \"$@\"\n",
+                    count_file.display(),
+                    real_git.display()
+                ),
+            )
+            .expect("write mock");
+            #[cfg(unix)]
+            std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+                .expect("chmod mock");
+
+            let _git_bin = GitBinRestorer::new(&mock.to_string_lossy());
+            let empty_home = tempfile::tempdir().expect("empty home");
+            let _home = EnvRestorer::new("HOME", empty_home.path().to_str().unwrap());
+            let _gh = EnvRestorer::remove("GITHUB_TOKEN");
+            let _gl = EnvRestorer::remove("GITLAB_TOKEN");
+            let _cb = EnvRestorer::remove("CODEBERG_TOKEN");
+
+            let result = push_to_named_remote(&repo, "mirror", 5, retries, false).await;
+            assert!(result.is_err(), "mock fails every push");
+            // Count spawns; a missing file means zero (no push ran).
+            std::fs::read_to_string(&count_file)
+                .unwrap_or_default()
+                .lines()
+                .count()
+        }
+
+        assert_eq!(
+            push_spawns_for_retries(0).await,
+            1,
+            "retries=0 must attempt exactly once (SSH only — no HTTPS, no loop)"
+        );
+        assert_eq!(
+            push_spawns_for_retries(3).await,
+            3,
+            "retries=3 must attempt exactly 3 times total (SSH + HTTPS + 1 loop)"
+        );
+    }
+
     #[tokio::test]
     async fn test_push_to_all_remotes_empty_list_returns_empty() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
