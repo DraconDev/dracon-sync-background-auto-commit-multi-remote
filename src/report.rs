@@ -1640,6 +1640,22 @@ pub(crate) struct RepoReportRow {
     frozen_secs: Option<u64>,
 }
 
+/// `repos --json` contract (DOCUMENTED 2026-10-03, audit R3-L10 —
+/// the "document" half of the fix direction; the "nulls" half would
+/// break consumers for cosmetic consistency, disproportionate for a
+/// LOW already mitigated by `state_cause_label`).
+///
+/// Consumers must handle three conventions (stable; do not change
+/// without a version bump):
+/// 1. `publish_state` serializes PascalCase (`Missing`/`Gone`/`Ok`),
+///    while `state_cause` unit variants serialize snake_case
+///    (`working`, `synced`, ...) via `rename_all`.
+/// 2. `state_cause` is a STRING for every variant except `Unowned`,
+///    which is an OBJECT `{reason, detail}` (reason is stable
+///    kebab-case; detail is human-readable). Prefer the flat
+///    `state_cause_label` string when the distinction doesn't matter.
+/// 3. Absent values use the `"-"` sentinel (upstream, push fields)
+///    and `"none"` for `daemon_last_action_when` — never null.
 #[derive(Debug, Serialize)]
 pub(crate) struct RepoReportJson {
     policy: String,
