@@ -1110,6 +1110,18 @@ pub(crate) fn retain_existing_stage_paths(repo: &Path, paths: &mut Vec<String>) 
     });
     before - paths.len()
 }
+
+/// True when a git error reports an index.lock failure — another process
+/// (CLI, warden, sync-now) holds the lock, or the gitdir is read-only.
+///
+/// ADDED 2026-10-03 (audit R4-SC-15): transient contention must retry
+/// with backoff and then map to Blocked (non-failure, work retained),
+/// never burn the failure budget or trip MAX_FAILURES backoff for a
+/// healthy repo. The "Unable to create" conjunction keeps a file that
+/// merely IS NAMED index.lock (pathspec errors) from misrouting here.
+pub(crate) fn is_index_lock_failure(msg: &str) -> bool {
+    msg.contains("Unable to create") && msg.contains("index.lock")
+}
 async fn stage_existing_files_filtered(
     repo: &Path,
     existing: &[String],
