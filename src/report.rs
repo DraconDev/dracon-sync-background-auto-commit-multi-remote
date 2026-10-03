@@ -4368,8 +4368,11 @@ pub(crate) async fn run_repos_report(
         // HINT column can also surface the unowned reason.
         // Per-repo override `auto_skip_unowned = false`
         // re-enables the daemon for a specific repo.
-        let repo_override_for_ownership = crate::policy::load_repo_override(&repo);
-        let effective_skip = repo_override_for_ownership
+        // FIXED 2026-10-03 (audit R4-SR-14): reuse the row's single
+        // `repo_override` load above — a second read+parse per repo
+        // wasted IO and let a concurrent edit (or one transient parse
+        // failure) skew classification vs ownership.
+        let effective_skip = repo_override
             .auto_skip_unowned
             .unwrap_or(policy.auto_skip_unowned);
         let trusted_for_ownership = crate::ownership::TrustedSet {
@@ -4382,13 +4385,13 @@ pub(crate) async fn run_repos_report(
                 crate::ownership::detect_ownership_path_owned(
                     &repo,
                     &trusted_for_ownership,
-                    repo_override_for_ownership.owned,
+                    repo_override.owned,
                 )
             } else {
                 crate::ownership::detect_ownership(
                     &repo,
                     &trusted_for_ownership,
-                    repo_override_for_ownership.owned,
+                    repo_override.owned,
                 )
             })
         } else {
