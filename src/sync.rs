@@ -20,10 +20,9 @@ use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress,
-    prune_other_default_branch, push_with_retries, restore_paths, run_git_capture_output,
-    run_git_with_timeout, staged_blob_sizes_for, unstage_excluded_paths, unstage_oversized_paths,
-    untracked_entries,
+    is_repo_ready, is_revert_in_progress, prune_other_default_branch, push_with_retries,
+    restore_paths, run_git_capture_output, run_git_with_timeout, staged_blob_sizes_for,
+    unstage_excluded_paths, unstage_oversized_paths, untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
@@ -6920,7 +6919,10 @@ auto_bump_versions = false
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(result.is_ok(), "sync_repo should succeed even during revert");
+        assert!(
+            result.is_ok(),
+            "sync_repo should succeed even during revert"
+        );
         assert!(
             matches!(result, Ok(SyncOutcome::Blocked)),
             "revert should cause early return (nothing synced)"
@@ -6978,7 +6980,10 @@ auto_bump_versions = false
         let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
 
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
-        assert!(result.is_ok(), "sync_repo should succeed even during bisect");
+        assert!(
+            result.is_ok(),
+            "sync_repo should succeed even during bisect"
+        );
         assert!(
             matches!(result, Ok(SyncOutcome::Blocked)),
             "bisect should cause early return (nothing synced)"
