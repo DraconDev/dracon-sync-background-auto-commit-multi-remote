@@ -1094,13 +1094,48 @@ pub(crate) fn matches_file_pattern(file_name: &str, pattern: &str) -> bool {
         }
     }
     if pattern.contains('*') {
-        let parts: Vec<&str> = pattern.split('*').collect();
-        if parts.len() == 2 {
-            let (prefix, suffix) = (parts[0], parts[1]);
-            if file_name.starts_with(prefix) && file_name.ends_with(suffix) {
-                return true;
+        // FIXED 2026-10-03 (audit R4-SR-07): multi-`*` ordered
+        // subsequence matching. The old arm required exactly 2 parts,
+        // so `*-test-*` (3 parts) silently never matched — and the
+        // prefix/suffix overlap double-counted (`ab*bc` matched
+        // `abc`). Literal runs must appear in order; the first run
+        // anchors at the start unless the pattern starts with `*`,
+        // the last run anchors at the end unless it ends with `*`.
+        // All slicing is via str methods (char-boundary safe).
+        let starts_with_star = pattern.starts_with('*');
+        let ends_with_star = pattern.ends_with('*');
+        let runs: Vec<&str> = pattern.split('*').filter(|s| !s.is_empty()).collect();
+        if runs.is_empty() {
+            return true; // pattern is all stars: matches everything
+        }
+        let mut rest = file_name;
+        let mut runs = runs.as_slice();
+        if !starts_with_star {
+            match rest.strip_prefix(runs[0]) {
+                Some(stripped) => {
+                    rest = stripped;
+                    runs = &runs[1..];
+                }
+                None => return false,
             }
         }
+        if !ends_with_star {
+            let last = runs[runs.len() - 1];
+            match rest.strip_suffix(last) {
+                Some(stripped) => {
+                    rest = stripped;
+                    runs = &runs[..runs.len() - 1];
+                }
+                None => return false,
+            }
+        }
+        for run in runs {
+            match rest.find(run) {
+                Some(pos) => rest = &rest[pos + run.len()..],
+                None => return false,
+            }
+        }
+        return true;
     }
     false
 }
