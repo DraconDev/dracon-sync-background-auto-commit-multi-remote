@@ -1660,7 +1660,18 @@ pub(crate) struct RepoReportRow {
 ///    kebab-case; detail is human-readable). Prefer the flat
 ///    `state_cause_label` string when the distinction doesn't matter.
 /// 3. Absent values use the `"-"` sentinel (upstream, push fields)
-///    and `"none"` for `daemon_last_action_when` — never null.
+///    and `"none"` for `daemon_last_action_when` — EXCEPT four
+///    `Option` row fields that serialize as JSON null (DOCUMENTED
+///    2026-10-03, audit R4-SR-09 — the old "never null" claim was
+///    wrong for these; switching them to sentinels or omitting them
+///    would break consumers, so null is the stable contract):
+///    - `codeberg_skip_reason`: null = codeberg not skipped (or
+///      skipped by manual override, which needs no annotation).
+///    - `git_size_bytes`: null = size measurement failed/timed out.
+///    - `git_modules_bytes`: null = repo HAS submodule gitdirs but
+///      their size was not measured on this path (`Some(0)` =
+///      measured: none).
+///    - `frozen_secs`: null = daemon running normally (not frozen).
 #[derive(Debug, Serialize)]
 pub(crate) struct RepoReportJson {
     policy: String,
