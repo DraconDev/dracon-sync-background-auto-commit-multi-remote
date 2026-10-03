@@ -724,6 +724,20 @@ fn codeberg_gate_reason(cached: Option<bool>) -> &'static str {
     }
 }
 
+/// Redact the stuck-ledger error once at report construction.
+///
+/// ADDED 2026-10-03 (audit R4-SR-11): the single binding both the
+/// HINT branch and the `push_error` branch consume. The daemon
+/// redacts at ledger-write time, but pre-2026-08-11 ledger entries
+/// and any future writer bypass would otherwise echo
+/// `https://user:token@host` credentials into the table + JSON
+/// verbatim. `None` stays `None` (no stuck entry for this repo).
+fn redacted_stuck_last_error(
+    stuck_info: Option<&crate::daemon::StuckRepoEntry>,
+) -> Option<String> {
+    stuck_info.map(|info| crate::ownership::redact_url_credentials(&info.last_error))
+}
+
 fn format_push_to_remotes_cell(
     push_to_remotes: &[String],
     excluded_remotes: &[String],
@@ -4395,15 +4409,10 @@ pub(crate) async fn run_repos_report(
         // instead of an opaque `pushing Xm`.
         let stuck_info = crate::daemon::get_stuck_push_info(&repo);
         // FIXED 2026-10-03 (audit R4-SR-11): redact ONCE at report
-        // construction. The daemon redacts at ledger-write time, but
-        // pre-2026-08-11 ledger entries and any future writer bypass
-        // would otherwise echo `https://user:token@host` credentials
-        // into the HINT column and the JSON `push_error` verbatim.
-        // Both consumers below use this binding, never
-        // `info.last_error` directly.
-        let stuck_last_error_redacted: Option<String> = stuck_info
-            .as_ref()
-            .map(|info| crate::ownership::redact_url_credentials(&info.last_error));
+        // construction via `redacted_stuck_last_error`. Both consumers
+        // below use this binding, never `info.last_error` directly
+        // (credential echo into HINT + JSON `push_error`).
+        let stuck_last_error_redacted = redacted_stuck_last_error(stuck_info.as_ref());
         let push_max_retries = policy.push_max_retries;
         let push_budget_exhausted = stuck_info
             .as_ref()
