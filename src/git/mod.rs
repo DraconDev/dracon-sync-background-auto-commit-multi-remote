@@ -3469,10 +3469,14 @@ exit 0
 
     #[test]
     fn test_redact_credentials_for_log() {
+        // RESHAPED 2026-10-03 (audit R3-L06): the push paths delegate
+        // to the all-scheme `ownership::redact_url_credentials`, so
+        // userinfo is DROPPED (`https://host/`) rather than masked
+        // (`https://***@host/`) — one redactor, every scheme.
         let redact = super::push::redact_credentials_for_log;
         assert_eq!(
             redact("push https://user:s3cret@github.com/a/b failed"),
-            "push https://***@github.com/a/b failed"
+            "push https://github.com/a/b failed"
         );
         assert_eq!(
             redact("push https://github.com/a/b failed"),
@@ -3481,7 +3485,16 @@ exit 0
         assert_eq!(redact("ssh: connection reset"), "ssh: connection reset");
         assert_eq!(
             redact("https://t1@h1/x and https://t2@h2/y"),
-            "https://***@h1/x and https://***@h2/y"
+            "https://h1/x and https://h2/y"
+        );
+        // Non-https schemes were the L06 leak: userinfo survived.
+        assert_eq!(
+            redact("fetch http://user:pass@host/x.git failed"),
+            "fetch http://host/x.git failed"
+        );
+        assert_eq!(
+            redact("fetch ssh://git:token@gitlab.com/o/r.git denied"),
+            "fetch ssh://gitlab.com/o/r.git denied"
         );
     }
 

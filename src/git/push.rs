@@ -12,7 +12,8 @@ use tokio::time::sleep;
 /// paths carried a second, narrower redactor diverging from the
 /// all-scheme `ownership::redact_url_credentials` the ledger writes
 /// use. One redactor now: delegate. Output shape changes from
-/// `https://***@host/` to `https://host/` (nothing pins the old shape).
+/// `https://***@host/` to `https://host/` (the git/mod.rs shape test
+/// was updated to the unified contract in the same change).
 pub(crate) fn redact_credentials_for_log(msg: &str) -> String {
     crate::ownership::redact_url_credentials(msg)
 }
