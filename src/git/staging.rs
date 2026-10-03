@@ -1137,6 +1137,7 @@ mod tests {
         let args = build_filter_branch_args(&[
             "assets/big.mp4".to_string(),
             "docs/my file.pdf".to_string(),
+            "a[0].bin".to_string(),
         ]);
         assert_eq!(args[0], "filter-branch");
         assert_eq!(args[1], "--force");
@@ -1147,10 +1148,14 @@ mod tests {
             "index-filter must contain the pathspec inside the command: {}",
             filter
         );
-        assert!(filter.contains("'assets/big.mp4'"));
+        // CHANGED 2026-10-03 (audit R4-SC-10): every path carries
+        // :(literal) so glob metacharacters can't act as pathspecs.
+        assert!(filter.contains("':(literal)assets/big.mp4'"));
         // Space-containing path is single-quoted so the shell keeps
         // it as ONE argument.
-        assert!(filter.contains("'docs/my file.pdf'"));
+        assert!(filter.contains("':(literal)docs/my file.pdf'"));
+        // Glob-metachar path is literal-quoted (no over-removal).
+        assert!(filter.contains("':(literal)a[0].bin'"));
         // No bare positional paths between the filter string and `--`.
         assert_eq!(args[4], "--");
         // FIXED 2026-09-27 (audit F88): the rev range is `HEAD`, matching
