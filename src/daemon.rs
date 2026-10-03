@@ -50,9 +50,10 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 
 /// Join handle for a spawned sync task that returns the full trio
 /// (repo path, counters, outcome) used by the in-flight collector.
+/// (R4-SC-07: the M1 dispatch-generation element is gone with the
+/// never-inserted discard-marker machinery.)
 pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
     PathBuf,
-    u64,
     HashMap<String, RemoteFailInfo>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
@@ -2093,42 +2094,11 @@ mod tests {
         repo
     }
 
-    /// ADDED 2026-07-27 (v0.113.5, audit M1): the discard
-    /// decision in the trailing-drain path is per-(repo, generation),
-    /// not per-repo. A result with `gen == marker[repo]` is
-    /// discarded; one with a different (typically newer) generation
-    /// is applied normally. The production code is at the
-    /// `daemon.rs:4196` `should_discard = …` call site, which
-    /// delegates to the crate-internal
-    /// `should_discard_stale_detached_result` helper at line 66
-    /// (extracted for regression testability). The pre-fix bug:
-    /// `detached_discard: HashSet<PathBuf>` discarded whichever
-    /// future result arrived first for the repo, inverting outcome
-    /// depending on completion order:
-    ///   - N first (re-dispatched fresh task): marker consumed by N,
-    ///     N's fresh result thrown away
-    ///   - W first (original wedged task): marker consumed by W,
-    ///     W correctly discarded, N's later result correctly applied
-    ///   - W second (original wedged task): marker was already
-    ///     consumed by N, W's stale result is applied as if fresh.
-    #[test]
-    fn test_m1_discard_matches_only_corresponding_generation() {
-        // Case 1: marker present, result matches: discard (correct).
-        assert!(should_discard_stale_detached_result(Some(&7), 7));
-        // Case 2: marker present, result is NEWER (re-dispatch):
-        // apply (the audit's bug was that a fresher result was
-        // incorrectly discarded or the marker was already consumed).
-        assert!(!should_discard_stale_detached_result(Some(&7), 8));
-        // Case 3: marker present, result is OLDER (impossible in
-        // practice because we always increment, but pin anyway):
-        // don't discard (the wedged task's stale result happened
-        // to arrive AFTER a fresher task consumed the marker;
-        // should NOT be re-discarded).
-        assert!(!should_discard_stale_detached_result(Some(&7), 6));
-        // Case 4: no marker for this repo: never discard.
-        assert!(!should_discard_stale_detached_result(None, 5));
-        assert!(!should_discard_stale_detached_result(None, 0));
-    }
+    // REMOVED 2026-10-03 (audit R4-SC-07):
+    // `test_m1_discard_matches_only_corresponding_generation` pinned the
+    // M1 per-generation discard helper, which is deleted above with the
+    // rest of the never-inserted marker machinery — see the REMOVED note
+    // at the old helper site for why revival would be wrong.
 
     /// ADDED 2026-07-27 (v0.113.5, audit M4): the trailing-drain
     /// path's pre-fix `match sync_res` had two divergence bugs vs
@@ -6744,9 +6714,9 @@ pub(crate) async fn run_daemon(
     // STAYS in `in_flight` (no duplicate dispatch), and the late
     // result is applied when the task actually finishes.
     // `detached_since` tracks when each repo entered the registry
-    // for the 15-minute wedged-task safety valve; `detached_discard`
-    // marks repos whose stale result must be dropped (they were
-    // force-cleared and possibly re-dispatched).
+    // for the 15-minute wedged-task safety valve. (R4-SC-07: the M1
+    // `detached_discard` stale-result map is gone — nothing is ever
+    // force-cleared, so there is no stale result to drop.)
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
     let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
     // Abort the actual sync worker, not its result-collecting wrapper.
