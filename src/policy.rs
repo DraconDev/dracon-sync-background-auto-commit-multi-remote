@@ -8,29 +8,6 @@ use tokio::process::Command as TokioCommand;
 
 pub(crate) static GIT_COMMAND_LOCK: Mutex<()> = Mutex::new(());
 
-// FIXED 2026-10-03 (test hermeticity): test git invocations are
-// sealed from ambient machine config. The installed global hooks
-// (core.hooksPath + BAD_AUTHORS pre-push) otherwise fail tests that
-// push test-identity commits through real git. Production builds
-// keep ambient config (the daemon MUST see the operator's gitconfig).
-#[cfg(test)]
-fn seal_git_env_for_tests(cmd: &mut StdCommand) {
-    cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
-    cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
-}
-
-#[cfg(not(test))]
-fn seal_git_env_for_tests(_cmd: &mut StdCommand) {}
-
-#[cfg(test)]
-fn seal_tokio_git_env_for_tests(cmd: &mut TokioCommand) {
-    cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
-    cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
-}
-
-#[cfg(not(test))]
-fn seal_tokio_git_env_for_tests(_cmd: &mut TokioCommand) {}
-
 pub(crate) struct GitCommand {
     inner: StdCommand,
 }
@@ -44,9 +21,9 @@ impl GitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        let mut inner = StdCommand::new(git_binary());
-        seal_git_env_for_tests(&mut inner);
-        Self { inner }
+        Self {
+            inner: StdCommand::new(git_binary()),
+        }
     }
 }
 
@@ -73,9 +50,9 @@ impl TokioGitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        let mut inner = TokioCommand::new(git_binary());
-        seal_tokio_git_env_for_tests(&mut inner);
-        Self { inner }
+        Self {
+            inner: TokioCommand::new(git_binary()),
+        }
     }
 }
 
@@ -2208,38 +2185,6 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// ADDED 2026-10-03 (test hermeticity): test git invocations are
-    /// sealed from ambient machine config, so the installed global
-    /// hooks can never fail tests that push test-identity commits.
-    #[test]
-    fn test_git_commands_sealed_from_ambient_config() {
-        let std_env: Vec<(String, String)> = GitCommand::new()
-            .into_std()
-            .get_envs()
-            .map(|(k, v)| {
-                (
-                    k.to_string_lossy().into_owned(),
-                    v.map(|s| s.to_string_lossy().into_owned())
-                        .unwrap_or_default(),
-                )
-            })
-            .collect();
-        for key in ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"] {
-            assert!(
-                std_env.iter().any(|(k, v)| k == key && v == "/dev/null"),
-                "std git commands must seal {key}: {std_env:?}"
-            );
-        }
-        // Tokio wrapper: Debug renders the inner std command's env.
-        let tokio_dbg = format!("{:?}", TokioGitCommand::new().inner);
-        for key in ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"] {
-            assert!(
-                tokio_dbg.contains(key) && tokio_dbg.contains("/dev/null"),
-                "tokio git commands must seal {key}: {tokio_dbg}"
-            );
-        }
-    }
 
     /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
     /// for TOML-loaded configs (serde default) and is deserializable
