@@ -153,6 +153,16 @@ pub(crate) fn is_cherry_pick_in_progress(repo: &Path) -> bool {
     state_path_exists(repo, "CHERRY_PICK_HEAD")
 }
 
+/// Whether a revert operation is in progress (R4-SC-11).
+pub(crate) fn is_revert_in_progress(repo: &Path) -> bool {
+    state_path_exists(repo, "REVERT_HEAD")
+}
+
+/// Whether a bisect session is active (R4-SC-11).
+pub(crate) fn is_bisect_in_progress(repo: &Path) -> bool {
+    state_path_exists(repo, "BISECT_LOG")
+}
+
 /// Check if a repository is ready for operations (has valid HEAD with commits).
 pub(crate) fn is_repo_ready(repo: &Path) -> bool {
     // The repo is a "linked worktree" if `<repo>/.git` is a file

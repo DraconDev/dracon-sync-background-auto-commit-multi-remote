@@ -19,7 +19,8 @@ use crate::git::multi_remote::push_mirror_remotes;
 use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
-    is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress, is_repo_ready,
+    is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
+    is_repo_ready, is_revert_in_progress,
     prune_other_default_branch, push_with_retries, restore_paths, run_git_capture_output,
     run_git_with_timeout, staged_blob_sizes_for, unstage_excluded_paths, unstage_oversized_paths,
     untracked_entries,
@@ -498,6 +499,24 @@ fn check_conflict_state(repo: &Path) -> Option<SyncOutcome> {
     if is_cherry_pick_in_progress(repo) {
         eprintln!(
             "⚠️ {} has cherry-pick in progress, skipping (manual intervention required)",
+            repo.display()
+        );
+        return Some(SyncOutcome::Blocked);
+    }
+    // ADDED 2026-10-03 (audit R4-SC-11): a mid-revert sequencer state
+    // and an active bisect session must block staging/committing like
+    // the other mid-operation states (mid-revert especially: the
+    // sequencer owns the index the same way a merge does).
+    if is_revert_in_progress(repo) {
+        eprintln!(
+            "⚠️ {} has revert in progress, skipping (manual intervention required)",
+            repo.display()
+        );
+        return Some(SyncOutcome::Blocked);
+    }
+    if is_bisect_in_progress(repo) {
+        eprintln!(
+            "⚠️ {} has bisect session active, skipping (manual intervention required)",
             repo.display()
         );
         return Some(SyncOutcome::Blocked);
