@@ -1039,7 +1039,16 @@ pub(crate) fn is_excluded_dir_name(name: &str, excluded_dir_names: &BTreeSet<Str
             return true;
         }
         // Glob-style * suffix: .build* matches .build-debug
-        if pattern.ends_with('*') && normalized.starts_with(&pattern[..pattern.len() - 1]) {
+        // FIXED 2026-10-03 (audit R4-SR-06): compare against the
+        // LOWERCASED pattern slice (own length — lowercasing can
+        // change byte length). The old code sliced the RAW pattern
+        // while `normalized` is lowercased, so "Target*" never
+        // matched "target-x" despite the documented case-insensitive
+        // contract. Last byte is '*' (lowercasing preserves it), so
+        // the slice cannot split a char boundary.
+        if pattern.ends_with('*')
+            && normalized.starts_with(&normalized_pattern[..normalized_pattern.len() - 1])
+        {
             return true;
         }
     }
