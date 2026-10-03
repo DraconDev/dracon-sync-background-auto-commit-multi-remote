@@ -953,9 +953,7 @@ static WARDEN_HARDEN_STATE: std::sync::OnceLock<
 /// `dracon-warden once`), which is what makes the encryption filter
 /// actually run at `git add` time. Extracted for unit tests.
 pub(crate) fn repo_has_warden_filter(repo: &Path) -> bool {
-    // FIXED 2026-10-03 (audit R4-SC-08): route through the sealed git
-    // constructor (DRACON_SYNC_GIT_BIN + prompt sealing), not raw git.
-    crate::policy::std_git_command()
+    std::process::Command::new("git")
         .args(["config", "--local", "--get", "filter.dracon.clean"])
         .current_dir(repo)
         .output()
