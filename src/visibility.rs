@@ -1414,10 +1414,7 @@ mod tests {
         ];
         assert_eq!(
             same_host_project_divergence("myrepo", &remotes),
-            Some((
-                "drac/myrepo".to_string(),
-                "drac/other-project".to_string()
-            )),
+            Some(("drac/myrepo".to_string(), "drac/other-project".to_string())),
             "same-host project split must be reported"
         );
         // Divergent accounts.

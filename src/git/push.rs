@@ -80,8 +80,7 @@ pub(crate) async fn push_https_fallback(
                     // silently pointing GIT_ASKPASS at /bin/false
                     // (every push then fails with a misleading error).
                     if let Some(askpass_str) = askpass.to_str() {
-                        let _askpass_guard =
-                            super::AskpassScript::new(askpass.clone());
+                        let _askpass_guard = super::AskpassScript::new(askpass.clone());
                         let result = super::run_git_with_timeout_env_progress(
                             repo,
                             &["push", &https, refspec],
@@ -98,9 +97,7 @@ pub(crate) async fn push_https_fallback(
                             )),
                         }
                     } else {
-                        eprintln!(
-                            "⚠️ GIT_ASKPASS path is not UTF-8 for GitLab; skipping forge"
-                        );
+                        eprintln!("⚠️ GIT_ASKPASS path is not UTF-8 for GitLab; skipping forge");
                         failures.push("gitlab: askpass path not UTF-8".to_string());
                     }
                 }
@@ -127,8 +124,7 @@ pub(crate) async fn push_https_fallback(
                     // silently pointing GIT_ASKPASS at /bin/false
                     // (every push then fails with a misleading error).
                     if let Some(askpass_str) = askpass.to_str() {
-                        let _askpass_guard =
-                            super::AskpassScript::new(askpass.clone());
+                        let _askpass_guard = super::AskpassScript::new(askpass.clone());
                         let result = super::run_git_with_timeout_env_progress(
                             repo,
                             &["push", &https, refspec],
@@ -145,9 +141,7 @@ pub(crate) async fn push_https_fallback(
                             )),
                         }
                     } else {
-                        eprintln!(
-                            "⚠️ GIT_ASKPASS path is not UTF-8 for Codeberg; skipping forge"
-                        );
+                        eprintln!("⚠️ GIT_ASKPASS path is not UTF-8 for Codeberg; skipping forge");
                         failures.push("codeberg: askpass path not UTF-8".to_string());
                     }
                 }

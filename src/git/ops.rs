@@ -893,13 +893,9 @@ mod tests {
         // recreate a colliding path; creation is now exclusive-first
         // with a retry counter in the name.
         use super::{git_askpass_script, AskpassScript};
-        let a = git_askpass_script("[REDACTED]")
-            .await
-            .expect("create a");
+        let a = git_askpass_script("[REDACTED]").await.expect("create a");
         let _guard_a = AskpassScript::new(a.clone());
-        let b = git_askpass_script("[REDACTED]")
-            .await
-            .expect("create b");
+        let b = git_askpass_script("[REDACTED]").await.expect("create b");
         let _guard_b = AskpassScript::new(b.clone());
         assert_ne!(a, b, "two creates must not share a path");
         assert!(

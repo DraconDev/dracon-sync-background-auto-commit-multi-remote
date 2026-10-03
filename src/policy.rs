@@ -2182,7 +2182,11 @@ mod tests {
         assert_eq!(get("SSH_ASKPASS").as_deref(), Some(""));
         assert_eq!(get("DISPLAY").as_deref(), Some(""));
         // Agent auth must survive: the socket is never cleared.
-        assert_eq!(get("SSH_AUTH_SOCK"), None, "agent socket must stay inherited");
+        assert_eq!(
+            get("SSH_AUTH_SOCK"),
+            None,
+            "agent socket must stay inherited"
+        );
         let tokio_dbg = format!("{:?}", TokioGitCommand::new().inner);
         assert!(
             tokio_dbg.contains("SSH_ASKPASS_REQUIRE"),
@@ -3022,15 +3026,13 @@ mod tests {
     fn test_removed_settling_knobs_are_ignored_by_parser() {
         // R3-L15: configs written when the settling knobs existed
         // must still parse — unknown keys are ignored, not errors.
-        let policy: SyncPolicy = toml::from_str(
-            "settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n",
-        )
-        .expect("legacy settling keys must parse");
+        let policy: SyncPolicy =
+            toml::from_str("settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n")
+                .expect("legacy settling keys must parse");
         assert_eq!(policy.min_commit_interval_secs, 5);
-        let over: RepoPolicyOverride = toml::from_str(
-            "settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n",
-        )
-        .expect("legacy per-repo settling keys must parse");
+        let over: RepoPolicyOverride =
+            toml::from_str("settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n")
+                .expect("legacy per-repo settling keys must parse");
         assert!(over.stale_dirty_alert_secs.is_none());
     }
 

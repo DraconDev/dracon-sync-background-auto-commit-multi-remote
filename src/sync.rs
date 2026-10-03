@@ -4703,8 +4703,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     // warden-managed secrets block) via --exclude-standard.
     let untracked = untracked_entries(repo).await?;
     // R3-M2: per-repo entries EXTEND the global list (union helper).
-    let auto_commit_exclude =
-        crate::policy::effective_auto_commit_excludes(policy, &repo_override);
+    let auto_commit_exclude = crate::policy::effective_auto_commit_excludes(policy, &repo_override);
     let mut to_stage: Vec<String> = Vec::new();
     for entry in &untracked {
         // `auto_stage_untracked = false` skips newly-added files,
@@ -4792,17 +4791,15 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         let entry =
             dracon_git::types::DiffFile::new(path.clone(), dracon_git::types::FileStatus::Added);
         let passes = match blob_sizes.get(path) {
-            Some(Some(staged_bytes)) => {
-                crate::exclude::should_stage_entry_with_blob_size(
-                    repo,
-                    &entry,
-                    *staged_bytes,
-                    excluded_dir_names,
-                    &policy.exclude_file_patterns,
-                    policy.max_stage_file_bytes,
-                    &auto_commit_exclude,
-                )
-            }
+            Some(Some(staged_bytes)) => crate::exclude::should_stage_entry_with_blob_size(
+                repo,
+                &entry,
+                *staged_bytes,
+                excluded_dir_names,
+                &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes,
+                &auto_commit_exclude,
+            ),
             // Unmeasurable blob: fail closed (unstage), like
             // `unstage_oversized_paths`.
             Some(None) => {
@@ -5233,10 +5230,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // variant for consistency with the main staging path.
         let std_repo_override = load_repo_override(repo);
         // R3-M2: per-repo entries EXTEND the global list (union helper).
-        let std_auto_commit_exclude = crate::policy::effective_auto_commit_excludes(
-            ctx.policy,
-            &std_repo_override,
-        );
+        let std_auto_commit_exclude =
+            crate::policy::effective_auto_commit_excludes(ctx.policy, &std_repo_override);
         stage_existing_files_filtered(
             repo,
             &paths,
@@ -8069,7 +8064,12 @@ auto_commit_exclude_patterns = ["*.log"]
 
         let show = |path: &str| {
             let out = crate::git::git_cmd()
-                .args(["-C", &repo.to_string_lossy(), "show", &format!("HEAD:{path}")])
+                .args([
+                    "-C",
+                    &repo.to_string_lossy(),
+                    "show",
+                    &format!("HEAD:{path}"),
+                ])
                 .output()
                 .unwrap();
             String::from_utf8_lossy(&out.stdout).trim().to_string()

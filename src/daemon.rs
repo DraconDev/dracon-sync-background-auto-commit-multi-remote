@@ -2180,10 +2180,7 @@ mod tests {
         // R3-L12: a pre-existing stuck entry (in-memory AND on disk)
         // must be cleared, matching the Success contract.
         record_push_failure(&repo, "stale stuck entry");
-        stuck_push_repos.insert(
-            repo.clone(),
-            load_stuck_push_repos()[&repo].clone(),
-        );
+        stuck_push_repos.insert(repo.clone(), load_stuck_push_repos()[&repo].clone());
         let outcome = apply_outcome(
             &repo,
             &Ok(SyncOutcome::FilterOnly),
@@ -7351,7 +7348,9 @@ pub(crate) async fn run_daemon(
                     entry_for_ownership.ownership_at = Some(now);
                     ownership_revalidate_strikes.remove(&repo);
                 } else {
-                    let strikes = ownership_revalidate_strikes.entry(repo.clone()).or_insert(0);
+                    let strikes = ownership_revalidate_strikes
+                        .entry(repo.clone())
+                        .or_insert(0);
                     *strikes += 1;
                     if *strikes >= 2 {
                         eprintln!(
@@ -7372,8 +7371,7 @@ pub(crate) async fn run_daemon(
                         entry_for_ownership.ownership_at = Some(now);
                         ownership_revalidate_strikes.remove(&repo);
                     } else {
-                        let warn_key =
-                            format!("ownership-revalidate-{}", repo.display());
+                        let warn_key = format!("ownership-revalidate-{}", repo.display());
                         if notify_throttled(
                             &mut remote_notify_cooldowns,
                             &warn_key,
@@ -8246,10 +8244,8 @@ pub(crate) async fn run_daemon(
                 // R3-M2: gates use the same global+per-repo UNION as the
                 // worker (override-aware); GLOBAL-ONLY dispatched every
                 // cycle for per-repo-only configs while staging nothing.
-                let gate_excludes = crate::policy::effective_auto_commit_excludes(
-                    &policy,
-                    &repo_override,
-                );
+                let gate_excludes =
+                    crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
@@ -8314,10 +8310,8 @@ pub(crate) async fn run_daemon(
                 // Repeating a name-only HEAD diff doubles filter execution and
                 // can time out despite the first traversal having succeeded.
                 // R3-M2: same union as the worker (see above).
-                let gate_excludes2 = crate::policy::effective_auto_commit_excludes(
-                    &policy,
-                    &repo_override,
-                );
+                let gate_excludes2 =
+                    crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &filtered,
