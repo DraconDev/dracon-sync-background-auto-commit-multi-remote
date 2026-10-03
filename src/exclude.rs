@@ -1185,7 +1185,7 @@ pub(crate) fn matches_file_pattern(file_name: &str, pattern: &str) -> bool {
         for run in runs {
             match rest.find(run) {
                 Some(pos) => rest = &rest[pos + run.len()..],
-                None => return false,
+                None => {}
             }
         }
         return true;
