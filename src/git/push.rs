@@ -985,44 +985,105 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn test_push_with_retries_joins_fallback_and_loop_errors() {
-        // R3-L03: when the SSH loop AND the transport fallback both
-        // fail, the returned error must carry the fallback verdict
-        // (primary) joined with the earlier loop error — never the
-        // stale loop error alone.
+    async fn test_push_with_retries_total_budget_counts_https_chain() {
+        // RESHAPED 2026-10-03 (audit R4-SC-13): retries counts TOTAL
+        // pushes (mirror parity). The R3-L02 post-loop sweep (extra SSH
+        // + chain after the loop) and its R3-L03 error join are gone, so
+        // the old join assertions are replaced by exact push counts.
+        // The mock fails every push with a transport error and logs
+        // invocations; the github origin makes the HTTPS chain execute
+        // its leg. Pre-fix, retries=0 spawned 3 pushes (loop SSH +
+        // sweep SSH + chain leg) — now exactly 1.
+        use std::os::unix::fs::PermissionsExt;
         let tmp = tempfile::tempdir().unwrap();
-        let fake_git = tmp.path().join("git");
+        let real_git = super::real_git_path();
+        let log = tmp.path().join("push-log");
+        let mock_git = tmp.path().join("git");
         std::fs::write(
-            &fake_git,
-            "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then\n    echo \"ssh: connect to host gitlab.com port 22: Connection timed out\" >&2\n    echo \"fatal: Could not read from remote repository.\" >&2\n    exit 1\nfi\nexit 0\n",
+            &mock_git,
+            format!(
+                "#!/bin/sh\necho \"$@\" >> {}\nif [ \"$1\" = \"push\" ]; then\n    echo 'ssh: connect to host github.com port 22: Connection timed out' >&2\n    exit 1\nfi\nexec {} \"$@\"\n",
+                log.display(),
+                real_git.display(),
+            ),
         )
         .unwrap();
-        std::fs::set_permissions(
-            &fake_git,
-            std::os::unix::fs::PermissionsExt::from_mode(0o755),
-        )
-        .unwrap();
-        let _guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_GIT_BIN",
-            fake_git.to_str().unwrap(),
-        );
+        std::fs::set_permissions(&mock_git, PermissionsExt::from_mode(0o755)).unwrap();
         let repo = tmp.path().join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
-        // retries=0 → attempts=1: one SSH failure, then the fallback
-        // (fresh SSH fails too; origin lookup is empty so the HTTPS
-        // chain reports the generic summary chained with the SSH cause).
-        let err = push_with_retries(&repo, 5, 0, "r3-l03")
+        for args in [
+            vec!["init", "-q", "-b", "main", repo.to_str().unwrap()],
+            vec!["-C", repo.to_str().unwrap(), "remote", "add", "origin", "git@github.com:example/repo.git"],
+            vec!["-C", repo.to_str().unwrap(), "config", "user.email", "test@test"],
+            vec!["-C", repo.to_str().unwrap(), "config", "user.name", "test"],
+        ] {
+            assert!(
+                std::process::Command::new(&real_git)
+                    .args(&args)
+                    .status()
+                    .unwrap()
+                    .success(),
+                "setup {args:?} failed"
+            );
+        }
+        std::fs::write(repo.join("f"), "content").unwrap();
+        for args in [
+            vec!["-C", repo.to_str().unwrap(), "add", "f"],
+            vec![
+                "-C",
+                repo.to_str().unwrap(),
+                "commit",
+                "--no-verify",
+                "-q",
+                "-m",
+                "init",
+            ],
+        ] {
+            assert!(
+                std::process::Command::new(&real_git)
+                    .args(&args)
+                    .status()
+                    .unwrap()
+                    .success(),
+                "setup {args:?} failed"
+            );
+        }
+        let _guard =
+            crate::test_helpers::GitBinRestorer::new(mock_git.to_str().unwrap());
+        let push_count = || {
+            std::fs::read_to_string(&log)
+                .unwrap()
+                .lines()
+                .filter(|l| l.split_whitespace().next() == Some("push"))
+                .count()
+        };
+        // retries=0 → exactly 1 push (was 3 with the sweep).
+        std::fs::write(&log, "").unwrap();
+        let err = push_with_retries(&repo, 5, 0, "sc13")
             .await
             .expect_err("all-transient push must fail");
-        let msg = err.to_string();
+        assert_eq!(push_count(), 1, "retries=0 must push exactly once");
         assert!(
-            msg.contains("[SSH attempt failed:"),
-            "fallback verdict must chain its SSH cause (M3): {msg}"
+            !err.to_string().contains("[earlier SSH attempts failed:"),
+            "R3-L03 join retired with the sweep: {}",
+            err.to_string()
         );
+        // retries=2 → SSH fail + HTTPS-chain fail, M3-chained.
+        std::fs::write(&log, "").unwrap();
+        let err = push_with_retries(&repo, 5, 2, "sc13")
+            .await
+            .expect_err("all-transient push must fail");
+        assert_eq!(push_count(), 2, "retries=2 must push exactly twice");
         assert!(
-            msg.contains("[earlier SSH attempts failed:"),
-            "loop error must be joined, fallback primary (R3-L03): {msg}"
+            err.to_string().contains("[SSH attempt failed:"),
+            "chain verdict must chain its SSH cause (M3): {}",
+            err.to_string()
         );
+        // retries=3 → SSH, HTTPS, SSH = 3 pushes.
+        std::fs::write(&log, "").unwrap();
+        push_with_retries(&repo, 5, 3, "sc13")
+            .await
+            .expect_err("all-transient push must fail");
+        assert_eq!(push_count(), 3, "retries=3 must push exactly 3 times");
     }
 
     /// ADDED 2026-08-09 (v0.113.50): the classifier must map each
