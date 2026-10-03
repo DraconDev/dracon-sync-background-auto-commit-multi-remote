@@ -2931,7 +2931,8 @@ fn find_delta_segment(value: &str) -> Option<usize> {
 /// Truncate a string to fit within `max_width` terminal columns, using
 /// `unicode-width` for accurate wide-char and emoji measurement.
 ///
-/// - Does NOT break inside a grapheme cluster (emoji, CJK, etc.)
+/// - Does NOT break inside a grapheme cluster (emoji, CJK, ZWJ
+///   sequences, flag pairs, VS16 pairs — kept whole or dropped whole)
 /// - Appends `…` (1 column) when truncated
 /// - `max_width=0` returns `""`
 /// - `max_width=1` returns at most 1 column of content
@@ -2939,7 +2940,10 @@ fn find_delta_segment(value: &str) -> Option<usize> {
 /// Truncation policy:
 /// 1. If content fits in `max_width` cols, return as-is (no ellipsis)
 /// 2. Otherwise, fit as much as possible, but reserve 1 col for the ellipsis
-/// 3. If the next char would push the width over `max_width - 1`, stop
+/// 3. If the next grapheme cluster would push the width over
+///    `max_width - 1`, stop (FIXED 2026-10-03, audit L13: the old
+///    char-iteration cut after ZWJ/inside flag pairs, leaving a
+///    trailing joiner or half-flag + `…`)
 /// 4. Append `…` to signal truncation
 pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     if max_width == 0 {
@@ -2967,13 +2971,16 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     let content_budget = max_width - 1;
     let mut width = 0;
     let mut end = 0;
-    for (idx, ch) in value.char_indices() {
-        let ch_w = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
-        if width + ch_w > content_budget {
+    for g in unicode_segmentation::UnicodeSegmentation::graphemes(value, true) {
+        let g_w: usize = g
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
+        if width + g_w > content_budget {
             break;
         }
-        width += ch_w;
-        end = idx + ch.len_utf8();
+        width += g_w;
+        end += g.len();
     }
     format!("{}…", &value[..end])
 }
