@@ -13561,13 +13561,22 @@ mod tests {
     /// Verify each header text width fits within its column minimum (with 2 cols
     /// of cell padding subtracted). If a header is wider than its column minus
     /// 2 padding, comfy-table will wrap the header across two lines.
+    ///
+    /// RE-MIRRORED 2026-10-03 (audit R3-L38): the old array had 22
+    /// entries (ROLE missing) with pre-F30v2 minimums (REPO 17,
+    /// PUSH-TO 17, LAST COMMIT 22, ACTIVITY 17, DAEMON 17, HINT 22) —
+    /// it could not catch the L34 ACTIVITY wrap (header 11 + 2 > 11).
+    /// All 23 entries below MUST match `print_repos_full_table`'s
+    /// header + constraints; several fit EXACTLY (header + 2 == min),
+    /// so any narrowing fails here first.
     #[test]
     fn test_full_table_headers_fit_columns() {
-        // (header_text, column_min)
+        // (header_text, column_min) — mirrors production order.
         let header_columns: &[(&str, u16)] = &[
             ("#", 4),
-            ("🏷 STATUS", 11),
-            ("📦 REPO", 17),
+            ("🏷 STATUS", 13),
+            ("📦 REPO", 19),
+            ("🔗 ROLE", 18),
             ("🌿 BRANCH", 11),
             ("🔗 PUBLISH", 17),
             ("📝 MOD", 8),
@@ -13576,18 +13585,23 @@ mod tests {
             ("↑ AHEAD", 9),
             ("↓ BEHIND", 11),
             ("🚀 PUSH", 13),
-            ("🛰 PUSH-TO", 17),
-            ("📜 LAST COMMIT", 22),
+            ("🛰 PUSH-TO", 32),
+            ("📜 LAST COMMIT", 17),
             ("📤 PUSHED", 11),
-            ("⏰ ACTIVITY", 17),
+            ("⏰ ACTIVITY", 13),
             ("👤 AUTHOR", 11),
             ("📊 1h", 8),
             ("📊 6h", 8),
             ("📊 24h", 8),
             ("🩺 STATE", 15),
-            ("🤖 DAEMON", 17),
-            ("💡 HINT", 22),
+            ("🤖 DAEMON", 15),
+            ("💡 HINT", 15),
         ];
+        assert_eq!(
+            header_columns.len(),
+            23,
+            "mirror must cover every full-tier column"
+        );
         for (header, col_min) in header_columns {
             let h_width: usize = header
                 .chars()
