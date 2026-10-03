@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (workspace audit 2026-10-03, ROUND3 — 1 HIGH, 3 MEDIUM, 39 LOW)
+
+- Nix watchdog scripts now come from the pinned utility inputs instead of git-filtered `${self}` (R3-H1): `home.file` sources are `${draconSyncSrc}/scripts/...` + `${draconSystemSrc}/scripts/...`, and `check-flake.sh` asserts the `.source` paths exist, so a future filtering regression fails CI instead of shipping empty executables. The nested-source pins were repointed at remote mains (which carry the scripts).
+- The bootstrap sweep sizes the staged blob, not the worktree file (R3-M1): `staged_blob_sizes_for()` is shared with the M4 path, the sweep fails closed on unmeasurable blobs, and the unstage uses `git rm --cached -f` so index/worktree skew cannot wedge the sweep.
+- `auto_commit_exclude_patterns` is now a global+per-repo UNION at every enforcement site (R3-M2): the old global-only gates dispatched per-repo-only configs every cycle while staging nothing. Single helper `effective_auto_commit_excludes()`; documented in AGENTS.md as the one union exception.
+- A detached-HEAD ahead-count failure now propagates instead of reading as 0-ahead (R3-L01): the old `unwrap_or(0)` produced a success outcome that cleared the stuck ledger with zero failure accounting.
+- The retry-budget docstring now names the extra transport-fallback attempt (R3-L02), and a total origin-push failure returns the fallback verdict joined with the earlier loop error instead of the stale loop error alone (R3-L03). The remote-vanishes race chains the SSH cause too (R3-L04).
+- HTTPS fallback legs skipped for lack of a token now say so in the ledger (`no token configured (skipped)`, R3-L05) instead of leaving only the generic summary.
+- One credential redactor (R3-L06): the push paths delegate to the all-scheme `ownership::redact_url_credentials` (the old https-only body leaked `http://user:pass@...` userinfo), and the auto-pull journal print is redacted. Ledger shape changes from `https://***@host/` to `https://host/`.
+- `strip_url_credentials` strips only authority userinfo (R3-L07): `@` in path segments no longer mangles the URL.
+- Askpass scripts are created exclusive-first with a retry counter (R3-L08): the best-effort pre-remove reopened the symlink race the O_EXCL contract closes.
+- Warn+concern rows count once in `repos` summaries (R3-L09): precedence is concern > active > warn > ok via `row_bucket_counts()`, so the `--json` integers sum to `repos`. The JSON shape conventions are documented as a stable contract (R3-L10; no breaking change).
+- The stuck ledger is serialized by an in-process mutex with reload-before-save in the apply phase (R3-L11): concurrent worker increments no longer lose updates and a cycle-start snapshot no longer clobbers them. FilterOnly honors the Success contract and clears the ledger (R3-L12).
+- Cancelled push tasks map to `AllPaused` instead of `PushFailed` (R3-L13): an abort storm no longer burns failure budget. Stale Owned verdicts revalidate past the TTL with a two-strike flip (R3-L14): a single transient git error still cannot skip a good repo, but persistent origin/identity drift pauses sync with an alert.
+- The never-implemented settling knobs are removed — both halves plus docs (R3-L15). Configs still setting `settling_max_delay_secs` / `dirty_max_age_action` parse fine; the keys are ignored.
+- Same-host visibility divergence aggregates to unknown (R3-L17): two remotes on one forge naming different (account, project) pairs refuse aggregation before any query runs, so one forge's public verdict cannot authorize publishing a different project.
+- The deployment checker matches symlinked roots on their canonical path (R3-L23): `~/.ssh → ~/.dracon/secrets/ssh` no longer false-positives read-only. `check-flake.sh` now asserts EVERY shipped-unit property plus watchdog timers and script sources (R3-L25); the flake gained the watchdog `Documentation`/`After` keys it was missing.
+- `install.sh` echoes success only after the binary lands and removes the temp dotfile on failure (R3-L20); fresh installs `enable --now` the main services instead of printing "not found" and waiting on the watchdog backstop (R3-L30); unit-copy failures abort loud naming each failed copy (R3-L32). `uninstall.sh` removes all 8 watchdog units plus the notify scripts (R3-L27). The freeze watchdog skips when both `stat` variants fail instead of false auto-clearing on mtime=0 (R3-L29).
+- Display batch: grapheme-width truncation fixes VS16 under-count and ZWJ over-count (R3-L33); full-tier ACTIVITY widened 11→13 with the advisory floor corrected to 315 (R3-L34); PUSH-TO green budget 22→30 (R3-L35); PENDING/push-stuck durations shorten (`30d`, R3-L36); tier docs refreshed to 16/16/23 columns with Rich ≥165 and Full opt-in (R3-L37); width mirrors re-mirrored to production (R3-L38); A/B compacts hostile counts and the 99-repo `#` ceiling + wrap behavior is documented (R3-L39, probed on comfy-table 7.2.2).
+- Hardening without finding numbers: every git child is born non-interactive (`SSH_ASKPASS_REQUIRE=force`, agent socket preserved); non-UTF8 askpass paths fail loud per-forge; a mock-git test pins that permanent rejections bypass auto-pull.
+
 ### Changed
 
 - `repos` uses a rounded frame with fewer grid lines, right-aligned counts and
