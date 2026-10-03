@@ -9015,28 +9015,17 @@ pub(crate) async fn run_daemon(
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
                 sync_workers.insert(repo_path.clone(), handle.abort_handle());
-                // CHANGED 2026-07-27 (v0.113.5, audit M1): bump the
-                // per-repo dispatch generation so the trailing-drain
-                // discard check can distinguish a fresh task's
-                // result from a wedged task's stale one. The
-                // generation is captured in the `SyncTrioJoin` tuple
-                // and compared against the wedged-generation marker
-                // at apply time (see `should_discard_stale_detached_result`).
-                let gen = *dispatch_gen
-                    .entry(repo_path.clone())
-                    .and_modify(|g| *g += 1)
-                    .or_insert(0);
                 in_flight_tasks.push(tokio::spawn(async move {
                     let result = handle.await;
                     match result {
-                        Ok((rf, r)) => (repo_path, gen, rf, r),
+                        Ok((rf, r)) => (repo_path, rf, r),
                         Err(e) => {
                             // Preserve the JoinError type so a shutdown/wedge
                             // cancellation stays distinguishable from a real
                             // sync failure (see push_error_is_cancellation).
                             eprintln!("⚠️ join error for sync task: {}", e);
                             let error = anyhow::Error::new(e).context("join error");
-                            (repo_path, gen, HashMap::new(), Err(error))
+                            (repo_path, HashMap::new(), Err(error))
                         }
                     }
                 }));
@@ -9061,7 +9050,7 @@ pub(crate) async fn run_daemon(
             // A pending network operation must never consume scan-loop time.
             // Pending handles are retained below with their in-flight owner.
             while let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
-                let Ok((repo, _gen, remote_failures, sync_res)) = joined else {
+                let Ok((repo, remote_failures, sync_res)) = joined else {
                     continue;
                 };
                 // Remove from in_flight set so the next cycle can
@@ -9156,29 +9145,15 @@ pub(crate) async fn run_daemon(
                 } else {
                     break;
                 };
-                if let Ok((repo, gen, remote_failures, sync_res)) = joined {
-                    // ADDED 2026-07-21 (v0.112.33, audit M8/F1.14):
-                    // discard stale results from wedged tasks that
-                    // were force-cleared and possibly re-dispatched.
-                    // CHANGED 2026-07-27 (v0.113.5, audit M1): the
-                    // discard marker is now keyed on
-                    // `(repo, wedged_generation)`. Only a result
-                    // whose `gen` matches the marker is stale
-                    // enough to discard; a fresher result from a
-                    // re-dispatched task falls through to the apply
-                    // phase below.
-                    if should_discard_stale_detached_result(detached_discard.get(&repo), gen) {
-                        detached_discard.remove(&repo);
-                        if debug_enabled() {
-                            eprintln!(
-                                "🐛 {} discarding stale wedged-task result (gen={})",
-                                repo.display(),
-                                gen
-                            );
-                        }
-                        detached_since.remove(&repo);
-                        continue;
-                    }
+                if let Ok((repo, remote_failures, sync_res)) = joined {
+                    // REMOVED 2026-10-03 (audit R4-SC-07): the M1/M8
+                    // stale-result discard check lived here, but its
+                    // marker map was never inserted anywhere — and
+                    // arming it would be wrong, not just dead: the
+                    // wedged task's own result is the only one and
+                    // must be applied (R4-SC-02 routes the wedge
+                    // abort to PushPaused). Every joined result falls
+                    // through to the apply phase below.
                     in_flight.remove(&repo);
                     sync_workers.remove(&repo);
                     dispatched_this_cycle.remove(&repo);
