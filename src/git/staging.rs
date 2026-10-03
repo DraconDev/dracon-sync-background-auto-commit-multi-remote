@@ -731,9 +731,12 @@ pub(crate) fn rewrite_ahead_paths(
 /// recorded anywhere. Both arms now rewrite exactly the same rev as
 /// the caller will publish: HEAD.
 fn build_filter_branch_args(paths_to_remove: &[String]) -> Vec<String> {
+    // R4-SC-10: :(literal) inside the shell quotes — the index-filter's
+    // `git rm` would otherwise read glob metacharacters as pathspecs
+    // (over-removal from rewritten history).
     let quoted: Vec<String> = paths_to_remove
         .iter()
-        .map(|p| format!("'{}'", p.replace('\'', "'\\''")))
+        .map(|p| format!("':(literal){}'", p.replace('\'', "'\\''")))
         .collect();
     let filter_expr = format!(
         "git rm -r --cached --ignore-unmatch -- {}",
@@ -809,13 +812,19 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
             anyhow::bail!("restore_paths: refusing unsafe path '{}'", p);
         }
     }
+    // R4-SC-10: :(literal) on every pathspec below — glob
+    // metacharacters in filenames must not act as pathspecs.
+    let literal: Vec<String> = paths
+        .iter()
+        .map(|p| super::literal_pathspec(std::path::Path::new(p)))
+        .collect();
     let mut args = vec![
         "restore".to_string(),
         "--staged".to_string(),
         "--worktree".to_string(),
         "--".to_string(),
     ];
-    args.extend(paths.iter().cloned());
+    args.extend(literal.iter().cloned());
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     if super::run_git_with_timeout(repo, &args_ref, 30, "restore")
         .await
@@ -828,7 +837,7 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     reset.push("reset".to_string());
     reset.push("HEAD".to_string());
     reset.push("--".to_string());
-    reset.extend(paths.iter().cloned());
+    reset.extend(literal.iter().cloned());
     let reset_ref: Vec<&str> = reset.iter().map(|s| s.as_str()).collect();
     if let Err(e) = super::run_git_with_timeout(repo, &reset_ref, 30, "reset").await {
         eprintln!("⚠️ git reset fallback failed for {}: {}", repo.display(), e);
@@ -837,8 +846,8 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
             e
         ));
     }
-    for path in paths {
-        let checkout_args = ["checkout", "--", path];
+    for path in &literal {
+        let checkout_args = ["checkout", "--", path.as_str()];
         if let Err(e) = super::run_git_with_timeout(repo, &checkout_args, 30, "checkout").await {
             eprintln!(
                 "⚠️ git checkout failed for {} in {}: {}",
