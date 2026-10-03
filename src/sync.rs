@@ -11820,6 +11820,132 @@ trusted_authors = ["test"]
         assert_eq!(blob.stdout, b"pending work\n");
     }
 
+    /// Unit test for R4-SC-16's matcher: exact hits, dir-prefix hits
+    /// (untracked-dir/gitlink entries stage whole trees), and foreign
+    /// paths reported as extras.
+    #[test]
+    fn test_staged_extra_paths_matching() {
+        use dracon_git::types::{DiffFile, FileStatus};
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(repo.join("sub")).unwrap();
+        let to_stage = vec![
+            DiffFile::new(PathBuf::from("a.txt"), FileStatus::Modified),
+            DiffFile::new(PathBuf::from("sub"), FileStatus::Added),
+        ];
+        // Exact + under-dir + rename-new-path: no extras.
+        let staged = vec![
+            (PathBuf::from("a.txt"), FileStatus::Modified),
+            (PathBuf::from("sub/b.txt"), FileStatus::Added),
+            (PathBuf::from("sub"), FileStatus::Added),
+        ];
+        assert!(staged_extra_paths(&repo, &staged, &to_stage).is_empty());
+        // Foreign path: extra.
+        let staged = vec![
+            (PathBuf::from("a.txt"), FileStatus::Modified),
+            (PathBuf::from("foreign.txt"), FileStatus::Added),
+        ];
+        assert_eq!(
+            staged_extra_paths(&repo, &staged, &to_stage),
+            vec![PathBuf::from("foreign.txt")]
+        );
+        // Sibling-prefix trap: "sub2/x" must NOT match dir "sub".
+        let staged = vec![(PathBuf::from("sub2/x.txt"), FileStatus::Added)];
+        assert_eq!(
+            staged_extra_paths(&repo, &staged, &to_stage),
+            vec![PathBuf::from("sub2/x.txt")]
+        );
+    }
+
+    /// Regression test for R4-SC-16: a manual `git add` landing
+    /// mid-cycle (after classification) defers the WHOLE commit one
+    /// cycle with the index intact — never swept into the mechanical
+    /// commit. The mock stages the extra file as a side effect of the
+    /// first `add` (deterministic; no wall-clock racing), then passes
+    /// through. Cycle 2 commits everything (commit-all converges).
+    #[tokio::test]
+    async fn test_concurrent_staging_defers_one_cycle_then_converges() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = init_test_repo(&tmp, "concurrent-stage-repo");
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
+            auto_github_private = false
+            auto_commit = true
+            auto_pull = false
+            auto_push = false
+            auto_bump_versions = false
+            standard_files_auto = false
+        "#,
+        )
+        .unwrap();
+        policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
+        // pending.txt: dirty before classification (intended).
+        // extra.txt: committed clean; the mock dirties + stages it
+        // mid-cycle (foreign to this cycle's intent).
+        std::fs::write(repo.join("pending.txt"), "pending work\n").unwrap();
+        std::fs::write(repo.join("extra.txt"), "v1\n").unwrap();
+        assert!(git_cmd(&repo, &["add", "-A"]).status.success());
+        assert!(
+            git_cmd(&repo, &["commit", "--no-verify", "-q", "-m", "base"])
+                .status
+                .success()
+        );
+        std::fs::write(repo.join("pending.txt"), "pending work v2\n").unwrap();
+        let real_git = crate::policy::git_binary();
+        let tripped = tmp.path().join("concurrent-add-fired");
+        let mock = tmp.path().join("mock-git.sh");
+        std::fs::write(
+            &mock,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = \"add\" ] && [ ! -f \"{}\" ]; then touch \"{}\"; echo concurrent >> \"{}/extra.txt\"; \"{}\" -C \"{}\" add extra.txt; fi\nexec \"{}\" \"$@\"\n",
+                tripped.display(),
+                tripped.display(),
+                repo.display(),
+                real_git.display(),
+                repo.display(),
+                real_git.display()
+            ),
+        )
+        .unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
+        // Cycle 1: extras detected → Blocked, index intact, nothing committed.
+        let blocked = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("cycle 1 must be bounded");
+        assert!(tripped.exists(), "mock must have staged the extra file");
+        assert!(
+            matches!(blocked, Ok(SyncOutcome::Blocked)),
+            "concurrent staging must defer the commit, got: {blocked:?}"
+        );
+        let cached = git_cmd(&repo, &["diff", "--cached", "--name-only"]).stdout;
+        let cached = String::from_utf8_lossy(&cached);
+        assert!(
+            cached.contains("extra.txt"),
+            "index must stay intact (extra still staged): {cached}"
+        );
+        let head = git_cmd(&repo, &["show", "HEAD:pending.txt"]).stdout;
+        assert_eq!(head, b"pending work\n", "nothing may commit in cycle 1");
+        // Cycle 2: the extra is pre-staged → intended → all committed.
+        let converged = tokio::time::timeout(
+            Duration::from_secs(20),
+            sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
+        )
+        .await
+        .expect("cycle 2 must be bounded");
+        assert!(
+            matches!(converged, Ok(SyncOutcome::Synced)),
+            "commit-all must converge next cycle, got: {converged:?}"
+        );
+        let head = git_cmd(&repo, &["show", "HEAD:extra.txt"]).stdout;
+        assert_eq!(head, b"v1\nconcurrent\n");
+    }
+
     #[tokio::test]
     async fn test_sync_repo_with_duplicate_subjects_succeeds() {
         let tmp = tempfile::tempdir().unwrap();
