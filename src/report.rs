@@ -5581,7 +5581,7 @@ fn print_repos_compact_table(
         // Absolute widths and apply `truncate_unicode_width(..., N-2)`
         // to the cell content before passing to comfy-table. Column
         // sum drops from 232 → 217, so the table now fits at 220+ cols.
-        ColumnConstraint::Absolute(Width::Fixed(4)), // # (header 1 + 1 pad, fits up to 99 repos)
+        ColumnConstraint::Absolute(Width::Fixed(4)), // # (R3-L39: fits up to 99 repos; 100+ wraps the index cell, never clips — probed on comfy-table 7.2.2)
         ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 7 + 2 + 4 buffer for '🚫 unowned' = 11 cols + 2 padding)
         ColumnConstraint::Absolute(Width::Fixed(18)), // REPO (truncate to 16 cols of content; fits 'browser-extensions-shared' = 24 chars as 'browser-extensions…')
         ColumnConstraint::Absolute(Width::Fixed(14)), // ROLE (was LowerBoundary(7); was bug — 7 < min content 'standalone' = 10 chars, wraps; now fits 'parent·10' = 9, 'wip/hegemon' = 11, 'released/one-mil-girls' = 22 → truncate to 12)
@@ -5796,7 +5796,7 @@ fn print_repos_full_table(
     // in the cell content (not wrapped). Use Absolute(17) for LAST
     // COMMIT and Absolute(11) for AUTHOR.
     table.set_constraints(vec![
-        ColumnConstraint::Absolute(Width::Fixed(4)), // # (header 1 + 1 pad = 4, fits up to 99 repos)
+        ColumnConstraint::Absolute(Width::Fixed(4)), // # (R3-L39: fits up to 99 repos; 100+ wraps the index cell, never clips — probed on comfy-table 7.2.2)
         ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
         ColumnConstraint::Absolute(Width::Fixed(19)), // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols via explicit `truncate_unicode_width` at the cell (FIXED 2026-10-03, audit L17 — the old code relied on comfy-table's clip); long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
         ColumnConstraint::Absolute(Width::Fixed(18)), // ROLE (was LowerBoundary(18); F30: trim to 18; long paths → truncated via role_cell() per-tier budget 16)
@@ -6558,6 +6558,8 @@ fn print_repos_summary(
     // Borders: 5 chars per row in UTF8_FULL_CONDENSED ("| # | ... | ... | ... |").
     // Cell padding: comfy-table adds 2 chars per cell by default
     // (left + right space). 3 cells get padding, so +6 chars.
+    // `#` fits row numbers up to 99 (R3-L39: 100+ wraps the index
+    // cell, never clips — see the rich-tier note; fleet is ~35).
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     const REPO_COL: usize = 24;
