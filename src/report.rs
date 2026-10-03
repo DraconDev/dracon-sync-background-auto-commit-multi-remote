@@ -11648,6 +11648,49 @@ mod tests {
         assert_eq!(ok + active + warn + concern, rows.len());
     }
 
+    #[test]
+    fn test_warn_filter_retain_matches_warn_bucket() {
+        // R4-SR-16: every row the `--warn` retain keeps must land in
+        // the warn bucket — no concern/active stowaways that the
+        // banner then counts under a different bucket.
+        let rows = vec![
+            RepoReportRow {
+                warn: true,
+                concern: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                warn: true,
+                active: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                warn: true,
+                ..full_row_for_json_test()
+            },
+            full_row_for_json_test(),
+        ];
+        let retained: Vec<&RepoReportRow> =
+            rows.iter().filter(|r| warn_filter_retains(r)).collect();
+        assert_eq!(retained.len(), 1, "only the pure-warn row is retained");
+        assert!(retained[0].warn && !retained[0].active && !retained[0].concern);
+        let owned: Vec<RepoReportRow> = retained
+            .into_iter()
+            .map(|r| RepoReportRow {
+                warn: r.warn,
+                active: r.active,
+                concern: r.concern,
+                ..full_row_for_json_test()
+            })
+            .collect();
+        let (ok, active, warn, concern) = row_bucket_counts(&owned);
+        assert_eq!(
+            (ok, active, warn, concern),
+            (0, 0, 1, 0),
+            "retained rows must bucket 100% as warn"
+        );
+    }
+
     fn full_row_for_json_test() -> RepoReportRow {
         RepoReportRow {
             frozen_secs: None,
