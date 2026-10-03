@@ -396,6 +396,41 @@ fn get_gitlab_visibility_opt(owner: &str, repo: &str, token: &str) -> Option<boo
     }
 }
 
+/// Detect same-host (account, project) divergence across the queried
+/// GitHub/GitLab remotes (R3-L17): returns the first conflicting
+/// `account/project` pair when two same-host remotes name different
+/// projects. AuthType proxies host (GitHub vs GitLab); Codeberg and
+/// Generic remotes are never queried and never diverge.
+fn same_host_project_divergence(
+    repo_name: &str,
+    remotes: &[RemoteConfig],
+) -> Option<(String, String)> {
+    let mut seen: Vec<(AuthType, String, String)> = Vec::new();
+    for remote in remotes {
+        let auth = remote.effective_auth_type();
+        match auth {
+            AuthType::GitHub | AuthType::GitLab => {
+                let account = remote.resolve_account();
+                let project = remote.resolve_repo_name(repo_name);
+                if let Some((_, prev_account, prev_project)) =
+                    seen.iter().find(|(a, _, _)| *a == auth)
+                {
+                    if prev_account != &account || prev_project != &project {
+                        return Some((
+                            format!("{prev_account}/{prev_project}"),
+                            format!("{account}/{project}"),
+                        ));
+                    }
+                } else {
+                    seen.push((auth, account, project));
+                }
+            }
+            AuthType::Codeberg | AuthType::Generic => continue,
+        }
+    }
+    None
+}
+
 /// Determine the visibility of the operator-owned GitHub/GitLab mirrors.
 /// `Some(false)` (public) wins if ANY owned forge positively reports public;
 /// `Some(true)` means every queried forge positively reported private;
@@ -411,36 +446,15 @@ pub(crate) fn owned_forge_visibility_opt(
     // would otherwise let one forge's public verdict authorize
     // publication of a DIFFERENT project. Unknown must never
     // authorize publication, so divergence returns None before any
-    // query runs. AuthType proxies host (GitHub vs GitLab).
-    {
-        let mut seen: Vec<(AuthType, String, String)> = Vec::new();
-        for remote in remotes {
-            let auth = remote.effective_auth_type();
-            match auth {
-                AuthType::GitHub | AuthType::GitLab => {
-                    let account = remote.resolve_account();
-                    let project = remote.resolve_repo_name(&repo_name);
-                    if let Some((_, prev_account, prev_project)) =
-                        seen.iter().find(|(a, _, _)| *a == auth)
-                    {
-                        if prev_account != &account || prev_project != &project {
-                            eprintln!(
-                                "⚠️ visibility aggregation refused for {}: same-host remotes diverge ({}/{} vs {}/{}) — treating as unknown",
-                                repo_path.display(),
-                                prev_account,
-                                prev_project,
-                                account,
-                                project
-                            );
-                            return None;
-                        }
-                    } else {
-                        seen.push((auth, account, project));
-                    }
-                }
-                AuthType::Codeberg | AuthType::Generic => continue,
-            }
-        }
+    // query runs.
+    if let Some((first, second)) = same_host_project_divergence(&repo_name, remotes) {
+        eprintln!(
+            "⚠️ visibility aggregation refused for {}: same-host remotes diverge ({} vs {}) — treating as unknown",
+            repo_path.display(),
+            first,
+            second
+        );
+        return None;
     }
     let mut saw_owned_forge = false;
     let mut saw_unknown = false;
