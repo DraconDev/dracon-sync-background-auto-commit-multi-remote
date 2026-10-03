@@ -26,6 +26,11 @@ target/
 .publish-real
 EOF
 cat > "$repo/Cargo.toml" <<'EOF'
+# R4-M-11: a [workspace.package] version ABOVE [package] — the bump must
+# rewrite the [package] line, never the first `^version =` in the file.
+[workspace.package]
+version = "9.9.9"
+
 [package]
 name = "dracon-sync"
 version = "0.1.0"
@@ -60,14 +65,14 @@ case "${1:-}" in
     test|build|clippy|deny)
         ;;
     check)
-        version=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$root/Cargo.toml")
+        version=$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$root/Cargo.toml")
         sed -i "/^name = \"dracon-sync\"$/{n;s/^version = .*/version = \"$version\"/;}" "$root/Cargo.lock"
         ;;
     metadata)
         printf '{"workspace_root":"%s"}\n' "$root"
         ;;
     publish)
-        version=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$root/Cargo.toml")
+        version=$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$root/Cargo.toml")
         if [[ " $* " == *" --dry-run "* ]]; then
             mkdir -p "$root/target/package/dracon-sync-$version"
             cp "$root/Cargo.lock" "$root/target/package/dracon-sync-$version/Cargo.lock"
@@ -97,7 +102,9 @@ DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     timeout 120 "$repo/scripts/release.sh" 0.1.1 --dry-run --yes \
     >"$work/dry-run.out" 2>"$work/dry-run.err"
 grep -F 'Cargo.toml: 0.1.0 → 0.1.1' "$work/dry-run.out" >/dev/null
-test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.1
+test "$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$repo/Cargo.toml")" = 0.1.1
+# R4-M-11: the [workspace.package] version above must be untouched.
+test "$(awk -F'"' '/^\[/{p=($0=="[workspace.package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$repo/Cargo.toml")" = 9.9.9
 test "$(awk -F'"' '/^name = "dracon-sync"$/{getline; print $2; exit}' "$repo/Cargo.lock")" = 0.1.1
 test -e "$repo/.publish-dry-run"
 grep -F '# verified package lock' "$repo/Cargo.lock" >/dev/null
