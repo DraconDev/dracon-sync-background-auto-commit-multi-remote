@@ -7307,6 +7307,43 @@ trusted_authors = ["test"]
     }
 
     #[tokio::test]
+    async fn test_bootstrap_sweep_measures_staged_blob_not_worktree() {
+        // FIX (audit R3-M1, 2026-10-03): the bootstrap sweep measured
+        // the worktree file, so stage-large-then-truncate smuggled a
+        // >max blob into the root commit (M4 covered steady state
+        // only). The sweep must size the staged blob.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("small.txt"), "ok\n").unwrap();
+        // Operator pre-stages 2 KiB, then truncates the worktree copy
+        // without re-adding: staged blob stays 2 KiB.
+        std::fs::write(repo.join("big.bin"), vec![0u8; 2048]).unwrap();
+        let status = crate::git::git_cmd()
+            .args(["add", "big.bin"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        std::fs::write(repo.join("big.bin"), b"tiny").unwrap();
+
+        let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
+        let result = bootstrap_empty_repo_commit(&repo, &policy, &BTreeSet::new(), false).await;
+        assert!(result.unwrap(), "bootstrap must still commit small.txt");
+        let output = crate::git::git_cmd()
+            .args(["ls-files"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tracked = String::from_utf8_lossy(&output.stdout);
+        assert!(tracked.contains("small.txt"));
+        assert!(
+            !tracked.contains("big.bin"),
+            "staged-large-then-truncated blob must not reach the root commit"
+        );
+    }
+
+    #[tokio::test]
     async fn test_bootstrap_empty_repo_skips_oversized_files() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("repo");
