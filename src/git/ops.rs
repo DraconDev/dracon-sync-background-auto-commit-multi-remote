@@ -640,10 +640,20 @@ impl AskpassScript {
 
 impl Drop for AskpassScript {
     fn drop(&mut self) {
-        // Best-effort synchronous unlink. Ignore errors (ENOENT,
-        // EBUSY on Windows-rare races). The file is created with
-        // 0o700 owned by the daemon user; the unlink is safe.
-        let _ = std::fs::remove_file(&self.path);
+        // Best-effort synchronous unlink. NotFound is fine (already
+        // cleaned up — nothing lingers). Any OTHER failure leaves the
+        // token script in /tmp and must be LOUD (FIXED 2026-10-02,
+        // audit L4: the old `let _ =` swallowed EPERM/EROFS with no
+        // log). The file is created 0o700 owned by the daemon user.
+        if let Err(e) = std::fs::remove_file(&self.path) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                crate::log_warn!(
+                    "askpass cleanup failed for {}: {} (token script lingers on disk)",
+                    self.path.display(),
+                    e
+                );
+            }
+        }
     }
 }
 
