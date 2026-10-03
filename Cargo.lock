@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-sync"
-version = "0.113.92"
+version = "0.113.93"
 dependencies = [
  "anyhow",
  "chrono",
@@ -624,6 +624,7 @@ dependencies = [
  "terminal_size",
  "tokio",
  "toml",
+ "unicode-segmentation",
  "unicode-width",
  "urlencoding",
  "zeroize",
