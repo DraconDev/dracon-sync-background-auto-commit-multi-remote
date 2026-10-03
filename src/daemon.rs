@@ -8020,7 +8020,7 @@ pub(crate) async fn run_daemon(
                 // worker (override-aware); GLOBAL-ONLY dispatched every
                 // cycle for per-repo-only configs while staging nothing.
                 let gate_excludes = crate::policy::effective_auto_commit_excludes(
-                    policy,
+                    &policy,
                     &repo_override,
                 );
                 let dirty = has_sync_relevant_dirty_entries(
@@ -8088,7 +8088,7 @@ pub(crate) async fn run_daemon(
                 // can time out despite the first traversal having succeeded.
                 // R3-M2: same union as the worker (see above).
                 let gate_excludes2 = crate::policy::effective_auto_commit_excludes(
-                    policy,
+                    &policy,
                     &repo_override,
                 );
                 let dirty = has_sync_relevant_dirty_entries(
@@ -8171,7 +8171,7 @@ pub(crate) async fn run_daemon(
                     // helper so per-repo-excluded files never trigger
                     // the alert.
                     let effective_excludes =
-                        crate::policy::effective_auto_commit_excludes(policy, &repo_override);
+                        crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
                     match oldest_dirty_change_secs(
                         &repo,
                         &entries,
