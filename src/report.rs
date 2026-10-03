@@ -13644,10 +13644,12 @@ mod tests {
     /// Regression test for goal `mr0q2pp0-zznczr`: when there are
     /// ≥10 repos in the table, the row-index column (`#`) MUST be
     /// wide enough to fit a two-digit number on a single visual line.
-    /// If the column is too narrow, comfy-table truncates `10` to `1`
-    /// (or `20` to `2`, etc.) and the row-number column becomes
-    /// unreadable + the table layout breaks because the cell width
-    /// changes after the 9th row.
+    /// CORRECTED 2026-10-03 (audit R3-L39): the old text claimed a
+    /// too-narrow column "truncates `10` to `1`" — probed on
+    /// comfy-table 7.2.2 (Dynamic + Absolute): it WRAPS ("10" →
+    /// "1"/"0" on two lines), never clips digits. Same remedy (width
+    /// 4 fits 1-2 digits + padding), honest mechanism. The 99-repo
+    /// ceiling + 100+ wrap are documented at every `#` site.
     ///
     /// The fix (per this goal) bumps `ColumnConstraint::Absolute(Width::Fixed(3))`
     /// to `Width::Fixed(4)` for the `#` column in both the full
