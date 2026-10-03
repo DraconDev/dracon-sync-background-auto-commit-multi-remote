@@ -934,6 +934,37 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn test_unstage_oversized_paths_quotes_glob_metachars() {
+        // ADDED 2026-10-03 (audit R4-SC-10): the reset pathspec must
+        // be :(literal)-quoted — an unquoted `big[0].bin` pathspec
+        // also matches the staged sibling `big0.bin` (over-unstaging).
+        let repo = create_test_repo();
+        std::fs::write(repo.join("big[0].bin"), vec![b'x'; 2048]).unwrap();
+        std::fs::write(repo.join("big0.bin"), b"small\n").unwrap();
+        test_git_cmd()
+            .args(["add", "--", "big[0].bin", "big0.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let n = unstage_oversized_paths(&repo, 1024).await.unwrap();
+        assert_eq!(n, 1, "only the large blob must be unstaged");
+        let cached = test_git_cmd()
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let cached = String::from_utf8_lossy(&cached.stdout);
+        assert!(
+            !cached.contains("big[0].bin"),
+            "large blob must be unstaged, cached: {cached}"
+        );
+        assert!(
+            cached.contains("big0.bin"),
+            "glob-matching sibling must STAY staged, cached: {cached}"
+        );
+    }
+
     #[test]
     fn large_blob_record_preserves_spaces_in_path() {
         assert_eq!(
