@@ -2081,6 +2081,13 @@ mod tests {
     /// source of truth inside the function that uses it).
     #[tokio::test]
     async fn test_m4_helper_structurally_unified() {
+        // R3-L11/L12: Success arms reload the ledger file — isolate
+        // from real daemon state.
+        let state = tempfile::tempdir().unwrap();
+        let _ledger_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
         // Build a minimal fixture for the helper:
         //   - empty RepoActivity
         //   - empty stuck_push_repos
@@ -2148,6 +2155,13 @@ mod tests {
         assert_eq!(outcome, ApplyOutcome::Success);
 
         // --- FilterOnly -> ApplyOutcome::Success (cooldown set) ---
+        // R3-L12: a pre-existing stuck entry (in-memory AND on disk)
+        // must be cleared, matching the Success contract.
+        record_push_failure(&repo, "stale stuck entry");
+        stuck_push_repos.insert(
+            repo.clone(),
+            load_stuck_push_repos()[&repo].clone(),
+        );
         let outcome = apply_outcome(
             &repo,
             &Ok(SyncOutcome::FilterOnly),
@@ -2159,6 +2173,14 @@ mod tests {
         );
         assert_eq!(outcome, ApplyOutcome::Success);
         assert!(stage_cooldowns.contains_key(&repo));
+        assert!(
+            !stuck_push_repos.contains_key(&repo),
+            "FilterOnly must clear the in-memory stuck entry"
+        );
+        assert!(
+            !load_stuck_push_repos().contains_key(&repo),
+            "FilterOnly must clear the on-disk stuck entry (R3-L12)"
+        );
 
         // --- Blocked -> ApplyOutcome::Blocked, blocked_since set ---
         let outcome = apply_outcome(
