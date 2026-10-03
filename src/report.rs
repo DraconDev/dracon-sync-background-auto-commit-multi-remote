@@ -5622,7 +5622,10 @@ fn print_repos_compact_table(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
             role_cell(&roles[idx]),
-            Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
+            // FIXED 2026-10-03 (audit L17): BRANCH is Absolute(11) —
+            // truncate explicitly (9 + padding) instead of relying on
+            // comfy-table's non-unicode-aware clip.
+            Cell::new(truncate_unicode_width(&row.branch, 9)).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
@@ -5804,9 +5807,14 @@ fn print_repos_full_table(
         table.add_row(vec![
             Cell::new(idx + 1),
             Cell::new(status_text).fg(status_color),
-            Cell::new(repo_name),
+            // FIXED 2026-10-03 (audit L17): REPO is Absolute(19) —
+            // truncate explicitly like compact (17 + padding) instead
+            // of relying on comfy-table's non-unicode-aware clip.
+            Cell::new(truncate_unicode_width(&repo_name, 17)),
             role_cell(&roles[idx]),
-            Cell::new(&row.branch).fg(branch_color_for(&row.branch)),
+            // FIXED 2026-10-03 (audit L17): BRANCH is Absolute(11) —
+            // truncate explicitly (9 + padding), same as compact.
+            Cell::new(truncate_unicode_width(&row.branch, 9)).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
