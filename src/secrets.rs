@@ -144,6 +144,29 @@ fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
     None
 }
 
+/// Strip one layer of `.env` value decoration (R4-SR-15; see the
+/// dialect doc on `load_secret_from_dir`): matching surrounding
+/// quotes win over comment stripping (a `#` inside quotes is
+/// literal); otherwise cut at the first whitespace-preceded `#`.
+fn strip_env_value(value: &str) -> String {
+    let bytes = value.as_bytes();
+    if bytes.len() >= 2 {
+        let (first, last) = (bytes[0], bytes[bytes.len() - 1]);
+        if (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'') {
+            return value[1..value.len() - 1].to_string();
+        }
+    }
+    let mut start = 0;
+    while let Some(hash) = value[start..].find('#') {
+        let idx = start + hash;
+        if idx > 0 && (bytes[idx - 1] == b' ' || bytes[idx - 1] == b'\t') {
+            return value[..idx].trim_end().to_string();
+        }
+        start = idx + 1;
+    }
+    value.to_string()
+}
+
 fn preferred_secret_file_index(env_name: &str, file_name: &str) -> usize {
     if let Some(index) = PREFERRED_SECRET_FILE_NAMES
         .iter()
@@ -198,13 +221,26 @@ fn check_secrets_dir_permissions(_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Name which readability bits are set (R4-SR-15): the old warning
+/// fired on group-OR-other (0o044) but always said "world-readable".
+/// Returns `None` when neither bit is set.
+#[cfg(unix)]
+fn readable_scope(mode: u32) -> Option<&'static str> {
+    match (mode & 0o040 != 0, mode & 0o004 != 0) {
+        (true, true) => Some("group- and world-readable"),
+        (true, false) => Some("group-readable"),
+        (false, true) => Some("world-readable"),
+        (false, false) => None,
+    }
+}
+
 #[cfg(unix)]
 fn warn_if_world_readable(path: &Path) {
     if let Ok(metadata) = std::fs::metadata(path) {
         let mode = metadata.permissions().mode();
-        if mode & 0o044 != 0 {
+        if let Some(scope) = readable_scope(mode) {
             eprintln!(
-                "⚠️ secret file {} is world-readable (mode {:o}). Consider chmod 600.",
+                "⚠️ secret file {} is {scope} (mode {:o}). Consider chmod 600.",
                 path.display(),
                 mode & 0o7777
             );
