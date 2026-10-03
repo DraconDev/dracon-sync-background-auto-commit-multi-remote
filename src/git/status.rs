@@ -667,6 +667,67 @@ mod tests {
         );
     }
 
+    /// Regression test for R4-SC-12: a config-parse miss must fall
+    /// back to `git remote get-url origin`. A trailing comment on the
+    /// section line defeats the exact-match parse, and an include-based
+    /// remote has no section in .git/config at all — but git resolves
+    /// both. Pre-fix both fixtures returned false (skipped pulls,
+    /// spurious ensure_origin_remote attempts).
+    #[test]
+    fn test_has_origin_remote_falls_back_on_parse_miss() {
+        // Trailing-comment section line: parse misses, CLI resolves.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_repo(&repo);
+        let status = crate::policy::std_git_command()
+            .args(["remote", "add", "origin", "https://example.com/x.git"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(has_origin_remote(&repo));
+        let config_path = repo.join(".git").join("config");
+        let text = std::fs::read_to_string(&config_path).unwrap();
+        assert!(text.lines().any(|l| l.trim() == "[remote \"origin\"]"));
+        let commented = text.replacen(
+            "[remote \"origin\"]",
+            "[remote \"origin\"] ; trailing comment",
+            1,
+        );
+        std::fs::write(&config_path, commented).unwrap();
+        assert!(
+            has_origin_remote(&repo),
+            "trailing comment must not read as absent"
+        );
+
+        // Include-based remote: no section in .git/config at all.
+        let tmp2 = tempfile::tempdir().unwrap();
+        let repo2 = tmp2.path().join("repo");
+        init_repo(&repo2);
+        let extra = tmp2.path().join("extra.inc");
+        std::fs::write(
+            &extra,
+            "[remote \"origin\"]\n\turl = https://example.com/y.git\n",
+        )
+        .unwrap();
+        let status = crate::policy::std_git_command()
+            .args(["config", "include.path", extra.to_str().unwrap()])
+            .current_dir(&repo2)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(
+            has_origin_remote(&repo2),
+            "include-based origin must resolve via CLI fallback"
+        );
+
+        // Negative control: no origin anywhere → still false.
+        let tmp3 = tempfile::tempdir().unwrap();
+        let repo3 = tmp3.path().join("repo");
+        init_repo(&repo3);
+        assert!(!has_origin_remote(&repo3));
+    }
+
     #[test]
     fn test_upstream_tracking_ref_missing_config_without_ref() {
         let tmp = tempfile::tempdir().unwrap();
