@@ -2429,6 +2429,13 @@ mod tests {
         let mut out: Vec<u8> = Vec::with_capacity(no_comments.len());
         let mut i = 0;
         while i < bytes.len() {
+            if !no_comments.is_char_boundary(i) {
+                // UTF-8 continuation byte (emoji in comments/strings):
+                // copy through; only ASCII can start an assert.
+                out.push(bytes[i]);
+                i += 1;
+                continue;
+            }
             let rest = &no_comments[i..];
             let at_ident_start = i == 0
                 || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_');
