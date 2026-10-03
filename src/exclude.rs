@@ -55,6 +55,24 @@ mod tests {
         assert!(!is_excluded_dir_name(".tmpfile", &excluded));
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-01): the `.tmp-` branch
+    /// sliced its prefix from the candidate name, so the
+    /// `starts_with` was tautological — any same-shape name with
+    /// `-` at the same index matched without comparing the
+    /// pattern's chars. Same-shape non-matches must not exclude.
+    #[test]
+    fn test_is_excluded_dir_name_tmp_prefix_compares_pattern() {
+        let excluded: BTreeSet<String> = [".tmp-".to_string()].into_iter().collect();
+        // The audit repro: same length class, '-' at index 4, but
+        // the chars are not ".tmp".
+        assert!(!is_excluded_dir_name("abcd-xyz", &excluded));
+        assert!(!is_excluded_dir_name("abcd-", &excluded));
+        // True prefix matches still exclude (incl. exact pattern).
+        assert!(is_excluded_dir_name(".tmp-", &excluded));
+        assert!(is_excluded_dir_name(".tmp-x", &excluded));
+        assert!(is_excluded_dir_name(".TMP-UPPER", &excluded));
+    }
+
     #[test]
     fn test_is_excluded_dir_name_empty_excluded_set() {
         let excluded: BTreeSet<String> = BTreeSet::new();
