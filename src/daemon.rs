@@ -7423,6 +7423,42 @@ pub(crate) async fn run_daemon(
             // RepoActivity.ownership; the git invocations only
             // run when the cache is None.
             let repo_override = crate::policy::load_repo_override(&repo);
+            // FIXED 2026-10-03 (audit R4-SR-04): a present-but-unparsable
+            // override voids every safety-negative opt-out the operator
+            // may have set (owned=false, exclude_remotes, repair
+            // opt-outs) — fail closed: skip the repo like unowned and
+            // alert. Throttled journal line + incident-ledger entry (one
+            // per 30 min per repo, not one per cycle). Self-heals the
+            // cycle after the operator fixes the typo (clean parse →
+            // None → normal path).
+            if let Some(parse_err) = &repo_override.override_parse_error {
+                let alert_key = format!("override-parse-error-{}", repo.display());
+                if notify_throttled(
+                    &mut remote_notify_cooldowns,
+                    &alert_key,
+                    Duration::from_secs(1800),
+                ) {
+                    eprintln!(
+                        "🚫 {} skipping: unparsable .dracon/dracon-sync.toml ({}) — fix the typo to resume sync",
+                        repo.display(),
+                        parse_err.lines().next().unwrap_or("parse error"),
+                    );
+                    crate::report::log_incident(
+                        &policy_path,
+                        "config",
+                        repo.display().to_string(),
+                        "OVERRIDE_PARSE_ERROR".to_string(),
+                        "skip-until-fixed".to_string(),
+                        None,
+                        "skipped".to_string(),
+                        Some(format!(
+                            "per-repo override present but unparsable ({}); all opt-outs treated as unknown → repo skipped",
+                            parse_err.lines().next().unwrap_or("parse error"),
+                        )),
+                    );
+                }
+                continue;
+            }
             let effective_auto_skip_unowned = repo_override
                 .auto_skip_unowned
                 .unwrap_or(policy.auto_skip_unowned);
