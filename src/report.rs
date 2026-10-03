@@ -662,17 +662,19 @@ fn branch_upstream(repo: &Path, branch: &str) -> (String, PublishState) {
     }
 }
 
-fn publish_cell_label(upstream: &str, state: PublishState) -> String {
-    // 2026-07-19 (goal `4555eaf6`): PUBLISH column is Absolute(18).
-    // Worst-case is `⚠️ origin/main (gone)` = 22 chars; truncate to
-    // 16 cols (18 - 2 padding). Common case (`gitlab/main`,
-    // `origin/main`) is 11 chars and unaffected.
+fn publish_cell_label(upstream: &str, state: PublishState, width: usize) -> String {
+    // 2026-07-19 (goal `4555eaf6`): worst-case is
+    // `⚠️ origin/main (gone)` = 22 chars. FIXED 2026-10-03 (audit
+    // L18): the budget is PER-TIER — compact PUBLISH is Absolute(18)
+    // (content 16), full is Absolute(17) (content 15). The old shared
+    // 16 overflowed full by 1 col. Common case (`gitlab/main`,
+    // `origin/main`) is 11 chars and unaffected at either budget.
     let raw = match state {
         PublishState::Missing => "⚠️ none".to_string(),
         PublishState::Gone => format!("⚠️ {upstream} (gone)"),
         PublishState::Ok => upstream.to_string(),
     };
-    truncate_unicode_width(&raw, 16)
+    truncate_unicode_width(&raw, width)
 }
 
 fn publish_state_color(state: PublishState) -> comfy_table::Color {
@@ -6357,15 +6359,16 @@ impl crate::report::RepoReportRow {
 /// Build a comfy-table cell for the role classification column.
 /// Parents get green (they own submods); submods get cyan (they're
 /// nested); standalone gets white (the default for non-actionable).
-fn role_cell(role: &crate::role::RoleKind) -> comfy_table::Cell {
+fn role_cell(role: &crate::role::RoleKind, width: usize) -> comfy_table::Cell {
     let label = role.label();
-    // 2026-07-19 (goal `4555eaf6`): ROLE column is Absolute(14).
-    // Without truncation, labels like `released/one-mil-girls`
-    // (22 chars) overflow and letter-wrap on narrow terminals.
-    // Truncate to 12 cols (14 - 2 padding). Short labels
-    // (`parent·10` = 9, `standalone` = 10, `wip/hegemon` = 11)
-    // are unaffected.
-    let truncated = truncate_unicode_width(&label, 12);
+    // 2026-07-19 (goal `4555eaf6`): without truncation, labels like
+    // `released/one-mil-girls` (22 chars) overflow and letter-wrap on
+    // narrow terminals. FIXED 2026-10-03 (audit L18): the budget is
+    // PER-TIER — compact ROLE is Absolute(14) (content 12), full is
+    // Absolute(18) (content 16). The old shared 12 under-used full by
+    // 4 cols. Short labels (`parent·10` = 9, `standalone` = 10,
+    // `wip/hegemon` = 11) are unaffected at either budget.
+    let truncated = truncate_unicode_width(&label, width);
     let color = match role {
         crate::role::RoleKind::Parent(_) => comfy_table::Color::Green,
         crate::role::RoleKind::Submod { .. } => comfy_table::Color::Cyan,
