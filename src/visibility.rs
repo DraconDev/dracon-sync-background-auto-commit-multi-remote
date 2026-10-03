@@ -425,7 +425,7 @@ pub(crate) fn owned_forge_visibility_opt(
                     {
                         if prev_account != &account || prev_project != &project {
                             eprintln!(
-                                "⚠️ visibility aggregation refused for {}: same-host remotes diverge ({} vs {}/{} vs {}/{}) — treating as unknown",
+                                "⚠️ visibility aggregation refused for {}: same-host remotes diverge ({}/{} vs {}/{}) — treating as unknown",
                                 repo_path.display(),
                                 prev_account,
                                 prev_project,
@@ -1373,6 +1373,45 @@ mod tests {
         // With no gh installed (or in test env), should return true (private)
         let result = get_github_visibility("nonexistent-owner-12345", "nonexistent-repo-67890");
         assert!(result, "safe default should be private");
+    }
+
+    #[test]
+    fn test_owned_forge_visibility_refuses_same_host_divergence() {
+        // R3-L17: two GitHub remotes naming different projects must
+        // aggregate to None (unknown) — and return BEFORE any network
+        // query runs (no token envs, unroutable hosts; a query attempt
+        // would hang or fail, never return cleanly this fast).
+        let mk = |account: &str, mapped: Option<(&str, &str)>| RemoteConfig {
+            name: "github".to_string(),
+            push_url: format!("git@github.com:{account}/x.git"),
+            auto_create: false,
+            auto_create_account: account.to_string(),
+            auth_type: AuthType::GitHub,
+            priority: 50,
+            api_endpoint: None,
+            auto_create_token_var: None,
+            repo_name_map: mapped
+                .map(|(k, v)| [(k.to_string(), v.to_string())].into_iter().collect())
+                .unwrap_or_default(),
+            force_push_when_behind: false,
+        };
+        // Divergent repo_name_map entries for the same local repo.
+        let remotes = vec![
+            mk("drac", Some(("myrepo", "myrepo"))),
+            mk("drac", Some(("myrepo", "other-project"))),
+        ];
+        assert_eq!(
+            owned_forge_visibility_opt(Path::new("/tmp/myrepo"), &remotes),
+            None,
+            "same-host project divergence must aggregate to unknown"
+        );
+        // Divergent accounts.
+        let remotes = vec![mk("drac", None), mk("someone-else", None)];
+        assert_eq!(
+            owned_forge_visibility_opt(Path::new("/tmp/myrepo"), &remotes),
+            None,
+            "same-host account divergence must aggregate to unknown"
+        );
     }
 
     #[test]
