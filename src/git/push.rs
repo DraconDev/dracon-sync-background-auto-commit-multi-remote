@@ -854,6 +854,78 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_redact_credentials_for_log_covers_all_schemes() {
+        // R3-L06: the push-path redactor must not be https-only.
+        assert_eq!(
+            redact_credentials_for_log("err: http://user:pass@host/x.git failed"),
+            "err: http://host/x.git failed"
+        );
+        assert_eq!(
+            redact_credentials_for_log("err: ssh://git:token@gitlab.com/o/r.git denied"),
+            "err: ssh://gitlab.com/o/r.git denied"
+        );
+        assert_eq!(
+            redact_credentials_for_log("plain error, no url"),
+            "plain error, no url"
+        );
+    }
+
+    #[test]
+    fn test_token_skip_entry_names_forge_without_material() {
+        // R3-L05: pin the exact operator-facing skip entry.
+        assert_eq!(
+            token_skip_entry("gitlab"),
+            "gitlab: no token configured (skipped)"
+        );
+        assert_eq!(
+            token_skip_entry("codeberg"),
+            "codeberg: no token configured (skipped)"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_push_with_retries_joins_fallback_and_loop_errors() {
+        // R3-L03: when the SSH loop AND the transport fallback both
+        // fail, the returned error must carry the fallback verdict
+        // (primary) joined with the earlier loop error — never the
+        // stale loop error alone.
+        let tmp = tempfile::tempdir().unwrap();
+        let fake_git = tmp.path().join("git");
+        std::fs::write(
+            &fake_git,
+            "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then\n    echo \"ssh: connect to host gitlab.com port 22: Connection timed out\" >&2\n    echo \"fatal: Could not read from remote repository.\" >&2\n    exit 1\nfi\nexit 0\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().unwrap(),
+        );
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        // retries=0 → attempts=1: one SSH failure, then the fallback
+        // (fresh SSH fails too; origin lookup is empty so the HTTPS
+        // chain reports the generic summary chained with the SSH cause).
+        let err = push_with_retries(&repo, 5, 0, "r3-l03")
+            .await
+            .expect_err("all-transient push must fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("[SSH attempt failed:"),
+            "fallback verdict must chain its SSH cause (M3): {msg}"
+        );
+        assert!(
+            msg.contains("[earlier SSH attempts failed:"),
+            "loop error must be joined, fallback primary (R3-L03): {msg}"
+        );
+    }
+
     /// ADDED 2026-08-09 (v0.113.50): the classifier must map each
     /// failure mode to the operator-actionable cause the alert and
     /// stuck-ledger will show. Divergence (non-fast-forward) is the
