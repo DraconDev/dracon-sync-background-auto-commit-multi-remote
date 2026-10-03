@@ -2231,9 +2231,14 @@ mod tests {
                 "std git commands must seal {key}: {std_env:?}"
             );
         }
-        // Tokio wrapper: no get_envs equivalent is asserted here, but
-        // construction must succeed (the seal call lives inside new()).
-        let _ = TokioGitCommand::new();
+        // Tokio wrapper: Debug renders the inner std command's env.
+        let tokio_dbg = format!("{:?}", TokioGitCommand::new().inner);
+        for key in ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"] {
+            assert!(
+                tokio_dbg.contains(key) && tokio_dbg.contains("/dev/null"),
+                "tokio git commands must seal {key}: {tokio_dbg}"
+            );
+        }
     }
 
     /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
