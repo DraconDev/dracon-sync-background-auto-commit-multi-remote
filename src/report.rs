@@ -2878,6 +2878,23 @@ pub(crate) fn format_commit_subject_for_display(value: &str, max_chars: usize) -
     truncate(value, max_chars)
 }
 
+/// Render the LAST COMMIT cell from a row's FULL hash + message: short
+/// hash plus smart-shaped subject, truncated to the column width. Rows
+/// carry full values since M12 (JSON consumers need a usable rev), so
+/// every display tier shapes here, at render — never in the row.
+/// Callers keep the `last_hash == "-"` sentinel guard; this helper
+/// shapes only real commits.
+fn commit_summary_cell(hash: &str, msg: &str, width: usize) -> String {
+    truncate_unicode_width(
+        &format!(
+            "{} {}",
+            truncate(hash, 12),
+            format_commit_subject_for_display(msg, 150)
+        ),
+        width,
+    )
+}
+
 /// Find the start index of the trailing ` DELTA:+X/-Y` segment in a
 /// daemon commit subject, or `None` if not present. The DELTA token
 /// must NOT be preceded by `|` (those are pipe-separated metrics and
@@ -5047,7 +5064,7 @@ fn print_repos_vertical(
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
         } else {
-            truncate_unicode_width(&format!("{} {}", row.last_hash, row.last_msg), commit_width)
+            commit_summary_cell(&row.last_hash, &row.last_msg, commit_width)
         };
 
         // PUSH-TO cell
@@ -5549,8 +5566,7 @@ fn print_repos_compact_table(
             // cell padding (1 col each side, so 16 cols of content).
             // Without subtracting the padding, content exactly at the
             // column limit overflows by 2 cols and wraps to a 2nd line.
-            let raw = format!("{} {}", row.last_hash, row.last_msg);
-            truncate_unicode_width(&raw, 16)
+            commit_summary_cell(&row.last_hash, &row.last_msg, 16)
         };
 
         // Combine state + activity into one cell to save horizontal space.
@@ -5771,8 +5787,7 @@ fn print_repos_full_table(
             // Use the same helper here. Width = 17 cols (matches the
             // ColumnConstraint::Absolute below) minus 2 for cell
             // padding = 15 visible chars in the rendered cell.
-            let raw = format!("{} {}", row.last_hash, row.last_msg);
-            truncate_unicode_width(&raw, 15)
+            commit_summary_cell(&row.last_hash, &row.last_msg, 15)
         };
 
         table.add_row(vec![
