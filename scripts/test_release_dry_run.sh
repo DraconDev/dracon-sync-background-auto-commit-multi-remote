@@ -136,7 +136,7 @@ fi
 DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     timeout 120 "$repo/scripts/release.sh" --abort \
     >"$work/abort.out" 2>"$work/abort.err"
-test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
+test "$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$repo/Cargo.toml")" = 0.1.0
 test "$(awk -F'"' '/^name = "dracon-sync"$/{getline; print $2; exit}' "$repo/Cargo.lock")" = 0.1.0
 test ! -e "$repo/release-notes-v0.1.1.md"
 test -z "$(git -C "$repo" status --porcelain)"
@@ -151,7 +151,7 @@ if DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     exit 1
 fi
 grep -F 'is not newer than the current' "$work/mono.out" >/dev/null
-test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
+test "$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$repo/Cargo.toml")" = 0.1.0
 test -z "$(git -C "$repo" status --porcelain)"
 
 # Equal is allowed: a same-version re-run is intentional idempotency, not
@@ -159,6 +159,6 @@ test -z "$(git -C "$repo" status --porcelain)"
 DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
     timeout 120 "$repo/scripts/release.sh" 0.1.0 --dry-run --yes \
     >"$work/rerun.out" 2>&1
-test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
+test "$(awk -F'"' '/^\[/{p=($0=="[package]");next} p && /^version[[:space:]]*=/{print $2;exit}' "$repo/Cargo.toml")" = 0.1.0
 
 echo 'sync release dry-run regression tests: ok'
