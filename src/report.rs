@@ -5762,14 +5762,14 @@ fn print_repos_full_table(
     // The 2 extra cols account for comfy-table's default left+right cell padding,
     // which is required for the content to fit on a single line.
     //
-    // Sum: 4+11+17+18+11+17+8+8+7+9+11+13+22+17+11+11+11+8+8+8+15+15+15 = 275
-    // Plus 24 borders: 299 cols minimum. Full tier starts at 300 cols to give
-    // 1 col of headroom — fits any 300+ terminal. At 250-299 cols, falls back
-    // to compact tier which is 14-col and fits in 199+. F30 (2026-07-18): the
-    // v0.112.19 attempt left the constraints summing to 346 (well above 300)
-    // and the test never included ROLE; this version trims ROLE 35→18,
-    // PUSH-TO 32→22 (drop `[excl:..]` annotation), LAST COMMIT 22→17,
-    // ACTIVITY 17→11, DAEMON 17→15, HINT 22→15 so the floor is 299.
+    // Sum: 4+13+19+18+11+17+8+8+7+9+11+13+32+17+11+13+11+8+8+8+15+15+15 = 291
+    // Plus 24 borders: 315 cols minimum (CORRECTED 2026-10-03, audit
+    // R3-L34: the old "299" summed the F30 proposal, not the shipped
+    // F30v2 constraints — STATUS 13, REPO 19, PUSH-TO 32 were already
+    // wider; ACTIVITY is now 13 too). Full is opt-in (`--layout full`,
+    // never auto-picked), so the floor is advisory: use a 315+ terminal.
+    // F30 (2026-07-18) history: the v0.112.19 attempt left the
+    // constraints summing to 346 and the test never included ROLE.
     //
     // F30v2 (2026-07-19): `LowerBoundary` lets comfy-table WIDEN a
     // column to fit content (defeating the floor). For LAST COMMIT
@@ -5793,7 +5793,7 @@ fn print_repos_full_table(
         ColumnConstraint::Absolute(Width::Fixed(32)), // PUSH-TO (F30v2: Absolute — 30 cols content fits 'codeberg [excl:github,gitlab]' = 28 chars + 2 padding headroom)
         ColumnConstraint::Absolute(Width::Fixed(17)), // LAST COMMIT (F30v2: Absolute — truncate cell content, not wrap)
         ColumnConstraint::Absolute(Width::Fixed(11)), // PUSHED (header 9 + 2 pad = 11)
-        ColumnConstraint::Absolute(Width::Fixed(11)), // ACTIVITY (was LowerBoundary(11); F30: trim to 11; now Absolute to enforce truncation)
+        ColumnConstraint::Absolute(Width::Fixed(13)), // ACTIVITY (FIXED 2026-10-03, audit R3-L34: the "⏰ ACTIVITY" header is 11 content cols + 2 padding = 13 — Absolute(11) wrapped it to two lines; cell budget 9→11 below)
         ColumnConstraint::Absolute(Width::Fixed(11)), // AUTHOR (F30v2: Absolute — names can be long)
         ColumnConstraint::Absolute(Width::Fixed(8)),  // 1h (header 6 + 2 pad = 8)
         ColumnConstraint::Absolute(Width::Fixed(8)),  // 6h (header 6 + 2 pad = 8)
@@ -5879,8 +5879,8 @@ fn print_repos_full_table(
             ),
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
-            // F30v2: truncate ACTIVITY to fit LowerBoundary(11) - 2 padding = 9
-            Cell::new(truncate_unicode_width(&activity_label(row), 9)),
+            // R3-L34: ACTIVITY is Absolute(13), truncate to 11 to leave padding room
+            Cell::new(truncate_unicode_width(&activity_label(row), 11)),
             // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
             Cell::new(truncate_unicode_width(&row.last_author, 9)),
             Cell::new(row.commits_1h),
