@@ -4008,6 +4008,21 @@ mod daemon_tests {
         assert_eq!(default_sem_max_concurrent_sync(), 4);
     }
 
+    /// ADDED 2026-10-03 (audit R4-SC-03): the daemon enforces
+    /// `sem_max_concurrent_sync` via a life-long semaphore; a
+    /// zero config must clamp to 1 (zero permits would wedge
+    /// every worker forever).
+    #[test]
+    fn test_sync_concurrency_limit_clamps_zero() {
+        let mut policy = SyncPolicy::default();
+        // Bare Default gives 0 (real loads get 4 from the serde
+        // default fn) — the clamp is what keeps that safe.
+        assert_eq!(policy.sem_max_concurrent_sync, 0);
+        assert_eq!(sync_concurrency_limit(&policy), 1);
+        policy.sem_max_concurrent_sync = 8;
+        assert_eq!(sync_concurrency_limit(&policy), 8);
+    }
+
     #[test]
     fn test_stuck_repos_path_format_full() {
         let path = stuck_repos_path();
