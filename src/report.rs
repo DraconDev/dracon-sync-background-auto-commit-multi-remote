@@ -13449,15 +13449,17 @@ mod tests {
     }
 
     /// Verify the sum of all 16 column minimums in `print_repos_compact_table`
-    /// plus 15 borders is < 220 cols (the compact tier threshold; Vertical
-    /// is for terminals < 220).
+    /// plus 15 borders stays within the advisory 244-col floor (REFRESHED
+    /// 2026-10-03, audit R3-L38: was "< 220 cols (Vertical is for < 220)"
+    /// — Compact is auto-picked for < 165 since v0.113.26, so the 238+
+    /// floor exceeds narrow terminals and comfy-table squashes).
     ///
     /// 2026-07-19 (goal `4555eaf6`): REPO (18), ROLE (14), PUBLISH (18),
-    /// PUSH-TO (32), LAST COMMIT (18), STATE+ACT (17), HINT (22) all
+    /// PUSH-TO (32), LAST COMMIT (18), STATE+ACT (17), HINT (26) all
     /// became Absolute so cells with variable-length content
     /// (`pully-fully-pull-based-fleet-reconciler`, `released/one-mil-girls`,
     /// `⚠️ origin/main (gone)`, etc.) are truncated rather than letter-wrapped
-    /// onto a second line on narrow (220-260 col) terminals.
+    /// onto a second line on narrow terminals.
     #[test]
     fn test_branch_cell_content_truncates_to_nine() {
         // ADDED 2026-10-03 (audit L17): shared compact/full BRANCH
@@ -13483,7 +13485,10 @@ mod tests {
         // If you change the table layout, update both at once.
         // 16 cols: #, STATUS, REPO, ROLE, BRANCH, PUBLISH, MOD, STG, UT,
         // AHEAD, BEHIND, PUSH, PUSH-TO, LAST COMMIT, STATE+ACT, HINT.
-        let minimums: [u16; 16] = [4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 22];
+        // R3-L38 (2026-10-03): HINT 22 → 26 — the array never caught
+        // the 2026-07-19 bump production carries (its own MUST-match
+        // contract was violated).
+        let minimums: [u16; 16] = [4, 13, 18, 14, 11, 18, 8, 8, 7, 9, 11, 13, 32, 18, 17, 26];
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 15;
         let total = sum + borders;
@@ -13493,10 +13498,10 @@ mod tests {
         // unavoidable because PUSH-TO 32, HINT 26, REPO 18, ROLE 14,
         // PUBLISH 18 are all needed to fit variable-length content
         // on narrow terminals.
-        assert!(
-            total <= 244,
-            "Compact table minimum width {total} exceeds 244-col threshold. \
-             The table needs to fit in the Compact tier (242-314 cols)."
+        assert_eq!(
+            total, 242,
+            "Compact table floor moved from the advisory 242 cols: update \
+             the array above and the constraints together."
         );
     }
 
