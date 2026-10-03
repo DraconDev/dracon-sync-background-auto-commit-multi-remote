@@ -4503,10 +4503,12 @@ pub(crate) async fn run_repos_report(
             ("BLOCKED".to_string(), detail)
         } else if push_budget_exhausted {
             let info = stuck_info.as_ref().unwrap();
-            let err = if info.last_error.is_empty() {
+            // R4-SR-11: redacted copy (see binding above).
+            let last_error = stuck_last_error_redacted.as_deref().unwrap_or("");
+            let err = if last_error.is_empty() {
                 format!("{} consecutive push failures", info.consecutive_failures)
             } else {
-                info.last_error.clone()
+                last_error.to_string()
             };
             ("PUSH_STUCK".to_string(), err)
         } else if flags.iter().any(|f| f == "STUCK_PUSH") {
