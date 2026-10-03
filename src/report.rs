@@ -712,11 +712,11 @@ fn format_push_to_remotes_cell(
     }
     let main = push_to_remotes.join(",");
     if excluded_remotes.is_empty() {
-        // F30v2 (2026-07-19): truncate PUSH-TO to fit the column.
-        // The cell can be "github,gitlab,codeberg" (22 chars) plus
-        // padding. Without truncation, LowerBoundary makes the column
-        // grow to fit, distorting the table.
-        Cell::new(truncate_unicode_width(&main, 22)).fg(comfy_table::Color::Green)
+        // FIXED 2026-10-03 (audit R3-L35): budget 30 like the yellow
+        // path (Absolute(32) minus 2 padding) — the old 22 clipped a
+        // 4-remote fleet (29 chars) on the green path only. The
+        // LowerBoundary comment was stale (F30v2 made it Absolute).
+        Cell::new(truncate_unicode_width(&main, 30)).fg(comfy_table::Color::Green)
     } else {
         // Active remotes in green, excluded annotation in dim yellow
         // so the operator can see at a glance that the repo has been
