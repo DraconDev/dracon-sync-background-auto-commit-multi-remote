@@ -27,7 +27,7 @@ pub(crate) fn redact_credentials_for_log(msg: &str) -> String {
 }
 
 /// Truncate retained error detail so per-forge context stays ledger-sized.
-fn clip_error_detail(msg: &str) -> String {
+pub(crate) fn clip_error_detail(msg: &str) -> String {
     const LIMIT: usize = 500;
     let flat: String = msg.split_whitespace().collect::<Vec<_>>().join(" ");
     if flat.len() <= LIMIT {

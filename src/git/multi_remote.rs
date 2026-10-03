@@ -662,8 +662,16 @@ async fn push_to_named_remote_inner(
     )
     .await;
 
-    if attempt_ssh.is_ok() {
+    let Err(ssh_err) = attempt_ssh else {
         return Ok(());
+    };
+    let ssh_msg = ssh_err.to_string();
+    // FIX (audit M1, 2026-10-02): permanent server-side rejections and
+    // oversized packs cannot be fixed by an HTTPS retry — fail fast like
+    // the origin path (push.rs) instead of burning a full timeout_secs
+    // doomed fallback every cycle.
+    if is_permanent_push_rejection(&ssh_msg) || is_pack_too_large(&ssh_msg) {
+        return Err(ssh_err);
     }
 
     let remote_url = get_remote_url(repo, remote_name)
@@ -675,7 +683,19 @@ async fn push_to_named_remote_inner(
         match push_https_fallback(repo, &remote_url, &refspec, timeout_secs, &fallback_label).await
         {
             Ok(()) => return Ok(()),
-            Err(e) => last_err = Some(e),
+            // FIX (audit M3, 2026-10-02): keep the original SSH error
+            // alongside the fallback failure (classifier-safe:
+            // substring matching only gains signal).
+            Err(e) => {
+                last_err = Some(anyhow::anyhow!(
+                    "{} [SSH attempt to {} failed: {}]",
+                    e,
+                    remote_name,
+                    super::push::clip_error_detail(&super::push::redact_credentials_for_log(
+                        &ssh_msg
+                    ))
+                ));
+            }
         }
     }
 
