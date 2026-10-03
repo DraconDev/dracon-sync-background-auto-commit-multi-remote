@@ -2357,6 +2357,296 @@ mod tests {
         assert_eq!(load_repo_override(dir2.path()).build_artifact_cleanup, None);
     }
 
+    /// Override fields consumed in production through a binding that is
+    /// NOT named `*override*`: (field, accepted receiver identifier).
+    /// Prefer the `repo_override` / `override_` convention for new
+    /// merges; extend this list only with a reason.
+    const OVERRIDE_COVERAGE_RECEIVER_EXCEPTIONS: &[(&str, &str)] = &[
+        // `local` is the RepoPolicyOverride half returned by
+        // storage::load_configuration (storage/mod.rs).
+        ("storage", "local"),
+    ];
+
+    /// Paired fields with NO production consumer. This is NOT a silent
+    /// pass: the consumption tripwire asserts these STAY unreferenced,
+    /// so wiring one flips the failure and forces this list's removal.
+    const OVERRIDE_COVERAGE_UNWIRED: &[&str] = &[
+        // 2026-10-02 (audit L3): specified, parsed, defaulted, and
+        // DOCUMENTED as live in dracon-sync.example.toml — but no
+        // production code reads either half. Implement the settling
+        // feature or remove both halves + the docs; do NOT extend
+        // this list for new knobs.
+        "dirty_max_age_action",
+        "settling_max_delay_secs",
+    ];
+
+    /// Strip `//` comments and `assert*!` statement spans so the
+    /// consumption scan sees production merges only: every test-side
+    /// `override_.field` reference is a parse assertion, while no
+    /// production merge sits inside an assert. String-aware (plain,
+    /// escaped, and raw strings) so macro parens inside literals
+    /// cannot unbalance the span matcher.
+    fn strip_comments_and_asserts(source: &str) -> String {
+        // Pass 1: drop `//` comments (`///` doc comments included). A
+        // `//` inside a string literal is kept.
+        let mut no_comments = String::with_capacity(source.len());
+        for line in source.split_inclusive('\n') {
+            let mut in_str = false;
+            let mut escaped = false;
+            let mut cut = line.len();
+            let bytes = line.as_bytes();
+            let mut i = 0;
+            while i < bytes.len() {
+                let b = bytes[i];
+                if in_str {
+                    if escaped {
+                        escaped = false;
+                    } else if b == b'\\' {
+                        escaped = true;
+                    } else if b == b'"' {
+                        in_str = false;
+                    }
+                } else if b == b'"' {
+                    in_str = true;
+                } else if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                    cut = i;
+                    break;
+                }
+                i += 1;
+            }
+            no_comments.push_str(&line[..cut]);
+            if line.ends_with('\n') && cut == line.len() {
+                // kept whole (newline already included)
+            } else if line.ends_with('\n') {
+                no_comments.push('\n');
+            }
+        }
+        // Pass 2: drop `assert!(...)` / `assert_eq!(...)` /
+        // `assert_ne!(...)` spans (paren-matched, string-aware).
+        let bytes = no_comments.as_bytes();
+        let mut out = String::with_capacity(no_comments.len());
+        let mut i = 0;
+        while i < bytes.len() {
+            let rest = &no_comments[i..];
+            let is_assert = rest.starts_with("assert!")
+                || rest.starts_with("assert_eq!")
+                || rest.starts_with("assert_ne!");
+            // `debug_assert*!` in production would also be stripped —
+            // there is none (checked 2026-10-02); a future one that
+            // merges an override must use a `let` binding instead.
+            if is_assert {
+                let open = rest.find('(').map(|o| i + o);
+                if let Some(o) = open {
+                    let mut depth = 0usize;
+                    let mut j = o;
+                    let mut in_str = false;
+                    let mut escaped = false;
+                    let mut in_raw = false;
+                    let mut raw_hashes = 0usize;
+                    while j < bytes.len() {
+                        if in_raw {
+                            if bytes[j] == b'"'
+                                && bytes[j + 1..].starts_with(&vec![b'#'; raw_hashes])
+                                && bytes
+                                    .get(j + 1 + raw_hashes)
+                                    .map(|b| ![b'#', b'"'].contains(b))
+                                    .unwrap_or(true)
+                            {
+                                in_raw = false;
+                                j += 1 + raw_hashes;
+                            } else {
+                                j += 1;
+                            }
+                            continue;
+                        }
+                        let b = bytes[j];
+                        if in_str {
+                            if escaped {
+                                escaped = false;
+                            } else if b == b'\\' {
+                                escaped = true;
+                            } else if b == b'"' {
+                                in_str = false;
+                            }
+                            j += 1;
+                            continue;
+                        }
+                        if b == b'"' {
+                            in_str = true;
+                            j += 1;
+                            continue;
+                        }
+                        if b == b'r' {
+                            let mut h = 0;
+                            while bytes.get(j + 1 + h) == Some(&b'#') {
+                                h += 1;
+                            }
+                            if bytes.get(j + 1 + h) == Some(&b'"') {
+                                in_raw = true;
+                                raw_hashes = h;
+                                j += 2 + h;
+                                continue;
+                            }
+                        }
+                        if b == b'(' {
+                            depth += 1;
+                        } else if b == b')' {
+                            depth -= 1;
+                            if depth == 0 {
+                                j += 1;
+                                break;
+                            }
+                        }
+                        j += 1;
+                    }
+                    i = j;
+                    continue;
+                }
+            }
+            out.push(bytes[i] as char);
+            i += 1;
+        }
+        out
+    }
+
+    #[test]
+    fn test_repo_override_consumed_in_production_tripwire() {
+        // ADDED 2026-10-02 (audit L3): the field-coverage tripwire
+        // above pairs NAMES only — a both-halves-present yet
+        // never-merged knob passed it. This test asserts every paired
+        // override field is CONSUMED in production through an
+        // override binding (whitespace-tolerant, so multi-line
+        // `repo_override\n.field\n.unwrap_or(...)` chains match).
+        // It is a reference check, not a merge-correctness proof:
+        // full override-wins semantics stay per-field behavioral
+        // tests (e.g. test_repo_auto_repair_enabled_merge).
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut blobs = Vec::new();
+        let mut stack = vec![manifest.join("src")];
+        while let Some(dir) = stack.pop() {
+            let entries = std::fs::read_dir(&dir).expect("src is readable");
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                    // test_helpers.rs is test support only (all uses
+                    // are #[cfg(test)]-gated); its references must not
+                    // satisfy the production-consumption check.
+                    if path.file_name().map(|n| n == "test_helpers.rs").unwrap_or(false) {
+                        continue;
+                    }
+                    let source = std::fs::read_to_string(&path).expect("source is readable");
+                    let stripped = strip_comments_and_asserts(&source);
+                    let dense: String = stripped.split_whitespace().collect();
+                    // Direct `load_repo_override(..).field` chains read
+                    // the override without a binding; normalize the
+                    // callee so the receiver rule below sees them.
+                    blobs.push(dense.replace("load_repo_override", "repo_override_FN"));
+                }
+            }
+        }
+
+        let global = serde_field_names(&SyncPolicy::default());
+        let over = serde_field_names(&RepoPolicyOverride::default());
+        let paired: Vec<&String> = global
+            .intersection(&over)
+            .filter(|n| !OVERRIDE_COVERAGE_GLOBAL_ONLY.contains(&n.as_str()))
+            .filter(|n| !OVERRIDE_COVERAGE_OVERRIDE_ONLY.contains(&n.as_str()))
+            .collect();
+        assert!(
+            !paired.is_empty(),
+            "no paired fields found — the coverage tripwire above should have failed first"
+        );
+
+        let mut failures = Vec::new();
+        for name in &paired {
+            if OVERRIDE_COVERAGE_UNWIRED.contains(&name.as_str()) {
+                continue;
+            }
+            let mut receivers: Vec<String> = vec!["override".to_string()];
+            for (field, receiver) in OVERRIDE_COVERAGE_RECEIVER_EXCEPTIONS {
+                if field == name {
+                    receivers.push(receiver.to_string());
+                }
+            }
+            let consumed = blobs.iter().any(|blob| {
+                receivers.iter().any(|receiver| {
+                    // `receiver<id-chars>.field<boundary>`: the receiver
+                    // identifier must CONTAIN the tag (repo_override,
+                    // override_, repo_override_FN, ...) and be
+                    // immediately followed by `.field`.
+                    let mut search_from = 0;
+                    while let Some(pos) = blob[search_from..].find(&format!(".{name}")) {
+                        let dot = search_from + pos;
+                        let start = blob[..dot]
+                            .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
+                            .map(|p| p + 1)
+                            .unwrap_or(0);
+                        if blob[start..dot].contains(receiver.as_str()) {
+                            return true;
+                        }
+                        search_from = dot + 1;
+                    }
+                    false
+                })
+            });
+            if !consumed {
+                failures.push(format!(
+                    "override field `{name}` is never consumed in production — \
+                     add merge resolution at the point of use (see auto_bump_versions) \
+                     or, if deliberately unwired, list it in OVERRIDE_COVERAGE_UNWIRED with a reason"
+                ));
+            }
+        }
+        // The UNWIRED list must not rot in EITHER direction: entries
+        // must name real paired fields, and must STILL be unreferenced
+        // (wiring one without removing it here fails).
+        for name in OVERRIDE_COVERAGE_UNWIRED {
+            if !paired.iter().any(|n| n.as_str() == *name) {
+                failures.push(format!(
+                    "UNWIRED entry `{name}` names no paired field — stale list entry"
+                ));
+                continue;
+            }
+            let referenced = blobs.iter().any(|blob| {
+                let mut search_from = 0;
+                while let Some(pos) = blob[search_from..].find(&format!(".{name}")) {
+                    let dot = search_from + pos;
+                    let start = blob[..dot]
+                        .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
+                        .map(|p| p + 1)
+                        .unwrap_or(0);
+                    let receiver = &blob[start..dot];
+                    if receiver.contains("override") || receiver == "local" {
+                        return true;
+                    }
+                    search_from = dot + 1;
+                }
+                false
+            });
+            if referenced {
+                failures.push(format!(
+                    "UNWIRED entry `{name}` is now consumed in production — \
+                     remove it from OVERRIDE_COVERAGE_UNWIRED"
+                ));
+            }
+        }
+        // Receiver exceptions must name real paired fields too.
+        for (field, _) in OVERRIDE_COVERAGE_RECEIVER_EXCEPTIONS {
+            if !paired.iter().any(|n| n.as_str() == *field) {
+                failures.push(format!(
+                    "RECEIVER_EXCEPTIONS entry `{field}` names no paired field — stale list entry"
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "override consumption tripwire:\n  - {}",
+            failures.join("\n  - ")
+        );
+    }
+
     /// ADDED 2026-09-09 (audit F29): the AGENTS.md-documented
     /// per-repo `auto_repair_concerns = false` opt-out must parse
     /// AND govern — before this fix the knob was GLOBAL_ONLY with no
