@@ -2209,6 +2209,33 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
 mod tests {
     use super::*;
 
+    /// ADDED 2026-10-03 (test hermeticity): test git invocations are
+    /// sealed from ambient machine config, so the installed global
+    /// hooks can never fail tests that push test-identity commits.
+    #[test]
+    fn test_git_commands_sealed_from_ambient_config() {
+        let std_env: Vec<(String, String)> = GitCommand::new()
+            .into_std()
+            .get_envs()
+            .map(|(k, v)| {
+                (
+                    k.to_string_lossy().into_owned(),
+                    v.map(|s| s.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                )
+            })
+            .collect();
+        for key in ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"] {
+            assert!(
+                std_env.iter().any(|(k, v)| k == key && v == "/dev/null"),
+                "std git commands must seal {key}: {std_env:?}"
+            );
+        }
+        // Tokio wrapper: no get_envs equivalent is asserted here, but
+        // construction must succeed (the seal call lives inside new()).
+        let _ = TokioGitCommand::new();
+    }
+
     /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
     /// for TOML-loaded configs (serde default) and is deserializable
     /// as a per-repo opt-out. NOTE: `SyncPolicy::default()` (derived)
