@@ -14811,10 +14811,8 @@ mod v011313_tests {
         )
         .unwrap();
         let ledger = tmp.path().join("ledger.jsonl");
-        let _ledger_guard = crate::test_helpers::EnvRestorer::new(
-            "DRACON_SYNC_LEDGER",
-            ledger.to_str().unwrap(),
-        );
+        let _ledger_guard =
+            crate::test_helpers::EnvRestorer::new("DRACON_SYNC_LEDGER", ledger.to_str().unwrap());
         let summary = run_repair_warns(&policy_path, false, Some(repo.clone()), true)
             .await
             .unwrap();
