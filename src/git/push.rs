@@ -298,16 +298,23 @@ pub(crate) async fn push_with_transport_fallbacks(
     }
 }
 
-/// Push with retries (SSH) and then HTTPS fallback.
+/// Push with retries (SSH) and HTTPS fallback interleaved in ONE budget.
 ///
-/// `retries` counts the SSH retry-loop attempts (min 1), unified with
-/// `push_to_named_remote` (audit L5). CORRECTED 2026-10-03 (audit
-/// R3-L02): the old claim of "TOTAL push attempts" was wrong — after
-/// the loop exhausts, one EXTRA recovery attempt runs via
-/// `push_with_transport_fallbacks` (a fresh SSH push plus the full
-/// per-forge HTTPS chain), so retries=0 can spawn up to 5 pushes.
-/// That extra attempt is deliberate (a final transport-fallback
-/// sweep before giving up); only the budget claim was fixed.
+/// `retries` counts TOTAL push attempts (min 1), unified with
+/// `push_to_named_remote` (audit L5): every executed `git push` — SSH
+/// loop legs and HTTPS chain legs alike — spends one slot, so a sick
+/// origin is never hammered harder per cycle than a sick mirror.
+///
+/// SUPERSEDED 2026-10-03 (audit R4-SC-13): the R3-L02 post-loop
+/// `push_with_transport_fallbacks` sweep (a redundant fresh SSH push
+/// plus the full per-forge HTTPS chain AFTER the loop exhausted —
+/// retries=0 spawned extra pushes outside the budget) is gone. The
+/// HTTPS chain now runs at most once inside the loop, right after the
+/// first non-rejection SSH failure (mirror order: SSH, HTTPS, SSH…),
+/// and the R3-L03 loop/fallback error join went with the sweep — the
+/// final error is the last leg's (M3 cause-chaining preserved at the
+/// HTTPS leg). Rejections (fetch-first/non-fast-forward) skip the
+/// chain: a transport change cannot fix server state.
 ///
 /// On a `[rejected] (fetch first)` error (i.e. the local branch is behind
 /// origin), runs `git pull --no-rebase origin HEAD` once and retries the
@@ -342,11 +349,14 @@ pub(crate) async fn push_with_retries(
     retries: u32,
     op_label: &str,
 ) -> Result<()> {
-    let attempts = retries.max(1);
+    let budget = retries.max(1);
     let ssh_hardening = crate::git::git_ssh_hardening();
     let mut last_err: Option<anyhow::Error> = None;
     let mut tried_pull = false;
-    for attempt in 1..=attempts {
+    let mut tried_https = false;
+    let mut spent: u32 = 0;
+    while spent < budget {
+        spent += 1;
         // CHANGED 2026-07-02 (goal `354fe3cb`):
         // When the worktree is detached, `git push origin HEAD` fails.
         // Build a fully-qualified refspec instead.
