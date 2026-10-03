@@ -14410,6 +14410,35 @@ mod tests {
             "PUSH-TO cell {width} cols exceeds content area {content_max} cols."
         );
     }
+
+    #[test]
+    fn test_codeberg_gate_reason_collapses_public_toctou() {
+        // R4-SR-10: the gate already excluded codeberg; a re-read
+        // saying "public" is a TOCTOU flip, never an emittable value.
+        assert_eq!(codeberg_gate_reason(Some(true)), "private");
+        assert_eq!(codeberg_gate_reason(Some(false)), "unknown");
+        assert_eq!(codeberg_gate_reason(None), "unknown");
+    }
+
+    #[test]
+    fn test_push_to_cell_annotates_codeberg_element_only() {
+        // R4-SR-10: the reason must not be folded onto the whole
+        // exclusion list (misattribution to other remotes).
+        let cell = format_push_to_remotes_cell(
+            &["gitlab".to_string()],
+            &["github".to_string(), "codeberg".to_string()],
+            Some("private"),
+        );
+        assert_eq!(cell.content(), "gitlab [github,codeberg:private]");
+        // Common single-exclusion case renders byte-identical to the
+        // pre-fix fold.
+        let cell = format_push_to_remotes_cell(
+            &["github".to_string(), "gitlab".to_string()],
+            &["codeberg".to_string()],
+            Some("quota"),
+        );
+        assert_eq!(cell.content(), "github,gitlab [codeberg:quota]");
+    }
 }
 
 #[cfg(test)]
