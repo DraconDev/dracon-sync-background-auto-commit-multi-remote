@@ -1122,6 +1122,40 @@ pub(crate) fn retain_existing_stage_paths(repo: &Path, paths: &mut Vec<String>) 
 pub(crate) fn is_index_lock_failure(msg: &str) -> bool {
     msg.contains("Unable to create") && msg.contains("index.lock")
 }
+
+/// Staged paths that fall OUTSIDE this cycle's intent (`to_stage`).
+///
+/// ADDED 2026-10-03 (audit R4-SC-16): manual `git add`s landing
+/// between classification and commit (operator assembling a commit,
+/// a racing CLI) must not be swept into the mechanical auto-commit.
+/// A staged path is intended when it equals a `to_stage` path or
+/// sits under a `to_stage` directory (untracked-dir and gitlink
+/// entries stage whole trees); everything staged by the daemon
+/// mid-cycle (standard files pre-classification, resolutions,
+/// gitlink updates, deletions) derives from `to_stage`, so any
+/// extra is foreign. Rename entries compare by new path (both
+/// classifiers agree on it).
+pub(crate) fn staged_extra_paths(
+    repo: &Path,
+    staged: &[(PathBuf, dracon_git::types::FileStatus)],
+    to_stage: &[dracon_git::types::DiffFile],
+) -> Vec<PathBuf> {
+    let intended_files: HashSet<&PathBuf> = to_stage.iter().map(|e| &e.path).collect();
+    let intended_dirs: Vec<&PathBuf> = to_stage
+        .iter()
+        .map(|e| &e.path)
+        .filter(|p| repo.join(p).is_dir())
+        .collect();
+    staged
+        .iter()
+        .map(|(p, _)| p)
+        .filter(|p| {
+            !intended_files.contains(*p)
+                && !intended_dirs.iter().any(|d| p.starts_with(d))
+        })
+        .cloned()
+        .collect()
+}
 async fn stage_existing_files_filtered(
     repo: &Path,
     existing: &[String],
