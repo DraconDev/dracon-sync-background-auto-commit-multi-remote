@@ -5,6 +5,42 @@ use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
 
+/// Redact embedded credentials from an error string before it is logged
+/// or classified: `https://user:pass@host/` becomes `https://***@host/`.
+/// Tokens normally travel via askpass (never in URLs), but a remote URL
+/// copied with credentials could otherwise echo into journal/ledger text.
+pub(crate) fn redact_credentials_for_log(msg: &str) -> String {
+    let mut out = String::with_capacity(msg.len());
+    let mut rest = msg;
+    while let Some(start) = rest.find("https://") {
+        out.push_str(&rest[..start + "https://".len()]);
+        rest = &rest[start + "https://".len()..];
+        // Credential part ends at the first '@' before any '/': redact it.
+        let end_of_host = rest.find('/').unwrap_or(rest.len());
+        if let Some(at) = rest[..end_of_host].find('@') {
+            out.push_str("***@");
+            rest = &rest[at + 1..];
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Truncate retained error detail so per-forge context stays ledger-sized.
+fn clip_error_detail(msg: &str) -> String {
+    const LIMIT: usize = 500;
+    let flat: String = msg.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.len() <= LIMIT {
+        return flat;
+    }
+    // Cut on a char boundary, never mid-codepoint.
+    let mut end = LIMIT;
+    while !flat.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}…", &flat[..end])
+}
+
 /// Push with HTTPS fallback for GitHub/GitLab/Codeberg.
 pub(crate) async fn push_https_fallback(
     repo: &Path,
@@ -14,6 +50,10 @@ pub(crate) async fn push_https_fallback(
     op_label: &str,
 ) -> Result<()> {
     let no_prompt = &[("GIT_TERMINAL_PROMPT", "0")];
+    // FIX (audit M2, 2026-10-02): retain per-forge errors instead of
+    // discarding them — the classifier mislabels policy rejections as
+    // transport/auth when it only sees the generic summary.
+    let mut failures: Vec<String> = Vec::new();
 
     if let Some(https) = super::github_https_url(remote_url) {
         let result = super::run_git_with_timeout_env_progress(
@@ -26,6 +66,12 @@ pub(crate) async fn push_https_fallback(
         .await;
         if result.is_ok() {
             return Ok(());
+        }
+        if let Err(e) = result {
+            failures.push(format!(
+                "github: {}",
+                clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+            ));
         }
     }
 
@@ -48,9 +94,16 @@ pub(crate) async fn push_https_fallback(
                     if result.is_ok() {
                         return Ok(());
                     }
+                    if let Err(e) = result {
+                        failures.push(format!(
+                            "gitlab: {}",
+                            clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                        ));
+                    }
                 }
                 Err(e) => {
                     eprintln!("⚠️ failed to create GIT_ASKPASS helper for GitLab: {}", e);
+                    failures.push("gitlab: askpass setup failed".to_string());
                 }
             }
         }
@@ -75,15 +128,28 @@ pub(crate) async fn push_https_fallback(
                     if result.is_ok() {
                         return Ok(());
                     }
+                    if let Err(e) = result {
+                        failures.push(format!(
+                            "codeberg: {}",
+                            clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                        ));
+                    }
                 }
                 Err(e) => {
                     eprintln!("⚠️ failed to create GIT_ASKPASS helper for Codeberg: {}", e);
+                    failures.push("codeberg: askpass setup failed".to_string());
                 }
             }
         }
     }
 
-    Err(anyhow::anyhow!("all HTTPS push attempts failed"))
+    if failures.is_empty() {
+        return Err(anyhow::anyhow!("all HTTPS push attempts failed"));
+    }
+    Err(anyhow::anyhow!(
+        "all HTTPS push attempts failed ({})",
+        failures.join("; ")
+    ))
 }
 
 /// Push with SSH first, then try HTTPS fallbacks.
