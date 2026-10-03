@@ -2992,10 +2992,14 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
         }
         return String::new();
     }
-    // Try to fit the full content
-    let total_width: usize = value
-        .chars()
-        .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+    // FIXED 2026-10-03 (audit R3-L33): measure per GRAPHEME with
+    // `UnicodeWidthStr::width`, not per-char sums — char sums
+    // under-count VS16 pairs by 1 (⚠=1 + VS16=0 sums to 1 but renders
+    // 2: cells overflowed) and over-count ZWJ sequences (family = 6
+    // summed but renders 2: cells under-filled). Probed against the
+    // pinned unicode-width 0.2.2.
+    let total_width: usize = unicode_segmentation::UnicodeSegmentation::graphemes(value, true)
+        .map(unicode_width::UnicodeWidthStr::width)
         .sum();
     if total_width <= max_width {
         return value.to_string();
@@ -3005,10 +3009,7 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     let mut width = 0;
     let mut end = 0;
     for g in unicode_segmentation::UnicodeSegmentation::graphemes(value, true) {
-        let g_w: usize = g
-            .chars()
-            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
-            .sum();
+        let g_w = unicode_width::UnicodeWidthStr::width(g);
         if width + g_w > content_budget {
             break;
         }
@@ -13005,14 +13006,39 @@ mod tests {
     }
 
     #[test]
+    fn test_truncate_unicode_width_vs16_pairs_count_two_cols() {
+        // ADDED 2026-10-03 (audit R3-L33): ⚠️ renders 2 cols but the
+        // old char-sum measured 1 (⚠=1 + VS16=0), so cells overflowed
+        // by 1 whenever a VS16 pair sat near a budget edge.
+        // "a⚠️bcdef" = 1+2+1+1+1+1+1 = 8 cols; budget 5 → content 4:
+        // a(1) + ⚠️(2) + b(1) = 4, then … = 5 cols rendered.
+        let r = truncate_unicode_width("a⚠️bcdef", 5);
+        assert_eq!(r, "a⚠️b…", "VS16 pair must measure 2 cols: {r:?}");
+        assert_eq!(
+            unicode_width::UnicodeWidthStr::width(r.as_str()),
+            5,
+            "rendered width must respect the budget: {r:?}"
+        );
+        // ⏸️ (frozen rows) has the same shape.
+        let r = truncate_unicode_width("a⏸️bcdef", 5);
+        assert_eq!(r, "a⏸️b…", "VS16 pair must measure 2 cols: {r:?}");
+    }
+
+    #[test]
     fn test_truncate_unicode_width_keeps_graphemes_whole() {
         // ADDED 2026-10-03 (audit L13): the doc promises grapheme
         // safety — ZWJ sequences and flag pairs are kept whole or
         // dropped whole, never split mid-cluster.
-        // Family "👨‍👩‍👧" = 7 codepoints, ONE grapheme, 6 cols wide
-        // (2+0+2+0+2). Old char-iteration cut after the ZWJ.
+        // CORRECTED 2026-10-03 (audit R3-L33): family "👨‍👩‍👧" is ONE
+        // grapheme rendering 2 cols (the old comment's "6 cols" was
+        // the char-sum over-count: 2+0+2+0+2). "ab{family}cd" = 6
+        // cols; budget 5 → content 4: a(1)+b(1)+family(2) = 4 fits,
+        // then … — the grapheme is KEPT whole, not dropped.
         let family = "👨\u{200d}👩\u{200d}👧";
         let r = truncate_unicode_width(&format!("ab{family}cd"), 5);
+        assert_eq!(r, format!("ab{family}…"), "fitting ZWJ kept whole: {r:?}");
+        // A ZWJ sequence that does NOT fit still drops whole.
+        let r = truncate_unicode_width(&format!("ab{family}cd"), 4);
         assert_eq!(r, "ab…", "ZWJ sequence must drop whole: {r:?}");
         // Flag = 2 regional indicators, ONE grapheme, 2 cols wide
         // (unicode-width 0.2 measures RI as 1 col each). Old
