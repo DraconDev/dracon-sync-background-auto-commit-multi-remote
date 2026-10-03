@@ -1492,12 +1492,15 @@ pub(crate) fn is_gitlink_unchanged(repo: &Path, path: &Path) -> bool {
     sub_sha == sha
 }
 
-pub(crate) fn should_stage_entry(
+/// Pattern half of the stage gate (extracted 2026-10-03, R3-M1):
+/// excluded dirs, excluded files, and `auto_commit_exclude_patterns`.
+/// Shared by the worktree-stat entry check and the staged-blob variant
+/// so the two can never disagree on patterns.
+fn entry_passes_stage_patterns(
     repo: &Path,
     entry: &dracon_git::types::DiffFile,
     excluded_dir_names: &BTreeSet<String>,
     excluded_file_patterns: &[String],
-    max_stage_file_bytes: u64,
     auto_commit_exclude_patterns: &[String],
 ) -> bool {
     if is_excluded_change_path(&entry.path, excluded_dir_names) {
@@ -1525,6 +1528,27 @@ pub(crate) fn should_stage_entry(
                 entry.path.display()
             );
         }
+        return false;
+    }
+
+    true
+}
+
+pub(crate) fn should_stage_entry(
+    repo: &Path,
+    entry: &dracon_git::types::DiffFile,
+    excluded_dir_names: &BTreeSet<String>,
+    excluded_file_patterns: &[String],
+    max_stage_file_bytes: u64,
+    auto_commit_exclude_patterns: &[String],
+) -> bool {
+    if !entry_passes_stage_patterns(
+        repo,
+        entry,
+        excluded_dir_names,
+        excluded_file_patterns,
+        auto_commit_exclude_patterns,
+    ) {
         return false;
     }
 
