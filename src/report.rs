@@ -517,8 +517,10 @@ fn activity_label_base(row: &RepoReportRow) -> String {
     // transient network failure, or while the remote-tracking ref catches
     // up. Show that distinction directly instead of claiming "pushing".
     if row.push_status == "PENDING" {
+        // FIXED 2026-10-03 (audit R3-L36): shorten large durations
+        // ("43200m" truncated and dropped columns; "30d" fits).
         let duration = last_when_mins
-            .map(|m| format!(" {}m", m))
+            .map(|m| format!(" {}", shorten_mins(m)))
             .unwrap_or_default();
         let ahead_suffix = if row.ahead > 0 {
             format!(" ({} ahead)", row.ahead)
@@ -540,8 +542,10 @@ fn activity_label_base(row: &RepoReportRow) -> String {
     // so the operator knows to investigate. The HINT column
     // names the actual error.
     if row.push_status == "PUSH_STUCK" {
+        // FIXED 2026-10-03 (audit R3-L36): shorten large durations
+        // ("43200m" truncated and dropped columns; "30d" fits).
         let duration = last_when_mins
-            .map(|m| format!(" {}m", m))
+            .map(|m| format!(" {}", shorten_mins(m)))
             .unwrap_or_default();
         let ahead_suffix = if row.ahead > 0 {
             format!(" ({} ahead)", row.ahead)
