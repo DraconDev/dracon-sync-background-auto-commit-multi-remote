@@ -1390,11 +1390,9 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_forge_visibility_refuses_same_host_divergence() {
-        // R3-L17: two GitHub remotes naming different projects must
-        // aggregate to None (unknown) — and return BEFORE any network
-        // query runs (no token envs, unroutable hosts; a query attempt
-        // would hang or fail, never return cleanly this fast).
+    fn test_same_host_project_divergence_detects_splits() {
+        // R3-L17: the pure predicate pins the divergence rule with no
+        // network (query-failure unknowns would mask it end-to-end).
         let mk = |account: &str, mapped: Option<(&str, &str)>| RemoteConfig {
             name: "github".to_string(),
             push_url: format!("git@github.com:{account}/x.git"),
@@ -1415,17 +1413,30 @@ mod tests {
             mk("drac", Some(("myrepo", "other-project"))),
         ];
         assert_eq!(
-            owned_forge_visibility_opt(Path::new("/tmp/myrepo"), &remotes),
-            None,
-            "same-host project divergence must aggregate to unknown"
+            same_host_project_divergence("myrepo", &remotes),
+            Some((
+                "drac/myrepo".to_string(),
+                "drac/other-project".to_string()
+            )),
+            "same-host project split must be reported"
         );
         // Divergent accounts.
         let remotes = vec![mk("drac", None), mk("someone-else", None)];
         assert_eq!(
-            owned_forge_visibility_opt(Path::new("/tmp/myrepo"), &remotes),
-            None,
-            "same-host account divergence must aggregate to unknown"
+            same_host_project_divergence("myrepo", &remotes),
+            Some(("drac/myrepo".to_string(), "someone-else/myrepo".to_string())),
+            "same-host account split must be reported"
         );
+        // Agreement: no divergence.
+        let remotes = vec![mk("drac", None), mk("drac", None)];
+        assert_eq!(same_host_project_divergence("myrepo", &remotes), None);
+        // Cross-host pairs never diverge (different forges may host
+        // different projects legitimately).
+        let mut gitlab = mk("drac", None);
+        gitlab.auth_type = AuthType::GitLab;
+        gitlab.push_url = "git@gitlab.com:drac/other.git".to_string();
+        let remotes = vec![mk("drac", None), gitlab];
+        assert_eq!(same_host_project_divergence("myrepo", &remotes), None);
     }
 
     #[test]
