@@ -7375,6 +7375,123 @@ trusted_authors = ["test"]
         assert_eq!(head_commit_count(&repo), 0);
     }
 
+    /// Recursively flip the readonly bit under `root`. Used to break
+    /// staging deterministically (a read-only `.git` refuses the
+    /// `index.lock` git-add needs) and to restore writability so the
+    /// tempdir can be removed afterwards.
+    fn set_readonly_recursive(root: &std::path::Path, readonly: bool) {
+        let mut stack = vec![root.to_path_buf()];
+        while let Some(path) = stack.pop() {
+            if let Ok(entries) = std::fs::read_dir(&path) {
+                for entry in entries.flatten() {
+                    stack.push(entry.path());
+                }
+            }
+            if let Ok(meta) = std::fs::symlink_metadata(&path) {
+                let mut perms = meta.permissions();
+                perms.set_readonly(readonly);
+                let _ = std::fs::set_permissions(&path, perms);
+            }
+        }
+    }
+
+    /// Guard restoring `.git` writability on drop, so tempdir cleanup
+    /// cannot strand a read-only tree even if the test fails mid-way.
+    struct WritableDotGit {
+        dot_git: std::path::PathBuf,
+    }
+
+    impl Drop for WritableDotGit {
+        fn drop(&mut self) {
+            set_readonly_recursive(&self.dot_git, false);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do() {
+        // ADDED 2026-10-02 (audit L1): a failed bootstrap must propagate
+        // as Err — mapping it to NothingToDo cleared the stuck ledger
+        // and reset failure_count every cycle (the daemon counts
+        // NothingToDo as Success), so a repo failing bootstrap forever
+        // read healthy with no failure accounting.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+
+        let dot_git = repo.join(".git");
+        set_readonly_recursive(&dot_git, true);
+        let _restore = WritableDotGit {
+            dot_git: dot_git.clone(),
+        };
+
+        let policy = bootstrap_test_policy("");
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        let err = result.expect_err("bootstrap failure must propagate as Err, not Ok(NothingToDo)");
+        let chain = format!("{err:?}");
+        assert!(
+            chain.contains("bootstrap"),
+            "error must name the bootstrap step: {chain}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sync_repo_ahead_count_failure_fails_cycle() {
+        // ADDED 2026-10-02 (audit L2): a detached-HEAD repo whose
+        // ahead-count fails must fail the cycle — the old
+        // `unwrap_or(0)` silently presented the error as "0 ahead",
+        // disarming the backstop gate instead of surfacing it. The
+        // mock git fails ONLY rev-list (everything else passes
+        // through to the real binary), and the serial test harness
+        // (RUST_TEST_THREADS=1) plus GitBinRestorer make the
+        // process-global DRACON_SYNC_GIT_BIN override safe.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        assert!(crate::git::git_cmd()
+            .args(["add", "a.txt"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["commit", "-q", "--no-verify", "-m", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["checkout", "-q", "--detach", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+
+        let real_git = crate::policy::git_binary();
+        let mock = tmp.path().join("mock-git.sh");
+        std::fs::write(
+            &mock,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = \"rev-list\" ]; then echo \"mock: rev-list unavailable\" >&2; exit 128; fi\nexec \"{}\" \"$@\"\n",
+                real_git.display()
+            ),
+        )
+        .unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
+
+        let policy = bootstrap_test_policy("");
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        let err = result.expect_err("ahead-count failure must fail the cycle, not read as 0-ahead");
+        let chain = format!("{err:?}");
+        assert!(
+            chain.contains("ahead-count failed"),
+            "error must name the ahead-count step: {chain}"
+        );
+    }
+
     /// ADDED 2026-07-22 (v0.112.36): the pre-commit guard must honor
     /// ownership overrides — an operator-blessed repo (`owned = true`
     /// in `.dracon/dracon-sync.toml`) with a deliberate per-repo
