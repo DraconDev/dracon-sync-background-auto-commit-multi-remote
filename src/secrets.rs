@@ -309,4 +309,83 @@ mod tests {
         let result = super::load_secret_from_dir("CONTROL_TEST_TOKEN2", secrets_dir);
         assert_eq!(result.as_deref(), Some("clean-token-456"));
     }
+
+    /// ADDED 2026-10-03 (audit R4-SR-15): the documented `.env`
+    /// value dialect — matching quotes, unquoted trailing comments,
+    /// and the verbatim fallbacks.
+    #[test]
+    fn test_strip_env_value_dialect() {
+        use super::strip_env_value;
+        assert_eq!(strip_env_value("abc"), "abc");
+        assert_eq!(strip_env_value("\"abc\""), "abc");
+        assert_eq!(strip_env_value("'abc'"), "abc");
+        // Quotes win over comment stripping: `#` inside is literal.
+        assert_eq!(strip_env_value("\"abc # x\""), "abc # x");
+        // Unquoted trailing comments (space or tab) are cut.
+        assert_eq!(strip_env_value("abc # x"), "abc");
+        assert_eq!(strip_env_value("abc\t# x"), "abc");
+        // `#` with no preceding whitespace stays verbatim: it may
+        // be token material.
+        assert_eq!(strip_env_value("abc#x"), "abc#x");
+        // Mismatched quotes stay verbatim (fail closed).
+        assert_eq!(strip_env_value("\"abc'"), "\"abc'");
+        assert_eq!(strip_env_value("\""), "\"");
+        // Empty quotes yield empty (caller skips empties).
+        assert_eq!(strip_env_value("\"\""), "");
+    }
+
+    /// ADDED 2026-10-03 (audit R4-SR-15): `export` prefix and the
+    /// value dialect end to end through the file loader.
+    #[test]
+    fn test_load_secret_from_dir_dialect_lines() {
+        let tmp = tempfile::tempdir().unwrap();
+        let secrets_dir = tmp.path();
+        std::fs::write(
+            secrets_dir.join("dialect.env"),
+            "export DIALECT_TOKEN_1=tok-1\n\
+             DIALECT_TOKEN_2=\"tok-2\" # trailing\n\
+             export DIALECT_TOKEN_3='tok-3'\n\
+             DIALECT_TOKEN_4=tok-4 # rotated 2026\n\
+             exportKEY=DIALECT_TOKEN_5-must-not-match\n",
+        )
+        .unwrap();
+        assert_eq!(
+            super::load_secret_from_dir("DIALECT_TOKEN_1", secrets_dir).as_deref(),
+            Some("tok-1")
+        );
+        // Quoted: comment is literal inside quotes... except the
+        // closing quote ends before the comment here.
+        assert_eq!(
+            super::load_secret_from_dir("DIALECT_TOKEN_2", secrets_dir).as_deref(),
+            Some("\"tok-2\" # trailing")
+        );
+        assert_eq!(
+            super::load_secret_from_dir("DIALECT_TOKEN_3", secrets_dir).as_deref(),
+            Some("tok-3")
+        );
+        assert_eq!(
+            super::load_secret_from_dir("DIALECT_TOKEN_4", secrets_dir).as_deref(),
+            Some("tok-4")
+        );
+        // `exportKEY=...` must not collapse to KEY.
+        assert_eq!(
+            super::load_secret_from_dir("KEY", secrets_dir).as_deref(),
+            None
+        );
+    }
+
+    /// ADDED 2026-10-03 (audit R4-SR-15): the readability warning
+    /// must name group vs other instead of always "world-readable".
+    #[cfg(unix)]
+    #[test]
+    fn test_readable_scope_names_group_vs_other() {
+        use super::readable_scope;
+        assert_eq!(readable_scope(0o100600), None);
+        assert_eq!(readable_scope(0o100604), Some("world-readable"));
+        assert_eq!(readable_scope(0o100640), Some("group-readable"));
+        assert_eq!(
+            readable_scope(0o100644),
+            Some("group- and world-readable")
+        );
+    }
 }
