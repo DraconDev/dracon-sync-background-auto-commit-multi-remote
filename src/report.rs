@@ -14783,6 +14783,9 @@ mod v011313_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("r");
         init_repo(&repo);
+        // Disable hooks so globally-installed warden hooks don't reject
+        // commits in temp test repos (same as exclude.rs fixtures).
+        git(&repo, &["config", "core.hooksPath", "/dev/null"]);
         fs::write(repo.join("scratch-note.txt"), "v1").unwrap();
         git(&repo, &["add", "scratch-note.txt"]);
         git(&repo, &["commit", "-q", "-m", "add note"]);
