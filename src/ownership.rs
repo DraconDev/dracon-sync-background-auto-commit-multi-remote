@@ -28,7 +28,6 @@
 //! the hard opt-out. The legacy `owned = true` override is still supported.
 
 use std::path::Path;
-use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
