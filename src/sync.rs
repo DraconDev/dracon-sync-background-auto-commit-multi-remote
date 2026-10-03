@@ -953,7 +953,9 @@ static WARDEN_HARDEN_STATE: std::sync::OnceLock<
 /// `dracon-warden once`), which is what makes the encryption filter
 /// actually run at `git add` time. Extracted for unit tests.
 pub(crate) fn repo_has_warden_filter(repo: &Path) -> bool {
-    std::process::Command::new("git")
+    // FIXED 2026-10-03 (audit R4-SC-08): route through the sealed git
+    // constructor (DRACON_SYNC_GIT_BIN + prompt sealing), not raw git.
+    crate::policy::std_git_command()
         .args(["config", "--local", "--get", "filter.dracon.clean"])
         .current_dir(repo)
         .output()
@@ -3994,7 +3996,7 @@ async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Resul
     //   <mode> <hash> <stage> <path>
     // for each unmerged stage (1, 2, 3). We collect the unique
     // paths (one entry per path across all stages).
-    let output = Command::new("git")
+    let output = crate::policy::std_git_command()
         .args(["-C", &repo.to_string_lossy(), "ls-files", "--unmerged"])
         .output()
         .with_context(|| format!("failed to list unmerged files in {}", repo.display()))?;
@@ -4038,7 +4040,7 @@ async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Resul
         // For each unmerged path, compare the working tree file
         // content to the HEAD version. If they match, we can safely
         // reset the unmerge.
-        let head_output = Command::new("git")
+        let head_output = crate::policy::std_git_command()
             .args([
                 "-C",
                 &repo.to_string_lossy(),
@@ -4114,7 +4116,7 @@ async fn check_untracked_threshold(repo: &Path, threshold: usize) -> Result<usiz
     // Always count the untracked files (so callers can use the count
     // for reporting), but only emit a warning when threshold > 0 AND
     // the count exceeds the threshold.
-    let output = Command::new("git")
+    let output = crate::policy::std_git_command()
         .args([
             "-C",
             &repo.to_string_lossy(),
