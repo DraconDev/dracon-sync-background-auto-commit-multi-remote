@@ -310,6 +310,28 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
     die_pre "version '$VERSION' is not semver (expected e.g. 0.112.12)"
 fi
 
+# FIXED 2026-10-03 (audit R4-M-08): ported from dracon-system.
+# The manifest version that matters is the one in [package], not the first
+# `^version =` line in the file: a future [workspace.package] block above it
+# would otherwise be the line that gets compared (audit 2026-10-01).
+crate_manifest_version() {
+    awk -F'"' '
+        /^\[/ { in_package = ($0 == "[package]"); next }
+        in_package && /^version[[:space:]]*=/ { print $2; exit }
+    ' "$CRATE_TOML"
+}
+CURRENT_VERSION="$(crate_manifest_version)"
+[[ -n "$CURRENT_VERSION" ]] || die_pre "no [package] version found in $CRATE_TOML"
+
+# Monotonicity (DECIDED 2026-10-01): a version that is not newer than the
+# current one rewrites the manifest, closes the CHANGELOG under a misleading
+# header, and only fails later at the registry. Refuse it here, before
+# anything has been touched. (Equal is allowed: same-version re-runs are
+# intentional idempotency; only a LOWER version is refused.)
+if [[ "$(printf '%s\n%s\n' "$CURRENT_VERSION" "$VERSION" | sort -V | head -1)" != "$CURRENT_VERSION" ]]; then
+    die_pre "version '$VERSION' is not newer than the current $CURRENT_VERSION in ${RELPFX}Cargo.toml — refusing to release a downgrade or a re-publish"
+fi
+
 # ----- step 1: test discipline gates (AGENTS.md) -------------------------
 log "step 1/${TOTAL_STEPS}: test discipline gates (AGENTS.md)"
 # audit LOW 2026-08-10: release.sh used to have NO test/clippy/deny gate —
@@ -357,10 +379,7 @@ ok "  all gates passed"
 
 # ----- step 2: bump Cargo.toml version ------------------------------------
 log "step 2/${TOTAL_STEPS}: bumping ${RELPFX}Cargo.toml to ${VERSION}"
-current=$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$CRATE_TOML" 2>/dev/null || true)
-if [[ -z "$current" ]]; then
-    die_pre "no version found in $CRATE_TOML"
-fi
+current="$CURRENT_VERSION"
 if [[ "$current" == "$VERSION" ]]; then
     ok "  $CRATE_TOML already at $VERSION"
 else
