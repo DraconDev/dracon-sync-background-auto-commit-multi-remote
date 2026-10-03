@@ -5747,7 +5747,7 @@ fn print_repos_full_table(
     table.set_constraints(vec![
         ColumnConstraint::Absolute(Width::Fixed(4)), // # (header 1 + 1 pad = 4, fits up to 99 repos)
         ColumnConstraint::Absolute(Width::Fixed(13)), // STATUS (header 9 + 2 + 2 headroom for '🚫 unowned' = 11 cols + 2 padding)
-        ColumnConstraint::Absolute(Width::Fixed(19)), // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols; long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
+        ColumnConstraint::Absolute(Width::Fixed(19)), // REPO (was LowerBoundary(17); 2026-07-19 goal `4555eaf6` — truncate to 17 cols via explicit `truncate_unicode_width` at the cell (FIXED 2026-10-03, audit L17 — the old code relied on comfy-table's clip); long names like `pully-fully-pull-based-fleet-reconciler` = 38 chars → `pully-fully-pull-b…`)
         ColumnConstraint::Absolute(Width::Fixed(18)), // ROLE (was LowerBoundary(18); F30: trim to 18; long paths → truncated via role_cell() truncation budget)
         ColumnConstraint::Absolute(Width::Fixed(11)), // BRANCH (header 9 + 2 pad = 11)
         ColumnConstraint::Absolute(Width::Fixed(17)), // PUBLISH (was LowerBoundary(17); truncate via publish_cell_label() budget 15 cols)
