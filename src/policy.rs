@@ -2775,7 +2775,7 @@ mod tests {
     /// the daemon rewrite a sacred-history repo.
     #[test]
     fn test_repo_auto_repair_disabled_on_parse_error() {
-        let mut global_on: SyncPolicy = toml::from_str("").expect("parse empty");
+        let global_on: SyncPolicy = toml::from_str("").expect("parse empty");
         assert!(global_on.auto_repair_concerns);
         let broken = RepoPolicyOverride {
             override_parse_error: Some("expected value".to_string()),
