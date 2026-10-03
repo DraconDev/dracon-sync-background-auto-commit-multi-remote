@@ -11826,6 +11826,7 @@ trusted_authors = ["test"]
     #[test]
     fn test_staged_extra_paths_matching() {
         use dracon_git::types::{DiffFile, FileStatus};
+        use std::path::PathBuf;
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(repo.join("sub")).unwrap();
