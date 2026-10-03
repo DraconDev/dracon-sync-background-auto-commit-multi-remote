@@ -64,14 +64,12 @@ pub(crate) async fn push_https_fallback(
             no_prompt,
         )
         .await;
-        if result.is_ok() {
-            return Ok(());
-        }
-        if let Err(e) = result {
-            failures.push(format!(
+        match result {
+            Ok(()) => return Ok(()),
+            Err(e) => failures.push(format!(
                 "github: {}",
                 clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-            ));
+            )),
         }
     }
 
@@ -91,14 +89,12 @@ pub(crate) async fn push_https_fallback(
                         ],
                     )
                     .await;
-                    if result.is_ok() {
-                        return Ok(());
-                    }
-                    if let Err(e) = result {
-                        failures.push(format!(
+                    match result {
+                        Ok(()) => return Ok(()),
+                        Err(e) => failures.push(format!(
                             "gitlab: {}",
                             clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-                        ));
+                        )),
                     }
                 }
                 Err(e) => {
@@ -125,14 +121,12 @@ pub(crate) async fn push_https_fallback(
                         ],
                     )
                     .await;
-                    if result.is_ok() {
-                        return Ok(());
-                    }
-                    if let Err(e) = result {
-                        failures.push(format!(
+                    match result {
+                        Ok(()) => return Ok(()),
+                        Err(e) => failures.push(format!(
                             "codeberg: {}",
                             clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-                        ));
+                        )),
                     }
                 }
                 Err(e) => {
@@ -220,7 +214,19 @@ pub(crate) async fn push_with_transport_fallbacks(
                 return Err(e);
             }
             let refspec = format!("HEAD:refs/heads/{branch}");
-            push_https_fallback(repo, &origin, &refspec, timeout_secs, op_label).await
+            // FIX (audit M3, 2026-10-02): chain the original SSH error
+            // into the fallback failure so the ledger records the cause,
+            // not just the symptom. Classifier-safe: matching is
+            // substring-based, so appended context only adds signal.
+            push_https_fallback(repo, &origin, &refspec, timeout_secs, op_label)
+                .await
+                .map_err(|fallback_err| {
+                    anyhow::anyhow!(
+                        "{} [SSH attempt failed: {}]",
+                        fallback_err,
+                        clip_error_detail(&redact_credentials_for_log(&err_msg))
+                    )
+                })
         }
     }
 }
