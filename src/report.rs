@@ -4394,6 +4394,16 @@ pub(crate) async fn run_repos_report(
         // hint so the operator sees WHY the push is stuck
         // instead of an opaque `pushing Xm`.
         let stuck_info = crate::daemon::get_stuck_push_info(&repo);
+        // FIXED 2026-10-03 (audit R4-SR-11): redact ONCE at report
+        // construction. The daemon redacts at ledger-write time, but
+        // pre-2026-08-11 ledger entries and any future writer bypass
+        // would otherwise echo `https://user:token@host` credentials
+        // into the HINT column and the JSON `push_error` verbatim.
+        // Both consumers below use this binding, never
+        // `info.last_error` directly.
+        let stuck_last_error_redacted: Option<String> = stuck_info
+            .as_ref()
+            .map(|info| crate::ownership::redact_url_credentials(&info.last_error));
         let push_max_retries = policy.push_max_retries;
         let push_budget_exhausted = stuck_info
             .as_ref()
@@ -4445,16 +4455,19 @@ pub(crate) async fn run_repos_report(
             h
         } else if push_budget_exhausted {
             let info = stuck_info.as_ref().unwrap();
-            let error_summary = if info.last_error.is_empty() {
+            // R4-SR-11: use the construction-time redacted copy —
+            // never `info.last_error` directly (credential echo).
+            let last_error = stuck_last_error_redacted.as_deref().unwrap_or("");
+            let error_summary = if last_error.is_empty() {
                 format!("{} consecutive push failures", info.consecutive_failures)
             } else {
                 // Trim long error messages so the HINT column
                 // doesn't blow up the table width.
-                let trimmed = if info.last_error.chars().count() > 60 {
-                    let truncated: String = info.last_error.chars().take(57).collect();
+                let trimmed = if last_error.chars().count() > 60 {
+                    let truncated: String = last_error.chars().take(57).collect();
                     format!("{}...", truncated)
                 } else {
-                    info.last_error.clone()
+                    last_error.to_string()
                 };
                 format!(
                     "🛑 push-stuck ({} failures): {} — run dracon-sync repair concerns --apply",
