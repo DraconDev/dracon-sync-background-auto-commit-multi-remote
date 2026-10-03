@@ -146,6 +146,8 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
     // Map index entries (sha per path) via ls-files; :(literal) keeps
     // glob metacharacters in filenames from acting as pathspecs.
     let mut indexed: Vec<(std::path::PathBuf, String)> = Vec::new();
+    let mut skipped: std::collections::BTreeSet<std::path::PathBuf> =
+        std::collections::BTreeSet::new();
     for chunk in candidates.chunks(500) {
         let mut cmd = crate::policy::tokio_git_command();
         cmd.args(["ls-files", "-s", "-z", "--"])
@@ -194,35 +196,17 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
                 String::from_utf8_lossy(sha).into_owned(),
             ));
         }
-        // Belt-and-braces: any chunk path missing from the listing that
-        // is NOT a staged deletion is unmeasurable → fail closed. A
-        // staged deletion is absent by design (nothing to commit).
+        // Any chunk path missing from the listing is either a staged
+        // deletion (absent by design — commits a removal, never new
+        // bytes, so it skips the size gate) or an index race that
+        // already resolved itself (nothing staged — nothing to unstage).
+        // Both outcomes skip; only measured-or-blind paths proceed.
         for path in chunk {
             let key = path.as_os_str().as_encoded_bytes();
             if seen.contains(key) {
                 continue;
             }
-            // Present in `diff --cached` but not in the index: either a
-            // staged deletion (fine, skip) or a race (fail closed by
-            // attempting unstage — reset of an already-absent path is
-            // verified harmless below... instead check HEAD).
-            let mut head_cmd = crate::policy::tokio_git_command();
-            head_cmd
-                .args(["cat-file", "-e", &format!("HEAD:{}", path.display())])
-                .current_dir(repo)
-                .kill_on_drop(true);
-            let in_head = head_cmd
-                .status()
-                .await
-                .map(|s| s.success())
-                .unwrap_or(false);
-            if !in_head {
-                // Not in HEAD and not in index: nothing staged (race
-                // already resolved it) — nothing to do.
-                continue;
-            }
-            // In HEAD but not in index: staged deletion — commits a
-            // removal, never new bytes. Skip the size gate.
+            skipped.insert(path.clone());
         }
     }
     let mut to_unstage = Vec::new();
@@ -236,7 +220,7 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
             measurable.iter().map(|(p, _)| p.clone()).collect();
         candidates
             .iter()
-            .filter(|p| !measured.contains(*p))
+            .filter(|p| !measured.contains(*p) && !skipped.contains(*p))
             .cloned()
             .collect()
     };
