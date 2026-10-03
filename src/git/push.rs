@@ -415,10 +415,8 @@ pub(crate) async fn push_with_retries(
                     // the repo in MERGING state (which the pre-v0.113.2
                     // conflict check couldn't even detect for nested
                     // submodules); abort instead.
-                    let pull_refspec = pull_refspec_for_branch(
-                        crate::git::branch::current_branch(repo),
-                        repo,
-                    )?;
+                    let pull_refspec =
+                        pull_refspec_for_branch(crate::git::branch::current_branch(repo), repo)?;
                     eprintln!(
                         "🔄 push rejected (non-fast-forward) for {} — pulling origin {} and retrying",
                         repo.display(),
@@ -1218,10 +1216,7 @@ mod tests {
             pull_refspec_for_branch(Some("main".to_string()), repo).unwrap(),
             "refs/heads/main"
         );
-        assert_eq!(
-            pull_refspec_for_branch(None, repo).unwrap(),
-            "HEAD"
-        );
+        assert_eq!(pull_refspec_for_branch(None, repo).unwrap(), "HEAD");
         for bad in ["-evil", "a..b", "trailing.", "li\nne", ""] {
             let err = pull_refspec_for_branch(Some(bad.to_string()), repo).unwrap_err();
             assert!(
