@@ -5113,7 +5113,14 @@ pub(crate) async fn sync_repo_with_ahead_since(
             .await
             .with_context(|| format!("ahead-count failed for {}", repo.display()))?
     } else {
-        0
+        // FIXED 2026-10-03 (audit R4-SC-01, same root as the
+        // handle_ahead_push arm): the old `0` disarmed the
+        // auto-commit backstop for attached mirror-only repos —
+        // is_backstop_active never saw the unpushed-vs-mirror
+        // commits, so the moving-target pileup the backstop
+        // exists to stop went undetected. Same positive-evidence
+        // helper as the dispatcher: converged mirrors read 0.
+        super::git::count_pushable_unpushed_vs_mirrors(repo)
     };
 
     let repo_override = load_repo_override(repo);
@@ -5693,7 +5700,20 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
             .await
             .map_err(|e| e.context("detached-ahead count failed"))?
     } else {
-        0
+        // FIXED 2026-10-03 (audit R4-SC-01): the old `0` made a
+        // clean attached mirror-only repo (no upstream, ahead=0
+        // from libgit2) return Attempted{ok:true} → NothingToDo,
+        // which the daemon's apply phase treats as success and
+        // clears the stuck ledger — while the daemon had
+        // dispatched this very cycle BECAUSE its mirror-ahead
+        // override measured unpushed mirror work. A failed mirror
+        // push was never retried and each dispatched no-op wiped
+        // the stuck entry. Consult the SAME positive-evidence
+        // helper the dispatcher uses: it only counts
+        // fast-forward-pushable lag (the mirror ref must be an
+        // ancestor of HEAD), so a converged mirror still reads 0
+        // and the v0.113.5/M3 no-unwanted-push guarantee holds.
+        super::git::count_pushable_unpushed_vs_mirrors(ctx.repo)
     };
     let branch_has_upstream = super::git::has_tracking_upstream(ctx.repo);
     // CHANGED 2026-07-21 (v0.112.30): when the upstream is configured
