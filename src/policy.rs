@@ -2733,6 +2733,60 @@ mod tests {
         assert_eq!(load_repo_override(dir2.path()).auto_repair_concerns, None);
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-04): a present-but-unparsable
+    /// override must FLAG the failure — the old loader returned a
+    /// clean default, silently voiding owned=false, exclude_remotes,
+    /// and repair opt-outs. Missing file and clean parse stay None.
+    #[test]
+    fn test_load_repo_override_flags_parse_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "owned = false\nthis is [not valid toml\n",
+        )
+        .unwrap();
+        let o = load_repo_override(repo);
+        assert!(
+            o.override_parse_error.is_some(),
+            "malformed override must flag the parse error"
+        );
+        // Knobs still read defaults (fail-closed is decided by the
+        // gates, not by inventing values here).
+        assert_eq!(o.owned, None);
+        // Missing file → clean None.
+        let dir2 = tempfile::tempdir().unwrap();
+        assert_eq!(load_repo_override(dir2.path()).override_parse_error, None);
+        // Valid file → clean None + values parsed.
+        std::fs::create_dir_all(dir2.path().join(".dracon")).unwrap();
+        std::fs::write(
+            dir2.path().join(".dracon/dracon-sync.toml"),
+            "owned = false\n",
+        )
+        .unwrap();
+        let ok = load_repo_override(dir2.path());
+        assert_eq!(ok.override_parse_error, None);
+        assert_eq!(ok.owned, Some(false));
+    }
+
+    /// ADDED 2026-10-03 (audit R4-SR-04): auto-repair fails closed
+    /// on an unparsable override — a voided opt-out must not let
+    /// the daemon rewrite a sacred-history repo.
+    #[test]
+    fn test_repo_auto_repair_disabled_on_parse_error() {
+        let mut global_on: SyncPolicy = toml::from_str("").expect("parse empty");
+        assert!(global_on.auto_repair_concerns);
+        let broken = RepoPolicyOverride {
+            override_parse_error: Some("expected value".to_string()),
+            ..RepoPolicyOverride::default()
+        };
+        assert!(
+            !repo_auto_repair_enabled(&global_on, &broken),
+            "parse error must disable repair even when global is on"
+        );
+    }
+
     /// ADDED 2026-09-09 (audit F29): merge semantics — per-repo
     /// `Some(false)` wins over a global `true`; `None` inherits;
     /// a global `false` stays off (no per-repo opt-in to a
