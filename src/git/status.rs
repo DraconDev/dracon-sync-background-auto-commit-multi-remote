@@ -2,6 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use anyhow::{Context, Result};
+
 use super::current_branch;
 
 /// RAII guard that acquires `.git/index.lock` using the same protocol git uses.
@@ -302,17 +304,31 @@ pub(crate) fn upstream_tracking_ref_missing(repo: &Path) -> bool {
 /// remote-tracking ref exists anywhere (never pushed): every commit
 /// is definitionally unpushed.
 pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
+    try_count_all_head_commits(repo).unwrap_or(0)
+}
+
+/// Fallible HEAD-commit count. ADDED 2026-10-02 (audit L2): the
+/// backstop gate must FAIL CLOSED when the count is unknowable, so
+/// `count_ahead_commits` uses this instead of the 0-defaulting
+/// wrapper — a status error surfaces instead of silently presenting
+/// as "0 ahead" and disarming the backstop.
+pub(crate) fn try_count_all_head_commits(repo: &Path) -> Result<u64> {
     let output = crate::policy::std_git_command()
         .args(["rev-list", "--count", "HEAD"])
         .current_dir(repo)
-        .output();
-    match output {
-        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
-            .trim()
-            .parse()
-            .unwrap_or(0),
-        _ => 0,
+        .output()
+        .with_context(|| format!("rev-list --count HEAD failed to spawn for {}", repo.display()))?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "rev-list --count HEAD exited {} for {}",
+            output.status,
+            repo.display()
+        );
     }
+    String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse::<u64>()
+        .with_context(|| format!("rev-list --count HEAD printed no number for {}", repo.display()))
 }
 
 /// Return the known mirror tracking refs for the current branch, followed by
