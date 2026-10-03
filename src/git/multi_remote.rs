@@ -678,8 +678,16 @@ async fn push_to_named_remote_inner(
         return Err(ssh_err);
     }
 
-    let remote_url = get_remote_url(repo, remote_name)
-        .ok_or_else(|| anyhow::anyhow!("remote {} not found", remote_name))?;
+    // FIXED 2026-10-03 (audit R3-L04): chain the SSH cause like the
+    // M3 site below — the old bare "not found" discarded `ssh_msg` in
+    // the narrow remote-vanishes-between-attempt-and-lookup race.
+    let remote_url = get_remote_url(repo, remote_name).ok_or_else(|| {
+        anyhow::anyhow!(
+            "remote {} not found [SSH attempt failed: {}]",
+            remote_name,
+            super::push::clip_error_detail(&super::push::redact_credentials_for_log(&ssh_msg))
+        )
+    })?;
 
     // FIXED 2026-10-02 (audit L5): `retries` counts TOTAL push attempts
     // (min 1), unified with `push_with_retries` — the old shape spent
