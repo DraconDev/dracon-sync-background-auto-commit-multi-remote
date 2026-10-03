@@ -405,6 +405,43 @@ pub(crate) fn owned_forge_visibility_opt(
     remotes: &[RemoteConfig],
 ) -> Option<bool> {
     let repo_name = repo_path.file_name()?.to_string_lossy().to_string();
+    // FIXED 2026-10-03 (audit R3-L17): refuse to aggregate when
+    // same-host remotes name different (account, project) pairs — a
+    // stale `repo_name_map` entry or decoupled `auto_create_account`
+    // would otherwise let one forge's public verdict authorize
+    // publication of a DIFFERENT project. Unknown must never
+    // authorize publication, so divergence returns None before any
+    // query runs. AuthType proxies host (GitHub vs GitLab).
+    {
+        let mut seen: Vec<(AuthType, String, String)> = Vec::new();
+        for remote in remotes {
+            let auth = remote.effective_auth_type();
+            match auth {
+                AuthType::GitHub | AuthType::GitLab => {
+                    let account = remote.resolve_account();
+                    let project = remote.resolve_repo_name(&repo_name);
+                    if let Some((_, prev_account, prev_project)) =
+                        seen.iter().find(|(a, _, _)| *a == auth)
+                    {
+                        if prev_account != &account || prev_project != &project {
+                            eprintln!(
+                                "⚠️ visibility aggregation refused for {}: same-host remotes diverge ({} vs {}/{} vs {}/{}) — treating as unknown",
+                                repo_path.display(),
+                                prev_account,
+                                prev_project,
+                                account,
+                                project
+                            );
+                            return None;
+                        }
+                    } else {
+                        seen.push((auth, account, project));
+                    }
+                }
+                AuthType::Codeberg | AuthType::Generic => continue,
+            }
+        }
+    }
     let mut saw_owned_forge = false;
     let mut saw_unknown = false;
     let mut all_private = true;
