@@ -878,4 +878,34 @@ mod tests {
         let result = super::git_askpass_script("abc'def").await;
         assert!(result.is_err(), "single-quote token must be rejected");
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_askpass_drop_logs_unlink_failure() {
+        // ADDED 2026-10-02 (audit L4): a failed unlink must be LOUD —
+        // the old `let _ =` swallowed EPERM/EROFS with no log while
+        // the token script lingered in /tmp. Unlinking a DIRECTORY
+        // with remove_file fails deterministically (non-NotFound), so
+        // Drop takes the warn branch (visible on stderr) and the path
+        // survives — proving the failure was hit, not silently
+        // absorbed. A guard over an already-gone path stays silent
+        // (nothing lingers, nothing to report).
+        use super::AskpassScript;
+
+        let dir = tempfile::tempdir().expect("temp dir");
+        let subdir = dir.path().join("not-a-file");
+        std::fs::create_dir(&subdir).expect("mkdir");
+        {
+            let _guard = AskpassScript::new(subdir.clone());
+        }
+        assert!(
+            subdir.is_dir(),
+            "a directory cannot be unlinked by remove_file — the Drop failure branch must have fired"
+        );
+
+        let gone = dir.path().join("already-cleaned");
+        {
+            let _guard = AskpassScript::new(gone);
+        }
+    }
 }
