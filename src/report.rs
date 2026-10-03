@@ -8923,7 +8923,7 @@ pub(crate) async fn run_repair_warns(
         // the worker path.
         let repo_override = crate::policy::load_repo_override(&repo);
         let effective_auto_commit_excludes =
-            crate::policy::effective_auto_commit_excludes(policy, &repo_override);
+            crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
         let effective_dirty = has_sync_relevant_dirty_entries(
             &repo,
             &entries,
@@ -14820,15 +14820,20 @@ mod v011313_tests {
             "warn selection still fires on real dirt"
         );
         let ledger_text = fs::read_to_string(&ledger).unwrap();
-        let record: IncidentRecord = ledger_text
+        // IncidentRecord is Serialize-only; read the reason via Value.
+        let reason = ledger_text
             .lines()
-            .filter_map(|l| serde_json::from_str(l).ok())
-            .find(|r: &IncidentRecord| r.scope == "warn")
+            .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+            .find(|v| v.get("scope").and_then(|s| s.as_str()) == Some("warn"))
+            .and_then(|v| {
+                v.get("reason")
+                    .and_then(|s| s.as_str())
+                    .map(|s| s.to_string())
+            })
             .expect("warn plan must append a ledger record");
         assert!(
-            !record.reason.contains("DIRTY"),
-            "per-repo-only excluded dirt must not flag DIRTY, got reason: {}",
-            record.reason
+            !reason.contains("DIRTY"),
+            "per-repo-only excluded dirt must not flag DIRTY, got reason: {reason}"
         );
     }
 
