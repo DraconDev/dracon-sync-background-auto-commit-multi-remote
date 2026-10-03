@@ -4725,7 +4725,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
             excluded_dir_names,
             &policy.exclude_file_patterns,
             policy.max_stage_file_bytes,
-            auto_commit_exclude,
+            &auto_commit_exclude,
         ) {
             continue;
         }
@@ -4759,7 +4759,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
         dry_run,
         policy.stage_op_timeout_secs,
         excluded_dir_names,
-        Some((policy, auto_commit_exclude)),
+        Some((policy, &auto_commit_exclude)),
     )
     .await?;
 
@@ -4800,7 +4800,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
                     excluded_dir_names,
                     &policy.exclude_file_patterns,
                     policy.max_stage_file_bytes,
-                    auto_commit_exclude,
+                    &auto_commit_exclude,
                 )
             }
             // Unmeasurable blob: fail closed (unstage), like
@@ -4822,7 +4822,7 @@ pub(crate) async fn bootstrap_empty_repo_commit(
                 excluded_dir_names,
                 &policy.exclude_file_patterns,
                 policy.max_stage_file_bytes,
-                auto_commit_exclude,
+                &auto_commit_exclude,
             ),
         } && !crate::exclude::matches_untracked_exclude(
             repo,
@@ -5432,6 +5432,9 @@ pub(crate) async fn sync_repo_with_ahead_since(
             } else {
                 crate::git::tracked_paths(repo).await?
             };
+        // R3-M2: per-repo entries EXTEND the global list (union helper).
+        let partition_excludes =
+            crate::policy::effective_auto_commit_excludes(policy, repo_override);
         let (to_stage, to_restore): (Vec<_>, Vec<_>) = entries
             .into_iter()
             .filter(|e| {
@@ -5487,10 +5490,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
                     excluded_dir_names,
                     &policy.exclude_file_patterns,
                     policy.max_stage_file_bytes,
-                    repo_override
-                        .auto_commit_exclude_patterns
-                        .as_deref()
-                        .unwrap_or(&policy.auto_commit_exclude_patterns),
+                    &partition_excludes,
                 )
             });
         if debug_enabled() {
