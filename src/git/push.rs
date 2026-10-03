@@ -283,10 +283,10 @@ pub(crate) async fn push_with_retries(
         // When the worktree is detached, `git push origin HEAD` fails.
         // Build a fully-qualified refspec instead.
         //
-        // CHANGED 2026-08-09 (v0.113.48): see `push_with_transport_fallbacks`
-        // — always use the fully-qualified `HEAD:refs/heads/<branch>` form
-        // when a branch is known. Bare `HEAD` fails with the same refspec
-        // error on a detached worktree.
+        // CHANGED 2026-08-09 (v0.113.48): always use the
+        // fully-qualified `HEAD:refs/heads/<branch>` form when a branch
+        // is known. Bare `HEAD` fails with the same refspec error on a
+        // detached worktree.
         let ssh_refspec = match crate::git::branch::current_branch(repo) {
             Some(branch) if super::is_safe_branch_name(&branch) => {
                 format!("HEAD:refs/heads/{branch}")
