@@ -4468,6 +4468,24 @@ async fn stage_commit_and_push(
     }
 
     let staged = git_name_status_entries(repo, &["diff", "--cached", "--name-status"]).await?;
+    // ADDED 2026-10-03 (audit R4-SC-16): staged set ⊆ intent.
+    // Foreign-staged paths (manual adds landing mid-cycle) defer the
+    // WHOLE commit one cycle with the index intact — the consent
+    // window. Next cycle they are pre-staged → classified → intended
+    // → committed, so commit-all converges with no wedge. Skipped in
+    // dry-run (nothing stages or commits there).
+    if !dry_run {
+        let extras = staged_extra_paths(repo, &staged, to_stage);
+        if !extras.is_empty() {
+            eprintln!(
+                "⏸️ {} staged set has {} path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: {:?}",
+                repo.display(),
+                extras.len(),
+                &extras[..extras.len().min(5)]
+            );
+            return Ok(Some(SyncOutcome::Blocked));
+        }
+    }
     let committed_entries: Vec<dracon_git::types::DiffFile> = staged
         .into_iter()
         .map(|(path, status)| dracon_git::types::DiffFile::new(path, status))
