@@ -11710,10 +11710,11 @@ trusted_authors = ["test"]
         assert!(!is_index_lock_failure("fatal: unable to stat 'gone.txt'"));
     }
 
-    /// Regression test for R4-SC-15's backoff: a lock released
-    /// mid-backoff lets the SAME sync succeed via retry (no Blocked,
-    /// no next-cycle wait). The holder drops at ~100ms; retries fire
-    /// at ~250/750ms, so even a heavily loaded box lands a retry.
+    /// Regression test for R4-SC-15's backoff: when the FIRST `git
+    /// add` fails with index.lock contention but the retry succeeds,
+    /// the SAME sync commits (no Blocked, no next-cycle wait). The
+    /// mock fails exactly one add (counter file) and passes everything
+    /// else through — deterministic, no wall-clock racing.
     #[tokio::test]
     async fn test_index_lock_contention_retries_then_succeeds() {
         let tmp = tempfile::tempdir().unwrap();
@@ -11730,13 +11731,24 @@ trusted_authors = ["test"]
         .unwrap();
         policy.watch_roots = vec![tmp.path().to_string_lossy().into_owned()];
         std::fs::write(repo.join("pending.txt"), "pending work\n").unwrap();
-        let lock = repo.join(".git/index.lock");
-        std::fs::write(&lock, "concurrent").unwrap();
-        let holder = lock.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-            let _ = std::fs::remove_file(&holder);
-        });
+        let real_git = crate::policy::git_binary();
+        let tripped = tmp.path().join("add-failed-once");
+        let mock = tmp.path().join("mock-git.sh");
+        std::fs::write(
+            &mock,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = \"add\" ] && [ ! -f \"{}\" ]; then touch \"{}\"; echo \"fatal: Unable to create '{}/.git/index.lock': File exists.\" >&2; exit 128; fi\nexec \"{}\" \"$@\"\n",
+                tripped.display(),
+                tripped.display(),
+                repo.display(),
+                real_git.display()
+            ),
+        )
+        .unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
         let result = tokio::time::timeout(
             Duration::from_secs(20),
             sync_repo(&repo, &policy, &BTreeSet::new(), 5, None, false, None),
@@ -11744,11 +11756,16 @@ trusted_authors = ["test"]
         .await
         .expect("retry must be bounded");
         assert!(
+            tripped.exists(),
+            "the first add must have hit the mocked contention"
+        );
+        assert!(
             matches!(result, Ok(SyncOutcome::Synced)),
-            "lock released mid-backoff must succeed via retry, got: {result:?}"
+            "retry after contention must succeed in the same sync, got: {result:?}"
         );
         let blob = git_cmd(&repo, &["show", "HEAD:pending.txt"]);
         assert!(blob.status.success());
+        assert_eq!(blob.stdout, b"pending work\n");
     }
 
     #[tokio::test]
