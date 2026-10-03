@@ -2985,8 +2985,10 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
     format!("{}…", &value[..end])
 }
 
-/// Build a state + activity cell that fits a 15-col budget without
-/// leaving a dangling emoji.
+/// Build a state + activity cell that fits a `budget`-col budget
+/// without leaving a dangling emoji. (The `budget` is parametric —
+/// compact passes 15 = Absolute(17) minus padding. FIXED 2026-10-03,
+/// audit L14: the old doc hardcoded "15-col".)
 ///
 /// Strategy (priority: state first, activity second):
 /// 1. Always show `{state_icon} {state_word}` (e.g., `🟠 dirty`)
@@ -3039,23 +3041,18 @@ fn activity_part(icon: &str, text: &str) -> Option<String> {
 }
 
 /// Split an activity string (e.g., `⏳ dirty 5m`) into
-/// (icon, text). The icon is the leading emoji (1 unicode
-/// char-cluster, possibly wide); the text is everything after
-/// the next ASCII space. Returns ("", input) if no leading
-/// emoji is present.
+/// (icon, text). The icon is the first GRAPHEME cluster (FIXED
+/// 2026-10-03, audit L14: the old first-char split leaked VS16 into
+/// the text for base+selector icons like `⏸️`/`⚠️`); the text is
+/// everything after the next ASCII space.
 fn split_activity(s: &str) -> (String, String) {
-    let mut chars = s.chars();
-    let first = chars.next();
-    match first {
+    let mut graphemes = unicode_segmentation::UnicodeSegmentation::graphemes(s, true);
+    match graphemes.next() {
         None => (String::new(), String::new()),
-        Some(c) => {
-            // Skip leading ASCII spaces before the emoji (none in practice)
-            let _ = c;
-            // Take the first char-cluster; if it's an emoji (wide or
-            // not), it's the icon. Then skip one space, take the rest.
-            let rest = &s[c.len_utf8()..];
+        Some(icon) => {
+            let rest = &s[icon.len()..];
             let after_space = rest.strip_prefix(' ').unwrap_or(rest);
-            (c.to_string(), after_space.to_string())
+            (icon.to_string(), after_space.to_string())
         }
     }
 }
