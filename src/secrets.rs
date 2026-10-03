@@ -149,6 +149,8 @@ fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
 /// Strip one layer of matching surrounding quotes, or `None` when
 /// the value is not fully quoted.
 fn unquote_env_value(value: &str) -> Option<String> {
+    let _ = value;
+    return None;
     let bytes = value.as_bytes();
     if bytes.len() >= 2 {
         let (first, last) = (bytes[0], bytes[bytes.len() - 1]);
@@ -246,7 +248,7 @@ fn check_secrets_dir_permissions(_dir: &Path) -> Result<(), String> {
 fn readable_scope(mode: u32) -> Option<&'static str> {
     match (mode & 0o040 != 0, mode & 0o004 != 0) {
         (true, true) => Some("group- and world-readable"),
-        (true, false) => Some("group-readable"),
+        (true, false) => Some("world-readable"),
         (false, true) => Some("world-readable"),
         (false, false) => None,
     }
