@@ -7873,6 +7873,46 @@ trusted_authors = ["test"]
         assert!(commit_allowed_by_ownership(&repo, &policy));
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-04): a present-but-unparsable
+    /// override must BLOCK commits — the old loader returned a clean
+    /// default, voiding owned=false (and every other opt-out), so a
+    /// typo'd file silently inherited permissive commit rights. The
+    /// control (valid owned=true) still allows.
+    #[test]
+    fn test_commit_guard_blocks_on_unparsable_override() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo); // user.email=test@test, user.name=test
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        // Trusted identity would allow — but the malformed override
+        // (which may have meant owned=false) blocks first.
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "owned = false\nbroken = [unclosed\n",
+        )
+        .unwrap();
+        assert!(
+            !commit_allowed_by_ownership(&repo, &policy),
+            "unparsable override must block commits"
+        );
+        // Control: the same file repaired to a valid owned=true allows.
+        std::fs::write(repo.join(".dracon/dracon-sync.toml"), "owned = true\n").unwrap();
+        assert!(
+            commit_allowed_by_ownership(&repo, &policy),
+            "valid owned=true override must allow"
+        );
+    }
+
     #[tokio::test]
     async fn test_sync_repo_empty_repo_end_to_end() {
         // The full sync_repo path on a stable empty repo: bootstrap
