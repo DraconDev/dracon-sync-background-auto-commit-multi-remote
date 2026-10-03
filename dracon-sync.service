@@ -50,6 +50,12 @@ LockPersonality=true
 # inherit the unit's seccomp filter and cannot relax it, so MDWE and
 # honored hooks are mutually exclusive. Removed 2026-10-02 (fleet-wide
 # push-stuck incident: platform + 8 nested games).
+# NOTE (audit M7, 2026-10-02): hook helpers inherit ALL of the sandbox
+# below (syscall filter, namespaces, devices) — systemd filters can only
+# be further restricted by children, never relaxed. A hook helper that
+# needs a blocked call (userns/bubblewrap, BPF, perf) fails with EPERM
+# (see SystemCallErrorNumber) instead of running. This is accepted: the
+# daemon's own hooks need only @system-service, and node/V8 runs fine.
 RestrictRealtime=true
 RestrictSUIDSGID=true
 RemoveIPC=true
