@@ -7966,6 +7966,39 @@ trusted_authors = ["test"]
         );
     }
 
+    #[test]
+    fn test_repo_has_warden_filter_honors_git_bin_seam() {
+        // ADDED 2026-10-03 (audit R4-SC-08): the probe must route
+        // through std_git_command (DRACON_SYNC_GIT_BIN + prompt
+        // sealing), not raw Command::new("git"). A mock git that
+        // always fails must flip a hardened repo to unhardened.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "--local",
+                "filter.dracon.clean",
+                "fake-clean %f",
+            ])
+            .status()
+            .unwrap();
+        assert!(repo_has_warden_filter(&repo));
+        let mock = tmp.path().join("mock-git.sh");
+        std::fs::write(&mock, "#!/bin/sh\nexit 1\n").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
+        assert!(
+            !repo_has_warden_filter(&repo),
+            "probe must honor DRACON_SYNC_GIT_BIN (mock git ignored = raw git bypass)"
+        );
+    }
+
     /// Install a fake `dracon-warden` first on PATH that logs its argv
     /// and emulates `once <repo>` by writing the filter config.
     /// Returns the guards (must be held) and the log path.
