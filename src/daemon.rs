@@ -694,17 +694,17 @@ fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
 }
 
-/// REMOVED 2026-10-03 (audit R4-SC-07): the M1 per-generation
-/// `detached_discard` machinery (`should_discard_stale_detached_result`
-/// + `dispatch_gen` + the trailing-drain check) guarded a
-/// force-clear-and-redispatch race that no longer exists — ownership is
-/// retained until the worker joins, nothing is ever force-cleared or
-/// re-dispatched, and the wedged task's own result is the only one and
-/// MUST be applied (R4-SC-02 routes it to PushPaused). The marker map
-/// was never inserted anywhere, so the check was dead code; inserting
-/// a marker on abort would have discarded that sole result. If
-/// force-clearing ever returns, this design needs rethinking (including
-/// the PushPaused wedge semantics), not a revival of the marker.
+// REMOVED 2026-10-03 (audit R4-SC-07): the M1 per-generation
+// `detached_discard` machinery (`should_discard_stale_detached_result`
+// + `dispatch_gen` + the trailing-drain check) guarded a
+// force-clear-and-redispatch race that no longer exists — ownership is
+// retained until the worker joins, nothing is ever force-cleared or
+// re-dispatched, and the wedged task's own result is the only one and
+// MUST be applied (R4-SC-02 routes it to PushPaused). The marker map
+// was never inserted anywhere, so the check was dead code; inserting
+// a marker on abort would have discarded that sole result. If
+// force-clearing ever returns, this design needs rethinking (including
+// the PushPaused wedge semantics), not a revival of the marker.
 
 /// Interpret `fuser`'s result for an index lock. `fuser` exits 1 with no
 /// diagnostic when no process uses the path; every other non-zero result is
