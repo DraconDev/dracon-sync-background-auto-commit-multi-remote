@@ -2845,6 +2845,13 @@ pub(crate) fn truncate(value: &str, max_chars: usize) -> String {
 ///
 /// The helper never splits inside a `]`-bracketed file list when
 /// the data permits.
+///
+/// LIMITATION 2026-10-03 (audit L16): the compact/full tiers shape
+/// this 150-char result down to 16/15 cols at render
+/// (`commit_summary_cell`), which slices mid-id anyway — id-safety
+/// holds for vertical/JSON, not for the dense tables. Reserving
+/// id-safe widths in the tables would cost columns the tiers don't
+/// have; documented instead of fixed.
 pub(crate) fn format_commit_subject_for_display(value: &str, max_chars: usize) -> String {
     if value.chars().count() <= max_chars {
         return value.to_string();
@@ -11406,6 +11413,19 @@ mod tests {
         assert!(
             unicode_width::UnicodeWidthStr::width(cell.as_str()) <= 17,
             "cell must fit the column: {cell}"
+        );
+        // ADDED 2026-10-03 (audit L16): at table budgets the goal id
+        // does NOT survive intact — this pins the documented
+        // limitation (id-safety holds for vertical/JSON only). If a
+        // future change reserves id-safe widths, update the doc too.
+        let id_cell = commit_summary_cell(
+            "0123456789abcdef0123456789abcdef01234567",
+            "2 file(s) in .pi [.pi/goals/active_goal_2026063004051714_mr02de1n-gjkgzp.md] DELTA:+8/-5",
+            15,
+        );
+        assert!(
+            !id_cell.contains("mr02de1n-gjkgzp"),
+            "table budgets cannot preserve the goal id (documented): {id_cell}"
         );
     }
 
