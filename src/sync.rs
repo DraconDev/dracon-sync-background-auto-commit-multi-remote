@@ -12121,8 +12121,15 @@ trusted_authors = ["test"]
             .output()
             .unwrap();
 
-        // Now call push_with_retries — it should auto-pull then succeed
-        let result = push_with_retries(&repo, 30, 1, "test").await;
+        // Now call push_with_retries — it should auto-pull then succeed.
+        // CHANGED 2026-10-03 (audit R4-SC-13): retries 1 → 2. The
+        // post-pull retry consumes a budget slot (standing 2026-08-10
+        // decision: "the pull is recovery, not a free retry"), so
+        // pull + retry needs budget 2: rejected push spends slot 1,
+        // post-pull retry spends slot 2. Pre-SC-13 the post-loop sweep
+        // provided the retry outside the budget; with retries=1 the
+        // pull now happens but the retry defers to the next cycle.
+        let result = push_with_retries(&repo, 30, 2, "test").await;
         assert!(
             result.is_ok(),
             "push_with_retries should auto-pull + succeed: {:?}",
