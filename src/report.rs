@@ -13750,7 +13750,9 @@ mod tests {
             line.contains("repos <n|name>"),
             "names the drill-down: {line}"
         );
-        let line2 = rich_hint_link_out(&[hinted.clone(), hinted]).expect("link-out");
+        let mut hinted2 = RepoReportRow::for_tests("/tmp/hinted2");
+        hinted2.hint = "second hint".to_string();
+        let line2 = rich_hint_link_out(&[hinted, hinted2]).expect("link-out");
         assert!(line2.contains("2 repos"), "pluralizes: {line2}");
     }
 
