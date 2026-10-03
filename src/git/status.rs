@@ -540,6 +540,8 @@ mod tests {
         assert!(!is_merge_in_progress(&nested));
         assert!(!is_rebase_in_progress(&nested));
         assert!(!is_cherry_pick_in_progress(&nested));
+        assert!(!is_revert_in_progress(&nested));
+        assert!(!is_bisect_in_progress(&nested));
 
         std::fs::write(real_gitdir.join("MERGE_HEAD"), "abc\n").unwrap();
         assert!(
@@ -554,6 +556,16 @@ mod tests {
 
         std::fs::write(real_gitdir.join("CHERRY_PICK_HEAD"), "abc\n").unwrap();
         assert!(is_cherry_pick_in_progress(&nested));
+        std::fs::remove_file(real_gitdir.join("CHERRY_PICK_HEAD")).unwrap();
+
+        // ADDED 2026-10-03 (audit R4-SC-11): revert/bisect markers
+        // resolve through the gitfile to the real gitdir too.
+        std::fs::write(real_gitdir.join("REVERT_HEAD"), "abc\n").unwrap();
+        assert!(is_revert_in_progress(&nested));
+        std::fs::remove_file(real_gitdir.join("REVERT_HEAD")).unwrap();
+
+        std::fs::write(real_gitdir.join("BISECT_LOG"), "abc\n").unwrap();
+        assert!(is_bisect_in_progress(&nested));
     }
 
     /// Plain-repo layout (real `.git/` directory) still works.
