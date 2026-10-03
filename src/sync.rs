@@ -5689,7 +5689,14 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
         // count_ahead_commits may have to fall back to the whole local
         // history when no tracking ref exists, which is not proof that a
         // configured mirror is stale and would cause unwanted pushes.
-        count_ahead_commits(ctx.repo).await.unwrap_or(0)
+        // FIXED 2026-10-03 (audit R3-L01): a count error is a FAILURE,
+        // not 0-ahead — the old `unwrap_or(0)` produced should_push=false
+        // → Attempted{ok:true} → NothingToDo → daemon Success cleared the
+        // stuck ledger with zero failure accounting (R2-L2 shape, detached
+        // HEAD only). Propagate so the caller records a real failure.
+        count_ahead_commits(ctx.repo)
+            .await
+            .map_err(|e| e.context("detached-ahead count failed"))?
     } else {
         0
     };
