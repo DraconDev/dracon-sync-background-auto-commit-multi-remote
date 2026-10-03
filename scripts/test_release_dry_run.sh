@@ -147,4 +147,11 @@ grep -F 'is not newer than the current' "$work/mono.out" >/dev/null
 test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
 test -z "$(git -C "$repo" status --porcelain)"
 
+# Equal is allowed: a same-version re-run is intentional idempotency, not
+# a downgrade — the guard must let it through.
+DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
+    timeout 120 "$repo/scripts/release.sh" 0.1.0 --dry-run --yes \
+    >"$work/rerun.out" 2>&1
+test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
+
 echo 'sync release dry-run regression tests: ok'
