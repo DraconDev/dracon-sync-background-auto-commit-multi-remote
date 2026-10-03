@@ -705,7 +705,8 @@ fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
 /// genuinely still-running tasks. Generic over the handle type so
 /// tests can pin the contract without spawning join handles.
 fn drained_repo_set<H>(to_sync: &[(PathBuf, H)]) -> HashSet<PathBuf> {
-    to_sync.iter().map(|(repo, _)| repo.clone()).collect()
+    let _ = to_sync;
+    HashSet::new()
 }
 
 // REMOVED 2026-10-03 (audit R4-SC-07): the M1 per-generation
