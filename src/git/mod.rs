@@ -3151,7 +3151,7 @@ exit 0
         );
     }
     #[tokio::test]
-    async fn test_push_with_transport_fallbacks_ssh_succeeds_no_fallback() {
+    async fn test_push_with_retries_ssh_succeeds_no_fallback() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let bare = tmp.path().join("bare.git");
         test_git_cmd()
@@ -3180,11 +3180,13 @@ exit 0
             .current_dir(&repo)
             .output()
             .expect("git commit");
-        let result = crate::git::push_with_transport_fallbacks(&repo, 5, "test-push").await;
+        // CHANGED 2026-10-03 (audit R4-SC-13): sweep deleted;
+        // production entry is push_with_retries (budget 1 here).
+        let result = crate::git::push_with_retries(&repo, 5, 0, "test-push").await;
         assert!(result.is_ok(), "SSH push should succeed: {:?}", result);
     }
     #[tokio::test]
-    async fn test_push_with_transport_fallbacks_ssh_fails_https_fallback_succeeds() {
+    async fn test_push_with_retries_ssh_fails_https_fallback_succeeds() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let real_git = real_git_path();
         let fail_git = tmp.path().join("git");
@@ -3231,7 +3233,8 @@ exit 0
             .output()
             .expect("git commit");
         let _git_bin_guard = GitBinRestorer::new(&fail_git.to_string_lossy());
-        let result = crate::git::push_with_transport_fallbacks(&repo, 5, "test-push-fb").await;
+        // CHANGED 2026-10-03 (audit R4-SC-13): sweep deleted.
+        let result = crate::git::push_with_retries(&repo, 5, 3, "test-push-fb").await;
         assert!(
             result.is_ok(),
             "HTTPS fallback should succeed after SSH failure: {:?}",
@@ -3239,7 +3242,7 @@ exit 0
         );
     }
     #[tokio::test]
-    async fn test_push_with_transport_fallbacks_both_fail() {
+    async fn test_push_with_retries_both_fail() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let real_git = real_git_path();
         let always_fail = tmp.path().join("git");
@@ -3275,12 +3278,13 @@ exit 0
             .output()
             .expect("git commit");
         let _git_bin_guard = GitBinRestorer::new(&always_fail.to_string_lossy());
-        let result =
-            crate::git::push_with_transport_fallbacks(&repo, 1, "test-push-both-fail").await;
+        // CHANGED 2026-10-03 (audit R4-SC-13): sweep deleted;
+        // file:// origin maps to no forge, so budget 1 = one SSH fail.
+        let result = crate::git::push_with_retries(&repo, 1, 0, "test-push-both-fail").await;
         assert!(result.is_err(), "both SSH and HTTPS should fail");
     }
     #[tokio::test]
-    async fn test_push_with_transport_fallbacks_skips_fallback_on_permanent_rejection() {
+    async fn test_push_with_retries_skips_fallback_on_permanent_rejection() {
         let tmp = tempfile::TempDir::new().expect("temp dir");
         let real_git = real_git_path();
         let permanent_git = tmp.path().join("git");
@@ -3330,8 +3334,8 @@ exit 0
             .output()
             .expect("git commit");
         let _git_bin_guard = GitBinRestorer::new(&permanent_git.to_string_lossy());
-        let result =
-            crate::git::push_with_transport_fallbacks(&repo, 1, "test-push-permanent").await;
+        // CHANGED 2026-10-03 (audit R4-SC-13): sweep deleted.
+        let result = crate::git::push_with_retries(&repo, 1, 3, "test-push-permanent").await;
         assert!(result.is_err(), "permanent rejection should fail");
         assert!(!fallback_counter.exists(), "HTTPS fallback should not run");
     }
@@ -3500,7 +3504,9 @@ exit 0
             .output()
             .expect("git commit");
         let _git_bin_guard = GitBinRestorer::new(&mock_git.to_string_lossy());
-        let result = crate::git::push_with_transport_fallbacks(&repo, 5, "test-chain-ssh").await;
+        // CHANGED 2026-10-03 (audit R4-SC-13): sweep deleted;
+        // budget 2 = SSH fail + HTTPS-chain fail, combined (M3).
+        let result = crate::git::push_with_retries(&repo, 5, 2, "test-chain-ssh").await;
         let err = result.expect_err("both transports should fail");
         let msg = err.to_string();
         assert!(
