@@ -429,4 +429,35 @@ case "$out" in
     *) fail "the shadowed mount was not detected: $out" ;;
 esac
 
+# 25. A symlinked root matches on its CANONICAL path (R3-L23). The live
+#     ~/.ssh -> ~/.dracon/secrets/ssh false-positived read-only while the
+#     daemon writes fine through the rw bind; the literal match hit the
+#     read-only parent. Pre-fix this case fails, post-fix it passes.
+mkdir -p "$work/realroot"
+ln -sfn "$work/realroot" "$work/linkroot"
+realroot="$(readlink -f "$work/realroot")"
+repo_link="$work/repo-link.service"
+cat > "$repo_link" <<EOF
+[Unit]
+Description=fixture
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'sleep 1'
+ReadWritePaths=$work/linkroot
+EOF
+link_mount="$work/mountinfo-link"
+cat <<EOF > "$link_mount"
+622 240 259:2 / / ro,nosuid,relatime shared:252 master:1 - ext4 /dev/nvme0n1p2 rw
+700 622 259:2 /tmp /tmp ro,nosuid,relatime shared:900 master:1 - ext4 /dev/nvme0n1p2 rw
+701 700 259:2 $realroot $realroot rw,nosuid,relatime shared:901 master:1 - ext4 /dev/nvme0n1p2 rw
+EOF
+out="$(SYNC_MOUNTINFO="$link_mount" \
+    SYSTEMCTL="$(make_systemctl present)" SYSTEMD_ANALYZE="$analyze_clean" \
+    "$SCRIPT_UNDER_TEST" "$repo_link" "$repo_link" 2>&1)" \
+    || fail "a symlinked root under an rw bind was reported read-only: $out"
+case "$out" in
+    *"is read-write"*) : ;;
+    *) fail "no pass line for the symlinked root: $out" ;;
+esac
+
 echo "✓ all check-unit-deployment regression cases passed"
