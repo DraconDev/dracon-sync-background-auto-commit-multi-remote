@@ -251,8 +251,14 @@ pub(crate) async fn push_with_transport_fallbacks(
 
 /// Push with retries (SSH) and then HTTPS fallback.
 ///
-/// `retries` counts TOTAL push attempts (min 1), unified with
-/// `push_to_named_remote` (audit L5).
+/// `retries` counts the SSH retry-loop attempts (min 1), unified with
+/// `push_to_named_remote` (audit L5). CORRECTED 2026-10-03 (audit
+/// R3-L02): the old claim of "TOTAL push attempts" was wrong — after
+/// the loop exhausts, one EXTRA recovery attempt runs via
+/// `push_with_transport_fallbacks` (a fresh SSH push plus the full
+/// per-forge HTTPS chain), so retries=0 can spawn up to 5 pushes.
+/// That extra attempt is deliberate (a final transport-fallback
+/// sweep before giving up); only the budget claim was fixed.
 ///
 /// On a `[rejected] (fetch first)` error (i.e. the local branch is behind
 /// origin), runs `git pull --no-rebase origin HEAD` once and retries the
@@ -406,10 +412,15 @@ pub(crate) async fn push_with_retries(
             }
         }
     }
-    if let Ok(()) = push_with_transport_fallbacks(repo, timeout_secs, op_label).await {
-        return Ok(());
+    // FIXED 2026-10-03 (audit R3-L03): return the transport-fallback
+    // error, not the stale loop `last_err` — the fallback error already
+    // chains its own fresh SSH cause (audit M3) plus per-forge HTTPS
+    // verdicts, while `last_err` is an earlier SSH attempt the ledger
+    // never needs to see again.
+    match push_with_transport_fallbacks(repo, timeout_secs, op_label).await {
+        Ok(()) => Ok(()),
+        Err(fallback_err) => Err(fallback_err),
     }
-    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push failed")))
 }
 
 /// Check if an error message indicates a rejected push.
