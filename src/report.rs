@@ -14467,6 +14467,43 @@ mod tests {
         );
         assert_eq!(cell.content(), "github,gitlab [codeberg:quota]");
     }
+
+    #[test]
+    fn test_redacted_stuck_last_error_strips_credentials() {
+        // R4-SR-11: a pre-redaction-era ledger entry (or a future
+        // writer bypass) carrying `user:token@` must not reach the
+        // HINT column or JSON `push_error` verbatim.
+        let entry: crate::daemon::StuckRepoEntry =
+            serde_json::from_value(serde_json::json!({
+                "path": "/tmp/repo",
+                "stuck_since": 1,
+                "consecutive_failures": 5,
+                "last_error": "fatal: Authentication failed for 'https://user:s3cr3t@gitlab.com/a/b.git'",
+            }))
+            .expect("test entry deserializes");
+        let redacted = redacted_stuck_last_error(Some(&entry)).expect("Some in, Some out");
+        assert!(
+            !redacted.contains("s3cr3t") && !redacted.contains("user:"),
+            "credential material must not survive: {redacted}"
+        );
+        assert!(
+            redacted.contains("https://gitlab.com/a/b.git"),
+            "host/path preserved for diagnosis: {redacted}"
+        );
+        // Non-URL errors pass through byte-identical; None stays None.
+        let plain: crate::daemon::StuckRepoEntry =
+            serde_json::from_value(serde_json::json!({
+                "path": "/tmp/repo",
+                "stuck_since": 1,
+                "last_error": "fatal: the remote end hung up unexpectedly",
+            }))
+            .expect("test entry deserializes");
+        assert_eq!(
+            redacted_stuck_last_error(Some(&plain)).as_deref(),
+            Some("fatal: the remote end hung up unexpectedly")
+        );
+        assert_eq!(redacted_stuck_last_error(None), None);
+    }
 }
 
 #[cfg(test)]
