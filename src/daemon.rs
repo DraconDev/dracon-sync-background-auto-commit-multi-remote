@@ -3004,6 +3004,38 @@ mod tests {
         ))
     }
 
+    #[test]
+    fn test_stuck_ledger_concurrent_increments_lose_no_updates() {
+        // R3-L11: N threads incrementing the same repo must total
+        // exactly N*M — the old unlocked RMW dropped increments.
+        let state = tempfile::tempdir().unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_STATE_DIR",
+            state.path().to_str().unwrap(),
+        );
+        let repo = make_test_repo_path("ledger-race");
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(4));
+        std::thread::scope(|s| {
+            for _ in 0..4 {
+                let b = barrier.clone();
+                let r = repo.clone();
+                s.spawn(move || {
+                    b.wait();
+                    for _ in 0..5 {
+                        record_push_failure(&r, "race probe");
+                    }
+                });
+            }
+        });
+        assert_eq!(
+            load_stuck_push_repos()[&repo].consecutive_failures,
+            20,
+            "lost ledger increments under concurrency"
+        );
+        assert!(remove_stuck_repo_entry(&repo));
+        assert!(load_stuck_push_repos().is_empty());
+    }
+
     #[tokio::test]
     async fn push_aggregation_cancellation_does_not_arm_backoff() {
         let state = tempfile::tempdir().unwrap();
