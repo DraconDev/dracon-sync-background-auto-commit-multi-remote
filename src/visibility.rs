@@ -1430,9 +1430,9 @@ mod tests {
         // Agreement: no divergence.
         let remotes = vec![mk("drac", None), mk("drac", None)];
         assert_eq!(same_host_project_divergence("myrepo", &remotes), None);
-        // Cross-host pairs never diverge (different forges may host
-        // different projects legitimately).
-        let mut gitlab = mk("drac", None);
+        // Cross-host pairs never diverge even when naming different
+        // projects (different forges legitimately host different names).
+        let mut gitlab = mk("drac", Some(("myrepo", "other-project")));
         gitlab.auth_type = AuthType::GitLab;
         gitlab.push_url = "git@gitlab.com:drac/other.git".to_string();
         let remotes = vec![mk("drac", None), gitlab];
