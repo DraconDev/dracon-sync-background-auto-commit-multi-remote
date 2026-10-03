@@ -270,7 +270,8 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
             .current_dir(repo)
             .kill_on_drop(true);
         for path in chunk {
-            cmd.arg(path);
+            // R4-SC-10: :(literal) — see `unstage_excluded_paths`.
+            cmd.arg(super::literal_pathspec(path));
         }
         // CHANGED 2026-07-21 (v0.112.33, audit M13/F2.4): require
         // exit 0 (same rationale as `unstage_excluded_paths`).
