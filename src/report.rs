@@ -11272,6 +11272,112 @@ mod tests {
         assert!(!row.concern);
     }
 
+    fn full_row_for_json_test() -> RepoReportRow {
+        RepoReportRow {
+            frozen_secs: None,
+            repo: "/test/repo".to_string(),
+            state_flags: vec!["OK".to_string()],
+            branch: "main".to_string(),
+            upstream: "github/main".to_string(),
+            publish_state: PublishState::Ok,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            excluded_dirty: 0,
+            ahead: 0,
+            behind: 0,
+            last_hash: "0123456789abcdef0123456789abcdef01234567".to_string(),
+            last_author: "test".to_string(),
+            last_when: "2024-01-01".to_string(),
+            last_msg: format!("subject {}", "x".repeat(200)),
+            last_unix: 1700000000,
+            commits_1h: 0,
+            commits_6h: 0,
+            commits_24h: 0,
+            last_push: "5m ago".to_string(),
+            push_status: "OK".to_string(),
+            push_error: String::new(),
+            push_to_remotes: vec![],
+            excluded_remotes: vec![],
+            codeberg_skip_reason: None,
+            git_size_bytes: None,
+            git_modules_bytes: None,
+            token_health: TokenHealthSummary {
+                codeberg_present: false,
+                github_present: false,
+                gitlab_present: false,
+            },
+            concern: false,
+            warn: false,
+            active: false,
+            hint: "healthy".to_string(),
+            state_cause: StateCause::Healthy,
+            state_cause_label: "healthy".to_string(),
+            daemon_last_action_unix: 0,
+            daemon_last_action: String::new(),
+            daemon_last_result: String::new(),
+            daemon_last_action_when: "none".to_string(),
+            missing_objects: 0,
+            pack_too_large: false,
+        }
+    }
+
+    #[test]
+    fn test_repo_report_json_carries_full_hash_and_message() {
+        // ADDED 2026-10-02 (audit M12): `--json` emits rows directly, so
+        // rows must carry the FULL hash (a usable rev) and message —
+        // display truncation (`…`) in JSON gave script consumers an
+        // invalid rev and a clipped message.
+        let payload = RepoReportJson {
+            policy: "default".to_string(),
+            filter: "all".to_string(),
+            repos: 1,
+            ok: 1,
+            active: 0,
+            warn: 0,
+            concern: 0,
+            failures: 0,
+            rows: vec![full_row_for_json_test()],
+        };
+        let json = serde_json::to_string(&payload).expect("rows serialize");
+        assert!(
+            json.contains("0123456789abcdef0123456789abcdef01234567"),
+            "JSON must carry the full 40-char hash: {json}"
+        );
+        assert!(
+            json.contains(&"x".repeat(200)),
+            "JSON must carry the full message: {json}"
+        );
+        assert!(
+            !json.contains('…'),
+            "JSON rows must not leak display truncation: {json}"
+        );
+    }
+
+    #[test]
+    fn test_commit_summary_cell_truncates_at_render() {
+        // Display shaping moved to render with M12: the cell shows the
+        // short hash + shaped subject and still fits the column even
+        // when the row holds full values.
+        let cell = commit_summary_cell(
+            "0123456789abcdef0123456789abcdef01234567",
+            &format!("subject {}", "x".repeat(200)),
+            16,
+        );
+        assert!(
+            cell.starts_with("0123456789a…"),
+            "cell opens with the short hash: {cell}"
+        );
+        assert!(
+            !cell.contains("0123456789abcdef"),
+            "cell must not leak the full hash: {cell}"
+        );
+        assert!(
+            unicode_width::UnicodeWidthStr::width(cell.as_str()) <= 17,
+            "cell must fit the column: {cell}"
+        );
+    }
+
     #[test]
     fn test_publish_cell_label_marks_missing_and_gone() {
         // 2026-07-19 (goal `4555eaf6`): publish_cell_label() now
