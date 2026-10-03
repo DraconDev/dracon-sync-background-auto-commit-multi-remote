@@ -47,6 +47,20 @@ pub(crate) fn load_secret(env_name: &str, secrets_dir: &Path) -> Option<String> 
     load_secret_from_dir(env_name, secrets_dir)
 }
 
+/// Supported `.env` line dialect (DOCUMENTED 2026-10-03, audit
+/// R4-SR-15 — previously only `KEY=value-verbatim` worked and the
+/// rest failed closed into auth errors):
+/// - `KEY=value` — value trimmed of surrounding whitespace.
+/// - `export KEY=value` — a leading `export` + whitespace is stripped.
+/// - `KEY="quoted"` / `KEY='quoted'` — one layer of MATCHING quotes
+///   is stripped; the inside is kept verbatim (no comment stripping,
+///   no escape processing). Mismatched quotes stay verbatim.
+/// - `KEY=value # comment` — an UNQUOTED value is cut at the first
+///   `#` preceded by a space/tab, then re-trimmed. A `#` with no
+///   preceding whitespace (`KEY=abc#def`) stays verbatim: it may be
+///   token material, and guessing wrong breaks auth either way.
+/// - Blank lines and `#`-leading lines are skipped; values with
+///   control characters are refused (F52/M27).
 fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
     // 2. Permission check on secrets directory
     if let Err(e) = check_secrets_dir_permissions(secrets_dir) {
@@ -83,13 +97,21 @@ fn load_secret_from_dir(env_name: &str, secrets_dir: &Path) -> Option<String> {
             warn_if_world_readable(&path);
             if let Ok(content) = std::fs::read_to_string(&path) {
                 for line in content.lines() {
-                    let line = line.trim();
+                    let mut line = line.trim();
                     if line.is_empty() || line.starts_with('#') {
                         continue;
                     }
+                    // R4-SR-15: strip a leading `export` + whitespace
+                    // (`export KEY=val`). The whitespace requirement
+                    // keeps `exportKEY=val` from collapsing to KEY.
+                    if let Some(rest) = line.strip_prefix("export") {
+                        if rest.starts_with([' ', '\t']) {
+                            line = rest.trim_start();
+                        }
+                    }
                     if let Some((key, value)) = line.split_once('=') {
                         if key.trim() == env_name {
-                            let value = value.trim();
+                            let value = strip_env_value(value.trim());
                             if !value.is_empty() {
                                 // ADDED 2026-07-21 (v0.112.33, audit
                                 // M27/F3.10): apply the same F52
