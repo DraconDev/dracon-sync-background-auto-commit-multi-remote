@@ -699,8 +699,8 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 /// - `["codeberg", "github", "gitlab"]` excl=[] → "codeberg,github,gitlab" (green)
 /// - `["codeberg"]` excl=["github", "gitlab"] → "codeberg [excl:github,gitlab]" (yellow)
 /// - `[]` excl=[] → "-" (dark grey — no remotes configured at all)
-/// - reason `Some("private")` excl=["github", "codeberg"] →
-///   " [github,codeberg:private]" (reason annotates the codeberg
+/// - reason `Some("private")` excl=["codeberg", "github"] →
+///   " [codeberg:private,github]" (reason annotates the codeberg
 ///   element only — R4-SR-10; never the whole list)
 ///
 /// CHANGED 2026-06-29: format changed from `codeberg −github,gitlab` (Unicode
@@ -720,7 +720,7 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 fn codeberg_gate_reason(cached: Option<bool>) -> &'static str {
     match cached {
         Some(true) => "private",
-        Some(false) | None => "public",
+        Some(false) | None => "unknown",
     }
 }
 
@@ -779,7 +779,7 @@ fn format_push_to_remotes_cell(
                 .collect::<Vec<_>>()
                 .join(",");
             cell_text = if matched {
-                format!("{main} [{excl}:{reason}]")
+                format!("{main} [{annotated}]")
             } else {
                 // Unreachable: the constructor only sets the reason when
                 // codeberg is excluded. Drop the annotation rather than
@@ -14425,13 +14425,15 @@ mod tests {
         // R4-SR-10: the reason must not be folded onto the whole
         // exclusion list (misattribution to other remotes). Empty
         // push-to keeps the multi-exclusion case inside the 30-col
-        // truncation budget.
+        // truncation budget. Codeberg is FIRST here on purpose: with
+        // codeberg last, the old whole-list fold renders the same
+        // string and the test could not discriminate.
         let cell = format_push_to_remotes_cell(
             &[],
-            &["github".to_string(), "codeberg".to_string()],
+            &["codeberg".to_string(), "github".to_string()],
             Some("private"),
         );
-        assert_eq!(cell.content(), " [github,codeberg:private]");
+        assert_eq!(cell.content(), " [codeberg:private,github]");
         // Common single-exclusion case renders byte-identical to the
         // pre-fix fold.
         let cell = format_push_to_remotes_cell(
