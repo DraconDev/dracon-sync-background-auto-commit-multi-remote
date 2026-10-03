@@ -3776,6 +3776,22 @@ fn gitdir_signature(repo: &Path) -> u64 {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Bucket rows into (ok, active, warn, concern) summary counts.
+/// Precedence is concern > active > warn > ok: a warn&&concern row
+/// counts ONLY as concern (FIXED 2026-10-03, audit R3-L09 — the old
+/// inline filters excluded active from warn but not concern, so the
+/// `--json` summary integers summed past `repos`).
+fn row_bucket_counts(rows: &[RepoReportRow]) -> (usize, usize, usize, usize) {
+    let concern = rows.iter().filter(|r| r.concern).count();
+    let active = rows.iter().filter(|r| r.active && !r.concern).count();
+    let warn = rows
+        .iter()
+        .filter(|r| r.warn && !r.active && !r.concern)
+        .count();
+    let ok = rows.len().saturating_sub(concern + active + warn);
+    (ok, active, warn, concern)
+}
+
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
@@ -4694,18 +4710,8 @@ pub(crate) async fn run_repos_report(
         _ => rows.sort_by_key(|a| std::cmp::Reverse(a.last_unix)),
     }
 
-    let concern_count_all = rows.iter().filter(|r| r.concern).count();
-    let active_count_all = rows.iter().filter(|r| r.active && !r.concern).count();
-    let warn_count_all = rows
-        .iter()
-        // FIXED 2026-10-03 (audit R3-L09): a warn&&concern row used to
-        // count in BOTH buckets (warn excluded active but not concern),
-        // so ok+active+warn+concern exceeded repos. Concern wins.
-        .filter(|r| r.warn && !r.active && !r.concern)
-        .count();
-    let ok_count_all = rows
-        .len()
-        .saturating_sub(concern_count_all + active_count_all + warn_count_all);
+    let (ok_count_all, active_count_all, warn_count_all, concern_count_all) =
+        row_bucket_counts(&rows);
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => rows.retain(|r| r.concern),
@@ -4767,18 +4773,7 @@ pub(crate) async fn run_repos_report(
         }
     }
 
-    let concern_count = rows.iter().filter(|r| r.concern).count();
-    let active_count = rows.iter().filter(|r| r.active && !r.concern).count();
-    let warn_count = rows
-        .iter()
-        // FIXED 2026-10-03 (audit R3-L09): a warn&&concern row used to
-        // count in BOTH buckets (warn excluded active but not concern),
-        // so ok+active+warn+concern exceeded repos. Concern wins.
-        .filter(|r| r.warn && !r.active && !r.concern)
-        .count();
-    let ok_count = rows
-        .len()
-        .saturating_sub(concern_count + active_count + warn_count);
+    let (ok_count, active_count, warn_count, concern_count) = row_bucket_counts(&rows);
     let filter_text = match filter {
         RepoFilter::All => "all",
         RepoFilter::Concern => "only_concern",
