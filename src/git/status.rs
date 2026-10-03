@@ -307,11 +307,39 @@ pub(crate) fn count_all_head_commits(repo: &Path) -> u64 {
     try_count_all_head_commits(repo).unwrap_or(0)
 }
 
+/// Whether HEAD is unborn (symbolic ref to a branch with no commits
+/// yet — the state a fresh `git init` leaves behind). Used to tell a
+/// legitimate 0-commit count from a corrupt/broken repo when
+/// `rev-list --count HEAD` fails: unborn → Ok(0), anything else → Err.
+fn is_unborn_head(repo: &Path) -> bool {
+    let symbolic = crate::policy::std_git_command()
+        .args(["symbolic-ref", "-q", "HEAD"])
+        .current_dir(repo)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if !symbolic {
+        return false;
+    }
+    !crate::policy::std_git_command()
+        .args(["rev-parse", "--verify", "-q", "HEAD"])
+        .current_dir(repo)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 /// Fallible HEAD-commit count. ADDED 2026-10-02 (audit L2): the
 /// backstop gate must FAIL CLOSED when the count is unknowable, so
 /// `count_ahead_commits` uses this instead of the 0-defaulting
 /// wrapper — a status error surfaces instead of silently presenting
-/// as "0 ahead" and disarming the backstop.
+/// as "0 ahead" and disarming the backstop. An UNBORN head (fresh
+/// `git init`, no commits) still counts Ok(0): zero commits is a
+/// legitimate answer, not a status error.
 pub(crate) fn try_count_all_head_commits(repo: &Path) -> Result<u64> {
     let output = crate::policy::std_git_command()
         .args(["rev-list", "--count", "HEAD"])
@@ -319,6 +347,9 @@ pub(crate) fn try_count_all_head_commits(repo: &Path) -> Result<u64> {
         .output()
         .with_context(|| format!("rev-list --count HEAD failed to spawn for {}", repo.display()))?;
     if !output.status.success() {
+        if is_unborn_head(repo) {
+            return Ok(0);
+        }
         anyhow::bail!(
             "rev-list --count HEAD exited {} for {}",
             output.status,
