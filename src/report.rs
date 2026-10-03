@@ -6570,18 +6570,42 @@ fn print_repos_summary(
     println!("{table}");
 }
 
+/// ADDED 2026-10-03 (audit L15): the rich tier has no HINT column —
+/// return the link-out line when at least one row carries a hint, so
+/// the default wide view still surfaces that the detail exists. `None`
+/// keeps hint-free fleets noise-free. Hint-emptiness mirrors the
+/// summary tier: empty or `"-"` means none.
+fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
+    let n = rows
+        .iter()
+        .filter(|row| !row.hint.is_empty() && row.hint != "-")
+        .count();
+    if n == 0 {
+        None
+    } else {
+        Some(format!(
+            "💡 {} with HINT detail hidden in wide view — `dracon-sync repos <n|name>` or `--layout vertical`",
+            if n == 1 {
+                "1 repo".to_string()
+            } else {
+                format!("{n} repos")
+            }
+        ))
+    }
+}
+
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
-/// 6-column table (STATUS · REPO · ACTIVITY · PUSH · HINT, plus a
-/// PUBLISH column when the terminal is ≥140 cols). Replaces the
-/// per-repo Vertical block view as the default for < 242 cols: the
-/// operator wanted "a very rich table" as the default, with detail
-/// available on demand (`repos <name>` or `--layout vertical`).
+/// 16-column table (`#` · STATUS · REPO · ACTIVITY · 📝📦🆕🚫 · A/B ·
+/// PUSH · REM · 1H/6H/24H · SIZE · TOUCHED), auto-picked for terminals
+/// ≥165 cols (REPO flex-grows past the fixed floor). The operator
+/// wanted "a very rich table" as the default, with detail available on
+/// demand (`repos <name>` or `--layout vertical`).
 ///
-/// Column widths are chosen to fit a ~90-col minimum terminal:
-/// - `#` 4, STATUS 12, REPO 24 (truncates), ACTIVITY 26 (includes
-///   dirty counts inline, e.g. `⏳ dirty 1d · 101 stg + 2 ut`),
-///   PUSH 10 (`🟣 PENDING`), HINT gets the rest.
-/// - At ≥140 cols, PUBLISH 14 is inserted between PUSH and HINT.
+/// CHANGED 2026-10-03 (audit L15): there is NO HINT column — the old
+/// docstring's 6-column shape with HINT is long gone. Rows carrying
+/// hints get a link-out line under the table instead (see
+/// `rich_hint_link_out`), so the default view never silently hides
+/// that the detail exists.
 ///
 /// Sorted by severity (concern → warn → active → clean) like the
 /// summary, since this is the main health-check view.
@@ -6597,6 +6621,9 @@ fn print_repos_rich_table(
         "{}",
         build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
     );
+    if let Some(line) = rich_hint_link_out(rows) {
+        println!("{line}");
+    }
 }
 
 fn build_repos_rich_table(
