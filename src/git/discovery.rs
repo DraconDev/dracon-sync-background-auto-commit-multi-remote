@@ -699,6 +699,15 @@ pub(crate) fn is_safe_git_path(path: &Path) -> bool {
     true
 }
 
+/// Prefix a repo-relative path with the `:(literal)` pathspec magic so
+/// glob metacharacters in filenames (`*?[]`) cannot act as pathspecs
+/// (R4-SC-10). `:(literal)` is core pathspec magic (git ≥ 1.8.4),
+/// accepted by add/rm/reset/restore/checkout/ls-files — the ls-files
+/// site in `staged_blob_sizes_for` already relies on it.
+pub(crate) fn literal_pathspec(path: &Path) -> String {
+    format!(":(literal){}", path.display())
+}
+
 /// Check if a branch name is safe to use in git commands (no injection chars).
 pub(crate) fn is_safe_branch_name(branch: &str) -> bool {
     if branch.is_empty() {
