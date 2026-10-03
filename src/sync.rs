@@ -4837,7 +4837,12 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     }
     for chunk in to_unstage.chunks(50) {
         let mut cmd = crate::policy::tokio_git_command();
-        cmd.args(["rm", "--cached", "-q", "--"])
+        // `-f`: `git rm --cached` refuses ("staged content different
+        // from both the file and the HEAD") exactly in the R3-M1 case
+        // the sweep exists for — index ≠ truncated worktree. Forcing
+        // is safe: the blob stays in the object store and `--cached`
+        // never touches the worktree file.
+        cmd.args(["rm", "--cached", "-f", "-q", "--"])
             .current_dir(repo)
             .kill_on_drop(true);
         for p in chunk {
