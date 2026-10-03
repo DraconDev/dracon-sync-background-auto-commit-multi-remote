@@ -134,4 +134,17 @@ test "$(awk -F'"' '/^name = "dracon-sync"$/{getline; print $2; exit}' "$repo/Car
 test ! -e "$repo/release-notes-v0.1.1.md"
 test -z "$(git -C "$repo" status --porcelain)"
 
+# R4-M-08: a LOWER version must be refused before anything is touched —
+# no manifest rewrite, no misleading CHANGELOG header, no late registry
+# failure with manual recovery. (Equal is allowed: idempotent re-runs.)
+if DRACON_FIXTURE_ROOT="$repo" HOME="$work/home" PATH="$work/bin:$PATH" \
+    timeout 120 "$repo/scripts/release.sh" 0.0.0 --dry-run --yes \
+    >"$work/mono.out" 2>&1; then
+    echo 'release.sh accepted a downgrade (0.0.0 after 0.1.0)' >&2
+    exit 1
+fi
+grep -F 'is not newer than the current' "$work/mono.out" >/dev/null
+test "$(awk -F'"' '/^version[[:space:]]*=/{print $2; exit}' "$repo/Cargo.toml")" = 0.1.0
+test -z "$(git -C "$repo" status --porcelain)"
+
 echo 'sync release dry-run regression tests: ok'
