@@ -1466,14 +1466,34 @@ async fn stage_existing_files_filtered(
             for p in &quoted {
                 add_args.push(p.as_str());
             }
-            if let Err(e) = run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add").await {
-                eprintln!(
-                    "⚠️ {} git add failed for {} paths: {:?}",
-                    repo.display(),
-                    normal_paths.len(),
-                    &normal_paths[..normal_paths.len().min(5)]
-                );
-                return Err(e);
+            // ADDED 2026-10-03 (audit R4-SC-15): transient
+            // index.lock contention retries with backoff instead of
+            // failing the whole sync on first contact. Two retries
+            // (250/500ms) — holders are usually fast CLI ops; a
+            // still-held lock propagates and maps to Blocked below.
+            let mut add_attempts = 0u32;
+            loop {
+                match run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add").await {
+                    Ok(()) => break,
+                    Err(e) if add_attempts < 2 && is_index_lock_failure(&e.to_string()) => {
+                        add_attempts += 1;
+                        eprintln!(
+                            "⏳ {} git add hit index.lock contention (retry {}/2)",
+                            repo.display(),
+                            add_attempts
+                        );
+                        tokio::time::sleep(Duration::from_millis(250 * add_attempts as u64)).await;
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "⚠️ {} git add failed for {} paths: {:?}",
+                            repo.display(),
+                            normal_paths.len(),
+                            &normal_paths[..normal_paths.len().min(5)]
+                        );
+                        return Err(e);
+                    }
+                }
             }
         }
 
@@ -4360,7 +4380,11 @@ async fn stage_commit_and_push(
     // R3-M2: per-repo entries EXTEND the global list (union helper).
     let auto_commit_exclude_for_staging =
         crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
-    stage_existing_files_filtered(
+    // ADDED 2026-10-03 (audit R4-SC-15): a STILL-contended index
+    // after the add-site retries maps to Blocked (non-failure, work
+    // retained for next cycle) instead of Err (failure budget burn +
+    // MAX_FAILURES backoff for a healthy repo).
+    match stage_existing_files_filtered(
         repo,
         &existing,
         dry_run,
@@ -4368,7 +4392,18 @@ async fn stage_commit_and_push(
         ctx.excluded_dir_names,
         Some((ctx.policy, &auto_commit_exclude_for_staging)),
     )
-    .await?;
+    .await
+    {
+        Ok(()) => {}
+        Err(e) if is_index_lock_failure(&e.to_string()) => {
+            eprintln!(
+                "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
+                repo.display()
+            );
+            return Ok(Some(SyncOutcome::Blocked));
+        }
+        Err(e) => return Err(e),
+    }
 
     stage_gitlink_updates(
         repo,
