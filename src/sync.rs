@@ -4346,7 +4346,8 @@ async fn stage_commit_and_push(
     // done, so the commit below only sees post-sweep content. The
     // build-artifact leg is idempotent (second run finds nothing).
     // Dry-run stages nothing, so there is nothing to re-sweep.
-    if !dry_run {
+    // TEMP R4-SC-05 pre-fix proof: sweep disabled.
+    if !dry_run && false {
         clean_staged_paths(ctx).await?;
     }
 
