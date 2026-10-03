@@ -2902,6 +2902,14 @@ fn commit_summary_cell(hash: &str, msg: &str, width: usize) -> String {
     )
 }
 
+/// ADDED 2026-10-03 (audit L17): BRANCH is Absolute(11) in compact
+/// AND full, so both tiers share this shaper (9 content + padding).
+/// (REPO budgets differ per tier — 16 compact, 17 full — and stay
+/// inline at each tier's cell, like compact's existing bind.)
+fn branch_cell_content(branch: &str) -> String {
+    truncate_unicode_width(branch, 9)
+}
+
 /// Find the start index of the trailing ` DELTA:+X/-Y` segment in a
 /// daemon commit subject, or `None` if not present. The DELTA token
 /// must NOT be preceded by `|` (those are pipe-separated metrics and
@@ -5622,10 +5630,9 @@ fn print_repos_compact_table(
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
             role_cell(&roles[idx]),
-            // FIXED 2026-10-03 (audit L17): BRANCH is Absolute(11) —
-            // truncate explicitly (9 + padding) instead of relying on
-            // comfy-table's non-unicode-aware clip.
-            Cell::new(truncate_unicode_width(&row.branch, 9)).fg(branch_color_for(&row.branch)),
+            // FIXED 2026-10-03 (audit L17): shared branch shaper —
+            // explicit truncate instead of comfy-table's clip.
+            Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
@@ -5812,9 +5819,9 @@ fn print_repos_full_table(
             // of relying on comfy-table's non-unicode-aware clip.
             Cell::new(truncate_unicode_width(&repo_name, 17)),
             role_cell(&roles[idx]),
-            // FIXED 2026-10-03 (audit L17): BRANCH is Absolute(11) —
-            // truncate explicitly (9 + padding), same as compact.
-            Cell::new(truncate_unicode_width(&row.branch, 9)).fg(branch_color_for(&row.branch)),
+            // FIXED 2026-10-03 (audit L17): shared branch shaper,
+            // same as compact.
+            Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
             Cell::new(publish_cell_label(&row.upstream, row.publish_state))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
@@ -13298,6 +13305,25 @@ mod tests {
     /// (`pully-fully-pull-based-fleet-reconciler`, `released/one-mil-girls`,
     /// `⚠️ origin/main (gone)`, etc.) are truncated rather than letter-wrapped
     /// onto a second line on narrow (220-260 col) terminals.
+    #[test]
+    fn test_branch_cell_content_truncates_to_nine() {
+        // ADDED 2026-10-03 (audit L17): shared compact/full BRANCH
+        // shaper (Absolute(11) − padding). Grapheme-safe: no half-flag.
+        assert_eq!(branch_cell_content("main"), "main");
+        let flag = "\u{1f1eb}\u{1f1f7}";
+        let cell = branch_cell_content(&format!("ab{flag}cdefghij"));
+        let w: usize = cell
+            .chars()
+            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+            .sum();
+        assert!(w <= 9, "branch cell must fit 9 cols: {cell:?} ({w})");
+        assert!(cell.ends_with('…'), "long branch truncates: {cell:?}");
+        assert!(
+            cell.contains(flag),
+            "grapheme kept whole, not split: {cell:?}"
+        );
+    }
+
     #[test]
     fn test_compact_table_min_width_within_250() {
         // The values here MUST match the set_constraints in print_repos_compact_table.
