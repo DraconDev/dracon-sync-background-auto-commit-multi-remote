@@ -844,7 +844,72 @@ fn is_excluded_change_path(path: &Path, excluded_dir_names: &BTreeSet<String>) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::create_test_repo;
+    use crate::test_helpers::{create_test_repo, test_commit_cmd, test_git_cmd};
+
+    #[tokio::test]
+    async fn test_unstage_oversized_paths_measures_staged_blob_not_worktree() {
+        // FIX (audit M4, 2026-10-02): stage-large-then-truncate must not
+        // bypass the gate — the staged blob is measured, not the
+        // worktree file. Small staged files stay; staged deletions of
+        // large files stay (removals shrink the repo).
+        let repo = create_test_repo();
+        // Case 1: 2 KiB staged blob, worktree truncated after staging.
+        std::fs::write(repo.join("big.bin"), vec![b'x'; 2048]).unwrap();
+        test_git_cmd()
+            .args(["add", "big.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        std::fs::write(repo.join("big.bin"), b"tiny").unwrap();
+        // Case 2: small staged file stays staged.
+        std::fs::write(repo.join("small.txt"), b"small\n").unwrap();
+        test_git_cmd()
+            .args(["add", "small.txt"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        // Case 3: staged deletion of a large file stays staged.
+        std::fs::write(repo.join("gone.bin"), vec![b'y'; 2048]).unwrap();
+        test_git_cmd()
+            .args(["add", "gone.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        test_commit_cmd()
+            .args(["-m", "add gone"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        test_git_cmd()
+            .args(["rm", "-q", "gone.bin"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+
+        let n = unstage_oversized_paths(&repo, 1024).await.unwrap();
+        assert_eq!(
+            n, 1,
+            "only the large staged blob must be unstaged (deletion + small file stay)"
+        );
+        let cached = test_git_cmd()
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let cached = String::from_utf8_lossy(&cached.stdout);
+        assert!(
+            !cached.contains("big.bin"),
+            "large blob must be unstaged, cached: {cached}"
+        );
+        assert!(
+            cached.contains("small.txt"),
+            "small file must stay staged, cached: {cached}"
+        );
+        assert!(
+            cached.contains("gone.bin"),
+            "staged deletion must stay staged, cached: {cached}"
+        );
+    }
 
     #[test]
     fn large_blob_record_preserves_spaces_in_path() {
