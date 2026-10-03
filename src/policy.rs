@@ -12,6 +12,28 @@ pub(crate) struct GitCommand {
     inner: StdCommand,
 }
 
+// Credential-prompt chain, documented once (audit R3-L02, 2026-10-03):
+// every git child is born non-interactive. `SSH_ASKPASS_REQUIRE=force`
+// makes ssh use ONLY an askpass program (never the terminal);
+// `SSH_ASKPASS`/`DISPLAY` are emptied so no GUI prompt can pop under
+// a graphical user session and hang the op until its timeout.
+// Deliberately PRESERVED: `SSH_AUTH_SOCK` (ssh-agent is the primary
+// SSH auth — clearing it would break every SSH push) and
+// `GIT_ASKPASS` (set per-command by the HTTPS fallback; askpass
+// creation failure SKIPS that forge rather than pushing without
+// credentials — see `push_https_fallback`).
+fn seal_ssh_prompt_env(cmd: &mut StdCommand) {
+    cmd.env("SSH_ASKPASS_REQUIRE", "force");
+    cmd.env("SSH_ASKPASS", "");
+    cmd.env("DISPLAY", "");
+}
+
+fn seal_tokio_ssh_prompt_env(cmd: &mut TokioCommand) {
+    cmd.env("SSH_ASKPASS_REQUIRE", "force");
+    cmd.env("SSH_ASKPASS", "");
+    cmd.env("DISPLAY", "");
+}
+
 impl GitCommand {
     pub(crate) fn into_std(self) -> StdCommand {
         self.inner
@@ -21,9 +43,9 @@ impl GitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        Self {
-            inner: StdCommand::new(git_binary()),
-        }
+        let mut inner = StdCommand::new(git_binary());
+        seal_ssh_prompt_env(&mut inner);
+        Self { inner }
     }
 }
 
@@ -50,9 +72,9 @@ impl TokioGitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        Self {
-            inner: TokioCommand::new(git_binary()),
-        }
+        let mut inner = TokioCommand::new(git_binary());
+        seal_tokio_ssh_prompt_env(&mut inner);
+        Self { inner }
     }
 }
 
