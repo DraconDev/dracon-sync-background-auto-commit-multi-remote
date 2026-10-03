@@ -11449,14 +11449,18 @@ mod tests {
 
     #[test]
     fn test_publish_cell_label_marks_missing_and_gone() {
-        // 2026-07-19 (goal `4555eaf6`): publish_cell_label() now
-        // truncates to 16 cols (PUBLISH column Absolute(18) minus
-        // 2 padding). Short content unaffected; long Gone content
-        // gets ellipsis.
-        assert_eq!(publish_cell_label("-", PublishState::Missing), "⚠️ none");
+        // 2026-07-19 (goal `4555eaf6`): publish_cell_label() truncates
+        // per-tier (FIXED 2026-10-03, audit L18) — compact PUBLISH is
+        // Absolute(18) (content 16), full is Absolute(17) (content
+        // 15). Short content unaffected; long Gone content gets
+        // ellipsis.
+        assert_eq!(
+            publish_cell_label("-", PublishState::Missing, 16),
+            "⚠️ none"
+        );
         // `⚠️ github/main (gone)` = 22 chars → truncated to 16 cols
         // (reserve 1 for `…`).
-        let gone_result = publish_cell_label("github/main", PublishState::Gone);
+        let gone_result = publish_cell_label("github/main", PublishState::Gone, 16);
         assert!(
             gone_result.starts_with("⚠️"),
             "Gone should still have warning emoji prefix: {gone_result}"
@@ -11474,22 +11478,38 @@ mod tests {
         );
         // Ok: short enough to fit unchanged
         assert_eq!(
-            publish_cell_label("github/main", PublishState::Ok),
+            publish_cell_label("github/main", PublishState::Ok, 16),
             "github/main"
+        );
+        // Full tier (content 15) truncates one col tighter — the old
+        // shared 16 overflowed full's Absolute(17) column.
+        let gone_full = publish_cell_label("github/main", PublishState::Gone, 15);
+        assert!(
+            gone_full.ends_with('…'),
+            "full-tier Gone content should end with ellipsis: {gone_full}"
+        );
+        assert!(
+            unicode_width::UnicodeWidthStr::width(gone_full.as_str()) <= 16,
+            "full-tier Gone should be ≤ 16 cols wide: {gone_full}"
+        );
+        assert_ne!(
+            gone_full, gone_result,
+            "per-tier budgets must differ: {gone_full} vs {gone_result}"
         );
     }
 
     #[test]
     fn test_role_cell_truncates_long_submod_labels() {
-        // 2026-07-19 (goal `4555eaf6`): role_cell() truncates ROLE
-        // labels to 12 cols (ROLE column Absolute(14) minus 2 padding).
-        // Short labels are unaffected; long ones get ellipsis.
+        // 2026-07-19 (goal `4555eaf6`): role_cell() truncates per-tier
+        // (FIXED 2026-10-03, audit L18) — compact ROLE is Absolute(14)
+        // (content 12), full is Absolute(18) (content 16). Short labels
+        // are unaffected; long ones get ellipsis.
         use crate::role::RoleKind;
         let long = RoleKind::Submod {
             parent_basename: "dracon-platform".to_string(),
             sub_path: "web/games/released/one-mil-girls".to_string(),
         };
-        let rendered_str = role_cell(&long).content();
+        let rendered_str = role_cell(&long, 12).content();
         // `released/one-mil-girls` = 22 chars > 12 → truncated to 12
         // cols with … (so 11 chars of content + …).
         assert!(
@@ -11506,11 +11526,27 @@ mod tests {
             parent_basename: "dracon-platform".to_string(),
             sub_path: "web/games/wip/hegemon".to_string(),
         };
-        assert_eq!(role_cell(&short).content(), "wip/hegemon");
+        assert_eq!(role_cell(&short, 12).content(), "wip/hegemon");
 
         // Parent and Standalone unaffected (parent is now `parent·10` = 9 chars).
         let parent = RoleKind::Parent(10);
-        assert_eq!(role_cell(&parent).content(), "parent·10");
+        assert_eq!(role_cell(&parent, 12).content(), "parent·10");
+
+        // Full tier (content 16) shows more of a long label — the old
+        // shared 12 under-used full's Absolute(18) column by 4 cols.
+        let full_str = role_cell(&long, 16).content();
+        assert!(
+            full_str.ends_with('…'),
+            "22-char label still truncates at 16: {full_str}"
+        );
+        assert!(
+            unicode_width::UnicodeWidthStr::width(full_str.as_str()) <= 16,
+            "full-tier ROLE label must be ≤ 16 cols: {full_str}"
+        );
+        assert!(
+            full_str.len() > rendered_str.len(),
+            "full tier shows more than compact: {full_str} vs {rendered_str}"
+        );
     }
 
     #[test]
