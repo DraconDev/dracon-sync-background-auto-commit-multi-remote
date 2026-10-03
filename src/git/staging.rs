@@ -232,6 +232,7 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
         );
         to_unstage.push(path);
     }
+    eprintln!("DBG candidates={candidates:?} measurable={measurable:?}");
     for (path, size) in staged_blob_sizes(repo, &measurable).await {
         match size {
             Some(n) if n > max_bytes => to_unstage.push(path),
