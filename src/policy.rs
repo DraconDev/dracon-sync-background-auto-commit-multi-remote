@@ -2430,9 +2430,12 @@ mod tests {
         let mut i = 0;
         while i < bytes.len() {
             let rest = &no_comments[i..];
-            let is_assert = rest.starts_with("assert!")
-                || rest.starts_with("assert_eq!")
-                || rest.starts_with("assert_ne!");
+            let at_ident_start = i == 0
+                || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_');
+            let is_assert = at_ident_start
+                && (rest.starts_with("assert!")
+                    || rest.starts_with("assert_eq!")
+                    || rest.starts_with("assert_ne!"));
             // `debug_assert*!` in production would also be stripped —
             // there is none (checked 2026-10-02); a future one that
             // merges an override must use a `let` binding instead.
