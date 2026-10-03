@@ -1235,6 +1235,61 @@ pub(crate) fn github_visibility_at_creation(
 mod tests {
     use super::*;
 
+    /// ADDED 2026-10-03 (audit R4-SR-05 disposition): the finding
+    /// claimed the flip mixes owner (from `gh api user`) with repo
+    /// (from the remote) — that mechanism does not exist (no `gh api
+    /// user` call anywhere; both come from the origin-URL parse).
+    /// This test pins the single-identity contract with a mock `gh`:
+    /// the PATCH target must be exactly owner/repo from the remote
+    /// URL, and no identity-probing call may precede it.
+    #[cfg(unix)]
+    #[test]
+    fn test_flip_repo_visibility_uses_single_remote_identity() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log = tmp.path().join("gh-argv.log");
+        let fake_gh = tmp.path().join("gh");
+        std::fs::write(
+            &fake_gh,
+            format!(
+                "#!/bin/sh\necho \"$@\" >> \"{}\"\nexit 0\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_gh,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _path_guard = crate::test_helpers::EnvRestorer::new(
+            "PATH",
+            tmp.path().to_str().unwrap(),
+        );
+        let results = flip_repo_visibility(
+            "git@github.com:UrlOwner/url-repo.git",
+            &[],
+            "url-repo",
+            true,
+            false,
+        );
+        assert_eq!(results.len(), 1, "only the github leg with no remotes");
+        assert_eq!(results[0].0, "github");
+        assert!(
+            results[0].1.is_ok(),
+            "mock gh succeeds: {:?}",
+            results[0].1.as_ref().err().map(|e| e.to_string())
+        );
+        let argv = std::fs::read_to_string(&log).unwrap();
+        assert!(
+            argv.contains("repos/UrlOwner/url-repo"),
+            "PATCH target must be owner/repo from the remote URL, got: {argv:?}"
+        );
+        assert!(
+            !argv.contains("api user"),
+            "no identity-probing gh call may precede the flip, got: {argv:?}"
+        );
+    }
+
     #[test]
     fn test_parse_github_owner_repo_ssh() {
         let result = parse_github_owner_repo("git@github.com:DraconDev/my-repo.git");
