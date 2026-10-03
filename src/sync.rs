@@ -1149,10 +1149,7 @@ pub(crate) fn staged_extra_paths(
     staged
         .iter()
         .map(|(p, _)| p)
-        .filter(|p| {
-            !intended_files.contains(*p)
-                && !intended_dirs.iter().any(|d| p.starts_with(d))
-        })
+        .filter(|p| !intended_files.contains(*p) && !intended_dirs.iter().any(|d| p.starts_with(d)))
         .cloned()
         .collect()
 }
