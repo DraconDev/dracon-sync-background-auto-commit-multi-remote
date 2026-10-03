@@ -14751,6 +14751,64 @@ mod v011313_tests {
         assert_eq!(cls.excluded, 1, "the excluded file must be counted");
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-02): the report must
+    /// classify with the UNION of the global list and the per-repo
+    /// override (the daemon's staging contract since R3-M2). The
+    /// old REPLACE (`unwrap_or`) dropped the global list whenever
+    /// a per-repo list existed, undercounting excluded_dirty. The
+    /// control below replicates the pre-fix shape to prove this
+    /// test discriminates it.
+    #[tokio::test]
+    async fn classify_report_uses_union_of_global_and_per_repo_excludes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("r");
+        init_repo(&repo);
+        // Two tracked files: one matching the GLOBAL list only,
+        // one matching the PER-REPO list only.
+        fs::write(repo.join("g.txt"), "v1").unwrap();
+        fs::write(repo.join("p.txt"), "v1").unwrap();
+        git(&repo, &["add", "g.txt", "p.txt"]);
+        git(&repo, &["commit", "-q", "-m", "add both"]);
+        fs::write(repo.join("g.txt"), "v2").unwrap();
+        fs::write(repo.join("p.txt"), "v2").unwrap();
+        // Per-repo override declaring only the p-list (real file,
+        // real loader — the same shape run_repos_report reads).
+        let dracon_dir = repo.join(".dracon");
+        fs::create_dir_all(&dracon_dir).unwrap();
+        fs::write(
+            dracon_dir.join("dracon-sync.toml"),
+            "auto_commit_exclude_patterns = [\"p.txt\"]\n",
+        )
+        .unwrap();
+        let policy = SyncPolicy {
+            auto_commit_exclude_patterns: pats(&["g.txt"]),
+            ..SyncPolicy::default()
+        };
+        let repo_override = crate::policy::load_repo_override(&repo);
+        assert_eq!(
+            repo_override.auto_commit_exclude_patterns,
+            Some(pats(&["p.txt"])),
+            "override file must parse"
+        );
+        // The call-site expression (post-fix): UNION.
+        let effective =
+            crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
+        assert_eq!(effective.len(), 2, "union must carry both lists");
+        let cls = classify_dirty_entries(&repo, &effective, &[]).await;
+        assert_eq!(cls.committable_modified, 0, "nothing committable under UNION");
+        assert_eq!(cls.excluded, 2, "both lists must exclude under UNION");
+        // Control: the pre-fix REPLACE shape drops the global list.
+        let replaced: &[String] = repo_override
+            .auto_commit_exclude_patterns
+            .as_deref()
+            .unwrap_or(&policy.auto_commit_exclude_patterns);
+        let cls_old = classify_dirty_entries(&repo, replaced, &[]).await;
+        assert_eq!(
+            cls_old.excluded, 1,
+            "REPLACE drops the global list (pre-fix shape)"
+        );
+    }
+
     #[tokio::test]
     async fn classify_committable_modified_and_staged() {
         let tmp = tempfile::tempdir().unwrap();
