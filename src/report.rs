@@ -705,6 +705,22 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 /// the text-mode renderer at `format_status_block` (line 2699) which has
 /// always used `[excl:...]`. The PUSH-TO column width was widened from
 /// 17-18 to 32 chars in the same change to accommodate the longer string.
+/// Map a cached-visibility read to the `codeberg_skip_reason` reason
+/// string for a visibility-gate skip.
+///
+/// ADDED 2026-10-03 (audit R4-SR-10): the `Some(false)` ("public")
+/// arm used to emit `"public"` — a TOCTOU between the gate's
+/// `cached_repo_visibility` read (which excluded codeberg) and this
+/// second read (cache flipped to public in between). The gate's
+/// exclusion stands regardless, so a contradictory "public" reason
+/// would annotate the row with a lie; collapse it to `"unknown"`.
+fn codeberg_gate_reason(cached: Option<bool>) -> &'static str {
+    match cached {
+        Some(true) => "private",
+        Some(false) | None => "unknown",
+    }
+}
+
 fn format_push_to_remotes_cell(
     push_to_remotes: &[String],
     excluded_remotes: &[String],
@@ -1541,11 +1557,19 @@ pub(crate) struct RepoReportRow {
     /// Possible values:
     /// - `Some("private")` — repo is private per cached visibility, codeberg
     ///   skipped by policy.
-    /// - `Some("unknown")` — no cached visibility yet, safe default fires.
+    /// - `Some("unknown")` — no cached visibility yet, safe default fires;
+    ///   also the TOCTOU fallback when the re-read cache says "public"
+    ///   after the gate already excluded codeberg (see
+    ///   `codeberg_gate_reason`).
+    /// - `Some("quota")` — visibility gate would have allowed codeberg
+    ///   but the quota-posture rule excluded it (v0.113.16+).
     /// - `None` — codeberg not excluded, OR excluded by manual override
     ///   (operator already knows why; no annotation needed).
     ///
     /// ADDED 2026-07-17 (goal `codeberg-public-only`).
+    /// DOCUMENTED 2026-10-03 (audit R4-SR-10): `quota` was emittable
+    /// since v0.113.16 but never listed here; the `"public"` value is
+    /// gone (collapsed to `"unknown"`, same audit).
     codeberg_skip_reason: Option<String>,
     /// Size of the repo's `.git` directory in bytes (i.e. the data that
     /// would be pushed to remotes). Measured with
@@ -4672,14 +4696,11 @@ pub(crate) async fn run_repos_report(
                     if gate_exclude.iter().any(|r| r == "codeberg") {
                         // Visibility-gate skip; the cache tells us why.
                         Some(
-                            match crate::visibility::cached_repo_visibility(
+                            codeberg_gate_reason(crate::visibility::cached_repo_visibility(
                                 repo.as_ref(),
                                 policy.sync_visibility_interval_hours,
-                            ) {
-                                Some(true) => "private".to_string(),
-                                Some(false) => "public".to_string(), // shouldn't happen
-                                None => "unknown".to_string(),
-                            },
+                            ))
+                            .to_string(),
                         )
                     } else {
                         Some("quota".to_string())
