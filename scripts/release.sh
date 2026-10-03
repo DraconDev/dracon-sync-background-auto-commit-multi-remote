@@ -297,7 +297,10 @@ fi
 # published compare link.
 REMOTE_URL="$(git config --get "remote.${REMOTE}.url" 2>/dev/null || true)"
 if [[ "$REMOTE_URL" =~ github\.com[:/]+([^/]+/[^/]+?)(\.git)?$ ]]; then
-    GH_PATH="${BASH_REMATCH[1]}"
+    # Bash ERE has no lazy quantifiers: `+?` matches greedily, so group 1
+    # keeps a `.git` suffix (group 2 matches empty) and both github.com
+    # and raw.githubusercontent.com 404 on the suffixed form — strip it.
+    GH_PATH="${BASH_REMATCH[1]%.git}"
 else
     GH_PATH="DraconDev/dracon-sync-background-auto-commit-multi-remote"
     [[ "$REMOTE_URL" == *"github.com"* ]] || log "  origin '$REMOTE_URL' is not a github.com remote; using the documented repo path for links"
