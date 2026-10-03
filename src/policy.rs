@@ -721,24 +721,12 @@ pub(crate) struct SyncPolicy {
     /// on GitHub, GitLab, and Codeberg.
     #[serde(default = "default_trusted_remote_hosts")]
     pub(crate) trusted_remote_hosts: Vec<String>,
-    /// When a repo has been dirty continuously for longer than
-    /// this many seconds, the daemon commits REGARDLESS of
-    /// whether the fingerprint is still changing. Prevents the
-    /// "⏸ stalled Xm" pileup the operator sees when many repos
-    /// have stale dirty state from previous sessions. Default
-    /// 60s. Set to 0 to disable (back to 5s fingerprint wait).
-    #[serde(default = "default_settling_max_delay_secs")]
-    #[allow(dead_code)]
-    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
-    pub(crate) settling_max_delay_secs: u64,
-    /// Action to take when a dirty repo exceeds
-    /// `settling_max_delay_secs`. `Commit` (default) force-
-    /// commits the current state; `Warn` logs a warning but
-    /// does not commit; `Ignore` does nothing.
-    #[serde(default = "default_dirty_max_age_action")]
-    #[allow(dead_code)]
-    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
-    pub(crate) dirty_max_age_action: DirtyMaxAgeAction,
+    // REMOVED 2026-10-03 (audit R3-L15): `settling_max_delay_secs` /
+    // `dirty_max_age_action` were parsed + defaulted but never consumed
+    // (the settling feature was never implemented). Per the quarantine
+    // comment's own alternative, both halves + docs are gone rather than
+    // silently-ignored config. Old config files setting them still parse
+    // (no deny_unknown_fields on policy structs); the keys are ignored.
     /// Minimum time between consecutive auto-commits for the
     /// same repo. Prevents thrashing when the operator is
     /// actively editing. Default 5s. Setting this too high will
@@ -1009,19 +997,6 @@ pub(crate) struct RepoPolicyOverride {
     /// air. Merged via `repo_auto_repair_enabled`.
     #[serde(default)]
     pub(crate) auto_repair_concerns: Option<bool>,
-    /// Per-repo override for `settling_max_delay_secs`. None
-    /// inherits the global value. See
-    /// [`SyncPolicy::settling_max_delay_secs`].
-    #[serde(default)]
-    #[allow(dead_code)]
-    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
-    pub(crate) settling_max_delay_secs: Option<u64>,
-    /// Per-repo override for `dirty_max_age_action`. None
-    /// inherits the global value.
-    #[serde(default)]
-    #[allow(dead_code)]
-    // intentional future-policy config; not yet wired into runtime. Audit AUDIT-3-UTILITIES-2026-07-10.md CONCERN #6.
-    pub(crate) dirty_max_age_action: Option<DirtyMaxAgeAction>,
     /// Optional per-repo override for `stale_dirty_alert_secs`.
     /// None inherits the global value. See
     /// [`SyncPolicy::stale_dirty_alert_secs`].
@@ -1374,37 +1349,12 @@ pub(crate) fn default_trusted_remote_hosts() -> Vec<String> {
     ]
 }
 
-pub(crate) fn default_settling_max_delay_secs() -> u64 {
-    60
-}
-
 pub(crate) fn default_min_commit_interval_secs() -> u64 {
     5
 }
 
 pub(crate) fn default_stale_dirty_alert_secs() -> u64 {
     600
-}
-
-pub(crate) fn default_dirty_max_age_action() -> DirtyMaxAgeAction {
-    DirtyMaxAgeAction::Commit
-}
-
-/// What the daemon should do when a dirty repo has been dirty
-/// continuously for longer than `settling_max_delay_secs`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "kebab-case")]
-#[derive(Default)]
-pub(crate) enum DirtyMaxAgeAction {
-    /// Force-commit the current working tree state, regardless of
-    /// fingerprint stability. Default.
-    #[default]
-    Commit,
-    /// Log a warning to stderr but do NOT commit. The operator
-    /// must intervene.
-    Warn,
-    /// Do nothing. Same as `Warn` but with no log line.
-    Ignore,
 }
 
 fn default_sync_visibility_interval_hours() -> u64 {
@@ -2183,8 +2133,6 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
         trusted_emails: default_trusted_emails(),
         trusted_authors: default_trusted_authors(),
         trusted_remote_hosts: default_trusted_remote_hosts(),
-        settling_max_delay_secs: 60,
-        dirty_max_age_action: DirtyMaxAgeAction::Commit,
         min_commit_interval_secs: 5,
         stale_dirty_alert_secs: 600,
         sync_visibility: false,
@@ -2444,15 +2392,11 @@ mod tests {
     /// Paired fields with NO production consumer. This is NOT a silent
     /// pass: the consumption tripwire asserts these STAY unreferenced,
     /// so wiring one flips the failure and forces this list's removal.
-    const OVERRIDE_COVERAGE_UNWIRED: &[&str] = &[
-        // 2026-10-02 (audit L3): specified, parsed, defaulted, and
-        // DOCUMENTED as live in dracon-sync.example.toml — but no
-        // production code reads either half. Implement the settling
-        // feature or remove both halves + the docs; do NOT extend
-        // this list for new knobs.
-        "dirty_max_age_action",
-        "settling_max_delay_secs",
-    ];
+    // RESOLVED 2026-10-03 (audit R3-L15): the settling knobs were
+    // removed (both halves + docs), so this list is empty again. Do
+    // NOT extend it for new knobs — a knob with no consumer must not
+    // be merged.
+    const OVERRIDE_COVERAGE_UNWIRED: &[&str] = &[];
 
     /// Strip `//` comments and `assert*!` statement spans so the
     /// consumption scan sees production merges only: every test-side
@@ -3070,46 +3014,24 @@ mod tests {
     }
 
     #[test]
-    fn test_default_settling_max_delay_secs_is_60() {
-        assert_eq!(default_settling_max_delay_secs(), 60);
-    }
-
-    #[test]
     fn test_default_min_commit_interval_secs_is_5() {
         assert_eq!(default_min_commit_interval_secs(), 5);
     }
 
     #[test]
-    fn test_default_dirty_max_age_action_is_commit() {
-        assert_eq!(default_dirty_max_age_action(), DirtyMaxAgeAction::Commit);
-    }
-
-    #[test]
-    fn test_dirty_max_age_action_default_is_commit() {
-        assert_eq!(DirtyMaxAgeAction::default(), DirtyMaxAgeAction::Commit);
-    }
-
-    #[test]
-    fn test_dirty_max_age_action_serde_kebab_case() {
-        // Verify the serde rename_all = "kebab-case" works
-        // both ways. The TOML is "commit" (or
-        // "warn" or "ignore") and the Rust enum is
-        // `Commit` / `Warn` / `Ignore`.
-        #[derive(serde::Deserialize)]
-        struct Wrap {
-            action: DirtyMaxAgeAction,
-        }
-        let toml = "action = \"warn\"\n";
-        let w: Wrap = toml::from_str(toml).expect("parse warn");
-        assert_eq!(w.action, DirtyMaxAgeAction::Warn);
-
-        let toml = "action = \"commit\"\n";
-        let w: Wrap = toml::from_str(toml).expect("parse commit");
-        assert_eq!(w.action, DirtyMaxAgeAction::Commit);
-
-        let toml = "action = \"ignore\"\n";
-        let w: Wrap = toml::from_str(toml).expect("parse ignore");
-        assert_eq!(w.action, DirtyMaxAgeAction::Ignore);
+    fn test_removed_settling_knobs_are_ignored_by_parser() {
+        // R3-L15: configs written when the settling knobs existed
+        // must still parse — unknown keys are ignored, not errors.
+        let policy: SyncPolicy = toml::from_str(
+            "settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n",
+        )
+        .expect("legacy settling keys must parse");
+        assert_eq!(policy.min_commit_interval_secs, 5);
+        let over: RepoPolicyOverride = toml::from_str(
+            "settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n",
+        )
+        .expect("legacy per-repo settling keys must parse");
+        assert!(over.min_commit_interval_secs.is_none());
     }
 
     #[test]
