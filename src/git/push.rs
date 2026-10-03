@@ -777,6 +777,53 @@ mod tests {
         assert!(!is_push_rejected("connection timed out"));
     }
 
+    /// ADDED 2026-10-03 (audit R3-L04): a fail-fast-eligible rejection
+    /// (M1) must return BEFORE the fetch-first auto-pull — the pull is
+    /// a network op that cannot fix a policy rejection. Mock git fails
+    /// push with a protected-branch message and records every argv.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_permanent_rejection_bypasses_auto_pull() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log = tmp.path().join("argv.log");
+        let fake_git = tmp.path().join("git");
+        std::fs::write(
+            &fake_git,
+            format!(
+                "#!/bin/sh\necho \"$@\" >> \"{}\"\nif [ \"$1\" = \"push\" ]; then\n    echo \"GitLab: You are not allowed to push code to protected branches on this project.\" >&2\n    echo \"pre-receive hook declined\" >&2\n    exit 1\nfi\nexit 0\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().unwrap(),
+        );
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let result = push_with_retries(&repo, 5, 3, "r3-l04").await;
+        assert!(result.is_err(), "protected-branch push must fail");
+        let argv = std::fs::read_to_string(&log).unwrap();
+        let first_words: Vec<&str> = argv
+            .lines()
+            .filter_map(|l| l.split_whitespace().next())
+            .collect();
+        assert!(
+            !first_words.iter().any(|w| *w == "pull"),
+            "auto-pull must not run for a fail-fast rejection: {argv}"
+        );
+        assert_eq!(
+            first_words.iter().filter(|w| ***w == "push").count(),
+            1,
+            "fail fast: exactly one push attempt, no retry/fallback: {argv}"
+        );
+    }
+
     /// ADDED 2026-08-09 (v0.113.50): the classifier must map each
     /// failure mode to the operator-actionable cause the alert and
     /// stuck-ledger will show. Divergence (non-fast-forward) is the
