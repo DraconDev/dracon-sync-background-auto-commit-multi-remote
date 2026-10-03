@@ -138,6 +138,7 @@ pub(crate) async fn staged_blob_sizes_for(
             }
             true
         })
+        .cloned()
         .collect();
     candidates.sort();
     // Map index entries (sha per path) via ls-files; :(literal) keeps
@@ -207,7 +208,8 @@ pub(crate) async fn staged_blob_sizes_for(
             skipped.insert(path.clone());
         }
     }
-    let mut to_unstage = Vec::new();
+    let mut sizes: std::collections::BTreeMap<std::path::PathBuf, Option<u64>> =
+        std::collections::BTreeMap::new();
     // Empty-sha sentinels from a failed ls-files chunk fail closed below.
     let measurable: Vec<(std::path::PathBuf, String)> = indexed
         .into_iter()
@@ -223,16 +225,30 @@ pub(crate) async fn staged_blob_sizes_for(
             .collect()
     };
     for path in blind {
-        eprintln!(
-            "⚠️ cannot measure staged blob for {} in {}; unstaging (fail closed)",
-            path.display(),
-            repo.display()
-        );
-        to_unstage.push(path);
+        sizes.insert(path, None);
     }
     for (path, size) in staged_blob_sizes(repo, &measurable).await {
+        sizes.insert(path, size);
+    }
+    Ok(sizes)
+}
+
+/// Unstage files that exceed the max file size threshold.
+/// Returns the count of unstaged files.
+pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Result<usize> {
+    let staged = super::staged_paths(repo).await?;
+    // FIX (audit M4, 2026-10-02): size the STAGED blob (index), not the
+    // worktree file. Statting the worktree lets stage-large-then-truncate
+    // commit a >max blob past the gate (TOCTOU), and stat errors failed
+    // open. Paths absent from the index are staged deletions (or already
+    // gone): deletions shrink the repo and need no gate, so only
+    // present index entries are measured. Unmeasurable entries fail
+    // closed (unstaged) rather than committing blind.
+    let sizes = staged_blob_sizes_for(repo, &staged).await?;
+    let mut to_unstage = Vec::new();
+    for (path, size) in &sizes {
         match size {
-            Some(n) if n > max_bytes => to_unstage.push(path),
+            Some(n) if *n > max_bytes => to_unstage.push(path.clone()),
             Some(_) => {}
             None => {
                 eprintln!(
@@ -240,7 +256,7 @@ pub(crate) async fn staged_blob_sizes_for(
                     path.display(),
                     repo.display()
                 );
-                to_unstage.push(path);
+                to_unstage.push(path.clone());
             }
         }
     }
