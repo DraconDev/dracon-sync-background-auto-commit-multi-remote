@@ -7989,6 +7989,90 @@ auto_commit_exclude_patterns = ["*.log"]
         assert_eq!(String::from_utf8_lossy(&head_content.stdout).trim(), "v2");
     }
 
+    /// ADDED 2026-10-03 (audit R3-M2): per-repo entries EXTEND the
+    /// global list (union) — a per-repo set must not silently drop
+    /// the global excludes at commit time (old REPLACE semantics
+    /// committed `g.log` here).
+    #[tokio::test]
+    async fn test_auto_commit_excludes_union_global_and_per_repo() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "test@test"), ("user.name", "test")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        std::fs::write(repo.join("g.log"), "original\n").unwrap();
+        std::fs::write(repo.join("p.tmp"), "original\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v1\n").unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "add", "."])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "-q",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+        // Per-repo adds *.tmp; the global policy carries *.log.
+        std::fs::create_dir_all(repo.join(".dracon")).unwrap();
+        std::fs::write(
+            repo.join(".dracon/dracon-sync.toml"),
+            "auto_commit_exclude_patterns = [\"*.tmp\"]\n",
+        )
+        .unwrap();
+        // Operator edits all three tracked files.
+        std::fs::write(repo.join("g.log"), "edited\n").unwrap();
+        std::fs::write(repo.join("p.tmp"), "edited\n").unwrap();
+        std::fs::write(repo.join("normal.txt"), "v2\n").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["test@test"]
+trusted_authors = ["test"]
+auto_commit_exclude_patterns = ["*.log"]
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo failed: {:?}", result);
+
+        let show = |path: &str| {
+            let out = crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "show", &format!("HEAD:{path}")])
+                .output()
+                .unwrap();
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        };
+        assert_eq!(show("normal.txt"), "v2", "normal file must commit");
+        assert_eq!(
+            show("g.log"),
+            "original",
+            "globally-excluded file must survive a per-repo set (union)"
+        );
+        assert_eq!(
+            show("p.tmp"),
+            "original",
+            "per-repo-excluded file must not commit"
+        );
+    }
+
     /// ADDED 2026-07-22 (v0.112.34, audit F1.16): the opt-in
     /// `revert_excluded_to_head = true` restores the old destructive
     /// semantics (excluded files reverted to HEAD).
