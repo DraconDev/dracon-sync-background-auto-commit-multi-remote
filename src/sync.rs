@@ -9629,6 +9629,20 @@ push_url = "{}"
                 .status()
                 .unwrap();
         }
+        // Neutralize ambient global warden hooks: this fixture pushes
+        // test-identity commits through real git (setup + sync_repo)
+        // and the BAD_AUTHORS pre-push would (correctly) block them.
+        // Local config wins over global; production is unchanged.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "core.hooksPath",
+                "/dev/null",
+            ])
+            .status()
+            .unwrap();
 
         crate::git::git_cmd()
             .args([
