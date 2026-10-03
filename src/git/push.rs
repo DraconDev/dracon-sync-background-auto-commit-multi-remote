@@ -6,24 +6,15 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 /// Redact embedded credentials from an error string before it is logged
-/// or classified: `https://user:pass@host/` becomes `https://***@host/`.
-/// Tokens normally travel via askpass (never in URLs), but a remote URL
-/// copied with credentials could otherwise echo into journal/ledger text.
+/// or classified. FIXED 2026-10-03 (audit R3-L06): the old body matched
+/// only literal `https://`, so `http://user:pass@...` (or ssh://, or any
+/// other scheme) userinfo leaked in git error echoes — and the push
+/// paths carried a second, narrower redactor diverging from the
+/// all-scheme `ownership::redact_url_credentials` the ledger writes
+/// use. One redactor now: delegate. Output shape changes from
+/// `https://***@host/` to `https://host/` (nothing pins the old shape).
 pub(crate) fn redact_credentials_for_log(msg: &str) -> String {
-    let mut out = String::with_capacity(msg.len());
-    let mut rest = msg;
-    while let Some(start) = rest.find("https://") {
-        out.push_str(&rest[..start + "https://".len()]);
-        rest = &rest[start + "https://".len()..];
-        // Credential part ends at the first '@' before any '/': redact it.
-        let end_of_host = rest.find('/').unwrap_or(rest.len());
-        if let Some(at) = rest[..end_of_host].find('@') {
-            out.push_str("***@");
-            rest = &rest[at + 1..];
-        }
-    }
-    out.push_str(rest);
-    out
+    crate::ownership::redact_url_credentials(msg)
 }
 
 /// Truncate retained error detail so per-forge context stays ledger-sized.
@@ -388,10 +379,14 @@ pub(crate) async fn push_with_retries(
                             continue;
                         }
                         Err(pull_err) => {
+                            // FIXED 2026-10-03 (audit R3-L06): this raw
+                            // journal print echoed the pull error verbatim,
+                            // bypassing the redactor (a credential-bearing
+                            // remote URL would land in the journal).
                             eprintln!(
                                 "⚠️ auto-pull failed for {}: {} — aborting any partial merge, continuing with retry",
                                 repo.display(),
-                                pull_err
+                                redact_credentials_for_log(&pull_err.to_string())
                             );
                             // Best-effort: don't leave the repo in
                             // MERGING state for the next sync cycle to
