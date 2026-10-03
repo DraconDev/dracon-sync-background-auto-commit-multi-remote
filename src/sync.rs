@@ -4306,17 +4306,16 @@ async fn stage_commit_and_push(
     // effective (per-repo-override-aware) resolution as the
     // partition in `sync_repo_with_ahead_since`.
     let staging_repo_override = load_repo_override(repo);
-    let auto_commit_exclude_for_staging = staging_repo_override
-        .auto_commit_exclude_patterns
-        .as_deref()
-        .unwrap_or(&ctx.policy.auto_commit_exclude_patterns);
+    // R3-M2: per-repo entries EXTEND the global list (union helper).
+    let auto_commit_exclude_for_staging =
+        crate::policy::effective_auto_commit_excludes(ctx.policy, &staging_repo_override);
     stage_existing_files_filtered(
         repo,
         &existing,
         dry_run,
         ctx.policy.stage_op_timeout_secs,
         ctx.excluded_dir_names,
-        Some((ctx.policy, auto_commit_exclude_for_staging)),
+        Some((ctx.policy, &auto_commit_exclude_for_staging)),
     )
     .await?;
 
@@ -4703,10 +4702,9 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     // Untracked enumeration respects .gitignore (including the
     // warden-managed secrets block) via --exclude-standard.
     let untracked = untracked_entries(repo).await?;
-    let auto_commit_exclude = repo_override
-        .auto_commit_exclude_patterns
-        .as_deref()
-        .unwrap_or(&policy.auto_commit_exclude_patterns);
+    // R3-M2: per-repo entries EXTEND the global list (union helper).
+    let auto_commit_exclude =
+        crate::policy::effective_auto_commit_excludes(policy, &repo_override);
     let mut to_stage: Vec<String> = Vec::new();
     for entry in &untracked {
         // `auto_stage_untracked = false` skips newly-added files,
@@ -5234,17 +5232,18 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // CHANGED 2026-07-21 (v0.112.31, audit H6/F1.5): filtered
         // variant for consistency with the main staging path.
         let std_repo_override = load_repo_override(repo);
-        let std_auto_commit_exclude = std_repo_override
-            .auto_commit_exclude_patterns
-            .as_deref()
-            .unwrap_or(&ctx.policy.auto_commit_exclude_patterns);
+        // R3-M2: per-repo entries EXTEND the global list (union helper).
+        let std_auto_commit_exclude = crate::policy::effective_auto_commit_excludes(
+            ctx.policy,
+            &std_repo_override,
+        );
         stage_existing_files_filtered(
             repo,
             &paths,
             dry_run,
             ctx.policy.stage_op_timeout_secs,
             ctx.excluded_dir_names,
-            Some((ctx.policy, std_auto_commit_exclude)),
+            Some((ctx.policy, &std_auto_commit_exclude)),
         )
         .await?;
     }
