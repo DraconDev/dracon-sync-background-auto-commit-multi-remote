@@ -2678,6 +2678,18 @@ fn commit_allowed_by_ownership(repo: &Path, policy: &SyncPolicy) -> bool {
         }
     }
     let repo_override = load_repo_override(repo);
+    // FIXED 2026-10-03 (audit R4-SR-04): a present-but-unparsable
+    // override voids owned=false — and every other opt-out — so a
+    // typo'd file must block commits, not silently inherit permissive
+    // defaults. (The daemon gate skips such repos with an incident-
+    // ledger entry; this is the last-line guard for direct sync paths.)
+    if repo_override.override_parse_error.is_some() {
+        eprintln!(
+            "🚫 {} blocking commit: unparsable .dracon/dracon-sync.toml — fix the typo to resume",
+            repo.display()
+        );
+        return false;
+    }
     if repo_override.owned == Some(false) {
         return false;
     }

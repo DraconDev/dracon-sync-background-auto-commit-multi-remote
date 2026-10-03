@@ -1111,6 +1111,13 @@ pub(crate) fn repo_auto_repair_enabled(
     policy: &SyncPolicy,
     repo_override: &RepoPolicyOverride,
 ) -> bool {
+    // FIXED 2026-10-03 (audit R4-SR-04): an unparsable override
+    // voids the opt-out — fail closed (no repair on unknown
+    // intent). Explicit single-repo CLI repair still bypasses via
+    // the `only_repo.is_some()` clause at the call site.
+    if repo_override.override_parse_error.is_some() {
+        return false;
+    }
     match repo_override.auto_repair_concerns {
         Some(false) => false,
         _ => policy.auto_repair_concerns,
