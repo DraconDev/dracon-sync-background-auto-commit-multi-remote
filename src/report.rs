@@ -6730,8 +6730,10 @@ fn build_repos_rich_table(
     // should be in their respective columns, not just dumped
     // there") — 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded
     // by policy. Width 5 each (3 content + 2 padding) so a 3-digit
-    // count like junk-runner's 282 modified fits without clipping.
-    // Icon headers (width-2); `—` when the class is clean.
+    // count like junk-runner's 282 modified fits without clipping;
+    // counts ≥1000 abbreviate (`1k`, FIXED 2026-10-03 audit L19)
+    // instead of clipping to a wrong number. Icon headers (width-2);
+    // `—` when the class is clean.
     const CHG_MOD_COL: usize = 5;
     const CHG_STG_COL: usize = 5;
     const CHG_UT_COL: usize = 5;
@@ -13922,6 +13924,36 @@ mod tests {
             total <= 165,
             "rich table total width {total} > 165-col minimum. Reduce a column or drop a column."
         );
+    }
+
+    #[test]
+    fn test_format_compact_count_abbreviates_without_wrong_numbers() {
+        // ADDED 2026-10-03 (audit L19): the 3-content CHG cells must
+        // never show a clipped wrong number (`1020` → `10…`). Exact
+        // below 1000, `k`-abbreviated above, capped at `99k`.
+        for (n, want) in [
+            (0, "0"),
+            (7, "7"),
+            (282, "282"),
+            (999, "999"),
+            (1000, "1k"),
+            (1020, "1k"),
+            (9999, "9k"),
+            (12345, "12k"),
+            (99999, "99k"),
+            (100000, "99k"),
+            (2_000_000, "99k"),
+        ] {
+            assert_eq!(format_compact_count(n), want, "n={n}");
+        }
+        // Every output fits the 3-content CHG budget.
+        for n in [0, 1, 999, 1000, 1020, 99999, 100000, usize::MAX] {
+            let s = format_compact_count(n);
+            assert!(
+                s.chars().count() <= 3,
+                "CHG output exceeds 3 cols for n={n}: {s:?}"
+            );
+        }
     }
 
     /// CHANGED 2026-06-29: PUSH-TO cell format changed from Unicode minus
