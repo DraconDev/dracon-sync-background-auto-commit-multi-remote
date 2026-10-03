@@ -4395,7 +4395,7 @@ async fn stage_commit_and_push(
     .await
     {
         Ok(()) => {}
-        Err(e) if false && is_index_lock_failure(&e.to_string()) => {
+        Err(e) if is_index_lock_failure(&e.to_string()) => {
             eprintln!(
                 "⏸️ {} staging blocked by index.lock contention (retry next cycle)",
                 repo.display()
