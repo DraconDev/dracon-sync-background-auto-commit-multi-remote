@@ -213,90 +213,12 @@ pub(crate) async fn push_https_fallback(
     ))
 }
 
-/// Push with SSH first, then try HTTPS fallbacks.
-pub(crate) async fn push_with_transport_fallbacks(
-    repo: &Path,
-    timeout_secs: u64,
-    op_label: &str,
-) -> Result<()> {
-    let ssh_hardening = crate::git::git_ssh_hardening();
-    // CHANGED 2026-07-02 (goal `354fe3cb`):
-    // When the worktree is detached, `git push origin HEAD` fails with
-    // "The destination you provided is not a full refname" because HEAD
-    // is a SHA, not a ref. Build a fully-qualified refspec instead.
-    // This is the case for nested-on-main architectures where the
-    // nested submodule path is watched while still detached at the
-    // parent's gitlink SHA (during migration windows).
-    //
-    // CHANGED 2026-08-09 (v0.113.48, pi-goal-loop-audit incident):
-    // always use the fully-qualified `HEAD:refs/heads/<branch>` form
-    // when a branch is known. Bare `HEAD` is interpreted as a commit
-    // SHA by git when HEAD is detached, even if `current_branch()`
-    // returned `Some(branch)` (worktree-state race: HEAD-file cached
-    // while the worktree is mid-detach). The fully-qualified form is
-    // safe in both attached and detached HEADs — git pushes the commit
-    // pointed at by HEAD to `refs/heads/<branch>`. The detached
-    // fallback to `main` is preserved as a last resort.
-    let ssh_refspec = match crate::git::branch::current_branch(repo) {
-        Some(branch) if super::is_safe_branch_name(&branch) => {
-            format!("HEAD:refs/heads/{branch}")
-        }
-        Some(branch) => {
-            return Err(anyhow::anyhow!(
-                "unsafe current branch '{}' in {}",
-                branch,
-                repo.display()
-            ));
-        }
-        None => "HEAD:refs/heads/main".to_string(),
-    };
-    match super::run_git_with_timeout_env_progress(
-        repo,
-        &["push", "origin", &ssh_refspec],
-        timeout_secs,
-        &format!("{op_label}-ssh-hardened"),
-        &[
-            ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
-            ("GIT_TERMINAL_PROMPT", "0"),
-        ],
-    )
-    .await
-    {
-        Ok(()) => Ok(()),
-        Err(e) => {
-            let err_msg = e.to_string();
-            // Server-side policy errors AND oversized-pack errors cannot be
-            // fixed by retries. Return immediately so the caller logs one
-            // incident per cycle instead of burning the retry budget.
-            if is_permanent_push_rejection(&err_msg) || is_pack_too_large(&err_msg) {
-                return Err(e);
-            }
-            let origin = super::origin_url(repo).unwrap_or_default();
-            let branch = super::current_branch(repo).unwrap_or_else(|| "main".to_string());
-            if !super::is_safe_branch_name(&branch) {
-                eprintln!(
-                    "⚠️ branch name '{}' is unsafe, skipping https fallback",
-                    branch
-                );
-                return Err(e);
-            }
-            let refspec = format!("HEAD:refs/heads/{branch}");
-            // FIX (audit M3, 2026-10-02): chain the original SSH error
-            // into the fallback failure so the ledger records the cause,
-            // not just the symptom. Classifier-safe: matching is
-            // substring-based, so appended context only adds signal.
-            push_https_fallback(repo, &origin, &refspec, timeout_secs, op_label)
-                .await
-                .map_err(|fallback_err| {
-                    anyhow::anyhow!(
-                        "{} [SSH attempt failed: {}]",
-                        fallback_err,
-                        clip_error_detail(&redact_credentials_for_log(&err_msg))
-                    )
-                })
-        }
-    }
-}
+// REMOVED 2026-10-03 (audit R4-SC-13): `push_with_transport_fallbacks`
+// (redundant fresh SSH push + full HTTPS chain AFTER the retry loop
+// exhausted) lived here. The HTTPS chain now runs at most once INSIDE
+// `push_with_retries` under the shared total budget (mirror parity);
+// the R3-L03 error join went with the sweep. `push_https_fallback`
+// (the per-forge chain) is unchanged below.
 
 /// Push with retries (SSH) and HTTPS fallback interleaved in ONE budget.
 ///
