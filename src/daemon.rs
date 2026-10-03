@@ -4302,25 +4302,15 @@ pub(crate) fn load_stuck_push_repos() -> HashMap<PathBuf, StuckRepoEntry> {
         .collect()
 }
 
-// ── Tests for the new settling_max_delay_secs + DirtyMaxAgeAction + ownership ──
+// ── Tests for the commit-interval default ──
+// (R3-L15 removed the settling knobs; only min_commit_interval_secs remains.)
 
-/// Verify the new policy fields default to safe values. A
-/// regression here would mean a new release accidentally
-/// changed the default for `auto_skip_unowned` (which MUST
-/// stay `true` for safety) or `settling_max_delay_secs` (which
-/// is the user-visible "auto-commit delay" knob).
+/// Verify the commit-interval default stays 5s. A regression here
+/// would change the user-visible auto-commit pacing.
 #[test]
-fn test_settling_max_delay_default_is_60() {
-    use crate::policy::{
-        default_dirty_max_age_action, default_min_commit_interval_secs,
-        default_settling_max_delay_secs,
-    };
-    assert_eq!(default_settling_max_delay_secs(), 60);
+fn test_min_commit_interval_default_is_5() {
+    use crate::policy::default_min_commit_interval_secs;
     assert_eq!(default_min_commit_interval_secs(), 5);
-    assert_eq!(
-        default_dirty_max_age_action(),
-        crate::policy::DirtyMaxAgeAction::Commit
-    );
 }
 
 // ── stale-dirty pile-up alert (v0.113.42) ──

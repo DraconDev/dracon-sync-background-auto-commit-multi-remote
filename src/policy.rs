@@ -3046,8 +3046,6 @@ mod tests {
         assert!(!p.trusted_emails.is_empty());
         assert!(!p.trusted_authors.is_empty());
         assert!(!p.trusted_remote_hosts.is_empty());
-        assert_eq!(p.settling_max_delay_secs, 60);
-        assert_eq!(p.dirty_max_age_action, DirtyMaxAgeAction::Commit);
         assert_eq!(p.min_commit_interval_secs, 5);
     }
 
@@ -3059,14 +3057,12 @@ mod tests {
         let toml = r#"
 owned = true
 auto_skip_unowned = false
-settling_max_delay_secs = 30
-dirty_max_age_action = "warn"
+stale_dirty_alert_secs = 30
 "#;
         let parsed: RepoPolicyOverride = toml::from_str(toml).expect("parse override");
         assert_eq!(parsed.owned, Some(true));
         assert_eq!(parsed.auto_skip_unowned, Some(false));
-        assert_eq!(parsed.settling_max_delay_secs, Some(30));
-        assert_eq!(parsed.dirty_max_age_action, Some(DirtyMaxAgeAction::Warn));
+        assert_eq!(parsed.stale_dirty_alert_secs, Some(30));
     }
 
     #[test]
@@ -3080,8 +3076,7 @@ auto_bump_versions = false
         let parsed: RepoPolicyOverride = toml::from_str(toml).expect("parse old override");
         assert_eq!(parsed.owned, None);
         assert_eq!(parsed.auto_skip_unowned, None);
-        assert_eq!(parsed.settling_max_delay_secs, None);
-        assert_eq!(parsed.dirty_max_age_action, None);
+        assert_eq!(parsed.stale_dirty_alert_secs, None);
     }
 
     #[test]

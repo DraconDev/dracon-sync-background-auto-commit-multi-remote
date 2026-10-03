@@ -11202,8 +11202,6 @@ mod tests {
             trusted_emails: crate::policy::default_trusted_emails(),
             trusted_authors: crate::policy::default_trusted_authors(),
             trusted_remote_hosts: crate::policy::default_trusted_remote_hosts(),
-            settling_max_delay_secs: 60,
-            dirty_max_age_action: crate::policy::DirtyMaxAgeAction::Commit,
             min_commit_interval_secs: 5,
             auto_commit_exclude_patterns: vec![],
             sync_visibility: false,
