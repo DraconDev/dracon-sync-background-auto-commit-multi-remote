@@ -610,7 +610,6 @@ fn git_line_output_timeout(
             }
             Ok(None) => {
                 if std::time::Instant::now() >= deadline {
-                    let _ = child.kill();
                     let _ = child.wait();
                     return None;
                 }
