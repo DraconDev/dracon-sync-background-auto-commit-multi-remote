@@ -873,6 +873,14 @@ pub(crate) fn apply_outcome(
                 repo.to_path_buf(),
                 Instant::now() + Duration::from_secs(300),
             );
+            // FIXED 2026-10-03 (audit R3-L12): this arm returns
+            // Success, whose contract (see the enum doc) is "resets
+            // failure_count AND clears stuck-ledger" — the old code
+            // kept the ledger, so alternating push-fail/filter-only
+            // cycles reset the accounting while the ledger survived,
+            // defeating backoff. Clear like Synced/NothingToDo.
+            stuck_push_repos.remove(repo);
+            remove_stuck_repo_entry(repo);
             ApplyOutcome::Success
         }
         Ok(SyncOutcome::Blocked) => {
