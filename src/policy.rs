@@ -8,6 +8,29 @@ use tokio::process::Command as TokioCommand;
 
 pub(crate) static GIT_COMMAND_LOCK: Mutex<()> = Mutex::new(());
 
+// FIXED 2026-10-03 (test hermeticity): test git invocations are
+// sealed from ambient machine config. The installed global hooks
+// (core.hooksPath + BAD_AUTHORS pre-push) otherwise fail tests that
+// push test-identity commits through real git. Production builds
+// keep ambient config (the daemon MUST see the operator's gitconfig).
+#[cfg(test)]
+fn seal_git_env_for_tests(cmd: &mut StdCommand) {
+    cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
+    cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
+}
+
+#[cfg(not(test))]
+fn seal_git_env_for_tests(_cmd: &mut StdCommand) {}
+
+#[cfg(test)]
+fn seal_tokio_git_env_for_tests(cmd: &mut TokioCommand) {
+    cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
+    cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
+}
+
+#[cfg(not(test))]
+fn seal_tokio_git_env_for_tests(_cmd: &mut TokioCommand) {}
+
 pub(crate) struct GitCommand {
     inner: StdCommand,
 }
@@ -21,9 +44,9 @@ impl GitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        Self {
-            inner: StdCommand::new(git_binary()),
-        }
+        let mut inner = StdCommand::new(git_binary());
+        seal_git_env_for_tests(&mut inner);
+        Self { inner }
     }
 }
 
@@ -50,9 +73,9 @@ impl TokioGitCommand {
         // Poisoned means a previous git-command thread panicked while holding
         // the lock; continuing would risk overlapping git operations.
         let _command_guard = GIT_COMMAND_LOCK.lock().expect("git command lock poisoned");
-        Self {
-            inner: TokioCommand::new(git_binary()),
-        }
+        let mut inner = TokioCommand::new(git_binary());
+        seal_tokio_git_env_for_tests(&mut inner);
+        Self { inner }
     }
 }
 
