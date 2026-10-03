@@ -6872,6 +6872,122 @@ auto_bump_versions = false
     }
 
     #[tokio::test]
+    async fn test_sync_repo_skips_revert_in_progress() {
+        // ADDED 2026-10-03 (audit R4-SC-11): a mid-revert sequencer
+        // owns the index the same way a merge does — block.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "user.email",
+                "test@test",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "test"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+
+        // Simulate revert in progress
+        std::fs::write(repo.join(".git/REVERT_HEAD"), "abc123\n").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo should succeed even during revert");
+        assert!(
+            matches!(result, Ok(SyncOutcome::Blocked)),
+            "revert should cause early return (nothing synced)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sync_repo_skips_bisect_in_progress() {
+        // ADDED 2026-10-03 (audit R4-SC-11): an active bisect session
+        // moves HEAD under the daemon — block.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "master"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "config",
+                "user.email",
+                "test@test",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args(["-C", &repo.to_string_lossy(), "config", "user.name", "test"])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "commit",
+                "--no-verify",
+                "--allow-empty",
+                "-m",
+                "init",
+            ])
+            .status()
+            .unwrap();
+
+        // Simulate active bisect session
+        std::fs::write(repo.join(".git/BISECT_LOG"), "abc123\n").unwrap();
+
+        let toml_str = r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+"#;
+        let policy: SyncPolicy = toml::from_str(toml_str).unwrap();
+
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(result.is_ok(), "sync_repo should succeed even during bisect");
+        assert!(
+            matches!(result, Ok(SyncOutcome::Blocked)),
+            "bisect should cause early return (nothing synced)"
+        );
+    }
+
+    #[tokio::test]
     async fn test_sync_repo_auto_commit_creates_commit_for_dirty_repo() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("test-repo");
