@@ -720,7 +720,7 @@ fn publish_state_color(state: PublishState) -> comfy_table::Color {
 fn codeberg_gate_reason(cached: Option<bool>) -> &'static str {
     match cached {
         Some(true) => "private",
-        Some(false) | None => "unknown",
+        Some(false) | None => "public",
     }
 }
 
@@ -779,7 +779,7 @@ fn format_push_to_remotes_cell(
                 .collect::<Vec<_>>()
                 .join(",");
             cell_text = if matched {
-                format!("{main} [{annotated}]")
+                format!("{main} [{excl}:{reason}]")
             } else {
                 // Unreachable: the constructor only sets the reason when
                 // codeberg is excluded. Drop the annotation rather than
