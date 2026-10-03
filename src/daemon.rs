@@ -2335,6 +2335,114 @@ mod tests {
         assert!(entry.blocked_since.is_none());
     }
 
+    /// ADDED 2026-10-03 (audit R4-SC-02): a wedged-task abort (or
+    /// shutdown) arrives at apply_outcome as Err(JoinError
+    /// cancelled) with an EMPTY remote_failures map. Pre-fix the
+    /// helper overwrote entry.remote_failures with the empty map
+    /// (wiping sick-remote pause counters) and returned Failure
+    /// (burning failure_count toward MAX_FAILURES for an outcome
+    /// that is unknown, not failed). Post-fix it returns
+    /// PushPaused with the pause memory intact — mirroring the
+    /// push-level R3-L13 cancellation mapping. A genuine error
+    /// still maps to Failure with the overwrite intact (control).
+    #[tokio::test]
+    async fn test_apply_outcome_wedge_abort_retains_pause_memory() {
+        // A genuinely-cancelled JoinError, wrapped EXACTLY like
+        // the spawn wrapper does (anyhow::Error::new + context).
+        let handle = tokio::spawn(async { std::future::pending::<()>().await });
+        handle.abort();
+        let join_err = handle.await.unwrap_err();
+        assert!(join_err.is_cancelled());
+        let cancelled = anyhow::Error::new(join_err).context("join error");
+
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let repo = tmp.path().join("test-repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let mut paused = HashMap::new();
+        paused.insert(
+            "github".to_string(),
+            RemoteFailInfo {
+                consecutive: 3,
+                last_error: "ssh: timeout".to_string(),
+                last_attempt_unix: 1_000_000,
+            },
+        );
+        let mut entry = RepoActivity {
+            fingerprint: String::new(),
+            changed_at: std::time::Instant::now(),
+            dirty_since: None,
+            ahead_since: None,
+            behind_since: None,
+            mirror_consecutive_fails: paused.clone(),
+            failure_count: 2,
+            remote_failures: paused,
+            ownership: None,
+            ownership_at: None,
+            blocked_since: None,
+            unowned_since: None,
+        };
+        let mut stage_cooldowns: HashMap<PathBuf, std::time::Instant> = HashMap::new();
+        let mut stuck_push_repos: HashMap<PathBuf, StuckRepoEntry> = HashMap::new();
+        stuck_push_repos.insert(
+            repo.clone(),
+            StuckRepoEntry {
+                path: repo.clone(),
+                stuck_since: 1_000_000,
+                consecutive_failures: 2,
+                last_error: "boom".to_string(),
+                last_error_at: 1_000_001,
+                last_retry_at: 1_000_002,
+            },
+        );
+
+        // --- cancelled task -> PushPaused, pause memory intact ---
+        let outcome = apply_outcome(
+            &repo,
+            &Err(cancelled),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::PushPaused);
+        assert_eq!(
+            entry.remote_failures.get("github").map(|i| i.consecutive),
+            Some(3),
+            "abort must not overwrite pause memory with the empty map"
+        );
+        assert_eq!(
+            entry.mirror_consecutive_fails.get("github").map(|i| i.consecutive),
+            Some(3),
+            "mirror pause counters must survive the abort too"
+        );
+        assert_eq!(entry.failure_count, 2, "helper must not touch failure_count");
+        assert!(
+            !stage_cooldowns.contains_key(&repo),
+            "abort must not set a cooldown"
+        );
+        assert!(
+            stuck_push_repos.contains_key(&repo),
+            "abort must leave the stuck entry alone"
+        );
+
+        // --- control: genuine error -> Failure, overwrite intact ---
+        let outcome = apply_outcome(
+            &repo,
+            &Err(anyhow::anyhow!("boom")),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::Failure);
+        assert!(
+            entry.remote_failures.is_empty(),
+            "genuine errors keep the canonical overwrite"
+        );
+    }
+
     #[test]
     fn test_fuser_failure_is_not_treated_as_unused() {
         assert!(classify_fuser_status(Some(0), b"").unwrap());
