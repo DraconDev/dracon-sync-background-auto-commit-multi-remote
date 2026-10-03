@@ -1250,10 +1250,7 @@ mod tests {
         let fake_gh = tmp.path().join("gh");
         std::fs::write(
             &fake_gh,
-            format!(
-                "#!/bin/sh\necho \"$@\" >> \"{}\"\nexit 0\n",
-                log.display()
-            ),
+            format!("#!/bin/sh\necho \"$@\" >> \"{}\"\nexit 0\n", log.display()),
         )
         .unwrap();
         std::fs::set_permissions(
@@ -1261,10 +1258,8 @@ mod tests {
             std::os::unix::fs::PermissionsExt::from_mode(0o755),
         )
         .unwrap();
-        let _path_guard = crate::test_helpers::EnvRestorer::new(
-            "PATH",
-            tmp.path().to_str().unwrap(),
-        );
+        let _path_guard =
+            crate::test_helpers::EnvRestorer::new("PATH", tmp.path().to_str().unwrap());
         let results = flip_repo_visibility(
             "git@github.com:UrlOwner/url-repo.git",
             &[],

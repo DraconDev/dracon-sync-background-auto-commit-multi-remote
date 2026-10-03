@@ -2444,11 +2444,17 @@ mod tests {
             "abort must not overwrite pause memory with the empty map"
         );
         assert_eq!(
-            entry.mirror_consecutive_fails.get("github").map(|i| i.consecutive),
+            entry
+                .mirror_consecutive_fails
+                .get("github")
+                .map(|i| i.consecutive),
             Some(3),
             "mirror pause counters must survive the abort too"
         );
-        assert_eq!(entry.failure_count, 2, "helper must not touch failure_count");
+        assert_eq!(
+            entry.failure_count, 2,
+            "helper must not touch failure_count"
+        );
         assert!(
             !stage_cooldowns.contains_key(&repo),
             "abort must not set a cooldown"
@@ -6763,9 +6769,9 @@ pub(crate) async fn run_daemon(
     // across its sync_repo call. Queued workers still hold their
     // in_flight reservation, so the no-redispatch invariant is
     // unaffected.
-    let sync_semaphore = Arc::new(tokio::sync::Semaphore::new(
-        initial_sync_concurrency_limit(&policy_path),
-    ));
+    let sync_semaphore = Arc::new(tokio::sync::Semaphore::new(initial_sync_concurrency_limit(
+        &policy_path,
+    )));
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();

@@ -847,10 +847,7 @@ mod github_pack_tests {
             (false, 1024)
         );
         let big = 3 * 1024 * 1024 * 1024;
-        assert_eq!(
-            github_pack_too_large_async(p, Some(big)).await,
-            (true, big)
-        );
+        assert_eq!(github_pack_too_large_async(p, Some(big)).await, (true, big));
         // Live repo: the boolean verdict agrees (the size figure
         // can legitimately shift if the daemon commits mid-test).
         let repo = daemon_repo();

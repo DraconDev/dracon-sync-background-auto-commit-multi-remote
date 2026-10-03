@@ -14791,11 +14791,13 @@ mod v011313_tests {
             "override file must parse"
         );
         // The call-site expression (post-fix): UNION.
-        let effective =
-            crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
+        let effective = crate::policy::effective_auto_commit_excludes(&policy, &repo_override);
         assert_eq!(effective.len(), 2, "union must carry both lists");
         let cls = classify_dirty_entries(&repo, &effective, &[]).await;
-        assert_eq!(cls.committable_modified, 0, "nothing committable under UNION");
+        assert_eq!(
+            cls.committable_modified, 0,
+            "nothing committable under UNION"
+        );
         assert_eq!(cls.excluded, 2, "both lists must exclude under UNION");
         // Control: the pre-fix REPLACE shape drops the global list.
         let replaced: &[String] = repo_override
