@@ -7,6 +7,7 @@ use crate::log_warn;
 #[cfg(test)]
 use crate::test_helpers::{test_commit_cmd, test_git_cmd};
 
+use anyhow::Context;
 use anyhow::Result;
 use dracon_git::GitService;
 
@@ -5027,8 +5028,16 @@ pub(crate) async fn sync_repo_with_ahead_since(
                 return Ok(SyncOutcome::NothingToDo);
             }
             Err(e) => {
-                eprintln!("⚠️ {} empty-repo bootstrap failed: {}", repo.display(), e);
-                return Ok(SyncOutcome::NothingToDo);
+                // FIXED 2026-10-02 (audit L1): a failed bootstrap is a
+                // FAILURE, not NothingToDo — the old mapping cleared the
+                // stuck ledger and reset failure_count every cycle (the
+                // daemon counts NothingToDo as Success), so a repo
+                // failing bootstrap forever read healthy with no failure
+                // accounting. Propagate; the daemon's Err arm logs it.
+                return Err(e.context(format!(
+                    "empty-repo bootstrap failed for {}",
+                    repo.display()
+                )));
             }
         }
     }
@@ -5051,7 +5060,13 @@ pub(crate) async fn sync_repo_with_ahead_since(
         // conservatively treats the whole local history as unpushed; that
         // would re-open the mirror push gate even when the mirror is already
         // current (and would arm the backstop on a healthy repo).
-        count_ahead_commits(repo).await.unwrap_or(0)
+        // FIXED 2026-10-02 (audit L2): a count failure NO LONGER reads
+        // as 0-ahead (which silently disarmed the backstop gate) — it
+        // fails the cycle so the error surfaces in failure accounting
+        // and retries next round instead of committing blind.
+        count_ahead_commits(repo)
+            .await
+            .with_context(|| format!("ahead-count failed for {}", repo.display()))?
     } else {
         0
     };
