@@ -1283,4 +1283,22 @@ mod detect_large_blobs_ahead_regression {
         );
         assert_eq!(path, "big.bin");
     }
+
+    /// Regression test for R4-SC-14: a rev-list failure (here: no
+    /// upstream, so `@{u}` cannot resolve) must propagate as Err, not
+    /// `Ok(vec![])`. The old empty-vec silently disabled the >100 MiB
+    /// rewrite guard for exactly the repos that need it; the caller
+    /// now decides (loud incident vs expected skip).
+    #[tokio::test]
+    async fn rev_list_failure_propagates_instead_of_empty() {
+        let (repo, _bare) = create_test_repo_with_remote();
+        // Deliberately NOT pushing: no upstream → @{u} unresolvable.
+        let err = detect_large_blobs_ahead(&repo, 1024 * 1024)
+            .await
+            .expect_err("no-upstream rev-list must fail closed, not Ok(empty)");
+        assert!(
+            err.to_string().contains("rev-list"),
+            "error must name the failed measure, got: {err:#}"
+        );
+    }
 }
