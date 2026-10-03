@@ -12826,13 +12826,14 @@ mod tests {
         let family = "👨\u{200d}👩\u{200d}👧";
         let r = truncate_unicode_width(&format!("ab{family}cd"), 5);
         assert_eq!(r, "ab…", "ZWJ sequence must drop whole: {r:?}");
-        // Flag "🇫🇷" = 2 regional indicators, ONE grapheme, 4 cols.
-        // Old char-iteration kept a half-flag.
+        // Flag = 2 regional indicators, ONE grapheme, 2 cols wide
+        // (unicode-width 0.2 measures RI as 1 col each). Old
+        // char-iteration kept a half-flag.
         let flag = "\u{1f1eb}\u{1f1f7}";
-        let r = truncate_unicode_width(&format!("ab{flag}cd"), 5);
+        let r = truncate_unicode_width(&format!("ab{flag}cd"), 4);
         assert_eq!(r, "ab…", "flag pair must drop whole: {r:?}");
         // A grapheme that fits is kept whole with the ellipsis after it.
-        let r = truncate_unicode_width(&format!("a{flag}cdef"), 6);
+        let r = truncate_unicode_width(&format!("a{flag}cdef"), 4);
         assert_eq!(r, format!("a{flag}…"), "fitting grapheme kept: {r:?}");
     }
 
