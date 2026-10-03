@@ -4346,7 +4346,8 @@ async fn stage_commit_and_push(
     // done, so the commit below only sees post-sweep content. The
     // build-artifact leg is idempotent (second run finds nothing).
     // Dry-run stages nothing, so there is nothing to re-sweep.
-    if !dry_run {
+    // TEMP R4-SC-05 pre-fix proof: sweep disabled.
+    if !dry_run && false {
         clean_staged_paths(ctx).await?;
     }
 
@@ -7390,6 +7391,79 @@ trusted_authors = ["test"]
         assert!(
             !tracked.contains("big.bin"),
             "staged-large-then-truncated blob must not reach the root commit"
+        );
+    }
+
+    /// ADDED 2026-10-03 (audit R4-SC-05): steady state had no
+    /// post-stage oversize sweep — index content that grew past
+    /// max AFTER the pre-stage clean was committed unchecked
+    /// (stage-large-then-truncate TOCTOU, or a concurrent add
+    /// landing between clean and commit). The bootstrap path got
+    /// this sweep in R3-M1; this test pins the steady-state twin.
+    ///
+    /// Deterministic without racers: a clean filter that INFLATES
+    /// `*.bin` (100 B worktree → 2148 B index blob) makes the
+    /// daemon's own staging create the index≠worktree split. The
+    /// worktree file passes every worktree-sized gate; only the
+    /// post-stage INDEX sizing can catch the blob.
+    #[tokio::test]
+    async fn test_sc05_post_stage_sweep_catches_filter_inflated_blob() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        // Inflating clean filter: blob = input + 2048 bytes.
+        std::fs::write(repo.join(".gitattributes"), "*.bin filter=inflate\n").unwrap();
+        let status = crate::git::git_cmd()
+            .args(["config", "filter.inflate.clean", "cat; printf '%02048d' 0"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        // Born HEAD carrying the attributes (setup commit).
+        let status = crate::git::git_cmd()
+            .args(["add", ".gitattributes"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let status = crate::git::git_cmd()
+            .args(["commit", "--no-verify", "-q", "-m", "setup"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        std::fs::write(repo.join("small.txt"), "ok\n").unwrap();
+        std::fs::write(repo.join("big.bin"), vec![7u8; 100]).unwrap();
+
+        let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
+        let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
+        assert!(
+            result.is_ok(),
+            "sync must succeed (sweep unstages, never errors): {:?}",
+            result
+        );
+        assert_eq!(
+            head_commit_count(&repo),
+            2,
+            "the cycle must commit small.txt (not vacuous NothingToDo)"
+        );
+        let output = crate::git::git_cmd()
+            .args(["ls-tree", "-r", "HEAD", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let tree = String::from_utf8_lossy(&output.stdout);
+        assert!(tree.contains("small.txt"), "tree: {tree}");
+        assert!(
+            !tree.contains("big.bin"),
+            "filter-inflated 2148 B blob must not reach the commit; tree: {tree}"
+        );
+        // The sweep unstages; it never deletes worktree content.
+        assert_eq!(
+            std::fs::metadata(repo.join("big.bin")).unwrap().len(),
+            100,
+            "worktree file must survive the sweep byte-identical"
         );
     }
 
