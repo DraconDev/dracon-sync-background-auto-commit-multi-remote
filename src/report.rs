@@ -15249,6 +15249,22 @@ mod v011387_tests {
     }
 
     #[test]
+    fn activity_large_durations_shorten_to_hours_and_days() {
+        // ADDED 2026-10-03 (audit R3-L36): raw "{}m" ("waiting 43200m",
+        // 17 wide) truncated in rich and dropped compact activity;
+        // shorten_mins ("30d") fits.
+        let mut row = pending_row();
+        row.last_when = "43200 minutes ago".to_string();
+        row.ahead = 0;
+        assert_eq!(activity_label(&row), "🟡 waiting 30d");
+        row.push_status = "PUSH_STUCK".to_string();
+        assert_eq!(activity_label(&row), "🛑 push-stuck 30d");
+        row.push_status = "PENDING".to_string();
+        row.last_when = "90 minutes ago".to_string();
+        assert_eq!(activity_label(&row), "🟡 waiting 1h");
+    }
+
+    #[test]
     fn activity_frozen_marker_does_not_leak_into_other_states() {
         // A frozen daemon must not relabel rows that are not PENDING —
         // "frozen" is only the reason a queued push is not moving.
