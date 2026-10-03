@@ -3307,8 +3307,7 @@ exit 0
             ),
         )
         .expect("write mock git");
-        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
-            .expect("chmod");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755)).expect("chmod");
         let repo = tmp.path().join("repo");
         std::process::Command::new(real_git.as_path())
             .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
@@ -3334,7 +3333,10 @@ exit 0
         let result = multi_remote::push_to_named_remote(&repo, "mirror", 5, 0, false).await;
         assert!(result.is_err(), "permanent rejection should fail");
         assert!(
-            result.unwrap_err().to_string().contains("pre-receive hook declined"),
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("pre-receive hook declined"),
             "original SSH error must survive the fail-fast"
         );
         assert!(
@@ -3365,8 +3367,7 @@ exit 0
             ),
         )
         .expect("write mock git");
-        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
-            .expect("chmod");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755)).expect("chmod");
         let repo = tmp.path().join("repo");
         std::process::Command::new(real_git.as_path())
             .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
@@ -3419,8 +3420,7 @@ exit 0
             ),
         )
         .expect("write mock git");
-        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755))
-            .expect("chmod");
+        std::fs::set_permissions(&mock_git, std::fs::Permissions::from_mode(0o755)).expect("chmod");
         let repo = tmp.path().join("repo");
         std::process::Command::new(real_git.as_path())
             .args(["init", "-q", "-b", "master", &repo.to_string_lossy()])
@@ -3443,8 +3443,7 @@ exit 0
             .output()
             .expect("git commit");
         let _git_bin_guard = GitBinRestorer::new(&mock_git.to_string_lossy());
-        let result =
-            crate::git::push_with_transport_fallbacks(&repo, 5, "test-chain-ssh").await;
+        let result = crate::git::push_with_transport_fallbacks(&repo, 5, "test-chain-ssh").await;
         let err = result.expect_err("both transports should fail");
         let msg = err.to_string();
         assert!(

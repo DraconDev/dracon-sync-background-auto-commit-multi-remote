@@ -66,17 +66,17 @@ async fn staged_blob_sizes(
     use tokio::io::AsyncWriteExt;
     let mut out = Vec::with_capacity(shas.len());
     for chunk in shas.chunks(1000) {
-        let input: String = chunk
-            .iter()
-            .map(|(_, sha)| format!("{sha}\n"))
-            .collect();
+        let input: String = chunk.iter().map(|(_, sha)| format!("{sha}\n")).collect();
         let mut cmd = crate::policy::tokio_git_command();
-        cmd.args(["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"])
-            .current_dir(repo)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null())
-            .kill_on_drop(true);
+        cmd.args([
+            "cat-file",
+            "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ])
+        .current_dir(repo)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true);
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(_) => {
@@ -93,10 +93,7 @@ async fn staged_blob_sizes(
         drop(child.stdin.take());
         let output = child.wait_with_output().await;
         let stdout = output.map(|o| o.stdout).unwrap_or_default();
-        let lines: Vec<&str> = std::str::from_utf8(&stdout)
-            .unwrap_or("")
-            .lines()
-            .collect();
+        let lines: Vec<&str> = std::str::from_utf8(&stdout).unwrap_or("").lines().collect();
         for (i, (path, _)) in chunk.iter().enumerate() {
             let size = if !write_ok {
                 None
@@ -156,9 +153,10 @@ pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Resu
         for path in chunk {
             cmd.arg(format!(":(literal){}", path.display()));
         }
-        let output = cmd.output().await.with_context(|| {
-            format!("git ls-files -s failed in {}", repo.display())
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .with_context(|| format!("git ls-files -s failed in {}", repo.display()))?;
         if !output.status.success() {
             // Fail closed: without the index listing we cannot prove
             // any entry is small — unstage the whole chunk.
