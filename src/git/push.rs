@@ -326,7 +326,7 @@ pub(crate) fn pull_refspec_for_branch(
     repo: &std::path::Path,
 ) -> anyhow::Result<String> {
     match branch {
-        Some(b) => Ok(format!("refs/heads/{}", b)),
+        Some(b) if super::is_safe_branch_name(&b) => Ok(format!("refs/heads/{}", b)),
         Some(b) => Err(anyhow::anyhow!(
             "unsafe current branch '{}' in {}",
             b,
