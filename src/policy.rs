@@ -888,6 +888,15 @@ fn default_cold_commit_minutes() -> u64 {
 
 #[derive(Debug, Deserialize, serde::Serialize, Default, Clone)]
 pub(crate) struct RepoPolicyOverride {
+    /// Set by `load_repo_override` when `.dracon/dracon-sync.toml`
+    /// EXISTS but fails to parse (ADDED 2026-10-03, audit R4-SR-04).
+    /// `None` = absent file (clean inherit) or clean parse. `Some(msg)`
+    /// = operator intent UNKNOWN — every safety-negative consumer
+    /// (ownership gate, commit guard, auto-repair) fails closed.
+    /// `#[serde(skip)]`: loader state, not a knob (invisible to the
+    /// field-coverage tripwire by design).
+    #[serde(skip)]
+    pub(crate) override_parse_error: Option<String>,
     /// Repo storage rules can select only operator-defined backend bindings.
     #[serde(default)]
     pub(crate) storage: Option<crate::storage::StorageOverride>,
@@ -1077,7 +1086,17 @@ pub(crate) fn load_repo_override(repo: &Path) -> RepoPolicyOverride {
     };
     toml::from_str(&content).unwrap_or_else(|e| {
         eprintln!("⚠️ failed to parse repo override {}: {}", path.display(), e);
-        RepoPolicyOverride::default()
+        // FIXED 2026-10-03 (audit R4-SR-04): the old code returned
+        // a clean default, silently voiding every safety-negative
+        // opt-out (owned=false, exclude_remotes, repair opt-outs)
+        // — one typo and the daemon auto-committed/pushed repos it
+        // was told to leave alone. Flag the failure so safety gates
+        // fail closed; the daemon ownership gate turns this into a
+        // skip + incident-ledger entry.
+        RepoPolicyOverride {
+            override_parse_error: Some(e.to_string()),
+            ..RepoPolicyOverride::default()
+        }
     })
 }
 
