@@ -694,22 +694,17 @@ fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
 }
 
-/// ADDED 2026-07-27 (v0.113.5, audit M1): decide whether a
-/// trailing-drain sync result for `repo` arriving with generation
-/// `result_gen` should be discarded as the stale outcome of a
-/// force-cleared wedged task. The pre-fix decision (a `HashSet`
-/// membership check on `repo`) discarded whichever future result
-/// arrived first for the repo, inverting outcome depending on
-/// completion order. The post-fix decision keys the discard
-/// marker on `(repo, wedged_generation)`; only a result whose
-/// generation matches the wedged generation is stale enough to
-/// drop. Re-dispatched fresh tasks have a NEWER generation and
-/// must NOT be discarded. Extracted to a crate-internal helper
-/// for testability independent of the heavy concurrent
-/// reproduction the integration variant would require.
-pub(crate) fn should_discard_stale_detached_result(marker: Option<&u64>, result_gen: u64) -> bool {
-    marker.map(|g| *g == result_gen).unwrap_or(false)
-}
+/// REMOVED 2026-10-03 (audit R4-SC-07): the M1 per-generation
+/// `detached_discard` machinery (`should_discard_stale_detached_result`
+/// + `dispatch_gen` + the trailing-drain check) guarded a
+/// force-clear-and-redispatch race that no longer exists — ownership is
+/// retained until the worker joins, nothing is ever force-cleared or
+/// re-dispatched, and the wedged task's own result is the only one and
+/// MUST be applied (R4-SC-02 routes it to PushPaused). The marker map
+/// was never inserted anywhere, so the check was dead code; inserting
+/// a marker on abort would have discarded that sole result. If
+/// force-clearing ever returns, this design needs rethinking (including
+/// the PushPaused wedge semantics), not a revival of the marker.
 
 /// Interpret `fuser`'s result for an index lock. `fuser` exits 1 with no
 /// diagnostic when no process uses the path; every other non-zero result is
