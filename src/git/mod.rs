@@ -835,6 +835,31 @@ mod github_pack_tests {
         );
     }
 
+    /// ADDED 2026-10-03 (audit R4-SC-04): the async wrapper
+    /// must return the identical verdict to the sync entry (same
+    /// logic, different thread pool).
+    #[tokio::test]
+    async fn async_wrapper_matches_sync_verdict() {
+        // Deterministic paths (no repo state involved).
+        let p = std::path::Path::new("/nonexistent/path/that/does/not/exist");
+        assert_eq!(
+            github_pack_too_large_async(p, Some(1024)).await,
+            (false, 1024)
+        );
+        let big = 3 * 1024 * 1024 * 1024;
+        assert_eq!(
+            github_pack_too_large_async(p, Some(big)).await,
+            (true, big)
+        );
+        // Live repo: the boolean verdict agrees (the size figure
+        // can legitimately shift if the daemon commits mid-test).
+        let repo = daemon_repo();
+        let sync_verdict = github_pack_too_large(repo.as_path(), None);
+        let async_verdict = github_pack_too_large_async(repo.as_path(), None).await;
+        assert_eq!(async_verdict.0, sync_verdict.0);
+        assert!(!async_verdict.0, "daemon repo must clear the github guard");
+    }
+
     #[test]
     fn precomputed_small_size_short_circuits_without_git() {
         // A small precomputed size must return (false, size) without touching
