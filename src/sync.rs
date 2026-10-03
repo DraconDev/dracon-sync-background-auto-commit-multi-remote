@@ -11666,8 +11666,12 @@ trusted_authors = ["test"]
         )
         .await
         .expect("lock contention must not hang the worker");
+        // TIGHTENED 2026-10-03 (audit R4-SC-15): persistent
+        // contention maps to Blocked (non-failure, work retained),
+        // never Err (failure budget burn). The old `is_err() ||`
+        // tolerated the budget-burning outcome this finding removes.
         assert!(
-            blocked.is_err() || matches!(blocked, Ok(SyncOutcome::Blocked)),
+            matches!(blocked, Ok(SyncOutcome::Blocked)),
             "must not claim work synced while the index is locked: {blocked:?}"
         );
         assert!(lock.exists(), "never remove another owner's lock");
