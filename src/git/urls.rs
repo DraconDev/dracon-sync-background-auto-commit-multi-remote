@@ -23,7 +23,12 @@ pub(crate) fn origin_url(repo: &Path) -> Option<String> {
 /// Strip userinfo credentials from an HTTPS URL.
 pub(crate) fn strip_url_credentials(url: &str) -> String {
     if let Some(stripped) = url.strip_prefix("https://") {
-        if let Some(at_pos) = stripped.find('@') {
+        // FIXED 2026-10-03 (audit R3-L07): only the `@` in the AUTHORITY
+        // (before the first `/`) is userinfo — the old whole-string
+        // `find('@')` mangled `@` in path segments
+        // (`https://h/o/r@x` → `https://x`).
+        let authority_end = stripped.find('/').unwrap_or(stripped.len());
+        if let Some(at_pos) = stripped[..authority_end].find('@') {
             return format!("https://{}", &stripped[at_pos + 1..]);
         }
     }

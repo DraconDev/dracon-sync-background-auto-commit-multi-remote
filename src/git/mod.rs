@@ -1375,6 +1375,17 @@ mod tests {
         assert_eq!(result, url);
     }
     #[test]
+    fn test_strip_url_credentials_keeps_at_in_path() {
+        // R3-L07: `@` in a path segment is not userinfo — must survive.
+        let url = "https://github.com/owner/repo@feature.git";
+        assert_eq!(strip_url_credentials(url), url);
+        // Userinfo still stripped when both are present.
+        assert_eq!(
+            strip_url_credentials("https://user:pass@github.com/owner/re@po.git"),
+            "https://github.com/owner/re@po.git"
+        );
+    }
+    #[test]
     fn test_git_ssh_hardening_contains_key_flags() {
         let val = git_ssh_hardening();
         assert!(
