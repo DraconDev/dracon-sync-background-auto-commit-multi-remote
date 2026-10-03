@@ -4401,15 +4401,14 @@ pub(crate) async fn run_repos_report(
         };
 
         // Single git log call extracts all commit fields in one process.
+        // FIXED 2026-10-02 (audit M12): rows carry the FULL hash and
+        // message — the pre-truncated `last_hash` (11 hex + `…`) was an
+        // invalid rev for `--json` script consumers, and the message was
+        // pre-clipped to 150. All display shaping now happens at render
+        // (`commit_summary_cell`); `--json` emits rows directly.
         let last_meta = git_log_meta(&repo).await;
         let (last_hash, last_author, last_when, last_unix, last_msg) = match last_meta {
-            Some((h, a, w, u, m)) => (
-                truncate(&h, 12),
-                a,
-                w,
-                u,
-                format_commit_subject_for_display(&m, 150),
-            ),
+            Some((h, a, w, u, m)) => (h, a, w, u, m),
             None => (
                 "-".to_string(),
                 "-".to_string(),
