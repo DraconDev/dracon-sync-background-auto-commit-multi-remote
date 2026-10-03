@@ -13451,7 +13451,7 @@ mod tests {
     /// Verify the sum of all 16 column minimums in `print_repos_compact_table`
     /// plus 15 borders stays within the advisory 244-col floor (REFRESHED
     /// 2026-10-03, audit R3-L38: was "< 220 cols (Vertical is for < 220)"
-    /// — Compact is auto-picked for < 165 since v0.113.26, so the 238+
+    /// — Compact is auto-picked for < 165 since v0.113.26, so the 242
     /// floor exceeds narrow terminals and comfy-table squashes).
     ///
     /// 2026-07-19 (goal `4555eaf6`): REPO (18), ROLE (14), PUBLISH (18),
