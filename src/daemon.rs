@@ -155,6 +155,15 @@ const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
 /// than status because per-job cost is an order of magnitude higher.
 const MAX_INFLIGHT_CLASSIFICATION_JOBS: usize = 2;
 
+/// Bound on concurrent `sync_repo` executions (FIXED 2026-10-03,
+/// audit R4-SC-03): the configured `sem_max_concurrent_sync`,
+/// clamped to ≥1 so a zero config cannot wedge the daemon (a
+/// zero-permit semaphore would block every worker forever).
+/// Pure helper for test.
+pub(crate) fn sync_concurrency_limit(policy: &SyncPolicy) -> usize {
+    policy.sem_max_concurrent_sync.max(1)
+}
+
 /// A failed classifier may run again only after its backoff expires.
 fn classification_cooldown_elapsed(until: Option<&Instant>, now: Instant) -> bool {
     until.is_none_or(|until| now >= *until)
@@ -6695,6 +6704,20 @@ pub(crate) async fn run_daemon(
     // Abort the actual sync worker, not its result-collecting wrapper.
     // Ownership survives cancellation until the wrapper observes its join.
     let mut sync_workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
+    // FIXED 2026-10-03 (audit R4-SC-03): enforce
+    // `policy.sem_max_concurrent_sync` (default 4). The field, the
+    // COLLECT-phase comment, and the smoke test all claimed the
+    // bound, but no semaphore ever existed in this lineage — a
+    // fully-dirty fleet spawned N concurrent sync_repo workers
+    // with git subprocesses and multi-minute pack measurements
+    // (the self-stampede the status/classification caps above
+    // were built to stop). One semaphore for the daemon's life;
+    // each worker holds a permit across its sync_repo call.
+    // Queued workers still hold their in_flight reservation, so
+    // the no-redispatch invariant is unaffected.
+    let sync_semaphore = Arc::new(tokio::sync::Semaphore::new(sync_concurrency_limit(
+        &policy,
+    )));
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
