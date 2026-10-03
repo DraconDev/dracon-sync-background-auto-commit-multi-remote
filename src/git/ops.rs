@@ -543,25 +543,6 @@ pub(crate) async fn run_git_with_timeout_env_progress(
 #[cfg(unix)]
 pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
     use std::os::unix::fs::OpenOptionsExt;
-    let nano = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let tmp_path = std::env::temp_dir().join(format!(
-        "dracon-git-askpass-{}-{}.sh",
-        std::process::id(),
-        nano
-    ));
-
-    // F41 fix (2026-07-18): create the file atomically with mode
-    // 0o700 (O_EXCL | O_NOFOLLOW). The previous flow wrote the file
-    // with default umask (typically 0o666) and then tightened
-    // permissions afterwards — the file was world-readable between
-    // the write and chmod. The caller should still `unlink` the
-    // returned path via the AskpassScript guard (see below) so the
-    // credential doesn't linger in /tmp.
-    let _ = tokio::fs::remove_file(&tmp_path).await; // Best-effort: ignore ENOENT.
-
     // Shell-quote the token (POSIX single-quote escape). For
     // alnum-only tokens (the realistic case — PATs of any forge)
     // this is a no-op. Tokens with `'` break the inner quoting;
@@ -572,22 +553,56 @@ pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
     }
     let script = format!("#!/bin/sh\nprintf '%s\\n' '{token}'\n");
 
-    // Atomic create with mode 0o700.
-    {
-        use std::fs::OpenOptions;
-        let mut openopts = OpenOptions::new();
-        openopts
-            .write(true)
-            .create_new(true)
-            .truncate(false)
-            .custom_flags(libc_o_excl_o_nofollow())
-            .mode(0o700);
-        let mut f = openopts.open(&tmp_path).with_context(|| {
-            format!(
-                "failed to create GIT_ASKPASS script at {}",
-                tmp_path.display()
-            )
-        })?;
+    // F41 fix (2026-07-18): create the file atomically with mode
+    // 0o700 (O_EXCL | O_NOFOLLOW). The previous flow wrote the file
+    // with default umask (typically 0o666) and then tightened
+    // permissions afterwards — the file was world-readable between
+    // the write and chmod. The caller should still `unlink` the
+    // returned path via the AskpassScript guard (see below) so the
+    // credential doesn't linger in /tmp.
+    //
+    // FIXED 2026-10-03 (audit R3-L08): the old best-effort
+    // pre-remove of `tmp_path` reopened the symlink/race window the
+    // O_EXCL contract otherwise closes (unlink a path we never
+    // created, then a gap before exclusive create). Create-exclusive
+    // FIRST; on the near-impossible pid+nanos collision (EEXIST)
+    // retry with a fresh timestamp instead of removing anything.
+    for attempt in 0..3u32 {
+        let nano = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let tmp_path = std::env::temp_dir().join(format!(
+            "dracon-git-askpass-{}-{}-{}.sh",
+            std::process::id(),
+            nano,
+            attempt
+        ));
+
+        // Atomic create with mode 0o700.
+        let created = {
+            use std::fs::OpenOptions;
+            let mut openopts = OpenOptions::new();
+            openopts
+                .write(true)
+                .create_new(true)
+                .truncate(false)
+                .custom_flags(libc_o_excl_o_nofollow())
+                .mode(0o700);
+            openopts.open(&tmp_path)
+        };
+        let mut f = match created {
+            Ok(f) => f,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && attempt < 2 => continue,
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create GIT_ASKPASS script at {}",
+                        tmp_path.display()
+                    )
+                });
+            }
+        };
         use std::io::Write;
         f.write_all(script.as_bytes()).with_context(|| {
             format!(
@@ -595,9 +610,9 @@ pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
                 tmp_path.display()
             )
         })?;
+        return Ok(tmp_path);
     }
-
-    Ok(tmp_path)
+    unreachable!("retry loop returns or bails on its final iteration");
 }
 
 /// Combine `O_EXCL | O_NOFOLLOW` as a libc `c_int` for
