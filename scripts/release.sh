@@ -386,7 +386,24 @@ else
     # A dry-run is a local preview: write the target manifest version so any
     # subsequent cargo publish --dry-run validation sees the release being
     # previewed, not the old version.
-    sed -i "0,/^version[[:space:]]*=/{s/^version[[:space:]]*=.*$/version = \"${VERSION}\"/}" "$CRATE_TOML"
+    # FIXED 2026-10-03 (audit R4-M-11, ported from dracon-system): the old
+    # `sed 0,/^version/` rewrote the FIRST version line in the file — a
+    # future [workspace.package] block above [package] would be bumped
+    # instead of the crate version. Rewrite only the [package] line, and
+    # fail loudly rather than silently leaving a stale version behind.
+    toml_tmp="$(mktemp "${CRATE_TOML}.XXXXXX")"
+    if ! awk -v v="$VERSION" '
+            # print the section header too — dropping it would leave a
+            # manifest with no [package] at all, which no longer parses.
+            /^\[/ { in_package = ($0 == "[package]"); print; next }
+            in_package && /^version[[:space:]]*=/ && !done { print "version = \"" v "\""; done = 1; next }
+            { print }
+            END { if (!done) exit 1 }
+        ' "$CRATE_TOML" > "$toml_tmp"; then
+        rm -f "$toml_tmp"
+        die "could not rewrite the [package] version in $CRATE_TOML"
+    fi
+    mv "$toml_tmp" "$CRATE_TOML"
     ok "  $CRATE_TOML: $current → $VERSION"
 fi
 refresh_workspace_lock
