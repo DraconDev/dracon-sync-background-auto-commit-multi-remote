@@ -1595,6 +1595,48 @@ pub(crate) fn should_stage_entry(
     }
 }
 
+/// Staged-blob variant of the stage gate (ADDED 2026-10-03, R3-M1):
+/// same patterns as `should_stage_entry`, but the size decision uses
+/// the measured INDEX blob instead of the worktree file, closing the
+/// stage-large-then-truncate TOCTOU on paths that are already staged
+/// (bootstrap sweep). The caller measures via
+/// `git::staging::staged_blob_sizes_for` and fails closed on `None`.
+pub(crate) fn should_stage_entry_with_blob_size(
+    repo: &Path,
+    entry: &dracon_git::types::DiffFile,
+    staged_bytes: u64,
+    excluded_dir_names: &BTreeSet<String>,
+    excluded_file_patterns: &[String],
+    max_stage_file_bytes: u64,
+    auto_commit_exclude_patterns: &[String],
+) -> bool {
+    if !entry_passes_stage_patterns(
+        repo,
+        entry,
+        excluded_dir_names,
+        excluded_file_patterns,
+        auto_commit_exclude_patterns,
+    ) {
+        return false;
+    }
+
+    // Submodules and directory type changes
+    if matches!(entry.status, dracon_git::types::FileStatus::TypeChange) {
+        return true;
+    }
+
+    if staged_bytes > max_stage_file_bytes {
+        eprintln!(
+            "ℹ️ skip large staged blob {} ({} bytes > {} bytes)",
+            entry.path.display(),
+            staged_bytes,
+            max_stage_file_bytes
+        );
+        return false;
+    }
+    true
+}
+
 pub(crate) fn can_restore_entry(_repo: &Path, entry: &dracon_git::types::DiffFile) -> bool {
     use dracon_git::types::FileStatus;
     matches!(
