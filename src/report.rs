@@ -5122,7 +5122,7 @@ fn print_repos_vertical(
         println!(
             "{gutter}publish:   {}",
             colorize(
-                &publish_cell_label(&row.upstream, row.publish_state),
+                &publish_cell_label(&row.upstream, row.publish_state, 16),
                 publish_state_color(row.publish_state)
             )
         );
@@ -5631,11 +5631,11 @@ fn print_repos_compact_table(
             Cell::new(idx + 1),
             Cell::new(status_text).fg(status_color),
             Cell::new(repo_name),
-            role_cell(&roles[idx]),
+            role_cell(&roles[idx], 12),
             // FIXED 2026-10-03 (audit L17): shared branch shaper —
             // explicit truncate instead of comfy-table's clip.
             Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
-            Cell::new(publish_cell_label(&row.upstream, row.publish_state))
+            Cell::new(publish_cell_label(&row.upstream, row.publish_state, 16))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
                 Color::Yellow
@@ -5820,11 +5820,11 @@ fn print_repos_full_table(
             // truncate explicitly like compact (17 + padding) instead
             // of relying on comfy-table's non-unicode-aware clip.
             Cell::new(truncate_unicode_width(&repo_name, 17)),
-            role_cell(&roles[idx]),
+            role_cell(&roles[idx], 16),
             // FIXED 2026-10-03 (audit L17): shared branch shaper,
             // same as compact.
             Cell::new(branch_cell_content(&row.branch)).fg(branch_color_for(&row.branch)),
-            Cell::new(publish_cell_label(&row.upstream, row.publish_state))
+            Cell::new(publish_cell_label(&row.upstream, row.publish_state, 15))
                 .fg(publish_state_color(row.publish_state)),
             Cell::new(row.modified).fg(if row.modified > 0 {
                 Color::Yellow
