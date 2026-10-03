@@ -4763,9 +4763,14 @@ pub(crate) fn parse_count_objects_garbage_bytes(stdout: &str) -> u64 {
     0
 }
 
-/// Run `git gc --prune=now` when the repo's dangling-garbage size
-/// exceeds `threshold_bytes`. Returns Some(garbage_bytes) when a gc
-/// ran. Best-effort: all failures are logged, never fatal.
+/// Run plain `git gc` (2-week prune grace retained) when the repo's
+/// dangling-garbage size exceeds `threshold_bytes`. Returns
+/// Some(garbage_bytes) when a gc ran. Best-effort: all failures are
+/// logged, never fatal.
+/// CORRECTED 2026-10-03 (audit R3-L16): the old first line claimed
+/// `--prune=now`, but the SYNC-H3 fix below deliberately runs plain
+/// `gc` (prune-race + reflog safety); the doc invited "fixing"
+/// toward the unsafe form.
 ///
 /// ADDED 2026-07-25 (v0.113.0). Motivation: hegemon's `.git`
 /// ballooned to 4.9 GiB and dracon-platform's to 37 GiB from
