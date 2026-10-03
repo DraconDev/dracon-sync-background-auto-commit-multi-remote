@@ -5843,10 +5843,14 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
                             ctx.repo.display()
                         );
                     }
-                    return Ok(PushReport::Attempted {
-                        ok: false,
-                        degraded: false,
-                    });
+                    // FIXED 2026-10-03 (audit R3-L13): the old
+                    // `Attempted{ok:false}` contradicted the comment
+                    // above ("unknown, not failed") — callers mapped
+                    // it to PushFailed + failure_count++, so a
+                    // wedged-task abort storm burned failure budget.
+                    // AllPaused maps to PushPaused/BackstopSkipped
+                    // (retain activity, no count, no cooldown).
+                    return Ok(PushReport::AllPaused);
                 }
                 let error = crate::ownership::redact_url_credentials(&format!("{e:#}"));
                 eprintln!("⚠️ push error for {}: {}", ctx.repo.display(), error);
