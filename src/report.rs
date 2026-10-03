@@ -3136,26 +3136,34 @@ pub(crate) fn terminal_width() -> Option<u16> {
 /// Tier classification for the `dracon-sync repos` output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LayoutTier {
-    /// ADDED 2026-07-22 (v0.112.38): the DEFAULT for < 242 cols — a
-    /// rich 6-column table (STATUS · REPO · ACTIVITY · PUSH · HINT,
-    /// plus PUBLISH at ≥140 cols). Replaces Vertical as the
-    /// auto-picked default: the operator found the per-repo block
-    /// view too verbose for the default and wanted a rich table +
-    /// on-demand detail (`repos <name>` or `--layout vertical`).
+    /// The DEFAULT for ≥165 cols (auto-picked; v0.113.26 made Rich the
+    /// product for every wide terminal, not just < 242): a rich
+    /// 16-column table (`#` · STATUS · REPO · ACTIVITY · 📝📦🆕🚫 ·
+    /// A/B · PUSH · REM · 1H/6H/24H · SIZE · TOUCHED) with rows
+    /// carrying hints linked out under the table (no HINT column
+    /// since L15). Replaces Vertical as the auto-picked default.
+    /// CORRECTED 2026-10-03 (audit R3-L37): the old "6-column with
+    /// HINT" shape predates v0.113.x.
     Rich,
     /// Opt-in via `--layout vertical` or `repos <name>`: one repo
     /// per multi-line block (the detailed per-repo view).
     Vertical,
-    /// 120-200 cols: compact table (15 columns, no 1h/6h/24h split, narrow HINT)
+    /// Auto-picked for < 165 cols (and opt-in via `--layout compact`):
+    /// 16-column narrow table (no 1h/6h/24h split, merged STATE+ACT).
+    /// CORRECTED 2026-10-03 (audit R3-L37): the old "120-200" band
+    /// and "15 columns" predate v0.113.26/v0.113.x.
     Compact,
-    /// > 200 cols: full v1 22-column table
+    /// Opt-in ONLY via `--layout full` (never auto-picked since
+    /// v0.113.26): the 23-column table. CORRECTED 2026-10-03 (audit
+    /// R3-L37): the old "> 200 cols, 22-column" predates v0.113.26.
     Full,
 }
 
 /// Pick the layout tier from terminal width.
 ///
-/// - `< 165` cols → **Compact** (the rich table's fixed 190 cols can't fit)
-/// - `>= 165` cols → **Rich** (the 10-column table; the operator's table)
+/// - `< 165` cols → **Compact** (the rich table's fixed floor can't fit)
+/// - `>= 165` cols → **Rich** (the 16-column table; the operator's table.
+///   CORRECTED 2026-10-03, audit R3-L37: was "10-column", "190 cols")
 ///
 /// CHANGED 2026-07-30 (v0.113.26): the 242-314 → Compact and >= 315
 /// → Full bands were REMOVED from auto-pick. They were leftovers from
@@ -5489,10 +5497,12 @@ fn human_bytes(b: u64) -> String {
     }
 }
 // ---------------------------------------------------------------------------
-// Layout tier 2: compact (terminal 120-200 cols)
-// 14 columns. Drops: 1h/6h/24h split, AUTHOR (moved to HINT suffix), PUSHED
-// (merged with activity). Keeps STATUS, REPO, BRANCH, PUBLISH, M/S/U counts,
-// AHEAD/BEHIND, PUSH, PUSH-TO, LAST COMMIT, ACTIVITY, STATE, HINT.
+// Layout tier 2: compact (auto-picked for < 165 cols; opt-in otherwise)
+// 16 columns. Drops: 1h/6h/24h split, AUTHOR, PUSHED, REM, SIZE, TOUCHED.
+// Merges STATE+ACT into one column. Keeps STATUS, REPO, ROLE, BRANCH,
+// PUBLISH, MOD/STG/UT counts, AHEAD/BEHIND, PUSH, PUSH-TO, LAST COMMIT,
+// HINT. CORRECTED 2026-10-03 (audit R3-L37): was "120-200 cols,
+// 14 columns" with a stale keeps/drops list.
 // ---------------------------------------------------------------------------
 fn print_repos_compact_table(
     rows: &[RepoReportRow],
@@ -5702,9 +5712,10 @@ fn print_repos_compact_table(
 }
 
 // ---------------------------------------------------------------------------
-// Layout tier 3: full (terminal >= 200 cols)
-// Original 22-column v1 table. Uses column constraints to prevent letter-wrap
-// at any width >= 220.
+// Layout tier 3: full (opt-in via `--layout full` ONLY, never auto-picked)
+// 23-column table. Absolute constraints hold every column; advisory floor
+// 315 cols (see the width-floor comment at the constraints). CORRECTED
+// 2026-10-03 (audit R3-L37): was ">= 200 cols, 22-column, fits >= 220".
 // ---------------------------------------------------------------------------
 fn print_repos_full_table(
     rows: &[RepoReportRow],
