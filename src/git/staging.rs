@@ -54,23 +54,210 @@ pub(crate) async fn unstage_excluded_paths(
     Ok(to_unstage.len())
 }
 
+/// Size the staged (index) blobs for `paths` via one
+/// `git cat-file --batch-check` call per chunk. Returns `(path, bytes)`
+/// with `None` for entries that cannot be measured. Chunked at 1000
+/// paths so the stdin payload stays under the 64 KiB pipe (deadlock
+/// avoidance, same rationale as `blob_size_sum`).
+async fn staged_blob_sizes(
+    repo: &Path,
+    shas: &[(std::path::PathBuf, String)],
+) -> Vec<(std::path::PathBuf, Option<u64>)> {
+    use tokio::io::AsyncWriteExt;
+    let mut out = Vec::with_capacity(shas.len());
+    for chunk in shas.chunks(1000) {
+        let input: String = chunk
+            .iter()
+            .map(|(_, sha)| format!("{sha}\n"))
+            .collect();
+        let mut cmd = crate::policy::tokio_git_command();
+        cmd.args(["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"])
+            .current_dir(repo)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .kill_on_drop(true);
+        let mut child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(_) => {
+                out.extend(chunk.iter().map(|(p, _)| (p.clone(), None)));
+                continue;
+            }
+        };
+        // Bounded write (< 64 KiB): safe to write fully, then read.
+        let write_ok = if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(input.as_bytes()).await.is_ok()
+        } else {
+            false
+        };
+        drop(child.stdin.take());
+        let output = child.wait_with_output().await;
+        let stdout = output.map(|o| o.stdout).unwrap_or_default();
+        let lines: Vec<&str> = std::str::from_utf8(&stdout)
+            .unwrap_or("")
+            .lines()
+            .collect();
+        for (i, (path, _)) in chunk.iter().enumerate() {
+            let size = if !write_ok {
+                None
+            } else {
+                lines.get(i).and_then(|line| {
+                    let mut parts = line.split_whitespace();
+                    let _name = parts.next()?;
+                    let ty = parts.next()?;
+                    if ty == "missing" {
+                        return None;
+                    }
+                    parts.next()?.parse::<u64>().ok()
+                })
+            };
+            out.push((path.clone(), size));
+        }
+    }
+    out
+}
+
 /// Unstage files that exceed the max file size threshold.
 /// Returns the count of unstaged files.
 pub(crate) async fn unstage_oversized_paths(repo: &Path, max_bytes: u64) -> Result<usize> {
     let staged = super::staged_paths(repo).await?;
-    let mut to_unstage = Vec::new();
-    for path in staged {
-        if !super::is_safe_git_path(&path) {
+    // FIX (audit M4, 2026-10-02): size the STAGED blob (index), not the
+    // worktree file. Statting the worktree lets stage-large-then-truncate
+    // commit a >max blob past the gate (TOCTOU), and stat errors failed
+    // open. Paths absent from the index are staged deletions (or already
+    // gone): deletions shrink the repo and need no gate, so only
+    // present index entries are measured. Unmeasurable entries fail
+    // closed (unstaged) rather than committing blind.
+    let mut candidates: Vec<std::path::PathBuf> = staged
+        .into_iter()
+        .filter(|path| {
+            if !super::is_safe_git_path(path) {
+                eprintln!(
+                    "⚠️ skipping unsafe path {} in {}",
+                    path.display(),
+                    repo.display()
+                );
+                return false;
+            }
+            true
+        })
+        .collect();
+    candidates.sort();
+    // Map index entries (sha per path) via ls-files; :(literal) keeps
+    // glob metacharacters in filenames from acting as pathspecs.
+    let mut indexed: Vec<(std::path::PathBuf, String)> = Vec::new();
+    for chunk in candidates.chunks(500) {
+        let mut cmd = crate::policy::tokio_git_command();
+        cmd.args(["ls-files", "-s", "-z", "--"])
+            .current_dir(repo)
+            .kill_on_drop(true);
+        for path in chunk {
+            cmd.arg(format!(":(literal){}", path.display()));
+        }
+        let output = cmd.output().await.with_context(|| {
+            format!("git ls-files -s failed in {}", repo.display())
+        })?;
+        if !output.status.success() {
+            // Fail closed: without the index listing we cannot prove
+            // any entry is small — unstage the whole chunk.
             eprintln!(
-                "⚠️ skipping unsafe path {} in {}",
-                path.display(),
-                repo.display()
+                "⚠️ git ls-files -s failed in {}; unstaging {} staged path(s) blind",
+                repo.display(),
+                chunk.len()
             );
+            for path in chunk {
+                indexed.push((path.clone(), String::new()));
+            }
             continue;
         }
-        let full = repo.join(&path);
-        if let Ok(meta) = tokio::fs::metadata(&full).await {
-            if meta.len() > max_bytes {
+        // Record format: "<mode> <sha> <stage>\t<path>\0" (raw bytes).
+        let mut seen: std::collections::BTreeSet<Vec<u8>> = std::collections::BTreeSet::new();
+        for record in output.stdout.split(|b| *b == 0) {
+            if record.is_empty() {
+                continue;
+            }
+            let Some(tab) = record.iter().position(|b| *b == b'\t') else {
+                continue;
+            };
+            let (meta, name) = (&record[..tab], &record[tab + 1..]);
+            let mut meta_parts = meta.split(|b| *b == b' ');
+            let _mode = meta_parts.next();
+            let Some(sha) = meta_parts.next() else {
+                continue;
+            };
+            if sha.len() != 40 && sha.len() != 64 {
+                continue;
+            }
+            seen.insert(name.to_vec());
+            indexed.push((
+                std::path::PathBuf::from(String::from_utf8_lossy(name).into_owned()),
+                String::from_utf8_lossy(sha).into_owned(),
+            ));
+        }
+        // Belt-and-braces: any chunk path missing from the listing that
+        // is NOT a staged deletion is unmeasurable → fail closed. A
+        // staged deletion is absent by design (nothing to commit).
+        for path in chunk {
+            let key = path.as_os_str().as_encoded_bytes();
+            if seen.contains(key) {
+                continue;
+            }
+            // Present in `diff --cached` but not in the index: either a
+            // staged deletion (fine, skip) or a race (fail closed by
+            // attempting unstage — reset of an already-absent path is
+            // verified harmless below... instead check HEAD).
+            let mut head_cmd = crate::policy::tokio_git_command();
+            head_cmd
+                .args(["cat-file", "-e", &format!("HEAD:{}", path.display())])
+                .current_dir(repo)
+                .kill_on_drop(true);
+            let in_head = head_cmd
+                .status()
+                .await
+                .map(|s| s.success())
+                .unwrap_or(false);
+            if !in_head {
+                // Not in HEAD and not in index: nothing staged (race
+                // already resolved it) — nothing to do.
+                continue;
+            }
+            // In HEAD but not in index: staged deletion — commits a
+            // removal, never new bytes. Skip the size gate.
+        }
+    }
+    let mut to_unstage = Vec::new();
+    // Empty-sha sentinels from a failed ls-files chunk fail closed below.
+    let measurable: Vec<(std::path::PathBuf, String)> = indexed
+        .into_iter()
+        .filter(|(_, sha)| !sha.is_empty())
+        .collect();
+    let blind: Vec<std::path::PathBuf> = {
+        let measured: std::collections::BTreeSet<_> =
+            measurable.iter().map(|(p, _)| p.clone()).collect();
+        candidates
+            .iter()
+            .filter(|p| !measured.contains(*p))
+            .cloned()
+            .collect()
+    };
+    for path in blind {
+        eprintln!(
+            "⚠️ cannot measure staged blob for {} in {}; unstaging (fail closed)",
+            path.display(),
+            repo.display()
+        );
+        to_unstage.push(path);
+    }
+    for (path, size) in staged_blob_sizes(repo, &measurable).await {
+        match size {
+            Some(n) if n > max_bytes => to_unstage.push(path),
+            Some(_) => {}
+            None => {
+                eprintln!(
+                    "⚠️ cannot measure staged blob for {} in {}; unstaging (fail closed)",
+                    path.display(),
+                    repo.display()
+                );
                 to_unstage.push(path);
             }
         }
