@@ -480,12 +480,57 @@ pub(crate) async fn push_with_retries(
                     }
                 }
 
-                if attempt < attempts {
-                    let backoff = (attempt as u64).min(5);
+                // ADDED 2026-10-03 (audit R4-SC-13): HTTPS interleave
+                // inside the shared budget (mirror order: SSH, HTTPS,
+                // SSH…). Runs at most once, after the first SSH failure
+                // a transport change could fix — rejections
+                // (fetch-first/non-fast-forward) are server state, so
+                // the chain would burn a slot on a doomed push. The
+                // slot is spent only when the chain can execute: the
+                // forge mappers are mutually exclusive (at most one leg
+                // runs), and with no match at all the call pushes
+                // nothing. M3 cause-chaining preserved (mirror shape).
+                if !tried_https && spent < budget && !is_push_rejected(&err_msg) {
+                    tried_https = true;
+                    let origin = super::origin_url(repo).unwrap_or_default();
+                    if super::github_https_url(&origin).is_some()
+                        || super::gitlab_https_url(&origin).is_some()
+                        || super::codeberg_https_url(&origin).is_some()
+                    {
+                        let branch =
+                            super::current_branch(repo).unwrap_or_else(|| "main".to_string());
+                        if !super::is_safe_branch_name(&branch) {
+                            return Err(anyhow::anyhow!(
+                                "unsafe current branch '{}' in {}",
+                                branch,
+                                repo.display()
+                            ));
+                        }
+                        spent += 1;
+                        let refspec = format!("HEAD:refs/heads/{branch}");
+                        match push_https_fallback(repo, &origin, &refspec, timeout_secs, op_label)
+                            .await
+                        {
+                            Ok(()) => return Ok(()),
+                            Err(fallback_err) => {
+                                let prev =
+                                    last_err.take().map(|e| e.to_string()).unwrap_or_default();
+                                last_err = Some(anyhow::anyhow!(
+                                    "{} [SSH attempt failed: {}]",
+                                    fallback_err,
+                                    clip_error_detail(&redact_credentials_for_log(&prev))
+                                ));
+                            }
+                        }
+                    }
+                }
+
+                if spent < budget {
+                    let backoff = (spent as u64).min(5);
                     eprintln!(
                         "⏱️ push retry {}/{} for {} after {}s",
-                        attempt + 1,
-                        attempts,
+                        spent + 1,
+                        budget,
                         repo.display(),
                         backoff
                     );
