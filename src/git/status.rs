@@ -84,9 +84,16 @@ impl Drop for IndexLock {
 pub(crate) fn has_origin_remote(repo: &Path) -> bool {
     let config_path = repo.join(".git").join("config");
     if let Ok(config) = std::fs::read_to_string(&config_path) {
-        return config
+        if config
             .lines()
-            .any(|line| line.trim() == "[remote \"origin\"]");
+            .any(|line| line.trim() == "[remote \"origin\"]")
+        {
+            return true;
+        }
+        // FIXED 2026-10-03 (audit R4-SC-12): a config-parse miss is NOT
+        // a verdict — trailing comments, casing, and include-based
+        // remotes all read as absent. Fall through to the git CLI,
+        // which resolves them natively, instead of returning false.
     }
     crate::policy::std_git_command()
         .arg("remote")
