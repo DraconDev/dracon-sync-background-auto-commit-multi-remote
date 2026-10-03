@@ -13631,30 +13631,31 @@ mod tests {
         );
     }
 
-    /// Verify the unowned activity label is short enough to fit in the
-    /// ACTIVITY column (with 2 padding = 15 content cols).
-    /// The test uses the realistic rendered width (32 cols) which fits
-    /// in the actual rendered column at 300 cols because comfy-table
-    /// distributes surplus width to LowerBoundary columns.
+    /// Verify the unowned activity label survives the full-tier
+    /// ACTIVITY budget: the constructed label is ~32 cols, truncated to
+    /// 11 (Absolute(13) − padding). REFRESHED 2026-10-03 (audit
+    /// R3-L38): the old prose ("fits in the actual rendered column at
+    /// 300 cols", LowerBoundary surplus, activity_col 35) predates
+    /// Absolute columns — the label never fit untruncated; production
+    /// truncates the cell, and this test now pins that.
     #[test]
     fn test_unowned_label_fits_activity_column() {
+        // Mirrors activity_label_base's unowned arm (report.rs: `🚫 unowned: {}`,
+        // detail truncated to 20).
         let label = format!(
             "🚫 unowned: {}",
             truncate("HEAD author = Audit Bot <audit@noreply.example.com>", 20)
         );
-        let width: usize = label
-            .chars()
-            .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
-            .sum();
-        // Realistic constraint: at 300 cols, ACTIVITY column is at least 17
-        // (the LowerBoundary). With 300-293=7 surplus cols, comfy-table
-        // allocates 1-2 to ACTIVITY, giving 18-19 actual width.
-        // The rendered label is 32 cols, so this WOULD wrap at the minimum.
-        // Verify this is documented and we use a higher activity_col for the test.
-        let activity_col = 35; // realistic rendered width at 300+ cols
+        // Mirrors the full-tier ACTIVITY cell budget (Absolute(13) − 2).
+        let cell = truncate_unicode_width(&label, 11);
+        let width = unicode_width::UnicodeWidthStr::width(cell.as_str());
         assert!(
-            width <= activity_col,
-            "Unowned label {label:?} ({width} cols) too long for realistic ACTIVITY column {activity_col}."
+            width <= 11,
+            "truncated unowned label {cell:?} ({width} cols) exceeds the full-tier ACTIVITY budget 11."
+        );
+        assert!(
+            cell.starts_with("🚫 unowned"),
+            "truncation must keep the unowned head, got {cell:?}."
         );
     }
 
