@@ -1085,6 +1085,17 @@ pub(crate) fn configure_standard_remotes_if_missing(repo: &Path, policy: &SyncPo
         // every push — leaving a useless remote entry in
         // `.git/config`.
         let repo_override = crate::policy::load_repo_override(repo);
+        // R4-SR-04: unparsable override → configure nothing (the
+        // intended exclude_remotes are unknown; adding remotes now
+        // would cement config the operator tried to refuse). Retried
+        // next cycle; self-heals when the typo is fixed.
+        if repo_override.override_parse_error.is_some() {
+            eprintln!(
+                "🚫 {} skipping remote configure: unparsable .dracon/dracon-sync.toml",
+                repo.display()
+            );
+            return false;
+        }
         let mut combined_exclude = repo_override.exclude_remotes.clone();
         // ADDED 2026-07-17 (goal `codeberg-public-only`): also exclude
         // codeberg at auto-configure time when the public-only policy
@@ -6319,6 +6330,15 @@ pub(crate) async fn materialize_pending_submodules(
                 // to the multi-remote configure step but using
                 // the nested path as the target.
                 let repo_override = crate::policy::load_repo_override(&nested_submodule_path);
+                // R4-SR-04: unparsable override → configure nothing
+                // (same rationale as the standalone path above).
+                if repo_override.override_parse_error.is_some() {
+                    eprintln!(
+                        "🚫 {} skipping remote configure: unparsable .dracon/dracon-sync.toml",
+                        nested_submodule_path.display()
+                    );
+                    continue;
+                }
                 let mut combined_exclude = repo_override.exclude_remotes.clone();
                 // ADDED 2026-07-17 (goal `codeberg-public-only`):
                 // same gate as the standalone path above. Nested
