@@ -677,8 +677,17 @@ async fn push_to_named_remote_inner(
     let remote_url = get_remote_url(repo, remote_name)
         .ok_or_else(|| anyhow::anyhow!("remote {} not found", remote_name))?;
 
+    // FIXED 2026-10-02 (audit L5): `retries` counts TOTAL push attempts
+    // (min 1), unified with `push_with_retries` — the old shape spent
+    // SSH + HTTPS + `retries.max(1)` loop iterations, so retries=0 still
+    // performed 3 attempts and hammered sick forges. The initial SSH
+    // above spent attempt 1; HTTPS and the loop share the remainder.
+    let budget = retries.max(1);
+    let mut spent: u32 = 1;
+
     let mut last_err = None;
-    if is_safe_branch_name(&branch) {
+    if spent < budget && is_safe_branch_name(&branch) {
+        spent += 1;
         let fallback_label = format!("push-to-{}", remote_name);
         match push_https_fallback(repo, &remote_url, &refspec, timeout_secs, &fallback_label).await
         {
@@ -699,7 +708,8 @@ async fn push_to_named_remote_inner(
         }
     }
 
-    for attempt in 1..=retries.max(1) {
+    while spent < budget {
+        spent += 1;
         // CHANGED 2026-08-09 (v0.113.48, pi-goal-loop-audit incident):
         // use the already-built fully-qualified refspec instead of bare
         // `HEAD`. The bare form fails with "destination you provided is
@@ -759,8 +769,8 @@ async fn push_to_named_remote_inner(
                 } else {
                     last_err = Some(e);
                 }
-                if attempt < retries.max(1) {
-                    sleep(Duration::from_secs(attempt as u64)).await;
+                if spent < budget {
+                    sleep(Duration::from_secs(spent as u64)).await;
                 }
             }
         }
