@@ -4015,7 +4015,6 @@ fn compute_blast_radius(repo: &Path) -> String {
 /// ADDED 2026-06-21, goal 55db3bfc-4fc0-4650-8349-38da9e62bd44.
 async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Result<usize> {
     use anyhow::Context;
-    use std::process::Command;
 
     // List unmerged entries. The output format is:
     //   <mode> <hash> <stage> <path>
@@ -4137,7 +4136,6 @@ async fn auto_resolve_unmerged_if_safe(repo: &Path, auto_resolve: bool) -> Resul
 /// working-tree noise.
 async fn check_untracked_threshold(repo: &Path, threshold: usize) -> Result<usize> {
     use anyhow::Context;
-    use std::process::Command;
     // Always count the untracked files (so callers can use the count
     // for reporting), but only emit a warning when threshold > 0 AND
     // the count exceeds the threshold.
