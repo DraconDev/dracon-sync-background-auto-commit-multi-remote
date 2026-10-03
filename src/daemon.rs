@@ -837,9 +837,10 @@ pub(crate) fn apply_outcome(
             // CHANGED 2026-07-27 (v0.113.5, audit M4): both
             // phases now clear the stuck-ledger on success (was
             // trailing-drain-missing pre-fix).
-            if stuck_push_repos.remove(repo).is_some() {
-                save_stuck_push_repos(stuck_push_repos);
-            }
+            // R3-L11: reload-before-save — persisting the cycle-start
+            // snapshot here would clobber same-cycle worker increments.
+            stuck_push_repos.remove(repo);
+            remove_stuck_repo_entry(repo);
             ApplyOutcome::Success
         }
         Ok(SyncOutcome::NothingToDo) => {
@@ -854,9 +855,10 @@ pub(crate) fn apply_outcome(
             // leaking activity entries across cycles for repos
             // that briefly appeared NothingToDo after a
             // successful cycle.
-            if stuck_push_repos.remove(repo).is_some() {
-                save_stuck_push_repos(stuck_push_repos);
-            }
+            // R3-L11: reload-before-save — persisting the cycle-start
+            // snapshot here would clobber same-cycle worker increments.
+            stuck_push_repos.remove(repo);
+            remove_stuck_repo_entry(repo);
             ApplyOutcome::Success
         }
         Ok(SyncOutcome::FilterOnly) => {
@@ -5007,6 +5009,37 @@ fn test_ownership_per_repo_override_forces_unowned() {
     }
 }
 
+/// In-process mutex serializing stuck-ledger read-modify-write cycles
+/// (FIXED 2026-10-03, audit R3-L11). Workers (up to
+/// `sem_max_concurrent_sync`) and the apply phase used to run unlocked
+/// load-modify-save, so concurrent increments lost updates and an
+/// apply-phase full-map save of the cycle-start snapshot could clobber
+/// a same-cycle worker increment. Every RMW below holds this guard
+/// across its load→save; poison-tolerant (a panicked holder must not
+/// wedge the daemon's failure accounting forever).
+static STUCK_LEDGER_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn lock_stuck_ledger() -> std::sync::MutexGuard<'static, ()> {
+    STUCK_LEDGER_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Remove one repo from the ledger with a FRESH reload under the lock
+/// (R3-L11 reload-before-save): the apply phase must not persist its
+/// cycle-start snapshot, which would clobber worker increments made
+/// during the cycle. Returns true when an entry was present.
+fn remove_stuck_repo_entry(repo: &Path) -> bool {
+    let _guard = lock_stuck_ledger();
+    let mut repos = load_stuck_push_repos();
+    if repos.remove(repo).is_some() {
+        save_stuck_push_repos(&repos);
+        true
+    } else {
+        false
+    }
+}
+
 fn save_stuck_push_repos(repos: &HashMap<PathBuf, StuckRepoEntry>) {
     let path = stuck_repos_path();
     if let Some(parent) = path.parent() {
@@ -5046,6 +5079,7 @@ pub(crate) fn unstuck_repo(repo: &Path) -> bool {
     if !path.exists() {
         return false;
     }
+    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     if repos.remove(repo).is_some() {
         save_stuck_push_repos(&repos);
@@ -5062,6 +5096,7 @@ pub(crate) fn unstuck_repo(repo: &Path) -> bool {
 /// the stuck repos file if present. Called from
 /// `push_background`'s callers when a push succeeds.
 pub(crate) fn record_push_success(repo: &Path) {
+    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     if repos.remove(repo).is_some() {
         save_stuck_push_repos(&repos);
@@ -5111,6 +5146,7 @@ pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
 /// and in `stuck-list` output with a truthful cause, but consecutive_failures
 /// never reaches the Exhausted arm on infra alone.
 pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
+    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos
@@ -5129,6 +5165,7 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
 }
 
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
+    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos
