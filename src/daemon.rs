@@ -7262,6 +7262,17 @@ pub(crate) async fn run_daemon(
                     let repo = provisioning_repo;
                     let policy = provisioning_policy;
                     let repo_override_for_create = crate::policy::load_repo_override(&repo);
+                    // R4-SR-04: unparsable override → create nothing (the
+                    // intended exclude_remotes are unknown; creating forge
+                    // repos now would cement remotes the operator tried to
+                    // refuse). Retried on the 300s cooldown; self-heals.
+                    if repo_override_for_create.override_parse_error.is_some() {
+                        eprintln!(
+                            "🚫 {} skipping mirror auto-create: unparsable .dracon/dracon-sync.toml",
+                            repo.display()
+                        );
+                        return;
+                    }
                     let create_results = crate::git::multi_remote::push_mirror_remotes_create_only(
                         &repo,
                         &policy.remotes,
