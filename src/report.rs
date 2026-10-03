@@ -12142,6 +12142,33 @@ mod tests {
     }
 
     #[test]
+    fn rich_ab_cell_compacts_hostile_ahead_counts() {
+        // ADDED 2026-10-03 (audit R3-L39): A/B uses
+        // `format_compact_count` like the CHANGES columns — "↑99k"
+        // reads truer than the old clipped "↑12345…".
+        let mut row = make_activity_row("5 minutes ago", 0, 0, "PENDING");
+        row.ahead = 1_234_567;
+        row.behind = 0;
+        row.repo = "/tmp/mega".into();
+        let rendered = build_repos_rich_table(std::slice::from_ref(&row), false, 200).to_string();
+        assert!(
+            rendered.contains("↑99k"),
+            "hostile ahead must compact, got:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("↑12345"),
+            "clipped digits must be gone, got:\n{rendered}"
+        );
+        // Small counts stay exact.
+        row.ahead = 21;
+        let rendered = build_repos_rich_table(std::slice::from_ref(&row), false, 200).to_string();
+        assert!(
+            rendered.contains("↑21"),
+            "small ahead must stay exact, got:\n{rendered}"
+        );
+    }
+
+    #[test]
     fn rich_table_renders_single_line_rows_at_supported_widths() {
         let mut clean = make_activity_row("5 minutes ago", 0, 0, "OK");
         clean.repo = "/tmp/pi-use-last-selected-thinking-level".into();
