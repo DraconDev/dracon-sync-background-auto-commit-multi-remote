@@ -4476,7 +4476,7 @@ async fn stage_commit_and_push(
     // dry-run (nothing stages or commits there).
     if !dry_run {
         let extras = staged_extra_paths(repo, &staged, to_stage);
-        if false && !extras.is_empty() {
+        if !extras.is_empty() {
             eprintln!(
                 "⏸️ {} staged set has {} path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: {:?}",
                 repo.display(),
