@@ -568,72 +568,77 @@ pub fn read_signals(repo: &Path) -> OwnershipInputs {
     }
 }
 
-fn git_config_user_email(repo: &Path) -> Option<String> {
-    let out = Command::new("git")
-        .args(["config", "--get", "user.email"])
+/// Bound for one ownership signal read (FIXED 2026-10-03, audit
+/// R4-SR-13). These are fast local reads (normally <100ms); the bound
+/// only bites on a wedged git (lock contention, wedged FS).
+/// `read_signals` runs inside async row futures, so an unbounded wait
+/// would park a tokio worker with no backstop.
+const OWNERSHIP_GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Run a single-line git probe: `DRACON_SYNC_GIT_BIN`-routed,
+/// prompt-sealed, and kill-on-timeout. Returns the trimmed stdout, or
+/// `None` on spawn failure, non-zero exit, empty output, or timeout.
+/// Single-line outputs can never fill the 64 KiB pipe buffer, so
+/// waiting for exit before draining cannot deadlock.
+fn git_line_output(repo: &Path, args: &[&str]) -> Option<String> {
+    git_line_output_timeout(repo, args, OWNERSHIP_GIT_TIMEOUT)
+}
+
+fn git_line_output_timeout(
+    repo: &Path,
+    args: &[&str],
+    timeout: std::time::Duration,
+) -> Option<String> {
+    let mut child = crate::policy::std_git_command()
+        .args(args)
         .current_dir(repo)
-        .output()
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
         .ok()?;
-    if !out.status.success() {
-        return None;
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let out = child.wait_with_output().ok()?;
+                if !status.success() {
+                    return None;
+                }
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                return if s.is_empty() { None } else { Some(s) };
+            }
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
     }
-    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+}
+
+fn git_config_user_email(repo: &Path) -> Option<String> {
+    git_line_output(repo, &["config", "--get", "user.email"])
 }
 
 fn git_head_author_email(repo: &Path) -> Option<String> {
-    let out = Command::new("git")
-        .args(["log", "-1", "--pretty=%ae"])
-        .current_dir(repo)
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
-    }
-    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+    git_line_output(repo, &["log", "-1", "--pretty=%ae"])
 }
 
 fn git_head_author_name(repo: &Path) -> Option<String> {
-    let out = Command::new("git")
-        .args(["log", "-1", "--pretty=%an"])
-        .current_dir(repo)
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
-    }
-    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+    git_line_output(repo, &["log", "-1", "--pretty=%an"])
 }
 
 fn git_origin_url(repo: &Path) -> Option<String> {
-    let out = Command::new("git")
-        .args(["remote", "get-url", "origin"])
-        .current_dir(repo)
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
-    }
-    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+    git_line_output(repo, &["remote", "get-url", "origin"])
 }
 
 /// Top-level entry point: read the signals, classify, return
@@ -1113,5 +1118,50 @@ mod tests {
         };
         assert!(unowned.label().contains("🚫"));
         assert!(unowned.label().contains("untrusted_origin"));
+    }
+
+    #[test]
+    fn test_signal_reads_honor_git_bin_override() {
+        // R4-SR-13: the signal probes must route through
+        // `std_git_command()` (DRACON_SYNC_GIT_BIN), not raw
+        // `Command::new("git")`. Pre-fix this returns None: raw git
+        // in a non-repo dir fails, ignoring the mock.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let mock = tmp.path().join("mock-git.sh");
+        std::fs::write(&mock, "#!/bin/sh\necho \"mock@example.com\"\n").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
+        assert_eq!(
+            git_config_user_email(tmp.path()).as_deref(),
+            Some("mock@example.com")
+        );
+    }
+
+    #[test]
+    fn test_signal_read_kills_wedged_git_on_timeout() {
+        // R4-SR-13: a wedged git must be killed at the bound, not
+        // park the caller (a tokio worker in the report path)
+        // forever. The mock sleeps 30s; the 200ms bound must win.
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        let mock = tmp.path().join("sleep-git.sh");
+        std::fs::write(&mock, "#!/bin/sh\nsleep 30\n").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&mock, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let _git_bin = crate::test_helpers::GitBinRestorer::new(&mock.to_string_lossy());
+        let start = std::time::Instant::now();
+        let out = git_line_output_timeout(
+            tmp.path(),
+            &["config", "--get", "user.email"],
+            std::time::Duration::from_millis(200),
+        );
+        let elapsed = start.elapsed();
+        assert_eq!(out, None);
+        assert!(
+            elapsed < std::time::Duration::from_secs(10),
+            "wedged git must be killed at the bound, took {elapsed:?}"
+        );
     }
 }
