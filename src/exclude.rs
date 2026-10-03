@@ -277,6 +277,38 @@ mod tests {
         );
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-03): a tracked
+    /// modification under an excluded dir (or matching an excluded
+    /// pattern) must NOT mark the repo relevant — the removed
+    /// restore arm used to return true for ANY Modified entry, so
+    /// excluded-only repos churned through dispatch forever while
+    /// the restore it promised never runs without a commit.
+    #[test]
+    fn test_has_sync_relevant_dirty_entries_excluded_modified_ignored() {
+        use dracon_git::types::{DiffFile, FileStatus};
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        std::fs::create_dir_all(repo.join("target")).unwrap();
+        std::fs::write(repo.join("target").join("file.txt"), "content").unwrap();
+        std::fs::write(repo.join("skip.log"), "content").unwrap();
+        let entries = vec![
+            DiffFile::new(PathBuf::from("target/file.txt"), FileStatus::Modified),
+            DiffFile::new(PathBuf::from("skip.log"), FileStatus::Modified),
+        ];
+        let excluded: BTreeSet<String> = ["target".to_string()].into_iter().collect();
+        assert!(
+            !has_sync_relevant_dirty_entries(
+                repo,
+                &entries,
+                &excluded,
+                &["*.log".to_string()],
+                100 * 1024 * 1024,
+                &[],
+            ),
+            "excluded-dir + excluded-pattern Modified entries must not mark relevant"
+        );
+    }
+
     #[test]
     fn test_has_sync_relevant_dirty_entries_empty() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1919,6 +1951,19 @@ pub(crate) fn has_sync_relevant_dirty_entries(
         if full_path.is_dir() && is_gitlink_unchanged(repo, &entry.path) {
             return false;
         }
+        // REMOVED 2026-10-03 (audit R4-SR-03): the old
+        // `|| can_restore_entry(repo, entry)` arm returned true for
+        // ANY Modified/TypeChange/Renamed entry regardless of
+        // exclusion — so a repo whose only dirt was policy-excluded
+        // tracked modifications was "relevant" forever (perpetual
+        // dispatch/eligibility churn at the daemon gates). The arm
+        // could never be load-bearing: restore_excluded_paths runs
+        // strictly as a post-commit side effect (stage_commit_and_
+        // push, itself gated on non-empty to_stage), so excluded-
+        // only dirt is never restored with or without dispatch —
+        // and whenever a sibling DOES stage, the should_stage arm
+        // above already fires. `can_restore_entry` itself stays:
+        // sync.rs still uses it to partition the post-commit set.
         should_stage_entry(
             repo,
             entry,
@@ -1926,8 +1971,7 @@ pub(crate) fn has_sync_relevant_dirty_entries(
             excluded_file_patterns,
             max_stage_file_bytes,
             auto_commit_exclude_patterns,
-        ) || can_restore_entry(repo, entry)
-            || is_large_untracked(entry, repo, max_stage_file_bytes)
+        ) || is_large_untracked(entry, repo, max_stage_file_bytes)
     })
 }
 
