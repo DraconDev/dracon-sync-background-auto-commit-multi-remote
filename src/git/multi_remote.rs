@@ -595,6 +595,10 @@ pub(crate) fn remove_stale_remotes(
 /// Push to one named remote, evicting stale forge-existence state when
 /// the forge proves the repo is gone.
 ///
+/// `retries` counts TOTAL push attempts (min 1), unified with
+/// `push_with_retries` (audit L5): the initial SSH spends attempt 1
+/// and the HTTPS fallback + retry loop share the remainder.
+///
 /// ADDED 2026-09-15 (forge-eviction fix): the inner push has many `return
 /// Err` exits; this wrapper is the single choke point, so EVERY failure
 /// shape (rejected, diverged, transport, not-found) passes through it.
@@ -708,8 +712,11 @@ async fn push_to_named_remote_inner(
         }
     }
 
+    // Backoff ladder counts loop rounds (1s, 2s, ...), not total spent.
+    let mut round: u32 = 0;
     while spent < budget {
         spent += 1;
+        round += 1;
         // CHANGED 2026-08-09 (v0.113.48, pi-goal-loop-audit incident):
         // use the already-built fully-qualified refspec instead of bare
         // `HEAD`. The bare form fails with "destination you provided is
@@ -770,7 +777,7 @@ async fn push_to_named_remote_inner(
                     last_err = Some(e);
                 }
                 if spent < budget {
-                    sleep(Duration::from_secs(spent as u64)).await;
+                    sleep(Duration::from_secs(round as u64)).await;
                 }
             }
         }

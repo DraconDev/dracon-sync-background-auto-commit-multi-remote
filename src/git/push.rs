@@ -233,6 +233,9 @@ pub(crate) async fn push_with_transport_fallbacks(
 
 /// Push with retries (SSH) and then HTTPS fallback.
 ///
+/// `retries` counts TOTAL push attempts (min 1), unified with
+/// `push_to_named_remote` (audit L5).
+///
 /// On a `[rejected] (fetch first)` error (i.e. the local branch is behind
 /// origin), runs `git pull --no-rebase origin HEAD` once and retries the
 /// push. This unblocks repos where the local ahead has commits but origin
