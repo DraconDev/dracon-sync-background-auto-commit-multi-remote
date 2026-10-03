@@ -314,6 +314,28 @@ pub(crate) async fn push_with_transport_fallbacks(
 /// push. This unblocks repos where the local ahead has commits but origin
 /// has moved forward (e.g. mirror pushed while local was idle). Without this,
 /// the daemon would loop indefinitely on the same `fetch first` rejection.
+/// Build the fetch-first auto-pull refspec for the current branch.
+///
+/// FIXED 2026-10-03 (audit R4-SC-09): validated exactly like the push
+/// refspecs — an exotic branch name bails here instead of reaching
+/// `git pull origin <ref>` unvalidated (arg confusion). Extracted so
+/// the gate is unit-testable (reaching it end-to-end needs a branch
+/// rename to win the race between the push and the pull attempts).
+pub(crate) fn pull_refspec_for_branch(
+    branch: Option<String>,
+    repo: &std::path::Path,
+) -> anyhow::Result<String> {
+    match branch {
+        Some(b) if super::is_safe_branch_name(&b) => Ok(format!("refs/heads/{}", b)),
+        Some(b) => Err(anyhow::anyhow!(
+            "unsafe current branch '{}' in {}",
+            b,
+            repo.display()
+        )),
+        None => Ok("HEAD".to_string()),
+    }
+}
+
 pub(crate) async fn push_with_retries(
     repo: &Path,
     timeout_secs: u64,
