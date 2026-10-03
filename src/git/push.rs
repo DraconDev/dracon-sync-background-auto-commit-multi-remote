@@ -925,6 +925,73 @@ mod tests {
         );
     }
 
+    /// ADDED 2026-10-03 (audit R4-SC-06): the github HTTPS leg must
+    /// carry GH_TOKEN via GIT_ASKPASS like the gitlab/codeberg legs.
+    /// Mock git records whether GIT_ASKPASS was set: a configured
+    /// token must produce an askpass-backed attempt, while no token
+    /// keeps the legacy unauthenticated attempt (ambient `store`
+    /// helper rescue) instead of skipping.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_github_https_leg_wires_gh_token_via_askpass() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log = tmp.path().join("askpass.env");
+        let fake_git = tmp.path().join("git");
+        std::fs::write(
+            &fake_git,
+            format!(
+                "#!/bin/sh\necho \"${{GIT_ASKPASS:-unset}}\" >> \"{}\"\nexit 1\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _git_guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().unwrap(),
+        );
+        // Isolate from the operator's real secrets dir (load_secret
+        // falls back to ~/.dracon/.../*.env when the env var is unset).
+        let fake_home = tmp.path().join("home");
+        std::fs::create_dir_all(&fake_home).unwrap();
+        let _home_guard =
+            crate::test_helpers::EnvRestorer::new("HOME", fake_home.to_str().unwrap());
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let url = "git@github.com:DraconDev/fixture.git";
+
+        // Case 1: GH_TOKEN set → askpass-backed attempt.
+        let _token_guard = crate::test_helpers::EnvRestorer::new("GH_TOKEN", "test-token-123");
+        let result = push_https_fallback(&repo, url, "main", 10, "sc06").await;
+        assert!(result.is_err(), "mock git always fails");
+        drop(_token_guard);
+        let seen = std::fs::read_to_string(&log).unwrap();
+        assert!(
+            seen.lines().any(|l| l.contains("dracon-git-askpass")),
+            "token-configured leg must set GIT_ASKPASS, got: {seen:?}"
+        );
+
+        // Case 2: no token anywhere → legacy attempt, no askpass, not skipped.
+        let _no_token = crate::test_helpers::EnvRestorer::remove("GH_TOKEN");
+        std::fs::write(&log, "").unwrap();
+        let result = push_https_fallback(&repo, url, "main", 10, "sc06").await;
+        let err = format!("{:#}", result.unwrap_err());
+        assert!(
+            err.contains("github:"),
+            "legacy attempt must record a github failure entry, got: {err}"
+        );
+        assert!(
+            !err.contains("skipped"),
+            "github leg must attempt, never skip: {err}"
+        );
+        let seen = std::fs::read_to_string(&log).unwrap();
+        assert_eq!(seen.trim(), "unset", "no-token leg sets no GIT_ASKPASS");
+    }
+
     #[cfg(unix)]
     #[tokio::test]
     async fn test_push_with_retries_joins_fallback_and_loop_errors() {
