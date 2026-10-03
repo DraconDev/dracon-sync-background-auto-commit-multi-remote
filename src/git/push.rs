@@ -412,14 +412,21 @@ pub(crate) async fn push_with_retries(
             }
         }
     }
-    // FIXED 2026-10-03 (audit R3-L03): return the transport-fallback
-    // error, not the stale loop `last_err` — the fallback error already
-    // chains its own fresh SSH cause (audit M3) plus per-forge HTTPS
-    // verdicts, while `last_err` is an earlier SSH attempt the ledger
-    // never needs to see again.
+    // FIXED 2026-10-03 (audit R3-L03): the old `if let Ok(())` threw
+    // away the fallback error (per-forge HTTPS verdicts + fresh SSH
+    // cause) and returned the stale loop `last_err`. Join both with
+    // the fallback verdict primary so the ledger shows the final
+    // verdicts, never just an earlier SSH attempt.
     match push_with_transport_fallbacks(repo, timeout_secs, op_label).await {
         Ok(()) => Ok(()),
-        Err(fallback_err) => Err(fallback_err),
+        Err(fallback_err) => Err(match last_err {
+            Some(prev) => anyhow::anyhow!(
+                "{} [earlier SSH attempts failed: {}]",
+                fallback_err,
+                clip_error_detail(&redact_credentials_for_log(&prev.to_string()))
+            ),
+            None => fallback_err,
+        }),
     }
 }
 
