@@ -77,24 +77,33 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("GITLAB_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
-                    let _askpass_guard = super::AskpassScript::new(askpass.clone());
-                    let result = super::run_git_with_timeout_env_progress(
-                        repo,
-                        &["push", &https, refspec],
-                        timeout_secs,
-                        &format!("{}-gitlab-https", op_label),
-                        &[
-                            ("GIT_ASKPASS", askpass.to_str().unwrap_or("/bin/false")),
-                            ("GIT_TERMINAL_PROMPT", "0"),
-                        ],
-                    )
-                    .await;
-                    match result {
-                        Ok(()) => return Ok(()),
-                        Err(e) => failures.push(format!(
-                            "gitlab: {}",
-                            clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-                        )),
+                    // FIXED 2026-10-03 (audit R3-L03): a non-UTF8
+                    // askpass path fails LOUD per-forge instead of
+                    // silently pointing GIT_ASKPASS at /bin/false
+                    // (every push then fails with a misleading error).
+                    if let Some(askpass_str) = askpass.to_str() {
+                        let _askpass_guard =
+                            super::AskpassScript::new(askpass.clone());
+                        let result = super::run_git_with_timeout_env_progress(
+                            repo,
+                            &["push", &https, refspec],
+                            timeout_secs,
+                            &format!("{}-gitlab-https", op_label),
+                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                        )
+                        .await;
+                        match result {
+                            Ok(()) => return Ok(()),
+                            Err(e) => failures.push(format!(
+                                "gitlab: {}",
+                                clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                            )),
+                        }
+                    } else {
+                        eprintln!(
+                            "⚠️ GIT_ASKPASS path is not UTF-8 for GitLab; skipping forge"
+                        );
+                        failures.push("gitlab: askpass path not UTF-8".to_string());
                     }
                 }
                 Err(e) => {
@@ -109,24 +118,33 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("CODEBERG_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
-                    let _askpass_guard = super::AskpassScript::new(askpass.clone());
-                    let result = super::run_git_with_timeout_env_progress(
-                        repo,
-                        &["push", &https, refspec],
-                        timeout_secs,
-                        &format!("{}-codeberg-https", op_label),
-                        &[
-                            ("GIT_ASKPASS", askpass.to_str().unwrap_or("/bin/false")),
-                            ("GIT_TERMINAL_PROMPT", "0"),
-                        ],
-                    )
-                    .await;
-                    match result {
-                        Ok(()) => return Ok(()),
-                        Err(e) => failures.push(format!(
-                            "codeberg: {}",
-                            clip_error_detail(&redact_credentials_for_log(&e.to_string()))
-                        )),
+                    // FIXED 2026-10-03 (audit R3-L03): a non-UTF8
+                    // askpass path fails LOUD per-forge instead of
+                    // silently pointing GIT_ASKPASS at /bin/false
+                    // (every push then fails with a misleading error).
+                    if let Some(askpass_str) = askpass.to_str() {
+                        let _askpass_guard =
+                            super::AskpassScript::new(askpass.clone());
+                        let result = super::run_git_with_timeout_env_progress(
+                            repo,
+                            &["push", &https, refspec],
+                            timeout_secs,
+                            &format!("{}-codeberg-https", op_label),
+                            &[("GIT_ASKPASS", askpass_str), ("GIT_TERMINAL_PROMPT", "0")],
+                        )
+                        .await;
+                        match result {
+                            Ok(()) => return Ok(()),
+                            Err(e) => failures.push(format!(
+                                "codeberg: {}",
+                                clip_error_detail(&redact_credentials_for_log(&e.to_string()))
+                            )),
+                        }
+                    } else {
+                        eprintln!(
+                            "⚠️ GIT_ASKPASS path is not UTF-8 for Codeberg; skipping forge"
+                        );
+                        failures.push("codeberg: askpass path not UTF-8".to_string());
                     }
                 }
                 Err(e) => {
