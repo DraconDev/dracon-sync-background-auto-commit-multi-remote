@@ -1918,10 +1918,7 @@ pub(crate) fn remove_tracked_excluded_paths(
     for chunk in to_remove.chunks(50) {
         // R4-SC-10: :(literal) keeps glob metacharacters in filenames
         // from acting as pathspecs (over-removal from the index).
-        let literals: Vec<String> = chunk
-            .iter()
-            .map(|f| crate::git::literal_pathspec(Path::new(f)))
-            .collect();
+        let literals: Vec<String> = crate::git::literal_pathspecs(chunk);
         let mut args = vec!["rm", "-q", "--cached", "--"];
         for lit in &literals {
             args.push(lit.as_str());

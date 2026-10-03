@@ -814,10 +814,7 @@ pub(crate) async fn restore_paths(repo: &Path, paths: &[String]) -> Result<()> {
     }
     // R4-SC-10: :(literal) on every pathspec below — glob
     // metacharacters in filenames must not act as pathspecs.
-    let literal: Vec<String> = paths
-        .iter()
-        .map(|p| super::literal_pathspec(std::path::Path::new(p)))
-        .collect();
+    let literal: Vec<String> = super::literal_pathspecs(paths);
     let mut args = vec![
         "restore".to_string(),
         "--staged".to_string(),
