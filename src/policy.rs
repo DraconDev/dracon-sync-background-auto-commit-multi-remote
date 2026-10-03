@@ -2208,6 +2208,40 @@ pub(crate) fn test_sync_policy() -> SyncPolicy {
 mod tests {
     use super::*;
 
+    /// ADDED 2026-10-03 (audit R3-L02): every git child is born
+    /// non-interactive — ssh can neither terminal-prompt nor pop a
+    /// GUI askpass, while the agent socket stays inherited.
+    #[test]
+    fn test_git_commands_born_non_interactive() {
+        let std_env: Vec<(String, String)> = GitCommand::new()
+            .into_std()
+            .get_envs()
+            .map(|(k, v)| {
+                (
+                    k.to_string_lossy().into_owned(),
+                    v.map(|s| s.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                )
+            })
+            .collect();
+        let get = |key: &str| {
+            std_env
+                .iter()
+                .find(|(k, _)| k == key)
+                .map(|(_, v)| v.clone())
+        };
+        assert_eq!(get("SSH_ASKPASS_REQUIRE").as_deref(), Some("force"));
+        assert_eq!(get("SSH_ASKPASS").as_deref(), Some(""));
+        assert_eq!(get("DISPLAY").as_deref(), Some(""));
+        // Agent auth must survive: the socket is never cleared.
+        assert_eq!(get("SSH_AUTH_SOCK"), None, "agent socket must stay inherited");
+        let tokio_dbg = format!("{:?}", TokioGitCommand::new().inner);
+        assert!(
+            tokio_dbg.contains("SSH_ASKPASS_REQUIRE"),
+            "tokio wrapper must seal prompts: {tokio_dbg}"
+        );
+    }
+
     /// v0.113.29: the build-artifact tracked-path cleanup defaults ON
     /// for TOML-loaded configs (serde default) and is deserializable
     /// as a per-repo opt-out. NOTE: `SyncPolicy::default()` (derived)
