@@ -1355,14 +1355,17 @@ mod safe_path_tests {
     fn test_literal_pathspec_prefixes_magic() {
         use super::{literal_pathspec, literal_pathspecs};
         use std::path::Path;
-        assert_eq!(literal_pathspec(Path::new("src/main.rs")), ":(literal)src/main.rs");
-        assert_eq!(literal_pathspec(Path::new("a[0].bin")), ":(literal)a[0].bin");
+        assert_eq!(
+            literal_pathspec(Path::new("src/main.rs")),
+            ":(literal)src/main.rs"
+        );
+        assert_eq!(
+            literal_pathspec(Path::new("a[0].bin")),
+            ":(literal)a[0].bin"
+        );
         assert_eq!(
             literal_pathspecs(&["a*b".to_string(), "q?r".to_string()]),
-            vec![
-                ":(literal)a*b".to_string(),
-                ":(literal)q?r".to_string()
-            ]
+            vec![":(literal)a*b".to_string(), ":(literal)q?r".to_string()]
         );
     }
 }
