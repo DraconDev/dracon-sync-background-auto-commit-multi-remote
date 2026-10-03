@@ -631,6 +631,12 @@ auto_create = false
 # =============================================================================
 #  SECTION 14: SETTLING MAX-DELAY (AGGRESSIVE AUTO-COMMIT)
 # =============================================================================
+# UNIMPLEMENTED 2026-10-02 (audit L3): `settling_max_delay_secs` and
+# `dirty_max_age_action` are parsed and defaulted but NO production
+# code reads them — setting them changes nothing today. The prose
+# below describes the INTENDED behavior. Implement the settling
+# feature or remove both knobs + this section; see
+# OVERRIDE_COVERAGE_UNWIRED in src/policy.rs.
 # When a repo has been dirty continuously for > `settling_max_delay_secs`,
 # the daemon force-commits REGARDLESS of fingerprint stability. This
 # prevents the "⏸ stalled Xm" pileup the operator sees when many repos
