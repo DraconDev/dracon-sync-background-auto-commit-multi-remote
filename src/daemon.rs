@@ -4155,12 +4155,10 @@ mod daemon_tests {
         let fresh_a = PathBuf::from("/tmp/fresh-repo-a");
         let fresh_b = PathBuf::from("/tmp/fresh-repo-b");
         // Previous cycle's detached leftover still in flight…
-        let in_flight: std::collections::HashSet<PathBuf> =
-            [stale.clone()].into_iter().collect();
+        let in_flight: std::collections::HashSet<PathBuf> = [stale.clone()].into_iter().collect();
         // …while this cycle drains two fresh repos (handle type is
         // generic — the seed only reads repo paths).
-        let to_sync: Vec<(PathBuf, u8)> =
-            vec![(fresh_a.clone(), 0), (fresh_b.clone(), 0)];
+        let to_sync: Vec<(PathBuf, u8)> = vec![(fresh_a.clone(), 0), (fresh_b.clone(), 0)];
         let seed = super::drained_repo_set(&to_sync);
         assert_eq!(seed.len(), 2, "seed must hold exactly this cycle's drain");
         assert!(seed.contains(&fresh_a) && seed.contains(&fresh_b));
