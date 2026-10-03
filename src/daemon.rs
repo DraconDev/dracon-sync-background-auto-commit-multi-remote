@@ -7285,6 +7285,77 @@ pub(crate) async fn run_daemon(
                 }
                 entry_for_ownership.ownership = Some(report);
                 entry_for_ownership.ownership_at = Some(now);
+            } else if ownership_owned_needs_revalidate(
+                &entry_for_ownership.ownership,
+                entry_for_ownership.ownership_at,
+                now,
+                OWNERSHIP_REDETECT_TTL,
+            ) {
+                // ADDED 2026-10-03 (audit R3-L14): a stale Owned
+                // verdict is revalidated on the push path (this gate
+                // runs before every cycle's sync, so before any
+                // push). Origin retarget / identity drift after
+                // classification otherwise kept pushing with operator
+                // credentials forever. Two-strike flip: a single
+                // transient git error must not skip a good repo
+                // (the stickiness rationale above), so strike 1 only
+                // warns and leaves `ownership_at` stale (revalidate
+                // again NEXT cycle, not after another TTL); strike 2
+                // adopts the negative verdict and the skip path below
+                // engages.
+                let trusted = crate::ownership::TrustedSet {
+                    emails: policy.trusted_emails.clone(),
+                    authors: policy.trusted_authors.clone(),
+                    remote_hosts: policy.trusted_remote_hosts.clone(),
+                };
+                let report = if policy.path_is_owned(&repo) {
+                    crate::ownership::detect_ownership_path_owned(
+                        &repo,
+                        &trusted,
+                        repo_override.owned,
+                    )
+                } else {
+                    crate::ownership::detect_ownership(&repo, &trusted, repo_override.owned)
+                };
+                if matches!(report, crate::ownership::OwnershipReport::Owned { .. }) {
+                    entry_for_ownership.ownership_at = Some(now);
+                    ownership_revalidate_strikes.remove(&repo);
+                } else {
+                    let strikes = ownership_revalidate_strikes.entry(repo.clone()).or_insert(0);
+                    *strikes += 1;
+                    if *strikes >= 2 {
+                        eprintln!(
+                            "🚫 {} ownership revalidation failed twice — adopting {} verdict, skipping sync until remediated",
+                            repo.display(),
+                            match &report {
+                                crate::ownership::OwnershipReport::Unowned { reason, .. } =>
+                                    format!("Unowned({})", reason),
+                                _ => "Unknown".to_string(),
+                            }
+                        );
+                        crate::report::record_sync_alert(
+                            &repo,
+                            "Ownership Revoked",
+                            "stale Owned verdict failed revalidation twice; sync paused until remediation",
+                        );
+                        entry_for_ownership.ownership = Some(report);
+                        entry_for_ownership.ownership_at = Some(now);
+                        ownership_revalidate_strikes.remove(&repo);
+                    } else {
+                        let warn_key =
+                            format!("ownership-revalidate-{}", repo.display());
+                        if notify_throttled(
+                            &mut remote_notify_cooldowns,
+                            &warn_key,
+                            Duration::from_secs(1800),
+                        ) {
+                            eprintln!(
+                                "⚠️ {} ownership revalidation failed (1/2) — keeping Owned for one more cycle; persistent drift will pause sync",
+                                repo.display()
+                            );
+                        }
+                    }
+                }
             }
             let ownership = entry_for_ownership.ownership.as_ref().unwrap();
             let is_owned = matches!(ownership, crate::ownership::OwnershipReport::Owned { .. });
