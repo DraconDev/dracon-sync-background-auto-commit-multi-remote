@@ -7435,7 +7435,12 @@ trusted_authors = ["test"]
         std::fs::write(repo.join("small.txt"), "ok\n").unwrap();
         std::fs::write(repo.join("big.bin"), vec![7u8; 100]).unwrap();
 
-        let policy = bootstrap_test_policy("max_stage_file_bytes = 1024");
+        // auto_harden_with_warden defaults true and would rewrite
+        // the fixture's .gitattributes (dropping the inflate line);
+        // this test targets the oversize sweep, not warden interplay.
+        let policy = bootstrap_test_policy(
+            "max_stage_file_bytes = 1024\nauto_harden_with_warden = false",
+        );
         let result = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None).await;
         assert!(
             result.is_ok(),
