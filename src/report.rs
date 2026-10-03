@@ -3891,12 +3891,18 @@ fn gitdir_signature(repo: &Path) -> u64 {
 fn row_bucket_counts(rows: &[RepoReportRow]) -> (usize, usize, usize, usize) {
     let concern = rows.iter().filter(|r| r.concern).count();
     let active = rows.iter().filter(|r| r.active && !r.concern).count();
-    let warn = rows
-        .iter()
-        .filter(|r| r.warn && !r.active && !r.concern)
-        .count();
+    let warn = rows.iter().filter(|r| warn_filter_retains(r)).count();
     let ok = rows.len().saturating_sub(concern + active + warn);
     (ok, active, warn, concern)
+}
+
+/// Row predicate for `RepoFilter::Warn` (EXTRACTED 2026-10-03, audit
+/// R4-SR-16): the retain and the `warn` bucket MUST share this one
+/// predicate. The old retain (`warn && !active`) kept concern rows
+/// that the bucket (`warn && !active && !concern`) then counted as
+/// concern — a `--warn` listing showing `❌ 1` in its own banner.
+fn warn_filter_retains(row: &RepoReportRow) -> bool {
+    row.warn && !row.active && !row.concern
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -4836,7 +4842,7 @@ pub(crate) async fn run_repos_report(
     match filter {
         RepoFilter::All => {}
         RepoFilter::Concern => rows.retain(|r| r.concern),
-        RepoFilter::Warn => rows.retain(|r| r.warn && !r.active),
+        RepoFilter::Warn => rows.retain(warn_filter_retains),
     }
 
     if let Some(pattern) = filter_name {
