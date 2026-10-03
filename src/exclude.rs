@@ -167,6 +167,54 @@ mod tests {
         assert!(!matches_file_pattern("abuild", "build*"));
     }
 
+    /// ADDED 2026-10-03 (audit R4-SR-07): patterns with 2+ `*`
+    /// silently never matched (the old arm required exactly 2
+    /// split parts). Ordered-subsequence semantics now; single-`*`
+    /// behavior preserved, including the overlap correction (`ab*bc`
+    /// must not match `abc` — glob `*` cannot double-count chars).
+    #[test]
+    fn test_matches_file_pattern_multi_star() {
+        // The audit repro.
+        assert!(matches_file_pattern("my-test-file", "*-test-*"));
+        assert!(!matches_file_pattern("my-tst-file", "*-test-*"));
+        // Middle runs in order.
+        assert!(matches_file_pattern("aXXbYYc", "a*b*c"));
+        assert!(!matches_file_pattern("aXXcYYb", "a*b*c"));
+        // Anchors hold with multiple stars.
+        assert!(!matches_file_pattern("xaXXbYYc", "a*b*c"));
+        assert!(!matches_file_pattern("aXXbYYcx", "a*b*c"));
+        assert!(matches_file_pattern("xaXXbYYc", "*a*b*c"));
+        assert!(matches_file_pattern("aXXbYYcx", "a*b*c*"));
+        // Repeated runs each consume.
+        assert!(matches_file_pattern("abab", "*ab*ab"));
+        assert!(!matches_file_pattern("ab", "*ab*ab"));
+        // Overlap correction (old code matched via double-count).
+        assert!(!matches_file_pattern("abc", "ab*bc"));
+        assert!(matches_file_pattern("abbc", "ab*bc"));
+        // All-stars still match everything; consecutive stars collapse.
+        assert!(matches_file_pattern("anything", "*"));
+        assert!(matches_file_pattern("anything", "**"));
+        assert!(matches_file_pattern("a-b", "a**b"));
+        // Single-* behavior preserved.
+        assert!(matches_file_pattern("preXYZpost", "pre*post"));
+        assert!(!matches_file_pattern("Xprepost", "pre*post"));
+    }
+
+    /// R4-SR-07 propagation: the rel_* segment helpers delegate to
+    /// `matches_file_pattern`, so a 2-`*` segment matches inside
+    /// relative-path patterns too.
+    #[test]
+    fn test_rel_glob_path_multi_star_segment() {
+        assert!(rel_matches_glob_path(
+            "reports/my-test-file.md",
+            "reports/*-test-*.md"
+        ));
+        assert!(!rel_matches_glob_path(
+            "reports/my-tst-file.md",
+            "reports/*-test-*.md"
+        ));
+    }
+
     #[test]
     fn test_is_excluded_file_simple() {
         let patterns = vec!["*.log".to_string(), "*.tmp".to_string()];
@@ -1120,7 +1168,12 @@ pub(crate) fn matches_file_pattern(file_name: &str, pattern: &str) -> bool {
             }
         }
         if !ends_with_star {
-            let last = runs[runs.len() - 1];
+            // Unreachable-empty by construction (a single run with
+            // anchors on neither side contains no `*`, contradicting
+            // the outer check) — fail closed rather than index.
+            let Some(last) = runs.last() else {
+                return false;
+            };
             match rest.strip_suffix(last) {
                 Some(stripped) => {
                     rest = stripped;
