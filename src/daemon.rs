@@ -164,6 +164,18 @@ pub(crate) fn sync_concurrency_limit(policy: &SyncPolicy) -> usize {
     policy.sem_max_concurrent_sync.max(1)
 }
 
+/// Startup read of the sync concurrency bound: the semaphore is
+/// built once for the daemon's life (permits span cycles, so it
+/// cannot track the per-cycle policy reload) — like the
+/// status/classification const caps, a bound change needs a
+/// restart. Falls back to the default when the config cannot be
+/// loaded yet.
+fn initial_sync_concurrency_limit(policy_path: &Path) -> usize {
+    SyncPolicy::load(policy_path)
+        .map(|policy| sync_concurrency_limit(&policy))
+        .unwrap_or_else(|_| crate::policy::default_sem_max_concurrent_sync())
+}
+
 /// A failed classifier may run again only after its backoff expires.
 fn classification_cooldown_elapsed(until: Option<&Instant>, now: Instant) -> bool {
     until.is_none_or(|until| now >= *until)
@@ -6726,13 +6738,14 @@ pub(crate) async fn run_daemon(
     // fully-dirty fleet spawned N concurrent sync_repo workers
     // with git subprocesses and multi-minute pack measurements
     // (the self-stampede the status/classification caps above
-    // were built to stop). One semaphore for the daemon's life;
-    // each worker holds a permit across its sync_repo call.
-    // Queued workers still hold their in_flight reservation, so
-    // the no-redispatch invariant is unaffected.
-    let sync_semaphore = Arc::new(tokio::sync::Semaphore::new(sync_concurrency_limit(
-        &policy,
-    )));
+    // were built to stop). One semaphore for the daemon's life,
+    // sized from the startup config; each worker holds a permit
+    // across its sync_repo call. Queued workers still hold their
+    // in_flight reservation, so the no-redispatch invariant is
+    // unaffected.
+    let sync_semaphore = Arc::new(tokio::sync::Semaphore::new(
+        initial_sync_concurrency_limit(&policy_path),
+    ));
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
