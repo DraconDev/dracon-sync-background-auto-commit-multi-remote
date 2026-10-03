@@ -732,9 +732,7 @@ fn codeberg_gate_reason(cached: Option<bool>) -> &'static str {
 /// and any future writer bypass would otherwise echo
 /// `https://user:token@host` credentials into the table + JSON
 /// verbatim. `None` stays `None` (no stuck entry for this repo).
-fn redacted_stuck_last_error(
-    stuck_info: Option<&crate::daemon::StuckRepoEntry>,
-) -> Option<String> {
+fn redacted_stuck_last_error(stuck_info: Option<&crate::daemon::StuckRepoEntry>) -> Option<String> {
     stuck_info.map(|info| crate::ownership::redact_url_credentials(&info.last_error))
 }
 
@@ -14491,13 +14489,12 @@ mod tests {
             "host/path preserved for diagnosis: {redacted}"
         );
         // Non-URL errors pass through byte-identical; None stays None.
-        let plain: crate::daemon::StuckRepoEntry =
-            serde_json::from_value(serde_json::json!({
-                "path": "/tmp/repo",
-                "stuck_since": 1,
-                "last_error": "fatal: the remote end hung up unexpectedly",
-            }))
-            .expect("test entry deserializes");
+        let plain: crate::daemon::StuckRepoEntry = serde_json::from_value(serde_json::json!({
+            "path": "/tmp/repo",
+            "stuck_since": 1,
+            "last_error": "fatal: the remote end hung up unexpectedly",
+        }))
+        .expect("test entry deserializes");
         assert_eq!(
             redacted_stuck_last_error(Some(&plain)).as_deref(),
             Some("fatal: the remote end hung up unexpectedly")
