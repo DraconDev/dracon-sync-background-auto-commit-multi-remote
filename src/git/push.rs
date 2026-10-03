@@ -996,7 +996,7 @@ mod tests {
         // sweep SSH + chain leg) — now exactly 1.
         use std::os::unix::fs::PermissionsExt;
         let tmp = tempfile::tempdir().unwrap();
-        let real_git = super::real_git_path();
+        let real_git = super::super::real_git_path();
         let log = tmp.path().join("push-log");
         let mock_git = tmp.path().join("git");
         std::fs::write(
