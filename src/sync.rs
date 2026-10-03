@@ -147,10 +147,21 @@ pub(crate) async fn count_ahead_commits(repo: &Path) -> Result<u64> {
             continue;
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
-        return Ok(stdout.trim().parse::<u64>().unwrap_or(0));
+        // FIXED 2026-10-02 (audit L2): a garbled count is an error, not
+        // 0 — 0-ahead disarms the backstop gate.
+        let count: u64 = stdout.trim().parse().with_context(|| {
+            format!(
+                "rev-list --count {} printed no number for {}",
+                range,
+                repo.display()
+            )
+        })?;
+        return Ok(count);
     }
     // No tracking ref anywhere → never pushed from this clone.
-    Ok(crate::git::count_all_head_commits(repo))
+    // FIXED 2026-10-02 (audit L2): fallible count — a status error
+    // surfaces instead of presenting as 0-ahead.
+    crate::git::try_count_all_head_commits(repo)
 }
 
 /// Check if the daemon's auto-commit backstop is active for a given
