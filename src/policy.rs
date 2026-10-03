@@ -538,8 +538,11 @@ pub(crate) struct SyncPolicy {
     /// in the repo's `.dracon/dracon-sync.toml` tells the daemon
     /// to skip those files entirely (manual `git add` still works).
     ///
-    /// Defaults to empty: this is an opt-in per-repo mechanism. The
-    /// global `untracked_exclude_patterns` still applies to new
+    /// Defaults to empty. Per-repo entries EXTEND this list (UNION,
+    /// R3-M2 contract — see `effective_auto_commit_excludes`); they
+    /// never replace it (CORRECTED 2026-10-03, audit R4-SR-17: the
+    /// old "opt-in per-repo mechanism" wording implied REPLACE).
+    /// The global `untracked_exclude_patterns` still applies to new
     /// files; this only filters modifications to tracked files.
     #[serde(default)]
     pub(crate) auto_commit_exclude_patterns: Vec<String>,
@@ -962,8 +965,11 @@ pub(crate) struct RepoPolicyOverride {
     pub(crate) cold_commit_minutes: Option<u64>,
     /// Per-repo list of glob patterns for TRACKED files the daemon
     /// should NOT auto-commit. See
-    /// [`SyncPolicy::auto_commit_exclude_patterns`]. None means
-    /// inherit the global value. Each entry is a glob
+    /// [`SyncPolicy::auto_commit_exclude_patterns`]. `None` means no
+    /// per-repo additions; `Some` EXTENDS the global list (UNION via
+    /// `effective_auto_commit_excludes`, R3-M2 contract — CORRECTED
+    /// 2026-10-03, audit R4-SR-17: the old "None means inherit the
+    /// global value" wording described REPLACE). Each entry is a glob
     /// (e.g. `"**/test-results/**"` or `"*.log"`).
     #[serde(default)]
     pub(crate) auto_commit_exclude_patterns: Option<Vec<String>>,
