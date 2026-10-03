@@ -629,36 +629,17 @@ auto_create = false
 # ]
 
 # =============================================================================
-#  SECTION 14: SETTLING MAX-DELAY (AGGRESSIVE AUTO-COMMIT)
+#  SECTION 14: COMMIT PACING
 # =============================================================================
-# UNIMPLEMENTED 2026-10-02 (audit L3): `settling_max_delay_secs` and
-# `dirty_max_age_action` are parsed and defaulted but NO production
-# code reads them — setting them changes nothing today. The prose
-# below describes the INTENDED behavior. Implement the settling
-# feature or remove both knobs + this section; see
-# OVERRIDE_COVERAGE_UNWIRED in src/policy.rs.
-# When a repo has been dirty continuously for > `settling_max_delay_secs`,
-# the daemon force-commits REGARDLESS of fingerprint stability. This
-# prevents the "⏸ stalled Xm" pileup the operator sees when many repos
-# have stale dirty state from previous sessions.
-#
-# The 5s fingerprint-stability wait is still used for actively-edited
-# repos, so the daemon doesn't commit on every keystroke.
-#
-# `dirty_max_age_action` controls what happens when the max-age is hit:
-#   - Commit (default): force-commit the current state
-#   - Warn: log a warning, do not commit (operator must intervene)
-#   - Ignore: do nothing
+# REMOVED 2026-10-03 (audit R3-L15): `settling_max_delay_secs` /
+# `dirty_max_age_action` were specified, parsed, and documented as live
+# but never consumed — the settling feature was never implemented.
+# Both halves are gone; configs still setting them parse fine (the
+# keys are ignored). Only the pacing knob below remains.
 #
 # `min_commit_interval_secs` is the minimum time between consecutive
 # auto-commits for the same repo. Prevents thrashing when the operator
 # is actively editing.
-#
-# To override per-repository, set in `<repo>/.dracon/dracon-sync.toml`:
-#   settling_max_delay_secs = 30  # be more aggressive for this repo
-#   dirty_max_age_action = "warn"  # never force-commit; just warn
-# settling_max_delay_secs = 60
-# dirty_max_age_action = "commit"  # or "warn" or "ignore"
 # min_commit_interval_secs = 5
 
 # =============================================================================
