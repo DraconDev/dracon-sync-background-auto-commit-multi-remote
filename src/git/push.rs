@@ -393,23 +393,10 @@ pub(crate) async fn push_with_retries(
                     // the repo in MERGING state (which the pre-v0.113.2
                     // conflict check couldn't even detect for nested
                     // submodules); abort instead.
-                    // FIXED 2026-10-03 (audit R4-SC-09): the push
-                    // refspecs above bail on unsafe branch names; the
-                    // auto-pull must too — an exotic name would reach
-                    // `git pull origin <ref>` unvalidated (arg confusion).
-                    let pull_refspec = match crate::git::branch::current_branch(repo) {
-                        Some(b) if super::is_safe_branch_name(&b) => {
-                            format!("refs/heads/{}", b)
-                        }
-                        Some(b) => {
-                            return Err(anyhow::anyhow!(
-                                "unsafe current branch '{}' in {}",
-                                b,
-                                repo.display()
-                            ));
-                        }
-                        None => "HEAD".to_string(),
-                    };
+                    let pull_refspec = pull_refspec_for_branch(
+                        crate::git::branch::current_branch(repo),
+                        repo,
+                    )?;
                     eprintln!(
                         "🔄 push rejected (non-fast-forward) for {} — pulling origin {} and retrying",
                         repo.display(),
