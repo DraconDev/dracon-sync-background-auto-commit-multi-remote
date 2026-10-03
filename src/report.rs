@@ -7996,9 +7996,37 @@ async fn handle_ahead(
             // Don't continue here - let it fall through to large blob detection below
             // (but without the manual_only marking)
 
-            let large = detect_large_blobs_ahead(repo, blob_threshold)
-                .await
-                .unwrap_or_default();
+            // FIXED 2026-10-03 (audit R4-SC-14): the old
+            // `.unwrap_or_default()` silently treated an unmeasurable
+            // ahead range as "no large blobs" and skipped the rewrite
+            // guard. A repo WITH an upstream whose measure fails is
+            // unexpected → loud manual incident. A repo with NO
+            // upstream (mirror-only) can never resolve @{u} → expected
+            // skip, human note only (an incident every cycle would be
+            // alert fatigue for a steady-state property).
+            let large = match detect_large_blobs_ahead(repo, blob_threshold).await {
+                Ok(large) => large,
+                Err(e) => {
+                    if has_tracking_upstream(repo) {
+                        if human {
+                            println!("   warn: large-blob ahead measure failed: {:#}", e);
+                        }
+                        log_incident(
+                            policy_path,
+                            "concern",
+                            repo.display().to_string(),
+                            reason,
+                            "large_blob_measure_failed",
+                            None,
+                            "manual",
+                            Some(e.to_string()),
+                        );
+                    } else if human {
+                        println!("   skip: no upstream — large-blob ahead measure not applicable");
+                    }
+                    Vec::new()
+                }
+            };
             if !large.is_empty() {
                 if human {
                     println!(

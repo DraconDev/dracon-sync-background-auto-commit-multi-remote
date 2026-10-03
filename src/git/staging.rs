@@ -304,7 +304,19 @@ pub(crate) async fn detect_large_blobs_ahead(
                 .output()
                 .with_context(|| format!("failed rev-list in {}", r.display()))?;
             if !rev_list.status.success() {
-                return Ok(Vec::new());
+                // FIXED 2026-10-03 (audit R4-SC-14): the old
+                // `Ok(vec![])` silently disabled the >100 MiB rewrite
+                // guard for exactly the repos that need it (no
+                // upstream, transient rev-list errors). Propagate —
+                // the caller decides (loud incident vs expected skip).
+                // Deliberately no whole-branch fallback: it would flag
+                // already-published blobs and the caller would rewrite
+                // published history to remove them.
+                return Err(anyhow::anyhow!(
+                    "rev-list --objects @{{u}}..HEAD failed in {}: {}",
+                    r.display(),
+                    String::from_utf8_lossy(&rev_list.stderr).trim()
+                ));
             }
             let mut cat_file_cmd = crate::policy::std_git_command();
             cat_file_cmd
