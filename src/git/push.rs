@@ -540,22 +540,12 @@ pub(crate) async fn push_with_retries(
             }
         }
     }
-    // FIXED 2026-10-03 (audit R3-L03): the old `if let Ok(())` threw
-    // away the fallback error (per-forge HTTPS verdicts + fresh SSH
-    // cause) and returned the stale loop `last_err`. Join both with
-    // the fallback verdict primary so the ledger shows the final
-    // verdicts, never just an earlier SSH attempt.
-    match push_with_transport_fallbacks(repo, timeout_secs, op_label).await {
-        Ok(()) => Ok(()),
-        Err(fallback_err) => Err(match last_err {
-            Some(prev) => anyhow::anyhow!(
-                "{} [earlier SSH attempts failed: {}]",
-                fallback_err,
-                clip_error_detail(&redact_credentials_for_log(&prev.to_string()))
-            ),
-            None => fallback_err,
-        }),
-    }
+    // REMOVED 2026-10-03 (audit R4-SC-13): the post-loop
+    // `push_with_transport_fallbacks` sweep (and its R3-L03 error join)
+    // with it — the HTTPS chain now runs inside the loop under the
+    // shared budget. Final error is the last leg's (mirror parity);
+    // the HTTPS leg already carries its M3 SSH-cause chain.
+    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push to origin failed")))
 }
 
 /// Check if an error message indicates a rejected push.
