@@ -708,6 +708,15 @@ pub(crate) fn literal_pathspec(path: &Path) -> String {
     format!(":(literal){}", path.display())
 }
 
+/// Batch form of [`literal_pathspec`] for `&[String]` argv builders
+/// (`git add`, `git restore`, `git rm --cached`).
+pub(crate) fn literal_pathspecs(paths: &[String]) -> Vec<String> {
+    paths
+        .iter()
+        .map(|p| literal_pathspec(Path::new(p)))
+        .collect()
+}
+
 /// Check if a branch name is safe to use in git commands (no injection chars).
 pub(crate) fn is_safe_branch_name(branch: &str) -> bool {
     if branch.is_empty() {

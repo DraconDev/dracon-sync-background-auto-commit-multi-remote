@@ -1428,8 +1428,12 @@ async fn stage_existing_files_filtered(
         }
 
         if !normal_paths.is_empty() {
+            // R4-SC-10: :(literal) — a status-derived filename with glob
+            // metacharacters must stage exactly itself, never its glob
+            // siblings (over-staging would defeat exclusion).
+            let quoted = crate::git::literal_pathspecs(&normal_paths);
             let mut add_args = vec!["add", "-A", "--"];
-            for p in &normal_paths {
+            for p in &quoted {
                 add_args.push(p.as_str());
             }
             if let Err(e) = run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add").await {
@@ -1446,8 +1450,10 @@ async fn stage_existing_files_filtered(
         // Force-add already-tracked gitignored files (git tracks them already,
         // so .gitignore shouldn't prevent staging updates to tracked content)
         if !force_paths.is_empty() {
+            // R4-SC-10: :(literal) — see the normal-paths loop above.
+            let quoted = crate::git::literal_pathspecs(&force_paths);
             let mut add_args = vec!["add", "-A", "-f", "--"];
-            for p in &force_paths {
+            for p in &quoted {
                 add_args.push(p.as_str());
             }
             if run_git_with_timeout(repo, &add_args, stage_timeout_secs, "add (force-tracked)")
