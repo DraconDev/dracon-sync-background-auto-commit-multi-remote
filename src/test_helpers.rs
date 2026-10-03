@@ -39,6 +39,14 @@
 /// `DRACON_SYNC_GIT_BIN` override and a single point of edit, but
 /// does NOT serialize git invocations.
 ///
+/// NOTE (2026-10-03): fixtures run with AMBIENT machine gitconfig
+/// (identity, init.defaultBranch) — do NOT seal it (commits would
+/// lose their author). Fixtures that PUSH test-identity commits
+/// through real git must neutralize the ambient global warden hooks
+/// instead: `git config core.hooksPath /dev/null` (local wins over
+/// global; the BAD_AUTHORS pre-push would otherwise — correctly —
+/// block the push).
+///
 /// ```ignore
 /// let output = test_git_cmd().current_dir(&repo).args(["status"]).output()?;
 /// ```
