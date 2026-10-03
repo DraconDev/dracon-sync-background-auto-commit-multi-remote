@@ -11355,6 +11355,31 @@ mod tests {
         assert!(!row.concern);
     }
 
+    #[test]
+    fn test_row_bucket_counts_warn_concern_counts_once() {
+        // R3-L09: a warn&&concern row must count ONLY as concern, so
+        // ok+active+warn+concern == rows.len() always.
+        let rows = vec![
+            RepoReportRow {
+                warn: true,
+                concern: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                warn: true,
+                ..full_row_for_json_test()
+            },
+            RepoReportRow {
+                active: true,
+                ..full_row_for_json_test()
+            },
+            full_row_for_json_test(),
+        ];
+        let (ok, active, warn, concern) = row_bucket_counts(&rows);
+        assert_eq!((ok, active, warn, concern), (1, 1, 1, 1));
+        assert_eq!(ok + active + warn + concern, rows.len());
+    }
+
     fn full_row_for_json_test() -> RepoReportRow {
         RepoReportRow {
             frozen_secs: None,
