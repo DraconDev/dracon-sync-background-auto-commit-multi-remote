@@ -8016,13 +8016,20 @@ pub(crate) async fn run_daemon(
                     continue;
                 };
                 let entries = entries.clone();
+                // R3-M2: gates use the same global+per-repo UNION as the
+                // worker (override-aware); GLOBAL-ONLY dispatched every
+                // cycle for per-repo-only configs while staging nothing.
+                let gate_excludes = crate::policy::effective_auto_commit_excludes(
+                    policy,
+                    &repo_override,
+                );
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &entries,
                     &excluded_dir_names,
                     &policy.exclude_file_patterns,
                     policy.max_stage_file_bytes,
-                    &policy.auto_commit_exclude_patterns,
+                    &gate_excludes,
                 );
                 if !dirty {
                     activity.remove(&repo);
@@ -8079,13 +8086,18 @@ pub(crate) async fn run_daemon(
                 // `git diff --name-status HEAD` and includes untracked files.
                 // Repeating a name-only HEAD diff doubles filter execution and
                 // can time out despite the first traversal having succeeded.
+                // R3-M2: same union as the worker (see above).
+                let gate_excludes2 = crate::policy::effective_auto_commit_excludes(
+                    policy,
+                    &repo_override,
+                );
                 let dirty = has_sync_relevant_dirty_entries(
                     &repo,
                     &filtered,
                     &excluded_dir_names,
                     &policy.exclude_file_patterns,
                     policy.max_stage_file_bytes,
-                    &policy.auto_commit_exclude_patterns,
+                    &gate_excludes2,
                 );
                 let has_local_or_pending_work =
                     dirty || status.ahead > 0 || status.behind > 0 || !has_origin || !has_upstream;
@@ -8155,12 +8167,11 @@ pub(crate) async fn run_daemon(
                     .unwrap_or(policy.stale_dirty_alert_secs);
                 if threshold > 0 {
                     // Per-repo auto-commit excludes EXTEND the global
-                    // list (AGENTS.md commit policy) — mirror the merge
-                    // so per-repo-excluded files never trigger the alert.
-                    let mut effective_excludes = policy.auto_commit_exclude_patterns.clone();
-                    if let Some(extra) = &repo_override.auto_commit_exclude_patterns {
-                        effective_excludes.extend(extra.iter().cloned());
-                    }
+                    // list (AGENTS.md commit policy) — shared union
+                    // helper so per-repo-excluded files never trigger
+                    // the alert.
+                    let effective_excludes =
+                        crate::policy::effective_auto_commit_excludes(policy, &repo_override);
                     match oldest_dirty_change_secs(
                         &repo,
                         &entries,

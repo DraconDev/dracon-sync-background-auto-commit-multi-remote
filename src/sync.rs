@@ -5434,7 +5434,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             };
         // R3-M2: per-repo entries EXTEND the global list (union helper).
         let partition_excludes =
-            crate::policy::effective_auto_commit_excludes(policy, repo_override);
+            crate::policy::effective_auto_commit_excludes(policy, &repo_override);
         let (to_stage, to_restore): (Vec<_>, Vec<_>) = entries
             .into_iter()
             .filter(|e| {
