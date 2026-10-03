@@ -1378,8 +1378,9 @@ const OWNERSHIP_REDETECT_TTL: Duration = Duration::from_secs(600);
 /// should the cached ownership verdict be (re)computed? True when
 /// never classified, or when the cached verdict is a NEGATIVE
 /// classification (Unowned/Unknown) older than the TTL. Owned
-/// verdicts stay sticky: a transient git error must not flip a good
-/// repo into skip mode. Extracted for unit testing.
+/// verdicts are NOT handled here — they revalidate via
+/// `ownership_owned_needs_revalidate` (R3-L14, two-strike flip).
+/// Extracted for unit testing.
 pub(crate) fn ownership_needs_redetect(
     ownership: &Option<crate::ownership::OwnershipReport>,
     detected_at: Option<Instant>,
@@ -7280,9 +7281,10 @@ pub(crate) async fn run_daemon(
             // up without a daemon restart. Previously
             // `if ownership.is_none()` meant the verdict was cached
             // FOREVER (the unowned `continue` below precedes every
-            // `activity.remove` site). Owned verdicts stay sticky —
-            // a transient git error must not flip a good repo into
-            // skip mode.
+            // `activity.remove` site). Owned verdicts revalidate on
+            // the same TTL via the `else if` below (R3-L14,
+            // two-strike flip — a single transient git error still
+            // must not skip a good repo).
             let needs_redetect = ownership_needs_redetect(
                 &entry_for_ownership.ownership,
                 entry_for_ownership.ownership_at,
