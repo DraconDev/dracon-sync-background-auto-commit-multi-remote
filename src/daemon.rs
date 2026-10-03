@@ -695,6 +695,19 @@ fn reserve_sync(in_flight: &mut HashSet<PathBuf>, repo: &Path) -> bool {
     in_flight.insert(repo.to_path_buf())
 }
 
+/// This cycle's dispatched-repo set for the trailing drain.
+///
+/// ADDED 2026-10-03 (audit R4-SC-17): the drain's "still running"
+/// set must seed from THIS cycle's `to_sync` drain only — never from
+/// `in_flight.clone()`, which still holds previous cycles'
+/// detached-registry repos and inflated the per-cycle message. The
+/// drain loop removes completions; the survivors are this cycle's
+/// genuinely still-running tasks. Generic over the handle type so
+/// tests can pin the contract without spawning join handles.
+fn drained_repo_set<H>(to_sync: &[(PathBuf, H)]) -> HashSet<PathBuf> {
+    to_sync.iter().map(|(repo, _)| repo.clone()).collect()
+}
+
 // REMOVED 2026-10-03 (audit R4-SC-07): the M1 per-generation
 // `detached_discard` machinery (`should_discard_stale_detached_result`
 // + `dispatch_gen` + the trailing-drain check) guarded a
@@ -9012,6 +9025,11 @@ pub(crate) async fn run_daemon(
         // including quiet cycles when nothing new was dispatched.
         let dispatched_any = !to_sync.is_empty();
         if dispatched_any || !detached_syncs.is_empty() {
+            // FIXED 2026-10-03 (audit R4-SC-17): seed the drain set
+            // from this cycle's to_sync BEFORE the drain below
+            // consumes it — the old `in_flight.clone()` at the drain
+            // site counted previous cycles' detached leftovers.
+            let mut dispatched_this_cycle = drained_repo_set(&to_sync);
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
                 sync_workers.insert(repo_path.clone(), handle.abort_handle());
@@ -9128,7 +9146,8 @@ pub(crate) async fn run_daemon(
             // here used to stall every other repo for up to 120 seconds.
             // trailing_drain_deadline_secs remains parseable for compatibility,
             // but is no longer a scheduler-blocking wait.
-            let mut dispatched_this_cycle: HashSet<PathBuf> = in_flight.clone();
+            // (`dispatched_this_cycle` was seeded from to_sync above;
+            // the old `in_flight.clone()` here over-counted — R4-SC-17.)
             loop {
                 if in_flight_tasks.is_empty() && detached_syncs.is_empty() {
                     break;
