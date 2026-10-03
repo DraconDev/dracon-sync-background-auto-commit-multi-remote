@@ -1397,6 +1397,27 @@ pub(crate) fn ownership_needs_redetect(
     }
 }
 
+/// ADDED 2026-10-03 (audit R3-L14): should a cached OWNED verdict be
+/// revalidated? True only when the verdict is Owned AND older than
+/// the TTL. The dispatch gate runs detection again on the push path
+/// (before every cycle's sync): a confirmed Owned refreshes the
+/// timestamp, while a flipped verdict accrues a strike (see the
+/// dispatch site) instead of flipping on one transient git error.
+pub(crate) fn ownership_owned_needs_revalidate(
+    ownership: &Option<crate::ownership::OwnershipReport>,
+    detected_at: Option<Instant>,
+    now: Instant,
+    ttl: Duration,
+) -> bool {
+    match ownership {
+        Some(crate::ownership::OwnershipReport::Owned { .. }) => match detected_at {
+            None => true,
+            Some(t) => now.duration_since(t) >= ttl,
+        },
+        _ => false,
+    }
+}
+
 /// ADDED 2026-07-21 (v0.112.31, audit H5/F1.2): what the daemon loop
 /// should do with a repo that has a stuck-push ledger entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -6461,6 +6482,12 @@ pub(crate) async fn run_daemon(
     // `remote_notify_cooldowns` 1:1 (per repo × alert kind); a cleared
     // condition removes its key, so the map is bounded by live alerts.
     let mut remote_notify_streaks: HashMap<String, usize> = HashMap::new();
+    // ADDED 2026-10-03 (audit R3-L14): consecutive negative
+    // revalidations of a stale Owned verdict, per repo. Strike 1
+    // warns (transient-tolerant); strike 2 adopts the negative
+    // verdict so the skip path engages. Cleared on any Owned
+    // confirmation; bounded by live repos.
+    let mut ownership_revalidate_strikes: HashMap<PathBuf, u32> = HashMap::new();
     // ADDED 2026-09-19 (v0.113.79): restore persisted throttle
     // state so a restart does not re-arm (and re-page) every
     // alert. Expired entries are dropped by the loader.
