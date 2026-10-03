@@ -3031,7 +3031,7 @@ mod tests {
             "settling_max_delay_secs = 30\ndirty_max_age_action = \"warn\"\n",
         )
         .expect("legacy per-repo settling keys must parse");
-        assert!(over.min_commit_interval_secs.is_none());
+        assert!(over.stale_dirty_alert_secs.is_none());
     }
 
     #[test]
