@@ -13390,9 +13390,11 @@ mod tests {
 
     // ---- Wrap-detection tests (goal: no cell wraps mid-content at tier boundaries) ----
 
-    /// Verify the sum of all 22 column minimums in `print_repos_full_table`
-    /// plus 23 borders is < 315 cols (the full tier threshold).
-    /// If this sum grows past 315, the full tier won't fit and content will wrap.
+    /// Verify the sum of all 23 column minimums in `print_repos_full_table`
+    /// plus 24 borders equals the advisory 315-col floor (REFRESHED
+    /// 2026-10-03, audit R3-L38: was "22 columns + 23 borders < 315";
+    /// Full is opt-in, so the floor is advisory, not a tier gate —
+    /// but ANY widening must be a conscious floor update, hence ==).
     #[test]
     fn test_full_table_min_width_within_300() {
         // The values here MUST match the set_constraints in print_repos_full_table.
@@ -13408,6 +13410,9 @@ mod tests {
         // LowerBoundary to Absolute so long cell content (e.g. 152-char
         // auto-commit subjects) is truncated instead of widening the
         // column. Array values unchanged.
+        //
+        // R3-L34 (2026-10-03): ACTIVITY 11 → 13 (the "⏰ ACTIVITY"
+        // header needs 11 content + 2 padding); floor 313 → 315.
         let minimums: [u16; 23] = [
             // 2026-07-19 (goal `4555eaf6`): REPO bumped from 17 → 19
             // to accommodate long names like
@@ -13415,7 +13420,7 @@ mod tests {
             // truncated to 17 cols of content. Other LowerBoundaries
             // (ACTIVITY, STATE, DAEMON, HINT) became Absolute for the
             // same reason — width budget moved up the column list.
-            4, 13, 19, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 11, 11, 8, 8, 8, 15, 15, 15,
+            4, 13, 19, 18, 11, 17, 8, 8, 7, 9, 11, 13, 32, 17, 11, 13, 11, 8, 8, 8, 15, 15, 15,
         ];
         // F30v2 (2026-07-19): values unchanged but constraint type for
         // PUSH-TO, LAST COMMIT, and AUTHOR switched from LowerBoundary
@@ -13423,10 +13428,11 @@ mod tests {
         let sum: u32 = minimums.iter().map(|&x| x as u32).sum();
         let borders: u32 = 24;
         let total = sum + borders;
-        assert!(
-            total <= 315,
-            "Full table minimum width {total} exceeds 315-col tier threshold. \
-             Lower some LowerBoundaries or push the tier boundary higher."
+        assert_eq!(
+            total, 315,
+            "Full table floor moved from the advisory 315 cols: update the \
+             array above, the width-floor comment at the constraints, and the \
+             opt-in guidance together."
         );
         // F30 regression: the test array count must match the
         // production constraint count (23, after ROLE was added).
