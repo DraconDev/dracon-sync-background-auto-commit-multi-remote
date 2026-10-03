@@ -412,7 +412,7 @@ pub(crate) async fn push_with_retries(
                 // forge mappers are mutually exclusive (at most one leg
                 // runs), and with no match at all the call pushes
                 // nothing. M3 cause-chaining preserved (mirror shape).
-                if !tried_https && !is_push_rejected(&err_msg) {
+                if !tried_https && spent < budget && !is_push_rejected(&err_msg) {
                     tried_https = true;
                     let origin = super::origin_url(repo).unwrap_or_default();
                     if super::github_https_url(&origin).is_some()
@@ -1012,8 +1012,21 @@ mod tests {
         let repo = tmp.path().join("repo");
         for args in [
             vec!["init", "-q", "-b", "main", repo.to_str().unwrap()],
-            vec!["-C", repo.to_str().unwrap(), "remote", "add", "origin", "git@github.com:example/repo.git"],
-            vec!["-C", repo.to_str().unwrap(), "config", "user.email", "test@test"],
+            vec![
+                "-C",
+                repo.to_str().unwrap(),
+                "remote",
+                "add",
+                "origin",
+                "git@github.com:example/repo.git",
+            ],
+            vec![
+                "-C",
+                repo.to_str().unwrap(),
+                "config",
+                "user.email",
+                "test@test",
+            ],
             vec!["-C", repo.to_str().unwrap(), "config", "user.name", "test"],
         ] {
             assert!(
@@ -1047,8 +1060,7 @@ mod tests {
                 "setup {args:?} failed"
             );
         }
-        let _guard =
-            crate::test_helpers::GitBinRestorer::new(mock_git.to_str().unwrap());
+        let _guard = crate::test_helpers::GitBinRestorer::new(mock_git.to_str().unwrap());
         let push_count = || {
             std::fs::read_to_string(&log)
                 .unwrap()
