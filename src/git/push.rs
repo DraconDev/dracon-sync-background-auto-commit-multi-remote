@@ -77,7 +77,7 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("GITLAB_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
-                    // FIXED 2026-10-03 (audit R3-L03): a non-UTF8
+                    // HARDENED 2026-10-03 (unmapped; not a numbered R3 finding): a non-UTF8
                     // askpass path fails LOUD per-forge instead of
                     // silently pointing GIT_ASKPASS at /bin/false
                     // (every push then fails with a misleading error).
@@ -111,6 +111,12 @@ pub(crate) async fn push_https_fallback(
                     failures.push("gitlab: askpass setup failed".to_string());
                 }
             }
+        } else {
+            // FIXED 2026-10-03 (audit R3-L05): a missing/unreadable
+            // token file silently skipped this leg, leaving only the
+            // generic "all HTTPS push attempts failed" — the operator
+            // chased transport instead of secrets. No token material.
+            failures.push("gitlab: no token configured (skipped)".to_string());
         }
     }
 
@@ -118,7 +124,7 @@ pub(crate) async fn push_https_fallback(
         if let Some(token) = super::load_secret("CODEBERG_TOKEN") {
             match super::git_askpass_script(&token).await {
                 Ok(askpass) => {
-                    // FIXED 2026-10-03 (audit R3-L03): a non-UTF8
+                    // HARDENED 2026-10-03 (unmapped; not a numbered R3 finding): a non-UTF8
                     // askpass path fails LOUD per-forge instead of
                     // silently pointing GIT_ASKPASS at /bin/false
                     // (every push then fails with a misleading error).
@@ -152,6 +158,10 @@ pub(crate) async fn push_https_fallback(
                     failures.push("codeberg: askpass setup failed".to_string());
                 }
             }
+        } else {
+            // FIXED 2026-10-03 (audit R3-L05): see the GitLab leg —
+            // skipped legs must say so (no token material).
+            failures.push("codeberg: no token configured (skipped)".to_string());
         }
     }
 
