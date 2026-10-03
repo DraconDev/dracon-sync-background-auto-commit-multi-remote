@@ -6729,6 +6729,11 @@ fn build_repos_rich_table(
         .unwrap_or(REM_MIN_COL);
 
     let width = terminal_columns as usize;
+    // R3-L39 (2026-10-03): `#` fits row numbers up to 99 (2 digits +
+    // padding = 4). At 100+ repos comfy-table WRAPS the index cell
+    // ("100" → "10"/"0" on two lines — probed on comfy-table 7.2.2,
+    // Dynamic + Absolute; it never clips digits). Fleet is ~35
+    // today; widen to 5 (all tiers + mirrors + floors) if it nears 99.
     const NUM_COL: usize = 4;
     const STATUS_COL: usize = 12;
     // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
@@ -7052,12 +7057,30 @@ fn build_repos_rich_table(
         // v0.113.18 (audit L7): no-space `↑423↓12` (one cell cheaper)
         // and truncate to the column budget — a 4-digit double count
         // used to overflow silently, showing a clipped wrong number.
+        // CHANGED 2026-10-03 (audit R3-L39): `format_compact_count`
+        // for A/B symmetry with the CHANGES columns — "↑12k" reads
+        // truer than a clipped "↑12345…" at hostile counts (the cap
+        // is 99k per side; a double-99k corner still truncates
+        // honestly with …).
         let (ab_text, ab_color) = if row.ahead > 0 && row.behind > 0 {
-            (format!("↑{}↓{}", row.ahead, row.behind), Color::Yellow)
+            (
+                format!(
+                    "↑{}↓{}",
+                    format_compact_count(row.ahead),
+                    format_compact_count(row.behind)
+                ),
+                Color::Yellow,
+            )
         } else if row.ahead > 0 {
-            (format!("↑{}", row.ahead), Color::Yellow)
+            (
+                format!("↑{}", format_compact_count(row.ahead)),
+                Color::Yellow,
+            )
         } else if row.behind > 0 {
-            (format!("↓{}", row.behind), Color::Magenta)
+            (
+                format!("↓{}", format_compact_count(row.behind)),
+                Color::Magenta,
+            )
         } else {
             ("—".to_string(), Color::DarkGrey)
         };
