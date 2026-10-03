@@ -1206,4 +1206,28 @@ mod tests {
         // (covered by is_permanent_push_rejection, not is_pack_too_large).
         assert!(!is_pack_too_large("protected branch hook declined"));
     }
+
+    #[test]
+    fn test_pull_refspec_for_branch_rejects_unsafe_names() {
+        // ADDED 2026-10-03 (audit R4-SC-09): the auto-pull refspec is
+        // validated exactly like the push refspecs — the same
+        // "unsafe current branch" bail, so an exotic name never
+        // reaches `git pull origin <ref>` unvalidated.
+        let repo = std::path::Path::new("/tmp/fixture");
+        assert_eq!(
+            pull_refspec_for_branch(Some("main".to_string()), repo).unwrap(),
+            "refs/heads/main"
+        );
+        assert_eq!(
+            pull_refspec_for_branch(None, repo).unwrap(),
+            "HEAD"
+        );
+        for bad in ["-evil", "a..b", "trailing.", "li\nne", ""] {
+            let err = pull_refspec_for_branch(Some(bad.to_string()), repo).unwrap_err();
+            assert!(
+                format!("{err:#}").contains("unsafe current branch"),
+                "exotic branch {bad:?} must bail, got: {err:#}"
+            );
+        }
+    }
 }
