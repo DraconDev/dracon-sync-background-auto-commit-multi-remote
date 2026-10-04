@@ -816,6 +816,26 @@ mod github_pack_tests {
     }
 
     #[test]
+    fn tmp_probe_platform_verdict() {
+        let repo = std::path::Path::new("/home/dracon/Dev/dracon-platform");
+        let branch = super::branch::current_branch(repo);
+        eprintln!("TMP branch={branch:?}");
+        let remotes = super::github_remote_names(repo);
+        eprintln!("TMP remotes={remotes:?}");
+        if let Some(b) = branch.as_deref() {
+            let scenarios = super::github_push_scenarios(repo, &remotes, b);
+            eprintln!("TMP scenarios={scenarios:?}");
+            let basis = super::github_push_basis_bytes(repo, 2 * 1024 * 1024 * 1024);
+            eprintln!("TMP basis={basis:?}");
+        }
+        let v = super::github_pack_too_large(repo, None);
+        eprintln!("TMP verdict-none={v:?}");
+        let v2 = super::github_pack_too_large(repo, Some(8984891392));
+        eprintln!("TMP verdict-some={v2:?}");
+        panic!("tmp probe done");
+    }
+
+    #[test]
     fn small_repo_is_not_too_big_for_github() {
         let repo = daemon_repo();
         let repo = repo.as_path();
