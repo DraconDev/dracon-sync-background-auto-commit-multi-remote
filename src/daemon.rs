@@ -2553,6 +2553,84 @@ mod tests {
         assert!(lock.exists(), "fresh lock must survive the sweep");
     }
 
+    /// A stale lock whose holder is still alive must survive even
+    /// though its age is past the floor: age gates the fuser call,
+    /// fuser decides liveness.
+    #[test]
+    fn test_cyclic_lock_sweep_retains_in_use_lock() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        let lock = gitdir.join("index.lock");
+        std::fs::write(&lock, b"held").unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&lock)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
+            .unwrap();
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+        let removed = remove_stale_index_locks(&repo_set, |_| Ok(true));
+
+        assert_eq!(removed, 0);
+        assert!(lock.exists(), "in-use lock must survive the sweep");
+    }
+
+    /// A fuser failure fails closed: the lock stays, nothing is
+    /// removed, and the sweep reports zero.
+    #[test]
+    fn test_cyclic_lock_sweep_retains_on_fuser_error() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        let lock = gitdir.join("index.lock");
+        std::fs::write(&lock, b"stale").unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&lock)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
+            .unwrap();
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+        let removed =
+            remove_stale_index_locks(&repo_set, |_| anyhow::bail!("fuser missing"));
+
+        assert_eq!(removed, 0);
+        assert!(lock.exists(), "unverifiable lock must survive the sweep");
+    }
+
+    /// Cost contract for the per-pulse call: repos without a lock
+    /// file must not pay for a fuser spawn. The checker is never
+    /// invoked when there is nothing to check.
+    #[test]
+    fn test_cyclic_lock_sweep_skips_fuser_when_no_lock() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        let calls = std::sync::Mutex::new(0u32);
+
+        let removed = remove_stale_index_locks(&repo_set, |_| {
+            *calls.lock().unwrap() += 1;
+            Ok(false)
+        });
+
+        assert_eq!(removed, 0);
+        assert_eq!(
+            *calls.lock().unwrap(),
+            0,
+            "fuser must not run when no lock exists"
+        );
+    }
+
     /// Startup cleanup must remove a stale lock from the per-worktree gitdir,
     /// not look below the checkout's `.git` pointer file.
     #[test]
