@@ -880,6 +880,44 @@ mod tests {
     use super::*;
     use crate::test_helpers::{create_test_repo, test_commit_cmd, test_git_cmd};
 
+    /// Gitlinks stage a 40-hex pointer, never blob content: the size
+    /// gate must exempt them. FIX 2026-10-05 (hotfix 0.113.95): the
+    /// R4-SC-05 post-stage sweep ran the blob gate after gitlink
+    /// staging; nested SHAs never resolve in the parent store, so
+    /// EVERY gitlink fleet-wide was unstaged each cycle (fail closed)
+    /// and no parent pointer advanced from the 0.113.94 deploy until
+    /// this fix.
+    #[tokio::test]
+    async fn test_unstage_oversized_paths_exempts_gitlinks() {
+        let repo = create_test_repo();
+        // Nested SHA absent from this store, exactly like production.
+        let nested_sha = "7c04c6393d44b64bea706e6ecad2d9c166b95320";
+        let out = test_git_cmd()
+            .args([
+                "update-index",
+                "--cacheinfo",
+                &format!("160000,{nested_sha},nested"),
+            ])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "cacheinfo staging must succeed");
+
+        let n = unstage_oversized_paths(&repo, 1024).await.unwrap();
+
+        assert_eq!(n, 0, "gitlink must survive the size gate");
+        let listed = test_git_cmd()
+            .args(["ls-files", "-s", "nested"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        let listed = String::from_utf8_lossy(&listed.stdout);
+        assert!(
+            listed.starts_with("160000"),
+            "gitlink must stay staged, index: {listed}"
+        );
+    }
+
     #[tokio::test]
     async fn test_unstage_oversized_paths_measures_staged_blob_not_worktree() {
         // FIX (audit M4, 2026-10-02): stage-large-then-truncate must not
