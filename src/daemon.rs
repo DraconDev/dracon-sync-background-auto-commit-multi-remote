@@ -2570,6 +2570,14 @@ mod tests {
         .unwrap();
         let real_lock = worktree_gitdir.join("index.lock");
         std::fs::write(&real_lock, b"stale").unwrap();
+        // Backdate: the sweep only removes locks older than
+        // STALE_INDEX_LOCK_AGE_SECS; this fixture tests the stale path.
+        std::fs::File::options()
+            .write(true)
+            .open(&real_lock)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
+            .unwrap();
         let repo_set = [checkout.clone()].into_iter().collect::<BTreeSet<_>>();
 
         let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
@@ -2598,6 +2606,14 @@ mod tests {
         std::fs::write(checkout.join(".git"), "gitdir: ../.git/modules/sub\n").unwrap();
         let real_lock = submodule_gitdir.join("index.lock");
         std::fs::write(&real_lock, b"stale").unwrap();
+        // Backdate: the sweep only removes locks older than
+        // STALE_INDEX_LOCK_AGE_SECS; this fixture tests the stale path.
+        std::fs::File::options()
+            .write(true)
+            .open(&real_lock)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
+            .unwrap();
         let repo_set = [checkout.clone()].into_iter().collect::<BTreeSet<_>>();
 
         let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
