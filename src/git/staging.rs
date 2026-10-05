@@ -183,7 +183,17 @@ pub(crate) async fn staged_blob_sizes_for(
             };
             let (meta, name) = (&record[..tab], &record[tab + 1..]);
             let mut meta_parts = meta.split(|b| *b == b' ');
-            let _mode = meta_parts.next();
+            let mode = meta_parts.next();
+            // FIX 2026-10-05 (hotfix 0.113.95): gitlinks (mode 160000)
+            // stage a 40-hex nested pointer, never blob content — there
+            // is nothing to size-gate, and the nested SHA never resolves
+            // in the parent store (cat-file reports missing). Measuring
+            // them fails closed and unstages EVERY gitlink each cycle
+            // (fleet-wide parent-pointer freeze from the 0.113.94
+            // deploy). Omit like deletions: pointer swaps add no bytes.
+            if mode == Some(b"160000".as_slice()) {
+                continue;
+            }
             let Some(sha) = meta_parts.next() else {
                 continue;
             };
