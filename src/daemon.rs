@@ -7102,6 +7102,13 @@ pub(crate) async fn run_daemon(
         ls_remote_cooldowns.retain(|repo, _| repo_set.contains(repo));
         crate::git::multi_remote::forge_confirmed_prune_alive(&repo_set);
         max_fail_cooldowns.retain(|repo, _| repo_set.contains(repo));
+        // ADDED 2026-10-05 (stale-lock janitor): the same sweep that
+        // runs at startup, every pulse. A lock created mid-session
+        // (crashed git, killed stage task) previously sat until the
+        // next daemon restart — dracon-platform stalled 6h on
+        // 2026-10-05. Cheap in the common case (one stat per repo;
+        // fuser runs only where a lock file actually exists).
+        remove_stale_index_locks(&repo_set, fuser_lock_is_in_use);
         // CHANGED 2026-07-21 (v0.112.31, audit H5/F1.2): reload the
         // stuck-push ledger from disk EVERY cycle instead of using
         // the map loaded once at startup. `record_push_failure` /
