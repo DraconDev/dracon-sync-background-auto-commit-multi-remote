@@ -802,7 +802,11 @@ where
             match fuser_check(&lock) {
                 Ok(false) => {
                     if let Err(e) = std::fs::remove_file(&lock) {
-                        eprintln!("⚠️ index.lock sweep: failed to remove {}: {}", lock.display(), e);
+                        eprintln!(
+                            "⚠️ index.lock sweep: failed to remove {}: {}",
+                            lock.display(),
+                            e
+                        );
                     } else {
                         eprintln!(
                             "🧹 index.lock sweep: removed stale lock in {} (fuser-clean, age over {}s)",
@@ -2598,8 +2602,7 @@ mod tests {
             .into_iter()
             .collect::<BTreeSet<_>>();
 
-        let removed =
-            remove_stale_index_locks(&repo_set, |_| anyhow::bail!("fuser missing"));
+        let removed = remove_stale_index_locks(&repo_set, |_| anyhow::bail!("fuser missing"));
 
         assert_eq!(removed, 0);
         assert!(lock.exists(), "unverifiable lock must survive the sweep");
