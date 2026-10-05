@@ -1,6 +1,6 @@
 [package]
 name = "dracon-sync"
-version = "0.113.93"
+version = "0.113.94"
 edition = "2021"
 # FIXED 2026-09-27 (audit F84): the CI "Minimum Toolchain" job
 # installed `stable` and therefore enforced no MSRV at all. This is the
