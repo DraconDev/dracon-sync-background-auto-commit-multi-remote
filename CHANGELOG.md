@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ## [0.113.95] - 2026-10-05
+
+### Fixed
+
+- Gitlinks (mode 160000) are exempt from the staged-blob size gate: they stage a 40-hex nested pointer, never blob content, and the nested SHA never resolves in the parent store — so the R4-SC-05 post-stage sweep unstaged EVERY gitlink each cycle (fail closed) and froze all parent-pointer convergence fleet-wide from the 0.113.94 deploy. Pointer swaps add no bytes and skip the gate like deletions; the nested repos' own sync still gates their blobs.
+## [0.113.94] - 2026-10-05
 ## [0.113.94] - 2026-10-05
 
 ### Fixed
