@@ -4,7 +4,10 @@ Invisible git sync daemon for deterministic AI-assisted development.
 
 ## What's Changed
 
-- Bump version to 0.113.95
+- Hotfix: gitlinks are exempt from the staged-blob size gate. The
+  R4-SC-05 post-stage sweep unstaged every gitlink each cycle
+  (fail closed on unresolvable nested SHAs), freezing all
+  parent-pointer convergence fleet-wide from the 0.113.94 deploy.
 - (See CHANGELOG.md for the full list of changes in this release)
 
 ## Install
