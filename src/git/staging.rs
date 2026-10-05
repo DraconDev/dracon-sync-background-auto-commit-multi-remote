@@ -910,6 +910,7 @@ mod tests {
         let out = test_git_cmd()
             .args([
                 "update-index",
+                "--add",
                 "--cacheinfo",
                 &format!("160000,{nested_sha},nested"),
             ])
