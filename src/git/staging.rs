@@ -190,8 +190,13 @@ pub(crate) async fn staged_blob_sizes_for(
             // in the parent store (cat-file reports missing). Measuring
             // them fails closed and unstages EVERY gitlink each cycle
             // (fleet-wide parent-pointer freeze from the 0.113.94
-            // deploy). Omit like deletions: pointer swaps add no bytes.
+            // deploy). Skip like deletions: pointer swaps add no bytes.
+            // (Must join `skipped`, not just skip `indexed` — otherwise
+            // the path lands in `blind` below and is unstaged anyway.)
             if mode == Some(b"160000".as_slice()) {
+                skipped.insert(std::path::PathBuf::from(
+                    String::from_utf8_lossy(name).into_owned(),
+                ));
                 continue;
             }
             let Some(sha) = meta_parts.next() else {
