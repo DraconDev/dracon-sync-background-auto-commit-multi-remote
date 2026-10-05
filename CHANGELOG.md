@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ## [0.113.94] - 2026-10-05
+
+### Fixed
+
+- Stale `index.lock` janitor runs every pulse, not just at startup: a lock created mid-session (crashed git, killed stage task) previously sat until the next daemon restart — dracon-platform stalled 6h on 2026-10-05 with zero journal trace, then stalled again the same day. The per-cycle sweep clears locks older than 120s only after `fuser` confirms no live holder (fail-closed on fuser error; fresh locks retained without consulting fuser); repos without a lock pay one stat. Worst self-heal is now ~2 min.
 ## [0.113.93] - 2026-10-03
 
 ### Fixed (workspace audit 2026-10-03, ROUND3 — 1 HIGH, 3 MEDIUM, 39 LOW)

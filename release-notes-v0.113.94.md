@@ -4,7 +4,10 @@ Invisible git sync daemon for deterministic AI-assisted development.
 
 ## What's Changed
 
-- Bump version to 0.113.94
+- Stale `index.lock` janitor runs every pulse: mid-session locks
+  (crashed git, killed stage task) are cleared after 120s when
+  `fuser` confirms no holder, instead of stalling the repo until
+  the next restart (dracon-platform stalled 6h twice on 2026-10-05).
 - (See CHANGELOG.md for the full list of changes in this release)
 
 ## Install
