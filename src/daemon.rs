@@ -2492,6 +2492,28 @@ mod tests {
         );
     }
 
+    /// The cyclic janitor must NOT remove a fresh lock even when fuser
+    /// reports no users: the fuser scan races lock creation, and a
+    /// blind spot (root holder, pid namespace) must not yank a live
+    /// lock. Only locks older than STALE_INDEX_LOCK_AGE_SECS are
+    /// eligible for removal.
+    #[test]
+    fn test_cyclic_lock_sweep_retains_fresh_lock() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let gitdir = temp.path().join(".git");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        let lock = gitdir.join("index.lock");
+        std::fs::write(&lock, b"fresh").unwrap();
+        let repo_set = [temp.path().to_path_buf()]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+        let removed = remove_stale_index_locks(&repo_set, |_| Ok(false));
+
+        assert_eq!(removed, 0);
+        assert!(lock.exists(), "fresh lock must survive the sweep");
+    }
+
     /// Startup cleanup must remove a stale lock from the per-worktree gitdir,
     /// not look below the checkout's `.git` pointer file.
     #[test]
