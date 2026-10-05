@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+## [0.113.95] - 2026-10-05
 ## [0.113.94] - 2026-10-05
 
 ### Fixed
