@@ -750,9 +750,29 @@ fn fuser_lock_is_in_use_with_command(command: &str, lock: &Path) -> Result<bool>
     classify_fuser_status(output.status.code(), &output.stderr)
 }
 
+/// Minimum lock age before the index-lock sweeps may remove a
+/// fuser-clean lock.
+///
+/// ADDED 2026-10-05 (stale-lock janitor): the sweep used to run at
+/// startup only, so a lock created mid-session (crashed git, killed
+/// stage task) sat until the next restart — dracon-platform stalled
+/// 6h on 2026-10-05 with zero journal trace. The sweep now also runs
+/// every pulse; the floor keeps a fuser blind spot (root holder,
+/// pid namespace) or a create→scan race from yanking a live lock.
+/// 120s is >10x any observed legitimate hold (git add/commit hold
+/// the lock for milliseconds to seconds) and bounds the worst
+/// self-heal to ~2 min against the observed 6h stall.
+const STALE_INDEX_LOCK_AGE_SECS: u64 = 120;
+
 /// Remove stale index locks from the discovered checkouts. The checker is
 /// injected so the path-resolution behavior can be tested without relying on
 /// the host's `fuser` binary.
+///
+/// Called at startup AND once per scheduler pulse (the per-cycle call
+/// is what heals mid-session stalls). Locks younger than
+/// STALE_INDEX_LOCK_AGE_SECS are retained without consulting fuser;
+/// an unmeasurable mtime proceeds to the fuser verdict (which itself
+/// fails closed), since a skewed clock must not pin a repo forever.
 fn remove_stale_index_locks<F>(repo_set: &BTreeSet<PathBuf>, fuser_check: F) -> u64
 where
     F: Fn(&Path) -> Result<bool>,
@@ -761,27 +781,46 @@ where
     for repo in repo_set {
         let lock = index_lock_path(repo);
         if lock.exists() {
+            let age_secs = std::fs::metadata(&lock)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| std::time::SystemTime::now().duration_since(t).ok())
+                .map(|d| d.as_secs());
+            if age_secs.is_some_and(|s| s < STALE_INDEX_LOCK_AGE_SECS) {
+                veprintln!(
+                    1,
+                    "⏳ index.lock sweep: retaining fresh lock in {} (age under {}s)",
+                    repo.display(),
+                    STALE_INDEX_LOCK_AGE_SECS
+                );
+                continue;
+            }
             eprintln!(
-                "🧹 startup: found index.lock in {} (checking fuser...)",
+                "🧹 index.lock sweep: found index.lock in {} (checking fuser...)",
                 repo.display()
             );
             match fuser_check(&lock) {
                 Ok(false) => {
                     if let Err(e) = std::fs::remove_file(&lock) {
-                        eprintln!("⚠️ startup: failed to remove {}: {}", lock.display(), e);
+                        eprintln!("⚠️ index.lock sweep: failed to remove {}: {}", lock.display(), e);
                     } else {
+                        eprintln!(
+                            "🧹 index.lock sweep: removed stale lock in {} (fuser-clean, age over {}s)",
+                            repo.display(),
+                            STALE_INDEX_LOCK_AGE_SECS
+                        );
                         locks_removed += 1;
                     }
                 }
                 Ok(true) => {
                     eprintln!(
-                        "⏳ startup: retaining {} because fuser reports it is in use",
+                        "⏳ index.lock sweep: retaining {} because fuser reports it is in use",
                         lock.display()
                     );
                 }
                 Err(e) => {
                     eprintln!(
-                        "⚠️ startup: retaining {} because fuser could not verify it is stale: {}",
+                        "⚠️ index.lock sweep: retaining {} because fuser could not verify it is stale: {}",
                         lock.display(),
                         e
                     );
