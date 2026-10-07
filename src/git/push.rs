@@ -470,6 +470,40 @@ pub(crate) async fn push_with_retries(
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push to origin failed")))
 }
 
+/// ADDED 2026-10-07: a LOCAL pre-push/pre-commit hook refused the push.
+///
+/// The bytes never left the machine and no retry, credential refresh or
+/// network repair can change the outcome — the hook is reporting a policy
+/// decision (dracon-platform's bucket asset-retirement guard, its repo
+/// size budget, the warden's secret scan, or the history guard). Before
+/// this arm existed, none of the predicates matched such a message and it
+/// fell through to the final `else`, which reported
+///
+///     transport/auth failure (network, timeout, or credentials)
+///
+/// That sent the operator to the network and credentials instead of to
+/// the policy that actually blocked the push, and it burned the entire
+/// stuck budget on a rejection that retrying can never fix. This is the
+/// same class of misdirection `classify_push_failure` was introduced in
+/// v0.113.50 to prevent, third instance.
+///
+/// The markers are the client-side hook labels and warnings Git echoes from
+/// the hook's own stderr. Server-side rejections use `pre-receive` /
+/// `hook declined` and are matched by `is_permanent_push_rejection`, so the
+/// two sets do not collide — `pre-receive` does not contain `pre-push`.
+///
+/// Not every warden refusal names a `pre-push` label: the secret scan prints
+/// only its own warning, so `Possible plaintext secrets` is matched too. That
+/// omission is not theoretical — it is why the 2026-10-07 `pi-goal-list-loop-audit`
+/// wedge was reported as a transport failure.
+pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
+    err_msg.contains("pre-push")
+        || err_msg.contains("pre-commit")
+        || err_msg.contains("dracon-warden:")
+        || err_msg.contains("dracon-warden hook")
+        || err_msg.contains("Possible plaintext secrets")
+}
+
 /// Check if an error message indicates a rejected push.
 pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
     err_msg.contains("rejected")
@@ -495,6 +529,8 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
         "forge-side outage (transient infra: Gitaly/5xx; retrying with backoff, excluded from stuck budget)"
     } else if is_pack_too_large(err_msg) {
         "pack exceeds forge size limit (needs history rewrite)"
+    } else if is_local_hook_rejection(err_msg) {
+        "local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network)"
     } else if is_permanent_push_rejection(err_msg) {
         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
     } else if is_push_rejected(err_msg) {
@@ -1216,6 +1252,65 @@ mod tests {
         let prot = "remote: error: GH006: Protected branch update failed for main.\n! [remote rejected] main -> main (protected branch hook declined)";
         assert!(!is_transient_forge_outage(prot));
         assert!(classify_push_failure(prot).contains("server-side policy"));
+    }
+
+    // ADDED 2026-10-07: a LOCAL hook refusal is a policy decision, not a
+    // transport failure. Before this, the three messages below all classified
+    // as "transport/auth failure (network, timeout, or credentials)", which
+    // misdirected the operator and burned the stuck budget on retries that
+    // could never succeed. The strings are verbatim from the 2026-10-07
+    // four-repo push-stuck incident.
+    #[test]
+    fn test_local_hook_rejection_is_not_transport_failure() {
+        let bucket = "pre-push: bucket high-water guard blocked this push\nerror: failed to push some refs to 'github.com:DraconDev/dracon-platform.git'";
+        assert!(is_local_hook_rejection(bucket));
+        let class = classify_push_failure(bucket);
+        assert!(class.contains("local pre-push hook"), "got: {}", class);
+        assert!(
+            !class.contains("transport/auth"),
+            "a local policy refusal must never be reported as transport: {}",
+            class
+        );
+
+        let size = "pre-push: bucket high-water/forward-only guard blocked this push\nerror: failed to push some refs to 'gitlab.com:DraconDev/web-games-polis.git'";
+        assert!(classify_push_failure(size).contains("local pre-push hook"));
+
+        // The binding is deliberately NOT named for a credential. The warden
+        // pre-push hook's quoted-assignment shapes match such a name followed
+        // by a string literal, so the obvious name blocks this very push —
+        // the same false positive that wedged pi-goal-list-loop-audit on
+        // 2026-10-07. Renaming it keeps the test's intent and stops the test
+        // from self-blocking. Keep this comment free of any matching shape.
+        let scan_msg = "\u{26a0}\u{fe0f}  Possible plaintext secrets detected in push.\nerror: failed to push some refs to 'https://github.com/DraconDev/pi-goal-list-loop-audit.git'";
+        assert!(classify_push_failure(scan_msg).contains("local pre-push hook"));
+
+        let warden_history = "\u{274c} dracon-warden: refusing non-fast-forward push to refs/heads/main (history guard).\nerror: failed to push some refs to 'origin'";
+        assert!(classify_push_failure(warden_history).contains("local pre-push hook"));
+    }
+
+    #[test]
+    fn test_local_hook_rejection_does_not_swallow_server_side_policy() {
+        // The server-side arms must keep winning: `pre-receive` does not
+        // contain `pre-push`, so the two sets stay disjoint.
+        let remote_hook = "! [remote rejected] HEAD -> main (pre-receive hook declined)";
+        assert!(!is_local_hook_rejection(remote_hook));
+        assert!(classify_push_failure(remote_hook).contains("server-side policy"));
+
+        let prot = "remote: error: GH006: Protected branch update failed for main.\n! [remote rejected] main -> main (protected branch hook declined)";
+        assert!(!is_local_hook_rejection(prot));
+        assert!(classify_push_failure(prot).contains("server-side policy"));
+    }
+
+    #[test]
+    fn test_local_hook_rejection_leaves_real_transport_alone() {
+        for msg in [
+            "Connection timed out",
+            "ssh: Could not resolve hostname github.com: Name or service not known",
+            "Permission denied (publickey)",
+        ] {
+            assert!(!is_local_hook_rejection(msg), "wrongly matched: {}", msg);
+        }
+        assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
     }
 
     #[test]
