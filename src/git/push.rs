@@ -937,6 +937,95 @@ mod tests {
         );
     }
 
+    /// ADDED 2026-10-08 (audit F111): completes the f8a543a classifier fix
+    /// — a LOCAL pre-push hook refusal must fail fast in the origin retry
+    /// loop (no auto-pull probe, no retry), exactly like the server-side
+    /// permanent set. The message uses the same verbatim strings as the
+    /// 2026-10-07 incident (bucket guard + warden secret scan).
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_local_hook_rejection_fails_fast_in_origin_retries() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log = tmp.path().join("argv.log");
+        let fake_git = tmp.path().join("git");
+        std::fs::write(
+            &fake_git,
+            format!(
+                "#!/bin/sh\necho \"$@\" >> \"{}\"\nif [ \"$1\" = \"push\" ]; then\n    echo \"pre-push: bucket high-water guard blocked this push\" >&2\n    echo \"⚠️  Possible plaintext secrets detected in push.\" >&2\n    echo \"error: failed to push some refs to 'github.com:DraconDev/dracon-platform.git'\" >&2\n    exit 1\nfi\nexit 0\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().unwrap(),
+        );
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        // retries=3: pre-fix this ran 4 pushes (SSH + retries) after a
+        // pointless pull probe.
+        let result = push_with_retries(&repo, 5, 3, "f111").await;
+        assert!(result.is_err(), "a local hook refusal must still fail");
+        let argv = std::fs::read_to_string(&log).unwrap();
+        let first_words: Vec<&str> = argv
+            .lines()
+            .filter_map(|l| l.split_whitespace().next())
+            .collect();
+        assert!(
+            !first_words.contains(&"pull"),
+            "auto-pull must not run for a local hook refusal: {argv}"
+        );
+        assert_eq!(
+            first_words.iter().filter(|w| **w == "push").count(),
+            1,
+            "fail fast: exactly one push attempt, no retries: {argv}"
+        );
+    }
+
+    /// ADDED 2026-10-08 (audit F111): same completion for the named-remote
+    /// path — the SSH-side early return must fire before the HTTPS fallback,
+    /// otherwise every cycle burns an extra timeout_secs on a doomed attempt.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_local_hook_rejection_fails_fast_in_named_remote() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log = tmp.path().join("argv.log");
+        let fake_git = tmp.path().join("git");
+        std::fs::write(
+            &fake_git,
+            format!(
+                "#!/bin/sh\necho \"$@\" >> \"{}\"\nif [ \"$1\" = \"push\" ]; then\n    echo \"⚠️  Possible plaintext secrets detected in push.\" >&2\n    echo \"error: failed to push some refs to 'gitlab.com:DraconDev/web-games-polis.git'\" >&2\n    exit 1\nfi\nexit 0\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(
+            &fake_git,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+        let _guard = crate::test_helpers::EnvRestorer::new(
+            "DRACON_SYNC_GIT_BIN",
+            fake_git.to_str().unwrap(),
+        );
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        let result = super::super::multi_remote::push_to_named_remote(&repo, "origin", 5, 3, false)
+            .await;
+        assert!(result.is_err(), "a local hook refusal must still fail");
+        let argv = std::fs::read_to_string(&log).unwrap();
+        let pushes = argv.lines().filter(|l| l.starts_with("push")).count();
+        assert_eq!(
+            pushes, 1,
+            "fail fast: the HTTPS fallback must not run for a local hook refusal: {argv}"
+        );
+    }
+
     #[test]
     fn test_redact_credentials_for_log_covers_all_schemes() {
         // R3-L06: the push-path redactor must not be https-only.
