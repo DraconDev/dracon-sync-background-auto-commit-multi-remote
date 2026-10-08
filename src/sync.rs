@@ -1623,9 +1623,9 @@ async fn stage_gitlink_updates(
     }
     for p in gitlinks {
         // Prefer the SHARED gitdir's `refs/heads/main` SHA when
-        // available — this is what the standalone worktree's
-        // HEAD actually points at (since the standalone is on
-        // `main` directly). The canonical-head helper reads
+        // available — that is the canonical head the parent's
+        // gitlink must converge to (the nested checkout may sit at
+        // any SHA). The canonical-head helper reads
         // `refs/heads/main` from the shared gitdir.
         //
         // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
@@ -1637,9 +1637,9 @@ async fn stage_gitlink_updates(
         if let Some(shared_sha) = shared_sha {
             // Use `git update-index --cacheinfo` to set the
             // gitlink explicitly to the shared canonical head
-            // SHA. This bypasses the nested submodule's HEAD
-            // and ensures the parent's gitlink tracks the
-            // standalone's commits, not the nested submodule's
+            // SHA. This bypasses the nested checkout's HEAD
+            // and ensures the parent's gitlink converges to the
+            // shared gitdir's `main`, not to the nested's
             // own (possibly divergent) state.
             let cacheinfo = format!("160000,{},{}", shared_sha, p);
             if let Err(e) = run_git_with_timeout(
