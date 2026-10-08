@@ -320,7 +320,22 @@ pub(crate) async fn push_with_retries(
                 // pull, or HTTPS fallback. Return immediately so the caller
                 // logs one incident per cycle instead of burning the retry
                 // budget.
-                if is_permanent_push_rejection(&err_msg) || is_pack_too_large(&err_msg) {
+                //
+                // FIXED 2026-10-08 (audit F111): a LOCAL pre-push hook
+                // refusal belongs in this set. commit f8a543a added
+                // `is_local_hook_rejection` for the classifier ("local
+                // pre-push hook refused the push") and its own message
+                // named "burned the full stuck budget on retries that can
+                // never succeed" as part of the defect — but this fail-fast
+                // set was never extended, so a local hook refusal still ran
+                // the pull-on-rejected probe and the entire retry budget
+                // every cycle. The two sets are disjoint (server-side
+                // refusals say "pre-receive", not "pre-push"), so adding
+                // the arm cannot swallow a server policy rejection.
+                if is_permanent_push_rejection(&err_msg)
+                    || is_pack_too_large(&err_msg)
+                    || is_local_hook_rejection(&err_msg)
+                {
                     return Err(e);
                 }
                 last_err = Some(e);
