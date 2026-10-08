@@ -11,9 +11,10 @@ use crate::helpers::is_repo_already_exists;
 use crate::policy::{debug_enabled, std_git_command, tokio_git_command, AuthType, RemoteConfig};
 
 use super::{
-    current_branch, gh_cmd, git_ssh_hardening, is_pack_too_large, is_permanent_push_rejection,
-    is_push_rejected, is_safe_branch_name, load_secret, load_secret_or_legacy_pat,
-    push_https_fallback, run_git_capture_output, run_git_with_timeout_env_progress,
+    current_branch, gh_cmd, git_ssh_hardening, is_local_hook_rejection, is_pack_too_large,
+    is_permanent_push_rejection, is_push_rejected, is_safe_branch_name, load_secret,
+    load_secret_or_legacy_pat, push_https_fallback, run_git_capture_output,
+    run_git_with_timeout_env_progress,
 };
 
 /// Configure a remote URL. Adds if missing, updates if URL differs.
