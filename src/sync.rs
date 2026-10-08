@@ -1581,27 +1581,25 @@ async fn stage_existing_files_filtered(
 /// standalone worktrees at `/home/dracon/Dev/<name>/` (see AGENTS.md
 /// "Submodule standalone worktree design"). Submodules are watched
 /// only via their nested checkout at `<parent>/<submodule_path>/`,
-/// which is detached at the parent's gitlink SHA while the shared
-/// gitdir's `refs/heads/main` advances independently. `git add
-/// <path>` from the parent reads the NESTED submodule's HEAD (the
-/// gitlink SHA), not `main`, so it cannot observe `main`'s
-/// advances. This causes the parent's gitlink to drift away from
-/// `main`, breaking the convergence invariant (main SHA == parent
-/// gitlink).
+/// which is on `main` directly while the shared gitdir's
+/// `refs/heads/main` is the canonical head the parent must track.
+/// `git add <path>` from the parent reads the NESTED
+/// submodule's current checkout SHA, so when that checkout is
+/// detached or behind `main` (as it is between nesting updates) the
+/// gitlink cannot observe `main`'s advances. This causes the
+/// parent's gitlink to drift away from `main`, breaking the
+/// convergence invariant (main SHA == parent gitlink).
 ///
 /// To fix: prefer `git update-index --cacheinfo 160000,<sha>,<path>`
-/// with the SHARED gitdir's `refs/heads/main` SHA (which is what
-/// the standalone worktree's commits advance directly, since the
-/// standalone is on `main`). Fall back to plain `git add <path>`
-/// when the shared gitdir isn't found (e.g., the parent has no
-/// `.gitmodules` or the submodule isn't materialized as a
-/// standalone worktree).
+/// with the SHARED gitdir's `refs/heads/main` SHA. Fall back to
+/// plain `git add <path>` when the shared gitdir isn't found (e.g.,
+/// the parent has no `.gitmodules`).
 ///
 /// CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
 /// Previous comment referenced a `fast_forward_daemon_standalone_to_main`
-/// hook. With the daemon-standalone branch removed (the standalone
-/// is on `main` directly), the canonical head is just `refs/heads/main`
-/// from the shared gitdir — no buffer-branch fast-forward needed.
+/// hook. With the daemon-standalone branch removed, the canonical head
+/// is just `refs/heads/main` from the shared gitdir — no buffer-branch
+/// fast-forward needed.
 async fn stage_gitlink_updates(
     repo: &Path,
     gitlinks: &[String],
@@ -1632,8 +1630,8 @@ async fn stage_gitlink_updates(
         //
         // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
         // Previous comment mentioned a `daemon-standalone` ref
-        // being preferred over `main`. That ref was removed:
-        // the standalone worktree is on `main` directly now.
+        // being preferred over `main`; that buffer branch was
+        // removed with the worktree layout in 2026-07.
         let shared_sha =
             crate::exclude::shared_submodule_canonical_head_sha(repo, std::path::Path::new(p));
         if let Some(shared_sha) = shared_sha {
