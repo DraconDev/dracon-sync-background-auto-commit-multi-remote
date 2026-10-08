@@ -675,7 +675,17 @@ async fn push_to_named_remote_inner(
     // oversized packs cannot be fixed by an HTTPS retry — fail fast like
     // the origin path (push.rs) instead of burning a full timeout_secs
     // doomed fallback every cycle.
-    if is_permanent_push_rejection(&ssh_msg) || is_pack_too_large(&ssh_msg) {
+    // FIXED 2026-10-08 (audit F111): a LOCAL pre-push hook refusal
+    // (warden secret scan, bucket/asset guard, repo size budget,
+    // history guard) is a repo-policy decision — the f8a543a
+    // classifier arm made the stuck ledger SAY so, but this fail-fast
+    // set was never extended, so the SSH attempt still fell through
+    // to the HTTPS fallback and then the retry budget, burning
+    // timeout_secs per cycle on a decision retries cannot change.
+    if is_permanent_push_rejection(&ssh_msg)
+        || is_pack_too_large(&ssh_msg)
+        || is_local_hook_rejection(&ssh_msg)
+    {
         return Err(ssh_err);
     }
 
