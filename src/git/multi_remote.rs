@@ -762,7 +762,14 @@ async fn push_to_named_remote_inner(
                 // declined, pack too large, etc.) — retrying will not fix it.
                 // Return the error immediately so the caller can log it once
                 // instead of burning retries and flooding the incident ledger.
-                if is_permanent_push_rejection(&err_str) || is_pack_too_large(&err_str) {
+                //
+                // FIXED 2026-10-08 (audit F111): same completion as the
+                // origin path — a LOCAL hook refusal is a policy decision,
+                // not transport noise, so it must fail fast here too.
+                if is_permanent_push_rejection(&err_str)
+                    || is_pack_too_large(&err_str)
+                    || is_local_hook_rejection(&err_str)
+                {
                     return Err(e);
                 }
                 if is_rejected && force_when_behind {
