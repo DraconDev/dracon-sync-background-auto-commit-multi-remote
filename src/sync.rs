@@ -4549,6 +4549,30 @@ async fn stage_commit_and_push(
         }
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
+        // ADDED 2026-10-09 (goal 20261009193116-1ess3v): forward-only
+        // bucket guard on the daemon commit path. Daemon commits run
+        // through libgit2 (`GitService::commit`), which never executes
+        // hooks — the CLI fallback even passes `--no-verify` — so the
+        // `.githooks/pre-commit` guard cannot fire here. That is how
+        // hellhunter `f5d55b5` (27 deleted protected assets) and deathrun
+        // `30352ba` (4 deleted webp) were committed silently and only
+        // detonated at push time. Run the same staged check the hook
+        // runs; violations (and guard infra failures) block the commit
+        // with the index intact. Repos without a discoverable guard
+        // script are unaffected.
+        if let Err(error) = crate::bucket_guard::check_staged_forward_only(
+            repo,
+            policy.stage_op_timeout_secs,
+            std::env::var("DRACON_BUCKET_GUARD").ok().as_deref(),
+        )
+        .await
+        {
+            eprintln!(
+                "⚠️ {} bucket forward-only guard blocked auto-commit; staged/worktree content retained: {error:#}",
+                repo.display()
+            );
+            return Ok(Some(SyncOutcome::Blocked));
+        }
         let storage_commit = storage_guarded_commit(repo, &msg).await?;
         match storage_commit {
             Ok(true) => {}
