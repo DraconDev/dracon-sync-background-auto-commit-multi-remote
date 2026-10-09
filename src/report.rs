@@ -5449,25 +5449,79 @@ pub(crate) async fn run_scan_bloat_report(
 ///
 /// The outer loop sums per-repo buckets across repos by leaf name to
 /// produce a single row per recurring directory name in the final report.
-fn scan_one_repo_for_bloat(
+async fn scan_one_repo_for_bloat(
     repo: &Path,
     exclude_patterns: &[String],
     min_bucket_size_bytes: u64,
 ) -> Option<(String, u64, usize)> {
-    use std::process::Command;
+    use tokio::process::Command;
 
-    let output = Command::new("git")
+    // FIXED 2026-10-09 (audit F135): all three failure modes used to
+    // collapse into the same `None`, which callers read as "no bloat in
+    // this repo" — a silent false clean on a report that exists to find
+    // exactly that:
+    //   * a git that cannot be SPAWNED (ENOENT / EAGAIN / EMFILE) hit
+    //     `.output().ok()?` and said nothing;
+    //   * a NON-ZERO exit fell through `if !status.success()` into the
+    //     same silent `return None`;
+    //   * the walk had NO timeout, so a wedged git held the report open
+    //     for as long as it liked on an arbitrarily large worktree.
+    // Each is now distinguished, warned about with the repo named, and
+    // still returns `None` — the caller's contract is unchanged, but the
+    // operator is told the repo was NOT verified clean instead of being
+    // told nothing.
+    let mut child = match Command::new("git")
         .current_dir(repo)
         .args(["ls-files", "--others", "--exclude-standard", "--directory"])
-        .output()
-        .ok()?;
-    // FIXED 2026-10-09 (audit F135): a spawn failure (ENOENT / EAGAIN /
-    // EMFILE) or a non-zero git exit used to fall straight through to
-    // `None`, which callers read as "no bloat in this repo" — a silent
-    // false clean on a report that exists to find exactly that. The
-    // `--others --directory` walk over an arbitrarily large worktree also
-    // had no timeout, so a wedged git could hold the report open. Both are
-    // now surfaced instead of swallowed.
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => {
+            eprintln!(
+                "⚠️ scan-bloat: could not run `git ls-files --others --directory` in {}: {} — repo skipped, bloat NOT verified clean",
+                repo.display(),
+                e
+            );
+            return None;
+        }
+    };
+    // Take stdout out of the child so `wait_with_output` cannot deadlock
+    // on a full pipe buffer the way a naive `output()` can on a huge
+    // untracked tree.
+    let mut stdout = child.stdout.take();
+    let waited = tokio::time::timeout(
+        Duration::from_secs(SCAN_BLOAT_GIT_TIMEOUT_SECS),
+        async {
+            let out = child.wait_with_output().await;
+            (out, stdout.take())
+        },
+    )
+    .await;
+    let (output, _) = match waited {
+        Ok((output, _stdout)) => match output {
+            Ok(output) => output,
+            Err(e) => {
+                eprintln!(
+                    "⚠️ scan-bloat: `git ls-files --others --directory` could not be waited for in {}: {} — repo skipped, bloat NOT verified clean",
+                    repo.display(),
+                    e
+                );
+                return None;
+            }
+        },
+        Err(_) => {
+            eprintln!(
+                "⚠️ scan-bloat: `git ls-files --others --directory` timed out after {}s in {} — repo skipped, bloat NOT verified clean",
+                SCAN_BLOAT_GIT_TIMEOUT_SECS,
+                repo.display()
+            );
+            return None;
+        }
+    };
     if !output.status.success() {
         eprintln!(
             "⚠️ scan-bloat: `git ls-files --others --directory` failed in {} (status {:?}) — repo skipped, bloat NOT verified clean",
