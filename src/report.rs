@@ -11643,7 +11643,8 @@ mod tests {
                 concern: r.concern,
                 ..full_row_for_json_test()
             })
-            .collect();        let (ok, active, warn, concern) = row_bucket_counts(&owned);
+            .collect();
+        let (ok, active, warn, concern) = row_bucket_counts(&owned);
         assert_eq!(
             (ok, active, warn, concern),
             (0, 0, 1, 0),
