@@ -4576,17 +4576,6 @@ async fn stage_commit_and_push(
             committed_entries.len(),
             repo.display()
         );
-        // If the repo is a materialized submodule's standalone
-        // worktree, no extra fast-forward is needed: the
-        // standalone is on `main` directly, so each commit
-        // already advances `main`. The previous code called
-        // `fast_forward_daemon_standalone_to_main` here to
-        // copy the daemon-standalone branch's HEAD to main;
-        // that helper is now a no-op (kept for backwards
-        // compatibility). The call below remains so the
-        // daemon's main flow doesn't change, but it does
-        // nothing.
-        //
         // REMOVED 2026-10-09 (audit F134): the
         // `fast_forward_daemon_standalone_to_main` call and its error arm
         // are gone. The helper had been a no-op returning `Ok(())` since
