@@ -296,6 +296,48 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn push_range_reports_live_violations() {
+        let tmp = tempfile::tempdir().unwrap();
+        let proj = tmp.path().join("proj");
+        let script_dir = proj.join("web/scripts");
+        std::fs::create_dir_all(&script_dir).unwrap();
+        let script = script_dir.join("bucket-strategy-guard.sh");
+        // Stub asserts it was invoked with the push-range argv (branch + a
+        // full upstream sha), then reports a violation like the real guard
+        // would for unpublished deletes.
+        std::fs::write(
+            &script,
+            "#!/bin/sh\ncase \" $* \" in *\" --ref main \"*) ;; *) exit 3;; esac\ntip=\"\"; prev=\"\"\nfor a in \"$@\"; do if [ \"$prev\" = \"--remote-tip\" ]; then tip=\"$a\"; fi; prev=\"$a\"; done\ncase \"$tip\" in ????????*) ;; *) exit 4;; esac\necho '{\"ok\": false, \"code\": \"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\", \"errors\": [\"commit: static/a.png\"]}'\nexit 1\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let repo = proj.join("repo");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::process::Command::new("git").args(["init", "-qb", "main"]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git").args(["config", "user.email", "t@t"]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git").args(["config", "user.name", "t"]).current_dir(&repo).status().unwrap();
+        std::fs::write(repo.join("f"), "x").unwrap();
+        std::process::Command::new("git").args(["add", "."]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git").args(["commit", "-qm", "init"]).current_dir(&repo).status().unwrap();
+        // Fake an upstream tip: the stub only checks the argv shape.
+        std::process::Command::new("git").args(["update-ref", "refs/remotes/origin/main", "HEAD"]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git").args(["branch", "--set-upstream-to=refs/remotes/origin/main"]).current_dir(&repo).status().unwrap();
+        let verdict = check_push_range(&repo, 10, None).await.unwrap().expect("managed repo");
+        assert!(!verdict.ok);
+        assert_eq!(verdict.code, "BUCKET_STRATEGY_GUARD_FORWARD_ONLY");
+        assert!(verdict.errors.iter().any(|e| e.contains("static/a.png")));
+    }
+
+    #[tokio::test]
+    async fn push_range_none_without_upstream() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = stub_guard(tmp.path(), "repo", "#!/bin/sh\nexit 0\n");
+        std::fs::create_dir_all(&repo).unwrap();
+        // Not a git repo at all: range unresolvable -> None (summary fallback).
+        assert!(check_push_range(&repo, 10, None).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
     async fn missing_env_override_fails_closed() {
         let tmp = tempfile::tempdir().unwrap();
         let err = check_staged_forward_only(tmp.path(), 10, Some("/nonexistent/guard.sh"))
