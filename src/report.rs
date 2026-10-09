@@ -262,42 +262,15 @@ pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
     });
 }
 
-/// Send a desktop notification when a push operation fails persistently.
-/// Rate-limited to max 1 notification per repo per 5 minutes.
-#[allow(dead_code)]
-pub(crate) fn notify_push_failure(
-    repo_path: &Path,
-    remote: &str,
-    error: &str,
-    consecutive_failures: usize,
-    cooldowns: &mut std::collections::HashMap<String, std::time::Instant>,
-) {
-    let repo_name = repo_path
-        .file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_else(|| repo_path.display().to_string());
-
-    let notify_key = format!("push-fail-{}", repo_path.display());
-    let now = std::time::Instant::now();
-    let cooldown_secs = 300; // 5 minutes
-
-    // Check cooldown
-    if let Some(cooldown_until) = cooldowns.get(&notify_key) {
-        if now < *cooldown_until {
-            return; // still in cooldown
-        }
-        cooldowns.remove(&notify_key);
-    }
-
-    let title = "Dracon Sync: Push Failed";
-    let body = format!(
-        "Repository '{}' failed to push to {}.\nConsecutive failures: {}\nError: {}",
-        repo_name, remote, consecutive_failures, error
-    );
-
-    // Set cooldown before spawning to prevent race conditions
-    cooldowns.insert(
-        notify_key,
+/// (REMOVED 2026-10-09, audit F133: `notify_push_failure` — a
+/// fully-written desktop-notification path with a 5-minute per-repo
+/// cooldown — had ZERO call sites, and its `#[allow(dead_code)]` made
+/// that invisible. The live push-failure notification path is the
+/// webhook one (`notify_webhook_failure` in sync.rs, called at
+/// sync.rs:4753/:4765/:5984/:6021), which is what an operator configures
+/// through policy. Restoring a second, unconfigured notification channel
+/// would be inventing behaviour, so the dead path was deleted rather than
+/// wired. Its cooldown-key test (`test_push_failure_cooldown_dedup`)/// asserted only the map mechanics and keeps its own copy.)
         now + std::time::Duration::from_secs(cooldown_secs),
     );
 
