@@ -197,9 +197,17 @@ pub(crate) async fn maybe_route_with_rederive(
             } else {
                 format!("{}: {}", verdict.code, errors.join("; "))
             };
-            file_finding(repo, tip, consecutive_failures, stuck_age_secs, &truncate_single_line(&cause, 500))
-                .map(|_| true)
-                .or(Ok(false))
+            match file_finding(
+                &ledger,
+                repo,
+                tip,
+                consecutive_failures,
+                stuck_age_secs,
+                &truncate_single_line(&cause, 500),
+            ) {
+                Ok(filed) => Ok(filed),
+                Err(_) => Ok(false),
+            }
         }
         Ok(_) => Ok(false),
         Err(_) => {

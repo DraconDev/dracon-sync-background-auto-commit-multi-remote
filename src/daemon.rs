@@ -7978,24 +7978,28 @@ pub(crate) async fn run_daemon(
                                 // ADDED 2026-10-09 (goal 20261009193116-1ess3v,
                                 // Phase 3: stuck routing). A push-stuck repo
                                 // sat on the board until a human pasted the
-                                // table into chat. When the cause is a
-                                // repo-policy refusal a loop can act on
-                                // (hook/guard decision — never transient
-                                // network), file one NOTE row into the owning
-                                // loop's findings ledger with the guard's
-                                // violation output. Episode-keyed by HEAD tip
-                                // with a 30-minute minimum age; repos without
-                                // a ledger file are skipped silently.
+                                // table into chat. For bucket-managed repos the
+                                // CURRENT guard verdict is re-derived live
+                                // (stuck-ledger summaries were observed
+                                // misclassifying hook refusals as
+                                // "transport/auth failure"); other repos
+                                // fall back to summary-based routing of
+                                // hook/policy refusals. One NOTE row per HEAD
+                                // tip episode, 30-minute minimum age, repos
+                                // without a ledger file skipped silently.
                                 if let Some(tip) = crate::stuck_route::head_tip(&repo) {
                                     let age = timestamp_secs().saturating_sub(info.stuck_since);
-                                    let request = crate::stuck_route::StuckRouteRequest {
-                                        repo: repo.clone(),
-                                        tip,
-                                        consecutive_failures: info.consecutive_failures,
-                                        stuck_age_secs: age,
-                                        last_error: info.last_error.clone(),
-                                    };
-                                    match crate::stuck_route::maybe_route_stuck_push(&request) {
+                                    match crate::stuck_route::maybe_route_with_rederive(
+                                        &repo,
+                                        &tip,
+                                        info.consecutive_failures,
+                                        age,
+                                        &info.last_error,
+                                        policy.stage_op_timeout_secs,
+                                        std::env::var("DRACON_BUCKET_GUARD").ok().as_deref(),
+                                    )
+                                    .await
+                                    {
                                         Ok(true) => eprintln!(
                                             "📝 {} push-stuck cause routed to owning loop ledger",
                                             repo.display()
