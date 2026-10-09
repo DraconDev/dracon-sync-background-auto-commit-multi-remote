@@ -1585,7 +1585,7 @@ async fn main() -> Result<()> {
                 // visibility cache would never learn it was starved.
                 // The CLI flip path (main.rs) already bails on an empty
                 // origin URL; these paths now agree.
-                let mut git_spawn_failed = false;
+                let git_spawn_failed = std::cell::Cell::new(false);
                 let origin_url = crate::visibility::select_github_remote_url(|remote_name| {
                     let output = match std::process::Command::new("git")
                         .args([
@@ -1601,7 +1601,7 @@ async fn main() -> Result<()> {
                         // A git that cannot be executed at all is an ERROR,
                         // not "this repo has no such remote".
                         Err(e) => {
-                            git_spawn_failed = true;
+                            git_spawn_failed.set(true);
                             eprintln!(
                                 "⚠️ visibility refresh: could not run `git remote get-url {}` in {}: {} — repo not skipped, it is UNVERIFIED",
                                 remote_name,
@@ -1632,7 +1632,7 @@ async fn main() -> Result<()> {
                 let Some((owner, gh_repo)) =
                     crate::visibility::parse_github_owner_repo(&origin_url)
                 else {
-                    if git_spawn_failed {
+                    if git_spawn_failed.get() {
                         errors += 1;
                         results.push(serde_json::json!({
                             "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
