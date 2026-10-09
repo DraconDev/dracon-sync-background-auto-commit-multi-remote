@@ -262,29 +262,6 @@ pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
     });
 }
 
-/// (REMOVED 2026-10-09, audit F133: `notify_push_failure` — a
-/// fully-written desktop-notification path with a 5-minute per-repo
-/// cooldown — had ZERO call sites, and its `#[allow(dead_code)]` made
-/// that invisible. The live push-failure notification path is the
-/// webhook one (`notify_webhook_failure` in sync.rs, called at
-/// sync.rs:4753/:4765/:5984/:6021), which is what an operator configures
-/// through policy. Restoring a second, unconfigured notification channel
-/// would be inventing behaviour, so the dead path was deleted rather than
-/// wired. Its cooldown-key test (`test_push_failure_cooldown_dedup`)/// asserted only the map mechanics and keeps its own copy.)
-        now + std::time::Duration::from_secs(cooldown_secs),
-    );
-
-    // Spawn in background to avoid blocking the daemon loop
-    tokio::spawn(async move {
-        if let Err(e) = notify_rust::Notification::new()
-            .summary(title)
-            .body(&body)
-            .show()
-        {
-            eprintln!("⚠️ failed to send desktop notification: {}", e);
-        }
-    });
-}
 
 use crate::exclude::{
     excluded_dir_names_set, has_sync_relevant_dirty_entries, is_excluded_dir_name,
