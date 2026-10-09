@@ -82,14 +82,16 @@ pub(crate) async fn check_push_range(
     if guard_display.starts_with("\0missing-override:") {
         return Ok(None);
     }
-    let branch = git_output(repo, &["rev-parse", "--abbrev-ref", "HEAD"])?;
-    if branch.is_empty() || branch == "HEAD" {
-        return Ok(None);
-    }
-    let upstream = git_output(repo, &["rev-parse", "@{u}"])?;
-    if upstream.is_empty() || upstream.starts_with("0000000") {
-        return Ok(None);
-    }
+    // Unresolvable range (not a repo, detached HEAD, no upstream) is not
+    // an error: the caller falls back to summary-based routing.
+    let branch = match git_output(repo, &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        Ok(branch) if !branch.is_empty() && branch != "HEAD" => branch,
+        _ => return Ok(None),
+    };
+    let upstream = match git_output(repo, &["rev-parse", "@{u}"]) {
+        Ok(upstream) if !upstream.is_empty() && !upstream.starts_with("0000000") => upstream,
+        _ => return Ok(None),
+    };
     let output = run_guard(
         &guard,
         repo,
