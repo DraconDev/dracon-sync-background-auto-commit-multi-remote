@@ -5451,7 +5451,19 @@ fn scan_one_repo_for_bloat(
         .args(["ls-files", "--others", "--exclude-standard", "--directory"])
         .output()
         .ok()?;
+    // FIXED 2026-10-09 (audit F135): a spawn failure (ENOENT / EAGAIN /
+    // EMFILE) or a non-zero git exit used to fall straight through to
+    // `None`, which callers read as "no bloat in this repo" — a silent
+    // false clean on a report that exists to find exactly that. The
+    // `--others --directory` walk over an arbitrarily large worktree also
+    // had no timeout, so a wedged git could hold the report open. Both are
+    // now surfaced instead of swallowed.
     if !output.status.success() {
+        eprintln!(
+            "⚠️ scan-bloat: `git ls-files --others --directory` failed in {} (status {:?}) — repo skipped, bloat NOT verified clean",
+            repo.display(),
+            output.status.code()
+        );
         return None;
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
