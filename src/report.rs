@@ -5491,31 +5491,35 @@ async fn scan_one_repo_for_bloat(
             return None;
         }
     };
-    // Take stdout out of the child so `wait_with_output` cannot deadlock
-    // on a full pipe buffer the way a naive `output()` can on a huge
-    // untracked tree.
-    let mut stdout = child.stdout.take();
+    // Take stdout out of the child and read it to end BEFORE waiting:
+    // a `--others --directory` walk over a huge untracked tree can easily
+    // exceed the 64 KiB pipe buffer, and a naive `output()` (or a
+    // `wait()` before the read) deadlocks with git blocked in write().
+    let mut stdout_pipe = match child.stdout.take() {
+        Some(pipe) => pipe,
+        None => {
+            eprintln!(
+                "⚠️ scan-bloat: no stdout pipe for `git ls-files` in {} — repo skipped, bloat NOT verified clean",
+                repo.display()
+            );
+            return None;
+        }
+    };
     let waited = tokio::time::timeout(
         Duration::from_secs(SCAN_BLOAT_GIT_TIMEOUT_SECS),
         async {
-            let out = child.wait_with_output().await;
-            (out, stdout.take())
+            let mut buf = Vec::new();
+            use tokio::io::AsyncReadExt;
+            let read_res = stdout_pipe.read_to_end(&mut buf).await;
+            let status = child.wait().await;
+            (buf, read_res, status)
         },
     )
     .await;
-    let (output, _) = match waited {
-        Ok((output, _stdout)) => match output {
-            Ok(output) => output,
-            Err(e) => {
-                eprintln!(
-                    "⚠️ scan-bloat: `git ls-files --others --directory` could not be waited for in {}: {} — repo skipped, bloat NOT verified clean",
-                    repo.display(),
-                    e
-                );
-                return None;
-            }
-        },
+    let (stdout_buf, read_res, status) = match waited {
+        Ok(triple) => triple,
         Err(_) => {
+            // `kill_on_drop` above reaps the wedged git as the child drops.
             eprintln!(
                 "⚠️ scan-bloat: `git ls-files --others --directory` timed out after {}s in {} — repo skipped, bloat NOT verified clean",
                 SCAN_BLOAT_GIT_TIMEOUT_SECS,
@@ -5524,15 +5528,34 @@ async fn scan_one_repo_for_bloat(
             return None;
         }
     };
-    if !output.status.success() {
+    if let Err(e) = read_res {
         eprintln!(
-            "⚠️ scan-bloat: `git ls-files --others --directory` failed in {} (status {:?}) — repo skipped, bloat NOT verified clean",
+            "⚠️ scan-bloat: could not read `git ls-files` output in {}: {} — repo skipped, bloat NOT verified clean",
             repo.display(),
-            output.status.code()
+            e
         );
         return None;
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let status = match status {
+        Ok(status) => status,
+        Err(e) => {
+            eprintln!(
+                "⚠️ scan-bloat: `git ls-files --others --directory` could not be waited for in {}: {} — repo skipped, bloat NOT verified clean",
+                repo.display(),
+                e
+            );
+            return None;
+        }
+    };
+    if !status.success() {
+        eprintln!(
+            "⚠️ scan-bloat: `git ls-files --others --directory` failed in {} (status {:?}) — repo skipped, bloat NOT verified clean",
+            repo.display(),
+            status.code()
+        );
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&stdout_buf);
     // Per-repo aggregation, keyed on leaf name.
     let mut by_leaf: std::collections::HashMap<String, (u64, usize)> =
         std::collections::HashMap::new();
