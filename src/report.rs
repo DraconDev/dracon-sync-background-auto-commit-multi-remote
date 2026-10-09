@@ -6,6 +6,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs::OpenOptions;
 use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use crate::git::gh_cmd;
 
@@ -15,6 +16,16 @@ use crate::git::gh_cmd;
 // pressure reasonable on 26 repos while still reducing wall-clock time
 // from ~1.6s to ~0.5s on a modern multi-core machine.
 const REPORT_REPO_CONCURRENCY: usize = 16;
+
+// FIXED 2026-10-09 (audit F135): per-repo budget for the scan-bloat
+// `git ls-files --others --directory` walk. That walk reads the whole
+// worktree index plus every untracked directory, so its cost scales with
+// repo size, and it used to run with no bound at all — a wedged git (or a
+// pathological 37 GiB `.git` of the hegemony/hegemon class) held the
+// report open indefinitely. 60s is ~120x the measured steady-state cost
+// (0.5s/repo on this box for ~26 repos) and still generous for the
+// largest watched repo.
+const SCAN_BLOAT_GIT_TIMEOUT_SECS: u64 = 60;
 
 #[derive(Serialize)]
 struct SyncAlertEntry {
