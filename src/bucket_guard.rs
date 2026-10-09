@@ -93,7 +93,14 @@ pub(crate) async fn check_push_range(
     let output = run_guard(
         &guard,
         repo,
-        &["--ref", &branch, "--remote-tip", &upstream, "--no-size", "--json"],
+        &[
+            "--ref",
+            &branch,
+            "--remote-tip",
+            &upstream,
+            "--no-size",
+            "--json",
+        ],
         timeout_secs,
     )
     .await?;
@@ -191,7 +198,13 @@ pub(crate) async fn check_staged_forward_only(
             guard_display.trim_start_matches('\0')
         );
     }
-    let output = run_guard(&guard, repo, &["--staged", "--no-size", "--json"], timeout_secs).await?;
+    let output = run_guard(
+        &guard,
+        repo,
+        &["--staged", "--no-size", "--json"],
+        timeout_secs,
+    )
+    .await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: Option<serde_json::Value> = serde_json::from_str(&stdout).ok();
     match parsed {
@@ -313,16 +326,47 @@ mod tests {
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
         let repo = proj.join("repo");
         std::fs::create_dir_all(&repo).unwrap();
-        std::process::Command::new("git").args(["init", "-qb", "main"]).current_dir(&repo).status().unwrap();
-        std::process::Command::new("git").args(["config", "user.email", "t@t"]).current_dir(&repo).status().unwrap();
-        std::process::Command::new("git").args(["config", "user.name", "t"]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "-qb", "main"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "t@t"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "user.name", "t"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
         std::fs::write(repo.join("f"), "x").unwrap();
-        std::process::Command::new("git").args(["add", "."]).current_dir(&repo).status().unwrap();
-        std::process::Command::new("git").args(["commit", "-qm", "init"]).current_dir(&repo).status().unwrap();
+        std::process::Command::new("git")
+            .args(["add", "."])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "-qm", "init"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
         // Fake an upstream tip: the stub only checks the argv shape.
-        std::process::Command::new("git").args(["update-ref", "refs/remotes/origin/main", "HEAD"]).current_dir(&repo).status().unwrap();
-        std::process::Command::new("git").args(["branch", "--set-upstream-to=refs/remotes/origin/main"]).current_dir(&repo).status().unwrap();
-        let verdict = check_push_range(&repo, 10, None).await.unwrap().expect("managed repo");
+        std::process::Command::new("git")
+            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["branch", "--set-upstream-to=refs/remotes/origin/main"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        let verdict = check_push_range(&repo, 10, None)
+            .await
+            .unwrap()
+            .expect("managed repo");
         assert!(!verdict.ok);
         assert_eq!(verdict.code, "BUCKET_STRATEGY_GUARD_FORWARD_ONLY");
         assert!(verdict.errors.iter().any(|e| e.contains("static/a.png")));
