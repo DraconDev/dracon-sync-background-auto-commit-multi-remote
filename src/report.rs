@@ -11615,7 +11615,7 @@ mod tests {
         // R4-SR-16: every row the `--warn` retain keeps must land in
         // the warn bucket — no concern/active stowaways that the
         // banner then counts under a different bucket.
-        let rows = vec![
+        let rows = [
             RepoReportRow {
                 warn: true,
                 concern: true,
