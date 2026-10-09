@@ -1015,8 +1015,8 @@ mod tests {
         );
         let repo = tmp.path().join("repo");
         std::fs::create_dir_all(&repo).unwrap();
-        let result = super::super::multi_remote::push_to_named_remote(&repo, "origin", 5, 3, false)
-            .await;
+        let result =
+            super::super::multi_remote::push_to_named_remote(&repo, "origin", 5, 3, false).await;
         assert!(result.is_err(), "a local hook refusal must still fail");
         let argv = std::fs::read_to_string(&log).unwrap();
         let pushes = argv.lines().filter(|l| l.starts_with("push")).count();
