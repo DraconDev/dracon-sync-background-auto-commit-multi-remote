@@ -7975,6 +7975,38 @@ pub(crate) async fn run_daemon(
                                     repo.display().to_string(),
                                     "Push Stuck (budget exhausted)".to_string(),
                                 ));
+                                // ADDED 2026-10-09 (goal 20261009193116-1ess3v,
+                                // Phase 3: stuck routing). A push-stuck repo
+                                // sat on the board until a human pasted the
+                                // table into chat. When the cause is a
+                                // repo-policy refusal a loop can act on
+                                // (hook/guard decision — never transient
+                                // network), file one NOTE row into the owning
+                                // loop's findings ledger with the guard's
+                                // violation output. Episode-keyed by HEAD tip
+                                // with a 30-minute minimum age; repos without
+                                // a ledger file are skipped silently.
+                                if let Some(tip) = crate::stuck_route::head_tip(&repo) {
+                                    let age = timestamp_secs().saturating_sub(info.stuck_since);
+                                    let request = crate::stuck_route::StuckRouteRequest {
+                                        repo: repo.clone(),
+                                        tip,
+                                        consecutive_failures: info.consecutive_failures,
+                                        stuck_age_secs: age,
+                                        last_error: info.last_error.clone(),
+                                    };
+                                    match crate::stuck_route::maybe_route_stuck_push(&request) {
+                                        Ok(true) => eprintln!(
+                                            "📝 {} push-stuck cause routed to owning loop ledger",
+                                            repo.display()
+                                        ),
+                                        Ok(false) => {}
+                                        Err(error) => eprintln!(
+                                            "⚠️ {} stuck-push routing failed (non-fatal): {error:#}",
+                                            repo.display()
+                                        ),
+                                    }
+                                }
                             }
                         }
                         // CHANGED 2026-09-18 (v0.113.69,

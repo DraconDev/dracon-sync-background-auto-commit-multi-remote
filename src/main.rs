@@ -21,6 +21,7 @@ mod role;
 mod secrets;
 mod standard_files;
 mod storage;
+mod stuck_route;
 mod sync;
 mod test_helpers;
 mod vanished;

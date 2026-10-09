@@ -113,7 +113,10 @@ fn extract_embedded_json(text: &str) -> Option<String> {
 }
 
 fn truncate_single_line(text: &str, max_chars: usize) -> String {
-    let flat: String = text.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+    let flat: String = text
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect();
     let mut out: String = flat.chars().take(max_chars).collect();
     if flat.chars().count() > max_chars {
         out.push('…');
@@ -229,7 +232,10 @@ mod tests {
         assert!(maybe_route_stuck_push(&req).unwrap());
         let content = std::fs::read_to_string(tmp.path().join(LEDGER_RELATIVE)).unwrap();
         assert!(content.contains("[STUCK-PUSH tip:abc1234]"), "{content}");
-        assert!(content.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{content}");
+        assert!(
+            content.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"),
+            "{content}"
+        );
         assert!(content.contains("static/a.png"), "{content}");
     }
 
@@ -259,19 +265,24 @@ mod tests {
     #[test]
     fn skips_repo_without_ledger() {
         let tmp = fixture_repo(false);
-        assert!(!maybe_route_stuck_push(&request(tmp.path(), "aaa0000", 3600, HOOK_ERROR)).unwrap());
+        assert!(
+            !maybe_route_stuck_push(&request(tmp.path(), "aaa0000", 3600, HOOK_ERROR)).unwrap()
+        );
     }
 
     #[test]
     fn skips_transient_network() {
         let tmp = fixture_repo(true);
-        let error = "ssh: Could not resolve hostname gitlab.com: Temporary failure in name resolution";
+        let error =
+            "ssh: Could not resolve hostname gitlab.com: Temporary failure in name resolution";
         assert!(!maybe_route_stuck_push(&request(tmp.path(), "aaa0000", 7200, error)).unwrap());
     }
 
     #[test]
     fn cause_falls_back_to_first_lines() {
-        let cause = extract_route_cause("error: failed to push some refs to 'x'\nerror: src refspec main does not match\n");
+        let cause = extract_route_cause(
+            "error: failed to push some refs to 'x'\nerror: src refspec main does not match\n",
+        );
         assert!(cause.contains("failed to push"), "{cause}");
         assert!(!cause.contains('\n'), "{cause}");
     }
