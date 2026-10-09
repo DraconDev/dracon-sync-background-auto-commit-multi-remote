@@ -40,10 +40,7 @@ fn discover_guard(repo: &Path, env_override: Option<&str>) -> Option<PathBuf> {
         if candidate.is_file() && is_executable(&candidate) {
             return Some(candidate);
         }
-        match current.parent() {
-            Some(parent) => current = parent.to_path_buf(),
-            None => return None,
-        }
+        current = current.parent()?.to_path_buf();
     }
 }
 
