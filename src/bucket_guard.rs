@@ -57,6 +57,117 @@ fn is_executable(path: &Path) -> bool {
     path.is_file()
 }
 
+/// Evaluate the pushable range exactly as the pre-push hook would: the commits
+/// the next push of the current branch would newly publish (local tip vs the
+/// upstream tip). Returns `None` when the repo is not bucket-managed or the
+/// range is unresolvable (no branch/upstream) — the caller falls back to
+/// summary-based routing. A live `Some` verdict is always current, unlike
+/// stuck-ledger summaries that may record a stale or misclassified failure.
+pub(crate) struct RangeVerdict {
+    pub ok: bool,
+    pub code: String,
+    pub errors: Vec<String>,
+}
+
+pub(crate) async fn check_push_range(
+    repo: &Path,
+    timeout_secs: u64,
+    env_override: Option<&str>,
+) -> Result<Option<RangeVerdict>> {
+    let guard = match discover_guard(repo, env_override) {
+        None => return Ok(None),
+        Some(path) => path,
+    };
+    let guard_display = guard.display().to_string();
+    if guard_display.starts_with("\0missing-override:") {
+        return Ok(None);
+    }
+    let branch = git_output(repo, &["rev-parse", "--abbrev-ref", "HEAD"])?;
+    if branch.is_empty() || branch == "HEAD" {
+        return Ok(None);
+    }
+    let upstream = git_output(repo, &["rev-parse", "@{u}"])?;
+    if upstream.is_empty() || upstream.starts_with("0000000") {
+        return Ok(None);
+    }
+    let output = run_guard(
+        &guard,
+        repo,
+        &["--ref", &branch, "--remote-tip", &upstream, "--no-size", "--json"],
+        timeout_secs,
+    )
+    .await?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).with_context(|| {
+        format!(
+            "bucket guard range check produced unparseable output (exit {})",
+            output.status
+        )
+    })?;
+    let ok = value.get("ok") == Some(&serde_json::Value::Bool(true));
+    let code = value
+        .get("code")
+        .and_then(|c| c.as_str())
+        .unwrap_or("BUCKET_STRATEGY_GUARD_UNKNOWN")
+        .to_owned();
+    let errors: Vec<String> = value
+        .get("errors")
+        .and_then(|e| e.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(Some(RangeVerdict { ok, code, errors }))
+}
+
+fn git_output(repo: &Path, args: &[&str]) -> Result<String> {
+    let output = std::process::Command::new("git")
+        .args(args)
+        .current_dir(repo)
+        .output()
+        .with_context(|| format!("git {} failed to spawn", args.join(" ")))?;
+    if !output.status.success() {
+        anyhow::bail!("git {} failed", args.join(" "));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+}
+
+async fn run_guard(
+    guard: &Path,
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+) -> Result<std::process::Output> {
+    let guard_display = guard.display().to_string();
+    let mut cmd = tokio::process::Command::new(guard);
+    cmd.args(args).current_dir(repo);
+    // Mirror the hook: strip repository-discovery overrides so the guard
+    // measures this repo from its explicit root rather than inheriting the
+    // daemon's (or a worktree's) GIT_* environment.
+    for var in [
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_COMMON_DIR",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_NAMESPACE",
+        "GIT_SHALLOW_FILE",
+        "GIT_GRAFT_FILE",
+        "GIT_REPLACE_REF_BASE",
+    ] {
+        cmd.env_remove(var);
+    }
+    tokio::time::timeout(
+        std::time::Duration::from_secs(timeout_secs.max(1)),
+        cmd.output(),
+    )
+    .await
+    .with_context(|| format!("bucket guard timed out after {timeout_secs}s: {guard_display}"))?
+    .with_context(|| format!("bucket guard failed to spawn: {guard_display}"))
+}
+
 /// Run the staged forward-only check for `repo`.
 ///
 /// * No discoverable guard script → `Ok(())` (repo is not bucket-managed).
@@ -80,32 +191,7 @@ pub(crate) async fn check_staged_forward_only(
             guard_display.trim_start_matches('\0')
         );
     }
-    let mut cmd = tokio::process::Command::new(&guard);
-    cmd.args(["--staged", "--no-size", "--json"])
-        .current_dir(repo);
-    // Mirror the hook: strip repository-discovery overrides so the guard
-    // measures this repo from its explicit root rather than inheriting the
-    // daemon's (or a worktree's) GIT_* environment.
-    for var in [
-        "GIT_DIR",
-        "GIT_WORK_TREE",
-        "GIT_COMMON_DIR",
-        "GIT_OBJECT_DIRECTORY",
-        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-        "GIT_NAMESPACE",
-        "GIT_SHALLOW_FILE",
-        "GIT_GRAFT_FILE",
-        "GIT_REPLACE_REF_BASE",
-    ] {
-        cmd.env_remove(var);
-    }
-    let output = tokio::time::timeout(
-        std::time::Duration::from_secs(timeout_secs.max(1)),
-        cmd.output(),
-    )
-    .await
-    .with_context(|| format!("bucket guard timed out after {timeout_secs}s: {guard_display}"))?
-    .with_context(|| format!("bucket guard failed to spawn: {guard_display}"))?;
+    let output = run_guard(&guard, repo, &["--staged", "--no-size", "--json"], timeout_secs).await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: Option<serde_json::Value> = serde_json::from_str(&stdout).ok();
     match parsed {
