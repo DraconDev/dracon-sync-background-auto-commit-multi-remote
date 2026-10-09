@@ -355,13 +355,20 @@ mod tests {
             .status()
             .unwrap();
         // Fake an upstream tip: the stub only checks the argv shape.
+        // (branch --set-upstream-to rejects synthetic refs, so write the
+        // branch config directly.)
         std::process::Command::new("git")
             .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
             .current_dir(&repo)
             .status()
             .unwrap();
         std::process::Command::new("git")
-            .args(["branch", "--set-upstream-to=refs/remotes/origin/main"])
+            .args(["config", "branch.main.remote", "origin"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .unwrap();
