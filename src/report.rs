@@ -5505,16 +5505,13 @@ async fn scan_one_repo_for_bloat(
             return None;
         }
     };
-    let waited = tokio::time::timeout(
-        Duration::from_secs(SCAN_BLOAT_GIT_TIMEOUT_SECS),
-        async {
-            let mut buf = Vec::new();
-            use tokio::io::AsyncReadExt;
-            let read_res = stdout_pipe.read_to_end(&mut buf).await;
-            let status = child.wait().await;
-            (buf, read_res, status)
-        },
-    )
+    let waited = tokio::time::timeout(Duration::from_secs(SCAN_BLOAT_GIT_TIMEOUT_SECS), async {
+        let mut buf = Vec::new();
+        use tokio::io::AsyncReadExt;
+        let read_res = stdout_pipe.read_to_end(&mut buf).await;
+        let status = child.wait().await;
+        (buf, read_res, status)
+    })
     .await;
     let (stdout_buf, read_res, status) = match waited {
         Ok(triple) => triple,
