@@ -331,17 +331,21 @@ mod tests {
         // are rejected by rev-parse @{u}); the stub only asserts argv shape.
         let upstream = proj.join("upstream.git");
         std::process::Command::new("git")
-            .args(["init", "-qb", "main", "--bare", upstream.to_str().unwrap()])
+            .args(["init", "-q", "--bare", upstream.to_str().unwrap()])
             .status()
             .unwrap();
         std::process::Command::new("git")
             .args([
                 "clone",
-                "-qb",
-                "main",
+                "-q",
                 upstream.to_str().unwrap(),
                 repo.to_str().unwrap(),
             ])
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["checkout", "-qb", "main"])
+            .current_dir(&repo)
             .status()
             .unwrap();
         std::process::Command::new("git")
