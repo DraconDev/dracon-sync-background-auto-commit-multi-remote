@@ -138,8 +138,11 @@ pub(crate) async fn check_staged_forward_only(
             );
         }
         None => {
-            let stderr_tail: String =
-                String::from_utf8_lossy(&output.stderr).trim().chars().take(400).collect();
+            let stderr_tail: String = String::from_utf8_lossy(&output.stderr)
+                .trim()
+                .chars()
+                .take(400)
+                .collect();
             anyhow::bail!(
                 "bucket guard produced unparseable output (exit {}): {}",
                 output.status,
@@ -167,13 +170,19 @@ mod tests {
     #[tokio::test]
     async fn no_guard_script_skips_check() {
         let tmp = tempfile::tempdir().unwrap();
-        assert!(check_staged_forward_only(tmp.path(), 10, None).await.is_ok());
+        assert!(check_staged_forward_only(tmp.path(), 10, None)
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn guard_ok_passes() {
         let tmp = tempfile::tempdir().unwrap();
-        let repo = stub_guard(tmp.path(), "repo", "#!/bin/sh\necho '{\"ok\": true, \"code\": \"OK\"}'\n");
+        let repo = stub_guard(
+            tmp.path(),
+            "repo",
+            "#!/bin/sh\necho '{\"ok\": true, \"code\": \"OK\"}'\n",
+        );
         std::fs::create_dir_all(&repo).unwrap();
         assert!(check_staged_forward_only(&repo, 10, None).await.is_ok());
     }
@@ -187,7 +196,9 @@ mod tests {
             "#!/bin/sh\necho '{\"ok\": false, \"code\": \"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\", \"errors\": [\"staged: static/art/a.png\"]}'\nexit 1\n",
         );
         std::fs::create_dir_all(&repo).unwrap();
-        let err = check_staged_forward_only(&repo, 10, None).await.unwrap_err();
+        let err = check_staged_forward_only(&repo, 10, None)
+            .await
+            .unwrap_err();
         let msg = format!("{err:?}");
         assert!(msg.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{msg}");
         assert!(msg.contains("static/art/a.png"), "{msg}");
