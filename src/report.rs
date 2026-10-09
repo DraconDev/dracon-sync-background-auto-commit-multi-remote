@@ -262,7 +262,6 @@ pub(crate) fn sync_summary_notification(issues: &[(String, String)]) {
     });
 }
 
-
 use crate::exclude::{
     excluded_dir_names_set, has_sync_relevant_dirty_entries, is_excluded_dir_name,
 };
