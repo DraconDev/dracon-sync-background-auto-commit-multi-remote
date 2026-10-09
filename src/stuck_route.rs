@@ -380,7 +380,8 @@ mod tests {
             "#!/bin/sh\necho '{\"ok\": false, \"code\": \"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\", \"errors\": [\"commit: static/a.png\"]}'\nexit 1\n",
         )
         .unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::set_permissions(&script, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
         let repo = proj.join("repo");
         let upstream = proj.join("upstream.git");
         let git = |args: &[&str], cwd: Option<&std::path::Path>| {
@@ -392,7 +393,15 @@ mod tests {
             assert!(cmd.status().unwrap().success());
         };
         git(&["init", "-q", "--bare", upstream.to_str().unwrap()], None);
-        git(&["clone", "-q", upstream.to_str().unwrap(), repo.to_str().unwrap()], None);
+        git(
+            &[
+                "clone",
+                "-q",
+                upstream.to_str().unwrap(),
+                repo.to_str().unwrap(),
+            ],
+            None,
+        );
         git(&["checkout", "-qb", "main"], Some(&repo));
         git(&["config", "user.email", "t@t"], Some(&repo));
         git(&["config", "user.name", "t"], Some(&repo));
@@ -409,9 +418,11 @@ mod tests {
             .await
             .unwrap();
         assert!(filed);
-        let content =
-            std::fs::read_to_string(repo.join(super::LEDGER_RELATIVE)).unwrap();
-        assert!(content.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{content}");
+        let content = std::fs::read_to_string(repo.join(super::LEDGER_RELATIVE)).unwrap();
+        assert!(
+            content.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"),
+            "{content}"
+        );
         assert!(content.contains("static/a.png"), "{content}");
     }
 
