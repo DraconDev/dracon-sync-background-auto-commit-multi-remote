@@ -364,6 +364,57 @@ mod tests {
         assert!(!maybe_route_stuck_push(&request(tmp.path(), "aaa0000", 7200, error)).unwrap());
     }
 
+    #[tokio::test]
+    async fn rederive_files_despite_misclassified_summary() {
+        // Live observation (hellhunter/deathrun 2026-10-09): the stuck
+        // summary can read "transport/auth failure" while the live guard
+        // refuses. The re-derive path must file on fresh guard truth, not
+        // the stale summary.
+        let tmp = tempfile::tempdir().unwrap();
+        let proj = tmp.path().join("proj");
+        let script_dir = proj.join("web/scripts");
+        std::fs::create_dir_all(&script_dir).unwrap();
+        let script = script_dir.join("bucket-strategy-guard.sh");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\necho '{\"ok\": false, \"code\": \"BUCKET_STRATEGY_GUARD_FORWARD_ONLY\", \"errors\": [\"commit: static/a.png\"]}'\nexit 1\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let repo = proj.join("repo");
+        let upstream = proj.join("upstream.git");
+        let git = |args: &[&str], cwd: Option<&std::path::Path>| {
+            let mut cmd = std::process::Command::new("git");
+            cmd.args(args);
+            if let Some(dir) = cwd {
+                cmd.current_dir(dir);
+            }
+            assert!(cmd.status().unwrap().success());
+        };
+        git(&["init", "-q", "--bare", upstream.to_str().unwrap()], None);
+        git(&["clone", "-q", upstream.to_str().unwrap(), repo.to_str().unwrap()], None);
+        git(&["checkout", "-qb", "main"], Some(&repo));
+        git(&["config", "user.email", "t@t"], Some(&repo));
+        git(&["config", "user.name", "t"], Some(&repo));
+        std::fs::write(repo.join("f"), "x").unwrap();
+        git(&["add", "."], Some(&repo));
+        git(&["commit", "-qm", "init"], Some(&repo));
+        git(&["push", "-q", "-u", "origin", "main"], Some(&repo));
+        let ledger_dir = repo.join(".pi-glla/audit-loop");
+        std::fs::create_dir_all(&ledger_dir).unwrap();
+        std::fs::write(ledger_dir.join("findings.md"), "# Findings\n").unwrap();
+        let tip = super::head_tip(&repo).expect("tip");
+        let misclassified = "git push returned non-zero (remotes: gitlab, origin) — transport/auth failure (network, timeout, or credentials)";
+        let filed = maybe_route_with_rederive(&repo, &tip, 5, 3600, misclassified, 10, None)
+            .await
+            .unwrap();
+        assert!(filed);
+        let content =
+            std::fs::read_to_string(repo.join(super::LEDGER_RELATIVE)).unwrap();
+        assert!(content.contains("BUCKET_STRATEGY_GUARD_FORWARD_ONLY"), "{content}");
+        assert!(content.contains("static/a.png"), "{content}");
+    }
+
     #[test]
     fn cause_falls_back_to_first_lines() {
         let cause = extract_route_cause(
