@@ -1216,8 +1216,7 @@ mod tests {
         assert_eq!(push_count(), 1, "retries=0 must push exactly once");
         assert!(
             !err.to_string().contains("[earlier SSH attempts failed:"),
-            "R3-L03 join retired with the sweep: {}",
-            err.to_string()
+            "R3-L03 join retired with the sweep: {err}"
         );
         // retries=2 → SSH fail + HTTPS-chain fail, M3-chained.
         std::fs::write(&log, "").unwrap();
@@ -1227,8 +1226,7 @@ mod tests {
         assert_eq!(push_count(), 2, "retries=2 must push exactly twice");
         assert!(
             err.to_string().contains("[SSH attempt failed:"),
-            "chain verdict must chain its SSH cause (M3): {}",
-            err.to_string()
+            "chain verdict must chain its SSH cause (M3): {err}"
         );
         // retries=3 → SSH, HTTPS, SSH = 3 pushes.
         std::fs::write(&log, "").unwrap();
