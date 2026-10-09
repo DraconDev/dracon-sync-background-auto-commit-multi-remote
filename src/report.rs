@@ -5331,7 +5331,9 @@ pub(crate) async fn run_scan_bloat_report(
             repo,
             &policy.untracked_exclude_patterns,
             min_size_mib * 1024 * 1024,
-        ) {
+        )
+        .await
+        {
             let bucket = buckets.entry(leaf).or_default();
             bucket.total_size_bytes += sz;
             bucket.repo_paths.push(
