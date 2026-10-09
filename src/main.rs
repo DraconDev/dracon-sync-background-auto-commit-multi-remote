@@ -1573,8 +1573,21 @@ async fn main() -> Result<()> {
                 // where a mispointed `origin` caused the refresh to
                 // query the wrong GitHub repo. See the helper's doc
                 // for the full rationale.
+                //
+                // FIXED 2026-10-09 (audit F136): the closure used to
+                // collapse three different outcomes into the same
+                // `None` — git failed to SPAWN (ENOENT/EAGAIN/EMFILE),
+                // git ran but the remote is absent, and the URL came
+                // back empty — and the caller counted all of them as
+                // `skipped` with reason "no parseable github remote".
+                // Under fd exhaustion every repo would therefore be
+                // mislabelled as "has no GitHub origin" and the
+                // visibility cache would never learn it was starved.
+                // The CLI flip path (main.rs) already bails on an empty
+                // origin URL; these paths now agree.
+                let mut git_spawn_failed = false;
                 let origin_url = crate::visibility::select_github_remote_url(|remote_name| {
-                    let output = std::process::Command::new("git")
+                    let output = match std::process::Command::new("git")
                         .args([
                             "-C",
                             &repo_path.to_string_lossy(),
@@ -1583,17 +1596,51 @@ async fn main() -> Result<()> {
                             remote_name,
                         ])
                         .output()
-                        .ok()?;
+                    {
+                        Ok(out) => out,
+                        // A git that cannot be executed at all is an ERROR,
+                        // not "this repo has no such remote".
+                        Err(e) => {
+                            git_spawn_failed = true;
+                            eprintln!(
+                                "⚠️ visibility refresh: could not run `git remote get-url {}` in {}: {} — repo not skipped, it is UNVERIFIED",
+                                remote_name,
+                                repo_path.display(),
+                                e
+                            );
+                            return None;
+                        }
+                    };
                     if !output.status.success() {
+                        // git ran and said there is no such remote: a
+                        // legitimate "no GitHub origin here" skip.
                         return None;
                     }
-                    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+                    let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    if url.is_empty() {
+                        eprintln!(
+                            "⚠️ visibility refresh: empty URL for remote {} in {} — treating as unverified",
+                            remote_name,
+                            repo_path.display()
+                        );
+                        return None;
+                    }
+                    Some(url)
                 })
                 .unwrap_or_default();
 
                 let Some((owner, gh_repo)) =
                     crate::visibility::parse_github_owner_repo(&origin_url)
                 else {
+                    if git_spawn_failed {
+                        errors += 1;
+                        results.push(serde_json::json!({
+                            "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
+                            "status": "error",
+                            "reason": "git could not be executed -- visibility unverified, NOT 'no github origin'",
+                        }));
+                        continue;
+                    }
                     skipped += 1;
                     results.push(serde_json::json!({
                         "repo": repo_path.file_name().map(|s| s.to_string_lossy().to_string()),
