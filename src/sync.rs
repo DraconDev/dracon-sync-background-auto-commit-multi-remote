@@ -1844,26 +1844,6 @@ async fn git_rm_missing(repo: &Path, missing: &[String], dry_run: bool) -> Resul
     Ok(())
 }
 
-/// No-op stub preserved for backwards compatibility with
-/// callers that haven't yet been migrated.
-///
-/// CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
-/// The original purpose was to fast-forward `main` to the
-/// `daemon-standalone` branch's HEAD after each standalone
-/// commit (so the parent's gitlink would see the new commit).
-/// With the standalone worktree now on `main` directly, each
-/// commit already advances `main` (no buffer branch in
-/// between), so the hook is unnecessary. This stub remains
-/// so existing call sites still compile; it does nothing.
-///
-/// If called, it just returns `Ok(())`.
-async fn fast_forward_daemon_standalone_to_main(_repo: &Path) -> std::io::Result<()> {
-    // No-op: the standalone worktree is on `main` directly,
-    // so each commit already advances `main`. There is no
-    // `daemon-standalone` ref to fast-forward.
-    Ok(())
-}
-
 async fn post_commit_pull(svc: &GitService, repo: &Path, policy: &SyncPolicy) {
     if !policy.auto_pull {
         return;
@@ -4607,18 +4587,14 @@ async fn stage_commit_and_push(
         // daemon's main flow doesn't change, but it does
         // nothing.
         //
-        // CHANGED 2026-07-01 (goal `mr1x7j5i-zioba9`):
-        // The previous version fast-forwarded `main` to the
-        // daemon-standalone branch's HEAD after each commit.
-        // With the standalone on `main` directly (no buffer
-        // branch), this fast-forward is unnecessary.
-        if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
-            eprintln!(
-                "⚠️ fast_forward_daemon_standalone_to_main (no-op) error in {}: {}",
-                repo.display(),
-                e
-            );
-        }
+        // REMOVED 2026-10-09 (audit F134): the
+        // `fast_forward_daemon_standalone_to_main` call and its error arm
+        // are gone. The helper had been a no-op returning `Ok(())` since
+        // 2026-07-01 (the standalone worktree sits on `main` directly, so
+        // each commit already advances it), which made this error arm
+        // unreachable — the "(no-op)" text in its own log line proved the
+        // author knew. AGENTS.md already documents the stub as dead.
+        // Nothing replaces it: the behaviour it performed no longer exists.
         // Flush so journald captures commit activity in real-time
         let _ = std::io::stderr().flush();
         // Record this commit in the incident ledger so the `repos` report
@@ -5294,25 +5270,13 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // step does nothing. The call is preserved for backwards
     // compatibility with the daemon's main flow.
     //
-    // ADDED 2026-07-01, goal `mr10pdzr-i495vy` (original):
-    // The unconditional call was needed because the previous
-    // design committed on `daemon-standalone` and only
-    // fast-forwarded `main` in the post-commit hook. When the
-    // standalone was clean, the daemon skipped the commit step
-    // and `main` stayed stale. Running the fast-forward
-    // unconditionally at cycle start fixed that. The fix is
-    // no longer needed (the standalone is on `main` directly,
-    // so commits always advance `main`), but the call site is
-    // preserved.
-    if !dry_run {
-        if let Err(e) = fast_forward_daemon_standalone_to_main(repo).await {
-            eprintln!(
-                "⚠️ fast_forward_daemon_standalone_to_main (no-op) error for {}: {}",
-                repo.display(),
-                e
-            );
-        }
-    }
+    // REMOVED 2026-10-09 (audit F134): the cycle-start
+    // `fast_forward_daemon_standalone_to_main` call and its unreachable
+    // error arm are gone, together with the stub itself. The fast-forward
+    // stopped being necessary on 2026-07-01 (standalone on `main`
+    // directly) and the call site was only "preserved for backwards
+    // compatibility" — with a helper that unconditionally returned `Ok`,
+    // the `if let Err(e)` arm could never fire.
 
     // Compute the auto-commit backstop. The backstop fires when
     // a repo has more than `auto_commit_backstop_threshold`
