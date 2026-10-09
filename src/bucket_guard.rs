@@ -327,10 +327,21 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
         let repo = proj.join("repo");
-        std::fs::create_dir_all(&repo).unwrap();
+        // Genuine upstream via a local bare remote (synthetic tracking refs
+        // are rejected by rev-parse @{u}); the stub only asserts argv shape.
+        let upstream = proj.join("upstream.git");
         std::process::Command::new("git")
-            .args(["init", "-qb", "main"])
-            .current_dir(&repo)
+            .args(["init", "-qb", "main", "--bare", upstream.to_str().unwrap()])
+            .status()
+            .unwrap();
+        std::process::Command::new("git")
+            .args([
+                "clone",
+                "-qb",
+                "main",
+                upstream.to_str().unwrap(),
+                repo.to_str().unwrap(),
+            ])
             .status()
             .unwrap();
         std::process::Command::new("git")
@@ -351,24 +362,6 @@ mod tests {
             .unwrap();
         std::process::Command::new("git")
             .args(["commit", "-qm", "init"])
-            .current_dir(&repo)
-            .status()
-            .unwrap();
-        // Fake an upstream tip: the stub only checks the argv shape.
-        // (branch --set-upstream-to rejects synthetic refs, so write the
-        // branch config directly.)
-        std::process::Command::new("git")
-            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
-            .current_dir(&repo)
-            .status()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["config", "branch.main.remote", "origin"])
-            .current_dir(&repo)
-            .status()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["config", "branch.main.merge", "refs/heads/main"])
             .current_dir(&repo)
             .status()
             .unwrap();
