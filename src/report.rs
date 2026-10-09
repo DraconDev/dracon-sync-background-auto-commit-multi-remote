@@ -13068,6 +13068,16 @@ mod tests {
         assert_eq!(push_status, "FAIL");
     }
 
+    // REMOVED 2026-10-09 (audit F133): this cooldown map and this test
+    // are all that is left of `notify_push_failure` — a fully-written
+    // desktop-notification path that had ZERO call sites while its
+    // `#[allow(dead_code)]` made that invisible. The live push-failure
+    // notification path is the webhook one (`notify_webhook_failure` in
+    // sync.rs, called at sync.rs:4753/:4765/:5984/:6021), which is what an
+    // operator configures through policy. The path was deleted rather than
+    // wired: restoring a second, unconfigured notification channel would be
+    // inventing behaviour. This test is kept because it pins the map
+    // mechanics the webhook path shares.
     #[test]
     fn test_push_failure_cooldown_dedup() {
         let mut cooldowns = std::collections::HashMap::new();
