@@ -151,33 +151,111 @@ pub(crate) fn maybe_route_stuck_push(request: &StuckRouteRequest) -> Result<bool
     if !is_routeable_cause(&request.last_error) {
         return Ok(false);
     }
-    let ledger = request.repo.join(LEDGER_RELATIVE);
-    if !ledger.is_file() {
+    let Some(ledger) = filing_gate(&request.repo, &request.tip)? else {
+        return Ok(false);
+    };
+    let cause = extract_route_cause(&request.last_error);
+    file_finding(
+        &ledger,
+        &request.repo,
+        &request.tip,
+        request.consecutive_failures,
+        request.stuck_age_secs,
+        &cause,
+    )
+}
+
+/// Preferred entry point for the daemon: re-derive the CURRENT guard verdict
+/// for bucket-managed repos instead of trusting the stuck-ledger summary,
+/// which may record a stale or misclassified failure (observed live: hook
+/// refusals summarized as "transport/auth failure"). A live violation is
+/// always current; a clean range means the failure is genuinely non-guard
+/// and nothing is filed. Non-bucket repos fall back to the summary path.
+/// `timeout_secs` bounds the guard re-run; `env_override` mirrors the
+/// `DRACON_BUCKET_GUARD` override.
+pub(crate) async fn maybe_route_with_rederive(
+    repo: &Path,
+    tip: &str,
+    consecutive_failures: u32,
+    stuck_age_secs: u64,
+    last_error: &str,
+    timeout_secs: u64,
+    env_override: Option<&str>,
+) -> Result<bool> {
+    if stuck_age_secs < STUCK_ROUTE_MIN_AGE_SECS {
         return Ok(false);
     }
-    let short_tip: String = request.tip.chars().take(7).collect();
+    let Some(ledger) = filing_gate(repo, tip)? else {
+        return Ok(false);
+    };
+    match crate::bucket_guard::check_push_range(repo, timeout_secs, env_override).await {
+        Ok(Some(verdict)) if !verdict.ok => {
+            let mut errors = verdict.errors;
+            errors.truncate(4);
+            let cause = if errors.is_empty() {
+                verdict.code.clone()
+            } else {
+                format!("{}: {}", verdict.code, errors.join("; "))
+            };
+            file_finding(repo, tip, consecutive_failures, stuck_age_secs, &truncate_single_line(&cause, 500))
+                .map(|_| true)
+                .or(Ok(false))
+        }
+        Ok(_) => Ok(false),
+        Err(_) => {
+            // Guard re-run failed (infra): fall back to the summary path
+            // rather than dropping a possibly-routeable refusal.
+            let request = StuckRouteRequest {
+                repo: repo.to_path_buf(),
+                tip: tip.to_owned(),
+                consecutive_failures,
+                stuck_age_secs,
+                last_error: last_error.to_owned(),
+            };
+            maybe_route_stuck_push(&request)
+        }
+    }
+}
+
+/// Shared preconditions: the repo carries a loop ledger and this tip has no
+/// finding yet. Returns the ledger path when fileable.
+fn filing_gate(repo: &Path, tip: &str) -> Result<Option<PathBuf>> {
+    let ledger = repo.join(LEDGER_RELATIVE);
+    if !ledger.is_file() {
+        return Ok(None);
+    }
+    let short_tip: String = tip.chars().take(7).collect();
     let marker = format!("[STUCK-PUSH tip:{short_tip}]");
     let existing = std::fs::read_to_string(&ledger).unwrap_or_default();
     if existing.contains(&marker) {
-        return Ok(false);
+        return Ok(None);
     }
-    let name = request
-        .repo
+    Ok(Some(ledger))
+}
+
+/// Append one NOTE row. The tip-dedup gate must have passed already.
+fn file_finding(
+    ledger: &Path,
+    repo: &Path,
+    tip: &str,
+    consecutive_failures: u32,
+    stuck_age_secs: u64,
+    cause: &str,
+) -> Result<bool> {
+    let short_tip: String = tip.chars().take(7).collect();
+    let marker = format!("[STUCK-PUSH tip:{short_tip}]");
+    let name = repo
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| request.repo.display().to_string());
-    let cause = extract_route_cause(&request.last_error);
+        .unwrap_or_else(|| repo.display().to_string());
     let row = format!(
         "- [ ] NOTE: {} {} push blocked ({} consecutive failures over {}m): {}. Fix the cause, then run `dracon-sync repair stuck-unstuck {}`.\n",
-        marker,
-        name,
-        request.consecutive_failures,
-        request.stuck_age_secs / 60,
-        cause,
-        name,
+        marker, name, consecutive_failures,
+        stuck_age_secs / 60,
+        cause, name,
     );
     use std::io::Write;
-    let mut file = std::fs::OpenOptions::new().append(true).open(&ledger)?;
+    let mut file = std::fs::OpenOptions::new().append(true).open(ledger)?;
     file.write_all(row.as_bytes())?;
     Ok(true)
 }
