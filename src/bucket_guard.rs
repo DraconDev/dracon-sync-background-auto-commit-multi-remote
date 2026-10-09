@@ -365,6 +365,13 @@ mod tests {
             .current_dir(&repo)
             .status()
             .unwrap();
+        // Publish so @{u} resolves (file protocol, offline); the stub
+        // reports violations regardless of the true range content.
+        std::process::Command::new("git")
+            .args(["push", "-q", "-u", "origin", "main"])
+            .current_dir(&repo)
+            .status()
+            .unwrap();
         let verdict = check_push_range(&repo, 10, None)
             .await
             .unwrap()
