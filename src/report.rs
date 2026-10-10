@@ -5221,9 +5221,10 @@ fn print_repos_vertical(
         let push_styled = colorize(push_text, push_color);
 
         // HINT cell (one-liner)
-        let hint_text = truncate_unicode_width(&row.hint, width.saturating_sub(2));
+        // Detail view must preserve cached/unknown pack evidence rather than
+        // clipping it off after the health summary. The terminal wraps it.
         let hint_color = status_color;
-        let hint_styled = colorize(&hint_text, hint_color);
+        let hint_styled = colorize(&row.hint, hint_color);
 
         // State + activity combined
         let activity = truncate_unicode_width(&activity_label(row), width.saturating_sub(20));
@@ -5319,6 +5320,13 @@ fn print_repos_vertical(
         );
         println!("{gutter}push-to:   {push_to_text}");
         println!("{gutter}push:      {push_styled}");
+        let (git_size, git_color) = size_cell_text(
+            row.git_size_bytes,
+            row.git_modules_bytes,
+            row.pack_too_large,
+        );
+        println!("{gutter}git size:  {} (local history; own+nested, +? unknown)", colorize(&git_size, git_color));
+        println!("{gutter}size key:  not bucket/worktree/download size; GitHub limit is per push");
         println!("{gutter}last:      {commit_summary}");
         println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
         println!("{gutter}activity:  {activity}");
