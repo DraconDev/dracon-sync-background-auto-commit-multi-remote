@@ -3474,6 +3474,22 @@ const LEGEND_MIN_WIDTH: usize = 120;
 /// `repos_legend_lines` formats these for tests/back-compat;
 /// `print_repos_legend` renders them as a comfy-table (operator:
 /// "make the legend table-like").
+fn pack_evidence_hint(
+    too_large: bool,
+    deferred: bool,
+    cached_at: Option<Option<u64>>,
+    now: u64,
+) -> String {
+    let verdict = if too_large { "guard triggered" } else { "guard clear" };
+    let source = match cached_at {
+        Some(Some(at)) => format!("cached {}s ago", now.saturating_sub(at)),
+        Some(None) => "cached, age unknown".to_string(),
+        None if deferred => return "GitHub pack check unknown — use repos --deep".to_string(),
+        None => "measured this report".to_string(),
+    };
+    format!("GitHub pack {verdict} ({source}); 2 GiB/push, not repo size")
+}
+
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
         ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
@@ -3495,7 +3511,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("REM", "🐙 github · 🦊 gitlab · 🗻 codeberg (active only; excluded not shown)"),
         ("", ""),
         ("1H/6H/24H", "commit pulse: last 1h / 6h / 24h"),
-        ("SIZE", "own .git · +N submodule gitdirs · 🟡 own ≥1 GiB · 🔴 2 GiB/push concern"),
+        ("GIT SIZE", "local Git objects/history, not worktree, clone download or bucket bytes · own+nested (children also have rows; do not sum twice) · +? unmeasured nested · 🟡 own ≥1 GiB · 🔴 GitHub 2 GiB/push guard"),
         ("TOUCHED", "latest commit author (mailmap identity)"),
         ("", ""),
         ("hint", "`dracon-sync repos <name>` = detail · `repos --legend` = this key"),
@@ -3515,7 +3531,8 @@ fn print_repos_legend_footer() {
     }
     for line in [
         "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · A/B ↑ahead ↓behind · 1H/6H/24H commits",
-        "PUSH = last push result + age · SIZE = own .git + submodule gitdirs · TOUCHED = commit author",
+        "PUSH = last result + age · GIT SIZE = local objects/history, own+nested (not bucket or push bytes)",
+        "GitHub limit = 2 GiB per push, NOT total repo size · +? = nested size unmeasured; use --deep", 
         "Detail: dracon-sync repos <name> · Full key: dracon-sync repos --legend",
     ] {
         println!("{}", colorize(line, Color::DarkGrey));
@@ -4456,6 +4473,13 @@ pub(crate) async fn run_repos_report(
         } else {
             repo_hint(&flags, warn, concern)
         };
+        hint.push_str("; ");
+        hint.push_str(&pack_evidence_hint(
+            pack_too_large.0,
+            report_checks_deferred,
+            cached_entry.map(|c| c.cached_at_secs),
+            now_secs,
+        ));
         if report_checks_deferred && !history_broken && !pack_too_large.0 {
             hint.push_str("; deep pack/history checks deferred — use repos --deep");
         }
@@ -7051,7 +7075,7 @@ fn build_repos_rich_table(
         bold("1H"),
         bold("6H"),
         bold("24H"),
-        bold("SIZE"),
+        bold("GIT SIZE"),
         bold("TOUCHED"),
     ];
     table.set_header(header);
