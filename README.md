@@ -205,6 +205,14 @@ dracon-sync repair dual-branch-repair ~/Dev/repo
 dracon-sync repair origins
 dracon-sync repair origins --apply
 
+# Refresh the visibility cache for every watched repo
+dracon-sync refresh-visibility
+
+# Flip a repository public across github + gitlab (codeberg skipped by
+# default, to protect the 85 GiB grace quota; add --include-codeberg)
+dracon-sync make-public ~/Dev/repo
+dracon-sync make-private ~/Dev/repo
+
 # Scaffold standard files (LICENSE, optional .github/FUNDING.yml, ...)
 # FUNDING.yml is Dracon-specific; external users must opt in explicitly.
 dracon-sync scaffold
