@@ -284,7 +284,7 @@ use crate::git::{
     top_level_dir,
 };
 use crate::policy::{
-    DEFAULT_GIT_HOST_BLOB_LIMIT_BYTES, RepoPolicyOverride, SyncPolicy, timestamp_secs,
+    timestamp_secs, RepoPolicyOverride, SyncPolicy, DEFAULT_GIT_HOST_BLOB_LIMIT_BYTES,
 };
 
 fn ansi(color: &str, text: &str) -> String {
@@ -3162,7 +3162,7 @@ pub(crate) fn terminal_width() -> Option<u16> {
             }
         }
     }
-    use terminal_size::{Height, Width, terminal_size};
+    use terminal_size::{terminal_size, Height, Width};
     if let Some((Width(w), Height(_))) = terminal_size() {
         if (40..=1000).contains(&w) {
             return Some(w);
@@ -5325,7 +5325,10 @@ fn print_repos_vertical(
             row.git_modules_bytes,
             row.pack_too_large,
         );
-        println!("{gutter}git size:  {} (local history; own+nested, +? unknown)", colorize(&git_size, git_color));
+        println!(
+            "{gutter}git size:  {} (local history; own+nested, +? unknown)",
+            colorize(&git_size, git_color)
+        );
         println!("{gutter}size key:  not bucket/worktree/download size; GitHub limit is per push");
         println!("{gutter}last:      {commit_summary}");
         println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
@@ -5725,8 +5728,8 @@ fn print_repos_compact_table(
     full_path: bool,
 ) {
     use comfy_table::{
-        Attribute, Cell, Color, ColumnConstraint, ContentArrangement, Table, Width,
-        presets::UTF8_FULL_CONDENSED,
+        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
     };
     let _ = (_filter, _concern_count_all, _warn_count_all, _ok_count_all);
 
@@ -5941,8 +5944,8 @@ fn print_repos_full_table(
     full_path: bool,
 ) {
     use comfy_table::{
-        Attribute, Cell, Color, ColumnConstraint, ContentArrangement, Table, Width,
-        presets::UTF8_FULL_CONDENSED,
+        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ColumnConstraint, ContentArrangement,
+        Table, Width,
     };
     let _ = (_filter, _concern_count_all, _warn_count_all, _ok_count_all);
 
@@ -6748,8 +6751,8 @@ fn print_repos_summary(
     by_severity: bool,
 ) {
     use comfy_table::{
-        Cell, Color, ColumnConstraint, ContentArrangement, Table, Width,
-        presets::UTF8_FULL_CONDENSED,
+        presets::UTF8_FULL_CONDENSED, Cell, Color, ColumnConstraint, ContentArrangement, Table,
+        Width,
     };
     let _ = _filter;
 
@@ -6927,8 +6930,8 @@ fn build_repos_rich_table(
     terminal_columns: u16,
 ) -> comfy_table::Table {
     use comfy_table::{
-        Cell, CellAlignment, Color, ColumnConstraint, ContentArrangement, Table, TableComponent,
-        Width, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY,
+        modifiers::UTF8_ROUND_CORNERS, presets::UTF8_BORDERS_ONLY, Cell, CellAlignment, Color,
+        ColumnConstraint, ContentArrangement, Table, TableComponent, Width,
     };
 
     // Sort by severity (concern → warn → active → clean), stable.
@@ -11431,10 +11434,9 @@ mod tests {
     fn test_incident_ledger_path_default() {
         let _guard = VarGuard::set_temp("DRACON_SYNC_LEDGER", "");
         let path = incident_ledger_path(std::path::Path::new("/fake/policy.toml"));
-        assert!(
-            path.to_string_lossy()
-                .contains("dracon-sync-incidents.jsonl")
-        );
+        assert!(path
+            .to_string_lossy()
+            .contains("dracon-sync-incidents.jsonl"));
     }
 
     #[test]
@@ -12306,55 +12308,43 @@ mod tests {
     fn test_branch_upstream_missing_when_no_config() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        assert!(
-            crate::git::git_cmd()
-                .args(["init", "-q", "-b", "main"])
-                .arg(&repo)
-                .status()
-                .expect("git init")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "user.email", "test@example.com"])
-                .current_dir(&repo)
-                .status()
-                .expect("user.email")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "user.name", "Test"])
-                .current_dir(&repo)
-                .status()
-                .expect("user.name")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "core.hooksPath", "/dev/null"])
-                .current_dir(&repo)
-                .status()
-                .expect("hooksPath")
-                .success()
-        );
+        assert!(crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        assert!(
-            crate::git::git_cmd()
-                .args(["add", "README.md"])
-                .current_dir(&repo)
-                .status()
-                .expect("git add")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["commit", "-m", "initial"])
-                .current_dir(&repo)
-                .status()
-                .expect("git commit")
-                .success()
-        );
+        assert!(crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success());
         let (label, state) = branch_upstream(&repo, "main");
         assert_eq!(label, "-");
         assert_eq!(state, PublishState::Missing);
@@ -12364,84 +12354,66 @@ mod tests {
     fn test_branch_upstream_gone_when_remote_tracking_ref_missing() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let repo = tmp.path().join("test-repo");
-        assert!(
-            crate::git::git_cmd()
-                .args(["init", "-q", "-b", "main"])
-                .arg(&repo)
-                .status()
-                .expect("git init")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "user.email", "test@example.com"])
-                .current_dir(&repo)
-                .status()
-                .expect("user.email")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "user.name", "Test"])
-                .current_dir(&repo)
-                .status()
-                .expect("user.name")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "core.hooksPath", "/dev/null"])
-                .current_dir(&repo)
-                .status()
-                .expect("hooksPath")
-                .success()
-        );
+        assert!(crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .expect("git init")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.email")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .status()
+            .expect("user.name")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "core.hooksPath", "/dev/null"])
+            .current_dir(&repo)
+            .status()
+            .expect("hooksPath")
+            .success());
         std::fs::write(repo.join("README.md"), "initial").expect("write file");
-        assert!(
-            crate::git::git_cmd()
-                .args(["add", "README.md"])
-                .current_dir(&repo)
-                .status()
-                .expect("git add")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["commit", "-m", "initial"])
-                .current_dir(&repo)
-                .status()
-                .expect("git commit")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args([
-                    "remote",
-                    "add",
-                    "github",
-                    "git@github.com:DraconDev/test-repo.git"
-                ])
-                .current_dir(&repo)
-                .status()
-                .expect("git remote add")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "branch.main.remote", "github"])
-                .current_dir(&repo)
-                .status()
-                .expect("remote config")
-                .success()
-        );
-        assert!(
-            crate::git::git_cmd()
-                .args(["config", "branch.main.merge", "refs/heads/main"])
-                .current_dir(&repo)
-                .status()
-                .expect("merge config")
-                .success()
-        );
+        assert!(crate::git::git_cmd()
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .expect("git add")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .status()
+            .expect("git commit")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args([
+                "remote",
+                "add",
+                "github",
+                "git@github.com:DraconDev/test-repo.git"
+            ])
+            .current_dir(&repo)
+            .status()
+            .expect("git remote add")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "branch.main.remote", "github"])
+            .current_dir(&repo)
+            .status()
+            .expect("remote config")
+            .success());
+        assert!(crate::git::git_cmd()
+            .args(["config", "branch.main.merge", "refs/heads/main"])
+            .current_dir(&repo)
+            .status()
+            .expect("merge config")
+            .success());
         let (label, state) = branch_upstream(&repo, "main");
         assert_eq!(label, "github/main");
         assert_eq!(state, PublishState::Gone);
@@ -14356,10 +14328,8 @@ mod tests {
     fn test_pack_evidence_hint_sources() {
         assert!(pack_evidence_hint(false, true, None, 100).contains("unknown"));
         assert!(pack_evidence_hint(false, false, None, 100).contains("measured this report"));
-        assert!(
-            pack_evidence_hint(true, true, Some(Some(50)), 100)
-                .contains("guard triggered (cached 50s ago)")
-        );
+        assert!(pack_evidence_hint(true, true, Some(Some(50)), 100)
+            .contains("guard triggered (cached 50s ago)"));
         assert!(pack_evidence_hint(false, true, Some(None), 100).contains("age unknown"));
         assert!(pack_evidence_hint(false, false, Some(Some(90)), 100).contains("cached 10s ago"));
         assert!(pack_evidence_hint(false, false, None, 100).contains("not repo size"));
@@ -14953,7 +14923,7 @@ mod size_cache_tests {
 #[cfg(test)]
 mod codeberg_public_only_tests {
     use super::*;
-    use crate::policy::{RemoteConfig, RepoPolicyOverride, SyncPolicy, test_sync_policy};
+    use crate::policy::{test_sync_policy, RemoteConfig, RepoPolicyOverride, SyncPolicy};
 
     fn policy_with_remotes() -> SyncPolicy {
         SyncPolicy {
@@ -15564,7 +15534,7 @@ mod v011315_tests {
 #[cfg(test)]
 mod v011316_tests {
     use super::*;
-    use crate::policy::{RemoteConfig, RepoPolicyOverride, SyncPolicy, test_sync_policy};
+    use crate::policy::{test_sync_policy, RemoteConfig, RepoPolicyOverride, SyncPolicy};
 
     fn quota_policy() -> SyncPolicy {
         // Visibility gate OFF so the quota rule is the only possible
