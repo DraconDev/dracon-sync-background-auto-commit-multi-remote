@@ -87,6 +87,31 @@ When `auto_github_private = true`, newly initialized repos without an origin rem
 - Manages permanently stuck repos
 - Prunes stale operational state on daemon restart (stuck repos, incident ledger, visibility cache)
 
+### Repository-policy guards on the daemon commit path
+Daemon commits go through libgit2, which never runs git hooks — so a repo's
+`pre-commit` guard cannot fire on them. dracon-sync closes that gap two ways:
+
+- **Forward-only bucket guard** (`bucket_guard.rs`): before every auto-commit,
+  the daemon walks the checkout and its ancestors for an executable
+  `web/scripts/bucket-strategy-guard.sh` (the same script
+  `.githooks/pre-commit` runs for human commits) and runs the staged
+  forward-only check itself. A violation — or a failure of the guard
+  infrastructure — **blocks the commit with the index intact**, staging and
+  worktree content retained, and the row is reported as blocked. Repos with
+  no discoverable guard script are unaffected. Override the script location
+  with `DRACON_BUCKET_GUARD`; an override pointing at a missing path fails
+  closed rather than skipping. This is what prevents the silent
+  protected-asset deletions (hellhunter `f5d55b5`, deathrun `30352ba`) that
+  previously only detonated at push time.
+- **Stuck-push routing** (`stuck_route.rs`): when a repo stays push-stuck and
+  the cause is a repo-policy refusal a loop can act on (a hook/guard decision,
+  not a transient network failure), the daemon appends one append-only NOTE
+  row to the owning loop's own ledger
+  (`<repo>/.pi-glla/audit-loop/findings.md`) carrying the guard's violation
+  output. One row per episode (keyed by HEAD tip), only after 30 minutes
+  stuck, and never for self-healing network/forge outages — those stay
+  daemon-internal. Repos without a ledger file are skipped silently.
+
 ### Commit Messages
 Deterministic facts extracted from the diff. No AI, no LLM, no prose. Routing
 keys are grep-searchable via `git log --grep=`.
