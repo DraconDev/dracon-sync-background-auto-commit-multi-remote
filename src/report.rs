@@ -5223,8 +5223,9 @@ fn print_repos_vertical(
         // HINT cell (one-liner)
         // Detail view must preserve cached/unknown pack evidence rather than
         // clipping it off after the health summary. The terminal wraps it.
+        let hint_text = &row.hint;
         let hint_color = status_color;
-        let hint_styled = colorize(&row.hint, hint_color);
+        let hint_styled = colorize(hint_text, hint_color);
 
         // State + activity combined
         let activity = truncate_unicode_width(&activity_label(row), width.saturating_sub(20));
