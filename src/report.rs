@@ -3527,6 +3527,7 @@ fn repos_legend_lines() -> Vec<String> {
 fn print_repos_legend_footer() {
     let width = terminal_width().unwrap_or(120) as usize;
     if width < LEGEND_MIN_WIDTH {
+        println!("{}", colorize("GIT SIZE: local Git history, not bucket/push bytes; own+nested, +? unknown.", Color::DarkGrey));
         return;
     }
     for line in [
@@ -4477,7 +4478,9 @@ pub(crate) async fn run_repos_report(
         hint.push_str(&pack_evidence_hint(
             pack_too_large.0,
             report_checks_deferred,
-            cached_entry.map(|c| c.cached_at_secs),
+            cached_entry
+                .filter(|_| cache_entry_is_complete_and_fresh || report_checks_deferred)
+                .map(|c| c.cached_at_secs),
             now_secs,
         ));
         if report_checks_deferred && !history_broken && !pack_too_large.0 {
@@ -14279,6 +14282,16 @@ mod tests {
     /// rich table, plus the color semantics the operator asked about
     /// (SIZE tiers). v0.113.13: column set changed — USED dropped,
     /// COMMITS split into 1H/6H/24H, `N excl` marker added.
+    #[test]
+    fn test_pack_evidence_hint_sources() {
+        assert!(pack_evidence_hint(false, true, None, 100).contains("unknown"));
+        assert!(pack_evidence_hint(false, false, None, 100).contains("measured this report"));
+        assert!(pack_evidence_hint(true, true, Some(Some(50)), 100).contains("guard triggered (cached 50s ago)"));
+        assert!(pack_evidence_hint(false, true, Some(None), 100).contains("age unknown"));
+        assert!(pack_evidence_hint(false, false, Some(Some(90)), 100).contains("cached 10s ago"));
+        assert!(pack_evidence_hint(false, false, None, 100).contains("not repo size"));
+    }
+
     #[test]
     fn test_repos_legend_covers_all_rich_columns() {
         let text = repos_legend_lines().join("\n");
