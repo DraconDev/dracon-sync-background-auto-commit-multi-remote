@@ -44,6 +44,51 @@ pub struct Policy {
     pub churn_trigger_bytes: u64,
 }
 
+/// Explicit per-repository tuning. Unspecified values inherit global tuning.
+/// This type is not yet wired into the daemon's TOML schema.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PolicyOverride {
+    /// Override enablement (including opt-out).
+    pub enabled: Option<bool>,
+    /// Override minimum eligible size.
+    pub minimum_asset_bytes: Option<u64>,
+    /// Override individual-file trigger.
+    pub individual_trigger_bytes: Option<u64>,
+    /// Override repository pressure threshold.
+    pub history_trigger_bytes: Option<u64>,
+    /// Override candidate churn threshold.
+    pub churn_trigger_bytes: Option<u64>,
+}
+
+impl Policy {
+    /// Resolve per-repository tuning without changing the global policy.
+    pub fn with_override(self, overrides: PolicyOverride) -> Self {
+        Self {
+            enabled: overrides.enabled.unwrap_or(self.enabled),
+            minimum_asset_bytes: overrides
+                .minimum_asset_bytes
+                .unwrap_or(self.minimum_asset_bytes),
+            individual_trigger_bytes: overrides
+                .individual_trigger_bytes
+                .unwrap_or(self.individual_trigger_bytes),
+            history_trigger_bytes: overrides
+                .history_trigger_bytes
+                .unwrap_or(self.history_trigger_bytes),
+            churn_trigger_bytes: overrides
+                .churn_trigger_bytes
+                .unwrap_or(self.churn_trigger_bytes),
+        }
+    }
+
+    /// Reject zero thresholds and an individual trigger below the minimum size.
+    pub fn is_valid(self) -> bool {
+        self.minimum_asset_bytes > 0
+            && self.individual_trigger_bytes >= self.minimum_asset_bytes
+            && self.history_trigger_bytes > 0
+            && self.churn_trigger_bytes > 0
+    }
+}
+
 /// Evidence for one stable snapshot. Unknown measurements stay unknown.
 #[derive(Clone, Copy, Debug)]
 pub struct Evidence {
@@ -70,6 +115,8 @@ pub struct Evidence {
 /// Reasons requiring preservation of existing state, never raw-byte fallback.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HoldReason {
+    /// Tuning is invalid; do not silently enroll every asset.
+    InvalidPolicy,
     /// The current payload is not an approved asset.
     Classification,
     /// Effective attributes conflict with the selected representation.
@@ -119,6 +166,9 @@ pub fn evaluate(policy: Option<Policy>, evidence: Evidence) -> Decision {
             Decision::KeepGit
         };
     };
+    if !policy.is_valid() {
+        return Decision::Hold(HoldReason::InvalidPolicy);
+    }
     if sticky {
         return Decision::RetainLfs;
     }
@@ -249,6 +299,73 @@ mod tests {
             evaluate(Some(policy()), e),
             Decision::Hold(HoldReason::Classification)
         );
+    }
+    #[test]
+    fn overrides_inherit_and_change_each_threshold() {
+        let p = policy();
+        let inherited = p.with_override(PolicyOverride::default());
+        assert_eq!(inherited.minimum_asset_bytes, p.minimum_asset_bytes);
+        assert_eq!(
+            inherited.individual_trigger_bytes,
+            p.individual_trigger_bytes
+        );
+        assert_eq!(inherited.history_trigger_bytes, p.history_trigger_bytes);
+        assert_eq!(inherited.churn_trigger_bytes, p.churn_trigger_bytes);
+        let mut e = asset();
+        let optout = p.with_override(PolicyOverride {
+            enabled: Some(false),
+            ..Default::default()
+        });
+        e.bytes = 101 * MIB;
+        assert_eq!(evaluate(Some(optout), e), Decision::KeepGit);
+        e = asset();
+        let smaller = p.with_override(PolicyOverride {
+            individual_trigger_bytes: Some(20 * MIB),
+            ..Default::default()
+        });
+        e.bytes = 20 * MIB;
+        assert_eq!(evaluate(Some(smaller), e), Decision::EnrollLfs);
+        e = asset();
+        let pressure = p.with_override(PolicyOverride {
+            minimum_asset_bytes: Some(10 * MIB),
+            history_trigger_bytes: Some(200 * MIB),
+            ..Default::default()
+        });
+        assert_eq!(evaluate(Some(pressure), e), Decision::EnrollLfs);
+        let churn = p.with_override(PolicyOverride {
+            minimum_asset_bytes: Some(10 * MIB),
+            churn_trigger_bytes: Some(5 * MIB),
+            ..Default::default()
+        });
+        e.churn_bytes = Some(5 * MIB);
+        assert_eq!(evaluate(Some(churn), e), Decision::EnrollLfs);
+        assert_eq!(evaluate(Some(p), e), Decision::KeepGit);
+    }
+    #[test]
+    fn invalid_thresholds_fail_closed() {
+        for overrides in [
+            PolicyOverride {
+                minimum_asset_bytes: Some(0),
+                ..Default::default()
+            },
+            PolicyOverride {
+                individual_trigger_bytes: Some(1),
+                ..Default::default()
+            },
+            PolicyOverride {
+                history_trigger_bytes: Some(0),
+                ..Default::default()
+            },
+            PolicyOverride {
+                churn_trigger_bytes: Some(0),
+                ..Default::default()
+            },
+        ] {
+            assert_eq!(
+                evaluate(Some(policy().with_override(overrides)), asset()),
+                Decision::Hold(HoldReason::InvalidPolicy)
+            );
+        }
     }
     #[test]
     fn exclusions_and_conflicting_filters_win() {
