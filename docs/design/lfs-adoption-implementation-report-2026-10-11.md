@@ -1,6 +1,6 @@
 # Standard LFS adoption: implementation/qualification report
 
-Date: 2026-10-11. Status: implementation deferred; the live pilot and security-authorization gate require external actions outside this session.
+Date: 2026-10-11. Status: isolated policy primitives implemented; production routing and live qualification remain unfinished.
 
 ## Decisions taken
 
@@ -11,10 +11,11 @@ Date: 2026-10-11. Status: implementation deferred; the live pilot and security-a
 - Fast path: ordinary small repositories (illustrative budget 1 GiB local
   Git history, 20 MiB individual files) remain in Git with no bucket
   dependency. No automatic asset enrollment.
-- Pilot game: `polis` (web/games/wip/polis) was inspected as a candidate
-  forward-only pilot because its inventory (`web/docs/bucket-migration-inventory.json`)
-  has explicit classification and the repo is private on GitHub and GitLab.
-  Pilot activation requires an additional operator decision.
+- Pilot candidate: `polis` (`web/games/wip/polis` in the sibling
+  `dracon-platform` checkout), not a qualified or enrolled pilot. The prior
+  inventory reference is outside this report's audit boundary; the parent
+  utilities `web` symlink cannot serve as durable inventory evidence. Neither
+  asset approval nor present forge privacy is established by this report.
 - Backend: configurable. OVH S3 endpoint (`s3.uk.io.cloud.ovh.net`) is the
   documented default; private-source traffic must use a separate, private
   bucket or namespace from the public asset bucket `dracon-master`.
@@ -26,20 +27,48 @@ Date: 2026-10-11. Status: implementation deferred; the live pilot and security-a
   `forgejo`, `gitlab-workhorse`, `garage`, `minio`, `rclone`, `restic`,
   and `kopia` were not found on `PATH`. Each absence is a non-exhaustive
   install search; no remote package audit was performed.
-- No private OVH bucket or IAM principal exists for source assets. The
-  public asset bucket `dracon-master` is unsuitable for private source
-  LFS traffic.
+- No private source OVH binding or scoped IAM principal has been qualified
+  by this work. This is not proof that none exists elsewhere. The public
+  asset bucket `dracon-master` is unsuitable for private source LFS traffic.
+- Deployment host: none qualified or identified for LFS deployment. An
+  S3 endpoint is storage, not an authorized LFS API deployment host.
 - The Warden global pre-push hook (`~/.config/git/hooks/pre-push`) chains
   foreign and repository-local hooks before its own checks. A stock LFS
   pre-push would therefore upload bytes before any refusal. This is a
   blocker for automatic LFS routing and is not yet fixed.
-- No daemon-side LFS path exists. `dracon-sync/src/storage_core` holds
-  only the custom strict pointer encoder, the local backend, and an
-  S3-compatible adapter used by the custom pipeline, none of which speak
-  the LFS API.
+- No daemon-side standard LFS integration exists. `src/storage_core`
+  also contains capture, journals, hydration, staging, security, transfer
+  and recovery modules for the existing custom pipeline. These are retained;
+  their existence does not prove stock-client or LFS API interoperability.
 - No recovery story is implemented. The previous design plan
   (`lfs-adoption-plan-2026-10-11.md`) requires an independent backup of
   LFS objects and required server metadata, which is not present.
+
+## Isolated local policy milestone
+
+`src/lfs_policy.rs` exports a non-mutating evaluator with explicit tuning and
+per-repository override resolution. It checks pressure, file size and churn,
+sticky representation, classification, effective-filter conflicts, opt-out and
+approved-binding evidence. Invalid thresholds fail closed. No deployment
+threshold defaults are established by the illustrative test settings.
+
+Bounded checks run successfully:
+
+```sh
+timeout 180 cargo test -p dracon-sync --lib --locked lfs_policy::tests
+# 10 passed, 0 failed
+timeout 180 cargo clippy -p dracon-sync --lib --locked -- -D warnings
+# passed (library only)
+```
+
+These tests use typed synthetic evidence, not real file classification or Git
+repositories. The 200 MiB/small-image case models repository history and a 10 MiB
+candidate. SQL source is represented by `SourceText`; no SQL-content classifier
+is implemented. The >100 MiB case is a selection decision, NOT a staging-size
+exception. A positive decision does not authorize uploads. There is no TOML
+schema integration, attribute enrollment, dispatcher, consumer bootstrap,
+transfer scheduling, stock-client compatibility test or live verification yet.
+The full verification contract and tasks 2–5 remain unfinished.
 
 ## Concrete unblockers
 
