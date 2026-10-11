@@ -246,6 +246,15 @@ LEVEL = Error
         self.assertEqual(hashlib.sha256(restored).hexdigest(), oid)
         # Consumers use only their own default .git/lfs cache, not copied objects.
         self.assertTrue((consumer / ".git/lfs/objects" / oid[:2] / oid[2:4] / oid).is_file())
+        missing_oid = hashlib.sha256(b"not uploaded fixture").hexdigest()
+        missing_pointer = ("version https://git-lfs.github.com/spec/v1\n"
+                           f"oid sha256:{missing_oid}\nsize 20\n").encode()
+        failed = subprocess.run([str(client), "smudge", "--", "missing.bin"], cwd=consumer,
+                                env=env, input=missing_pointer, capture_output=True,
+                                timeout=30, check=False)
+        self.assertNotEqual(failed.returncode, 0, "missing object must fail, not report restored content")
+        self.assertIn(failed.stdout, [b"", missing_pointer], "failed smudge must not fabricate payload bytes")
+        self.assertFalse((consumer / ".git/lfs/objects" / missing_oid[:2] / missing_oid[2:4] / missing_oid).exists())
 
     def test_authenticated_upload_download_and_anonymous_refusal(self):
         data = b"non-secret synthetic qualification payload\x00" * 100
