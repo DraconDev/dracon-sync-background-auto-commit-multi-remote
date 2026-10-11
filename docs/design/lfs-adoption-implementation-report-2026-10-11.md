@@ -46,8 +46,9 @@ Date: 2026-10-11. Status: isolated policy primitives implemented; production rou
 ## Ranked server candidates (desk research only)
 
 Public upstream material retrieved 2026-10-11 supports this two-candidate
-shortlist. No server binary was installed or exercised; no supported
-client/server version pair or OVH interoperability is certified here.
+shortlist. Gitea's binary was subsequently exercised in a disposable loopback
+fixture (below); no production install, stock-client/server version pair or
+OVH interoperability is certified here.
 
 1. **Gitea 28.1.0: first isolated-test candidate.** The upstream release
    API reports non-prerelease `v28.1.0`, published 2026-10-06. Its documented
@@ -266,6 +267,54 @@ timeout 300 cargo build --release --locked
 
 These checks do not qualify a server, packaged installation, live hooks, or
 consumer bootstrap; the full workspace test gate still needs a successful run.
+
+## Disposable maintained-server API milestone
+
+Gitea 28.1.0 linux-amd64 was downloaded into a temporary directory and its
+binary matched release API SHA-256
+`ea93cfa4a300564ac457d3903469fea49ec5a4da37d0cebaa435f8e329ea64d0`.
+`gitea --version` reported 28.1.0, built with go1.27.1. Source:
+<https://github.com/go-gitea/gitea/releases/tag/v28.1.0>. This is a checksum
+match, not independent signature verification or deployment authorization.
+
+```sh
+GITEA_BIN=/absolute/path/to/verified/gitea \
+  timeout 180 python3 -m unittest discover -s dracon-sync/scripts \
+  -p test_gitea_lfs_api.py -v
+# 1 API lifecycle test passed, 0 failed
+```
+
+The Linux-only harness starts SQLite/local-object Gitea on 127.0.0.1, proves
+its child owns the selected listening socket through `/proc`, disables external
+proxy/HTTP redirects in the test client, and uses bounded commands/requests.
+Test HOME/Git config, database, private repository records, credentials and
+object bytes are disposable and outside tracked trees. Generated passwords
+and tokens are captured, not printed or passed through argv; failure diagnostics
+redact configured secret/token/password fields. Gitea initializes its own
+identity in that isolated Git config, not the operator's config. Server shutdown
+is registered for normal/error cleanup and outer SIGTERM; no service remains
+installed. No live filters, hooks, forge repos, OVH resources or paid services
+are touched.
+
+The test creates two private synthetic repo records, verifies authenticated
+LFS batch/upload/download with exact SHA-256 bytes, refuses anonymous batch
+and object reads, and refuses a known OID download from the second repo before
+association. The fixture principal has broad test-only permissions; this does
+NOT certify production least-privilege IAM. HTTP is loopback-only; production
+still requires TLS and scoped authentication. Only the standard basic-transfer
+API is exercised through Python, not a stock-client upload/download or Git push.
+
+Initial fixture attempts exposed two bootstrap assumptions: Gitea needs a
+writable isolated Git config (not `/dev/null`), and a ROOT_URL subpath requires
+reverse-proxy handling. The harness now uses a direct loopback URL with actual
+listener ownership verification rather than guessing that a random URL prefix
+isolates a competing service. LFS requests include both required media headers.
+These fixes apply to the disposable harness, not live infrastructure.
+
+Still open: OVH addressing/signing/region, stock-client server compatibility,
+cross-user authorization, server restart/outage/race/disk handling, independent
+metadata+object recovery, existing deployment-host qualification and pilot.
+The local API test does not satisfy those acceptance items or complete task 4.
 
 ## Concrete unblockers
 
