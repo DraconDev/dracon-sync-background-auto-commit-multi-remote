@@ -47,8 +47,8 @@ class GiteaLfsApiTests(unittest.TestCase):
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
-        # A random URL prefix prevents touching another service in a port race.
-        cls.base = f"http://127.0.0.1:{port}/{secrets.token_hex(12)}"
+        cls.port = port
+        cls.base = f"http://127.0.0.1:{port}"
         config = cls.root / "app.ini"
         config.write_text(f"""APP_NAME = Dracon isolated LFS qualification
 RUN_USER = {pwd.getpwuid(os.getuid()).pw_name}
@@ -111,7 +111,10 @@ LEVEL = Error
                             diagnostic = diagnostic.replace(value.strip(), "[redacted]")
                 raise RuntimeError("isolated server exited: " + diagnostic)
             try:
-                status, _ = cls.request("/api/v1/version")
+                if not cls.owns_listener():
+                    time.sleep(0.1)
+                    continue
+                status, _ = cls.request("/api/v1/version", auth=True)
                 if status == 200:
                     break
             except (OSError, urllib.error.URLError):
@@ -144,12 +147,30 @@ LEVEL = Error
             cls.server.wait(timeout=5)
 
     @classmethod
+    def owns_listener(cls):
+        # Linux-only qualification: prove our child owns this listener before
+        # issuing API requests; a port race must never mutate another service.
+        try:
+            sockets = {os.readlink(fd) for fd in Path(f"/proc/{cls.server.pid}/fd").iterdir()}
+            for line in Path(f"/proc/{cls.server.pid}/net/tcp").read_text().splitlines()[1:]:
+                fields = line.split()
+                if (fields[1] == f"0100007F:{cls.port:04X}" and fields[3] == "0A"
+                        and f"socket:[{fields[9]}]" in sockets):
+                    return True
+        except (OSError, IndexError):
+            return False
+        return False
+
+    @classmethod
     def request(cls, path, payload=None, auth=False, method=None):
+        if cls.server.poll() is not None or not cls.owns_listener():
+            raise OSError("isolated server does not own the selected listener")
         url = path if path.startswith("http:") else cls.base + path
         # Never follow server-provided object URLs outside this owned endpoint.
         if not url.startswith(cls.base + "/"):
             raise RuntimeError("object URL escaped isolated endpoint")
-        headers = {"Content-Type": "application/vnd.git-lfs+json"}
+        headers = {"Content-Type": "application/vnd.git-lfs+json",
+                   "Accept": "application/vnd.git-lfs+json"}
         data = None
         if payload is not None:
             data = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
@@ -157,6 +178,7 @@ LEVEL = Error
             headers["Authorization"] = "Basic " + base64.b64encode(("fixture:" + cls.token).encode()).decode()
         if path.startswith("/api/v1/"):
             headers["Content-Type"] = "application/json"
+            headers["Accept"] = "application/json"
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         # Redirects could forward auth beyond loopback; refuse them entirely.
         class NoRedirect(urllib.request.HTTPRedirectHandler):
