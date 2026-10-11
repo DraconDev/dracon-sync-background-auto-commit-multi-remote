@@ -226,7 +226,7 @@ LEVEL = Error
         status, response = self.request("/fixture/other.git/info/lfs/objects/batch", payload, auth=True)
         self.assertEqual(status, 200)
         obj = json.loads(response)["objects"][0]
-        self.assertIn("error", obj)
+        self.assertEqual(obj.get("error", {}).get("code"), 404)
         self.assertNotIn("download", obj.get("actions", {}))
 
 
