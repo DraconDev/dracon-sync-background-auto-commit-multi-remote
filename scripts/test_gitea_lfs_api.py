@@ -37,7 +37,7 @@ class GiteaLfsApiTests(unittest.TestCase):
             raise RuntimeError("Git is required")
         cls.env = {"PATH": str(Path(git).parent) + os.pathsep + os.defpath,
                    "HOME": str(cls.root), "GIT_CONFIG_NOSYSTEM": "1",
-                   "GIT_CONFIG_GLOBAL": os.devnull, "GIT_TERMINAL_PROMPT": "0",
+                   "GIT_CONFIG_GLOBAL": str(cls.root / "gitconfig"), "GIT_TERMINAL_PROMPT": "0",
                    "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "init.templateDir",
                    "GIT_CONFIG_VALUE_0": ""}
         version = subprocess.run([str(binary), "--version"], env=cls.env,
