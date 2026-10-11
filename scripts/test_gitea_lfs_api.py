@@ -97,6 +97,14 @@ LEVEL = Error
         cls.server = subprocess.Popen([*cls.command, "web"], env=cls.env,
                                       stdout=cls.log, stderr=subprocess.STDOUT, start_new_session=True)
         cls.addClassCleanup(cls.stop_server)
+        previous_term = signal.getsignal(signal.SIGTERM)
+        cls.addClassCleanup(signal.signal, signal.SIGTERM, previous_term)
+        def terminate_test(signum, frame):
+            # GNU timeout sends SIGTERM to this runner, not the child's new
+            # session. Explicitly settle the child even on the outer deadline.
+            cls.stop_server()
+            raise SystemExit(124)
+        signal.signal(signal.SIGTERM, terminate_test)
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             if cls.server.poll() is not None:
