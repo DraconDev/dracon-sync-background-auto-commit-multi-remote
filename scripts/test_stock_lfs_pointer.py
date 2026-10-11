@@ -1,4 +1,4 @@
-"""Stock client pointer qualification only: no server, filters, hooks or uploads.
+"""Isolated stock pointer/filter qualification: no server, live hooks or uploads.
 
 Run with GIT_LFS_BIN=/absolute/path/to/checksummed/git-lfs. Missing prerequisites
 fail the command instead of silently skipping this qualification.
@@ -7,6 +7,8 @@ import hashlib
 import os
 from pathlib import Path
 import subprocess
+import shlex
+import shutil
 import tempfile
 import unittest
 
@@ -45,6 +47,7 @@ class StockPointerTests(unittest.TestCase):
         pointer.write_bytes(expected)
         checked = self.invoke("pointer", "--check", "--strict", "--file=" + str(pointer))
         self.assertEqual(checked.returncode, 0, checked.stderr)
+        return expected
 
     def test_binary_pointer_matches_canonical_sha256_contract(self):
         with tempfile.TemporaryDirectory(prefix="dracon-lfs-pointer-fixture-") as root:
@@ -70,6 +73,75 @@ class StockPointerTests(unittest.TestCase):
                 stream.truncate(100 * 1024 * 1024 + 1)
             self.assert_pointer(path)
             self.assertLess((Path(root) / "encoded.pointer").stat().st_size, 256)
+
+    def fixture_env(self, root):
+        git = shutil.which("git")
+        if not git:
+            self.fail("stock filter qualification requires Git")
+        return git, {"PATH": str(Path(git).parent) + os.pathsep + os.defpath,
+                     "HOME": str(root), "GIT_CONFIG_NOSYSTEM": "1",
+                     "GIT_CONFIG_GLOBAL": os.devnull, "GIT_TERMINAL_PROMPT": "0"}
+
+    def run_fixture(self, args, repo, env, data=None):
+        return subprocess.run(args, cwd=repo, env=env, input=data,
+                              capture_output=True, timeout=30, check=False)
+
+    def init_fixture(self, root):
+        git, env = self.fixture_env(root)
+        repo = root / "repo"
+        repo.mkdir()
+        initialized = self.run_fixture([git, "-c", "init.templateDir=", "init", "-q"], repo, env)
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        return git, repo, env
+
+    def test_stock_filter_stages_exact_pointer_above_100_mib(self):
+        with tempfile.TemporaryDirectory(prefix="dracon-lfs-stage-fixture-") as root:
+            git, repo, env = self.init_fixture(Path(root))
+            asset = repo / "asset.bin"
+            with asset.open("wb") as stream:
+                stream.truncate(100 * 1024 * 1024 + 1)
+            expected = self.assert_pointer(asset)
+            (repo / ".gitattributes").write_text("asset.bin filter=lfs diff=lfs merge=lfs -text\n")
+            result = self.run_fixture([git, "-c", "filter.lfs.clean=" + shlex.quote(str(self.client)) + " clean -- %f",
+                                       "-c", "filter.lfs.required=true", "add", "--", "asset.bin"], repo, env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            staged = self.run_fixture([git, "show", ":asset.bin"], repo, env)
+            self.assertEqual(staged.returncode, 0, staged.stderr)
+            self.assertEqual(staged.stdout, expected)
+            self.assertEqual(asset.stat().st_size, 100 * 1024 * 1024 + 1)
+            # This is stock Git staging, NOT a waiver of Sync's size guard.
+
+    def test_required_clean_failure_does_not_stage_raw_bytes(self):
+        with tempfile.TemporaryDirectory(prefix="dracon-lfs-filter-refusal-") as root:
+            git, repo, env = self.init_fixture(Path(root))
+            (repo / "asset.bin").write_bytes(bytes(range(256)))
+            (repo / ".gitattributes").write_text("asset.bin filter=lfs -text\n")
+            missing = repo / "missing-client"
+            result = self.run_fixture([git, "-c", "filter.lfs.clean=" + shlex.quote(str(missing)),
+                                       "-c", "filter.lfs.required=true", "add", "--", "asset.bin"], repo, env)
+            self.assertNotEqual(result.returncode, 0)
+            index = self.run_fixture([git, "ls-files", "--", "asset.bin"], repo, env)
+            self.assertEqual(index.returncode, 0, index.stderr)
+            self.assertEqual(index.stdout, b"")
+            self.assertEqual((repo / "asset.bin").read_bytes(), bytes(range(256)))
+
+    def test_stock_smudge_uses_independent_local_object_copy(self):
+        with tempfile.TemporaryDirectory(prefix="dracon-lfs-smudge-fixture-") as root:
+            git, producer, env = self.init_fixture(Path(root))
+            data = bytes(range(256)) * 20
+            cleaned = self.run_fixture([str(self.client), "clean", "--", "asset.bin"], producer, env, data)
+            self.assertEqual(cleaned.returncode, 0, cleaned.stderr)
+            consumer = Path(root) / "consumer"
+            consumer.mkdir()
+            initialized = self.run_fixture([git, "-c", "init.templateDir=", "init", "-q"], consumer, env)
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            # Physically separate directory, no hardlinks/producer cache setting.
+            shutil.copytree(producer / ".git/lfs/objects", consumer / ".git/lfs/objects")
+            restored = self.run_fixture([str(self.client), "smudge", "--", "asset.bin"], consumer, env, cleaned.stdout)
+            self.assertEqual(restored.returncode, 0, restored.stderr)
+            self.assertEqual(restored.stdout, data)
+            self.assertEqual(hashlib.sha256(restored.stdout).digest(), hashlib.sha256(data).digest())
+            # Does not qualify independent server metadata/backup or network fetch.
 
     def test_malformed_pointer_refused(self):
         with tempfile.TemporaryDirectory(prefix="dracon-lfs-bad-pointer-") as root:
