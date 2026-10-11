@@ -195,37 +195,46 @@ text/binary secret and legacy-hook cases pass. This is real hook ordering, NOT
 LFS object-content authorization, transfer bounds, or stock-client compatibility.
 No setup/harden/install command was run; the live global hook is unchanged.
 
-## Stock Git LFS pointer qualification
+## Isolated stock Git LFS pointer/filter qualification
 
 Git LFS 3.8.0 linux-amd64 was downloaded to an isolated temporary directory;
 its release archive matched GitHub release API SHA-256
 `e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d`.
-No installer was run, and no system PATH, Git config, live hooks or filters
-were changed. Source: <https://github.com/git-lfs/git-lfs/releases/tag/v3.8.0>.
+No installer was run, and no system PATH, live Git config, hooks or filters
+were changed. Filter settings below apply only to disposable test repositories. Source: <https://github.com/git-lfs/git-lfs/releases/tag/v3.8.0>.
 This checksum match is transport/artifact verification, not an independent
 publisher-signature validation.
 
 ```sh
 GIT_LFS_BIN=/absolute/path/to/verified/git-lfs \
-  timeout 60 python3 -m unittest discover -s dracon-sync/scripts \
+  timeout 120 python3 -m unittest discover -s dracon-sync/scripts \
   -p test_stock_lfs_pointer.py -v
-# 4 passed, 0 failed against stock Git LFS 3.8.0
+# 7 passed, 0 failed against stock Git LFS 3.8.0
 ```
 
 The command fails if the required client is absent or has a different version.
-Tests isolate HOME/global/system Git configuration and invoke only offline
-pointer operations. Nonempty binary and >100 MiB sparse temporary fixtures
-produce exact canonical SHA-256/size pointers that stock strict validation
-accepts; malformed pointers are refused. No fixture is staged or uploaded.
-These results do NOT verify the >100 MiB staging exception or a server.
+Tests isolate HOME/global/system Git configuration. Nonempty binary and
+>100 MiB sparse temporary fixtures produce exact canonical SHA-256/size
+pointers that stock strict validation accepts; malformed pointers are refused.
+A disposable Git repo uses stock clean filtering to stage an exact pointer
+for a >100 MiB fixture while preserving its worktree bytes. A missing required
+clean executable refuses staging with no raw blob in the index. No fixture
+is committed or uploaded, and no existing checkout config is changed.
+These results do NOT verify Sync's >100 MiB size-guard exception or a server.
+
+A stock smudge fixture restores exact binary bytes/digest from an independently
+copied object directory in another disposable Git repo. It does not share a
+producer cache setting or hardlinks. This is local-object compatibility, NOT
+fresh-forge clone hydration, independent server backup, metadata restore,
+historical checkout or network outage recovery.
 
 The first run exposed an important representation difference: stock LFS
 represents empty files as empty content, not a zero-size pointer. The generic
 Rust encoder supports zero-size pointers, but integration must honor the
 stock empty-file behavior rather than claiming byte-for-byte pointer output
 for empty files. This is standard empty-file handling, not transfer-error raw
-fallback. Filter clean/smudge, consumer restore and server compatibility remain
-unqualified; tasks 2–5 are still open.
+fallback. Live consumer bootstrap and server compatibility remain unqualified;
+tasks 2–5 are still open.
 
 ## Workspace gate checkpoint (not a pass)
 
@@ -234,9 +243,11 @@ reported zero failures; the run reached `scanner_stress` but did not complete
 all workspace tests. The suite is NOT claimed passing. A bounded isolated
 `timeout 90 cargo test -p dracon-security --locked --test scanner_stress`
 subsequently passed (1 test, 0 failed). This rules out a reproducible hang in
-that isolated test, not a workspace-wide failure. Rerun the full gate with a
-larger bounded budget before completion. Workspace clippy, release build and
-cargo deny remain unverified by this checkpoint.
+that isolated test, not a workspace-wide failure. A subsequent 360-second
+workspace run also exited 124, later in Sync unit tests. Do not repeatedly
+increase the whole-suite deadline: isolate the slow Sync test/ambient-hook
+interaction, then choose bounded per-package runs before the final full gate.
+Workspace clippy, release build and cargo deny remain unverified here.
 
 ## Concrete unblockers
 
