@@ -1,0 +1,19 @@
+CWD=/home/dracon/Dev/dracon-utilities
+COMMAND=GIT_LFS_BIN=/tmp/dracon-stock-lfs-PKL36T/git-lfs-3.8.0/git-lfs timeout 120 python3 -m unittest discover -s dracon-sync/scripts -p test_stock_lfs_pointer.py -v
+e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d  /tmp/dracon-stock-lfs-PKL36T/client.tar.gz
+1c636bd72c8f57f639fffbd13679066eb5fecea5c5a8212d3bda30d3a20768a5  /tmp/dracon-stock-lfs-PKL36T/git-lfs-3.8.0/git-lfs
+git-lfs/3.8.0 (GitHub; linux amd64; go 1.27.0; git aece9221)
+test_binary_pointer_matches_canonical_sha256_contract (test_stock_lfs_pointer.StockPointerTests.test_binary_pointer_matches_canonical_sha256_contract) ... ok
+test_empty_file_uses_stock_empty_representation_not_pointer (test_stock_lfs_pointer.StockPointerTests.test_empty_file_uses_stock_empty_representation_not_pointer) ... ok
+test_malformed_pointer_refused (test_stock_lfs_pointer.StockPointerTests.test_malformed_pointer_refused) ... ok
+test_over_100_mib_pointer_is_still_small_and_exact (test_stock_lfs_pointer.StockPointerTests.test_over_100_mib_pointer_is_still_small_and_exact) ... ok
+test_required_clean_failure_does_not_stage_raw_bytes (test_stock_lfs_pointer.StockPointerTests.test_required_clean_failure_does_not_stage_raw_bytes) ... ok
+test_stock_filter_stages_exact_pointer_above_100_mib (test_stock_lfs_pointer.StockPointerTests.test_stock_filter_stages_exact_pointer_above_100_mib) ... ok
+test_stock_smudge_uses_independent_local_object_copy (test_stock_lfs_pointer.StockPointerTests.test_stock_smudge_uses_independent_local_object_copy) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.774s
+
+OK
+
+EXIT_STATUS=0

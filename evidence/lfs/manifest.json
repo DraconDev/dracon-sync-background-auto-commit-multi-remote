@@ -1,0 +1,22 @@
+{
+  "logs": {
+    "stock-client.log": {
+      "sha256": "4fe9a17a0fe56bba8cde16bf53ddb4acac7df33f60173de28f01845f28ebece6",
+      "run_finished_utc": "2026-10-11T22:28:34.548703+00:00"
+    },
+    "gitea-api.log": {
+      "sha256": "083884ee3cf425f951b1ba323d4811555d77b9669855e85c3224bfc8d5e5cd9a",
+      "run_finished_utc": "2026-10-11T22:28:52.656994+00:00"
+    }
+  },
+  "harness_sha256": {
+    "test_stock_lfs_pointer.py": "8c528e988c47a4333f9870b77faa1941ec17aae36c7aae4b4b89856eb5fe09fa",
+    "test_gitea_lfs_api.py": "4e4ed0834130b6663c789374a2b832ca91b7866872cf328b17eb6afcc87a8e2d"
+  },
+  "git_lfs_archive_sha256": "e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d",
+  "git_lfs_archive_member": "git-lfs-3.8.0/git-lfs",
+  "git_lfs_executable_sha256": "1c636bd72c8f57f639fffbd13679066eb5fecea5c5a8212d3bda30d3a20768a5",
+  "archive_member_matches_executable": true,
+  "gitea_executable_sha256": "ea93cfa4a300564ac457d3903469fea49ec5a4da37d0cebaa435f8e329ea64d0",
+  "scope": "Disposable fixtures only; actual commands/cwd/versions in logs; no production qualification"
+}

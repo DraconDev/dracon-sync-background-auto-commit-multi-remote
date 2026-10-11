@@ -47,8 +47,8 @@ Date: 2026-10-11. Status: isolated policy primitives implemented; production rou
 
 Public upstream material retrieved 2026-10-11 supports this two-candidate
 shortlist. Gitea's binary was subsequently exercised in a disposable loopback
-fixture (below); no production install, stock-client/server version pair or
-OVH interoperability is certified here.
+fixture (below), including the Git LFS 3.8.0/Gitea 28.1.0 loopback pair.
+No production installation or OVH interoperability is certified here.
 
 1. **Gitea 28.1.0: first isolated-test candidate.** The upstream release
    API reports non-prerelease `v28.1.0`, published 2026-10-06. Its documented
@@ -287,7 +287,7 @@ for empty files. This is standard empty-file handling, not transfer-error raw
 fallback. Live consumer bootstrap and server compatibility remain unqualified;
 tasks 2–5 are still open.
 
-## Workspace quality gates — verified pass
+## Quality-gate evidence — scope and limitations
 
 Earlier 180–360-second whole-workspace deadlines expired and did not
 establish a hang or an environmental defect. A captured 600-second run
@@ -301,12 +301,11 @@ warm-build run completed the entire unmodified workspace command:
 timeout 900 cargo test --workspace --locked
 # exit 0; 2367 passed, 0 failed, 25 ignored across 35 result summaries
 # Includes doc tests; no test filters or additional skips were used.
-timeout 600 cargo clippy --workspace --locked -- -D warnings
-# exit 0
-timeout 600 cargo deny check
-# exit 0; advisories/bans/licenses/sources ok (diagnostic warnings retained)
-timeout 600 cargo build --release --locked
-# exit 0; optimized build finished in 2m 53s
+# Other retained logs contain exit statuses but do not record invocations.
+# clippy.log: dracon-sync checking output, exit 0; invocation scope uncertain.
+# release.log: dracon-sync compiling output, exit 0; invocation scope uncertain.
+# deny.log: advisories/bans/licenses/sources ok, exit 0; warnings retained.
+# These are not proof of complete workspace clippy/build qualification.
 ```
 
 Complete logs and actual exit statuses are retained in the parent checkout:
@@ -315,11 +314,14 @@ Complete logs and actual exit statuses are retained in the parent checkout:
 `evidence/lfs/deny.log`, and `evidence/lfs/release.log` (each exit 0).
 Earlier per-package tails did not prove a complete workspace run; in
 particular the 12-test System tail was an integration suite, not its full
-package. This successful workspace log supersedes those incomplete claims.
+package. The successful workspace test log supersedes incomplete test claims,
+but not uncertain clippy/build invocation scope. Full workspace qualification
+is excluded from this checkpoint; do not infer it from these short logs.
 
 These quality gates do not qualify packaged installation, a production
 server, live hooks, consumer bootstrap, the live pilot, or independent
-server recovery. Those contract requirements remain unsatisfied.
+server recovery. These broader rollout requirements remain unsatisfied and
+are excluded from the current isolated-checkpoint verification contract.
 
 ## Disposable maintained-server API milestone
 
@@ -331,10 +333,12 @@ binary matched release API SHA-256
 match, not independent signature verification or deployment authorization.
 
 ```sh
+# From the dracon-utilities parent checkout; current suite collects two tests.
 GITEA_BIN=/absolute/path/to/verified/gitea \
+GIT_LFS_BIN=/absolute/path/to/verified/git-lfs \
   timeout 180 python3 -m unittest discover -s dracon-sync/scripts \
   -p test_gitea_lfs_api.py -v
-# 1 API lifecycle test passed, 0 failed
+# 2 tests passed, 0 failed; both verified binaries are required.
 ```
 
 The Linux-only harness starts SQLite/local-object Gitea on 127.0.0.1, proves
@@ -370,9 +374,10 @@ Stock Git LFS 3.8.0 round-trips an object through the disposable server with
 the same listener-ownership guarantees and redacted credential handling. The
 fixture has no forge commits, no production-cache shortcut, and no shared
 LFS object dir between producer and consumer. A consumer starting with an
-empty `.git/lfs` cache, separate HOME and a per-repository access token pulls
+empty `.git/lfs` cache and the fixture access token pulls
 the exact bytes/digest from a fresh download and stores them in its own
-cache. A bogus OID fails without fabricating content; the failed-smudge
+cache. The fixture shares its isolated HOME and token between repositories;
+only their object caches are separate. A bogus OID fails without fabricating content; the failed-smudge
 stdout is either empty or the input pointer, never restored bytes.
 
 ```sh
@@ -390,6 +395,22 @@ fixtures; no live test rerun occurred. The same loopback harness does not
 certify TLS, scoped production IAM, OVH, or fresh-forge clones, and the
 smudge-on-failure assertion is the strongest server-compatibility evidence
 this goal ships.
+
+## Inspectable binary-dependent run receipts
+
+Fresh bounded runs are retained inside this standalone repo at
+`evidence/lfs/stock-client.log` (7 tests, exit 0) and
+`evidence/lfs/gitea-api.log` (2 tests, exit 0). Each records actual command,
+parent-checkout cwd, executable versions and SHA-256 hashes, named tests and
+exit status. `evidence/lfs/manifest.json` records source and log digests.
+Both binaries are prerequisites: absent/wrong-version binaries cause errors,
+not skips. The Git LFS archive hash is distinct from its executable hash;
+checksum verification is not publisher-signature verification.
+
+No restart/race/disk/outage matrix, daemon fairness, automatic staging
+authorization or production payload authorization is established by these
+fixtures. These isolated integration gates remain unfinished independently
+of any operator authorization for deployment.
 
 ## Concrete unblockers
 

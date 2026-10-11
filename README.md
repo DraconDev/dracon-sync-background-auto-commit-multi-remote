@@ -543,7 +543,7 @@ The preview usage above documents the required bindings and limitations.
 
 Standard Git LFS v1 with SHA-256 is the proposed replacement for the custom
 preview above. Status: **isolated qualification milestones tested; production routing
-unfinished; the broader verification contract is not satisfied.** The implementation/qualification report
+unfinished; the broader rollout qualification is not satisfied.** The implementation/qualification report
 [`docs/design/lfs-adoption-implementation-report-2026-10-11.md`](docs/design/lfs-adoption-implementation-report-2026-10-11.md)
 documents every step.
 
@@ -625,8 +625,12 @@ What requires operator authorization before continuing:
 
 These boundaries are preserved on purpose. The custom storage preview
 above remains a preview, not a production qualification claim. The standard
-LFS milestone supplies isolated test code, not a deployment. The full
-workspace tests, release build, clippy, and cargo deny have now passed;
-see the report for bounded commands and captured exit statuses. Live pilot,
+LFS milestone supplies isolated test code, not a deployment. Retained workspace
+tests passed; short clippy/release logs show dracon-sync output and exit 0,
+but omit invocation scope and do not prove full workspace qualification.
+See the report for bounded commands, limitations and fresh binary-dependent
+run receipts (`evidence/lfs/stock-client.log` and `evidence/lfs/gitea-api.log`).
+Both verified binaries are required for the server suite; absent prerequisites
+error rather than skip. Live pilot,
 independent server recovery, application staging authorization, and the
 complete daemon/manual integration matrix remain unverified.

@@ -1,0 +1,15 @@
+CWD=/home/dracon/Dev/dracon-utilities
+COMMAND=GITEA_BIN=/tmp/dracon-gitea-qualification-Zn1sWD/gitea GIT_LFS_BIN=/tmp/dracon-stock-lfs-PKL36T/git-lfs-3.8.0/git-lfs timeout 180 python3 -m unittest discover -s dracon-sync/scripts -p test_gitea_lfs_api.py -v
+ea93cfa4a300564ac457d3903469fea49ec5a4da37d0cebaa435f8e329ea64d0  /tmp/dracon-gitea-qualification-Zn1sWD/gitea
+1c636bd72c8f57f639fffbd13679066eb5fecea5c5a8212d3bda30d3a20768a5  /tmp/dracon-stock-lfs-PKL36T/git-lfs-3.8.0/git-lfs
+gitea version 28.1.0 built with go1.27.1
+git-lfs/3.8.0 (GitHub; linux amd64; go 1.27.0; git aece9221)
+test_authenticated_upload_download_and_anonymous_refusal (test_gitea_lfs_api.GiteaLfsApiTests.test_authenticated_upload_download_and_anonymous_refusal) ... ok
+test_stock_client_upload_and_fresh_cache_download (test_gitea_lfs_api.GiteaLfsApiTests.test_stock_client_upload_and_fresh_cache_download) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 8.992s
+
+OK
+
+EXIT_STATUS=0
