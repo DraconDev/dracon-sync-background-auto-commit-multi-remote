@@ -311,10 +311,32 @@ listener ownership verification rather than guessing that a random URL prefix
 isolates a competing service. LFS requests include both required media headers.
 These fixes apply to the disposable harness, not live infrastructure.
 
-Still open: OVH addressing/signing/region, stock-client server compatibility,
-cross-user authorization, server restart/outage/race/disk handling, independent
-metadata+object recovery, existing deployment-host qualification and pilot.
-The local API test does not satisfy those acceptance items or complete task 4.
+Stock-client/server round-trip (next loopback milestone)
+
+Stock Git LFS 3.8.0 round-trips an object through the disposable server with
+the same listener-ownership guarantees and redacted credential handling. The
+fixture has no forge commits, no production-cache shortcut, and no shared
+LFS object dir between producer and consumer. A consumer starting with an
+empty `.git/lfs` cache, separate HOME and a per-repository access token pulls
+the exact bytes/digest from a fresh download and stores them in its own
+cache. A bogus OID fails without fabricating content; the failed-smudge
+stdout is either empty or the input pointer, never restored bytes.
+
+```sh
+GITEA_BIN=/absolute/path/to/verified/gitea \
+GIT_LFS_BIN=/absolute/path/to/verified/git-lfs \
+  timeout 180 python3 -m unittest discover -s dracon-sync/scripts \
+  -p test_gitea_lfs_api.py -v
+# 2 tests passed, 0 failed (lifecycle API + stock-client round-trip)
+```
+
+Reviewer feedback on this fixture closed one weaker assertion: cross-
+repository refusals now require the expected 404 object-error code, not just
+"any error". The review noted source-only inspection of the committed
+fixtures; no live test rerun occurred. The same loopback harness does not
+certify TLS, scoped production IAM, OVH, or fresh-forge clones, and the
+smudge-on-failure assertion is the strongest server-compatibility evidence
+this goal ships.
 
 ## Concrete unblockers
 

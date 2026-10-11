@@ -256,6 +256,88 @@ LEVEL = Error
         self.assertIn(failed.stdout, [b"", missing_pointer], "failed smudge must not fabricate payload bytes")
         self.assertFalse((consumer / ".git/lfs/objects" / missing_oid[:2] / missing_oid[2:4] / missing_oid).exists())
 
+    def test_object_survives_disposable_server_restart(self):
+        # Linux-only restart scenario: the loopback server's SQLite database
+        # and local object store are persistent, so a fresh process must
+        # answer the same OID. A consumer starting with an empty cache and
+        # a separate HOME re-fetches the same bytes after the restart.
+        client = Path(os.environ.get("GIT_LFS_BIN", ""))
+        self.assertTrue(client.is_absolute() and client.is_file())
+        self.assertTrue(self.owns_listener())
+        # First phase: identical setup to the round-trip case.
+        askpass = self.root / "fixture-askpass.py"
+        askpass.write_text(f"#!{sys.executable}\nimport os, sys\n"
+                           "print('fixture' if 'username' in sys.argv[1].lower() else os.environ['FIXTURE_LFS_TOKEN'])\n")
+        askpass.chmod(0o700)
+        env = dict(self.env, GIT_ASKPASS=str(askpass), FIXTURE_LFS_TOKEN=self.token,
+                   GIT_CONFIG_COUNT="8", GIT_CONFIG_KEY_1="credential.helper", GIT_CONFIG_VALUE_1="",
+                   GIT_CONFIG_KEY_2="lfs.url", GIT_CONFIG_VALUE_2=self.base + "/fixture/stock.git/info/lfs",
+                   GIT_CONFIG_KEY_3="lfs.basictransfersonly", GIT_CONFIG_VALUE_3="true",
+                   GIT_CONFIG_KEY_4="lfs.dialtimeout", GIT_CONFIG_VALUE_4="3",
+                   GIT_CONFIG_KEY_5="lfs.activitytimeout", GIT_CONFIG_VALUE_5="3",
+                   GIT_CONFIG_KEY_6="lfs.transfer.maxretries", GIT_CONFIG_VALUE_6="1",
+                   GIT_CONFIG_KEY_7="lfs.skipdownloaderrors", GIT_CONFIG_VALUE_7="false")
+        git = shutil.which("git")
+        self.assertIsNotNone(git)
+        producer = self.root / "stock-restart-producer"
+        producer.mkdir()
+        for args in ([git, "init", "-q"], [git, "remote", "add", "origin",
+                                            self.base + "/fixture/stock.git"]):
+            result = subprocess.run(args, cwd=producer, env=env,
+                                    capture_output=True, timeout=30, check=False)
+            self.assertEqual(result.returncode, 0, "producer Git setup failed (output redacted)")
+        data = b"stock-client restart-survival asset\x00" * 50
+        oid = hashlib.sha256(data).hexdigest()
+        clean = subprocess.run([str(client), "clean", "--", "asset.bin"], cwd=producer,
+                               env=env, input=data, capture_output=True, timeout=30, check=False)
+        self.assertEqual(clean.returncode, 0, "stock clean failed (output redacted)")
+        push = subprocess.run([str(client), "push", "--object-id", "origin", oid], cwd=producer,
+                              env=env, capture_output=True, timeout=30, check=False)
+        self.assertEqual(push.returncode, 0, "stock push failed (output redacted)")
+        # Bounded restart: terminate the child cleanly then start a new one
+        # with the same work-path so persistent SQLite + LFS storage carry
+        # forward. We never reuse the original Popen object across restart.
+        self.stop_server()
+        cls = self
+        for _ in range(30):
+            try:
+                cls.server = subprocess.Popen([*cls.command, "web"], env=cls.env,
+                                              stdout=cls.log, stderr=subprocess.STDOUT,
+                                              start_new_session=True)
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            self.fail("disposable server could not be respawned")
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            if cls.server.poll() is not None:
+                self.fail("respawned server exited; loopback-only log is not published")
+            if cls.owns_listener():
+                break
+            time.sleep(0.1)
+        else:
+            self.fail("respawned server did not own its listener before deadline")
+        # Second phase: a fresh consumer downloads the same OID after restart.
+        consumer = self.root / "stock-restart-consumer"
+        consumer.mkdir()
+        for args in ([git, "init", "-q"], [git, "remote", "add", "origin",
+                                            self.base + "/fixture/stock.git"]):
+            result = subprocess.run(args, cwd=consumer, env=env,
+                                    capture_output=True, timeout=30, check=False)
+            self.assertEqual(result.returncode, 0, "consumer Git setup failed (output redacted)")
+        self.assertFalse((consumer / ".git/lfs/objects").exists())
+        pointer = ("version https://git-lfs.github.com/spec/v1\n"
+                   f"oid sha256:{oid}\nsize {len(data)}\n").encode()
+        restored = subprocess.run([str(client), "smudge", "--", "asset.bin"], cwd=consumer,
+                                  env=env, input=pointer, capture_output=True, timeout=30, check=False)
+        self.assertEqual(restored.returncode, 0, "smudge after restart failed (output redacted)")
+        self.assertEqual(restored.stdout, data)
+        self.assertEqual(hashlib.sha256(restored.stdout).hexdigest(), oid)
+        # Not a substitute for a separate host, credential store or
+        # metadata backup drill; only proves loopback persistent store
+        # survives process recycling.
+
     def test_authenticated_upload_download_and_anonymous_refusal(self):
         data = b"non-secret synthetic qualification payload\x00" * 100
         oid = hashlib.sha256(data).hexdigest()
