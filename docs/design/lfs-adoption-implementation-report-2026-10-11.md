@@ -143,8 +143,16 @@ raw-byte fallback is implemented. There is deliberately no CLI/install entrypoin
 ```sh
 timeout 30 python3 -m unittest discover -s dracon-sync/scripts \
   -p test_lfs_dispatcher_prototype.py -v
-# 11 passed, 0 failed
+# 12 passed, 0 failed
 ```
+
+Reviewer feedback was addressed: NUL-bearing argv/environment values fail
+configuration validation before any hook runs, and phase/shared-deadline tests
+use deterministic clock/process doubles rather than interpreter-start timing.
+One real security-timeout test remains; it requires no hook marker timing.
+The reviewer inspected source only and did not rerun tests. Process groups
+are bounded here, not a sandbox: descendants that leave their group cannot be
+contained by this primitive.
 
 Fixtures use fake local hooks and marker files, with no credentials, Git pushes,
 real Warden checks or object uploads. They cover guard refusal before every
@@ -158,6 +166,29 @@ repo/path/OID-bound payload authorization and stock LFS transfer commands.
 Public Python arguments do not establish approval of commands or payloads.
 The live hook-order defect remains unchanged, and tasks 2–5 remain unfinished.
 
+## Warden source-only hook ordering milestone
+
+Designer launch returned `Unknown agent: Designer`; the requested inline
+fallback selected the smallest change: preserve foreign-before-local chaining,
+exact arguments/ref replay and legacy-Warden recursion skipping, but invoke
+both chained hooks only after every ref passes the existing checks. Source
+changes are in `dracon-warden/src/main.rs` (`PRE_PUSH_HOOK`) with regressions in
+`src/tests.rs`. Ref buffering/temp creation also now refuse on failure rather
+than allowing hooks to run after incomplete input capture.
+
+```sh
+timeout 180 cargo test -p dracon-warden --locked pre_push_hook
+# 33 passed, 0 failed
+```
+
+Tests run the rendered hook in disposable Git repositories. A synthetic secret
+refuses before either fake upload hook; a later deletion ref refuses before
+hooks even if the first ref is clean. Clean multiple refs replay identical
+stdin to foreign then local hooks. Existing chaining failure, history, author,
+text/binary secret and legacy-hook cases pass. This is real hook ordering, NOT
+LFS object-content authorization, transfer bounds, or stock-client compatibility.
+No setup/harden/install command was run; the live global hook is unchanged.
+
 ## Concrete unblockers
 
 1. Install a maintained standard LFS server shortlist candidate on an
@@ -170,9 +201,10 @@ The live hook-order defect remains unchanged, and tasks 2–5 remain unfinished.
 3. Define and install an independent backup target for LFS objects and
    the server's own metadata. Verify restore by SHA-256 OID on a fresh
    host.
-4. Authorize a hook-order change: payload authorization must run before
-   any foreign or local pre-push hook. This requires a Warden design
-   change (see `dracon-warden/src/main.rs:5463-5897` pre-push template).
+4. Implement repo/path/OID-bound LFS payload authorization before any
+   foreign or local pre-push hook, then qualify and authorize live hook
+   installation. Existing Warden checks now precede chaining in the source
+   template, but do not inspect LFS payloads behind pointer blobs.
 5. Install and configure the `git-lfs` client on the producer host
    (this one) and on a separate, fresh consumer host. Both must reach
    the LFS server using the dedicated credentials.
