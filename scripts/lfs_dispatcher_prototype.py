@@ -53,6 +53,7 @@ def _valid_refs(refs: bytes) -> bool:
 def _valid_commands(commands: Sequence[tuple[str, ...]]) -> bool:
     return all(
         command
+        and all(isinstance(arg, str) and "\x00" not in arg for arg in command)
         and Path(command[0]).is_absolute()
         and Path(command[0]).is_file()
         and os.access(command[0], os.X_OK)
@@ -68,7 +69,7 @@ def _invoke(command: tuple[str, ...], push_args: tuple[str, str], refs: bytes,
     try:
         child = subprocess.Popen((*command, *push_args), stdin=subprocess.PIPE,
                                  env=env, start_new_session=True)
-    except OSError:
+    except (OSError, ValueError):
         return 126
     try:
         child.communicate(input=refs, timeout=remaining)
@@ -102,7 +103,12 @@ def dispatch(*, guards: Sequence[tuple[str, ...]], transfers: Sequence[tuple[str
     arguments = tuple(push_args)
     if environment.get(_REENTRANT) is not None:
         return Result("recursion", 1)
-    if (not guard_commands or not transfer_commands or len(arguments) != 2 or not _valid_refs(refs)
+    if (not guard_commands or not transfer_commands or len(arguments) != 2
+            or not all(isinstance(arg, str) and "\x00" not in arg for arg in arguments)
+            or not all(isinstance(k, str) and isinstance(v, str) and k
+                       and "=" not in k and "\x00" not in k + v
+                       for k, v in environment.items())
+            or not _valid_refs(refs)
             or not 0 < timeout_seconds <= 300
             or not _valid_commands((*guard_commands, *transfer_commands))):
         return Result("configuration", 1)

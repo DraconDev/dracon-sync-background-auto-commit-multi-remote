@@ -5,6 +5,10 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
+import subprocess
+
+import lfs_dispatcher_prototype as dispatcher
 
 from lfs_dispatcher_prototype import MAX_REFS_BYTES, Result, dispatch
 
@@ -104,15 +108,36 @@ class DispatcherTests(unittest.TestCase):
         self.assertEqual(self.order(), ["refused", "otherguard", "otherupload"])
 
     def test_deadline_is_shared_across_hooks(self):
-        self.assertEqual(self.run_dispatch(guards=[self.command("first", delay=0.3),
-                                                   self.command("second", delay=0.3)],
-                                           timeout_seconds=0.5), Result("security", 124))
-        self.assertNotIn("upload", self.order())
+        # Fixed monotonic readings: first hook spends the entire shared budget.
+        child = Mock(pid=12345, returncode=0)
+        with patch.object(dispatcher.time, "monotonic", side_effect=[100, 100, 131]), \
+                patch.object(dispatcher.subprocess, "Popen", return_value=child) as spawn, \
+                patch.object(dispatcher.os, "killpg"):
+            self.assertEqual(self.run_dispatch(guards=[self.command("first"), self.command("second")]),
+                             Result("security", 124))
+            self.assertEqual(spawn.call_count, 1)
+            child.communicate.assert_called_once_with(input=self.refs, timeout=30)
 
     def test_transfer_timeout_has_separate_attribution(self):
-        self.assertEqual(self.run_dispatch(transfers=[self.command("slow", delay=5)], timeout_seconds=0.2),
-                         Result("transfer", 124))
-        self.assertEqual(self.order(), ["guard", "slow"])
+        guard = Mock(pid=12345, returncode=0)
+        transfer = Mock(pid=12346)
+        transfer.communicate.side_effect = subprocess.TimeoutExpired("fake", 30)
+        with patch.object(dispatcher.time, "monotonic", return_value=100), \
+                patch.object(dispatcher.subprocess, "Popen", side_effect=[guard, transfer]), \
+                patch.object(dispatcher.os, "killpg") as kill:
+            self.assertEqual(self.run_dispatch(), Result("transfer", 124))
+            transfer.wait.assert_called_once()
+            self.assertEqual(kill.call_count, 2)
+
+    def test_nul_arguments_and_environment_fail_before_any_hook(self):
+        for field in ["command", "push", "env"]:
+            with self.subTest(field=field):
+                guards = [self.command("guard") + (("bad" + chr(0) + "arg",) if field == "command" else ())]
+                args = ("origin", "bad" + chr(0) + "url") if field == "push" else self.args
+                env = dict(self.env, BAD="bad" + chr(0) + "value") if field == "env" else self.env
+                self.assertEqual(dispatch(guards=guards, transfers=[self.command("upload")],
+                                          push_args=args, refs=self.refs, env=env), Result("configuration", 1))
+        self.assertEqual(self.order(), [])
 
 
 if __name__ == "__main__":
