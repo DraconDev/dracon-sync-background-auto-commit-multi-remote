@@ -100,7 +100,16 @@ LEVEL = Error
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             if cls.server.poll() is not None:
-                raise RuntimeError("isolated server exited; local log is not published")
+                # Surface bounded startup diagnostics, redacting every configured
+                # secret/token/password plus the generated test access token.
+                diagnostic = (cls.root / "server.log").read_text(errors="replace")[-2000:]
+                diagnostic = diagnostic.replace(cls.token, "[redacted]")
+                for line in config.read_text().splitlines():
+                    key, separator, value = line.partition("=")
+                    if separator and any(word in key.lower() for word in ["secret", "token", "password"]):
+                        if value.strip():
+                            diagnostic = diagnostic.replace(value.strip(), "[redacted]")
+                raise RuntimeError("isolated server exited: " + diagnostic)
             try:
                 status, _ = cls.request("/api/v1/version")
                 if status == 200:
