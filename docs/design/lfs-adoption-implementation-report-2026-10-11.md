@@ -179,7 +179,13 @@ than allowing hooks to run after incomplete input capture.
 ```sh
 timeout 180 cargo test -p dracon-warden --locked pre_push_hook
 # 33 passed, 0 failed
+timeout 180 cargo clippy -p dracon-warden --locked -- -D warnings
+# package check passed
 ```
+
+A read-only reviewer found no issues in the committed source diff and reviewed
+parent test/clippy logs; no checks were independently rerun. Fault-injection
+regressions for buffer/temp creation and foreign-hook failures remain to add.
 
 Tests run the rendered hook in disposable Git repositories. A synthetic secret
 refuses before either fake upload hook; a later deletion ref refuses before
@@ -188,6 +194,38 @@ stdin to foreign then local hooks. Existing chaining failure, history, author,
 text/binary secret and legacy-hook cases pass. This is real hook ordering, NOT
 LFS object-content authorization, transfer bounds, or stock-client compatibility.
 No setup/harden/install command was run; the live global hook is unchanged.
+
+## Stock Git LFS pointer qualification
+
+Git LFS 3.8.0 linux-amd64 was downloaded to an isolated temporary directory;
+its release archive matched GitHub release API SHA-256
+`e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d`.
+No installer was run, and no system PATH, Git config, live hooks or filters
+were changed. Source: <https://github.com/git-lfs/git-lfs/releases/tag/v3.8.0>.
+This checksum match is transport/artifact verification, not an independent
+publisher-signature validation.
+
+```sh
+GIT_LFS_BIN=/absolute/path/to/verified/git-lfs \
+  timeout 60 python3 -m unittest discover -s dracon-sync/scripts \
+  -p test_stock_lfs_pointer.py -v
+# 4 passed, 0 failed against stock Git LFS 3.8.0
+```
+
+The command fails if the required client is absent or has a different version.
+Tests isolate HOME/global/system Git configuration and invoke only offline
+pointer operations. Nonempty binary and >100 MiB sparse temporary fixtures
+produce exact canonical SHA-256/size pointers that stock strict validation
+accepts; malformed pointers are refused. No fixture is staged or uploaded.
+These results do NOT verify the >100 MiB staging exception or a server.
+
+The first run exposed an important representation difference: stock LFS
+represents empty files as empty content, not a zero-size pointer. The generic
+Rust encoder supports zero-size pointers, but integration must honor the
+stock empty-file behavior rather than claiming byte-for-byte pointer output
+for empty files. This is standard empty-file handling, not transfer-error raw
+fallback. Filter clean/smudge, consumer restore and server compatibility remain
+unqualified; tasks 2–5 are still open.
 
 ## Concrete unblockers
 
