@@ -22,11 +22,10 @@ Date: 2026-10-11. Status: isolated policy primitives implemented; production rou
 
 ## What is not yet implemented
 
-- No maintained LFS server is selected, installed, or tested. `git-lfs` is
-  not present on this host; `git-lfs-server`, `lfs-test-server`, `gitea`,
-  `forgejo`, `gitlab-workhorse`, `garage`, `minio`, `rclone`, `restic`,
-  and `kopia` were not found on `PATH`. Each absence is a non-exhaustive
-  install search; no remote package audit was performed.
+- No production LFS server is installed or qualified. Gitea is selected
+  below as the first isolated-test candidate, not an approved deployment.
+  The earlier PATH inventory did not find `git-lfs`, `gitea` or `forgejo`;
+  this is a non-exhaustive local install search, not a remote-host audit.
 - No private source OVH binding or scoped IAM principal has been qualified
   by this work. This is not proof that none exists elsewhere. The public
   asset bucket `dracon-master` is unsuitable for private source LFS traffic.
@@ -43,6 +42,59 @@ Date: 2026-10-11. Status: isolated policy primitives implemented; production rou
 - No recovery story is implemented. The previous design plan
   (`lfs-adoption-plan-2026-10-11.md`) requires an independent backup of
   LFS objects and required server metadata, which is not present.
+
+## Ranked server candidates (desk research only)
+
+Public upstream material retrieved 2026-10-11 supports this two-candidate
+shortlist. No server binary was installed or exercised; no supported
+client/server version pair or OVH interoperability is certified here.
+
+1. **Gitea 28.1.0: first isolated-test candidate.** The upstream release
+   API reports non-prerelease `v28.1.0`, published 2026-10-06. Its documented
+   built-in LFS API, S3-compatible `minio` storage driver, configurable
+   endpoint/region/bucket/addressing/TLS, and database/config backup procedures
+   make it a concrete candidate instead of a bespoke protocol service.
+   Tagged source checks repository permissions and repository-bound LFS metadata.
+   This is evidence for evaluation, not a comparative security certification.
+2. **Forgejo 15.0.9 LTS: alternative.** The upstream release page lists this
+   line with support through 15 July 2027. Its storage docs describe an
+   S3-compatible driver without MinIO-specific requirements. The explicit
+   maintenance window is attractive; configuration must be verified against
+   the chosen version rather than assuming latest documentation matches LTS.
+
+Both bring an additional forge/database service even if commits remain on
+GitHub/GitLab. That operational cost must be justified on existing authorized
+infrastructure; it does not authorize new paid resources or public exposure.
+A matching private repository record on the service is needed for repo/OID
+associations and authentication. Bucket bytes alone cannot restore those
+associations. Independently preserve server DB, permission/auth records,
+configuration/secrets and object bytes; a server dump does not prove remote
+S3 objects were backed up. Prefer proxy serving during qualification, leave
+TLS verification enabled, and use separate least-privilege producer/consumer
+principals with credentials outside Git, URLs and argv.
+
+Required isolated qualification includes stock-client batch/upload/verify/
+download, OVH signing/addressing/region compatibility, refusal of anonymous
+and cross-repository known-OID access, interruptions/retries, and independent
+DB/config/object restore. Neither candidate's documented capability proves
+this shared endpoint works with both external forges or unattended consumers.
+
+Upstream evidence:
+- <https://api.github.com/repos/go-gitea/gitea/releases/latest> (release
+  fields independently retrieved by parent; a mutable latest endpoint).
+- <https://github.com/go-gitea/gitea/releases/tag/v28.1.0>
+- <https://docs.gitea.com/administration/config-cheat-sheet>
+- <https://docs.gitea.com/administration/git-lfs-setup/>
+- <https://docs.gitea.com/administration/backup-and-restore/>
+- <https://raw.githubusercontent.com/go-gitea/gitea/v28.1.0/services/lfs/server.go>
+- <https://forgejo.org/releases/> (version/support window independently
+  retrieved by parent).
+- <https://forgejo.org/docs/latest/admin/setup/storage/>
+- <https://forgejo.org/docs/latest/admin/command-line/>
+- <https://codeberg.org/forgejo/forgejo/raw/tag/v15.0.9/services/lfs/server.go>
+
+Deployment host remains **none qualified / authorization details unknown**;
+the OVH S3 hostname is not such a host. Do not deploy from this report alone.
 
 ## Isolated local policy milestone
 
