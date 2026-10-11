@@ -102,7 +102,7 @@ def dispatch(*, guards: Sequence[tuple[str, ...]], transfers: Sequence[tuple[str
     arguments = tuple(push_args)
     if environment.get(_REENTRANT) is not None:
         return Result("recursion", 1)
-    if (not guard_commands or len(arguments) != 2 or not _valid_refs(refs)
+    if (not guard_commands or not transfer_commands or len(arguments) != 2 or not _valid_refs(refs)
             or not 0 < timeout_seconds <= 300
             or not _valid_commands((*guard_commands, *transfer_commands))):
         return Result("configuration", 1)

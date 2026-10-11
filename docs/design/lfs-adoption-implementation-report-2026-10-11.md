@@ -124,9 +124,39 @@ repositories. The 200 MiB/small-image case models repository history and a 10 Mi
 candidate. SQL source is represented by `SourceText`; no SQL-content classifier
 is implemented. The >100 MiB case is a selection decision, NOT a staging-size
 exception. A positive decision does not authorize uploads. There is no TOML
-schema integration, attribute enrollment, dispatcher, consumer bootstrap,
-transfer scheduling, stock-client compatibility test or live verification yet.
+schema integration, attribute enrollment, production dispatcher, consumer
+bootstrap, transfer scheduling, stock-client compatibility test or live
+verification yet.
 The full verification contract and tasks 2–5 remain unfinished.
+
+## Isolated dispatcher primitive
+
+`scripts/lfs_dispatcher_prototype.py` is a callable, non-installed prototype,
+not the global Warden hook or a stock-client integration. It requires explicit
+absolute executable paths, at least one guard and transfer command, bounded
+ref input and one total deadline. Every guard must succeed before any transfer
+command is invoked. Each command receives identical push arguments and ref
+bytes; failures stop the sequence with separate security/transfer attribution.
+Recursion is refused and timed-out process groups are terminated. No retry or
+raw-byte fallback is implemented. There is deliberately no CLI/install entrypoint.
+
+```sh
+timeout 30 python3 -m unittest discover -s dracon-sync/scripts \
+  -p test_lfs_dispatcher_prototype.py -v
+# 11 passed, 0 failed
+```
+
+Fixtures use fake local hooks and marker files, with no credentials, Git pushes,
+real Warden checks or object uploads. They cover guard refusal before every
+transfer, exact args/ref replay, multi-ref/SHA-256/deletion syntax, missing
+executables, malformed/oversized input, recursion, transfer failure, shared
+deadline and an independent successful invocation after refusal. The latter
+is not proof of daemon fairness or unrelated live-repository progress.
+
+Future integration must supply actual Warden/history checks plus snapshot/
+repo/path/OID-bound payload authorization and stock LFS transfer commands.
+Public Python arguments do not establish approval of commands or payloads.
+The live hook-order defect remains unchanged, and tasks 2–5 remain unfinished.
 
 ## Concrete unblockers
 

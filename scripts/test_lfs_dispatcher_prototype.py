@@ -74,6 +74,7 @@ class DispatcherTests(unittest.TestCase):
 
     def test_missing_guard_and_recursion_fail_closed(self):
         self.assertEqual(self.run_dispatch(guards=[]), Result("configuration", 1))
+        self.assertEqual(self.run_dispatch(transfers=[]), Result("configuration", 1))
         self.assertEqual(self.run_dispatch(env=dict(self.env, DRACON_LFS_DISPATCH_ACTIVE="1")),
                          Result("recursion", 1))
         self.assertEqual(self.order(), [])
@@ -93,6 +94,19 @@ class DispatcherTests(unittest.TestCase):
     def test_timeout_in_security_prevents_upload(self):
         self.assertEqual(self.run_dispatch(guards=[self.command("slow", delay=5)], timeout_seconds=0.2),
                          Result("security", 124))
+        self.assertNotIn("upload", self.order())
+
+    def test_failed_dispatch_does_not_poison_unrelated_invocation(self):
+        self.assertEqual(self.run_dispatch(guards=[self.command("refused", 1)]), Result("security", 1))
+        self.assertEqual(self.run_dispatch(guards=[self.command("otherguard")],
+                                           transfers=[self.command("otherupload")]), Result("ready-for-git", 0))
+        self.assertNotIn("DRACON_LFS_DISPATCH_ACTIVE", self.env)
+        self.assertEqual(self.order(), ["refused", "otherguard", "otherupload"])
+
+    def test_deadline_is_shared_across_hooks(self):
+        self.assertEqual(self.run_dispatch(guards=[self.command("first", delay=0.3),
+                                                   self.command("second", delay=0.3)],
+                                           timeout_seconds=0.5), Result("security", 124))
         self.assertNotIn("upload", self.order())
 
     def test_transfer_timeout_has_separate_attribution(self):
