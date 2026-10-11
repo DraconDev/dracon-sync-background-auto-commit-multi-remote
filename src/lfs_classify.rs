@@ -97,7 +97,7 @@ pub fn classify(path: &Path, rules: &ReviewRules) -> io::Result<Classification> 
     if ext == "sql" {
         return Ok(Classification::SourceText);
     }
-    if rules.asset_extensions.iter().any(|a| *a == ext) {
+    if rules.asset_extensions.contains(&ext) {
         return Ok(Classification::ApprovedAsset);
     }
     Ok(Classification::Unknown)
