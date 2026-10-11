@@ -227,6 +227,17 @@ for empty files. This is standard empty-file handling, not transfer-error raw
 fallback. Filter clean/smudge, consumer restore and server compatibility remain
 unqualified; tasks 2–5 are still open.
 
+## Workspace gate checkpoint (not a pass)
+
+`timeout 180 cargo test --workspace --locked` exited 124 after completed suites
+reported zero failures; the run reached `scanner_stress` but did not complete
+all workspace tests. The suite is NOT claimed passing. A bounded isolated
+`timeout 90 cargo test -p dracon-security --locked --test scanner_stress`
+subsequently passed (1 test, 0 failed). This rules out a reproducible hang in
+that isolated test, not a workspace-wide failure. Rerun the full gate with a
+larger bounded budget before completion. Workspace clippy, release build and
+cargo deny remain unverified by this checkpoint.
+
 ## Concrete unblockers
 
 1. Install a maintained standard LFS server shortlist candidate on an
