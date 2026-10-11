@@ -56,10 +56,16 @@ Bounded checks run successfully:
 
 ```sh
 timeout 180 cargo test -p dracon-sync --lib --locked lfs_policy::tests
-# 10 passed, 0 failed
+# 11 passed, 0 failed
 timeout 180 cargo clippy -p dracon-sync --lib --locked -- -D warnings
 # passed (library only)
 ```
+
+A read-only reviewer found no defects in this isolated milestone and requested
+sticky-state cross-product coverage before integration. The added test checks
+160 effective-LFS combinations across ledger presence, classification, binding,
+opt-out and missing/valid/invalid/disabled tuning; each retains LFS or holds.
+The reviewer did not independently rerun the tests or approve production use.
 
 These tests use typed synthetic evidence, not real file classification or Git
 repositories. The 200 MiB/small-image case models repository history and a 10 MiB

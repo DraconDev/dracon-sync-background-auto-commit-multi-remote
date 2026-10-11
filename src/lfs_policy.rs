@@ -274,6 +274,52 @@ mod tests {
         );
     }
     #[test]
+    fn every_effective_lfs_path_preserves_representation_on_failure() {
+        // Include paths discovered through attributes without a persisted ledger.
+        for enrolled in [false, true] {
+            for classification in [
+                Classification::ApprovedAsset,
+                Classification::SourceText,
+                Classification::Sensitive,
+                Classification::Database,
+                Classification::Unknown,
+            ] {
+                for approved_binding in [false, true] {
+                    for opted_out in [false, true] {
+                        let mut invalid = policy();
+                        invalid.churn_trigger_bytes = 0;
+                        let mut disabled = policy();
+                        disabled.enabled = false;
+                        for tuning in [None, Some(policy()), Some(invalid), Some(disabled)] {
+                            let e = Evidence {
+                                enrolled,
+                                classification,
+                                approved_binding,
+                                opted_out,
+                                filter: Filter::Lfs,
+                                bytes: 1,
+                                ..asset()
+                            };
+                            let expected = if classification != Classification::ApprovedAsset {
+                                Decision::Hold(HoldReason::Classification)
+                            } else if tuning.is_none_or(|p| !p.enabled)
+                                || !approved_binding
+                                || opted_out
+                            {
+                                Decision::Hold(HoldReason::EnrollmentUnavailable)
+                            } else if !tuning.unwrap().is_valid() {
+                                Decision::Hold(HoldReason::InvalidPolicy)
+                            } else {
+                                Decision::RetainLfs
+                            };
+                            assert_eq!(evaluate(tuning, e), expected);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    #[test]
     fn sensitive_database_and_unknown_payloads_are_held() {
         for classification in [
             Classification::Sensitive,
