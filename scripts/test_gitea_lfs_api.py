@@ -1,9 +1,9 @@
 """Disposable loopback Gitea API qualification, not OVH/live deployment.
 
 Requires a verified Gitea 28.1.0 executable via GITEA_BIN. All repositories,
-credentials, objects and metadata are synthetic and kept outside Git. No
-producer/consumer Git commits, live hooks, external requests or stock-client
-upload qualification are performed by this test.
+credentials, objects and metadata are synthetic and kept outside tracked Git.
+The stock-client fixture additionally requires verified Git LFS 3.8.0 via
+GIT_LFS_BIN. No Git commits, live hooks or external requests are performed.
 """
 import base64
 import hashlib
@@ -16,6 +16,7 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -130,7 +131,7 @@ LEVEL = Error
             time.sleep(0.1)
         else:
             raise RuntimeError("isolated server readiness deadline expired")
-        for name in ["private", "other"]:
+        for name in ["private", "other", "stock"]:
             status, _ = cls.request("/api/v1/user/repos", {"name": name, "private": True}, auth=True)
             if status != 201:
                 raise RuntimeError(f"fixture repository creation refused: HTTP {status}")
@@ -198,6 +199,53 @@ LEVEL = Error
                 return response.status, response.read(1024 * 1024)
         except urllib.error.HTTPError as error:
             return error.code, error.read(1024 * 1024)
+
+    def test_stock_client_upload_and_fresh_cache_download(self):
+        client = Path(os.environ.get("GIT_LFS_BIN", ""))
+        self.assertTrue(client.is_absolute() and client.is_file(), "verified GIT_LFS_BIN required")
+        version = subprocess.run([str(client), "version"], env=self.env,
+                                 capture_output=True, timeout=15, check=True)
+        self.assertTrue(version.stdout.startswith(b"git-lfs/3.8.0 "))
+        self.assertTrue(self.owns_listener())
+        askpass = self.root / "fixture-askpass.py"
+        askpass.write_text(f"#!{sys.executable}\nimport os, sys\n"
+                           "print('fixture' if 'username' in sys.argv[1].lower() else os.environ['FIXTURE_LFS_TOKEN'])\n")
+        askpass.chmod(0o700)
+        env = dict(self.env, GIT_ASKPASS=str(askpass), FIXTURE_LFS_TOKEN=self.token,
+                   GIT_CONFIG_COUNT="8", GIT_CONFIG_KEY_1="credential.helper", GIT_CONFIG_VALUE_1="",
+                   GIT_CONFIG_KEY_2="lfs.url", GIT_CONFIG_VALUE_2=self.base + "/fixture/stock.git/info/lfs",
+                   GIT_CONFIG_KEY_3="lfs.basictransfersonly", GIT_CONFIG_VALUE_3="true",
+                   GIT_CONFIG_KEY_4="lfs.dialtimeout", GIT_CONFIG_VALUE_4="3",
+                   GIT_CONFIG_KEY_5="lfs.activitytimeout", GIT_CONFIG_VALUE_5="3",
+                   GIT_CONFIG_KEY_6="lfs.transfer.maxretries", GIT_CONFIG_VALUE_6="1",
+                   GIT_CONFIG_KEY_7="lfs.skipdownloaderrors", GIT_CONFIG_VALUE_7="false")
+        git = shutil.which("git")
+        self.assertIsNotNone(git)
+        def run(args, repo, data=None):
+            self.assertTrue(self.owns_listener())
+            result = subprocess.run(args, cwd=repo, env=env, input=data,
+                                    capture_output=True, timeout=30, check=False)
+            # Do not print credential-bearing subprocess output on failure.
+            self.assertEqual(result.returncode, 0, "isolated stock-client/Git command failed (output redacted)")
+            return result.stdout
+        producer = self.root / "stock-producer"
+        consumer = self.root / "stock-consumer"
+        for repo in [producer, consumer]:
+            repo.mkdir()
+            run([git, "init", "-q"], repo)
+            run([git, "remote", "add", "origin", self.base + "/fixture/stock.git"], repo)
+        data = b"stock-client synthetic qualification asset\x00" * 100
+        pointer = run([str(client), "clean", "--", "asset.bin"], producer, data)
+        oid = hashlib.sha256(data).hexdigest()
+        self.assertEqual(pointer, ("version https://git-lfs.github.com/spec/v1\n"
+                                  f"oid sha256:{oid}\nsize {len(data)}\n").encode())
+        run([str(client), "push", "--object-id", "origin", oid], producer)
+        self.assertFalse((consumer / ".git/lfs/objects").exists(), "consumer cache must begin absent")
+        restored = run([str(client), "smudge", "--", "asset.bin"], consumer, pointer)
+        self.assertEqual(restored, data)
+        self.assertEqual(hashlib.sha256(restored).hexdigest(), oid)
+        # Consumers use only their own default .git/lfs cache, not copied objects.
+        self.assertTrue((consumer / ".git/lfs/objects" / oid[:2] / oid[2:4] / oid).is_file())
 
     def test_authenticated_upload_download_and_anonymous_refusal(self):
         data = b"non-secret synthetic qualification payload\x00" * 100
