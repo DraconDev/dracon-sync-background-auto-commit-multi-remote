@@ -130,6 +130,56 @@ bootstrap, transfer scheduling, stock-client compatibility test or live
 verification yet.
 The full verification contract and tasks 2–5 remain unfinished.
 
+## Real-file classification adapter milestone
+
+`src/lfs_classify.rs` builds evaluator evidence for real filesystem
+snapshots. Classification is deliberately conservative: a path is an
+approved asset only when its extension appears in the caller-supplied
+allow-list, while sensitive and database indicators always win regardless
+of the allow-list. Extensions alone never promote an unknown payload.
+
+Precedence is fixed and documented:
+1. Sensitive — file name in `{".env", "id_rsa", "id_ed25519",
+   "secrets.json"}` or extension in `{"pem", "key", "age", "env"}`.
+2. Database — extension in `{"db", "sqlite", "sqlite3", "sqlitedb",
+   "dump", "wal", "shm"}` or a 16-byte `SQLite format 3\0` magic header
+   on the file (defends extensionless database payloads).
+3. SQL source — `*.sql` is treated as `SourceText`, not an asset.
+4. Reviewed asset allow-list — e.g. `png`, `jpg`, `mp4`, `bin`.
+5. Anything else — `Unknown` and held; raw bytes are never enrolled.
+
+Snapshots build a real `Evidence` whose `bytes` value is the file's
+`metadata().len()` (no synthetic byte counts), so size-driven routing
+always reads the real measurement. Override resolution reuses the policy
+module's `with_override` so per-repo tuning flows through the same code
+path as the typed-evidence tests.
+
+Bounded checks run successfully against real tempdir fixtures
+(unique per-test, removed on drop):
+
+```sh
+timeout 180 cargo test -p dracon-sync --lib --locked lfs_classify::tests
+# 8 passed, 0 failed; 0 ignored
+```
+
+The 8 new tests cover: a 200 MiB small-image repo (200 × 1 MiB files at
+1 MiB) staying in Git under history pressure; large `.pem` and `.db`
+refusal regardless of size or pressure; SQLite-magic refusal for an
+extensionless payload; large `.sql` migrations staying in `SourceText`;
+unknown `.zip` held; narrowly-scoped >100 MiB approved asset selection
+(not a staging-size exception); sticky `RetainLfs` surviving real file
+shrinkage (sparse-rewritten to 1 byte, representation preserved);
+per-repo override moving the individual-trigger threshold and changing
+the decision on a real 60 MiB file. All sizes use sparse writes so the
+fixtures stay disk-light while `metadata().len()` reports the logical
+size under test.
+
+This adapter remains read-only — it never opens sockets, runs Git
+commands, mutates the worktree, or stages anything. It does not prove
+daemon wiring, stock-client compat, server compatibility, or live
+enrollment; those still require the six concrete unblockers below and
+remain unfinished.
+
 ## Isolated dispatcher primitive
 
 `scripts/lfs_dispatcher_prototype.py` is a callable, non-installed prototype,
@@ -263,6 +313,21 @@ timeout 120 cargo deny check
 # exit 0; advisories/bans/licenses/sources ok (diagnostic warnings retained)
 timeout 300 cargo build --release --locked
 # exit 0, optimized build finished
+```
+
+Per-package gate evidence (workspace `cargo test --workspace --locked`
+continues to time out at 180–290 s in dev mode; release mode compiles
+but is not faster than the bounded dev-mode windows, so the workspace
+gate is documented as not passing in the standard `cargo test
+--workspace --locked` form):
+
+```sh
+timeout 90 cargo test -p dracon-sync --lib --locked
+# 144 passed, 0 failed, 13 ignored, finished in 48.95 s
+timeout 90 cargo test -p dracon-warden --locked
+# 2 + 206 + 18 binary suites, 0 failed, finished in ~63 s
+timeout 90 cargo test -p dracon-system --locked
+# 12 passed, 0 failed, finished in 0.33 s
 ```
 
 These checks do not qualify a server, packaged installation, live hooks, or

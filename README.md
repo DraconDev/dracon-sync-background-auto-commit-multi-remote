@@ -538,3 +538,91 @@ under its recorded contract; `storage advance-job` prepares a captured version
 and verifies required copies without changing Git. Automatic routing and
 independent-provider certification remain unfinished.
 The preview usage above documents the required bindings and limitations.
+
+### Standard LFS qualification status (isolated, not deployed)
+
+Standard Git LFS v1 with SHA-256 is the proposed replacement for the custom
+preview above. Status: **isolated qualification complete; production routing
+unfinished.** The implementation/qualification report
+[`docs/design/lfs-adoption-implementation-report-2026-10-11.md`](docs/design/lfs-adoption-implementation-report-2026-10-11.md)
+documents every step.
+
+What is verified on this host (every check is bounded, isolated, and run
+green):
+
+- **Policy evaluator** (`src/lfs_policy.rs`) — 11 typed-evidence tests cover
+  pressure/file/churn routing, sticky `RetainLfs`, opt-out, override
+  resolution, invalid-threshold fail-closed, and source-text vs. approved
+  asset classification. Override resolution reuses the same `with_override`
+  path as the live evaluator.
+- **Real-file classifier** (`src/lfs_classify.rs`) — 8 fixtures build real
+  `Evidence` from real files (200 MiB small-image stays in Git; `.pem` and
+  `.db` refusal regardless of size; SQLite-magic refusal for extensionless
+  payloads; `.sql` migrations as `SourceText`; sparse 101 MiB asset selection;
+  sticky representation surviving real file shrinkage; per-repo override
+  moving the individual-trigger threshold). Sizes use sparse writes so the
+  fixtures stay disk-light while `metadata().len()` reports the real
+  measurement. Bounded run: `cargo test -p dracon-sync --lib --locked lfs_`
+  → 19 passed, 0 failed.
+- **Dispatcher prototype** (`scripts/lfs_dispatcher_prototype.py`) — 12
+  tests cover guard-before-transfer, exact args/ref replay, multi-ref/
+  SHA-256/deletion syntax, NUL-argv/env refusal, recursion, transfer
+  failure, shared deadline, and post-refusal successful invocation. Not
+  the global Warden hook.
+- **Warden source-only hook ordering** (`dracon-warden/src/main.rs`
+  `PRE_PUSH_HOOK`) — 33 hook tests confirm foreign-before-local chaining
+  runs **only after** all refs pass the existing checks. No setup/harden/
+  install command was run; the live global hook is unchanged.
+- **Stock Git LFS 3.8.0** (loopback) — 7 tests cover canonical pointer
+  encoding, >100 MiB sparse fixture staging, smudge, malformed-pointer
+  refusal, and empty-file handling. Verified binary SHA-256:
+  `e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d`.
+- **Gitea 28.1.0** (loopback, disposable) — 2 tests cover authenticated
+  batch/upload/download, anonymous refusal, cross-repository OID refusal,
+  and stock-client round-trip with a fresh consumer cache. Verified binary
+  SHA-256:
+  `ea93cfa4a300564ac457d3903469fea49ec5a4da37d0cebaa435f8e329ea64d0`.
+  Gitea 28.1.0 is the **first isolated-test candidate**, not an approved
+  deployment.
+
+What is not yet implemented or verified:
+
+- No production LFS server is installed or qualified.
+- No private OVH binding or scoped IAM principal has been qualified.
+- No live filter, hook, remote, or git config was modified. The
+  `~/.config/git/hooks/pre-push` live hook is unchanged.
+- The Warden hook **chain order** is fixed in source but is not installed
+  live; a stock LFS pre-push still needs payload authorization before
+  any upload.
+- No recovery story is implemented. Independent backup of LFS objects
+  and required server metadata is not present.
+- README, operator docs, and live-configuration evidence stop at the
+  **isolated-verified** level above. Anything that would require a
+  live host, live IAM, live hooks, or fresh forge clones is documented
+  as a concrete unblocker in the report and is **not** shipped.
+
+What you can do today:
+
+- Run the bounded checks listed above (every command, every expected
+  count, every SHA-256 is in the report).
+- Read the implementation/qualification report for the full evidence
+  chain and the six concrete unblockers needed to advance to the next
+  milestone.
+
+What requires operator authorization before continuing:
+
+1. Install a maintained LFS server on an authorized host (Gitea 28.1.0
+   first candidate).
+2. Provision a private OVH bucket and a dedicated least-privilege IAM
+   principal. Do not reuse the public `dracon-master` credentials.
+3. Stand up an independent backup of LFS objects and server metadata.
+4. Install and authorize the live Warden hook with payload authorization
+   before any chained hook.
+5. Install `git-lfs` on this host and on a separate fresh consumer host.
+6. Approve a single non-secret binary fixture under a deliberate path
+   in the chosen pilot game (no `git lfs migrate`, no fleet-wide
+   enrollment).
+
+These boundaries are preserved on purpose. The custom preview above
+remains the only production storage path; the standard LFS milestone
+is a *qualification checkpoint* that ships test code, not a deployment.
