@@ -514,6 +514,13 @@ AGPL-3.0-only — see [LICENSE](LICENSE).
 
 ### External-storage planning (unreleased preview)
 
+The [selective automatic LFS adoption plan](docs/design/lfs-adoption-plan-2026-10-11.md)
+proposes standard Git LFS with a configurable S3-backed LFS service (OVH first).
+Small repos stay in ordinary Git; eligible assets are routed under growth/file
+safety rules, with database/secret exclusions and Warden protection. This is a
+plan, **not deployed automatic offload**. It defines shared GitHub/GitLab storage,
+consumer bootstrap, recovery tests and transition from the custom preview below.
+
 Source builds now provide read-only `storage plan` and `storage validate`
 commands. They explain configurable placement rules, operator-approved backend
 bindings, existing filters, and optional Git history measurements. They do not
