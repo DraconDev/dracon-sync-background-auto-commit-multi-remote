@@ -4,4 +4,5 @@
 //! The storage primitives are under active development. Production enrollment,
 //! security adapters, and automatic transfers have separate integration gates.
 
+pub mod lfs_policy;
 pub mod storage_core;
