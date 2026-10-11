@@ -247,7 +247,25 @@ that isolated test, not a workspace-wide failure. A subsequent 360-second
 workspace run also exited 124, later in Sync unit tests. Do not repeatedly
 increase the whole-suite deadline: isolate the slow Sync test/ambient-hook
 interaction, then choose bounded per-package runs before the final full gate.
-Workspace clippy, release build and cargo deny remain unverified here.
+The named last-running Sync test subsequently passed in isolation:
+`timeout 75 cargo test -p dracon-sync --bin dracon-sync --locked
+sync::tests::test_sync_repo_mirror_push_failure_second -- --exact`
+(1 passed, 0 failed). An initial library-only invocation matched zero tests;
+only the binary invocation above is evidence. No reproducible hang is proven.
+
+Other workspace gates now pass:
+
+```sh
+timeout 180 cargo clippy --workspace --locked -- -D warnings
+# exit 0
+timeout 120 cargo deny check
+# exit 0; advisories/bans/licenses/sources ok (diagnostic warnings retained)
+timeout 300 cargo build --release --locked
+# exit 0, optimized build finished
+```
+
+These checks do not qualify a server, packaged installation, live hooks, or
+consumer bootstrap; the full workspace test gate still needs a successful run.
 
 ## Concrete unblockers
 
