@@ -542,8 +542,8 @@ The preview usage above documents the required bindings and limitations.
 ### Standard LFS qualification status (isolated, not deployed)
 
 Standard Git LFS v1 with SHA-256 is the proposed replacement for the custom
-preview above. Status: **isolated qualification complete; production routing
-unfinished.** The implementation/qualification report
+preview above. Status: **isolated qualification milestones tested; production routing
+unfinished; the broader verification contract is not satisfied.** The implementation/qualification report
 [`docs/design/lfs-adoption-implementation-report-2026-10-11.md`](docs/design/lfs-adoption-implementation-report-2026-10-11.md)
 documents every step.
 
@@ -553,8 +553,8 @@ green):
 - **Policy evaluator** (`src/lfs_policy.rs`) — 11 typed-evidence tests cover
   pressure/file/churn routing, sticky `RetainLfs`, opt-out, override
   resolution, invalid-threshold fail-closed, and source-text vs. approved
-  asset classification. Override resolution reuses the same `with_override`
-  path as the live evaluator.
+  asset classification. `with_override` is tested in isolation; there is
+  no live daemon routing integration.
 - **Real-file classifier** (`src/lfs_classify.rs`) — 8 fixtures build real
   `Evidence` from real files (200 MiB small-image stays in Git; `.pem` and
   `.db` refusal regardless of size; SQLite-magic refusal for extensionless
@@ -575,7 +575,7 @@ green):
   install command was run; the live global hook is unchanged.
 - **Stock Git LFS 3.8.0** (loopback) — 7 tests cover canonical pointer
   encoding, >100 MiB sparse fixture staging, smudge, malformed-pointer
-  refusal, and empty-file handling. Verified binary SHA-256:
+  refusal, and empty-file handling. Verified release archive SHA-256:
   `e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d`.
 - **Gitea 28.1.0** (loopback, disposable) — 2 tests cover authenticated
   batch/upload/download, anonymous refusal, cross-repository OID refusal,
@@ -623,6 +623,10 @@ What requires operator authorization before continuing:
    in the chosen pilot game (no `git lfs migrate`, no fleet-wide
    enrollment).
 
-These boundaries are preserved on purpose. The custom preview above
-remains the only production storage path; the standard LFS milestone
-is a *qualification checkpoint* that ships test code, not a deployment.
+These boundaries are preserved on purpose. The custom storage preview
+above remains a preview, not a production qualification claim. The standard
+LFS milestone supplies isolated test code, not a deployment. The full
+workspace tests, release build, clippy, and cargo deny have now passed;
+see the report for bounded commands and captured exit statuses. Live pilot,
+independent server recovery, application staging authorization, and the
+complete daemon/manual integration matrix remain unverified.

@@ -287,51 +287,39 @@ for empty files. This is standard empty-file handling, not transfer-error raw
 fallback. Live consumer bootstrap and server compatibility remain unqualified;
 tasks 2–5 are still open.
 
-## Workspace gate checkpoint (not a pass)
+## Workspace quality gates — verified pass
 
-`timeout 180 cargo test --workspace --locked` exited 124 after completed suites
-reported zero failures; the run reached `scanner_stress` but did not complete
-all workspace tests. The suite is NOT claimed passing. A bounded isolated
-`timeout 90 cargo test -p dracon-security --locked --test scanner_stress`
-subsequently passed (1 test, 0 failed). This rules out a reproducible hang in
-that isolated test, not a workspace-wide failure. A subsequent 360-second
-workspace run also exited 124, later in Sync unit tests. Do not repeatedly
-increase the whole-suite deadline: isolate the slow Sync test/ambient-hook
-interaction, then choose bounded per-package runs before the final full gate.
-The named last-running Sync test subsequently passed in isolation:
-`timeout 75 cargo test -p dracon-sync --bin dracon-sync --locked
-sync::tests::test_sync_repo_mirror_push_failure_second -- --exact`
-(1 passed, 0 failed). An initial library-only invocation matched zero tests;
-only the binary invocation above is evidence. No reproducible hang is proven.
-
-Other workspace gates now pass:
+Earlier 180–360-second whole-workspace deadlines expired and did not
+establish a hang or an environmental defect. A captured 600-second run
+completed every preceding suite with zero failures and expired in the final
+Warden streaming suite, after an 81-second build. Completed suite durations
+showed cumulative runtime rather than a proven stuck test. A subsequent
+warm-build run completed the entire unmodified workspace command:
 
 ```sh
-timeout 180 cargo clippy --workspace --locked -- -D warnings
+# Run from the full dracon-utilities parent checkout.
+timeout 900 cargo test --workspace --locked
+# exit 0; 2367 passed, 0 failed, 25 ignored across 35 result summaries
+# Includes doc tests; no test filters or additional skips were used.
+timeout 600 cargo clippy --workspace --locked -- -D warnings
 # exit 0
-timeout 120 cargo deny check
+timeout 600 cargo deny check
 # exit 0; advisories/bans/licenses/sources ok (diagnostic warnings retained)
-timeout 300 cargo build --release --locked
-# exit 0, optimized build finished
+timeout 600 cargo build --release --locked
+# exit 0; optimized build finished in 2m 53s
 ```
 
-Per-package gate evidence (workspace `cargo test --workspace --locked`
-continues to time out at 180–290 s in dev mode; release mode compiles
-but is not faster than the bounded dev-mode windows, so the workspace
-gate is documented as not passing in the standard `cargo test
---workspace --locked` form):
+Complete logs and actual exit statuses are retained in the parent checkout:
+`evidence/lfs/workspace-test.log` (600-second deadline, exit 124),
+`evidence/lfs/workspace-test-warm.log` (exit 0), `evidence/lfs/clippy.log`,
+`evidence/lfs/deny.log`, and `evidence/lfs/release.log` (each exit 0).
+Earlier per-package tails did not prove a complete workspace run; in
+particular the 12-test System tail was an integration suite, not its full
+package. This successful workspace log supersedes those incomplete claims.
 
-```sh
-timeout 90 cargo test -p dracon-sync --lib --locked
-# 144 passed, 0 failed, 13 ignored, finished in 48.95 s
-timeout 90 cargo test -p dracon-warden --locked
-# 2 + 206 + 18 binary suites, 0 failed, finished in ~63 s
-timeout 90 cargo test -p dracon-system --locked
-# 12 passed, 0 failed, finished in 0.33 s
-```
-
-These checks do not qualify a server, packaged installation, live hooks, or
-consumer bootstrap; the full workspace test gate still needs a successful run.
+These quality gates do not qualify packaged installation, a production
+server, live hooks, consumer bootstrap, the live pilot, or independent
+server recovery. Those contract requirements remain unsatisfied.
 
 ## Disposable maintained-server API milestone
 
