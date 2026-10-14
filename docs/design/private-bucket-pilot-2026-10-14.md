@@ -62,6 +62,15 @@ Two lifecycle repairs were made after audit reproduction:
    wedging publication forever
    (`SIGKILL during publication releases exclusion and next upload recovers`).
 
+   P2 follow-up reviewed: the "survivor holds the guardian stdin write end"
+   scenario the reviewer raised requires a *different* process to inherit the
+   guardian's stdin fd. Node's `spawn` with a Writable stream as `stdio[0]`
+   proxies through a fresh pipe rather than dup'ing the underlying fd, and no
+   production code path constructs such a survivor. The `SIGKILL...recovers`
+   test is the realistic recovery proof; the proposed ppid-change fallback
+   was not added because it would be complexity guarding a path the runtime
+   cannot reach.
+
 The protected existing favicon's tracked baseline must remain in Git: deleting
 it would violate the existing forward-only guard. Route future versions through
 the manifest and exclude that worktree path from auto-staging without deleting
