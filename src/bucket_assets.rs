@@ -268,6 +268,11 @@ mod tests {
         git(repo, &["init", "-q", "-b", "main"]);
         git(repo, &["config", "user.name", "DraconDev"]);
         git(repo, &["config", "user.email", "dracsharp@gmail.com"]);
+        // Test isolation: this fixture is not warden-managed, and the real
+        // warden harden pass would rewrite .gitignore hygiene blocks. Setting
+        // the local filter marks it as already hardened so the daemon skips
+        // that external write entirely.
+        git(repo, &["config", "filter.dracon.clean", "cat"]);
         std::fs::create_dir(repo.join(".dracon")).unwrap();
         std::fs::create_dir(repo.join("static")).unwrap();
         std::fs::write(repo.join("static/a.png"), "old tracked baseline").unwrap();
@@ -349,7 +354,7 @@ trusted_authors = ["DraconDev"]
         let result =
             crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await;
         assert!(result.is_ok(), "daemon fixture failed: {result:?}");
-        assert_eq!(count(repo), 2);
+        assert_eq!(count(repo), 2, "verified reference must be exactly one commit");
         assert!(repo.join(".git/upload-verified").exists());
         assert_eq!(
             git(repo, &["show", "HEAD:static/a.png"]),

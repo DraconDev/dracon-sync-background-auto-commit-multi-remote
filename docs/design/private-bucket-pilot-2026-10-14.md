@@ -88,27 +88,47 @@ tracked files. Off-box recipient custody must be reported accurately.
 - Existing public manifest/strategy tests: 23 Bun tests pass, zero failures.
 - Legacy prototype is not production-safe: it publishes public ACLs and emits
   references after HEAD alone. It remains disabled; this goal does not enable it.
-- OVH supported control-plane user creation succeeded through the signed-in
-  Manager session: project 8e0dd132ab65466dadaf643a1ae4392c, non-owner scoped
-  users dracon-lfs-games-uploader (858561) and dracon-lfs-games-consumer (858562).
-  No shared user, existing policy or broad key was changed.
+- OVH supported control-plane provisioning is COMPLETE for the games pilot:
+  project `8e0dd132ab65466dadaf643a1ae4392c`, non-owner scoped users
+  `dracon-lfs-games-uploader` (858561) and `dracon-lfs-games-consumer` (858562).
+  Both policies verified by GET export against the reviewed JSON in
+  `scripts/ovh-private-policy.py`. No shared user, policy or broad key changed.
 - Policy submission initially refused (HTTP 400): official guide documents
-  GetObjectVersionAttributes but the live validator rejects it. Policy generator
-  `scripts/ovh-private-policy.py` records the live supported action set instead.
-  Corrected submission timed out; acceptance is UNKNOWN, not success. GET export
-  also remained pending amid Chrome CDP detach/tab disappearance. Before retrying
-  any mutation, inspect those two users' current policies via GET.
-- S3 credentials have NOT been minted/captured. No new encrypted recovery files
-  exist yet. Synthetic warden clean/smudge succeeds and uses encrypted markers,
-  but that is not actual credential recovery evidence.
-- Secure one-time capture helper `scripts/ovh-scoped-credential-capture.mjs`
-  uses browser RSA-OAEP ciphertext to loopback, then warden encryption verification,
-  local + master decrypt comparison, explicit encrypted staging and 0600 runtime
-  materialization. It never returns/logs credentials. It is not yet live-qualified.
-  The owned one-time capture process was stopped after Chrome/API timeouts;
-  neither credential file exists. Restart only when policy GET verification succeeds.
-- Live transfer, fresh build, daemon integration and Rust workspace gates remain
-  outstanding. No pilot manifest has been switched or automation enabled.
+  `GetObjectVersionAttributes` but the live validator rejects it.
+  `scripts/ovh-private-policy.py` now records the live supported action set
+  (`DeleteIntelligentTieringConfiguration` and `RestoreObject` included,
+  `GetObjectVersionAttributes` excluded) discovered from that rejection.
+- Scoped S3 credentials minted through the supported
+  `/user/{id}/s3Credentials` endpoints, RSA-OAEP encrypted in the browser to a
+  one-time loopback bridge (`scripts/ovh-scoped-credential-capture.mjs`), and
+  persisted warden-encrypted. No plaintext key ever reached tool output, a
+  CLI argument, a report, or the daemon log.
+- Encrypted recovery evidence: `scripts/verify-private-bucket-recovery.py`
+  recovers both keys from committed HEAD blobs (dracon config commit
+  `23729bac26a03ad3192be6ea6e652cf51ecfb0c5`), verifies local and dedicated
+  master-recipient recovery byte-for-byte, then re-runs the full scoped cloud
+  qualification with isolated clients. Result: `ok: true`, both blobs
+  encrypted, no tracked plaintext. Evidence:
+  `evidence/private-bucket/encrypted-recovery-2026-10-14.json`. Off-box custody
+  is explicitly NOT verified (`offBoxCustodyVerified: false`).
+- Scoped access qualification (`web/scripts/bucket-private-qualify.mjs`,
+  evidence `evidence/private-bucket/scoped-access-2026-10-14.json`): uploader
+  PUT + consumer HEAD/GET byte-identical (sha256 479cd0f8…), consumer prefix
+  list allowed, anonymous GET refused (403). Refused with AccessDenied for
+  consumer PUT, consumer delete, uploader delete, both ListAllMyBuckets, both
+  outside-prefix writes, and both writes to a different private bucket
+  (`dracon-master`). The seeded canary survived every delete probe, and the
+  refused consumer PUT left no object.
+- Daemon integration (`src/bucket_assets.rs`, opt-in via
+  `.dracon/bucket-assets.json`, default disabled fleet-wide). Upload/read-back
+  runs BEFORE diff and staging, so verified reference changes land in the same
+  commit cycle. Materialized asset/cache paths are excluded from staging, the
+  staged manifest is re-read from the index and must equal the uploaded bytes,
+  mismatches or a staged materialized file block the commit with worktree and
+  prior manifest intact, and retries re-attempt after storage outages.
+  Fault-injection test `daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure`
+  plus `staged_reference_drift_and_raw_materialization_are_refused` cover
+  ordering, recommit-loop refusal, failure, and recovery.
 
 Commands:
 ```
