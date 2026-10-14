@@ -4256,6 +4256,7 @@ async fn stage_commit_and_push(
     _status: &dracon_git::types::RepoStatus,
     to_stage: &[dracon_git::types::DiffFile],
     to_restore: &[dracon_git::types::DiffFile],
+    private_assets: Option<&crate::bucket_assets::Prepared>,
 ) -> Result<Option<SyncOutcome>> {
     let repo = ctx.repo;
     let policy = ctx.policy;
@@ -4560,6 +4561,12 @@ async fn stage_commit_and_push(
         // runs; violations (and guard infra failures) block the commit
         // with the index intact. Repos without a discoverable guard
         // script are unaffected.
+        if let Some(prepared) = private_assets {
+            if let Err(error) = prepared.verify_staged(repo, policy.stage_op_timeout_secs).await {
+                eprintln!("⚠️ {} private bucket index verification refused auto-commit: {error:#}", repo.display());
+                return Ok(Some(SyncOutcome::Blocked));
+            }
+        }
         if let Err(error) = crate::bucket_guard::check_staged_forward_only(
             repo,
             policy.stage_op_timeout_secs,
@@ -5378,6 +5385,15 @@ pub(crate) async fn sync_repo_with_ahead_since(
     auto_pull_merge(&svc, &ctx, &initial_status).await?;
     preparation_phase("before_clean");
     clean_staged_paths(&ctx).await?;
+    // Explicit checkout opt-in only. Upload/read-back must precede computing
+    // the diff, so verified reference changes enter this same commit cycle.
+    let private_assets = match crate::bucket_assets::prepare(repo, dry_run, policy.stage_op_timeout_secs).await {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            eprintln!("⚠️ {} private bucket preparation refused; no commit: {error:#}", repo.display());
+            return Ok(SyncOutcome::Blocked);
+        }
+    };
     preparation_phase("before_diff");
 
     let DiffResult {
@@ -5564,6 +5580,11 @@ pub(crate) async fn sync_repo_with_ahead_since(
         let (to_stage, to_restore): (Vec<_>, Vec<_>) = entries
             .into_iter()
             .filter(|e| {
+                if private_assets.as_ref().is_some_and(|prepared| prepared.materialized_paths.contains(&e.path)) {
+                    // Leave existing Git baselines and operator worktree bytes
+                    // intact. Only the verified reference is newly committed.
+                    return false;
+                }
                 if repo.join(&e.path).is_dir()
                     && crate::exclude::is_gitlink_unchanged(repo, &e.path)
                 {
@@ -5643,7 +5664,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
                 );
             }
             let staged =
-                stage_commit_and_push(&svc, &mut ctx, &status, &to_stage, &to_restore).await;
+                stage_commit_and_push(&svc, &mut ctx, &status, &to_stage, &to_restore, private_assets.as_ref()).await;
             if debug_enabled() {
                 eprintln!(
                     "scheduler: stage_exit repo={} thread={:?} unix_ms={} ok={}",
