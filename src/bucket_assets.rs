@@ -277,8 +277,9 @@ mod tests {
         std::fs::create_dir(repo.join("static")).unwrap();
         std::fs::write(repo.join("static/a.png"), "old tracked baseline").unwrap();
         std::fs::write(repo.join(".gitignore"), "/.bucket-cache/\n").unwrap();
+        std::fs::write(repo.join("bucket-assets.json"), br#"{"schemaVersion":1,"enabled":true,"manifest":"manifest.json","assetRoot":".","workflowScript":"workflow.mjs","uploaderCredentials":"/synthetic/uploader.env","consumerCredentials":"/synthetic/consumer.env"}"#).unwrap();
         std::fs::write(repo.join("manifest.json"), br#"{"schemaVersion":1,"bucket":"dracon-lfs","repository":"games","namespace":"games","assets":[{"id":"fixture","sourcePath":"static/a.png","logicalPath":"brand/a.png","objectKey":"games/{sha256}.{ext}","sha256":"0000000000000000000000000000000000000000000000000000000000000000","bytes":20,"visibility":"private","regenerable":true,"generator":{"command":"node generate.mjs","inputs":[]}}]}"#).unwrap();
-        std::fs::write(repo.join(".dracon/bucket-assets.json"), br#"{"schemaVersion":1,"enabled":true,"manifest":"manifest.json","assetRoot":".","workflowScript":"workflow.mjs","uploaderCredentials":"/synthetic/uploader.env","consumerCredentials":"/synthetic/consumer.env"}"#).unwrap();
+        std::fs::write(repo.join("bucket-assets.json"), br#"{"schemaVersion":1,"enabled":true,"manifest":"manifest.json","assetRoot":".","workflowScript":"workflow.mjs","uploaderCredentials":"/synthetic/uploader.env","consumerCredentials":"/synthetic/consumer.env"}"#).unwrap();
         // Controlled fake storage layer. The actual daemon staging/commit path
         // remains real; live SDK/storage qualification is a separate gate.
         std::fs::write(repo.join("workflow.mjs"), r#"import fs from 'node:fs';
@@ -297,7 +298,7 @@ console.log(JSON.stringify({ok:true}));
                 "add",
                 "--",
                 ".gitignore",
-                ".dracon/bucket-assets.json",
+                "bucket-assets.json",
                 "workflow.mjs",
                 "manifest.json",
                 "static/a.png",
