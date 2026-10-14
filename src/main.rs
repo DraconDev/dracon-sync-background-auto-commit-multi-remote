@@ -2,6 +2,7 @@
 
 //! Dracon Sync — git sync automation daemon.
 
+mod bucket_assets;
 mod bucket_guard;
 mod bump;
 mod cooldown;
