@@ -1,4 +1,8 @@
-# Private bucket workflow pilot — implementation in progress
+# Private bucket workflow pilot — operator report
+
+Durable references for implementation and reproduction. Committed paths are
+relative to their own repositories: `dracon-sync/...` is the utilities
+workspace, `web/...` and `bucket-assets.json` are dracon-platform.
 
 ## Boundaries and selected pilot
 
@@ -43,6 +47,21 @@ Bounded operations, retry budgets, private credentials and atomic temporary
 files apply to uploads/restores. Failed publication may leave an unreferenced
 object; no deletion is implemented. Every historical referenced object is kept.
 
+Two lifecycle repairs were made after audit reproduction:
+
+1. **Upload verdict is bound to manifest bytes.** `publishManifest` returns
+   after registering a SHA-256 of the exact bytes it published, and the CLI
+   reports that digest as `manifestSha256`. The daemon re-hashes the manifest it
+   captures and refuses the cycle unless it matches the verified bytes, so an
+   edit between publication and capture cannot be laundered into a commit
+   (`post_upload_capture_tampering_is_refused`).
+2. **Publication locking survives a killed publisher.** Exclusion is a kernel
+   `flock` on a stable lock file held by a guardian process that exits on
+   stdin EOF when the publishing parent dies; the inode is never unlinked while
+   writers may race, and a SIGKILLed upload releases the lock instead of
+   wedging publication forever
+   (`SIGKILL during publication releases exclusion and next upload recovers`).
+
 The protected existing favicon's tracked baseline must remain in Git: deleting
 it would violate the existing forward-only guard. Route future versions through
 the manifest and exclude that worktree path from auto-staging without deleting
@@ -71,14 +90,119 @@ in-memory decrypt equality, plus cloud read using recovered credentials. Keys
 must not appear in command arguments, logs, reports, public URLs or plaintext
 tracked files. Off-box recipient custody must be reported accurately.
 
-## Current evidence (not deployment acceptance)
+## Bounded verification commands
 
-- New private transfer/routing/workflow/scoped-credential tests: twelve node:test cases pass
-  (routing including historical pressure, private schema, path/symlink rejection,
+All commands are bounded and were executed. Paths are relative to their own
+checkout; run Rust commands from the utilities workspace (`dracon-utilities`).
+
+Tooling (from dracon-platform):
+
+```
+timeout 90 node --test web/scripts/bucket-asset-transfer.test.mjs
+timeout 90 bun test web/scripts/bucket-strategy-manifest.test.mjs web/scripts/bucket-strategy.test.mjs
+```
+
+Live pilot upload (from dracon-platform). Emits a non-secret digest verdict;
+keys never appear in stdout, arguments or the daemon log:
+
+```
+timeout 600 node web/scripts/bucket-private-workflow.mjs upload bucket-assets.json .
+```
+
+Live restore + isolated checkout and the documented hub build (from the
+utilities workspace; copies only committed trees into an empty directory,
+installs dependencies in an isolated cache, restores with the consumer
+credential, then builds):
+
+```
+timeout 1200 python3 dracon-sync/scripts/verify-private-bucket-fresh.py \
+  /home/dracon/Dev/dracon-platform dracon-sync/evidence/private-bucket/audit-repair/fresh
+```
+
+Scoped access qualification and encrypted recovery (from the utilities
+workspace). Both must report `ok: true`:
+
+```
+timeout 240 node /home/dracon/Dev/dracon-platform/web/scripts/bucket-private-qualify.mjs
+timeout 300 python3 dracon-sync/scripts/verify-private-bucket-recovery.py
+```
+
+Daemon-integration tests and all workspace gates (from the utilities
+workspace). `private-bucket-verification.nix` pins the reproducible
+environment: nixpkgs openssl, git, node, bun, procps (spawned by
+`dracon-system` guard tests), openssh (spawned by mirror-push tests), and the
+operator's rustup toolchain, which is required because the nixpkgs-channel
+rustc is older than this crate's `rust-version` 1.89. `--pure` also removes an
+ambient `OPENSSL_DIR` that otherwise points at an include-only path and breaks
+the `openssl-sys` build script:
+
+```
+timeout 240 nix-shell --pure dracon-sync/scripts/private-bucket-verification.nix \
+  --run 'timeout 180 cargo test -p dracon-sync --locked bucket_assets::tests -- --nocapture'
+```
+
+All five gates at once, with per-gate status files and captured logs:
+
+```
+timeout 2400 nix-shell --pure dracon-sync/scripts/private-bucket-verification.nix \
+  --run 'bash dracon-sync/scripts/verify-private-bucket-gates.sh'
+```
+
+Evidence for this pass is under
+`dracon-sync/evidence/private-bucket/audit-repair/`: `environment.log`,
+`integration.{status,log}`, `workspace-tests.{status,log}`,
+`clippy.{status,log}`, `deny.{status,log}`, `release-build.{status,log}`,
+`transfer-tests.log`, `deployment.log`, `pilot-upload-bound.json`, and
+`fresh/{fresh-build.json,games-build.log,restore.log,favicon-audit.log}`.
+Each `.status` file records PASS or FAIL so a reader sees the gate outcome in
+one line without trusting this prose.
+
+## Result summary for this pass
+
+- Transfer/routing tests: 13 node:test cases pass (the previously recorded 12
+  predates the added process-kill recovery test). Public strategy/manifest
+  suites: 23 bun tests pass.
+- Rust integration tests: 5 pass in the pinned Nix environment.
+- All five gates pass there (integration, workspace tests, clippy, deny,
+  release build).
+- Live scoped access: consumer read-only, uploader no-delete, anonymous refused.
+- Encrypted recovery: local and master-recipient recovery byte-exact, no
+  tracked plaintext; recovered keys still authenticate to OVH.
+- Isolated fresh checkout restores byte-identically and the documented games
+  build (`bun run --filter games build`) exits 0 with the restored asset absent
+  from the machine cache.
+- The tested binary is what the running daemon uses; the pilot repo is the only
+  opted-in repo.
+
+## Deployment and live state
+
+- The release binary was installed through the sanctioned
+  `dracon-sync maintenance` wrapper (pause → install → ALWAYS resume) with the
+  previous binary hashed and retained under
+  `~/.local/state/dracon-sync/pilot-backups/` for rollback. Evidence:
+  `dracon-sync/evidence/private-bucket/audit-repair/deployment.log`.
+- `ActiveState=active` and the installed binary sha256 equals the tested
+  `target/release/dracon-sync` (see that log).
+- The pilot repo has drift-tolerant history only; no history was rewritten and
+  no existing blob was reclaimed anywhere in this goal.
+
+## Residual limits (unchanged from the first pass)
+
+- Off-box custody of the master key is still unverified
+  (`offBoxCustodyVerified: false`).
+- Live daemon behaviour in the watched fleet repo is proven by injected
+  fixtures, not by observing a real fleet outage.
+- Only one repo is opted in; nothing here is fleet-wide.
+
+- New private transfer/routing/workflow/scoped-credential tests: thirteen node:test
+  cases pass (routing including historical pressure, private schema, path/symlink
+  rejection,
   independent-cache restore, size/hash mismatch, interrupted downloads/uploads,
-  retries, concurrent publication/restores, source drift, immutable-object retention,
+  retries, concurrent publication/restores, source drift, immutable-object
+  retention,
   unchanged-reference no-rewrite behavior, offline workflow/cache misses,
-  disabled opt-in, and credential isolation).
+  disabled opt-in, credential isolation, SIGKILL publication recovery, and
+  post-verification tampering).
 - Operational CLI: `bucket-private-workflow.mjs upload|restore CONFIG REPO [--offline]`.
   Configuration selects existing manifest/asset root and absolute scoped credential
   locations, schemaVersion=1, enabled=false by default until qualification; it is
@@ -130,7 +254,8 @@ tracked files. Off-box recipient custody must be reported accurately.
   outages. Fault-injection test
   `daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure`
   plus `staged_reference_drift_and_raw_materialization_are_refused` cover
-  ordering, recommit-loop refusal, failure, and recovery; five tests pass.
+  ordering, recommit-loop refusal, failure, and recovery; six tests pass,
+  including the post-verification-tamper refusal above.
 - LIVE PILOT TRANSFER (evidence `evidence/private-bucket/pilot-upload-2026-10-14.json`):
   `bucket-private-workflow.mjs upload` published the pilot reference —
   `games/7884ac7225df090731d8a00b56b6de69cb34cc1fe8763b8aeb15132f810664d7.png`,
@@ -140,13 +265,17 @@ tracked files. Off-box recipient custody must be reported accurately.
   large-asset rule, so the pilot sets `largeBytes: 1` for this explicitly
   regenerable 103-byte asset. Pressure routing remains the default path for
   repos that actually approach a provider ceiling; no threshold was weakened.
-- FRESH-CHECKOUT RESTORE + BUILD (evidence `evidence/private-bucket/fresh-checkout-2026-10-14.json`):
-  `git archive HEAD` into an empty directory, no cache and no prior
-  materialized asset, restore byte-identical (sha256 7884ac72…, 103 bytes),
-  then the documented check `node web/games/scripts/audit-favicons.mjs`
-  reports `6/6 favicons OK`. Negative control: removing the restored asset
-  makes the same audit report `5 favicon(s) failed audit`, proving the check
-  really verifies the bucket-restored pilot asset.
+- FRESH-CHECKOUT RESTORE + DOCUMENTED BUILD (evidence
+  `evidence/private-bucket/audit-repair/fresh/fresh-build.json`): a Python
+  driver copies the parent's committed tree plus the committed gitlink
+  metadata/vendor trees needed by the hub workspace into an empty directory
+  (no worktree, no cache, no prior materialized asset), installs an
+  independent dependency set in a private cache, restores with the consumer
+  credential — byte-identical, sha256 7884ac72…, 103 bytes — then runs
+  `bun run --filter games build`, exit code 0, recorded in
+  `audit-repair/fresh/games-build.log` with `restore.log` and
+  `favicon-audit.log` beside it. The favicon audit remains as a secondary
+  cross-check (6/6 OK, 5 failures without the restored asset).
 
 - Rust workspace gates, run AFTER the final code change: `cargo test
   --workspace --locked` (35 suites ok), `cargo clippy --workspace --locked --
