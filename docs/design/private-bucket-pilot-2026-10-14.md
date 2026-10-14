@@ -43,8 +43,12 @@ Bounded operations, retry budgets, private credentials and atomic temporary
 files apply to uploads/restores. Failed publication may leave an unreferenced
 object; no deletion is implemented. Every historical referenced object is kept.
 
-Before committing source removal, upload and reference publication must
-succeed. Daemon integration must exclude materialized paths from re-staging,
+The protected existing favicon's tracked baseline must remain in Git: deleting
+it would violate the existing forward-only guard. Route future versions through
+the manifest and exclude that worktree path from auto-staging without deleting
+its committed baseline. New bucketed assets materialize into ignored paths.
+Upload and reference publication must precede any commit of changed references.
+Daemon integration must exclude materialized paths from re-staging,
 verify the final staged manifest rather than trusting mutable worktree state,
 and fail closed with no commit on storage failure. Existing files and prior
 manifest remain usable on failure. Enable only after independent-checkout
@@ -69,17 +73,43 @@ tracked files. Off-box recipient custody must be reported accurately.
 
 ## Current evidence (not deployment acceptance)
 
-- New private transfer module and routing tests: seven node:test cases pass.
+- New private transfer/routing/scoped-credential tests: ten node:test cases pass
+  (routing including historical pressure, private schema, path/symlink rejection,
+  independent-cache restore, size/hash mismatch, interrupted downloads/uploads,
+  retries, concurrent publication/restores, source drift, and credential isolation).
+- Operational CLI: `bucket-private-workflow.mjs upload|restore CONFIG REPO [--offline]`.
+  Configuration selects existing manifest/asset root and absolute scoped credential
+  locations, schemaVersion=1, enabled=false by default until qualification; it is
+  not a new reference format. Upload measurement includes staged bytes and takes
+  the minimum of configured budgets and documented provider ceilings.
+- Unchanged bucketed references do not trigger upload/manifest rewrite again.
 - Existing public manifest/strategy tests: 23 Bun tests pass, zero failures.
 - Legacy prototype is not production-safe: it publishes public ACLs and emits
   references after HEAD alone. It remains disabled; this goal does not enable it.
-- Scoped user provisioning, live transfer, fresh build, daemon integration and
-  Rust workspace gates are outstanding. No pilot automation is enabled yet.
+- OVH supported control-plane user creation succeeded through the signed-in
+  Manager session: project 8e0dd132ab65466dadaf643a1ae4392c, non-owner scoped
+  users dracon-lfs-games-uploader (858561) and dracon-lfs-games-consumer (858562).
+  No shared user, existing policy or broad key was changed.
+- Policy submission initially refused (HTTP 400): official guide documents
+  GetObjectVersionAttributes but the live validator rejects it. Policy generator
+  `scripts/ovh-private-policy.py` records the live supported action set instead.
+  Corrected submission timed out; acceptance is UNKNOWN, not success. GET export
+  also remained pending amid Chrome CDP detach/tab disappearance. Before retrying
+  any mutation, inspect those two users' current policies via GET.
+- S3 credentials have NOT been minted/captured. No new encrypted recovery files
+  exist yet. Synthetic warden clean/smudge succeeds and uses encrypted markers,
+  but that is not actual credential recovery evidence.
+- Secure one-time capture helper `scripts/ovh-scoped-credential-capture.mjs`
+  uses browser RSA-OAEP ciphertext to loopback, then warden encryption verification,
+  local + master decrypt comparison, explicit encrypted staging and 0600 runtime
+  materialization. It never returns/logs credentials. It is not yet live-qualified.
+- Live transfer, fresh build, daemon integration and Rust workspace gates remain
+  outstanding. No pilot manifest has been switched or automation enabled.
 
 Commands:
 ```
 timeout 90 node --test web/scripts/bucket-asset-transfer.test.mjs
- timeout 90 bun test web/scripts/bucket-strategy-manifest.test.mjs web/scripts/bucket-strategy.test.mjs
+timeout 90 bun test web/scripts/bucket-strategy-manifest.test.mjs web/scripts/bucket-strategy.test.mjs
 ```
 Run these from dracon-platform. Live/provisioning and daemon commands will be
 recorded only after actual execution; no test proof is inferred from plans.
