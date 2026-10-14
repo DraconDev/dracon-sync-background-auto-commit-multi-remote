@@ -1,0 +1,19 @@
+{
+  "method": "git archive HEAD | tar -x into an empty directory (no worktree, no .bucket-cache, no prior materialized asset, no original machine cache). The repo's declared web/node_modules dependency tree was linked so module resolution works; no asset cache was linked.",
+  "pilot": {
+    "repository": "dracon-platform",
+    "manifest": "web/config/bucket-manifests/games-private.json",
+    "assetRoot": "web/games",
+    "asset": "static/favicon.png",
+    "bucket": "dracon-lfs",
+    "namespace": "games",
+    "sha256": "7884ac7225df090731d8a00b56b6de69cb34cc1fe8763b8aeb15132f810664d7",
+    "bytes": 103
+  },
+  "restore": {"ok": true, "byteIdentical": true, "bytes": 103},
+  "documentedAssetCheck": {
+    "command": "node web/games/scripts/audit-favicons.mjs",
+    "passing": "6/6 favicons OK",
+    "negativeControl": "5 favicon(s) failed audit after removing the bucket-restored asset, 6/6 OK after restoring it"
+  }
+}
