@@ -175,6 +175,7 @@ pub(crate) async fn prepare(
     {
         bail!("invalid private bucket routing threshold");
     }
+    let mut verified_digest = None;
     if !dry_run {
         let mut command = tokio::process::Command::new("node");
         command
@@ -194,8 +195,19 @@ pub(crate) async fn prepare(
         if verdict["ok"] != true {
             bail!("private workflow did not verify publication");
         }
+        let digest = verdict["manifestSha256"].as_str().context("workflow omitted upload-bound manifest digest")?;
+        if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+            bail!("invalid upload-bound manifest digest");
+        }
+        verified_digest = Some(digest.to_owned());
     }
     let bytes = std::fs::read(manifest)?;
+    if let Some(expected) = verified_digest {
+        use sha2::{Digest, Sha256};
+        if format!("{:x}", Sha256::digest(&bytes)) != expected {
+            bail!("manifest changed after upload verification; no commit permitted");
+        }
+    }
     let materialized_paths = parse_materialized(&bytes, &config.asset_root)?;
     Ok(Some(Prepared {
         manifest_path: PathBuf::from(config.manifest),
@@ -313,7 +325,9 @@ const manifest=JSON.parse(before), asset=manifest.assets[0], body=fs.readFileSyn
 const sha=crypto.createHash('sha256').update(body).digest('hex');
 fs.writeFileSync('.git/upload-verified',sha);
 if(asset.sha256!==sha || !asset.bucketed){asset.sha256=sha;asset.bytes=body.length;asset.bucketed=true;fs.writeFileSync('manifest.json',JSON.stringify(manifest));}
-console.log(JSON.stringify({ok:true}));
+const manifestSha256=crypto.createHash('sha256').update(fs.readFileSync('manifest.json')).digest('hex');
+if(fs.existsSync('.git/tamper-after-verification')){asset.sha256='f'.repeat(64);fs.writeFileSync('manifest.json',JSON.stringify(manifest));}
+console.log(JSON.stringify({ok:true,manifestSha256}));
 "#).unwrap();
         git(
             repo,
@@ -329,6 +343,15 @@ console.log(JSON.stringify({ok:true}));
         );
         git(repo, &["commit", "--no-verify", "-qm", "fixture baseline"]);
         dir
+    }
+
+    #[tokio::test]
+    async fn post_upload_capture_tampering_is_refused() {
+        let dir = fixture();
+        std::fs::write(dir.path().join(".git/tamper-after-verification"), "tamper").unwrap();
+        let error = prepare(dir.path(), false, 30).await.err().unwrap();
+        assert!(error.to_string().contains("changed after upload verification"));
+        assert_eq!(git(dir.path(), &["rev-list", "--count", "HEAD"]), b"1\n");
     }
 
     #[tokio::test]
