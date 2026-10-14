@@ -121,7 +121,7 @@ pub(crate) async fn prepare(repo: &Path, dry_run: bool, timeout_secs: u64) -> Re
 
 impl Prepared {
     pub(crate) async fn verify_staged(&self, repo: &Path, timeout_secs: u64) -> Result<()> {
-        let mut command = tokio::process::Command::from(crate::git::git_cmd());
+        let mut command = tokio::process::Command::from(crate::git::git_cmd().into_std());
         command.args(["show", &format!(":{}", self.manifest_path.to_string_lossy())]).current_dir(repo);
         let manifest = output(command, timeout_secs).await?;
         if !manifest.status.success() || manifest.stdout != self.verified_manifest {
