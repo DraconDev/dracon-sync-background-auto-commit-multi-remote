@@ -511,12 +511,39 @@ pub(crate) async fn push_with_retries(
 /// only its own warning, so `Possible plaintext secrets` is matched too. That
 /// omission is not theoretical — it is why the 2026-10-07 `pi-goal-list-loop-audit`
 /// wedge was reported as a transport failure.
+///
+/// ADDED 2026-10-14 (fleet-wide push-stuck triage, this session): the
+/// predicate was CASE-SENSITIVE, so every repo whose pre-push hook labels
+/// its own output with a capital `P` never matched and still reported
+/// `transport/auth failure (network, timeout, or credentials)`. The
+/// browser-extensions-shared warden hook (`scripts/git-hooks/pre-push`,
+/// installed via `core.hooksPath`) prints
+///
+///     🔍 Pre-push: 6 affected workspace(s) — running 4-gate (typecheck, build, test, lint).
+///     ❌ Pre-push: 4-gate FAILED for:
+///       - extensions/standalones/page-ninja/TEST (see /tmp/pre-push-…log)
+///
+/// Neither line contains lowercase `pre-push`, so a repo blocked by its own
+/// typecheck/build/test/lint gate was reported as a network or credential
+/// problem and burned the 5-failure stuck budget on it — the operator was sent
+/// to the network while the failing gate log sat on disk. Matching now runs on
+/// a lowercased copy, and the 4-gate verdict line is matched directly so the
+/// class is recognized even if a hook rewords its banner. The lowercased
+/// `pre-commit` arm is unchanged in meaning (git's own hook-echo is lowercase);
+/// server-side markers (`pre-receive`, `hook declined`) contain neither string
+/// and stay in the `is_permanent_push_rejection` arm, so the sets remain
+/// disjoint.
 pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
-    err_msg.contains("pre-push")
-        || err_msg.contains("pre-commit")
-        || err_msg.contains("dracon-warden:")
-        || err_msg.contains("dracon-warden hook")
-        || err_msg.contains("Possible plaintext secrets")
+    let lower = err_msg.to_lowercase();
+    lower.contains("pre-push")
+        || lower.contains("pre-commit")
+        || lower.contains("dracon-warden:")
+        || lower.contains("dracon-warden hook")
+        || lower.contains("possible plaintext secrets")
+        // A workspace gate refusal (typecheck / build / test / lint) is the
+        // same class: the bytes never left the machine.
+        || lower.contains("4-gate failed")
+        || lower.contains("pre-push:")
 }
 
 /// Check if an error message indicates a rejected push.
@@ -1388,6 +1415,34 @@ mod tests {
 
         let warden_history = "\u{274c} dracon-warden: refusing non-fast-forward push to refs/heads/main (history guard).\nerror: failed to push some refs to 'origin'";
         assert!(classify_push_failure(warden_history).contains("local pre-push hook"));
+    }
+
+    // ADDED 2026-10-14: a repo blocked by its OWN workspace gate
+    // (typecheck/build/test/lint) is a local policy decision. The verbatim
+    // strings come from the browser-extensions-shared warden hook
+    // (scripts/git-hooks/pre-push, installed via core.hooksPath), which
+    // labels its output with a capital `P`. The pre-2026-10-14 predicate was
+    // case-sensitive, so this exact push — stuck 22 commits ahead for hours —
+    // was reported as "transport/auth failure (network, timeout, or
+    // credentials)" and burned the 5-failure stuck budget.
+    #[test]
+    fn test_local_workspace_gate_refusal_is_not_transport_failure() {
+        let gate_msg = "push-to-github failed in /home/dracon/Dev/browser-extensions-shared with status exit status: 1: \u{1f50d} Pre-push: 6 affected workspace(s) — running 4-gate (typecheck, build, test, lint).\n  \u{25b8} extensions/standalones/page-ninja TEST\n\n\u{274c} Pre-push: 4-gate FAILED for:\n  - extensions/standalones/page-ninja/TEST (see /tmp/pre-push-extensions_standalones_page-ninja-TEST.log)";
+        assert!(
+            is_local_hook_rejection(gate_msg),
+            "a 4-gate refusal must be recognized as a local policy decision"
+        );
+        let class = classify_push_failure(gate_msg);
+        assert!(class.contains("local pre-push hook"), "got: {}", class);
+        assert!(
+            !class.contains("transport/auth"),
+            "a workspace-gate refusal must never be reported as transport: {}",
+            class
+        );
+
+        // Capital-P banner only (no verdict line) still classifies.
+        let banner_only = "git push failed with status exit status: 1: Pre-push: 3 affected workspace(s)";
+        assert!(classify_push_failure(banner_only).contains("local pre-push hook"));
     }
 
     #[test]
