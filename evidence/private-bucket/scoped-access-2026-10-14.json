@@ -1,0 +1,85 @@
+{
+  "ok": true,
+  "bucket": "dracon-lfs",
+  "key": "games/_qualification/5fc346b8-63db-47a3-926b-abb2f0d185be.txt",
+  "results": [
+    {
+      "name": "uploader-put-consumer-head-get",
+      "passed": true,
+      "bytes": 53,
+      "sha256": "479cd0f89ea76f4b8dacadf9eb115c66c718002180412b020db389386b618e90"
+    },
+    {
+      "name": "consumer-prefix-list",
+      "passed": true
+    },
+    {
+      "name": "anonymous-get-refused",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "name": "consumer-put-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "consumer-delete-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "uploader-delete-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "uploader-list-all-buckets-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "uploader-outside-prefix-write-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "uploader-outside-bucket-write-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "consumer-list-all-buckets-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "consumer-outside-prefix-write-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "consumer-outside-bucket-write-refused",
+      "passed": true,
+      "status": 403,
+      "code": "AccessDenied"
+    },
+    {
+      "name": "seeded-canary-retained-after-delete-probes",
+      "passed": true,
+      "sha256": "479cd0f89ea76f4b8dacadf9eb115c66c718002180412b020db389386b618e90"
+    },
+    {
+      "name": "refused-consumer-put-left-no-object",
+      "passed": true
+    }
+  ]
+}
