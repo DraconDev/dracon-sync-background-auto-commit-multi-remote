@@ -11,3 +11,12 @@
     Checking rustls-webpki v0.103.15
     Checking tokio-native-tls v0.3.1
     Checking hyper-tls v0.6.0
+    Checking git2 v0.21.0
+    Checking tokio-rustls v0.26.5
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.12.28
+    Checking dracon-system-lib v94.2.7
+    Checking dracon-git v94.7.2
+    Checking dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Checking dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 50.02s
