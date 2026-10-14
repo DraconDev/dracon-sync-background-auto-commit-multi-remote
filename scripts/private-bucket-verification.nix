@@ -2,7 +2,7 @@
 # Run from the utilities workspace with all nested utility checkouts present.
 { pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
-  nativeBuildInputs = with pkgs; [ pkg-config nodejs git openssh util-linux python3 age ];
+  nativeBuildInputs = with pkgs; [ pkg-config nodejs git openssh util-linux procps python3 age ];
   buildInputs = [ pkgs.openssl ];
   OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
   OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
