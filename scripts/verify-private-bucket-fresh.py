@@ -20,9 +20,20 @@ def git(repo, *args):
                           check=True, timeout=120).stdout
 
 
+OMITTED_LINKS = []
+
+
 def extract(data, target):
+    def portable(member, destination):
+        try:
+            return tarfile.data_filter(member, destination)
+        except (tarfile.AbsoluteLinkError, tarfile.LinkOutsideDestinationError):
+            # Machine-local Nix result links are not source/dependencies and
+            # must not reconnect this checkout to the original machine cache.
+            OMITTED_LINKS.append(member.name)
+            return None
     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
-        archive.extractall(target, filter='data')
+        archive.extractall(target, filter=portable)
 
 
 def main():
@@ -78,6 +89,7 @@ def main():
     run('games-build', ['bun', 'run', '--filter', 'games', 'build'], fresh / 'web', 300)
     result = {'ok': True, 'parentRevision': revision, 'workspaceMetadataRevisions': metadata,
               'isolatedDirectory': str(fresh), 'originalDependencyOrAssetCacheUsed': False,
+              'omittedNonportableLinks': OMITTED_LINKS,
               'restoredAssets': identities, 'buildCommand': 'bun run --filter games build', 'buildExitCode': 0}
     (evidence / 'fresh-build.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
