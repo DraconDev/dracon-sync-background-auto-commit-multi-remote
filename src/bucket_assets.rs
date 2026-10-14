@@ -117,18 +117,33 @@ async fn output(
         .context("private bucket workflow process failed")
 }
 
+/// Candidate locations, in order. A TRACKED root config keeps the pilot
+/// reproducible from a fresh checkout; the ignored `.dracon/` path stays an
+/// operator-local override. Neither exists by default.
+const CONFIG_CANDIDATES: [&str; 2] = ["bucket-assets.json", ".dracon/bucket-assets.json"];
+
+fn discover_config(repo: &Path) -> Result<Option<PathBuf>> {
+    for relative in CONFIG_CANDIDATES {
+        match regular_in_repo(repo, relative) {
+            Ok(path) => return Ok(Some(path)),
+            Err(error)
+                if error
+                    .downcast_ref::<std::io::Error>()
+                    .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(None)
+}
+
 pub(crate) async fn prepare(
     repo: &Path,
     dry_run: bool,
     timeout_secs: u64,
 ) -> Result<Option<Prepared>> {
-    let config_path = repo.join(".dracon/bucket-assets.json");
-    match std::fs::symlink_metadata(&config_path) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error.into()),
-        Ok(_) => {}
-    }
-    let config_path = regular_in_repo(repo, ".dracon/bucket-assets.json")?;
+    let Some(config_path) = discover_config(repo)? else {
+        return Ok(None);
+    };
     let config: Config = serde_json::from_slice(&std::fs::read(&config_path)?)
         .context("invalid private bucket workflow configuration")?;
     if config.schema_version != 1 {
@@ -250,6 +265,14 @@ mod tests {
         std::fs::create_dir(dir.path().join(".dracon")).unwrap();
         std::fs::write(dir.path().join(".dracon/bucket-assets.json"), br#"{"schemaVersion":1,"enabled":false,"manifest":"not-present","assetRoot":".","workflowScript":"not-present"}"#).unwrap();
         assert!(prepare(dir.path(), false, 1).await.unwrap().is_none());
+        // A TRACKED root opt-in is discovered, and unsafe manifests/roots are
+        // refused before any workflow child process is spawned.
+        std::fs::write(
+            dir.path().join("bucket-assets.json"),
+            br#"{"schemaVersion":1,"enabled":true,"manifest":"../outside.json","assetRoot":"..","workflowScript":"../outside.mjs"}"#,
+        )
+        .unwrap();
+        assert!(prepare(dir.path(), false, 5).await.is_err());
     }
 
     fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
