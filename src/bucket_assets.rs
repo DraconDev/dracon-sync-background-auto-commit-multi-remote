@@ -354,7 +354,11 @@ trusted_authors = ["DraconDev"]
         let result =
             crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await;
         assert!(result.is_ok(), "daemon fixture failed: {result:?}");
-        assert_eq!(count(repo), 2, "verified reference must be exactly one commit");
+        assert_eq!(
+            count(repo),
+            2,
+            "verified reference must be exactly one commit"
+        );
         assert!(repo.join(".git/upload-verified").exists());
         assert_eq!(
             git(repo, &["show", "HEAD:static/a.png"]),
