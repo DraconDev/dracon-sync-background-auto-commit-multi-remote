@@ -1,0 +1,106 @@
+{
+  "ok": true,
+  "configurationCommit": "23729bac26a03ad3192be6ea6e652cf51ecfb0c5",
+  "recovery": {
+    "uploader": {
+      "headEncrypted": true,
+      "localRecovery": true,
+      "masterRecovery": true,
+      "trackedPlaintext": false,
+      "blob": "57d7f517ebe77b37098c4e6b1ced3bf81fd110e5"
+    },
+    "consumer": {
+      "headEncrypted": true,
+      "localRecovery": true,
+      "masterRecovery": true,
+      "trackedPlaintext": false,
+      "blob": "d7f7e4c5b2b236b3219c3c43f99646b47b1f842e"
+    }
+  },
+  "recoveredKeyCloudVerification": {
+    "ok": true,
+    "bucket": "dracon-lfs",
+    "key": "games/_qualification/c883235e-eab4-47f6-936f-f7792b0f54d0.txt",
+    "results": [
+      {
+        "name": "uploader-put-consumer-head-get",
+        "passed": true,
+        "bytes": 53,
+        "sha256": "479cd0f89ea76f4b8dacadf9eb115c66c718002180412b020db389386b618e90"
+      },
+      {
+        "name": "consumer-prefix-list",
+        "passed": true
+      },
+      {
+        "name": "anonymous-get-refused",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "consumer-put-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "consumer-delete-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "uploader-delete-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "uploader-list-all-buckets-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "uploader-outside-prefix-write-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "uploader-outside-bucket-write-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "consumer-list-all-buckets-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "consumer-outside-prefix-write-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "consumer-outside-bucket-write-refused",
+        "passed": true,
+        "status": 403,
+        "code": "AccessDenied"
+      },
+      {
+        "name": "seeded-canary-retained-after-delete-probes",
+        "passed": true,
+        "sha256": "479cd0f89ea76f4b8dacadf9eb115c66c718002180412b020db389386b618e90"
+      },
+      {
+        "name": "refused-consumer-put-left-no-object",
+        "passed": true
+      }
+    ]
+  },
+  "offBoxCustodyVerified": false
+}
