@@ -14,3 +14,135 @@ games build:   "extends": "./.svelte-kit/tsconfig.json"
 games build: }
 games build: vite v6.4.4 building for production...
 games build: transforming...
+games build: ✓ 239 modules transformed.
+games build: rendering chunks...
+games build: computing gzip size...
+games build: .svelte-kit/output/client/app/version.json                                0.03 kB │ gzip:  0.05 kB
+games build: .svelte-kit/output/client/.vite/manifest.json                             8.62 kB │ gzip:  1.31 kB
+games build: .svelte-kit/output/client/app/immutable/assets/5.BqjZ2JJI.css             1.25 kB │ gzip:  0.50 kB
+games build: .svelte-kit/output/client/app/immutable/assets/1.Do1bjbuV.css             1.43 kB │ gzip:  0.59 kB
+games build: .svelte-kit/output/client/app/immutable/assets/4.1LJqQCpz.css             1.80 kB │ gzip:  0.63 kB
+games build: .svelte-kit/output/client/app/immutable/assets/GameCard.DYoTV12C.css      2.52 kB │ gzip:  0.87 kB
+games build: .svelte-kit/output/client/app/immutable/assets/6.D6cK52n1.css             3.68 kB │ gzip:  1.10 kB
+games build: .svelte-kit/output/client/app/immutable/assets/base.B04xDVS_.css          4.44 kB │ gzip:  1.51 kB
+games build: .svelte-kit/output/client/app/immutable/assets/2.DXguXxSp.css             5.67 kB │ gzip:  1.54 kB
+games build: .svelte-kit/output/client/app/immutable/assets/3.CiRgZklS.css             6.32 kB │ gzip:  1.42 kB
+games build: .svelte-kit/output/client/app/immutable/assets/games-store.BayOl7lA.css  17.13 kB │ gzip:  3.54 kB
+games build: .svelte-kit/output/client/app/immutable/entry/start.T34YHlFh.js           0.12 kB │ gzip:  0.11 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/B0XwC4Ot.js                0.15 kB │ gzip:  0.15 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/C2VeIvb1.js                0.22 kB │ gzip:  0.16 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/DzPd0crM.js                0.31 kB │ gzip:  0.17 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/CJHACL9K.js                0.31 kB │ gzip:  0.23 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/qeQHDq8z.js                0.47 kB │ gzip:  0.32 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/CZaf2BqU.js                0.47 kB │ gzip:  0.31 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/CM4j_O3a.js                0.49 kB │ gzip:  0.32 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/-UyI9lYi.js                0.51 kB │ gzip:  0.30 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/KOQKcrPA.js                1.01 kB │ gzip:  0.59 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/_wYl6sm7.js                1.25 kB │ gzip:  0.54 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/wbPk3Yxo.js                1.37 kB │ gzip:  0.66 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/1.BuKlARkR.js               1.79 kB │ gzip:  0.88 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/Bm-kKean.js                1.86 kB │ gzip:  0.94 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/Ti-P0m_r.js                2.47 kB │ gzip:  1.19 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/BwhESvmA.js                2.68 kB │ gzip:  1.24 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/5.Dr3IwDeD.js               3.38 kB │ gzip:  1.63 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/6.CZCu11QZ.js               3.68 kB │ gzip:  1.57 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/C7ti58s4.js                4.56 kB │ gzip:  2.10 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/0.Dis4swWe.js               5.05 kB │ gzip:  2.46 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/BRGg4Fe3.js                7.28 kB │ gzip:  3.30 kB
+games build: .svelte-kit/output/client/app/immutable/entry/app.CnNvoX6Y.js             7.53 kB │ gzip:  3.35 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/reagOTAQ.js               11.75 kB │ gzip:  4.06 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/3.mTmRbNxD.js              11.86 kB │ gzip:  3.97 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/4.BIy11_G-.js              12.34 kB │ gzip:  4.58 kB
+games build: .svelte-kit/output/client/app/immutable/nodes/2.7ByUBfJj.js              12.85 kB │ gzip:  5.05 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/BikXF7It.js               29.47 kB │ gzip: 10.24 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/Dyeyr8Oe.js               31.10 kB │ gzip: 11.83 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/DyuAHu91.js               38.51 kB │ gzip: 14.43 kB
+games build: .svelte-kit/output/client/app/immutable/chunks/BtCXnaIP.js               49.66 kB │ gzip: 15.52 kB
+games build: ✓ built in 2.04s
+games build: Your tsconfig.json should extend the configuration generated by SvelteKit:
+games build: .svelte-kit/output/server/.vite/manifest.json                                 8.58 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_page.BqjZ2JJI.css             1.25 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_error.Do1bjbuV.css            1.43 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_page.BSGCTQu9.css             1.71 kB
+games build: .svelte-kit/output/server/app/immutable/assets/GameCard.DmxwoH0w.css          2.50 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_page.D6cK52n1.css             3.68 kB
+games build: .svelte-kit/output/server/app/immutable/assets/index.B04xDVS_.css             4.44 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_page.Bfpri1WU.css             5.59 kB
+games build: .svelte-kit/output/server/app/immutable/assets/_page.CiRgZklS.css             6.32 kB
+games build: .svelte-kit/output/server/app/immutable/assets/use-auth-state.BYQJ80Qs.css   17.05 kB
+games build: .svelte-kit/output/server/entries/pages/games/placeholder/_page.ts.js         0.05 kB
+games build: .svelte-kit/output/server/entries/pages/_layout.ts.js                         0.07 kB
+games build: .svelte-kit/output/server/chunks/site-origin.js                               0.18 kB
+games build: .svelte-kit/output/server/chunks/index-server.js                              0.18 kB
+games build: .svelte-kit/output/server/env.js                                              0.23 kB
+games build: .svelte-kit/output/server/internal.js                                         0.35 kB
+games build: .svelte-kit/output/server/chunks/_status-label.js                             0.44 kB
+games build: .svelte-kit/output/server/chunks/state.svelte.js                              0.45 kB
+games build: .svelte-kit/output/server/chunks/server.js                                    0.62 kB
+games build: .svelte-kit/output/server/entries/pages/games/_slug_/_page.server.ts.js       0.63 kB
+games build: .svelte-kit/output/server/entries/pages/games/_slug_/play/_page.ts.js         0.64 kB
+games build: .svelte-kit/output/server/chunks/index2.js                                    0.78 kB
+games build: .svelte-kit/output/server/entries/endpoints/robots.txt/_server.ts.js          0.81 kB
+games build: .svelte-kit/output/server/chunks/utils.js                                     1.09 kB
+games build: .svelte-kit/output/server/entries/endpoints/sitemap.xml/_server.ts.js         1.62 kB
+games build: .svelte-kit/output/server/entries/pages/_error.svelte.js                      1.97 kB
+games build: .svelte-kit/output/server/chunks/hosting.js                                   2.19 kB
+games build: .svelte-kit/output/server/chunks/GameCard.js                                  2.33 kB
+games build: .svelte-kit/output/server/chunks/core.js                                      2.89 kB
+games build: .svelte-kit/output/server/entries/pages/games/_slug_/play/_page.svelte.js     2.95 kB
+games build: .svelte-kit/output/server/entries/pages/games/placeholder/_page.svelte.js     3.47 kB
+games build: .svelte-kit/output/server/chunks/internal.js                                  4.32 kB
+games build: .svelte-kit/output/server/entries/pages/games/saved/_page.svelte.js           4.56 kB
+games build: .svelte-kit/output/server/chunks/exports.js                                   5.54 kB
+games build: .svelte-kit/output/server/chunks/games-store.svelte.js                        8.27 kB
+games build: .svelte-kit/output/server/entries/pages/games/_page.svelte.js                11.64 kB
+games build: .svelte-kit/output/server/entries/pages/_layout.svelte.js                    12.42 kB
+games build: .svelte-kit/output/server/entries/pages/games/_slug_/_page.svelte.js         12.77 kB
+games build: .svelte-kit/output/server/chunks/use-auth-state.svelte.js                    25.99 kB
+games build: .svelte-kit/output/server/chunks/utils2.js                                   34.21 kB
+games build: .svelte-kit/output/server/remote-entry.js                                    36.81 kB
+games build: .svelte-kit/output/server/chunks/index.js                                    44.35 kB
+games build: .svelte-kit/output/server/chunks/catalog.js                                  52.30 kB
+games build: .svelte-kit/output/server/chunks/root.js                                     90.51 kB
+games build: .svelte-kit/output/server/index.js                                          132.25 kB
+games build: ✓ built in 6.85s
+games build: 
+games build: Run npm run preview to preview your production build locally.
+games build: 
+games build: > Using @sveltejs/adapter-static
+games build: {
+games build:   "extends": "./.svelte-kit/tsconfig.json"
+games build: }
+games build: 
+games build: [1;31m[404] GET /[0m
+games build:   404 / (linked from /games)
+games build: 
+games build: [1;31m[404] GET /products[0m
+games build:   404 /products (linked from /games)
+games build: 
+games build: [1;31m[404] GET /music[0m
+games build:   404 /music (linked from /games)
+games build: 
+games build: [1;31m[404] GET /books[0m
+games build:   404 /books (linked from /games)
+games build: 
+games build: [1;31m[404] GET /pricing[0m
+games build:   404 /pricing (linked from /games)
+games build: 
+games build: [1;31m[404] GET /ai-hub[0m
+games build:   404 /ai-hub (linked from /games)
+games build: 
+games build: [1;31m[404] GET /chat[0m
+games build:   404 /chat (linked from /games)
+games build: 
+games build: [1;31m[404] GET /studio[0m
+games build:   404 /studio (linked from /games)
+games build: 
+games build: [1;31m[404] GET /tools[0m
+games build:   404 /tools (linked from /games)
+games build: 
+games build: [1;31m[404] GET /dashboard/overview[0m
+games build:   404 /dashboard/overview (linked from /games)
+games build:   Wrote site to "build"
+games build:   ✔ done
+games build: Exited with code 0

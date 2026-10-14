@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "parentRevision": "96aedbb8607fbd26b954736f03b247dbb3673306",
+  "workspaceMetadataRevisions": {
+    "games/released/one-mil-girls": "cb939e50211c33341ab1152b96d20f4da910043e",
+    "games/wip/capture-anime-girls": "8a9461fa805e0f172102bf570fb2c911ced38e43",
+    "games/wip/darklord": "dfd367384d6d95bc85ff832af37b97b78566af4b",
+    "games/wip/deathrun": "a0affc5a2d3bdb76b6b15fed506eca141c7fa34c",
+    "games/wip/doomtap": "4170bba4eca50c0786792cec4a73679df384fe1a",
+    "games/wip/endless-td": "3fe2167a7f91b179d6b094dd28bb67f99a7ea9fa",
+    "games/wip/hegemon": "90db0ebd8fe2f5c19d491b2869f6dd20508b6e9c",
+    "games/wip/hellhunter": "f36c18a1ff10be8f37c10349f984a97ca4205825",
+    "games/wip/junk-runner": "f3efd871287a710f249f1199c121420516b40bab",
+    "games/wip/neonbreak": "97b745fd92766533e8f1de28caecbe05a06064cf",
+    "games/wip/polis": "2229471f13b748a5420851a0fa91c50b95639ba4",
+    "games/wip/football-forever": "79495df78fd37e8c9a78035a8dc70f93bd792d95",
+    "games/wip/freeport": "9aebef4d657081a3733fce740965d7cfd11bc698",
+    "games/wip/space-trucker": "8a3cd9050db0f67dc13eba04c31f08502e453e84",
+    "games/released/come-get-me": "9583a04318ffece2fa5b09df2287734f7bab6f5e"
+  },
+  "isolatedDirectory": "/tmp/private-bucket-fresh-cagtfkf4",
+  "originalDependencyOrAssetCacheUsed": false,
+  "omittedNonportableLinks": [
+    "result"
+  ],
+  "restoredAssets": [
+    {
+      "sourcePath": "static/favicon.png",
+      "sha256": "7884ac7225df090731d8a00b56b6de69cb34cc1fe8763b8aeb15132f810664d7",
+      "bytes": 103
+    }
+  ],
+  "buildCommand": "bun run --filter games build",
+  "buildExitCode": 0
+}
