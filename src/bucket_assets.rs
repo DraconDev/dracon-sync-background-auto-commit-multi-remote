@@ -251,4 +251,94 @@ mod tests {
         std::fs::write(dir.path().join(".dracon/bucket-assets.json"), br#"{"schemaVersion":1,"enabled":false,"manifest":"not-present","assetRoot":".","workflowScript":"not-present"}"#).unwrap();
         assert!(prepare(dir.path(), false, 1).await.unwrap().is_none());
     }
+
+    fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
+        let output = crate::git::git_cmd().args(args).current_dir(repo).output().unwrap();
+        assert!(output.status.success(), "fixture git operation failed");
+        output.stdout
+    }
+
+    fn fixture() -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        git(repo, &["init", "-q", "-b", "main"]);
+        git(repo, &["config", "user.name", "DraconDev"]);
+        git(repo, &["config", "user.email", "dracsharp@gmail.com"]);
+        std::fs::create_dir(repo.join(".dracon")).unwrap();
+        std::fs::create_dir(repo.join("static")).unwrap();
+        std::fs::write(repo.join("static/a.png"), "old tracked baseline").unwrap();
+        std::fs::write(repo.join(".gitignore"), "/.bucket-cache/\n").unwrap();
+        std::fs::write(repo.join("manifest.json"), br#"{"schemaVersion":1,"bucket":"dracon-lfs","repository":"games","namespace":"games","assets":[{"id":"fixture","sourcePath":"static/a.png","logicalPath":"brand/a.png","objectKey":"games/{sha256}.{ext}","sha256":"0000000000000000000000000000000000000000000000000000000000000000","bytes":20,"visibility":"private","regenerable":true,"generator":{"command":"node generate.mjs","inputs":[]}}]}"#).unwrap();
+        std::fs::write(repo.join(".dracon/bucket-assets.json"), br#"{"schemaVersion":1,"enabled":true,"manifest":"manifest.json","assetRoot":".","workflowScript":"workflow.mjs","uploaderCredentials":"/synthetic/uploader.env","consumerCredentials":"/synthetic/consumer.env"}"#).unwrap();
+        // Controlled fake storage layer. The actual daemon staging/commit path
+        // remains real; live SDK/storage qualification is a separate gate.
+        std::fs::write(repo.join("workflow.mjs"), r#"import fs from 'node:fs';
+import crypto from 'node:crypto';
+if(fs.existsSync('.git/refuse-upload')) process.exit(1);
+const before=fs.readFileSync('manifest.json','utf8');
+const manifest=JSON.parse(before), asset=manifest.assets[0], body=fs.readFileSync(asset.sourcePath);
+const sha=crypto.createHash('sha256').update(body).digest('hex');
+fs.writeFileSync('.git/upload-verified',sha);
+if(asset.sha256!==sha || !asset.bucketed){asset.sha256=sha;asset.bytes=body.length;asset.bucketed=true;fs.writeFileSync('manifest.json',JSON.stringify(manifest));}
+console.log(JSON.stringify({ok:true}));
+"#).unwrap();
+        git(repo, &["add", "--", ".gitignore", ".dracon/bucket-assets.json", "workflow.mjs", "manifest.json", "static/a.png"]);
+        git(repo, &["commit", "--no-verify", "-qm", "fixture baseline"]);
+        dir
+    }
+
+    #[tokio::test]
+    async fn staged_reference_drift_and_raw_materialization_are_refused() {
+        let dir = fixture();
+        let repo = dir.path();
+        let prepared = prepare(repo, false, 30).await.unwrap().unwrap();
+        git(repo, &["add", "--", "manifest.json"]);
+        prepared.verify_staged(repo, 10).await.unwrap();
+        std::fs::write(repo.join("static/a.png"), "changed raw asset").unwrap();
+        git(repo, &["add", "--", "static/a.png"]);
+        assert!(prepared.verify_staged(repo, 10).await.is_err());
+        git(repo, &["restore", "--staged", "--", "static/a.png"]);
+        std::fs::write(repo.join("manifest.json"), "{}").unwrap();
+        git(repo, &["add", "--", "manifest.json"]);
+        assert!(prepared.verify_staged(repo, 10).await.is_err());
+        assert_eq!(std::fs::read_to_string(repo.join("static/a.png")).unwrap(), "changed raw asset");
+    }
+
+    #[tokio::test]
+    async fn daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure() {
+        let dir = fixture();
+        let repo = dir.path();
+        let policy: crate::policy::SyncPolicy = toml::from_str(r#"
+auto_github_private = false
+auto_commit = true
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#).unwrap();
+        let count = |repo: &Path| String::from_utf8(git(repo, &["rev-list", "--count", "HEAD"])).unwrap().trim().parse::<usize>().unwrap();
+        std::fs::write(repo.join("static/a.png"), "first generated version").unwrap();
+        let result = crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await;
+        assert!(result.is_ok(), "daemon fixture failed: {result:?}");
+        assert_eq!(count(repo), 2);
+        assert!(repo.join(".git/upload-verified").exists());
+        assert_eq!(git(repo, &["show", "HEAD:static/a.png"]), b"old tracked baseline");
+        let manifest: serde_json::Value = serde_json::from_slice(&git(repo, &["show", "HEAD:manifest.json"])).unwrap();
+        assert_eq!(manifest["assets"][0]["sha256"].as_str().unwrap(), std::fs::read_to_string(repo.join(".git/upload-verified")).unwrap());
+        // Materialization is still modified against its old baseline, but a
+        // second daemon pass must not create another blob/reference commit.
+        crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await.unwrap();
+        assert_eq!(count(repo), 2);
+        std::fs::write(repo.join("static/a.png"), "next generated version").unwrap();
+        std::fs::write(repo.join(".git/refuse-upload"), "mock storage outage").unwrap();
+        let result = crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await.unwrap();
+        assert!(matches!(result, crate::sync::SyncOutcome::Blocked));
+        assert_eq!(count(repo), 2);
+        assert_eq!(std::fs::read_to_string(repo.join("static/a.png")).unwrap(), "next generated version");
+        std::fs::remove_file(repo.join(".git/refuse-upload")).unwrap();
+        crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await.unwrap();
+        assert_eq!(count(repo), 3);
+        assert_eq!(git(repo, &["show", "HEAD:static/a.png"]), b"old tracked baseline");
+    }
 }
