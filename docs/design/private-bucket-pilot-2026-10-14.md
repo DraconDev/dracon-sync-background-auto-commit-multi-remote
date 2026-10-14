@@ -73,10 +73,12 @@ tracked files. Off-box recipient custody must be reported accurately.
 
 ## Current evidence (not deployment acceptance)
 
-- New private transfer/routing/scoped-credential tests: ten node:test cases pass
+- New private transfer/routing/workflow/scoped-credential tests: twelve node:test cases pass
   (routing including historical pressure, private schema, path/symlink rejection,
   independent-cache restore, size/hash mismatch, interrupted downloads/uploads,
-  retries, concurrent publication/restores, source drift, and credential isolation).
+  retries, concurrent publication/restores, source drift, immutable-object retention,
+  unchanged-reference no-rewrite behavior, offline workflow/cache misses,
+  disabled opt-in, and credential isolation).
 - Operational CLI: `bucket-private-workflow.mjs upload|restore CONFIG REPO [--offline]`.
   Configuration selects existing manifest/asset root and absolute scoped credential
   locations, schemaVersion=1, enabled=false by default until qualification; it is
@@ -103,6 +105,8 @@ tracked files. Off-box recipient custody must be reported accurately.
   uses browser RSA-OAEP ciphertext to loopback, then warden encryption verification,
   local + master decrypt comparison, explicit encrypted staging and 0600 runtime
   materialization. It never returns/logs credentials. It is not yet live-qualified.
+  The owned one-time capture process was stopped after Chrome/API timeouts;
+  neither credential file exists. Restart only when policy GET verification succeeds.
 - Live transfer, fresh build, daemon integration and Rust workspace gates remain
   outstanding. No pilot manifest has been switched or automation enabled.
 
