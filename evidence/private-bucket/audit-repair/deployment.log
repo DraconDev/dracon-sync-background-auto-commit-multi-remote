@@ -1,0 +1,4 @@
+ActiveState=active
+MainPID=1340984
+bb65382c51e2164f0913050c3c6339093b960e0cedbf672e8dea5740275eb562  target/release/dracon-sync
+bb65382c51e2164f0913050c3c6339093b960e0cedbf672e8dea5740275eb562  /home/dracon/.local/bin/dracon-sync
