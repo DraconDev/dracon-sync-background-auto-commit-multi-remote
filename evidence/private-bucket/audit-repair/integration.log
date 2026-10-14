@@ -1,34 +1,6 @@
-error: rustc 1.86.0 is not supported by the following packages:
-  dracon-sync@0.113.95 requires rustc 1.89
-  dracon-sync@0.113.95 requires rustc 1.89
-  dracon-sync@0.113.95 requires rustc 1.89
-  dracon-sync@0.113.95 requires rustc 1.89
-  dracon-sync@0.113.95 requires rustc 1.89
-  dracon-sync@0.113.95 requires rustc 1.89
-  encoding_rs@0.8.41 requires rustc 1.88
-  encoding_rs@0.8.41 requires rustc 1.88
-  encoding_rs@0.8.41 requires rustc 1.88
-  globset@0.4.20 requires rustc 1.88
-  icu_collections@2.3.0 requires rustc 1.88
-  icu_locale_core@2.3.0 requires rustc 1.88
-  icu_normalizer@2.3.0 requires rustc 1.88
-  icu_normalizer_data@2.3.0 requires rustc 1.88
-  icu_normalizer_data@2.3.0 requires rustc 1.88
-  icu_normalizer_data@2.3.0 requires rustc 1.88
-  icu_properties@2.3.0 requires rustc 1.88
-  icu_properties_data@2.3.0 requires rustc 1.88
-  icu_properties_data@2.3.0 requires rustc 1.88
-  icu_properties_data@2.3.0 requires rustc 1.88
-  icu_provider@2.3.1 requires rustc 1.88
-  notify-rust@4.18.0 requires rustc 1.89.0
-  zbus@5.19.0 requires rustc 1.87
-  zbus_macros@5.19.0 requires rustc 1.87
-  zbus_names@4.3.4 requires rustc 1.87
-  zbus_names@4.3.4 requires rustc 1.87
-  zcheapstr@1.1.0 requires rustc 1.87
-  zvariant@5.15.0 requires rustc 1.87
-  zvariant@5.15.0 requires rustc 1.87
-  zvariant_derive@5.15.0 requires rustc 1.87
-  zvariant_utils@4.2.0 requires rustc 1.87
-  zvariant_utils@4.2.0 requires rustc 1.87
-
+   Compiling openssl-sys v0.9.117
+   Compiling libz-sys v1.1.29
+   Compiling openssl v0.10.81
+   Compiling native-tls v0.2.18
+   Compiling libssh2-sys v0.3.3
+   Compiling libgit2-sys v0.18.8+1.9.7

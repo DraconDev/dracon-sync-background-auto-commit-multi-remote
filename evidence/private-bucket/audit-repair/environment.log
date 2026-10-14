@@ -1,5 +1,5 @@
-cargo 1.86.0 (adf9b6ad1 2025-02-28)
-rustc 1.86.0 (05f9846f8 2025-03-31) (built from a source tarball)
+cargo 1.97.1 (c980f4866 2026-06-30)
+rustc 1.97.1 (8bab26f4f 2026-07-14)
 v22.20.0
 /nix/store/lbmf09mml4llrvna9isqmy08f2k73ghd-util-linux-2.41.1-bin/bin/flock
 3.4.3
