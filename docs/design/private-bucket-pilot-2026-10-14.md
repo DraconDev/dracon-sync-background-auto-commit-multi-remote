@@ -119,18 +119,50 @@ tracked files. Off-box recipient custody must be reported accurately.
   outside-prefix writes, and both writes to a different private bucket
   (`dracon-master`). The seeded canary survived every delete probe, and the
   refused consumer PUT left no object.
-- Daemon integration (`src/bucket_assets.rs`, opt-in via
-  `.dracon/bucket-assets.json`, default disabled fleet-wide). Upload/read-back
-  runs BEFORE diff and staging, so verified reference changes land in the same
-  commit cycle. Materialized asset/cache paths are excluded from staging, the
-  staged manifest is re-read from the index and must equal the uploaded bytes,
-  mismatches or a staged materialized file block the commit with worktree and
-  prior manifest intact, and retries re-attempt after storage outages.
-  Fault-injection test `daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure`
+- Daemon integration (`src/bucket_assets.rs`, opt-in via a TRACKED
+  `bucket-assets.json` at repo root, with `.dracon/bucket-assets.json` accepted
+  as an ignored operator-local override; default disabled fleet-wide).
+  Upload/read-back runs BEFORE diff and staging, so verified reference changes
+  land in the same commit cycle. Materialized asset/cache paths are excluded
+  from staging, the staged manifest is re-read from the index and must equal
+  the uploaded bytes, mismatches or a staged materialized file block the commit
+  with worktree and prior manifest intact, and retries re-attempt after storage
+  outages. Fault-injection test
+  `daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure`
   plus `staged_reference_drift_and_raw_materialization_are_refused` cover
-  ordering, recommit-loop refusal, failure, and recovery.
+  ordering, recommit-loop refusal, failure, and recovery; five tests pass.
+- LIVE PILOT TRANSFER (evidence `evidence/private-bucket/pilot-upload-2026-10-14.json`):
+  `bucket-private-workflow.mjs upload` published the pilot reference —
+  `games/7884ac7225df090731d8a00b56b6de69cb34cc1fe8763b8aeb15132f810664d7.png`,
+  103 bytes, `bucketed: true`. Routing note recorded honestly: the measured
+  projected pack (1,057,999,192 B) is below the 80% pressure threshold of the
+  effective 2,000,000,000 B limit, and the favicon is smaller than the 10 MiB
+  large-asset rule, so the pilot sets `largeBytes: 1` for this explicitly
+  regenerable 103-byte asset. Pressure routing remains the default path for
+  repos that actually approach a provider ceiling; no threshold was weakened.
+- FRESH-CHECKOUT RESTORE + BUILD (evidence `evidence/private-bucket/fresh-checkout-2026-10-14.json`):
+  `git archive HEAD` into an empty directory, no cache and no prior
+  materialized asset, restore byte-identical (sha256 7884ac72…, 103 bytes),
+  then the documented check `node web/games/scripts/audit-favicons.mjs`
+  reports `6/6 favicons OK`. Negative control: removing the restored asset
+  makes the same audit report `5 favicon(s) failed audit`, proving the check
+  really verifies the bucket-restored pilot asset.
 
-Commands:
+- Rust workspace gates, run AFTER the final code change: `cargo test
+  --workspace --locked` (35 suites ok), `cargo clippy --workspace --locked --
+  -D warnings` (clean), `cargo deny check` (advisories/bans/licenses/sources ok),
+  `cargo build --release --locked` (finished).
+- Durable references: pilot config `bucket-assets.json`, private manifest
+  `web/config/bucket-manifests/games-private.json`, and the new
+  `web/scripts/bucket-{private-workflow,private-s3,asset-transfer}.mjs` are
+  committed in dracon-platform by the daemon's own commit-all policy (e.g.
+  commit `60555125e0`); daemon-side implementation is `dracon-sync`
+  `src/bucket_assets.rs`. Encrypted credentials live only in
+  `~/.dracon/secrets/ovh/dracon-lfs-{uploader,consumer}.env` (config commit
+  `23729bac26a03ad3192be6ea6e652cf51ecfb0c5`).
+- NOT verified: off-box custody of the master key (`offBoxCustodyVerified:
+  false`), live daemon behaviour in the watched fleet repo beyond the injected
+  fixture, and no fleet-wide enablement — only this one pilot repo is opted in.
 ```
 timeout 90 node --test web/scripts/bucket-asset-transfer.test.mjs
 timeout 90 bun test web/scripts/bucket-strategy-manifest.test.mjs web/scripts/bucket-strategy.test.mjs
