@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Emit reviewed OVH S3 user policies, not generic AWS IAM provisioning.
-Source: OVH S3 IAM guide supported-action table (2026-05-06).
+Source: OVH S3 IAM guide, corrected against live policy-validator schema
+2026-10-14: GetObjectVersionAttributes is documented but rejected;
+DeleteIntelligentTieringConfiguration and RestoreObject are accepted.
 Explicit deny is necessary because OVH may fall back to owner/ACL grants.
 These users MUST NOT own buckets or inherit broad ACL grants.
 """
@@ -9,10 +11,11 @@ import sys
 
 SUPPORTED = '''AbortMultipartUpload BypassGovernanceRetention CreateBucket
 DeleteBucket DeleteObject DeleteBucketTagging DeleteBucketWebsite DeleteObjectTagging
+DeleteIntelligentTieringConfiguration RestoreObject
 GetBucketAcl GetBucketCORS GetBucketLocation GetBucketLogging
 GetBucketObjectLockConfiguration GetBucketTagging GetBucketVersioning GetBucketWebsite
 GetEncryptionConfiguration GetIntelligentTieringConfiguration GetLifecycleConfiguration
-GetObject GetObjectAcl GetObjectAttributes GetObjectVersionAttributes GetObjectLegalHold
+GetObject GetObjectAcl GetObjectAttributes GetObjectLegalHold
 GetObjectRetention GetObjectTagging GetReplicationConfiguration ListAllMyBuckets
 ListBucket ListBucketMultipartUploads ListMultipartUploadParts ListBucketVersions
 PutBucketAcl PutBucketCORS PutBucketLogging PutBucketObjectLockConfiguration
