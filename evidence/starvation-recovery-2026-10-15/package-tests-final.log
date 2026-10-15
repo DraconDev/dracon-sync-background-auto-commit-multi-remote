@@ -1807,3 +1807,8 @@ test wrong_path_failed_job_and_foreign_repository_cannot_fall_back_to_raw ... ok
 test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 18.21s
 
    Doc-tests dracon_sync
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
