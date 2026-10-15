@@ -104,9 +104,17 @@ pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
 pub(super) fn label(row: &RepoReportRow) -> String {
     let current = classify(row);
     let (text, _) = status(row);
-    let mut label = if current == Current::Converged { "⚪ idle".to_owned() } else { text.to_owned() };
-    if row.ahead > 0 { label.push_str(&format!(" ({} ahead)", row.ahead)); }
-    if row.excluded_dirty > 0 && current != Current::Excluded { label.push_str(&format!(" · {} excl", row.excluded_dirty)); }
+    let mut label = if current == Current::Converged {
+        "⚪ idle".to_owned()
+    } else {
+        text.to_owned()
+    };
+    if row.ahead > 0 {
+        label.push_str(&format!(" ({} ahead)", row.ahead));
+    }
+    if row.excluded_dirty > 0 && current != Current::Excluded {
+        label.push_str(&format!(" · {} excl", row.excluded_dirty));
+    }
     label
 }
 pub(super) fn push(row: &RepoReportRow) -> (String, Color) {

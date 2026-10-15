@@ -180,7 +180,14 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
                 super::super::status_pair(&row).0.contains(visible),
                 "{name}"
             );
-            assert!(label(&row).contains(if expected == Current::Converged { "idle" } else { visible }), "{name}");
+            assert!(
+                label(&row).contains(if expected == Current::Converged {
+                    "idle"
+                } else {
+                    visible
+                }),
+                "{name}"
+            );
             assert!(push(&row).0.contains(if succeeded { "OK" } else { "FAIL" }));
             // JSON exposes the same typed current state as human output.
             row.health.current = classify(&row);

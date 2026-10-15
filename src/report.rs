@@ -2595,26 +2595,6 @@ impl StateCause {
         }
     }
 
-    /// Icon used in the human-readable table. The colour of the row is
-    /// picked separately by `cause_color`.
-    #[cfg(test)]
-    pub(crate) fn icon(&self) -> &'static str {
-        match self {
-            StateCause::Working => "🔄",
-            StateCause::Committing => "🟡",
-            StateCause::Pushing => "🟣",
-            StateCause::Synced => "🟢",
-            StateCause::Stalled => "🔴",
-            StateCause::Dirty => "🟠",
-            StateCause::Untracked => "⚪",
-            StateCause::Intentional => "🟣",
-            StateCause::Failed => "⛔",
-            StateCause::Idle => "⚪",
-            StateCause::Cold => "⚫",
-            StateCause::Healthy => "✅",
-            StateCause::Unowned { .. } => "🚫",
-        }
-    }
 }
 
 /// Compute the state_cause_label string. For most variants this
