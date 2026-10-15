@@ -121,6 +121,15 @@ weakened. Isolated and daemon-wide tests passed before the full final green
 run. The exact historical failure cannot retrospectively be proven from a
 deleted TempDir; the concrete marker race is repaired and old logs retained.
 
-Fresh-context reviewer rehearsal and its disposition are recorded separately
-when available. This report does not assert a live rollout or production fault
-injection; neither belongs to the harness contract.
+## Independent source review and replay
+
+The fresh-context reviewer found no source issues (`reviewer.md`); its role
+has no shell tools, so it explicitly did not claim independent execution.
+A separate command-capable, execution-only validator replayed exactly
+`timeout 320 bash scripts/verify-failure-recovery.sh`: exit 0, one scenario
+passed, zero failed, all four PASS summaries printed (`independent-replay.md`).
+The validator changed no source files. Both delegates have settled; their
+managed reports are copied into the evidence directory with attribution.
+
+This report does not assert a live rollout or production fault injection;
+neither belongs to the harness contract.
