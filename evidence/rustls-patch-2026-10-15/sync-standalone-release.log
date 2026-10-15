@@ -52,3 +52,8 @@
    Compiling autocfg v1.5.1
    Compiling litemap v0.8.3
    Compiling hashbrown v0.17.1
+   Compiling itoa v1.0.18
+   Compiling linux-raw-sys v0.12.1
+   Compiling indexmap v2.14.2
+   Compiling icu_locale_core v2.3.0
+   Compiling tokio v1.53.1
