@@ -1,0 +1,1737 @@
+diff --git a/README.md b/README.md
+index 44a56b5..c82a2c2 100644
+--- a/README.md
++++ b/README.md
+@@ -11,6 +11,15 @@ checked out as a nested standalone repo under `dracon-sync/` in the
+ [`dracon-utilities`](https://github.com/DraconDev/dracon-utilities)
+ parent repo — a regular nested repo, not a submodule.
+ 
++## Reading repository health
++
++`repos` separates the **last observed push result** from **current convergence**
++(queued, working, retrying, excluded, blocked, stalled, paused or unknown).
++Historical push success does not prove newer edits are published; unchanged idle
++repos remain clean. An upstream commit's age is not a push timestamp.
++See the [health legend and evidence rules](docs/design/current-health-2026-10-15.md)
++or run `dracon-sync repos --legend`.
++
+ ## Install
+ 
+ ```bash
+diff --git a/docs/design/current-health-2026-10-15.md b/docs/design/current-health-2026-10-15.md
+new file mode 100644
+index 0000000..e8018c2
+--- /dev/null
++++ b/docs/design/current-health-2026-10-15.md
+@@ -0,0 +1,124 @@
++# Repository health: history versus current convergence
++
++## Two independent axes
++
++`dracon-sync repos` now separates **PUSH** (the last observed daemon push
++result and its observation age) from **STATUS / ACTIVITY** (current convergence).
++A green historical push never means later edits are safely published. Conversely,
++an old failed push does not make an unchanged, currently converged repo unhealthy.
++
++`repos --legend` and the width-appropriate default legend explain the same rules.
++The shared classifier feeds vertical, compact, full, rich and summary output.
++JSON adds a typed `health` object; its `current` value is the same classifier used
++by human output. Existing raw `push_status` remains legacy dispatch metadata,
++NOT a last-result API. Existing `last_push` remains upstream commit age for
++compatibility; it was never a reliable push timestamp. The full table calls that
++field **REF AGE**, and detail calls it **upstream commit age**.
++
++## Current legend
++
++| Label | Evidence and meaning |
++| --- | --- |
++| CLEAN / idle | No eligible modified/staged/untracked files and no observed ahead/behind work. Old commits, old errors, and no scheduler record do not make this unhealthy |
++| EXCLUDED | Only policy-excluded dirt remains, ownership prevents daemon handling, or publication is explicitly isolated. These bytes are not claimed covered |
++| QUEUED | A reserved worker has not acquired local capacity, an inspection/provisioning handle lacks an execution-start stamp, or current filter-aware eligible work is awaiting admission without starvation evidence |
++| WORKING | A fresh scheduler observation shows a started, still-owned sync worker. This is started ownership evidence, not a per-operation progress heartbeat or proof of publication |
++| RETRYING | Owned cancellation is awaiting join, or a live scheduler retry/cooldown gate delays another attempt |
++| BLOCKED | A current guard/manual-intervention outcome, damaged history, pack guard or pull blocker prevents convergence |
++| STALLED | Current unpushed work exhausted its push budget, or continuously observed eligible dirt has neither a current worker/gate nor admission for at least 15 minutes |
++| PAUSED | Outstanding work while the daemon is frozen. Unchanged idle rows remain clean |
++| UNKNOWN | Outstanding work exists but fresh affirmative scheduler evidence is missing. Neither an old commit nor a stale snapshot proves a stall or active execution |
++
++Excluded counts remain visible alongside mixed eligible work. A stale historical
++warning cannot override a fresh started worker; a completed old push cannot
++override queued new edits. No operation heartbeat is invented, and reserve age
++is never called execution age or last progress.
++
++"Clean" is a local/current-upstream observation, NOT an all-mirror verification,
++bucket-durability guarantee, secret scan or proof that every storage gate will
++accept future edits. Deep checks can remain explicitly deferred as before.
++
++## Scheduler observations
++
++`daemon/scheduler_evidence.rs` writes a separate version-1 snapshot beside existing
++state files. Legacy in-flight and dispatch-hold files keep their existing writer
++formats; sticky old hold strings are not treated as authoritative current gates.
++The scheduler copies its owned maps once per completed cycle:
++
++- `SyncRecovery` distinguishes unset execution stamp (queued), acquired-and-started
++  worker (working), cancellation still owned (cancelling), and joined-error retry.
++  Observation does not release a reservation, abort a task or change admission.
++- Actual status/classification reservations establish inspecting metadata, but
++  render queued because pending handles cannot prove execution started. The same
++  conservative rule applies to provisioning jobs. Actual retry deadlines establish retrying. A known blocked outcome plus a cooldown remains
++  blocked, not a fabricated transient outage.
++- `dirty_secs` is the session's first continuously dirty observation, preserved
++  across fingerprint churn, not the age of the last commit or an asset mtime.
++- `eligible` is set only after effective filter-aware classification this cycle;
++  provisional raw dirt cannot establish starvation.
++- `admitted_secs` is time since reservation, not execution or successful progress.
++- Pause, initial/configuration-change discovery, and orderly shutdown publish
++  explicit modes. Empty valid snapshots are distinct from unavailable evidence.
++
++Consumers load one snapshot per report, reject missing/corrupt/unsupported,
++future-dated and older-than-30-second evidence, and never interpret an absent
++repository entry as an exclusion. A daemon crash can leave observations within
++that bounded freshness window; output describes the last observation, not an
++independent process heartbeat. Repos outside discovery policy are not added to
++reports merely to manufacture an excluded row.
++
++## Historical push observations
++
++`daemon/push_history.rs` records only actual daemon-recorded push success/failure
++callbacks, not ordinary clean sync cycles or remote commit dates. A transient
++push failure is still a failed observation even though it does not consume the
++stuck budget. Interrupted attempts do not manufacture a result. Records are
++per-repo, versioned and atomically replaced, so updates for different repos do
++not race a fleet-wide read/modify/write map. They store no error or credentials.
++
++Before the updated daemon records an attempt, PUSH is **unknown**. Old Git
++history is not retroactively fabricated into success evidence. Future/corrupt or
++wrong-repository records also render unknown. New commits or edits do not alter
++the older observed result; current convergence remains independently evaluated.
++No binary is installed or daemon restarted by this implementation item.
++
++## Verification map (implementation checkpoint)
++
++- `current_health_tests.rs`: table-driven states and actual status/label/push/JSON
++  outputs, crossed with both historical success and failure and ancient commits.
++  Includes queued, started, inspecting, retrying, cancelling, excluded, starved,
++  recently admitted, fresh edits without observations, exhausted budget and idle.
++- `scheduler_evidence.rs` tests: freshness boundaries, future/unsupported/malformed
++  snapshots, atomic empty-snapshot roundtrip, nonmutating reservation/start/cancel/
++  retry observations, provisional confidence and gate precedence.
++- `push_history.rs` test: observed history survives later edits; version/future/
++  malformed records are refused and failure supersedes success.
++- Existing report width tests retain single-line rows at 165/200/320 columns;
++  fixtures claiming stalls now supply continuous-work evidence instead of old
++  commit timestamps. Summary count and legend assertions use the current labels.
++
++Raw qualification evidence: `evidence/current-health-2026-10-15/`. Initial report
++qualification found outdated expected labels and one natural-hint-ending assertion
++that assumed an author suffix already removed in older code. The fixture now
++checks the actual hint's natural ending rather than an unrelated author name.
++Final post-patch qualification:
++
++| Gate | Result | Evidence |
++| --- | --- | --- |
++| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,411 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
++| `cargo clippy --workspace --locked --jobs 1 -- -D warnings` | passed | `clippy-final.log` |
++| `cargo build --release --locked --jobs 1` | passed | `release-final.log` |
++| `cargo deny check` | advisories, bans, licenses, sources all passed | `deny-final.log` |
++| `target/release/dracon-sync repos --legend` | exited 0; shipped CLI legend captured | `legend.txt` |
++
++These paths are relative to the evidence directory above. Independent source
++review is still pending; this is not completion or live deployment evidence.
++No service restart, binary installation or fleet fault injection occurred.
++
++The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
++0349) and a yanked yoke-derive release in the pre-existing workspace lockfile.
++Only the parent workspace lockfile was patched: rustls 0.23.45 → 0.23.46 and
++yoke-derive 0.8.3 → 0.8.4. No dependency policy exception was added. The subsequent
++`cargo deny check` passes all four categories; final build/test qualification uses
++these patch versions. Existing standalone utility lockfiles are not rewritten by
++this workspace-qualified item.
+diff --git a/src/current_health.rs b/src/current_health.rs
+new file mode 100644
+index 0000000..e53733e
+--- /dev/null
++++ b/src/current_health.rs
+@@ -0,0 +1,141 @@
++//! Current convergence and historical observations are independent axes.
++#[cfg(test)]
++#[path = "current_health_tests.rs"]
++mod tests;
++use super::{Color, RepoReportRow, StateCause};
++use crate::daemon::{
++    push_history::Observation,
++    scheduler_evidence::{Phase, RepoEvidence},
++};
++use serde::Serialize;
++
++#[derive(Clone, Copy, Debug, Default, Serialize, PartialEq, Eq)]
++#[serde(rename_all = "snake_case")]
++pub(super) enum Current {
++    Converged,
++    Excluded,
++    Queued,
++    Working,
++    Retrying,
++    Stalled,
++    Blocked,
++    Paused,
++    #[default]
++    Unknown,
++}
++#[derive(Clone, Debug, Default, Serialize)]
++pub(super) struct Evidence {
++    pub current: Current,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub scheduler: Option<RepoEvidence>,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub observed_at: Option<u64>,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub mode: Option<String>,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub last_push: Option<Observation>,
++}
++
++pub(super) fn classify(row: &RepoReportRow) -> Current {
++    let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
++    let blocked = row.pack_too_large
++        || row.missing_objects > 0
++        || row.push_status == "BROKEN"
++        || row.state_flags.iter().any(|f| f == "STUCK_PULL");
++    if blocked {
++        return Current::Blocked;
++    }
++    if row.push_status == "BLOCKED" || matches!(row.state_cause, StateCause::Unowned { .. }) {
++        return Current::Excluded;
++    }
++    // Historical errors and ancient commits cannot make unchanged idle work
++    // unhealthy. Excluded bytes remain explicitly outside daemon convergence.
++    if !pending {
++        return if row.excluded_dirty > 0 {
++            Current::Excluded
++        } else {
++            Current::Converged
++        };
++    }
++    if row.frozen_secs.is_some() || row.health.mode.as_deref() == Some("paused") {
++        return Current::Paused;
++    }
++    if let Some(phase) = row.health.scheduler.as_ref().and_then(|e| e.phase) {
++        match phase {
++            Phase::Working => return Current::Working,
++            // A pending probe has no execution stamp. Its reservation is
++            // useful evidence, but cannot establish actively running work.
++            Phase::Queued | Phase::Inspecting => return Current::Queued,
++            Phase::Cancelling | Phase::Retrying => return Current::Retrying,
++            Phase::Blocked => return Current::Blocked,
++        }
++    }
++    if row.ahead > 0 && matches!(row.push_status.as_str(), "PUSH_STUCK" | "STUCK" | "FAIL") {
++        return Current::Stalled;
++    }
++    if row.push_status == "INTENTIONAL" {
++        return Current::Excluded;
++    }
++    if let Some(evidence) = &row.health.scheduler {
++        // Continuous eligible dirt + no current gate and no recent admission
++        // establish scheduler starvation, not a guessed operation heartbeat.
++        if evidence.eligible
++            && evidence.dirty_secs.is_some_and(|age| age >= 900)
++            && evidence.admitted_secs.is_none_or(|age| age >= 900)
++        {
++            return Current::Stalled;
++        }
++        if evidence.eligible {
++            return Current::Queued;
++        }
++    }
++    Current::Unknown
++}
++
++pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
++    match classify(row) {
++        Current::Converged => ("✅ CLEAN", Color::Green),
++        Current::Excluded => ("🚫 EXCLUDED", Color::DarkGrey),
++        Current::Queued => ("🟡 QUEUED", Color::Cyan),
++        Current::Working => ("🔄 WORKING", Color::Cyan),
++        Current::Retrying => ("⏳ RETRYING", Color::Yellow),
++        Current::Stalled => ("🔴 STALLED", Color::Red),
++        Current::Blocked => ("🚫 BLOCKED", Color::Red),
++        Current::Paused => ("⏸️ PAUSED", Color::Yellow),
++        Current::Unknown => ("❔ UNKNOWN", Color::Yellow),
++    }
++}
++pub(super) fn label(row: &RepoReportRow) -> String {
++    let current = classify(row);
++    let (text, _) = status(row);
++    let mut label = if current == Current::Converged {
++        "⚪ idle".to_owned()
++    } else {
++        text.to_owned()
++    };
++    if row.ahead > 0 {
++        label.push_str(&format!(" ({} ahead)", row.ahead));
++    }
++    if row.excluded_dirty > 0 && current != Current::Excluded {
++        label.push_str(&format!(" · {} excl", row.excluded_dirty));
++    }
++    label
++}
++pub(super) fn push(row: &RepoReportRow) -> (String, Color) {
++    match &row.health.last_push {
++        Some(observed) => {
++            let age = super::timestamp_secs().saturating_sub(observed.attempted_at);
++            let age = if age < 60 {
++                format!("{age}s")
++            } else {
++                super::shorten_mins(age / 60)
++            };
++            if observed.succeeded {
++                (format!("✅ OK {age}"), Color::Green)
++            } else {
++                (format!("❌ FAIL {age}"), Color::Red)
++            }
++        }
++        None => ("— unknown".into(), Color::DarkGrey),
++    }
++}
+diff --git a/src/current_health_tests.rs b/src/current_health_tests.rs
+new file mode 100644
+index 0000000..c25dbae
+--- /dev/null
++++ b/src/current_health_tests.rs
+@@ -0,0 +1,246 @@
++use super::*;
++
++#[test]
++fn current_convergence_output_table_is_independent_of_push_history_and_commit_age() {
++    // name, dirty, ahead, phase, eligible dirty age, admission age, excluded,
++    // legacy dispatch status, expected current state, visible label.
++    let cases = [
++        (
++            "queued",
++            true,
++            0,
++            Some(Phase::Queued),
++            None,
++            None,
++            0,
++            "OK",
++            Current::Queued,
++            "QUEUED",
++        ),
++        (
++            "started",
++            true,
++            1,
++            Some(Phase::Working),
++            Some(5000),
++            None,
++            0,
++            "PENDING",
++            Current::Working,
++            "WORKING",
++        ),
++        (
++            "checking",
++            true,
++            0,
++            Some(Phase::Inspecting),
++            None,
++            None,
++            0,
++            "OK",
++            Current::Queued,
++            "QUEUED",
++        ),
++        (
++            "retry",
++            true,
++            1,
++            Some(Phase::Retrying),
++            Some(5000),
++            None,
++            0,
++            "PENDING",
++            Current::Retrying,
++            "RETRYING",
++        ),
++        (
++            "cancelling",
++            true,
++            0,
++            Some(Phase::Cancelling),
++            Some(5000),
++            None,
++            0,
++            "OK",
++            Current::Retrying,
++            "RETRYING",
++        ),
++        (
++            "excluded",
++            false,
++            0,
++            None,
++            None,
++            None,
++            3,
++            "OK",
++            Current::Excluded,
++            "EXCLUDED",
++        ),
++        (
++            "starved",
++            true,
++            0,
++            None,
++            Some(900),
++            None,
++            0,
++            "OK",
++            Current::Stalled,
++            "STALLED",
++        ),
++        (
++            "recent admission",
++            true,
++            0,
++            None,
++            Some(5000),
++            Some(10),
++            0,
++            "OK",
++            Current::Queued,
++            "QUEUED",
++        ),
++        (
++            "new edits old commit",
++            true,
++            0,
++            None,
++            None,
++            None,
++            0,
++            "OK",
++            Current::Unknown,
++            "UNKNOWN",
++        ),
++        (
++            "budget exhausted",
++            false,
++            1,
++            None,
++            None,
++            None,
++            0,
++            "PUSH_STUCK",
++            Current::Stalled,
++            "STALLED",
++        ),
++        (
++            "idle old failure",
++            false,
++            0,
++            None,
++            None,
++            None,
++            0,
++            "FAIL",
++            Current::Converged,
++            "CLEAN",
++        ),
++        (
++            "idle old budget",
++            false,
++            0,
++            None,
++            None,
++            None,
++            0,
++            "PUSH_STUCK",
++            Current::Converged,
++            "CLEAN",
++        ),
++    ];
++    for (name, dirty, ahead, phase, dirty_age, admitted, excluded, dispatch, expected, visible) in
++        cases
++    {
++        for succeeded in [true, false] {
++            let mut row = RepoReportRow::for_tests("/fixture");
++            row.modified = usize::from(dirty);
++            row.ahead = ahead;
++            row.excluded_dirty = excluded;
++            row.push_status = dispatch.into();
++            row.last_when = "90 days ago".into();
++            row.state_cause = StateCause::Stalled; // Deliberately misleading old inference.
++            row.health.scheduler =
++                (phase.is_some() || dirty_age.is_some()).then_some(RepoEvidence {
++                    phase,
++                    dirty_secs: dirty_age,
++                    admitted_secs: admitted,
++                    eligible: dirty_age.is_some(),
++                    ..Default::default()
++                });
++            row.health.last_push = Some(Observation {
++                version: 1,
++                repo: row.repo.clone(),
++                attempted_at: super::super::timestamp_secs() - 600,
++                succeeded,
++            });
++            assert_eq!(classify(&row), expected, "{name}, history={succeeded}");
++            assert!(
++                super::super::status_pair(&row).0.contains(visible),
++                "{name}"
++            );
++            assert!(
++                label(&row).contains(if expected == Current::Converged {
++                    "idle"
++                } else {
++                    visible
++                }),
++                "{name}"
++            );
++            assert!(push(&row).0.contains(if succeeded { "OK" } else { "FAIL" }));
++            // JSON exposes the same typed current state as human output.
++            row.health.current = classify(&row);
++            let json = serde_json::to_value(&row).unwrap();
++            assert_eq!(
++                json["health"]["current"],
++                serde_json::to_value(expected).unwrap()
++            );
++            assert_eq!(json["health"]["last_push"]["succeeded"], succeeded);
++            let summary = super::super::summary_what(&row, 200);
++            assert!(
++                summary.contains(if succeeded {
++                    "last push: ✅ OK"
++                } else {
++                    "last push: ❌ FAIL"
++                }),
++                "summary must name historical results: {summary}"
++            );
++            let table =
++                super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200)
++                    .to_string();
++            assert!(table.contains(visible), "actual table for {name}: {table}");
++            assert!(
++                table.contains(if succeeded { "✅ OK" } else { "❌ FAIL" }),
++                "history and convergence must both remain visible: {table}"
++            );
++        }
++    }
++}
++
++#[test]
++fn current_convergence_freeze_block_and_missing_history_are_explicit() {
++    let mut row = RepoReportRow::for_tests("/fixture");
++    row.modified = 1;
++    row.frozen_secs = Some(5000);
++    assert_eq!(classify(&row), Current::Paused);
++    row.modified = 0;
++    assert_eq!(
++        classify(&row),
++        Current::Converged,
++        "frozen idle is not unhealthy"
++    );
++    row.push_status = "BROKEN".into();
++    assert_eq!(classify(&row), Current::Blocked);
++    row.push_status = "BLOCKED".into();
++    assert_eq!(
++        classify(&row),
++        Current::Excluded,
++        "ownership opt-out is not a fake live worker"
++    );
++    assert_eq!(
++        push(&row).0,
++        "— unknown",
++        "an old remote commit is not push evidence"
++    );
++}
+diff --git a/src/daemon.rs b/src/daemon.rs
+index be8daf4..6a5f789 100644
+--- a/src/daemon.rs
++++ b/src/daemon.rs
+@@ -14,6 +14,8 @@ use tokio::time::sleep;
+ 
+ mod discovery_scheduler;
+ mod recovery;
++pub(crate) mod scheduler_evidence;
++pub(crate) mod push_history;
+ #[cfg(test)]
+ mod recovery_tests;
+ #[cfg(test)]
+@@ -5643,7 +5645,8 @@ pub(crate) fn unstuck_repo(repo: &Path) -> bool {
+ /// the stuck repos file if present. Called from
+ /// `push_background`'s callers when a push succeeds.
+ pub(crate) fn record_push_success(repo: &Path) {
+-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
++    let _guard = lock_stuck_ledger();
++    push_history::record(repo, true); // R3-L11: serialize ledger RMW.
+     let mut repos = load_stuck_push_repos();
+     if repos.remove(repo).is_some() {
+         save_stuck_push_repos(&repos);
+@@ -5693,7 +5696,8 @@ pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
+ /// and in `stuck-list` output with a truthful cause, but consecutive_failures
+ /// never reaches the Exhausted arm on infra alone.
+ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
+-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
++    let _guard = lock_stuck_ledger();
++    push_history::record(repo, false); // R3-L11: serialize ledger RMW.
+     let mut repos = load_stuck_push_repos();
+     let now = timestamp_secs();
+     let entry = repos
+@@ -5712,7 +5716,8 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
+ }
+ 
+ pub(crate) fn record_push_failure(repo: &Path, error: &str) {
+-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
++    let _guard = lock_stuck_ledger();
++    push_history::record(repo, false); // R3-L11: serialize ledger RMW.
+     let mut repos = load_stuck_push_repos();
+     let now = timestamp_secs();
+     let entry = repos
+@@ -6347,6 +6352,7 @@ pub(crate) fn save_dispatch_holds(holds: &HashMap<PathBuf, (String, Instant)>, n
+ /// `repos` command to render the ACTIVITY column with the
+ /// active/stalled distinction. Returns an empty set if the file
+ /// does not exist (no daemon activity, or daemon not running).
++#[cfg(test)]
+ pub(crate) fn load_in_flight() -> HashSet<PathBuf> {
+     let path = in_flight_path();
+     if !path.exists() {
+@@ -6377,6 +6383,7 @@ pub(crate) fn load_in_flight() -> HashSet<PathBuf> {
+ /// the daemon's in_flight file hasn't been refreshed in over a
+ /// cycle's worth of time (a sign that a slow push from the
+ /// previous cycle is still running while the daemon has moved on).
++#[cfg(test)]
+ pub(crate) fn in_flight_file_age_secs() -> Option<u64> {
+     let path = in_flight_path();
+     if !path.exists() {
+@@ -7242,6 +7249,7 @@ pub(crate) async fn run_daemon(
+         // the current cycle ending.
+         if let Some(reason) = freeze_reason(&policy_path) {
+             eprintln!("⏸️ sync daemon paused ({})", reason);
++            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
+             sleep_responsive(
+                 &reload_notify,
+                 || freeze_reason(&policy_path).is_none(),
+@@ -7262,6 +7270,7 @@ pub(crate) async fn run_daemon(
+         }).await else {
+             // Initial discovery or changed watch configuration: do not prune
+             // fleet state using an empty/partial/previous-scope snapshot.
++            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("discovering"));
+             sleep_responsive(&reload_notify, || freeze_reason(&policy_path).is_some(), Duration::from_secs(1)).await;
+             continue;
+         };
+@@ -7279,6 +7288,7 @@ pub(crate) async fn run_daemon(
+         // Re-discover after materialize so the newly created
+         // worktrees are picked up by the standard report path.
+         let mut to_sync: Vec<(PathBuf, SyncTaskJoin)> = Vec::new();
++        let mut evidence_eligible = HashSet::new();
+         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
+ 
+         activity.retain(|repo, _| {
+@@ -7377,6 +7387,7 @@ pub(crate) async fn run_daemon(
+ 
+         if let Some(reason) = freeze_reason(&policy_path) {
+             eprintln!("⏸️ sync daemon paused ({})", reason);
++            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
+             // CHANGED 2026-08-11 (audit LOW): responsive sleep — a
+             // `resume` (marker removed) or SIGHUP wakes this early
+             // instead of waiting out a full scan_interval.
+@@ -8933,6 +8944,7 @@ pub(crate) async fn run_daemon(
+                 }
+                 (dirty, filtered)
+             };
++            if effective_dirty { evidence_eligible.insert(repo.clone()); }
+ 
+             // v0.113.42 — stale-dirty pile-up alert. When a watched
+             // repo has committable changes whose OLDEST file mtime
+@@ -9631,6 +9643,15 @@ pub(crate) async fn run_daemon(
+         let persist_now = Instant::now();
+         prune_expired_cooldowns(&mut max_fail_cooldowns, persist_now);
+         save_dispatch_holds(&dispatch_holds, persist_now);
++        let evidence_probes = status_pending.union(&classification_pending).cloned().collect();
++        let evidence_maintenance = provisioning_jobs.keys().cloned().collect();
++        let retry_maps = [&status_retry_after, &classification_cooldowns,
++            &branch_retry_after, &max_fail_cooldowns, &stage_cooldowns];
++        scheduler_evidence::save(&scheduler_evidence::build(scheduler_evidence::Inputs {
++            activity: &activity, eligible: &evidence_eligible, probes: &evidence_probes,
++            maintenance: &evidence_maintenance, retries: &retry_maps,
++            recovery: &sync_recovery, admitted: &last_dispatch,
++        }, persist_now, scheduler_evidence::epoch()));
+ 
+         // === Sustained-state notifications ===
+         // Check for repos that have been in a concerning state for too long.
+@@ -9980,6 +10001,7 @@ pub(crate) async fn run_daemon(
+     // Removing the file signals to `repos` that the daemon is no
+     // running, so no rows can be "actively being processed".
+     save_in_flight(&HashSet::new());
++    scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("stopped"));
+     Ok(())
+ }
+ 
+diff --git a/src/daemon/push_history.rs b/src/daemon/push_history.rs
+new file mode 100644
+index 0000000..acd7bdc
+--- /dev/null
++++ b/src/daemon/push_history.rs
+@@ -0,0 +1,96 @@
++//! Last *observed* daemon push result, independent of current convergence.
++//! Per-repository files avoid fleet-wide read/modify/write races.
++use serde::{Deserialize, Serialize};
++use sha2::{Digest, Sha256};
++use std::path::{Path, PathBuf};
++
++#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
++pub(crate) struct Observation {
++    pub version: u32,
++    pub repo: String,
++    pub attempted_at: u64,
++    pub succeeded: bool,
++}
++fn path(repo: &Path) -> PathBuf {
++    let base = std::env::var_os("DRACON_SYNC_STATE_DIR")
++        .map(PathBuf::from)
++        .unwrap_or_else(|| {
++            dirs::state_dir()
++                .unwrap_or_else(|| PathBuf::from("/tmp"))
++                .join("dracon")
++        });
++    let digest = format!("{:x}", Sha256::digest(repo.to_string_lossy().as_bytes()));
++    base.join("push-history").join(format!("{digest}.json"))
++}
++pub(super) fn record(repo: &Path, succeeded: bool) {
++    let observation = Observation {
++        version: 1,
++        repo: repo.display().to_string(),
++        attempted_at: super::scheduler_evidence::epoch(),
++        succeeded,
++    };
++    if let Err(error) = save_at(&path(repo), &observation) {
++        eprintln!("⚠️ push history observation write failed: {error}");
++    }
++}
++fn save_at(path: &Path, observation: &Observation) -> std::io::Result<()> {
++    if let Some(parent) = path.parent() {
++        std::fs::create_dir_all(parent)?;
++    }
++    let tmp = path.with_extension(format!("{}.tmp", std::process::id()));
++    std::fs::write(&tmp, serde_json::to_vec(observation)?)?;
++    if let Err(error) = std::fs::rename(&tmp, path) {
++        let _ = std::fs::remove_file(tmp);
++        return Err(error);
++    }
++    Ok(())
++}
++pub(crate) fn load(repo: &Path) -> Option<Observation> {
++    decode(
++        &std::fs::read(path(repo)).ok()?,
++        repo,
++        super::scheduler_evidence::epoch(),
++    )
++}
++fn decode(bytes: &[u8], repo: &Path, now: u64) -> Option<Observation> {
++    let result: Observation = serde_json::from_slice(bytes).ok()?;
++    (result.version == 1
++        && result.repo == repo.display().to_string()
++        && result.attempted_at > 0
++        && result.attempted_at <= now)
++        .then_some(result)
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn observed_push_history_survives_new_edits_and_rejects_invalid_records() {
++        let dir = tempfile::tempdir().unwrap();
++        let repo = dir.path().join("repo");
++        std::fs::create_dir(&repo).unwrap();
++        let mut observation = Observation {
++            version: 1,
++            repo: repo.display().to_string(),
++            attempted_at: 100,
++            succeeded: true,
++        };
++        let file = dir.path().join("history.json");
++        save_at(&file, &observation).unwrap();
++        std::fs::write(repo.join("new-change"), "not published").unwrap();
++        assert_eq!(
++            decode(&std::fs::read(&file).unwrap(), &repo, 200),
++            Some(observation.clone())
++        );
++        assert!(decode(&std::fs::read(&file).unwrap(), &repo, 99).is_none());
++        observation.succeeded = false;
++        save_at(&file, &observation).unwrap();
++        assert!(
++            !decode(&std::fs::read(&file).unwrap(), &repo, 200)
++                .unwrap()
++                .succeeded
++        );
++        observation.version = 2;
++        assert!(decode(&serde_json::to_vec(&observation).unwrap(), &repo, 200).is_none());
++        assert!(decode(b"{}", &repo, 200).is_none());
++    }
++}
+diff --git a/src/daemon/recovery.rs b/src/daemon/recovery.rs
+index 95ed511..98bf34d 100644
+--- a/src/daemon/recovery.rs
++++ b/src/daemon/recovery.rs
+@@ -13,6 +13,48 @@ pub(super) struct SyncRecovery {
+ }
+ 
+ impl SyncRecovery {
++    /// Copy-only view: queued reservations are not execution, and a cancel
++    /// request does not release ownership. Never mutates recovery state.
++    pub(super) fn observations(
++        &self,
++        now: Instant,
++    ) -> std::collections::BTreeMap<PathBuf, super::scheduler_evidence::RepoEvidence> {
++        use super::scheduler_evidence::{Phase, RepoEvidence};
++        let mut result = std::collections::BTreeMap::new();
++        for (repo, until) in &self.retry_after {
++            if *until > now {
++                result.insert(
++                    repo.clone(),
++                    RepoEvidence {
++                        phase: Some(Phase::Retrying),
++                        retry_secs: Some(until.duration_since(now).as_secs().max(1)),
++                        ..Default::default()
++                    },
++                );
++            }
++        }
++        for (repo, started) in &self.running {
++            let phase = if self.cancelling.contains(repo) {
++                Phase::Cancelling
++            } else if started.get().is_some() {
++                Phase::Working
++            } else {
++                Phase::Queued
++            };
++            result.insert(
++                repo.clone(),
++                RepoEvidence {
++                    phase: Some(phase),
++                    execution_secs: started
++                        .get()
++                        .map(|at| now.saturating_duration_since(*at).as_secs()),
++                    ..Default::default()
++                },
++            );
++        }
++        result
++    }
++
+     /// Called before spawn. The worker stamps this only after acquiring a
+     /// semaphore permit: queued workers retain FIFO position, without a false
+     /// execution timeout. Admission remains protected by `in_flight`.
+diff --git a/src/daemon/scheduler_evidence.rs b/src/daemon/scheduler_evidence.rs
+new file mode 100644
+index 0000000..61c399a
+--- /dev/null
++++ b/src/daemon/scheduler_evidence.rs
+@@ -0,0 +1,287 @@
++//! Versioned observational evidence; never changes admission or ownership.
++use super::{recovery::SyncRecovery, RepoActivity};
++use serde::{Deserialize, Serialize};
++use std::collections::{BTreeMap, HashMap, HashSet};
++use std::path::{Path, PathBuf};
++use std::time::{Instant, SystemTime, UNIX_EPOCH};
++
++#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
++#[serde(rename_all = "snake_case")]
++pub(crate) enum Phase {
++    Queued,
++    Working,
++    Cancelling,
++    Inspecting,
++    Retrying,
++    Blocked,
++}
++
++#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
++pub(crate) struct RepoEvidence {
++    pub phase: Option<Phase>,
++    pub execution_secs: Option<u64>,
++    pub retry_secs: Option<u64>,
++    /// First continuously dirty observation, NOT last commit/file age.
++    pub dirty_secs: Option<u64>,
++    /// Effective filter-aware classification completed this cycle.
++    pub eligible: bool,
++    /// Admission is not progress; kept separate from execution age.
++    pub admitted_secs: Option<u64>,
++}
++
++#[derive(Clone, Debug, Deserialize, Serialize)]
++pub(crate) struct Snapshot {
++    pub version: u32,
++    pub written_at: u64,
++    pub mode: String,
++    pub repos: BTreeMap<PathBuf, RepoEvidence>,
++}
++impl Snapshot {
++    pub(super) fn empty(mode: &str) -> Self {
++        Self {
++            version: 1,
++            written_at: epoch(),
++            mode: mode.into(),
++            repos: BTreeMap::new(),
++        }
++    }
++    /// Future clocks and old/unknown schemas cannot establish current work.
++    pub(crate) fn is_fresh(&self, now: u64) -> bool {
++        self.version == 1
++            && self.written_at <= now
++            && now - self.written_at <= 30
++            && matches!(
++                self.mode.as_str(),
++                "running" | "paused" | "discovering" | "stopped"
++            )
++    }
++}
++
++pub(super) struct Inputs<'a> {
++    pub activity: &'a HashMap<PathBuf, RepoActivity>,
++    pub eligible: &'a HashSet<PathBuf>,
++    pub probes: &'a HashSet<PathBuf>,
++    pub maintenance: &'a HashSet<PathBuf>,
++    pub retries: &'a [&'a HashMap<PathBuf, Instant>],
++    pub recovery: &'a SyncRecovery,
++    pub admitted: &'a HashMap<PathBuf, Instant>,
++}
++
++pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapshot {
++    let mut repos = inputs.recovery.observations(now);
++    for path in inputs
++        .activity
++        .keys()
++        .chain(inputs.probes)
++        .chain(inputs.maintenance)
++    {
++        repos.entry(path.clone()).or_default();
++    }
++    for map in inputs.retries {
++        for (path, until) in *map {
++            if *until > now {
++                let row = repos.entry(path.clone()).or_default();
++                let wait = until.duration_since(now).as_secs().max(1);
++                row.retry_secs = Some(row.retry_secs.unwrap_or(0).max(wait));
++            }
++        }
++    }
++    for (path, row) in &mut repos {
++        let activity = inputs.activity.get(path);
++        row.dirty_secs = activity
++            .and_then(|a| a.dirty_since)
++            .map(|since| now.saturating_duration_since(since).as_secs());
++        row.eligible = inputs.eligible.contains(path);
++        row.admitted_secs = inputs
++            .admitted
++            .get(path)
++            .map(|since| now.saturating_duration_since(*since).as_secs());
++        // Actual ownership wins over old cooldowns, followed by known gates.
++        if row.phase.is_none() {
++            row.phase = if inputs.maintenance.contains(path) {
++                // Handle ownership alone is not an execution-start stamp.
++                Some(Phase::Queued)
++            } else if inputs.probes.contains(path) {
++                Some(Phase::Inspecting)
++            } else if row.retry_secs.is_some()
++                && activity.is_some_and(|a| a.blocked_since.is_some())
++            {
++                Some(Phase::Blocked)
++            } else if row.retry_secs.is_some() {
++                Some(Phase::Retrying)
++            } else {
++                None
++            };
++        }
++    }
++    Snapshot {
++        version: 1,
++        written_at,
++        mode: "running".into(),
++        repos,
++    }
++}
++
++fn path() -> PathBuf {
++    dirs::state_dir()
++        .unwrap_or_else(|| PathBuf::from("/tmp"))
++        .join("dracon/dracon-sync-scheduler-evidence.json")
++}
++pub(super) fn epoch() -> u64 {
++    SystemTime::now()
++        .duration_since(UNIX_EPOCH)
++        .map(|t| t.as_secs())
++        .unwrap_or(0)
++}
++pub(super) fn save(snapshot: &Snapshot) {
++    if let Err(error) = save_at(&path(), snapshot) {
++        eprintln!("⚠️ scheduler evidence write failed: {error}");
++    }
++}
++fn save_at(path: &Path, snapshot: &Snapshot) -> std::io::Result<()> {
++    if let Some(parent) = path.parent() {
++        std::fs::create_dir_all(parent)?;
++    }
++    let tmp = path.with_extension("tmp");
++    let bytes = serde_json::to_vec(snapshot)?;
++    std::fs::write(&tmp, bytes)?;
++    if let Err(error) = std::fs::rename(&tmp, path) {
++        let _ = std::fs::remove_file(tmp);
++        return Err(error);
++    }
++    Ok(())
++}
++pub(crate) fn load() -> Option<Snapshot> {
++    let snapshot: Snapshot = serde_json::from_slice(&std::fs::read(path()).ok()?).ok()?;
++    snapshot.is_fresh(epoch()).then_some(snapshot)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn scheduler_evidence_freshness_and_roundtrip_are_fail_closed() {
++        let mut snapshot = Snapshot::empty("running");
++        snapshot.written_at = 100;
++        for (now, expected) in [(99, false), (100, true), (130, true), (131, false)] {
++            assert_eq!(snapshot.is_fresh(now), expected);
++        }
++        snapshot.version = 2;
++        assert!(!snapshot.is_fresh(100));
++        snapshot.version = 1;
++        snapshot.mode = "invented".into();
++        assert!(!snapshot.is_fresh(100));
++        snapshot.mode = "running".into();
++        let dir = tempfile::tempdir().unwrap();
++        let file = dir.path().join("state.json");
++        save_at(&file, &snapshot).unwrap();
++        let decoded: Snapshot = serde_json::from_slice(&std::fs::read(file).unwrap()).unwrap();
++        assert!(decoded.repos.is_empty());
++        assert!(decoded.is_fresh(100));
++        assert!(serde_json::from_slice::<Snapshot>(b"{}").is_err());
++    }
++    #[test]
++    fn scheduler_evidence_distinguishes_admission_execution_cancel_and_retry() {
++        let now = Instant::now();
++        let path = PathBuf::from("fixture");
++        let mut recovery = SyncRecovery::default();
++        let stamp = recovery.reserve(&path);
++        assert_eq!(recovery.observations(now)[&path].phase, Some(Phase::Queued));
++        stamp.set(now).unwrap();
++        assert_eq!(
++            recovery.observations(now)[&path].phase,
++            Some(Phase::Working)
++        );
++        recovery.expired(now, std::time::Duration::ZERO);
++        assert_eq!(
++            recovery.observations(now)[&path].phase,
++            Some(Phase::Cancelling)
++        );
++        recovery.finish(&path, true, now);
++        assert_eq!(
++            recovery.observations(now)[&path].phase,
++            Some(Phase::Retrying)
++        );
++        recovery.finish(&path, false, now);
++        assert!(recovery.observations(now).is_empty());
++    }
++    #[test]
++    fn scheduler_evidence_builder_keeps_confidence_and_gate_precedence() {
++        let now = Instant::now();
++        let age = now - std::time::Duration::from_secs(1000);
++        let make_activity = |blocked: bool| RepoActivity {
++            fingerprint: String::new(),
++            changed_at: now,
++            dirty_since: Some(age),
++            ahead_since: None,
++            behind_since: None,
++            mirror_consecutive_fails: HashMap::new(),
++            failure_count: 0,
++            remote_failures: HashMap::new(),
++            ownership: None,
++            ownership_at: None,
++            blocked_since: blocked.then_some(age),
++            unowned_since: None,
++        };
++        let eligible = PathBuf::from("eligible");
++        let provisional = PathBuf::from("provisional");
++        let blocked = PathBuf::from("blocked");
++        let owned = PathBuf::from("owned");
++        let activity = HashMap::from([
++            (eligible.clone(), make_activity(false)),
++            (provisional.clone(), make_activity(false)),
++            (blocked.clone(), make_activity(true)),
++        ]);
++        let eligible_set = HashSet::from([eligible.clone()]);
++        let probes = HashSet::from([provisional.clone()]);
++        let maintenance = HashSet::from([PathBuf::from("provisioning")]);
++        let retries = HashMap::from([
++            (blocked.clone(), now + std::time::Duration::from_secs(300)),
++            (owned.clone(), now + std::time::Duration::from_secs(30)),
++        ]);
++        let admitted = HashMap::from([(eligible.clone(), now - std::time::Duration::from_secs(5))]);
++        let mut recovery = SyncRecovery::default();
++        recovery.reserve(&owned).set(now).unwrap();
++        let snapshot = build(
++            Inputs {
++                activity: &activity,
++                eligible: &eligible_set,
++                probes: &probes,
++                maintenance: &maintenance,
++                retries: &[&retries],
++                recovery: &recovery,
++                admitted: &admitted,
++            },
++            now,
++            100,
++        );
++        assert_eq!(snapshot.repos[&eligible].dirty_secs, Some(1000));
++        assert_eq!(snapshot.repos[&eligible].admitted_secs, Some(5));
++        assert!(snapshot.repos[&eligible].eligible);
++        assert!(!snapshot.repos[&provisional].eligible);
++        assert_eq!(snapshot.repos[&provisional].phase, Some(Phase::Inspecting));
++        assert_eq!(snapshot.repos[&blocked].phase, Some(Phase::Blocked));
++        assert_eq!(snapshot.repos[&blocked].retry_secs, Some(300));
++        assert_eq!(
++            snapshot.repos[&owned].phase,
++            Some(Phase::Working),
++            "owner wins over an old cooldown"
++        );
++        assert!(
++            recovery.observations(now).contains_key(&owned),
++            "observation does not release ownership"
++        );
++        assert_eq!(
++            snapshot.repos[&PathBuf::from("provisioning")].phase,
++            Some(Phase::Queued)
++        );
++        assert_eq!(
++            snapshot.repos[&PathBuf::from("provisioning")].execution_secs,
++            None
++        );
++        let keys: Vec<_> = snapshot.repos.keys().cloned().collect();
++        let mut sorted = keys.clone();
++        sorted.sort();
++        assert_eq!(keys, sorted);
++    }
++}
+diff --git a/src/report.rs b/src/report.rs
+index 8ff024e..474eae5 100644
+--- a/src/report.rs
++++ b/src/report.rs
+@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
+ use std::time::Duration;
+ 
+ use crate::git::gh_cmd;
++#[path = "current_health.rs"]
++mod current_health;
+ 
+ // Concurrency cap for the parallel per-repo work in `run_repos_report`.
+ // Most of the per-repo cost is a few `git` subprocess calls (status, log,
+@@ -432,6 +434,9 @@ fn shorten_when(s: &str) -> String {
+ ///   - "idle Xm"    : clean, no in-flight, last commit 1h-24h ago
+ ///   - "cold Xd"    : clean, no activity for > 24h
+ ///   - "—"          : unknown / no data
++// Legacy formatter retained only for its compatibility fixtures. Production
++// convergence uses current_health and never infers work age from commit age.
++#[cfg(test)]
+ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
+     let base = activity_label_base(row);
+     // v0.113.13 (goal-list 2026-07-29): surface daemon-excluded dirty
+@@ -445,6 +450,7 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
+     }
+ }
+ 
++#[cfg(test)]
+ fn activity_label_base(row: &RepoReportRow) -> String {
+     // Parse the last_when string ("N minutes ago", "N hours ago", etc.)
+     // into a number of minutes. Returns None if unparseable.
+@@ -1187,6 +1193,7 @@ fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
+ /// `in_flight` (it gets cleared at cycle start), so the disk file
+ /// is the only stale-source of the "🔄 now" indicator. Filtering
+ /// by age makes the indicator reflect ground truth.
++#[cfg(test)]
+ fn load_in_flight_for_path(repo_path: &str) -> bool {
+     // If the file is older than the staleness threshold, treat as
+     // empty — the daemon has effectively moved on, even if a slow
+@@ -1215,6 +1222,7 @@ fn load_in_flight_for_path(repo_path: &str) -> bool {
+ /// Parse "N minutes ago" / "N hours ago" / etc. into a u64 number
+ /// of minutes. Mirrors the parsing in `parse_relative_minutes` but
+ /// returns a plain integer for use in arithmetic.
++#[cfg(test)]
+ fn parse_relative_minutes_to_u64(s: &str) -> Option<u64> {
+     // CHANGED 2026-07-22 (v0.112.35): delegate to the complete
+     // `parse_relative_minutes` (which handles weeks/months/years)
+@@ -1670,6 +1678,8 @@ pub(crate) struct RepoReportRow {
+     /// asking why. With this field the affected rows carry the reason
+     /// themselves (`⏸️ frozen 9m` instead of `🟡 waiting 9m`).
+     frozen_secs: Option<u64>,
++    /// Independent current convergence and last observed daemon push result.
++    health: current_health::Evidence,
+ }
+ 
+ /// `repos --json` contract (DOCUMENTED 2026-10-03, audit R3-L10 —
+@@ -2585,25 +2595,6 @@ impl StateCause {
+         }
+     }
+ 
+-    /// Icon used in the human-readable table. The colour of the row is
+-    /// picked separately by `cause_color`.
+-    pub(crate) fn icon(&self) -> &'static str {
+-        match self {
+-            StateCause::Working => "🔄",
+-            StateCause::Committing => "🟡",
+-            StateCause::Pushing => "🟣",
+-            StateCause::Synced => "🟢",
+-            StateCause::Stalled => "🔴",
+-            StateCause::Dirty => "🟠",
+-            StateCause::Untracked => "⚪",
+-            StateCause::Intentional => "🟣",
+-            StateCause::Failed => "⛔",
+-            StateCause::Idle => "⚪",
+-            StateCause::Cold => "⚫",
+-            StateCause::Healthy => "✅",
+-            StateCause::Unowned { .. } => "🚫",
+-        }
+-    }
+ }
+ 
+ /// Compute the state_cause_label string. For most variants this
+@@ -3081,6 +3072,7 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
+ /// `🟠 dirty · ⏳ …` cell. This helper preserves the state
+ /// component (the most important) and cleanly drops activity
+ /// when it can't fit. See docs/design/repos-table-fix-2026-07-19.md.
++#[cfg(test)]
+ pub(crate) fn state_plus_act_cell(
+     state_icon: &str,
+     state_word: &str,
+@@ -3109,6 +3101,7 @@ pub(crate) fn state_plus_act_cell(
+ 
+ /// Build the activity-part string `icon text`, or `None` if there
+ /// is no activity (e.g., the activity was "—", a bare dash).
++#[cfg(test)]
+ fn activity_part(icon: &str, text: &str) -> Option<String> {
+     if text.is_empty() || text == "—" {
+         None
+@@ -3122,6 +3115,7 @@ fn activity_part(icon: &str, text: &str) -> Option<String> {
+ /// 2026-10-03, audit L14: the old first-char split leaked VS16 into
+ /// the text for base+selector icons like `⏸️`/`⚠️`); the text is
+ /// everything after the next ASCII space.
++#[cfg(test)]
+ fn split_activity(s: &str) -> (String, String) {
+     let mut graphemes = unicode_segmentation::UnicodeSegmentation::graphemes(s, true);
+     match graphemes.next() {
+@@ -3496,10 +3490,10 @@ fn pack_evidence_hint(
+ 
+ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
+     &[
+-        ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
++        ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
+         (
+             "ACTIVITY",
+-            "🔄 now · 🟡 waiting · ⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold",
++            "Fresh scheduler evidence, not last commit age: queued = reserved/eligible (including unstarted inspections); working = started worker; retrying = owned cancellation or a live cooldown",
+         ),
+         // v0.113.87: `⏸️ frozen` replaces `🟡 waiting` on every PENDING
+         // row while the daemon is frozen — the queue is not moving
+@@ -3507,7 +3501,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
+         // slow. Documented here because the legend is the column key.
+         (
+             "",
+-            "⏸️ frozen = waiting, but the daemon is FROZEN (see the notice)",
++            "⏸️ PAUSED = outstanding work while the daemon is frozen; unchanged idle rows stay clean (see the notice)",
+         ),
+         ("", ""),
+         (
+@@ -3519,10 +3513,12 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
+             "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded",
+         ),
+         ("A/B", "↑ ahead · ↓ behind · — synced"),
++        ("EVIDENCE", "Stalled requires an exhausted current push budget or eligible continuous dirt with no worker/gate and no admission for 15m. Old/missing scheduler evidence is unknown, never proof of a stall. Working is ownership, not an operation heartbeat."),
++        ("IDLE", "Unchanged idle repos are clean even with old commits/push records. Excluded bytes remain outside daemon coverage; clean is local/upstream convergence, not proof of all mirrors, bucket durability or absence of secrets."),
+         ("", ""),
+         (
+             "PUSH",
+-            "last push result + age (current edits may still be waiting): ✅ OK · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑)",
++            "Last daemon-recorded push result + observation age: ✅ OK · ❌ FAIL · — unknown. Historical OK never proves current changes published. REF AGE is upstream commit age, NOT push time. 🩹 current history issue · 🔑 token missing.",
+         ),
+         (
+             "REM",
+@@ -3986,6 +3982,7 @@ pub(crate) async fn run_repos_report(
+     // actively syncing vs. whether the user is still editing. The
+     // `DAEMON` column closes that gap.
+     let daemon_last_actions = build_daemon_last_action_map(policy_path);
++    let scheduler_snapshot = crate::daemon::scheduler_evidence::load();
+ 
+     // CHANGED 2026-07-04 (goal mr5s1530-755tj8): parallelize the per-repo
+     // work. Each iteration's main cost is a handful of `git` subprocess
+@@ -3999,6 +3996,7 @@ pub(crate) async fn run_repos_report(
+     let row_results: Vec<Option<RepoReportRow>> = {
+         let recent_push_failures = &recent_push_failures;
+         let daemon_last_actions = &daemon_last_actions;
++        let scheduler_snapshot = &scheduler_snapshot;
+         let init_status_failures = &init_status_failures;
+         let policy = &policy;
+         let cache_lookup = std::sync::Arc::clone(&cache_lookup);
+@@ -4718,7 +4716,15 @@ pub(crate) async fn run_repos_report(
+             repo.as_ref(),
+             pack_too_large.0,
+         );
+-        Some(RepoReportRow {
++        let health = current_health::Evidence {
++            scheduler: scheduler_snapshot.as_ref().and_then(|s| s.repos.get(&repo)).cloned(),
++            observed_at: scheduler_snapshot.as_ref().map(|s| s.written_at),
++            mode: scheduler_snapshot.as_ref().map(|s| s.mode.clone()),
++            last_push: crate::daemon::push_history::load(&repo),
++            ..Default::default()
++        };
++        let mut row = RepoReportRow {
++            health,
+             repo: repo.display().to_string(),
+             state_flags: flags,
+             branch: effective_status.branch.clone(),
+@@ -4826,7 +4832,22 @@ pub(crate) async fn run_repos_report(
+             // deathrun CLEAN-vs-red contradiction this prevents.
+             pack_too_large: pack_too_large.0,
+             frozen_secs,
+-        })
++        };
++        row.health.current = current_health::classify(&row);
++        row.state_cause = match row.health.current {
++            current_health::Current::Converged => StateCause::Idle,
++            current_health::Current::Excluded => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Intentional },
++            current_health::Current::Queued | current_health::Current::Unknown | current_health::Current::Paused => StateCause::Dirty,
++            current_health::Current::Working => StateCause::Working,
++            current_health::Current::Retrying => StateCause::Committing,
++            current_health::Current::Stalled => StateCause::Stalled,
++            current_health::Current::Blocked => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Failed },
++        };
++        row.state_cause_label = state_cause_label_string(&row.state_cause);
++        if matches!(row.health.current, current_health::Current::Converged | current_health::Current::Excluded | current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying | current_health::Current::Paused) { row.concern = false; }
++        row.active = matches!(row.health.current, current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying);
++        row.warn = matches!(row.health.current, current_health::Current::Stalled | current_health::Current::Blocked | current_health::Current::Unknown);
++        Some(row)
+             }})
+             .buffer_unordered(REPORT_REPO_CONCURRENCY)
+             .collect()
+@@ -5173,19 +5194,7 @@ fn freeze_notice_text(state: &crate::policy::FreezeState) -> String {
+ /// broken. Only dirty repos that are NOT active (e.g. `Stalled`) fall
+ /// through to `warn`.
+ fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
+-    if row.concern {
+-        ("❌ CONCERN", Color::Red)
+-    } else if matches!(row.state_cause, StateCause::Unowned { .. }) {
+-        ("🚫 unowned", Color::Red)
+-    } else if matches!(row.state_cause, StateCause::Stalled) {
+-        ("🔴 STALLED", Color::Red)
+-    } else if row.warn {
+-        ("🟡 WARN", Color::Yellow)
+-    } else if row.active {
+-        ("🔄 ACTIVE", Color::Cyan)
+-    } else {
+-        ("✅ CLEAN", Color::Green)
+-    }
++    current_health::status(row)
+ }
+ 
+ // Layout tier 1: vertical (terminal < 120 cols)
+@@ -5216,9 +5225,9 @@ fn print_repos_vertical(
+                 .unwrap_or_else(|| row.repo.clone())
+         };
+ 
+-        // Push cell (icon + colored label, no plain text PUSH_STUCK)
+-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+-        let push_styled = colorize(push_text, push_color);
++        // Historical observation, never inferred from current ahead/dirty flags.
++        let (push_text, push_color) = current_health::push(row);
++        let push_styled = colorize(&push_text, push_color);
+ 
+         // HINT cell (one-liner)
+         // Detail view must preserve cached/unknown pack evidence rather than
+@@ -5228,11 +5237,8 @@ fn print_repos_vertical(
+         let hint_styled = colorize(hint_text, hint_color);
+ 
+         // State + activity combined
+-        let activity = truncate_unicode_width(&activity_label(row), width.saturating_sub(20));
+-        let state_styled = colorize(
+-            &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
+-            state_color_for(&row.state_cause),
+-        );
++        let activity = truncate_unicode_width(&current_health::label(row), width.saturating_sub(20));
++        let state_styled = colorize(&current_health::label(row), status_color);
+ 
+         // Compose commit summary (truncated to fit)
+         let commit_width = width.saturating_sub(20);
+@@ -5332,7 +5338,7 @@ fn print_repos_vertical(
+         );
+         println!("{gutter}size key:  not bucket/worktree/download size; GitHub limit is per push");
+         println!("{gutter}last:      {commit_summary}");
+-        println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
++        println!("{gutter}upstream commit age: {}", shorten_when(&row.last_push));
+         println!("{gutter}activity:  {activity}");
+         println!("{gutter}state:     {state_styled}");
+         // NOTE: author intentionally omitted (v0.112.27 R2). The
+@@ -5854,13 +5860,8 @@ fn print_repos_compact_table(
+         // truncated mid-emoji (e.g., `🟠 dirty · ⏳ …`). Activity
+         // is informative but secondary — the state component
+         // (healthy/dirty/cold/etc.) is what the operator needs.
+-        let state_plus_act = state_plus_act_cell(
+-            row.state_cause.icon(),
+-            row.state_cause.as_str(),
+-            &activity_label(row),
+-            15, // Absolute(17) minus 2 padding = 15
+-        );
+-        let state_plus_act_color = state_color_for(&row.state_cause);
++        let state_plus_act = truncate_unicode_width(&current_health::label(row), 15);
++        let state_plus_act_color = status_color;
+ 
+         // HINT — author suffix intentionally omitted (v0.112.27 R2).
+         // The author is `git log -1 --format=%an`; for a solo
+@@ -5877,8 +5878,8 @@ fn print_repos_compact_table(
+         hint_text = truncate_unicode_width(&hint_text, 24);
+         let hint_color = status_color;
+ 
+-        // Push cell (icon + label)
+-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
++        // Last daemon-recorded push, independent of current changes.
++        let (push_text, push_color) = current_health::push(row);
+ 
+         // Classify each row's topology role (parent / submod / standalone).
+         // Computed once before the row loop, not per-row at render time.
+@@ -5978,7 +5979,7 @@ fn print_repos_full_table(
+         mk_h("🚀", "PUSH"),
+         mk_h("🛰", "PUSH-TO"),
+         mk_h("📜", "LAST COMMIT"),
+-        mk_h("📤", "PUSHED"),
++        mk_h("📤", "REF AGE"),
+         mk_h("⏰", "ACTIVITY"),
+         mk_h("👤", "AUTHOR"),
+         mk_h("📊", "1h"),
+@@ -6053,8 +6054,8 @@ fn print_repos_full_table(
+                 .unwrap_or_else(|| row.repo.clone())
+         };
+ 
+-        // Push cell (icon + colored label)
+-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
++        // Last daemon-recorded push, independent of current changes.
++        let (push_text, push_color) = current_health::push(row);
+ 
+         let commit_summary = if row.last_hash == "-" {
+             "-".to_string()
+@@ -6114,17 +6115,14 @@ fn print_repos_full_table(
+             Cell::new(commit_summary),
+             Cell::new(shorten_when(&row.last_push)),
+             // R3-L34: ACTIVITY is Absolute(13), truncate to 11 to leave padding room
+-            Cell::new(truncate_unicode_width(&activity_label(row), 11)),
++            Cell::new(truncate_unicode_width(&current_health::label(row), 11)),
+             // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
+             Cell::new(truncate_unicode_width(&row.last_author, 9)),
+             Cell::new(row.commits_1h),
+             Cell::new(row.commits_6h),
+             Cell::new(row.commits_24h),
+-            Cell::new(truncate_unicode_width(
+-                &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
+-                13, // LowerBoundary(15) - 2 padding
+-            ))
+-            .fg(state_color_for(&row.state_cause)),
++            Cell::new(truncate_unicode_width(&current_health::label(row), 13))
++                .fg(status_color),
+             Cell::new(truncate_unicode_width(
+                 &format!("{} {}", row.daemon_last_action_when, row.daemon_last_action),
+                 13, // LowerBoundary(15) - 2 padding
+@@ -6179,18 +6177,6 @@ fn branch_color_for(branch: &str) -> Color {
+     }
+ }
+ 
+-fn state_color_for(cause: &StateCause) -> Color {
+-    match cause {
+-        StateCause::Working | StateCause::Synced => Color::Green,
+-        StateCause::Committing | StateCause::Pushing | StateCause::Dirty => Color::Yellow,
+-        StateCause::Stalled | StateCause::Failed => Color::Red,
+-        StateCause::Intentional => Color::Magenta,
+-        StateCause::Untracked | StateCause::Idle => Color::White,
+-        StateCause::Cold | StateCause::Healthy => Color::DarkGrey,
+-        StateCause::Unowned { .. } => Color::Red,
+-    }
+-}
+-
+ /// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
+ /// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
+ /// ADDED 2026-07-29 (v0.113.15): map a configured push-remote name to
+@@ -6357,6 +6343,7 @@ fn rem_column_width(push_to: &[String]) -> usize {
+ /// relative string ("4 minutes ago") — parsed to minutes and
+ /// shortened via the same pipeline as ACTIVITY ages, because the
+ /// raw string would overflow PUSH_COL=12 and truncate.
++#[cfg(test)]
+ fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
+     if push_text != "✅ OK" || last_push.is_empty() || last_push == "-" {
+         return push_text.to_string();
+@@ -6397,6 +6384,7 @@ fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> S
+     out
+ }
+ 
++#[cfg(test)]
+ fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
+     match push_status {
+         "OK" => ("✅ OK", Color::Green),
+@@ -6569,6 +6557,7 @@ impl crate::report::RepoReportRow {
+     #[cfg(test)]
+     pub(crate) fn for_tests(repo_path: &str) -> Self {
+         Self {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: repo_path.to_string(),
+             state_flags: vec![],
+@@ -6685,23 +6674,18 @@ fn severity_tier(row: &RepoReportRow) -> u8 {
+ ///   Before: `🟣 pushing 1m · 1 mod · daemon will push after ... · by DraconDev`
+ ///   After:  `🟣 pushing 1m · 1 mod · daemon will push after ...`
+ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
+-    // Activity already encodes the state icon + word + age.
+-    // `🟣 pushing 1m`, `🟠 dirty 0m`, `🔄 working · 🟢 synced 3m`,
+-    // `⚪ idle 13h`, `⚫ cold 5d`. Use it as-is for the lead.
+-    let activity = activity_label(row);
++    // Current convergence leads; a commit timestamp is not work age.
++    let activity = current_health::label(row);
+     let mut parts: Vec<String> = Vec::new();
+     // Only include activity if it's not the bare "—" (which means
+     // "nothing to say" — we'll fall through to hint + author).
+     if activity != "—" {
+         parts.push(activity);
+     }
+-    // Push status note ONLY when not already covered by activity.
+-    // Activity already says `🟣 pushing 0m (1 ahead)` when PENDING
+-    // (with the ahead count inline) — see activity_label() at
+-    // line ~318. The old standalone `push: pending (N ahead)` was
+-    // pure duplication, and a separate `N ahead` note is too.
+-    if row.push_status == "STUCK" || row.push_status == "FAIL" {
+-        parts.push(format!("push: {}", row.push_status.to_lowercase()));
++    // Recorded historical results are explicitly separate from current work.
++    // No record means unknown, not a fabricated result from dispatch metadata.
++    if row.health.last_push.is_some() {
++        parts.push(format!("last push: {}", current_health::push(row).0));
+     }
+     // Dirty counts (how much work exists). For clean repos this
+     // contributes nothing and is skipped.
+@@ -7253,9 +7237,7 @@ fn build_repos_rich_table(
+         // counts moved to their own CHANGES column (operator: "the
+         // activity can just have the first part"). The `(N ahead)`
+         // strip stays: the A/B column carries that count.
+-        let mut activity = activity_label_base(row);
+-        activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
+-        let activity = truncate_unicode_width(&activity, activity_budget);
++        let activity = truncate_unicode_width(&current_health::label(row), activity_budget);
+ 
+         // CHANGES (v0.113.19): one narrow column per class —
+         // 📝 modified, 📦 staged, 🆕 untracked, 🚫 excluded by
+@@ -7313,9 +7295,7 @@ fn build_repos_rich_table(
+         };
+         let ab_text = truncate_unicode_width(&ab_text, ab_budget);
+ 
+-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+-        // v0.113.15: successful PUSH cells carry the last-push age.
+-        let push_text = push_cell_with_age(push_text, &row.last_push);
++        let (push_text, push_color) = current_health::push(row);
+         // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
+         let push_text = push_cell_with_markers(push_text, row, PUSH_COL.saturating_sub(2));
+         // v0.113.22 (operator): REM cell — active push remotes
+@@ -7360,7 +7340,7 @@ fn build_repos_rich_table(
+             Cell::new(repo_short)
+                 .fg(Color::White)
+                 .add_attribute(comfy_table::Attribute::Bold),
+-            Cell::new(activity).fg(state_color_for(&row.state_cause)),
++            Cell::new(activity).fg(status_color),
+             chg(row.modified),
+             chg(row.staged),
+             chg(row.untracked),
+@@ -7384,24 +7364,6 @@ fn build_repos_rich_table(
+ // Extension trait: gives RepoReportRow access to the most recent failure count
+ // from the recent-push-failure ledger. Returns None if not PUSH_STUCK.
+ // ---------------------------------------------------------------------------
+-trait RepoReportRowExt {
+-    fn failure_count(&self) -> Option<u32>;
+-}
+-
+-impl RepoReportRowExt for RepoReportRow {
+-    fn failure_count(&self) -> Option<u32> {
+-        if self.push_status == "PUSH_STUCK" {
+-            // The failure count is not stored on the row directly. The HINT
+-            // cell embeds it (e.g., "(173 failures)"). We don't re-parse it
+-            // here to keep this trait method cheap. Returning None means the
+-            // PUSH cell shows just "🛑 STUCK" without the count.
+-            None
+-        } else {
+-            None
+-        }
+-    }
+-}
+-
+ pub(crate) fn log_incident(
+     policy_path: &Path,
+     scope: impl Into<String>,
+@@ -11616,6 +11578,7 @@ mod tests {
+     #[test]
+     fn test_repo_report_row_structure() {
+         let row = RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/test/repo".to_string(),
+             state_flags: vec!["OK".to_string()],
+@@ -11677,6 +11640,7 @@ mod tests {
+         // emitter. Exactly the four `Option` row fields serialize as
+         // null when absent; everything else is non-null.
+         let row = RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/test/repo".to_string(),
+             state_flags: vec!["OK".to_string()],
+@@ -11811,6 +11775,7 @@ mod tests {
+ 
+     fn full_row_for_json_test() -> RepoReportRow {
+         RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/test/repo".to_string(),
+             state_flags: vec!["OK".to_string()],
+@@ -12140,8 +12105,9 @@ mod tests {
+         row.hint = "daemon handles after changes settle".to_string();
+         row.last_author = "DraconDev".to_string();
+         row.last_when = "5 minutes ago".to_string();
++        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { phase: Some(crate::daemon::scheduler_evidence::Phase::Queued), ..Default::default() });
+         let what = summary_what(&row, 200);
+-        assert!(what.contains("⏳ dirty"), "activity: {what}");
++        assert!(what.contains("QUEUED"), "activity: {what}");
+         assert!(what.contains("2 mod"), "modified count: {what}");
+         assert!(what.contains("1 ut"), "untracked count: {what}");
+         assert!(what.contains("daemon handles"), "hint visible: {what}");
+@@ -12180,10 +12146,9 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn test_summary_what_stuck_push_shows_status() {
+-        // When push is STUCK or FAIL, the activity does NOT show
+-        // it (activity only covers PENDING), so the summary must
+-        // surface it explicitly.
++    fn test_summary_what_historical_failure_does_not_make_idle_unhealthy() {
++        // A recorded failure remains visible as history, but an unchanged
++        // idle repo is not stalled merely because an old budget was exhausted.
+         let mut row = RepoReportRow::for_tests("/tmp/foo");
+         row.concern = true;
+         row.warn = false;
+@@ -12195,11 +12160,11 @@ mod tests {
+         row.push_status = "STUCK".to_string();
+         row.hint = "run dracon-sync repair concerns --apply".to_string();
+         row.last_author = "DraconDev".to_string();
++        row.health.last_push = Some(crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded: false });
+         let what = summary_what(&row, 200);
+-        assert!(
+-            what.contains("push: stuck"),
+-            "STUCK should surface as push: stuck: {what}"
+-        );
++        assert!(what.contains("last push: ❌ FAIL"), "historical failure must be identified as history: {what}");
++        assert!(what.contains("idle"));
++        assert_eq!(status_pair(&row), ("✅ CLEAN", Color::Green));
+         assert!(
+             what.contains("run dracon-sync repair concerns"),
+             "hint visible: {what}"
+@@ -12300,7 +12265,7 @@ mod tests {
+         // Truncated hint must end with either … (word-boundary hit)
+         // or the natural sentence end (no truncation needed).
+         assert!(
+-            what.ends_with('…') || what.ends_with("DraconDev"),
++            what.ends_with('…') || what.ends_with(row.hint.as_str()),
+             "truncated WHAT should end with … or natural end: {what}"
+         );
+     }
+@@ -12447,6 +12412,7 @@ mod tests {
+     ) -> RepoReportRow {
+         let label = state_cause.as_str().to_string();
+         RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/tmp/test-activity-repo".to_string(),
+             state_flags: vec![],
+@@ -12503,12 +12469,14 @@ mod tests {
+     fn stalled_rows_stay_visible_even_when_active() {
+         let mut row = make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
+         row.active = true;
++        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
+         assert_eq!(status_pair(&row), ("🔴 STALLED", Color::Red));
+         assert_eq!(activity_label_base(&row), "🔴 stalled 2h");
+         assert_eq!(severity_tier(&row), 1);
+         row.state_cause = StateCause::Working;
+         row.warn = true;
+-        assert_eq!(status_pair(&row), ("🟡 WARN", Color::Yellow));
++        row.health.scheduler.as_mut().unwrap().phase = Some(crate::daemon::scheduler_evidence::Phase::Working);
++        assert_eq!(status_pair(&row), ("🔄 WORKING", Color::Cyan));
+     }
+ 
+     #[test]
+@@ -12548,6 +12516,7 @@ mod tests {
+         let mut stalled =
+             make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
+         stalled.repo = "/tmp/platform".into();
++        stalled.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
+         let rows = [clean, stalled];
+         for width in [165, 200, 320] {
+             let rendered = build_repos_rich_table(&rows, false, width).to_string();
+@@ -13176,6 +13145,7 @@ mod tests {
+     #[test]
+     fn test_repo_report_row_push_status_fields() {
+         let row = RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/test/repo".to_string(),
+             state_flags: vec!["STUCK_PUSH".to_string()],
+@@ -13745,20 +13715,11 @@ mod tests {
+     #[test]
+     fn test_repos_legend_covers_all_push_cell_labels() {
+         // Collect every documented cell label.
+-        let cell_label_statuses = [
+-            "OK",
+-            "INTENTIONAL",
+-            "PENDING",
+-            "PUSH_STUCK",
+-            "STUCK",
+-            "FAIL",
+-            "BROKEN",
+-            "BLOCKED",
+-        ];
+-        let cell_label_outputs: Vec<String> = cell_label_statuses
+-            .iter()
+-            .map(|s| push_cell_label(s, None).0.to_string())
+-            .collect();
++        let cell_label_outputs: Vec<String> = [Some(true), Some(false), None].into_iter().map(|result| {
++            let mut row = RepoReportRow::for_tests("/fixture");
++            row.health.last_push = result.map(|succeeded| crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded });
++            current_health::push(&row).0.split_whitespace().take(2).collect::<Vec<_>>().join(" ")
++        }).collect();
+         // The legend should contain every cell label's text. We
+         // concatenate the legend rows into a single haystack and search
+         // for each needle (case-sensitive, since the labels are
+@@ -14259,6 +14220,7 @@ mod tests {
+     #[test]
+     fn test_touched_label_renders_author_and_when() {
+         let row = |last_hash: &str, last_author: &str, last_when: &str| RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: "/tmp/test".into(),
+             state_flags: vec![],
+@@ -15410,6 +15372,7 @@ mod v011313_tests {
+     #[test]
+     fn activity_label_appends_excl_marker() {
+         let mk = |excluded: usize| RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             publish_state: PublishState::Ok,
+             modified: 0,
+@@ -16080,6 +16043,7 @@ mod v011321_tests {
+ 
+     fn base_row() -> RepoReportRow {
+         RepoReportRow {
++            health: Default::default(),
+             frozen_secs: None,
+             repo: String::new(),
+             state_flags: vec![],

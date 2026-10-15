@@ -101,8 +101,19 @@ Raw qualification evidence: `evidence/current-health-2026-10-15/`. Initial repor
 qualification found outdated expected labels and one natural-hint-ending assertion
 that assumed an author suffix already removed in older code. The fixture now
 checks the actual hint's natural ending rather than an unrelated author name.
-Final post-patch workspace/Clippy/build results and independent review are pending;
-this is an implementation checkpoint, not completion or live deployment evidence.
+Final post-patch qualification:
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,411 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
+| `cargo clippy --workspace --locked --jobs 1 -- -D warnings` | passed | `clippy-final.log` |
+| `cargo build --release --locked --jobs 1` | passed | `release-final.log` |
+| `cargo deny check` | advisories, bans, licenses, sources all passed | `deny-final.log` |
+| `target/release/dracon-sync repos --legend` | exited 0; shipped CLI legend captured | `legend.txt` |
+
+These paths are relative to the evidence directory above. Independent source
+review is still pending; this is not completion or live deployment evidence.
+No service restart, binary installation or fleet fault injection occurred.
 
 The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
 0349) and a yanked yoke-derive release in the pre-existing workspace lockfile.
