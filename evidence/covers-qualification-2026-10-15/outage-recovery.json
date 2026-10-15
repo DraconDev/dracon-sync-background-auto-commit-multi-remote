@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "mode": "outage",
+  "outageRefused": true,
+  "manifestPreserved": true,
+  "sourcesIntact": true,
+  "recovered": true,
+  "objects": 11
+}
