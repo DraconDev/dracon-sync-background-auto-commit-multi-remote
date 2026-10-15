@@ -51,20 +51,8 @@
 *.pyc -filter
 *.sqlite -filter
 *.db -filter
-**/creds.json filter=dracon diff=dracon merge=dracon
-**/keys.json filter=dracon diff=dracon merge=dracon
-*.age filter=dracon diff=dracon merge=dracon
-*.key filter=dracon diff=dracon merge=dracon
-*.pem filter=dracon diff=dracon merge=dracon
-.env filter=dracon diff=dracon merge=dracon
-.env.dev filter=dracon diff=dracon merge=dracon
-.env.ovh filter=dracon diff=dracon merge=dracon
-.env.prod filter=dracon diff=dracon merge=dracon
-.env.production filter=dracon diff=dracon merge=dracon
-.env.turso filter=dracon diff=dracon merge=dracon
 affiliate/.env.credentials.md filter=dracon diff=dracon merge=dracon
 config/creds.json filter=dracon diff=dracon merge=dracon
-config/keys.json filter=dracon diff=dracon merge=dracon
 config/licenses.json filter=dracon diff=dracon merge=dracon
 config/licenses.test.json filter=dracon diff=dracon merge=dracon
 config/services.json filter=dracon diff=dracon merge=dracon
@@ -81,7 +69,6 @@ plan/pages/snapshots/*.json filter=dracon diff=dracon merge=dracon
 plan/pages/templates/*.json filter=dracon diff=dracon merge=dracon
 rollout-*.json filter=dracon diff=dracon merge=dracon
 rollout-*.jsonl filter=dracon diff=dracon merge=dracon
-secrets/** filter=dracon diff=dracon merge=dracon
 test_secret.txt filter=dracon diff=dracon merge=dracon
 trajectory-*.html filter=dracon diff=dracon merge=dracon
 trajectory-*.json filter=dracon diff=dracon merge=dracon
