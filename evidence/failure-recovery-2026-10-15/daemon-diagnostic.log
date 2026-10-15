@@ -1,0 +1,53 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.62s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 138 tests
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 0a687fa] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpg6MJth/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main 6b0dbd3] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpg6MJth/remote.git
+   0a687fa..6b0dbd3  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) ee48692] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmptvumxj/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main f3f1f38] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) b6a67fa] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::daemon_tests::test_is_repo_ready_nonexistent_path ... ok
+test daemon::daemon_tests::test_is_repo_stuck_false ... ok
+test daemon::daemon_tests::test_list_stuck_repos_empty ... ✅ no stuck repos
+ok
+test daemon::daemon_tests::test_load_stuck_push_repos_nonexistent ... ok
+test daemon::daemon_tests::test_no_redispatch_invariant ... ok
+test daemon::daemon_tests::test_policy_clone_at_repo_iteration ... ok
+test daemon::daemon_tests::test_sem_max_concurrent_sync_default_is_four ... ok
+test daemon::daemon_tests::test_skips_nonexistent_repo ... ⚠️ cannot read directory /nonexistent/path: No such file or directory (os error 2)
+ok
+test daemon::daemon_tests::test_stuck_repos_path_format ... ok
+test daemon::daemon_tests::test_stuck_repos_path_format_full ... ok
+test daemon::daemon_tests::test_stuck_repos_path_home ... ok
+test daemon::daemon_tests::test_sync_concurrency_limit_clamps_zero ... ok
+test daemon::daemon_tests::test_trailing_drain_retains_unfinished_owners ... ok
+test daemon::daemon_tests::test_trailing_drain_seed_excludes_previous_cycle_pending ... ok
+test daemon::daemon_tests::test_unstuck_repo_nonexistent ... ℹ️ /nonexistent/path not in stuck repos
+ok
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ⚠️ /tmp/dracon-failure-recovery-GNBC6n/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-GNBC6n/watched/healthy
+⚠️ /tmp/dracon-failure-recovery-GNBC6n/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-GNBC6n/watched/healthy
+PASS: healthy inspection/commits progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes
+PASS: bounded storage retries, fail-fast hook rejection and typed inspection cancellation clean owned descendants
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-GNBC6n/watched/filter

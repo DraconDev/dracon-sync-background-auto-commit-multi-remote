@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.88s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 1 test
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ⚠️ /tmp/dracon-failure-recovery-WCDqDJ/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-WCDqDJ/watched/healthy
+⚠️ /tmp/dracon-failure-recovery-WCDqDJ/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-WCDqDJ/watched/healthy
+PASS: healthy inspection/commits progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes
+PASS: bounded storage retries, fail-fast hook rejection and typed inspection cancellation clean owned descendants
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-WCDqDJ/watched/filter
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-WCDqDJ/watched/bucket
+PASS: discovery joins once; cleared filter/hook/storage faults recover; verified references publish without raw blobs or duplicate commits; all permits returned
+⚠️ failed to delete remote master branch: git delete remote branch failed in /tmp/dracon-failure-recovery-WCDqDJ/watched/healthy with status exit status: 1: pre-push: reject prune
+error: failed to push some refs to '/tmp/dracon-failure-recovery-WCDqDJ/healthy.git'
+PASS: absent alternate pruning issues no push; observed alternate deletion still honors rejecting hooks and recovers
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 3.29s
+
