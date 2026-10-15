@@ -121,8 +121,9 @@ falsely establish a pull blocker. Both are corrected as described above. Added
 output fixtures cover legacy STUCK/FAIL without scheduler evidence, behind work
 across absent/working/queued/retrying/blocked observations, and retention of hard
 pack guards even over started work. The final logs above were rerun after both
-corrections. Follow-up independent review remains pending; this is not completion
-or live deployment evidence.
+corrections. Follow-up independent source review (`review-final.md`) explicitly
+closed both P1 findings with no new issues. This is source-only review, not an
+independent test execution or live deployment assessment. Goal audit is separate.
 No service restart, binary installation or fleet fault injection occurred.
 
 The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
