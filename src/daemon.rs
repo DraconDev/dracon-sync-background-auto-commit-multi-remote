@@ -112,7 +112,7 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
 fn collect_ready_classifications(
     jobs: &mut FuturesUnordered<ClassificationJoin>,
     pending: &mut HashSet<PathBuf>,
-    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    aborts: &mut HashMap<PathBuf, ProbeOwner>,
     // (spawn instant, that job's scaled budget) — v0.113.89
     pending_since: &mut HashMap<PathBuf, (Instant, Duration)>,
     results: &mut HashMap<
@@ -143,11 +143,31 @@ fn collect_ready_classifications(
     }
 }
 
+struct ProbeOwner {
+    abort: tokio::task::AbortHandle,
+    cancelling: bool,
+}
+
+impl From<tokio::task::AbortHandle> for ProbeOwner {
+    fn from(abort: tokio::task::AbortHandle) -> Self {
+        Self { abort, cancelling: false }
+    }
+}
+
+impl ProbeOwner {
+    fn request_cancellation(&mut self) -> bool {
+        if self.cancelling { return false; }
+        self.cancelling = true;
+        self.abort.abort();
+        true
+    }
+}
+
 /// Resolve even panicked/cancelled probes through Tokio's task ID. An unknown
 /// orphan join must never release a different repository's ownership.
 fn identify_probe_join<T>(
     joined: Result<(PathBuf, Result<T>), tokio::task::JoinError>,
-    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    aborts: &mut HashMap<PathBuf, ProbeOwner>,
 ) -> Option<(PathBuf, Result<T>)> {
     match joined {
         Ok((repo, outcome)) => {
@@ -155,7 +175,7 @@ fn identify_probe_join<T>(
             Some((repo, outcome))
         }
         Err(error) => {
-            let repo = aborts.iter().find(|(_, handle)| handle.id() == error.id())
+            let repo = aborts.iter().find(|(_, owner)| owner.abort.id() == error.id())
                 .map(|(repo, _)| repo.clone());
             if let Some(repo) = repo {
                 aborts.remove(&repo);
@@ -288,7 +308,7 @@ fn warn_aging_hold(
 fn abort_wedged_status_inspection(
     pending: &mut HashSet<PathBuf>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
-    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    aborts: &mut HashMap<PathBuf, ProbeOwner>,
     repo: &Path,
     now: Instant,
 ) -> bool {
@@ -301,19 +321,21 @@ fn abort_wedged_status_inspection(
     if !wedged {
         return false;
     }
-    if let Some(handle) = aborts.get(repo) {
-        handle.abort();
+    if let Some(owner) = aborts.get_mut(repo) {
+        // Completion can race this request. Preserve the original age so a
+        // normal late result still fails the result-staleness check.
+        owner.request_cancellation()
     } else {
         pending.remove(repo);
+        spawned_at.remove(repo);
+        true
     }
-    spawned_at.remove(repo);
-    true
 }
 
 fn abort_wedged_classification(
     pending: &mut HashSet<PathBuf>,
     since: &mut HashMap<PathBuf, (Instant, Duration)>,
-    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    aborts: &mut HashMap<PathBuf, ProbeOwner>,
     repo: &Path,
     now: Instant,
 ) -> bool {
@@ -321,13 +343,13 @@ fn abort_wedged_classification(
         .is_some_and(|(at, budget)| classification_pending_watchdog_due(*at, now, *budget))) {
         return false;
     }
-    if let Some(handle) = aborts.get(repo) {
-        handle.abort();
+    if let Some(owner) = aborts.get_mut(repo) {
+        owner.request_cancellation()
     } else {
         pending.remove(repo);
+        since.remove(repo);
+        true
     }
-    since.remove(repo);
-    true
 }
 
 /// Max age of a KEPT classification result for a dirty repo.
@@ -436,7 +458,7 @@ const STATUS_RESULT_MAX_AGE_SECS: u64 = 30;
 fn collect_ready_status(
     jobs: &mut FuturesUnordered<StatusJoin>,
     pending: &mut HashSet<PathBuf>,
-    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    aborts: &mut HashMap<PathBuf, ProbeOwner>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
     results: &mut HashMap<
         PathBuf,
@@ -3739,7 +3761,7 @@ mod tests {
         let handle = tokio::spawn(async {
             std::future::pending::<()>().await;
         });
-        aborts.insert(repo.clone(), handle.abort_handle());
+        aborts.insert(repo.clone(), handle.abort_handle().into());
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), now - Duration::from_secs(61));
         assert!(abort_wedged_status_inspection(
@@ -3750,7 +3772,7 @@ mod tests {
             now
         ));
         assert!(pending.contains(&repo), "abort request must retain ownership until joined");
-        assert!(spawned_at.is_empty(), "request must not repeat every pulse");
+        assert!(spawned_at.contains_key(&repo), "late normal result must keep its original age");
         assert!(aborts.contains_key(&repo), "join error needs task identity");
         tokio::task::yield_now().await;
         assert!(handle.is_finished(), "wedged task must be aborted");
@@ -3766,7 +3788,7 @@ mod tests {
         let mut spawned_at = HashMap::new();
         let mut aborts = HashMap::new();
         let handle = tokio::spawn(async { 42u8 });
-        aborts.insert(repo.clone(), handle.abort_handle());
+        aborts.insert(repo.clone(), handle.abort_handle().into());
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), now);
         assert!(!abort_wedged_status_inspection(
@@ -3788,7 +3810,7 @@ mod tests {
         let handle: StatusJoin = tokio::spawn(async move {
             (task_repo, Ok(dracon_git::types::RepoStatus::new()))
         });
-        let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle())]);
+        let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle().into())]);
         let mut pending = HashSet::from([repo.clone()]);
         let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(61))]);
         tokio::time::timeout(Duration::from_secs(3), async {
@@ -7053,9 +7075,8 @@ pub(crate) async fn run_daemon(
     // the task leaks it (slot logic frees, the `git` child runs on,
     // and the next probe piles on top). Pruned against the pending
     // sets at the pulse boundary below.
-    let mut status_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
-    let mut classification_abort_handles: HashMap<PathBuf, tokio::task::AbortHandle> =
-        HashMap::new();
+    let mut status_abort_handles: HashMap<PathBuf, ProbeOwner> = HashMap::new();
+    let mut classification_abort_handles: HashMap<PathBuf, ProbeOwner> = HashMap::new();
     // ADDED 2026-09-20 (v0.113.85): throttle map for aging-hold
     // warnings (one line per repo per 5 min while held past 60s).
     let mut hold_warn_cooldowns: HashMap<String, Instant> = HashMap::new();
@@ -8295,7 +8316,7 @@ pub(crate) async fn run_daemon(
                 // v0.113.85: retain the abort handle so the wedge
                 // sweep above can kill a hung inspection (pruned at
                 // the pulse boundary once the reservation clears).
-                status_abort_handles.insert(repo.clone(), status_handle.abort_handle());
+                status_abort_handles.insert(repo.clone(), status_handle.abort_handle().into());
                 status_jobs.push(status_handle);
             }
             collect_ready_status(
@@ -8726,7 +8747,7 @@ pub(crate) async fn run_daemon(
                     // job — otherwise every re-probe piles another
                     // wedged `git diff` on top while the cause holds.
                     classification_abort_handles
-                        .insert(repo.clone(), classification_handle.abort_handle());
+                        .insert(repo.clone(), classification_handle.abort_handle().into());
                     classification_jobs.push(classification_handle);
                 }
             }
