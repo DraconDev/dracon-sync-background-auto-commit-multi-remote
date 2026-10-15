@@ -6674,9 +6674,7 @@ fn severity_tier(row: &RepoReportRow) -> u8 {
 ///   Before: `🟣 pushing 1m · 1 mod · daemon will push after ... · by DraconDev`
 ///   After:  `🟣 pushing 1m · 1 mod · daemon will push after ...`
 fn summary_what(row: &RepoReportRow, budget: usize) -> String {
-    // Activity already encodes the state icon + word + age.
-    // `🟣 pushing 1m`, `🟠 dirty 0m`, `🔄 working · 🟢 synced 3m`,
-    // `⚪ idle 13h`, `⚫ cold 5d`. Use it as-is for the lead.
+    // Current convergence leads; a commit timestamp is not work age.
     let activity = current_health::label(row);
     let mut parts: Vec<String> = Vec::new();
     // Only include activity if it's not the bare "—" (which means
@@ -6684,11 +6682,8 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     if activity != "—" {
         parts.push(activity);
     }
-    // Push status note ONLY when not already covered by activity.
-    // Activity already says `🟣 pushing 0m (1 ahead)` when PENDING
-    // (with the ahead count inline) — see activity_label() at
-    // line ~318. The old standalone `push: pending (N ahead)` was
-    // pure duplication, and a separate `N ahead` note is too.
+    // Recorded historical results are explicitly separate from current work.
+    // No record means unknown, not a fabricated result from dispatch metadata.
     if row.health.last_push.is_some() {
         parts.push(format!("last push: {}", current_health::push(row).0));
     }
@@ -12152,9 +12147,8 @@ mod tests {
 
     #[test]
     fn test_summary_what_historical_failure_does_not_make_idle_unhealthy() {
-        // When push is STUCK or FAIL, the activity does NOT show
-        // it (activity only covers PENDING), so the summary must
-        // surface it explicitly.
+        // A recorded failure remains visible as history, but an unchanged
+        // idle repo is not stalled merely because an old budget was exhausted.
         let mut row = RepoReportRow::for_tests("/tmp/foo");
         row.concern = true;
         row.warn = false;
