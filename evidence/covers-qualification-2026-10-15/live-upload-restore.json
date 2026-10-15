@@ -1,0 +1,153 @@
+{
+  "ok": true,
+  "mode": "live",
+  "assets": 11,
+  "totalBytes": 3154176,
+  "readback": [
+    {
+      "id": "game-cover-come-get-me",
+      "key": "games/258fb088071c159e0f44bff48dad12defd3f90b33818ecb854cc89e4fa768608.webp",
+      "sha256": "258fb088071c159e0f44bff48dad12defd3f90b33818ecb854cc89e4fa768608",
+      "bytes": 221404,
+      "identical": true
+    },
+    {
+      "id": "game-cover-darklord",
+      "key": "games/7e6ecfdd5b6ab1216f2f238bbc9082a101240c9295b10aa61bb0d8b0a68448fc.webp",
+      "sha256": "7e6ecfdd5b6ab1216f2f238bbc9082a101240c9295b10aa61bb0d8b0a68448fc",
+      "bytes": 309392,
+      "identical": true
+    },
+    {
+      "id": "game-cover-doomtap",
+      "key": "games/0cfe20efa285f216cb8a00e65aec346f56a480685aa954c02c4502cca988c472.webp",
+      "sha256": "0cfe20efa285f216cb8a00e65aec346f56a480685aa954c02c4502cca988c472",
+      "bytes": 239034,
+      "identical": true
+    },
+    {
+      "id": "game-cover-endless-td",
+      "key": "games/09f959cf0f6786ebe4deb80b290eff226cd38125c2149038a8dcb48a711ba74b.webp",
+      "sha256": "09f959cf0f6786ebe4deb80b290eff226cd38125c2149038a8dcb48a711ba74b",
+      "bytes": 340240,
+      "identical": true
+    },
+    {
+      "id": "game-cover-football-forever",
+      "key": "games/c4f09bfed9ce70e75c28bc8b81c2a8eb5c12369cedfb532bd02c9c6abc6be1ff.webp",
+      "sha256": "c4f09bfed9ce70e75c28bc8b81c2a8eb5c12369cedfb532bd02c9c6abc6be1ff",
+      "bytes": 163154,
+      "identical": true
+    },
+    {
+      "id": "game-cover-hegemon",
+      "key": "games/054fb98cba0dc200e5041a3545ea4900e89d1423b0c2f03be31e8802db7bb98b.webp",
+      "sha256": "054fb98cba0dc200e5041a3545ea4900e89d1423b0c2f03be31e8802db7bb98b",
+      "bytes": 401084,
+      "identical": true
+    },
+    {
+      "id": "game-cover-hellhunter",
+      "key": "games/083c31d3b66c027c2aa665d6b1c08a194156d851c9fee554c5b7035de225e32c.webp",
+      "sha256": "083c31d3b66c027c2aa665d6b1c08a194156d851c9fee554c5b7035de225e32c",
+      "bytes": 226518,
+      "identical": true
+    },
+    {
+      "id": "game-cover-junk-runner",
+      "key": "games/989d352d2c49680083c8d1463637aee2e9933970971404661fa79f3c248394ec.webp",
+      "sha256": "989d352d2c49680083c8d1463637aee2e9933970971404661fa79f3c248394ec",
+      "bytes": 282178,
+      "identical": true
+    },
+    {
+      "id": "game-cover-neonbreak",
+      "key": "games/abb8f8bb11aaa5677f2323edf7a98a24a7c6b2a5a6f85dce4734ff74c90c54f2.webp",
+      "sha256": "abb8f8bb11aaa5677f2323edf7a98a24a7c6b2a5a6f85dce4734ff74c90c54f2",
+      "bytes": 315090,
+      "identical": true
+    },
+    {
+      "id": "game-cover-one-mil-girls",
+      "key": "games/de441af7319a5322e7128b48c3f96d64f60e19aa2170f28fb90908b92c881078.webp",
+      "sha256": "de441af7319a5322e7128b48c3f96d64f60e19aa2170f28fb90908b92c881078",
+      "bytes": 232074,
+      "identical": true
+    },
+    {
+      "id": "game-cover-polis",
+      "key": "games/b8d699f2a3eb55bef6bcfc979ee8010a82e9f54337148566ce07f235001a7627.webp",
+      "sha256": "b8d699f2a3eb55bef6bcfc979ee8010a82e9f54337148566ce07f235001a7627",
+      "bytes": 424008,
+      "identical": true
+    }
+  ],
+  "restored": [
+    {
+      "id": "game-cover-come-get-me",
+      "sha256": "258fb088071c159e0f44bff48dad12defd3f90b33818ecb854cc89e4fa768608",
+      "bytes": 221404,
+      "identical": true
+    },
+    {
+      "id": "game-cover-darklord",
+      "sha256": "7e6ecfdd5b6ab1216f2f238bbc9082a101240c9295b10aa61bb0d8b0a68448fc",
+      "bytes": 309392,
+      "identical": true
+    },
+    {
+      "id": "game-cover-doomtap",
+      "sha256": "0cfe20efa285f216cb8a00e65aec346f56a480685aa954c02c4502cca988c472",
+      "bytes": 239034,
+      "identical": true
+    },
+    {
+      "id": "game-cover-endless-td",
+      "sha256": "09f959cf0f6786ebe4deb80b290eff226cd38125c2149038a8dcb48a711ba74b",
+      "bytes": 340240,
+      "identical": true
+    },
+    {
+      "id": "game-cover-football-forever",
+      "sha256": "c4f09bfed9ce70e75c28bc8b81c2a8eb5c12369cedfb532bd02c9c6abc6be1ff",
+      "bytes": 163154,
+      "identical": true
+    },
+    {
+      "id": "game-cover-hegemon",
+      "sha256": "054fb98cba0dc200e5041a3545ea4900e89d1423b0c2f03be31e8802db7bb98b",
+      "bytes": 401084,
+      "identical": true
+    },
+    {
+      "id": "game-cover-hellhunter",
+      "sha256": "083c31d3b66c027c2aa665d6b1c08a194156d851c9fee554c5b7035de225e32c",
+      "bytes": 226518,
+      "identical": true
+    },
+    {
+      "id": "game-cover-junk-runner",
+      "sha256": "989d352d2c49680083c8d1463637aee2e9933970971404661fa79f3c248394ec",
+      "bytes": 282178,
+      "identical": true
+    },
+    {
+      "id": "game-cover-neonbreak",
+      "sha256": "abb8f8bb11aaa5677f2323edf7a98a24a7c6b2a5a6f85dce4734ff74c90c54f2",
+      "bytes": 315090,
+      "identical": true
+    },
+    {
+      "id": "game-cover-one-mil-girls",
+      "sha256": "de441af7319a5322e7128b48c3f96d64f60e19aa2170f28fb90908b92c881078",
+      "bytes": 232074,
+      "identical": true
+    },
+    {
+      "id": "game-cover-polis",
+      "sha256": "b8d699f2a3eb55bef6bcfc979ee8010a82e9f54337148566ce07f235001a7627",
+      "bytes": 424008,
+      "identical": true
+    }
+  ]
+}
