@@ -105,5 +105,20 @@ fan out index/preload workers against the shared systemd task limit alongside
 hook runtimes. No persistent Git configuration, filters, hooks, task limit or
 staging policy was weakened.
 
-Sustained live convergence must be checked independently; unit tests and a
-successful restart do not prove every fleet gate passes.
+Final build deployment: 2026-10-15 15:14 BST. Running executable and tested
+release both hash to
+`bcedd8b63a402ba7126020f93148b963be1a92f6eef30057fc119edb26594244`.
+In the observation window through 15:20:47 (more than one 300s retry interval),
+the journal recorded 27 commits and 23 sync completions, no status-inspection
+failure/timeouts, and no discovery-duration warnings. The final table showed
+no STALLED/STUCK rows; browser-extensions-shared was the sole pending push
+(17 ahead with 123 modified and 298 untracked files from ongoing generation).
+There was one platform classification exit-128 failure during this window;
+it retried, and platform was no longer pending at the final snapshot. That
+transient classification failure is not claimed eliminated by this fix.
+
+Final workspace tests: 2,389 passed, zero failures across 35 suites. Clippy and
+release build passed. Dependency advisories remain as recorded above.
+
+Longer-term convergence and browser gate throughput remain to be observed;
+this bounded live result does not claim every fleet gate will always pass.
