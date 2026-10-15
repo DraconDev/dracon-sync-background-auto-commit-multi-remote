@@ -177,6 +177,66 @@ async fn stopped(pid: u32) {
 }
 
 #[tokio::test]
+async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
+    for route in ["tag", "janitor"] {
+        let f = Fixture::new();
+        let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
+        if route == "janitor" {
+            // Fixture setup only: establish a matching, daemon-owned stale
+            // branch on both ends, while the remote's default stays main.
+            f.git(&f.repo, &["branch", "daemon-standalone"]);
+            f.git(&f.repo, &["push", "origin", "main", "daemon-standalone"]);
+            f.git(&f.bare, &["symbolic-ref", "HEAD", "refs/heads/main"]);
+        }
+        let local = Arc::new(Semaphore::new(1));
+        let semaphore = local.clone();
+        let repo = f.repo.clone();
+        let backup = f.root.path().join("backups");
+        std::fs::create_dir_all(&backup).unwrap();
+        let push = TaskGuard(Some(tokio::spawn(async move {
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
+            with_local_work(semaphore, permit, async move {
+                if route == "tag" {
+                    let result = crate::release::create_and_push_tag(&repo, "0.0.1").await.unwrap();
+                    assert!(matches!(result, crate::release::ReleaseStep::TagCreated(_)));
+                } else {
+                    crate::git::maybe_prune_stale_backup_branches(&repo, true, backup.to_str().unwrap()).await;
+                }
+            }).await;
+        })));
+        let (hook, helper) = f.entered().await;
+        assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, hook) }, 19);
+        let before = f.git(&f.healthy, &["rev-parse", "HEAD"]);
+        std::fs::write(f.healthy.join("data"), format!("healthy commit while {route} hook waits\n")).unwrap();
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let permit = local.clone().acquire_owned().await.unwrap();
+            with_local_work(local.clone(), permit, async {
+                assert!(!crate::git::inspect_status(&f.healthy, Duration::from_secs(3)).await.unwrap().is_clean);
+                run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add").await.unwrap();
+                run_git_with_timeout(&f.healthy, &["commit", "--quiet", "-m", "independent commit"], 3, "fixture commit").await.unwrap();
+            }).await;
+        }).await.expect("late push entry retained commit capacity");
+        assert_ne!(f.git(&f.healthy, &["rev-parse", "HEAD"]), before);
+        assert!(!push.0.as_ref().unwrap().is_finished());
+        assert!(!f.repo.join("hook-release").exists());
+        std::fs::write(f.repo.join("hook-release"), "release").unwrap();
+        push.join().await.unwrap();
+        stopped(helper).await;
+        assert_eq!(local.available_permits(), 1);
+        if route == "tag" {
+            assert!(!f.git(&f.bare, &["rev-parse", "refs/tags/v0.0.1"]).is_empty());
+        } else {
+            assert!(f.git(&f.bare, &["for-each-ref", "--format=%(refname)", "refs/heads/daemon-standalone"]).is_empty());
+            assert!(std::fs::read_dir(backup_path(&f)).unwrap().next().is_some(), "janitor must preserve its bundle-first backup");
+        }
+    }
+}
+
+fn backup_path(f: &Fixture) -> PathBuf {
+    f.root.path().join("backups/auto-prune")
+}
+
+#[tokio::test]
 async fn slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_rejection() {
     let f = Fixture::new();
     let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
