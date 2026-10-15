@@ -47,7 +47,7 @@ canonical checkout.
 
 | Gate | Result | Log |
 |---|---|---|
-| `cargo deny --locked check` (workspace) | advisories, bans, licenses, sources all ok; no RUSTSEC lines; yoked warning absent | `deny-workspace-qualified.log` |
+| `cargo deny --locked check` (workspace) | advisories, bans, licenses, sources all ok; no RUSTSEC lines; yanked warning absent | `deny-workspace-qualified.log` |
 | `cargo deny --locked check` (dracon-sync standalone, parent policy via `--config`) | all four categories ok | `deny-sync-standalone-qualified.log` |
 | `cargo deny --locked check` (dracon-system standalone, parent policy via `--config`) | all four categories ok | `deny-system-standalone-qualified.log` |
 | `cargo test -p dracon-sync --locked` (standalone) | 1,484 passed, 0 failed, 5 summaries | `sync-standalone-tests-qualified.log` |
