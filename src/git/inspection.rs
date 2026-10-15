@@ -14,6 +14,12 @@ pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<Repo
             repo,
             &[
                 "--no-optional-locks",
+                // A service task limit includes push-hook workers too. Do not
+                // fan out index/preload threads for each of four inspections.
+                "-c",
+                "index.threads=1",
+                "-c",
+                "core.preloadIndex=false",
                 "status",
                 "--porcelain=v2",
                 "--branch",

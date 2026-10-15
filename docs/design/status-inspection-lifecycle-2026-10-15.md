@@ -88,5 +88,22 @@ blocked discovery retaining a usable snapshot without duplicate walks, and watch
 configuration changes. All 22 discovery tests pass. Full workspace tests,
 Clippy and the release build pass after these changes.
 
-Release deployment and sustained live convergence must be checked independently;
-unit tests and a successful restart do not prove every fleet gate passes.
+## Live rollout observations
+
+The discovery build was installed atomically through `dracon-sync maintenance`
+and the service restarted at 15:02 on 2026-10-15. The running executable digest
+matched the tested release. Within two minutes the daemon committed/synced
+.dracon, db-gateway, utilities, neonbreak, deathrun, endless-td and junk-runner,
+and committed the parent platform backlog. The table no longer showed STALLED.
+Browser extensions remained pending with a growing live-generator backlog; that
+is not claimed resolved by the scheduling fix.
+
+The rollout exposed `fatal: unable to create threaded lstat: Resource temporarily
+unavailable` in an ai-auto-writer status. Inspections now use command-local
+`index.threads=1` and `core.preloadIndex=false` so four status inspections do not
+fan out index/preload workers against the shared systemd task limit alongside
+hook runtimes. No persistent Git configuration, filters, hooks, task limit or
+staging policy was weakened.
+
+Sustained live convergence must be checked independently; unit tests and a
+successful restart do not prove every fleet gate passes.
