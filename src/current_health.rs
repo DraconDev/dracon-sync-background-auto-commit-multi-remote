@@ -62,8 +62,10 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     }
     if let Some(phase) = row.health.scheduler.as_ref().and_then(|e| e.phase) {
         match phase {
-            Phase::Working | Phase::Inspecting => return Current::Working,
-            Phase::Queued => return Current::Queued,
+            Phase::Working => return Current::Working,
+            // A pending probe has no execution stamp. Its reservation is
+            // useful evidence, but cannot establish actively running work.
+            Phase::Queued | Phase::Inspecting => return Current::Queued,
             Phase::Cancelling | Phase::Retrying => return Current::Retrying,
             Phase::Blocked => return Current::Blocked,
         }

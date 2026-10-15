@@ -99,7 +99,8 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
         // Actual ownership wins over old cooldowns, followed by known gates.
         if row.phase.is_none() {
             row.phase = if inputs.maintenance.contains(path) {
-                Some(Phase::Working)
+                // Handle ownership alone is not an execution-start stamp.
+                Some(Phase::Queued)
             } else if inputs.probes.contains(path) {
                 Some(Phase::Inspecting)
             } else if row.retry_secs.is_some()
@@ -233,7 +234,7 @@ mod tests {
         ]);
         let eligible_set = HashSet::from([eligible.clone()]);
         let probes = HashSet::from([provisional.clone()]);
-        let maintenance = HashSet::new();
+        let maintenance = HashSet::from([PathBuf::from("provisioning")]);
         let retries = HashMap::from([
             (blocked.clone(), now + std::time::Duration::from_secs(300)),
             (owned.clone(), now + std::time::Duration::from_secs(30)),
@@ -270,6 +271,8 @@ mod tests {
             recovery.observations(now).contains_key(&owned),
             "observation does not release ownership"
         );
+        assert_eq!(snapshot.repos[&PathBuf::from("provisioning")].phase, Some(Phase::Queued));
+        assert_eq!(snapshot.repos[&PathBuf::from("provisioning")].execution_secs, None);
         let keys: Vec<_> = snapshot.repos.keys().cloned().collect();
         let mut sorted = keys.clone();
         sorted.sort();
