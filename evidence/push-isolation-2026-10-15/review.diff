@@ -1,0 +1,849 @@
+diff --git a/src/daemon.rs b/src/daemon.rs
+index 52e58c8..be8daf4 100644
+--- a/src/daemon.rs
++++ b/src/daemon.rs
+@@ -7032,6 +7032,7 @@ pub(crate) async fn run_daemon(
+     // Forge provisioning may do network I/O. Retain one owner per repo,
+     // keeping it off the serial scan and mutually exclusive with sync.
+     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
++    let mut branch_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
+     // Per-repo classification jobs (filter-aware `git diff HEAD` +
+     // untracked listing). Spawned outside the pulse loop so a slow or
+     // failing required clean filter in one repo cannot stall the
+@@ -7474,7 +7475,7 @@ pub(crate) async fn run_daemon(
+                 if let Some(job) = provisioning_jobs.remove(&repo) {
+                     if let Err(error) = job.await {
+                         eprintln!(
+-                            "⚠️ {} forge provisioning task failed: {}",
++                            "⚠️ {} repository maintenance task failed: {}",
+                             repo.display(),
+                             error
+                         );
+@@ -8217,25 +8218,31 @@ pub(crate) async fn run_daemon(
+                 // entry vanished between cycles.
+                 commit_only_repos.remove(&repo);
+             }
+-            if has_both_main_and_master(&repo) {
+-                eprintln!(
+-                    "🔧 {} has both main+master, consolidating to main",
+-                    repo.display()
+-                );
+-                if let Err(e) = crate::git::consolidate_to_main(&repo).await {
+-                    eprintln!("⚠️ failed to consolidate {} to main: {}", repo.display(), e);
+-                    continue;
+-                }
+-            } else if crate::git::has_only_master_branch(&repo) {
+-                eprintln!(
+-                    "🔧 {} has only 'master', renaming to 'main'",
+-                    repo.display()
+-                );
+-                if let Err(e) = crate::git::rename_master_to_main(&repo).await {
+-                    eprintln!("⚠️ failed to rename {} master→main: {}", repo.display(), e);
++            let both_defaults = has_both_main_and_master(&repo);
++            if both_defaults || crate::git::has_only_master_branch(&repo) {
++                // Branch repair can push/delete a remote ref and invoke the
++                // same heavy hooks. Keep it off the serial inspection loop,
++                // with one maintenance owner and bounded per-repo retries.
++                if branch_retry_after.get(&repo).is_some_and(|until| now < *until) {
+                     continue;
+                 }
++                branch_retry_after.insert(repo.clone(), now + Duration::from_secs(300));
++                let repair_repo = repo.clone();
++                provisioning_jobs.insert(repo.clone(), tokio::spawn(
++                    crate::git::push_resources::background_pushes(async move {
++                        let result = if both_defaults {
++                            crate::git::consolidate_to_main(&repair_repo).await
++                        } else {
++                            crate::git::rename_master_to_main(&repair_repo).await
++                        };
++                        if let Err(error) = result {
++                            eprintln!("⚠️ {} default-branch repair failed: {}", repair_repo.display(), error);
++                        }
++                    }),
++                ));
++                continue;
+             }
++            branch_retry_after.remove(&repo);
+             if let Some(until) = repair_cooldowns.get(&repo).copied() {
+                 if now < until {
+                     continue;
+@@ -9301,15 +9308,14 @@ pub(crate) async fn run_daemon(
+                             scheduler_unix_ms()
+                         );
+                     }
+-                    // R4-SC-03: hold a concurrency permit across
+-                    // the sync_repo call. Acquire fails only if
+-                    // the semaphore is closed, which never
+-                    // happens — fail closed (no unbounded run)
+-                    // rather than panic the worker.
+-                    let Ok(_permit) = sem.acquire_owned().await else {
++                    // Local-work admission remains bounded. The scoped push
++                    // phase returns this permit while hooks/network run, then
++                    // reacquires it before subsequent local mutation.
++                    let Ok(permit) = sem.clone().acquire_owned().await else {
+                         return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
+                     };
+                     let _ = run_started.set(Instant::now());
++                    crate::git::push_resources::with_local_work(sem, permit, async move {
+                     let mut rf = entry_rf;
+                     let r = sync_repo_with_ahead_since(
+                         &repo_for_task,
+@@ -9324,6 +9330,7 @@ pub(crate) async fn run_daemon(
+                     )
+                     .await;
+                     (rf, r)
++                    }).await
+                 });
+             sync_workers.insert(repo.clone(), handle.abort_handle());
+             to_sync.push((repo.clone(), handle));
+diff --git a/src/git/branch.rs b/src/git/branch.rs
+index eaeb8ec..d20d547 100644
+--- a/src/git/branch.rs
++++ b/src/git/branch.rs
+@@ -15,33 +15,21 @@ fn remote_branch_already_absent(stderr: &str) -> bool {
+ /// Delete a remote branch with the same non-interactive SSH policy used by
+ /// normal daemon pushes. Branch cleanup is best-effort at its call sites, but
+ /// a failed exit status must remain visible instead of looking successful.
+-fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
++async fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
+     if !is_safe_branch_name(branch) {
+         return Err(anyhow::anyhow!("branch name '{}' is unsafe", branch));
+     }
+     let ssh_hardening = git_ssh_hardening();
+-    let output = crate::policy::std_git_command()
+-        .args(["push", remote, "--delete", branch])
+-        .current_dir(repo)
+-        .env("GIT_SSH_COMMAND", ssh_hardening)
+-        .env("GIT_TERMINAL_PROMPT", "0")
+-        // Warden's global pre-push hook rejects branch deletion by default.
+-        // These fixed main/master cleanup operations are the daemon's
+-        // deliberate, narrow exception, matching the stale-branch janitor.
+-        .env("DRACON_ALLOW_REWRITE", "1")
+-        .stdout(std::process::Stdio::null())
+-        .output()
+-        .with_context(|| format!("failed to delete {remote}/{branch}"))?;
+-    if output.status.success()
+-        || remote_branch_already_absent(&String::from_utf8_lossy(&output.stderr))
+-    {
+-        Ok(())
+-    } else {
+-        Err(anyhow::anyhow!(
+-            "remote branch deletion exited with {}: {}",
+-            output.status,
+-            String::from_utf8_lossy(&output.stderr).trim()
+-        ))
++    // Retain the existing narrow maintenance override and content hooks.
++    // This owned runner bounds hook time and cleans descendants on cancel.
++    let result = super::push_resources::push_phase(super::run_git_with_timeout_env(
++        repo, &["push", remote, "--delete", branch], 60, "delete remote branch",
++        &[("GIT_SSH_COMMAND", ssh_hardening.as_str()), ("GIT_TERMINAL_PROMPT", "0"),
++          ("DRACON_ALLOW_REWRITE", "1")],
++    )).await;
++    match result {
++        Err(error) if remote_branch_already_absent(&error.to_string()) => Ok(()),
++        result => result,
+     }
+ }
+ 
+@@ -193,7 +181,7 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
+     {
+         eprintln!("⚠️ failed to delete local master branch: {}", e);
+     }
+-    if let Err(e) = delete_remote_branch(repo, "origin", "master") {
++    if let Err(e) = delete_remote_branch(repo, "origin", "master").await {
+         eprintln!("⚠️ failed to delete remote master branch: {}", e);
+     }
+     if has_origin_remote(repo) && !has_tracking_upstream(repo) {
+@@ -226,7 +214,7 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
+         if let Err(e) = super::push_with_retries(repo, 60, 3, "rename-master-to-main").await {
+             eprintln!("⚠️ failed to push main to origin: {}", e);
+         }
+-        if let Err(e) = delete_remote_branch(repo, "origin", "master") {
++        if let Err(e) = delete_remote_branch(repo, "origin", "master").await {
+             eprintln!("⚠️ failed to delete remote master: {}", e);
+         }
+     }
+@@ -262,13 +250,7 @@ pub(crate) async fn prune_other_default_branch(repo: &Path) {
+     }
+     if repo_has_origin {
+         let other_c = other_str.clone();
+-        if let Err(e) =
+-            tokio::task::spawn_blocking(move || delete_remote_branch(&repo_c, "origin", &other_c))
+-                .await
+-                .unwrap_or_else(|e| {
+-                    Err(anyhow::anyhow!("remote branch deletion task failed: {}", e))
+-                })
+-        {
++        if let Err(e) = delete_remote_branch(&repo_c, "origin", &other_c).await {
+             eprintln!("⚠️ failed to delete remote {} branch: {}", other_str, e);
+         }
+     }
+diff --git a/src/git/mod.rs b/src/git/mod.rs
+index c1eb0b3..84e6f98 100644
+--- a/src/git/mod.rs
++++ b/src/git/mod.rs
+@@ -1341,6 +1341,7 @@ pub(crate) use discovery::*;
+ pub(crate) mod multi_remote;
+ mod ops;
+ pub(crate) use ops::*;
++pub(crate) mod push_resources;
+ mod status;
+ pub(crate) use status::*;
+ mod inspection;
+diff --git a/src/git/ops.rs b/src/git/ops.rs
+index a8a303a..d19205c 100644
+--- a/src/git/ops.rs
++++ b/src/git/ops.rs
+@@ -336,6 +336,7 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
+         .stdout(std::process::Stdio::null())
+         .stderr(std::process::Stdio::piped());
+     configure_git_process_group(&mut cmd);
++    super::push_resources::configure_child(&mut cmd, args);
+     cmd.spawn()
+         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
+ }
+@@ -441,6 +442,7 @@ fn spawn_git_command_env(
+         cmd.env(k, v);
+     }
+     configure_git_process_group(&mut cmd);
++    super::push_resources::configure_child(&mut cmd, args);
+     cmd.spawn()
+         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
+ }
+@@ -451,6 +453,15 @@ pub(crate) async fn run_git_with_timeout(
+     args: &[&str],
+     timeout_secs: u64,
+     op_label: &str,
++) -> Result<()> {
++    super::push_resources::command(args, run_git_with_timeout_inner(repo, args, timeout_secs, op_label)).await
++}
++
++async fn run_git_with_timeout_inner(
++    repo: &Path,
++    args: &[&str],
++    timeout_secs: u64,
++    op_label: &str,
+ ) -> Result<()> {
+     let label = format!("git {}", op_label);
+     let trace_add = args.first() == Some(&"add") && crate::policy::debug_enabled();
+@@ -523,9 +534,11 @@ pub(crate) async fn run_git_with_timeout_env(
+     op_label: &str,
+     env: &[(&str, &str)],
+ ) -> Result<()> {
+-    let label = format!("git {}", op_label);
+-    let child = spawn_git_command_env(repo, args, op_label, env)?;
+-    run_child(child, repo, timeout_secs, &label).await
++    super::push_resources::command(args, async {
++        let label = format!("git {}", op_label);
++        let child = spawn_git_command_env(repo, args, op_label, env)?;
++        run_child(child, repo, timeout_secs, &label).await
++    }).await
+ }
+ 
+ /// Run a git push/pull with a progress-aware idle timeout.
+@@ -536,9 +549,11 @@ pub(crate) async fn run_git_with_timeout_env_progress(
+     op_label: &str,
+     env: &[(&str, &str)],
+ ) -> Result<()> {
+-    let label = format!("git {}", op_label);
+-    let child = spawn_git_command_env(repo, args, op_label, env)?;
+-    run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
++    super::push_resources::command(args, async {
++        let label = format!("git {}", op_label);
++        let child = spawn_git_command_env(repo, args, op_label, env)?;
++        run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
++    }).await
+ }
+ #[cfg(unix)]
+ pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
+diff --git a/src/git/push_resources.rs b/src/git/push_resources.rs
+new file mode 100644
+index 0000000..84b2f08
+--- /dev/null
++++ b/src/git/push_resources.rs
+@@ -0,0 +1,139 @@
++//! Daemon-only push isolation. CLI/manual Git workloads retain their priority.
++//!
++//! Local work has its existing semaphore. A push phase temporarily gives its
++//! permit back, so waiting on hook/network work cannot exhaust commit capacity.
++//! Actual push commands have a separate one-command lane and low child priority.
++#[cfg(test)]
++#[path = "push_resources_tests.rs"]
++mod tests;
++
++use anyhow::{Context, Result};
++use std::cell::RefCell;
++use std::future::Future;
++use std::sync::{Arc, OnceLock};
++use tokio::sync::{OwnedSemaphorePermit, Semaphore};
++
++struct LocalWork {
++    semaphore: Arc<Semaphore>,
++    permit: RefCell<Option<OwnedSemaphorePermit>>,
++}
++
++tokio::task_local! {
++    static LOCAL_WORK: LocalWork;
++    static PUSH_PHASE: bool;
++}
++
++pub(crate) async fn with_local_work<T>(
++    semaphore: Arc<Semaphore>,
++    permit: OwnedSemaphorePermit,
++    work: impl Future<Output = T>,
++) -> T {
++    LOCAL_WORK
++        .scope(
++            LocalWork {
++                semaphore,
++                permit: RefCell::new(Some(permit)),
++            },
++            work,
++        )
++        .await
++}
++
++/// This boundary encloses the entire push phase, including concurrent mirror
++/// futures. Individual mirror commands must not independently restore the
++/// shared local-work permit while another mirror is still in its hook.
++/// Cancellation drops the enclosing sync worker and all its owned resources.
++pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Result<T> {
++    if PUSH_PHASE.try_with(|active| *active).unwrap_or(false) {
++        return work.await;
++    }
++    let local = LOCAL_WORK.try_with(|local| {
++        let semaphore = local.semaphore.clone();
++        let permit = local.permit.borrow_mut().take();
++        (semaphore, permit)
++    });
++    let Ok((semaphore, permit)) = local else {
++        return work.await;
++    };
++    anyhow::ensure!(
++        permit.is_some(),
++        "nested push phase would violate local-work ownership"
++    );
++    drop(permit);
++    let result = PUSH_PHASE.scope(true, work).await;
++    // Restore local execution ownership before any subsequent mutation. This
++    // can wait behind healthy local workers, without holding a push-command
++    // slot or changing the repository's exclusive scheduler reservation.
++    let permit = semaphore
++        .acquire_owned()
++        .await
++        .context("local-work semaphore closed")?;
++    LOCAL_WORK.with(|local| {
++        *local.permit.borrow_mut() = Some(permit);
++    });
++    result
++}
++
++/// Per-repository coordinator maintenance has no local-work permit to release,
++/// but its push children need the same bounded lane and low priority. Call this
++/// only from an owned background job, never inline on the inspection loop.
++pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
++    PUSH_PHASE.scope(true, work).await
++}
++
++fn isolated_push(args: &[&str]) -> bool {
++    args.first() == Some(&"push") && PUSH_PHASE.try_with(|active| *active).unwrap_or(false)
++}
++
++fn push_slots() -> Arc<Semaphore> {
++    static SLOTS: OnceLock<Arc<Semaphore>> = OnceLock::new();
++    SLOTS.get_or_init(|| Arc::new(Semaphore::new(1))).clone()
++}
++
++/// The permit lives outside the owned process runner: cancellation drops the
++/// runner (which kills its process group) before another command gets a slot.
++pub(super) async fn command<T>(args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
++    let permit = if isolated_push(args) {
++        Some(
++            push_slots()
++                .acquire_owned()
++                .await
++                .context("push semaphore closed")?,
++        )
++    } else {
++        None
++    };
++    // Struct fields drop in declaration order, making teardown-before-slot-
++    // release explicit rather than relying on async-local drop ordering.
++    struct OwnedCommand<F: Future> {
++        work: std::pin::Pin<Box<F>>,
++        _permit: Option<OwnedSemaphorePermit>,
++    }
++    let mut owned = OwnedCommand {
++        work: Box::pin(work),
++        _permit: permit,
++    };
++    futures::future::poll_fn(|cx| owned.work.as_mut().poll(cx)).await
++}
++
++/// Apply only to the child of an enrolled daemon push. Setting our own child
++/// to nice 19 is unprivileged, cannot improve its priority, and is inherited by
++/// hook descendants. The daemon and interactive Git processes are untouched.
++/// No memory limit, service-wide setting or external command wrapper is used.
++pub(super) fn configure_child(cmd: &mut tokio::process::Command, args: &[&str]) {
++    #[cfg(unix)]
++    if isolated_push(args) {
++        // SAFETY: pre_exec uses only an async-signal-safe syscall and creates
++        // an OS error on failure; no allocation, locks or runtime access.
++        unsafe {
++            cmd.pre_exec(|| {
++                if libc::setpriority(libc::PRIO_PROCESS, 0, 19) != 0 {
++                    return Err(std::io::Error::last_os_error());
++                }
++                Ok(())
++            });
++        }
++    }
++    #[cfg(not(unix))]
++    let _ = (cmd, args);
++}
+diff --git a/src/git/push_resources_tests.rs b/src/git/push_resources_tests.rs
+new file mode 100644
+index 0000000..85ee1e6
+--- /dev/null
++++ b/src/git/push_resources_tests.rs
+@@ -0,0 +1,84 @@
++use super::*;
++use std::sync::atomic::{AtomicBool, Ordering};
++use std::task::Poll;
++
++#[tokio::test]
++async fn hook_command_lane_is_single_flight_and_drops_work_before_releasing_slot() {
++    struct Dropped(Arc<AtomicBool>);
++    impl Drop for Dropped {
++        fn drop(&mut self) {
++            self.0.store(true, Ordering::SeqCst);
++        }
++    }
++    let entered = Arc::new(AtomicBool::new(false));
++    let dropped = Arc::new(AtomicBool::new(false));
++    PUSH_PHASE
++        .scope(true, async {
++            let signal = entered.clone();
++            let cleanup = dropped.clone();
++            let mut first = Box::pin(command(&["push"], async move {
++                let _guard = Dropped(cleanup);
++                signal.store(true, Ordering::SeqCst);
++                std::future::pending::<()>().await;
++                Ok(())
++            }));
++            assert!(matches!(futures::poll!(first.as_mut()), Poll::Pending));
++            assert!(entered.load(Ordering::SeqCst));
++            assert_eq!(push_slots().available_permits(), 0);
++            let observed = dropped.clone();
++            let mut second = Box::pin(command(&["push"], async move {
++                assert!(
++                    observed.load(Ordering::SeqCst),
++                    "previous work must be dropped before admission"
++                );
++                Ok(())
++            }));
++            assert!(matches!(futures::poll!(second.as_mut()), Poll::Pending));
++            // Inspection and unenrolled/manual push are not customers of this
++            // lane, even while an enrolled heavy hook owns its only slot.
++            command(&["status"], async { Ok(()) }).await.unwrap();
++            PUSH_PHASE
++                .scope(false, command(&["push"], async { Ok(()) }))
++                .await
++                .unwrap();
++            drop(first);
++            assert!(dropped.load(Ordering::SeqCst));
++            second.await.unwrap();
++            assert_eq!(push_slots().available_permits(), 1);
++        })
++        .await;
++}
++
++#[tokio::test]
++async fn push_phase_restores_local_capacity_on_error_and_nested_mirror_work() {
++    let local = Arc::new(Semaphore::new(1));
++    let permit = local.clone().acquire_owned().await.unwrap();
++    with_local_work(local.clone(), permit, async {
++        assert_eq!(local.available_permits(), 0);
++        let result: Result<()> = push_phase(async {
++            assert_eq!(local.available_permits(), 1);
++            let (a, b) = tokio::join!(
++                command(&["push"], async { Ok(()) }),
++                push_phase(command(&["push"], async { Ok(()) })),
++            );
++            a.unwrap();
++            b.unwrap();
++            assert_eq!(
++                local.available_permits(),
++                1,
++                "mirror completion may not reacquire the local permit early"
++            );
++            anyhow::bail!("injected hook failure")
++        })
++        .await;
++        assert!(result.is_err());
++        assert_eq!(
++            local.available_permits(),
++            0,
++            "local mutation must regain its permit even after error"
++        );
++        assert_eq!(push_slots().available_permits(), 1);
++    })
++    .await;
++    assert_eq!(local.available_permits(), 1);
++}
+diff --git a/src/sync.rs b/src/sync.rs
+index 7e46c1a..d72f678 100644
+--- a/src/sync.rs
++++ b/src/sync.rs
+@@ -3,6 +3,10 @@ use std::io::Write;
+ use std::path::{Path, PathBuf};
+ use std::time::Duration;
+ 
++#[cfg(all(test, target_os = "linux"))]
++#[path = "sync/push_isolation_tests.rs"]
++mod push_isolation_tests;
++
+ use crate::log_warn;
+ #[cfg(test)]
+ use crate::test_helpers::{test_commit_cmd, test_git_cmd};
+@@ -2239,6 +2243,17 @@ pub(crate) fn paused_remote_names_incident(
+ /// a separate `push_with_blob_check` function that did this but was never
+ /// called from the live code path.
+ async fn push_background(
++    repo: &std::path::Path,
++    policy: &SyncPolicy,
++    has_origin: bool,
++    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
++) -> Result<PushReport> {
++    crate::git::push_resources::push_phase(
++        push_background_inner(repo, policy, has_origin, remote_failures),
++    ).await
++}
++
++async fn push_background_inner(
+     repo: &std::path::Path,
+     policy: &SyncPolicy,
+     has_origin: bool,
+diff --git a/src/sync/push_isolation_tests.rs b/src/sync/push_isolation_tests.rs
+new file mode 100644
+index 0000000..2761c7e
+--- /dev/null
++++ b/src/sync/push_isolation_tests.rs
+@@ -0,0 +1,317 @@
++//! Real Git hooks, real push entry, and the daemon's actual local-work scope.
++use super::*;
++use crate::git::push_resources::with_local_work;
++use std::os::unix::fs::PermissionsExt;
++use std::path::{Path, PathBuf};
++use std::sync::Arc;
++use std::time::Duration;
++use tokio::sync::Semaphore;
++
++struct Fixture {
++    root: tempfile::TempDir,
++    repo: PathBuf,
++    bare: PathBuf,
++    healthy: PathBuf,
++    git: PathBuf,
++}
++impl Fixture {
++    fn git(&self, cwd: &Path, args: &[&str]) -> String {
++        // Fixture setup only. Production push/inspection/commit calls below
++        // do not inject a hooksPath override or an identity override.
++        let out = std::process::Command::new(&self.git)
++            .args(["-c", "core.hooksPath=/dev/null"])
++            .args(args)
++            .current_dir(cwd)
++            .output()
++            .unwrap();
++        assert!(
++            out.status.success(),
++            "{}",
++            String::from_utf8_lossy(&out.stderr)
++        );
++        String::from_utf8(out.stdout).unwrap().trim().to_owned()
++    }
++    fn new() -> Self {
++        let root = tempfile::tempdir().unwrap();
++        let f = Self {
++            repo: root.path().join("slow"),
++            bare: root.path().join("remote.git"),
++            healthy: root.path().join("healthy"),
++            git: crate::policy::git_binary(),
++            root,
++        };
++        f.git(
++            f.root.path(),
++            &["init", "--bare", "--quiet", f.bare.to_str().unwrap()],
++        );
++        for repo in [&f.repo, &f.healthy] {
++            std::fs::create_dir(repo).unwrap();
++            f.git(repo, &["init", "--quiet", "-b", "main"]);
++            f.git(repo, &["config", "user.name", "Hook Isolation Fixture"]);
++            f.git(repo, &["config", "user.email", "hook-isolation@invalid"]);
++            std::fs::create_dir(repo.join("hooks")).unwrap();
++            f.git(
++                repo,
++                &[
++                    "config",
++                    "core.hooksPath",
++                    repo.join("hooks").to_str().unwrap(),
++                ],
++            );
++            std::fs::write(repo.join("data"), "initial fixture\n").unwrap();
++            f.git(repo, &["add", "--", "data"]);
++            f.git(repo, &["commit", "--quiet", "-m", "fixture"]);
++        }
++        f.git(
++            &f.repo,
++            &["remote", "add", "origin", f.bare.to_str().unwrap()],
++        );
++        f.git(&f.repo, &["config", "branch.main.remote", "origin"]);
++        f.git(&f.repo, &["config", "branch.main.merge", "refs/heads/main"]);
++        let hook = f.repo.join("hooks/pre-push");
++        std::fs::write(
++            &hook,
++            r##"#!/bin/sh
++set -eu
++(sh -c 'trap "" TERM; exec sleep 120') </dev/null >/dev/null 2>&1 &
++helper=$!
++printf '%s %s\n' "$$" "$helper" > hook-entered.tmp
++mv hook-entered.tmp hook-entered
++while [ ! -e hook-release ]; do sleep 0.01; done
++kill -KILL "$helper" 2>/dev/null || :
++wait "$helper" 2>/dev/null || :
++if [ -e hook-reject ]; then echo 'pre-push: fixture reject' >&2; exit 1; fi
++exit 0
++"##,
++        )
++        .unwrap();
++        std::fs::set_permissions(hook, std::fs::Permissions::from_mode(0o755)).unwrap();
++        f
++    }
++    fn reset(&self) {
++        for path in ["hook-entered", "hook-release", "hook-reject"] {
++            let p = self.repo.join(path);
++            if p.exists() {
++                std::fs::remove_file(p).unwrap();
++            }
++        }
++    }
++    fn push(&self, local: Arc<Semaphore>) -> TaskGuard<Result<PushReport>> {
++        let repo = self.repo.clone();
++        TaskGuard(Some(tokio::spawn(async move {
++            let permit = local.clone().acquire_owned().await.unwrap();
++            with_local_work(local, permit, async move {
++                let policy = SyncPolicy {
++                    remotes: Vec::new(),
++                    push_retries: 0,
++                    push_op_timeout_secs: 10,
++                    ..SyncPolicy::default()
++                };
++                push_background(&repo, &policy, true, None).await
++            })
++            .await
++        })))
++    }
++    async fn entered(&self) -> (u32, u32) {
++        tokio::time::timeout(Duration::from_secs(10), async {
++            loop {
++                if let Ok(text) = std::fs::read_to_string(self.repo.join("hook-entered")) {
++                    let pids: Vec<u32> = text
++                        .split_whitespace()
++                        .map(|v| v.parse().unwrap())
++                        .collect();
++                    assert_eq!(pids.len(), 2);
++                    assert!(pids.iter().all(|pid| *pid > 0));
++                    return (pids[0], pids[1]);
++                }
++                tokio::time::sleep(Duration::from_millis(10)).await;
++            }
++        })
++        .await
++        .expect("hook never entered")
++    }
++}
++
++struct TaskGuard<T>(Option<tokio::task::JoinHandle<T>>);
++impl<T> Drop for TaskGuard<T> {
++    fn drop(&mut self) {
++        if let Some(task) = &self.0 {
++            task.abort();
++        }
++    }
++}
++impl<T> TaskGuard<T> {
++    async fn join(mut self) -> Result<T, tokio::task::JoinError> {
++        let result = tokio::time::timeout(Duration::from_secs(15), self.0.as_mut().unwrap())
++            .await
++            .expect("push fixture did not settle");
++        self.0.take();
++        result
++    }
++}
++
++async fn stopped(pid: u32) {
++    tokio::time::timeout(Duration::from_secs(5), async {
++        loop {
++            match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
++                Ok(stat) => {
++                    let state = stat
++                        .rsplit_once(") ")
++                        .unwrap()
++                        .1
++                        .split_whitespace()
++                        .next()
++                        .unwrap();
++                    if matches!(state, "Z" | "X") {
++                        return;
++                    }
++                }
++                Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
++                Err(e) => panic!("cannot establish fixture process {pid} state: {e}"),
++            }
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    })
++    .await
++    .expect("owned hook/helper still running");
++}
++
++#[tokio::test]
++async fn slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_rejection() {
++    let f = Fixture::new();
++    let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
++    let local = Arc::new(Semaphore::new(1));
++    let parent_nice = unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) };
++    let push = f.push(local.clone());
++    let (hook_pid, helper_pid) = f.entered().await;
++    assert_eq!(
++        unsafe { libc::getpriority(libc::PRIO_PROCESS, hook_pid) },
++        19
++    );
++    assert_eq!(
++        unsafe { libc::getpriority(libc::PRIO_PROCESS, helper_pid) },
++        19
++    );
++    let before = f.git(&f.healthy, &["rev-parse", "HEAD"]);
++    std::fs::write(
++        f.healthy.join("data"),
++        "unrelated healthy edit with different length\n",
++    )
++    .unwrap();
++    tokio::time::timeout(Duration::from_secs(5), async {
++        let permit = local.clone().acquire_owned().await.unwrap();
++        with_local_work(local.clone(), permit, async {
++            let status = crate::git::inspect_status(&f.healthy, Duration::from_secs(3))
++                .await
++                .unwrap();
++            assert!(!status.is_clean);
++            run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add")
++                .await
++                .unwrap();
++            run_git_with_timeout(
++                &f.healthy,
++                &["commit", "--quiet", "-m", "healthy commit"],
++                3,
++                "fixture commit",
++            )
++            .await
++            .unwrap();
++        })
++        .await;
++    })
++    .await
++    .expect("slow hook starved unrelated local work");
++    assert_ne!(f.git(&f.healthy, &["rev-parse", "HEAD"]), before);
++    assert_eq!(
++        f.git(&f.healthy, &["show", "HEAD:data"]),
++        "unrelated healthy edit with different length"
++    );
++    assert!(!f.repo.join("hook-release").exists());
++    assert!(
++        !push.0.as_ref().unwrap().is_finished(),
++        "hook must still be blocked during healthy commit"
++    );
++    assert_eq!(
++        unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) },
++        parent_nice
++    );
++    std::fs::write(f.repo.join("hook-release"), "release").unwrap();
++    assert!(matches!(
++        push.join().await.unwrap().unwrap(),
++        PushReport::Attempted { ok: true, .. }
++    ));
++    stopped(helper_pid).await;
++    let accepted = f.git(&f.bare, &["rev-parse", "refs/heads/main"]);
++    assert_eq!(accepted, f.git(&f.repo, &["rev-parse", "HEAD"]));
++    f.reset();
++    std::fs::write(f.repo.join("data"), "second update to reject\n").unwrap();
++    f.git(&f.repo, &["add", "--", "data"]);
++    f.git(&f.repo, &["commit", "--quiet", "-m", "rejected fixture"]);
++    std::fs::write(f.repo.join("hook-reject"), "reject").unwrap();
++    let push = f.push(local.clone());
++    f.entered().await;
++    std::fs::write(f.repo.join("hook-release"), "release").unwrap();
++    assert!(matches!(
++        push.join().await.unwrap().unwrap(),
++        PushReport::Attempted { ok: false, .. }
++    ));
++    assert_eq!(f.git(&f.bare, &["rev-parse", "refs/heads/main"]), accepted);
++    assert_eq!(local.available_permits(), 1);
++}
++
++#[tokio::test]
++async fn cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel() {
++    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
++    let f = Fixture::new();
++    let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
++    let local = Arc::new(Semaphore::new(1));
++    let mut sentinel = tokio::process::Command::new("sh");
++    sentinel
++        .args(["-c", "while read line; do printf '%s\\n' \"$line\"; done"])
++        .process_group(0)
++        .kill_on_drop(true)
++        .stdin(std::process::Stdio::piped())
++        .stdout(std::process::Stdio::piped());
++    let mut sentinel = sentinel.spawn().unwrap();
++    let sentinel_pid = sentinel.id().unwrap();
++    let original_nice = unsafe { libc::getpriority(libc::PRIO_PROCESS, sentinel_pid) };
++    let mut stdin = sentinel.stdin.take().unwrap();
++    let mut stdout = BufReader::new(sentinel.stdout.take().unwrap()).lines();
++    stdin.write_all(b"before\n").await.unwrap();
++    assert_eq!(
++        tokio::time::timeout(Duration::from_secs(3), stdout.next_line())
++            .await
++            .unwrap()
++            .unwrap()
++            .unwrap(),
++        "before"
++    );
++    let push = f.push(local.clone());
++    let (hook, helper) = f.entered().await;
++    push.0.as_ref().unwrap().abort();
++    assert!(push.join().await.unwrap_err().is_cancelled());
++    stopped(hook).await;
++    stopped(helper).await;
++    stdin.write_all(b"after\n").await.unwrap();
++    assert_eq!(
++        tokio::time::timeout(Duration::from_secs(3), stdout.next_line())
++            .await
++            .unwrap()
++            .unwrap()
++            .unwrap(),
++        "after"
++    );
++    assert_eq!(
++        unsafe { libc::getpriority(libc::PRIO_PROCESS, sentinel_pid) },
++        original_nice
++    );
++    assert_eq!(local.available_permits(), 1);
++    f.reset();
++    std::fs::write(f.repo.join("hook-release"), "accept next push").unwrap();
++    assert!(matches!(
++        f.push(local).join().await.unwrap().unwrap(),
++        PushReport::Attempted { ok: true, .. }
++    ));
++    sentinel.kill().await.unwrap();
++    sentinel.wait().await.unwrap();
++}
