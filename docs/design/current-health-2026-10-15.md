@@ -21,8 +21,8 @@ field **REF AGE**, and detail calls it **upstream commit age**.
 | --- | --- |
 | CLEAN / idle | No eligible modified/staged/untracked files and no observed ahead/behind work. Old commits, old errors, and no scheduler record do not make this unhealthy |
 | EXCLUDED | Only policy-excluded dirt remains, ownership prevents daemon handling, or publication is explicitly isolated. These bytes are not claimed covered |
-| QUEUED | A reserved worker has not acquired local capacity, or current filter-aware eligible work is awaiting admission without starvation evidence |
-| WORKING | A fresh scheduler observation shows a started, still-owned worker, maintenance job or inspection. This is ownership evidence, not a per-operation progress heartbeat or proof of publication |
+| QUEUED | A reserved worker has not acquired local capacity, an inspection/provisioning handle lacks an execution-start stamp, or current filter-aware eligible work is awaiting admission without starvation evidence |
+| WORKING | A fresh scheduler observation shows a started, still-owned sync worker. This is started ownership evidence, not a per-operation progress heartbeat or proof of publication |
 | RETRYING | Owned cancellation is awaiting join, or a live scheduler retry/cooldown gate delays another attempt |
 | BLOCKED | A current guard/manual-intervention outcome, damaged history, pack guard or pull blocker prevents convergence |
 | STALLED | Current unpushed work exhausted its push budget, or continuously observed eligible dirt has neither a current worker/gate nor admission for at least 15 minutes |
@@ -48,8 +48,9 @@ The scheduler copies its owned maps once per completed cycle:
 - `SyncRecovery` distinguishes unset execution stamp (queued), acquired-and-started
   worker (working), cancellation still owned (cancelling), and joined-error retry.
   Observation does not release a reservation, abort a task or change admission.
-- Actual status/classification reservations establish inspecting; actual retry
-  deadlines establish retrying. A known blocked outcome plus a cooldown remains
+- Actual status/classification reservations establish inspecting metadata, but
+  render queued because pending handles cannot prove execution started. The same
+  conservative rule applies to provisioning jobs. Actual retry deadlines establish retrying. A known blocked outcome plus a cooldown remains
   blocked, not a fabricated transient outage.
 - `dirty_secs` is the session's first continuously dirty observation, preserved
   across fingerprint churn, not the age of the last commit or an asset mtime.
@@ -100,5 +101,13 @@ Raw qualification evidence: `evidence/current-health-2026-10-15/`. Initial repor
 qualification found outdated expected labels and one natural-hint-ending assertion
 that assumed an author suffix already removed in older code. The fixture now
 checks the actual hint's natural ending rather than an unrelated author name.
-Final workspace/Clippy/build results and independent review are pending; this is
-an implementation checkpoint, not completion or live deployment evidence.
+Final post-patch workspace/Clippy/build results and independent review are pending;
+this is an implementation checkpoint, not completion or live deployment evidence.
+
+The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
+0349) and a yanked yoke-derive release in the pre-existing workspace lockfile.
+Only the parent workspace lockfile was patched: rustls 0.23.45 → 0.23.46 and
+yoke-derive 0.8.3 → 0.8.4. No dependency policy exception was added. The subsequent
+`cargo deny check` passes all four categories; final build/test qualification uses
+these patch versions. Existing standalone utility lockfiles are not rewritten by
+this workspace-qualified item.

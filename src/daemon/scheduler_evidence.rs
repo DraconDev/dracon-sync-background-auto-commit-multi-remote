@@ -271,8 +271,14 @@ mod tests {
             recovery.observations(now).contains_key(&owned),
             "observation does not release ownership"
         );
-        assert_eq!(snapshot.repos[&PathBuf::from("provisioning")].phase, Some(Phase::Queued));
-        assert_eq!(snapshot.repos[&PathBuf::from("provisioning")].execution_secs, None);
+        assert_eq!(
+            snapshot.repos[&PathBuf::from("provisioning")].phase,
+            Some(Phase::Queued)
+        );
+        assert_eq!(
+            snapshot.repos[&PathBuf::from("provisioning")].execution_secs,
+            None
+        );
         let keys: Vec<_> = snapshot.repos.keys().cloned().collect();
         let mut sorted = keys.clone();
         sorted.sort();
