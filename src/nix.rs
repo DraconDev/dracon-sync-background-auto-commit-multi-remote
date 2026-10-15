@@ -197,7 +197,7 @@ pub async fn create_flake_pr(
     }
 }
 
-async fn run_git_for_nix_pr(
+pub(crate) async fn run_git_for_nix_pr(
     repo: &Path,
     branch_name: &str,
     commit_msg: &str,
@@ -226,13 +226,13 @@ async fn run_git_for_nix_pr(
     ];
 
     use crate::git::run_git_with_timeout_env;
-    let push_result = run_git_with_timeout_env(
+    let push_result = crate::git::push_resources::push_phase(run_git_with_timeout_env(
         repo,
         &["push", "-u", "origin", branch_name],
         120,
         "nix-pr-push",
         &env,
-    )
+    ))
     .await;
 
     // Always restore the previous branch even on push failure
