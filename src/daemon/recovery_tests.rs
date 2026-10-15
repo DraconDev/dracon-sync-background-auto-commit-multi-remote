@@ -46,7 +46,7 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
     finished(&fast_abort).await;
     jobs.push(fast);
     let mut pending = HashSet::from([hung.clone(), healthy.clone()]);
-    let mut aborts = HashMap::from([(hung.clone(), abort.clone()), (healthy.clone(), fast_abort)]);
+    let mut aborts = HashMap::from([(hung.clone(), abort.clone().into()), (healthy.clone(), fast_abort.into())]);
     let mut since = HashMap::from([
         (hung.clone(), now - Duration::from_secs(61)),
         (healthy.clone(), now),
@@ -133,8 +133,8 @@ async fn recovery_classification_panic_and_cancellation_release_known_owners() {
     let cancelled: ClassificationJoin = tokio::spawn(std::future::pending());
     let cancel_abort = cancelled.abort_handle();
     let mut owners = HashMap::from([
-        (panic_repo.clone(), panic_abort.clone()),
-        (cancelled_repo.clone(), cancel_abort.clone()),
+        (panic_repo.clone(), panic_abort.clone().into()),
+        (cancelled_repo.clone(), cancel_abort.clone().into()),
     ]);
     let mut pending = HashSet::from([panic_repo.clone(), cancelled_repo.clone()]);
     let mut since = HashMap::from([
