@@ -55,7 +55,15 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
     assert!(!abort_wedged_status_inspection(&mut pending, &mut since, &mut aborts, &hung, now));
     release.send(()).unwrap();
     finished(&abort).await;
-    collect_ready_status(&mut jobs, &mut pending, &mut aborts, &mut since, &mut results);
+    // is_finished can become visible before FuturesUnordered's ready-queue
+    // notification is consumed. Exercise repeated nonblocking pulse drains,
+    // rather than assuming a single poll must observe that notification.
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !jobs.is_empty() {
+            collect_ready_status(&mut jobs, &mut pending, &mut aborts, &mut since, &mut results);
+            tokio::task::yield_now().await;
+        }
+    }).await.unwrap();
     assert!(dropped.load(Ordering::SeqCst));
     assert!(pending.is_empty());
     assert!(aborts.is_empty());
