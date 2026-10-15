@@ -3500,10 +3500,10 @@ fn pack_evidence_hint(
 
 fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
     &[
-        ("STATUS", "✅ clean · 🔄 active · 🟡 warn · ❌ concern"),
+        ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
         (
             "ACTIVITY",
-            "🔄 now · 🟡 waiting · ⏳ dirty · 🟢 synced · ⚪ idle · ⚫ cold",
+            "Fresh scheduler evidence, not last commit age: queued = admitted/eligible; working = started worker or inspection; retrying = owned cancellation or a live cooldown", 
         ),
         // v0.113.87: `⏸️ frozen` replaces `🟡 waiting` on every PENDING
         // row while the daemon is frozen — the queue is not moving
@@ -3523,10 +3523,12 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
             "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded",
         ),
         ("A/B", "↑ ahead · ↓ behind · — synced"),
+        ("EVIDENCE", "Stalled requires an exhausted current push budget or eligible continuous dirt with no worker/gate and no admission for 15m. Old/missing scheduler evidence is unknown, never proof of a stall. Working is ownership, not an operation heartbeat."),
+        ("IDLE", "Unchanged idle repos are clean even with old commits/push records. Excluded bytes remain outside daemon coverage; clean is local/upstream convergence, not proof of all mirrors, bucket durability or absence of secrets."),
         ("", ""),
         (
             "PUSH",
-            "last push result + age (current edits may still be waiting): ✅ OK · ✅ INTENT · 🟣 PENDING · 🛑 STUCK · ❌ FAIL · 🩹 BROKEN · 🚫 BLOCKED (+🩹 +🔑)",
+            "Last daemon-recorded push result + observation age: ✅ OK · ❌ FAIL · — unknown. Historical OK never proves current changes published. REF AGE is the upstream commit age, NOT push time.", 
         ),
         (
             "REM",
@@ -4842,6 +4844,16 @@ pub(crate) async fn run_repos_report(
             frozen_secs,
         };
         row.health.current = current_health::classify(&row);
+        row.state_cause = match row.health.current {
+            current_health::Current::Converged => StateCause::Idle,
+            current_health::Current::Excluded => StateCause::Intentional,
+            current_health::Current::Queued | current_health::Current::Unknown | current_health::Current::Paused => StateCause::Dirty,
+            current_health::Current::Working => StateCause::Working,
+            current_health::Current::Retrying => StateCause::Committing,
+            current_health::Current::Stalled => StateCause::Stalled,
+            current_health::Current::Blocked => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Failed },
+        };
+        row.state_cause_label = state_cause_label_string(&row.state_cause);
         row.active = matches!(row.health.current, current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying);
         row.warn = matches!(row.health.current, current_health::Current::Stalled | current_health::Current::Blocked | current_health::Current::Unknown);
         Some(row)
@@ -5335,7 +5347,7 @@ fn print_repos_vertical(
         );
         println!("{gutter}size key:  not bucket/worktree/download size; GitHub limit is per push");
         println!("{gutter}last:      {commit_summary}");
-        println!("{gutter}pushed:    {}", shorten_when(&row.last_push));
+        println!("{gutter}upstream commit age: {}", shorten_when(&row.last_push));
         println!("{gutter}activity:  {activity}");
         println!("{gutter}state:     {state_styled}");
         // NOTE: author intentionally omitted (v0.112.27 R2). The
@@ -5976,7 +5988,7 @@ fn print_repos_full_table(
         mk_h("🚀", "PUSH"),
         mk_h("🛰", "PUSH-TO"),
         mk_h("📜", "LAST COMMIT"),
-        mk_h("📤", "PUSHED"),
+        mk_h("📤", "REF AGE"),
         mk_h("⏰", "ACTIVITY"),
         mk_h("👤", "AUTHOR"),
         mk_h("📊", "1h"),
@@ -7249,9 +7261,7 @@ fn build_repos_rich_table(
         // counts moved to their own CHANGES column (operator: "the
         // activity can just have the first part"). The `(N ahead)`
         // strip stays: the A/B column carries that count.
-        let mut activity = activity_label_base(row);
-        activity = activity.replace(&format!(" ({} ahead)", row.ahead), "");
-        let activity = truncate_unicode_width(&activity, activity_budget);
+        let activity = truncate_unicode_width(&current_health::label(row), activity_budget);
 
         // CHANGES (v0.113.19): one narrow column per class —
         // 📝 modified, 📦 staged, 🆕 untracked, 🚫 excluded by
@@ -7354,7 +7364,7 @@ fn build_repos_rich_table(
             Cell::new(repo_short)
                 .fg(Color::White)
                 .add_attribute(comfy_table::Attribute::Bold),
-            Cell::new(activity).fg(state_color_for(&row.state_cause)),
+            Cell::new(activity).fg(status_color),
             chg(row.modified),
             chg(row.staged),
             chg(row.untracked),
