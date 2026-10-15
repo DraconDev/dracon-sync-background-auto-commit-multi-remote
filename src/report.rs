@@ -4844,6 +4844,7 @@ pub(crate) async fn run_repos_report(
             current_health::Current::Blocked => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Failed },
         };
         row.state_cause_label = state_cause_label_string(&row.state_cause);
+        if matches!(row.health.current, current_health::Current::Converged | current_health::Current::Excluded | current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying | current_health::Current::Paused) { row.concern = false; }
         row.active = matches!(row.health.current, current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying);
         row.warn = matches!(row.health.current, current_health::Current::Stalled | current_health::Current::Blocked | current_health::Current::Unknown);
         Some(row)

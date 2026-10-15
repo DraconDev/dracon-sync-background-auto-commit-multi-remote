@@ -197,6 +197,9 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
                 serde_json::to_value(expected).unwrap()
             );
             assert_eq!(json["health"]["last_push"]["succeeded"], succeeded);
+            let table = super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200).to_string();
+            assert!(table.contains(visible), "actual table for {name}: {table}");
+            assert!(table.contains(if succeeded { "✅ OK" } else { "❌ FAIL" }), "history and convergence must both remain visible: {table}");
         }
     }
 }
