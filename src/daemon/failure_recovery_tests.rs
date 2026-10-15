@@ -348,20 +348,29 @@ async fn episode() {
     let raw = std::fs::read(bucket.join("data")).unwrap();
     let mut bucket_attempts = 0;
     let mut healthy_heads = Vec::new();
+    let mut stage_cooldowns = HashMap::new();
+    let mut stuck = HashMap::new();
+    let mut activity = crate::daemon::RepoActivity {
+        fingerprint: String::new(), changed_at: at, dirty_since: Some(at),
+        ahead_since: None, behind_since: None, mirror_consecutive_fails: HashMap::new(),
+        failure_count: 0, remote_failures: HashMap::new(), ownership: None,
+        ownership_at: None, blocked_since: None, unowned_since: None,
+    };
     for tick in 0..2 {
-        // Production recovery clock is injected through its normal Instant
-        // parameters; no sleeping through minute-long backoff in a test.
-        let now = at + Duration::from_secs(tick * 120);
-        assert!(recovery.ready(bucket, now));
-        recovery.reserve(bucket).set(now).unwrap();
-        assert!(matches!(
-            fleet.sync(bucket, capacity.clone()).await,
-            crate::sync::SyncOutcome::Blocked
-        ));
+        // Blocked is a successful worker result: production uses its stage
+        // cooldown, NOT the error/panic SyncRecovery backoff. Advance only
+        // the existing cooldown function's Instant input, never wall sleeps.
+        if let Some(until) = stage_cooldowns.get(bucket).copied() {
+            assert!(crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, until).is_none());
+        }
+        let result = Ok(fleet.sync(bucket, capacity.clone()).await);
+        let now = Instant::now();
+        assert!(matches!(crate::daemon::apply_outcome(bucket, &result, HashMap::new(), &mut activity, &mut stage_cooldowns, &mut stuck, false), crate::daemon::ApplyOutcome::Blocked));
         bucket_attempts += 1;
-        recovery.finish(bucket, true, now);
+        assert!(stage_cooldowns[bucket] >= now + Duration::from_secs(299));
+        assert!(activity.blocked_since.is_some());
         for _ in 0..100 {
-            assert!(!recovery.ready(bucket, now));
+            assert!(crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, now).is_some());
             assert_eq!(Fleet::count(bucket, "upload-attempts"), bucket_attempts);
             let mut snapshot = discovery
                 .poll_with(fleet.scope(), |_| panic!("duplicate discovery walk"))
@@ -450,6 +459,8 @@ async fn episode() {
     assert_eq!(refreshed, expected);
     assert!(discovery.pending.is_none());
     let recovered_at = now + Duration::from_secs(120);
+    let until = stage_cooldowns[bucket];
+    assert!(crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, until).is_none());
     for repo in [filter, bucket] {
         assert!(recovery.ready(repo, recovered_at));
         assert!(
