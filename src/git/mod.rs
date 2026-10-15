@@ -5185,13 +5185,13 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
             if remote_head == format!("refs/remotes/{}/{}", r, name) {
                 continue; // remote's default branch — never delete
             }
-            match run_git_with_timeout_env(
+            match push_resources::push_phase(run_git_with_timeout_env(
                 repo,
                 &["push", r, "--delete", name],
                 600,
                 "push --delete (stale daemon branch)",
                 &[("DRACON_ALLOW_REWRITE", "1")],
-            )
+            ))
             .await
             {
                 Ok(()) => {

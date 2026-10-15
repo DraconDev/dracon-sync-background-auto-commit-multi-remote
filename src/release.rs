@@ -69,7 +69,7 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
     .await?;
 
     // Push tag
-    match run_git_with_timeout_env(
+    match crate::git::push_resources::push_phase(run_git_with_timeout_env(
         repo,
         &["push", "origin", &tag],
         120,
@@ -78,7 +78,7 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
             ("GIT_SSH_COMMAND", &git_ssh_hardening()),
             ("GIT_TERMINAL_PROMPT", "0"),
         ],
-    )
+    ))
     .await
     {
         Ok(_) => {
