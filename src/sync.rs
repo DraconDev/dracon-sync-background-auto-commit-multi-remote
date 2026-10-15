@@ -2242,6 +2242,17 @@ async fn push_background(
     repo: &std::path::Path,
     policy: &SyncPolicy,
     has_origin: bool,
+    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
+) -> Result<PushReport> {
+    crate::git::push_resources::push_phase(
+        push_background_inner(repo, policy, has_origin, remote_failures),
+    ).await
+}
+
+async fn push_background_inner(
+    repo: &std::path::Path,
+    policy: &SyncPolicy,
+    has_origin: bool,
     mut remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
 ) -> Result<PushReport> {
     // Scale the push idle timeout with the local ahead count. A 60s

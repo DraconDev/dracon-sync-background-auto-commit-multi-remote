@@ -336,6 +336,7 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped());
     configure_git_process_group(&mut cmd);
+    super::push_resources::configure_child(&mut cmd, args);
     cmd.spawn()
         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
 }
@@ -441,12 +442,22 @@ fn spawn_git_command_env(
         cmd.env(k, v);
     }
     configure_git_process_group(&mut cmd);
+    super::push_resources::configure_child(&mut cmd, args);
     cmd.spawn()
         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
 }
 
 /// Run a git command with a timeout using the tokio git command builder.
 pub(crate) async fn run_git_with_timeout(
+    repo: &Path,
+    args: &[&str],
+    timeout_secs: u64,
+    op_label: &str,
+) -> Result<()> {
+    super::push_resources::command(args, run_git_with_timeout_inner(repo, args, timeout_secs, op_label)).await
+}
+
+async fn run_git_with_timeout_inner(
     repo: &Path,
     args: &[&str],
     timeout_secs: u64,
@@ -523,9 +534,11 @@ pub(crate) async fn run_git_with_timeout_env(
     op_label: &str,
     env: &[(&str, &str)],
 ) -> Result<()> {
-    let label = format!("git {}", op_label);
-    let child = spawn_git_command_env(repo, args, op_label, env)?;
-    run_child(child, repo, timeout_secs, &label).await
+    super::push_resources::command(args, async {
+        let label = format!("git {}", op_label);
+        let child = spawn_git_command_env(repo, args, op_label, env)?;
+        run_child(child, repo, timeout_secs, &label).await
+    }).await
 }
 
 /// Run a git push/pull with a progress-aware idle timeout.
@@ -536,9 +549,11 @@ pub(crate) async fn run_git_with_timeout_env_progress(
     op_label: &str,
     env: &[(&str, &str)],
 ) -> Result<()> {
-    let label = format!("git {}", op_label);
-    let child = spawn_git_command_env(repo, args, op_label, env)?;
-    run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
+    super::push_resources::command(args, async {
+        let label = format!("git {}", op_label);
+        let child = spawn_git_command_env(repo, args, op_label, env)?;
+        run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
+    }).await
 }
 #[cfg(unix)]
 pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
