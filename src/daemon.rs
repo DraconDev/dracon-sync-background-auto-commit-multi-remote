@@ -14,6 +14,8 @@ use tokio::time::sleep;
 
 mod discovery_scheduler;
 mod recovery;
+#[cfg(test)]
+mod recovery_tests;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
@@ -3727,8 +3729,8 @@ mod tests {
         // returns pins its repo — no timeout existed, so the pending
         // reservation survived every cycle and the repo never
         // re-probed. Post-fix the sweep aborts the task and frees
-        // the slot (abort-side cleanup; the orphaned cancelled join
-        // is repo-less and harmless).
+        // the task. The slot stays reserved until the collector observes
+        // teardown, so a delayed abort cannot overlap a replacement.
         let repo = PathBuf::from("wedged-repo");
         let now = Instant::now();
         let mut pending = HashSet::new();
@@ -3804,10 +3806,9 @@ mod tests {
 
     #[tokio::test]
     async fn orphan_cancelled_status_join_inserts_no_result() {
-        // Locks the orphan contract the sweep relies on: an aborted
-        // task's join resolves repo-less (Err), inserts nothing into
-        // results, and must never pin a slot — slot release happens
-        // abort-side in `abort_wedged_status_inspection`.
+        // An unregistered orphan cannot fabricate a result or release a
+        // different task's reservation. Registered cancellations are tested
+        // with their retained task IDs in recovery_tests.
         use futures::stream::FuturesUnordered;
         let mut jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
         let mut pending = HashSet::new();
@@ -3879,7 +3880,7 @@ mod tests {
         > = HashMap::new();
         let now = Instant::now();
         // Fast repo: already-finished task. Slow repo: never-resolving
-        // task (stands in for a 20s libgit2 status on a giant pile).
+        // task (stands in for a slow index/worktree inspection).
         let fast = fast_repo.clone();
         jobs.push(tokio::spawn(async move {
             (fast, Ok(dracon_git::types::RepoStatus::new()))
@@ -4343,61 +4344,20 @@ mod daemon_tests {
         assert!(in_flight.contains(&repo3));
     }
 
-    /// Regression test for the trailing-drain bug discovered
-    /// on 2026-06-15 during the `dracon-platform` push
-    /// investigation. The bug: if a sync task (e.g. a 60s
-    /// push) didn't complete within the trailing-drain
-    /// deadline, the `in_flight` HashSet was never cleared for
-    /// that task. The result: the COLLECT phase of every
-    /// subsequent cycle skipped the repo, and it was never
-    /// processed again until the daemon restarted.
-    ///
-    /// Fix: on trailing-drain timeout, clear all `in_flight`
-    /// entries that were dispatched in this cycle but not
-    /// drained. This test simulates the data structure: a
-    /// repo inserted into `in_flight` (simulating dispatch) is
-    /// still present after the dispatch; the trailing-drain
-    /// timeout (simulated by not removing) would normally
-    /// leave it stuck; the fix clears it.
+    /// A trailing-drain boundary is not permission to replace a live worker.
+    /// Only an observed completion releases its reservation and age records.
     #[test]
-    fn test_trailing_drain_clears_stuck_in_flight() {
-        use std::path::PathBuf;
-        let mut in_flight: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
-        let mut dispatched_this_cycle: std::collections::HashSet<PathBuf> =
-            std::collections::HashSet::new();
-
-        // Simulate dispatching 3 slow tasks.
-        let repo1 = PathBuf::from("/tmp/slow-repo-1");
-        let repo2 = PathBuf::from("/tmp/slow-repo-2");
-        let repo3 = PathBuf::from("/tmp/slow-repo-3");
-        in_flight.insert(repo1.clone());
-        in_flight.insert(repo2.clone());
-        in_flight.insert(repo3.clone());
-        dispatched_this_cycle.insert(repo1.clone());
-        dispatched_this_cycle.insert(repo2.clone());
-        dispatched_this_cycle.insert(repo3.clone());
-        assert_eq!(in_flight.len(), 3);
-
-        // Simulate the trailing drain: only repo1 completes
-        // within the deadline. The other 2 timeout.
-        in_flight.remove(&repo1);
-        dispatched_this_cycle.remove(&repo1);
-
-        // The fix: on trailing-drain completion, clear all
-        // remaining `dispatched_this_cycle` entries from
-        // `in_flight` (these are the tasks that timed out and
-        // are still running in the background).
-        for repo in &dispatched_this_cycle {
-            in_flight.remove(repo);
-        }
-
-        // After the fix, `in_flight` is empty. The next
-        // cycle can re-dispatch repo2 and repo3.
-        assert!(
-            in_flight.is_empty(),
-            "trailing-drain should clear all dispatched entries, but `in_flight` still contains: {:?}",
-            in_flight
-        );
+    fn test_trailing_drain_retains_unfinished_owners() {
+        let done = PathBuf::from("done");
+        let live = PathBuf::from("still-running");
+        let mut in_flight = HashSet::from([done.clone(), live.clone()]);
+        let mut dispatched = in_flight.clone();
+        let mut ages = HashMap::from([(done.clone(), Instant::now()), (live.clone(), Instant::now())]);
+        release_sync_owner(&done, &mut in_flight, &mut HashMap::new(), &mut dispatched, &mut ages);
+        assert_eq!(in_flight, HashSet::from([live.clone()]));
+        assert_eq!(dispatched, HashSet::from([live.clone()]));
+        assert_eq!(ages.len(), 1);
+        assert!(!reserve_sync(&mut in_flight, &live));
     }
 
     /// Regression test for R4-SC-17: the trailing-drain seed holds
