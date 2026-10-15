@@ -2191,4 +2191,432 @@ HEAD is now at 5efff7c ahead
 To /tmp/.tmpbNM3kF/origin.git
  * [new branch]      HEAD -> main
 ok
-test sync::tests::test_push_with_retries_fetches_first_on_rejection ... 
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... 🔄 push rejected (non-fast-forward) for /tmp/.tmpLhwNq0/repo — pulling origin refs/heads/main and retrying
+ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmp0rlqxc/remote.git/
+[master (root-commit) 4993fa3] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... ok
+test sync::tests::test_repo_has_warden_filter_honors_git_bin_seam ... ok
+test sync::tests::test_repo_has_warden_filter_probe ... ok
+test sync::tests::test_safety_metric_predicate ... ok
+test sync::tests::test_sanitize_task_name_drops_explanatory_clauses ... ok
+test sync::tests::test_sanitize_task_name_limits_plain_text ... ok
+test sync::tests::test_sc01_stale_mirror_tracking_ref_retries_push ... [main (root-commit) 9ee8f0a] init
+[main 2806791] second
+To /tmp/.tmpWMm37p/mirror.git
+ * [new branch]      HEAD~1 -> main
+⚠️ push to github failed for /tmp/.tmpWMm37p/test-repo: git push-to-github failed in /tmp/.tmpWMm37p/test-repo with status exit status: 128: ssh: connect to host 127.0.0.1 port 1: Connection refused
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmpWMm37p/test-repo (remotes: unknown)
+ok
+test sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob ... 🧹 removed 1 oversized staged paths in /tmp/.tmp1OsUFr/repo
+📝 committed 1 file(s) in /tmp/.tmp1OsUFr/repo
+ok
+test sync::tests::test_scale_push_timeout_absurd_base_saturates ... ok
+test sync::tests::test_scale_push_timeout_huge_push_sextuples ... ok
+test sync::tests::test_scale_push_timeout_large_push_quadruples ... ok
+test sync::tests::test_scale_push_timeout_medium_push_doubles ... ok
+test sync::tests::test_scale_push_timeout_never_truncates_live_base ... ok
+test sync::tests::test_scale_push_timeout_small_push_uses_base ... ok
+test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
+test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
+test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
+test sync::tests::test_scope_root_files_backcompat ... ok
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) 4a8172b] init
+[main 10895b2] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... 🛡️ /tmp/.tmpslSqqd/repo auto-hardened with warden before staging
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... 🛡️ /tmp/.tmpP7RwvM/repo auto-hardened with warden before staging
+ℹ️ skip large file /tmp/.tmpP7RwvM/repo/assets/big.bin (2048 bytes > 1024 bytes)
+ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) 4a8172b] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) 4a8172b] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 4a8172b] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 4a8172b] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) 4a8172b] init
+ok
+test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+🔗 Would stage 1 gitlink pointer update(s) in /tmp/.tmpW0ftjt/parent: ["sibling"]
+ok
+test sync::tests::test_stage_gitlink_updates_no_op_for_empty_input ... ok
+test sync::tests::test_stage_gitlink_updates_propagates_sibling_subrepo_pointer ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_staged_extra_paths_matching ... ok
+test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
+test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 6d2f06f] init
+🛡️ /tmp/.tmpTJOf1R/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpTJOf1R/test-repo
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 6d2f06f] init
+🛡️ /tmp/.tmpz7kcpb/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpz7kcpb/test-repo
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) 6d2f06f] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) 6d2f06f] init
+🔗 created remote for /tmp/.tmpTQHSWc/test-repo: https://github.com/TestAccount/test-repo.git
+ℹ️ skip pull/merge for /tmp/.tmpTQHSWc/test-repo (no tracking upstream on current branch)
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) f6b746c] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... 🛡️ /tmp/.tmp3f1fYe/repo auto-hardened with warden before staging
+⏳ /tmp/.tmp3f1fYe/repo git add hit index.lock contention (retry 1/2)
+⏳ /tmp/.tmp3f1fYe/repo git add hit index.lock contention (retry 2/2)
+⚠️ /tmp/.tmp3f1fYe/repo git add failed for 1 paths: ["a.txt"]
+ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) e4a5efb] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 61efd7f] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master 2eefb40] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) 455f681] init
+📝 Would stage 1 file(s) in /tmp/.tmpIbYnrh/dry-run-test: ["new_file.txt"]
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) 455f681] init
+📝 Would stage 2 file(s) in /tmp/.tmpWctVhj/dry-run-wt-test: ["modified.txt", "untracked.txt"]
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) 455f681] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... 🌱 /tmp/.tmpQ4N75W/repo created root commit (1 files, empty repo bootstrap)
+ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) 455f681] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) 455f681] init
+📝 committed 1 file(s) in /tmp/.tmpUkePw8/exact-50-del-repo
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) 455f681] init
+⏱️ push retry 2/3 for /tmp/.tmpOdrs4W/test-repo after 1s
+⏱️ push retry 3/3 for /tmp/.tmpOdrs4W/test-repo after 2s
+⚠️ background push to origin failed for /tmp/.tmpOdrs4W/test-repo: git push failed in /tmp/.tmpOdrs4W/test-repo with status exit status: 1: ⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpOdrs4W/origin.git'
+⚠️ push to mirror failed for /tmp/.tmpOdrs4W/test-repo: git push-to-mirror failed in /tmp/.tmpOdrs4W/test-repo with status exit status: 128: ssh: Could not resolve hostname nonexistent.example.com: Name or service not known
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmpOdrs4W/test-repo (remotes: unknown)
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) d4e15a5] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpMI8MXe/origin.git'
+🛡️ /tmp/.tmpMI8MXe/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpMI8MXe/test-repo
+⏱️ push retry 2/3 for /tmp/.tmpMI8MXe/test-repo after 1s
+⏱️ push retry 3/3 for /tmp/.tmpMI8MXe/test-repo after 2s
+⚠️ background push to origin failed for /tmp/.tmpMI8MXe/test-repo: git push failed in /tmp/.tmpMI8MXe/test-repo with status exit status: 1: ⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpMI8MXe/origin.git'
+⚠️ push to bad-mirror failed for /tmp/.tmpMI8MXe/test-repo: git push-to-bad-mirror failed in /tmp/.tmpMI8MXe/test-repo with status exit status: 128: ssh: Could not resolve hostname nonexistent.example.com: Name or service not known
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmpMI8MXe/test-repo (remotes: bad-mirror, origin)
+ok
+test sync::tests::test_sync_repo_mirror_push_success_returns_true ... [master (root-commit) bc14fba] init
+To /tmp/.tmpyhtuZF/origin.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+🛡️ /tmp/.tmpyhtuZF/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpyhtuZF/test-repo
+branch 'master' set up to track 'origin/master'.
+ok
+test sync::tests::test_sync_repo_mixed_tracked_and_untracked ... [master (root-commit) 85ee141] init
+🛡️ /tmp/.tmpWStbLz/mixed-repo auto-hardened with warden before staging
+📝 committed 2 file(s) in /tmp/.tmpWStbLz/mixed-repo
+ok
+test sync::tests::test_sync_repo_new_branch_auto_push_attempted ... [main (root-commit) 85ee141] init
+🛡️ /tmp/.tmpFAQ81G/new-branch-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpFAQ81G/new-branch-repo
+ok
+test sync::tests::test_sync_repo_not_git_repo_returns_false ... ok
+test sync::tests::test_sync_repo_partial_deletion_allowed ... [master (root-commit) 85ee141] init
+📝 committed 2 file(s) in /tmp/.tmpk2rMty/partial-del-repo
+ok
+test sync::tests::test_sync_repo_pull_skip_when_no_origin ... [master (root-commit) 85ee141] init
+ℹ️ skip pull/merge for /tmp/.tmpsDl9jb/no-origin-pull-repo (no origin remote)
+ok
+test sync::tests::test_sync_repo_pushes_detached_head_ahead_commit ... [main (root-commit) 85ee141] init
+[main 4e97692] ahead
+HEAD is now at 4e97692 ahead
+ok
+test sync::tests::test_sync_repo_single_deleted_file_committed ... [master (root-commit) 85ee141] init
+📝 committed 1 file(s) in /tmp/.tmpF3wkPF/single-del-repo
+ok
+test sync::tests::test_sync_repo_skip_pull_when_dirty ... [master (root-commit) 85ee141] init
+ℹ️ skip pull/merge for /tmp/.tmpaJEvFf/test-repo (no origin remote)
+ok
+test sync::tests::test_sync_repo_skip_pull_when_not_behind ... [master (root-commit) 85ee141] init
+ℹ️ skip pull/merge for /tmp/.tmpx8Jzl7/test-repo (no origin remote)
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_origin ... [master (root-commit) f1c021e] init
+ok
+test sync::tests::test_sync_repo_skip_push_when_no_upstream ... [master (root-commit) f1c021e] init
+ok
+test sync::tests::test_sync_repo_skips_bisect_in_progress ... [master (root-commit) f1c021e] init
+⚠️ /tmp/.tmpPEbdAh/test-repo has bisect session active, skipping (manual intervention required)
+ok
+test sync::tests::test_sync_repo_skips_cherry_pick_in_progress ... [master (root-commit) f1c021e] init
+⚠️ /tmp/.tmpE5GVB0/test-repo has cherry-pick in progress, skipping (manual intervention required)
+ok
+test sync::tests::test_sync_repo_skips_merge_in_progress ... [master (root-commit) f1c021e] init
+⚠️ /tmp/.tmphE3BVL/test-repo has merge in progress, skipping (manual intervention required)
+ok
+test sync::tests::test_sync_repo_skips_rebase_in_progress ... [master (root-commit) f1c021e] init
+⚠️ /tmp/.tmp9VCHP5/test-repo has rebase in progress, skipping (manual intervention required)
+ok
+test sync::tests::test_sync_repo_skips_revert_in_progress ... [master (root-commit) f1c021e] init
+⚠️ /tmp/.tmpdvdhJe/test-repo has revert in progress, skipping (manual intervention required)
+ok
+test sync::tests::test_sync_repo_stages_and_commits_untracked_file ... [master (root-commit) f1c021e] init
+🛡️ /tmp/.tmpzawoLT/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpzawoLT/test-repo
+ok
+test sync::tests::test_sync_repo_unstages_excluded_dir_paths ... [master (root-commit) f1c021e] init
+🧹 removed 1 staged excluded paths in /tmp/.tmpILJIgy/exclude-dir-repo
+📝 /tmp/.tmpILJIgy/exclude-dir-repo has 1 tracked file(s) inside build-artifact dirs ["node_modules/"] — removing from git and adding to .gitignore
+🧹 removed 1 tracked excluded dir(s) from /tmp/.tmpILJIgy/exclude-dir-repo: ["node_modules"]
+🛡️ /tmp/.tmpILJIgy/exclude-dir-repo auto-hardened with warden before staging
+🧹 removed 1 staged excluded paths in /tmp/.tmpILJIgy/exclude-dir-repo
+📝 /tmp/.tmpILJIgy/exclude-dir-repo has 1 tracked file(s) inside build-artifact dirs ["node_modules/"] — removing from git and adding to .gitignore
+🧹 removed 1 tracked excluded dir(s) from /tmp/.tmpILJIgy/exclude-dir-repo: ["node_modules"]
+⏸️ /tmp/.tmpILJIgy/exclude-dir-repo staged set has 1 path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: ["node_modules/pkg/index.js"]
+ok
+test sync::tests::test_sync_repo_unstages_oversized_file ... [master (root-commit) f1c021e] init
+🧹 removed 1 oversized staged paths in /tmp/.tmpT4rOP1/oversized-repo
+ℹ️ skip large file /tmp/.tmpT4rOP1/oversized-repo/bigfile.bin (1024 bytes > 512 bytes)
+🛡️ /tmp/.tmpT4rOP1/oversized-repo auto-hardened with warden before staging
+⚠️ /tmp/.tmpT4rOP1/oversized-repo ownership check failed at commit time (untrusted identity — see `dracon-sync ownership --explain`) — skipping auto-commit; the staged index is left intact
+ok
+test sync::tests::test_sync_repo_untracked_exclude_patterns_keeps_scratch_untracked ... [master (root-commit) f1c021e] init
+🛡️ /tmp/.tmpra9HIk/test-repo auto-hardened with warden before staging
+⚠️ /tmp/.tmpra9HIk/test-repo ownership check failed at commit time (untrusted identity — see `dracon-sync ownership --explain`) — skipping auto-commit; the staged index is left intact
+ok
+test sync::tests::test_sync_repo_with_duplicate_subjects_succeeds ... [master (root-commit) f1c021e] init
+🛡️ /tmp/.tmpOtRGI5/stale-focus-repo auto-hardened with warden before staging
+⚠️ /tmp/.tmpOtRGI5/stale-focus-repo ownership check failed at commit time (untrusted identity — see `dracon-sync ownership --explain`) — skipping auto-commit; the staged index is left intact
+ok
+test sync::tests::test_truncate_task_at_sentence_boundary ... ok
+test sync::tests::test_truncate_task_hard_cutoff ... ok
+test sync::tests::test_truncate_task_multibyte_utf8 ... ok
+test sync::tests::test_truncate_task_short ... ok
+test sync::tests::test_warden_auto_harden_disabled_never_forks ... ok
+test sync::tests::test_warden_auto_harden_hardens_once ... 🛡️ /tmp/.tmplbNgk0/repo auto-hardened with warden before staging
+ok
+test sync::tests::test_warden_auto_harden_skips_dry_run ... ok
+test test_helpers::tests::test_create_test_repo_registers_temp_dir ... ok
+test test_helpers::tests::test_env_restorer_remove_round_trip ... ok
+test test_helpers::tests::test_env_restorer_round_trip ... ok
+test tests::test_env_freeze_takes_precedence ... ok
+test tests::test_freeze_marker_paths ... ok
+test tests::test_freeze_reason_none_when_no_marker ... ok
+test tests::test_metrics_contains_all_expected_metrics ... ok
+test tests::test_metrics_output_has_expected_format ... ok
+test tests::test_parent_pid_is_readable_on_procfs ... ok
+test tests::test_pause_marker_records_caller_provenance ... ok
+test tests::test_run_maintenance_pauses_runs_resumes ... ⏸️  Sync paused for maintenance (freeze marker: /tmp/.tmpQz7RXK/.dracon/dracon-sync.freeze)
+▶️  Sync resumed (freeze marker removed)
+ok
+test tests::test_run_maintenance_preserves_existing_freeze ... ⏸️  Sync already paused — running command without touching freeze state
+ok
+test tests::test_run_maintenance_resumes_even_on_failure ... ⏸️  Sync paused for maintenance (freeze marker: /tmp/.tmpCd9Lqx/.dracon/dracon-sync.freeze)
+▶️  Sync resumed (freeze marker removed)
+ok
+test tests::test_run_maintenance_spawn_failure_returns_127_and_resumes ... ⏸️  Sync paused for maintenance (freeze marker: /tmp/.tmpmGilPW/.dracon/dracon-sync.freeze)
+⚠️  maintenance: command failed to spawn: No such file or directory (os error 2)
+▶️  Sync resumed (freeze marker removed)
+ok
+test tests::test_scaffold_does_not_delete_symlinked_external_directory ... ┌──────┬─────────┬────────────────┐
+│ REPO ┆ FILE    ┆ STATUS         │
+╞══════╪═════════╪════════════════╡
+│ repo ┆ .github ┆ ❌ unsafe path │
+└──────┴─────────┴────────────────┘
+APPLIED: 0 files scaffolded across 1 repos
+ok
+test tests::test_scaffold_rejects_root_target_without_deleting_repo ... ┌──────┬──────┬────────────────┐
+│ REPO ┆ FILE ┆ STATUS         │
+╞══════╪══════╪════════════════╡
+│ repo ┆ .    ┆ ❌ unsafe path │
+└──────┴──────┴────────────────┘
+APPLIED: 0 files scaffolded across 1 repos
+ok
+test tests::test_scaffold_rejects_symlink_directory_escape ... ┌──────┬─────────────────────┬────────────────┐
+│ REPO ┆ FILE                ┆ STATUS         │
+╞══════╪═════════════════════╪════════════════╡
+│ repo ┆ .github/FUNDING.yml ┆ ❌ unsafe path │
+└──────┴─────────────────────┴────────────────┘
+APPLIED: 0 files scaffolded across 1 repos
+┌──────┬─────────────────────┬────────────────┐
+│ REPO ┆ FILE                ┆ STATUS         │
+╞══════╪═════════════════════╪════════════════╡
+│ repo ┆ .github/FUNDING.yml ┆ ❌ unsafe path │
+└──────┴─────────────────────┴────────────────┘
+APPLIED: 0 files scaffolded across 1 repos
+ok
+test vanished::tests::detect_is_sorted_by_path_for_deterministic_reports ... ok
+test vanished::tests::detect_reports_only_unexpired_vanished_entries ... ok
+test vanished::tests::ledger_roundtrips_through_json ... ok
+test vanished::tests::mark_seen_adds_and_clears_vanished_stamp ... ok
+test vanished::tests::quantum_holds_heartbeat_but_not_vanish_signals ... ok
+test vanished::tests::save_skips_identical_content ... ok
+test vanished::tests::save_stable_across_reload_round_trip ... ok
+test vanished::tests::update_stamps_newly_absent_and_clears_returned ... ok
+test visibility::tests::test_cache_not_written_on_unparseable_origin ... ok
+test visibility::tests::test_cache_not_written_when_gh_visibility_unknown ... ok
+test visibility::tests::test_cache_prevents_repeated_api_calls ... ok
+test visibility::tests::test_cached_repo_visibility_returns_none_when_no_file ... ok
+test visibility::tests::test_cached_repo_visibility_returns_private ... ok
+test visibility::tests::test_cached_repo_visibility_returns_public ... ok
+test visibility::tests::test_cached_repo_visibility_treats_legacy_format_as_unknown ... ok
+test visibility::tests::test_cached_repo_visibility_window_follows_interval_hours ... ok
+test visibility::tests::test_codeberg_api_url_construction ... ok
+test visibility::tests::test_flip_repo_visibility_uses_single_remote_identity ... ok
+test visibility::tests::test_get_github_metadata_returns_empty_on_error ... ⚠️ gh api metadata failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_get_github_visibility_returns_safe_default_on_error ... ⚠️ gh api failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_github_visibility_at_creation_disabled ... ok
+test visibility::tests::test_github_visibility_at_creation_enabled_private ... ⚠️ gh api failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_gitlab_api_url_construction ... ok
+test visibility::tests::test_last_known_visibility_survives_stale_cache_for_display_only ... ok
+test visibility::tests::test_parse_github_owner_repo_empty_string ... ok
+test visibility::tests::test_parse_github_owner_repo_gitlab_url ... ok
+test visibility::tests::test_parse_github_owner_repo_https ... ok
+test visibility::tests::test_parse_github_owner_repo_invalid_url ... ok
+test visibility::tests::test_parse_github_owner_repo_no_git_suffix ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh ... ok
+test visibility::tests::test_parse_github_owner_repo_ssh_scheme_and_userinfo ... ok
+test visibility::tests::test_parse_github_owner_repo_with_dots ... ok
+test visibility::tests::test_parse_github_owner_repo_with_hyphens ... ok
+test visibility::tests::test_parse_github_owner_repo_with_name_mapping ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_private ... ok
+test visibility::tests::test_parse_visibility_cache_new_format_public ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_legacy_timestamp_only ... ok
+test visibility::tests::test_parse_visibility_cache_rejects_malformed ... ok
+test visibility::tests::test_refresh_falls_back_to_unknown_when_gh_unavailable ... ⚠️ gh api failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_refresh_handles_legacy_file_correctly_via_ssh_url ... ok
+test visibility::tests::test_refresh_idempotent ... ok
+test visibility::tests::test_refresh_preserves_new_format ... ok
+test visibility::tests::test_refresh_upgrades_legacy_to_new_format ... ok
+test visibility::tests::test_repo_metadata_default ... ok
+test visibility::tests::test_resolve_account_explicit_overrides ... ok
+test visibility::tests::test_resolve_account_from_https_url ... ok
+test visibility::tests::test_resolve_account_from_ssh_url ... ok
+test visibility::tests::test_same_host_project_divergence_detects_splits ... ok
+test visibility::tests::test_select_github_remote_falls_back_to_origin ... ok
+test visibility::tests::test_select_github_remote_prefers_github_over_origin ... ok
+test visibility::tests::test_select_github_remote_returns_none_when_nothing ... ok
+test visibility::tests::test_select_github_remote_skips_empty_github_uses_origin ... ok
+test visibility::tests::test_set_codeberg_metadata_does_not_panic ... ok
+test visibility::tests::test_set_codeberg_visibility_builds_correct_request ... ok
+test visibility::tests::test_set_gitlab_metadata_does_not_panic ... ok
+test visibility::tests::test_set_gitlab_visibility_builds_correct_request ... ok
+test visibility::tests::test_strip_ansi_passthrough_plain_text ... ok
+test visibility::tests::test_strip_ansi_removes_color_codes ... ok
+test visibility::tests::test_sync_metadata_defaults_in_policy ... ok
+test visibility::tests::test_sync_metadata_parses_true ... ok
+test visibility::tests::test_sync_metadata_with_missing_tokens ... ⚠️ gh api metadata failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_sync_mirror_metadata_does_not_panic ... ⚠️ gh api metadata failed: gh: Not Found (HTTP 404)
+ok
+test visibility::tests::test_sync_mirror_metadata_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_does_not_panic_on_all_failures ... ok
+test visibility::tests::test_sync_mirror_visibility_handles_unparseable_origin ... ok
+test visibility::tests::test_sync_mirror_visibility_skips_when_cache_fresh ... ok
+test visibility::tests::test_sync_visibility_defaults_in_policy ... ok
+test visibility::tests::test_sync_visibility_parses_true ... ok
+test visibility::tests::test_visibility_cache_corrupt_file ... ok
+test visibility::tests::test_visibility_cache_fresh_when_recent ... ok
+test visibility::tests::test_visibility_cache_freshness_works_for_both_formats ... ok
+test visibility::tests::test_visibility_cache_in_the_future_is_not_fresh ... ok
+test visibility::tests::test_visibility_cache_not_fresh_when_missing ... ok
+test visibility::tests::test_visibility_cache_stale_when_old ... ok
+test visibility::tests::test_visibility_cache_updates_timestamp ... ok
+
+test result: ok. 1316 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 69.61s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-5d98ca172d889d66)
+
+running 10 tests
+test test_sync_repo_basic ... ok
+test test_sync_repo_branch_operations ... ok
+test test_sync_repo_commit ... ok
+test test_sync_repo_conflict_detection ... ok
+test test_sync_repo_diff ... ok
+test test_sync_repo_merge ... ok
+test test_sync_repo_multiple_commits ... ok
+test test_sync_repo_push_to_bare ... ok
+test test_sync_repo_stash ... ok
+test test_sync_repo_tag ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-9b860af332b6a9a4)
+
+running 17 tests
+test actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook ... ignored, requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary
+test advance_job_copies_retained_version_without_touching_git_or_current_edits ... ok
+test busy_selected_job_fails_without_selecting_or_creating_another_version ... ok
+test cold_clone_imports_only_committed_manifest_without_original_cache ... ok
+test cold_clone_restores_exact_asset_from_signed_https_s3 ... ignored, operational HTTPS fixture: requires openssl and python3
+test enrolled_capture_update_keeps_recorded_contract_and_refuses_pointers ... ok
+test guard_binding_requires_verified_index_and_honors_manual_alternate_index ... ok
+test hydrate_checked_out_version_uses_required_clean_and_preserves_edits ... ok
+test index_guard_uses_staged_attributes_and_refuses_unenrolled_driver_paths ... 
