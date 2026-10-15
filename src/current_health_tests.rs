@@ -215,6 +215,8 @@ fn current_convergence_freeze_block_and_missing_history_are_explicit() {
     );
     row.push_status = "BROKEN".into();
     assert_eq!(classify(&row), Current::Blocked);
+    row.push_status = "BLOCKED".into();
+    assert_eq!(classify(&row), Current::Excluded, "ownership opt-out is not a fake live worker");
     assert_eq!(
         push(&row).0,
         "— unknown",
