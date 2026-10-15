@@ -5191,19 +5191,7 @@ fn freeze_notice_text(state: &crate::policy::FreezeState) -> String {
 /// broken. Only dirty repos that are NOT active (e.g. `Stalled`) fall
 /// through to `warn`.
 fn status_pair(row: &RepoReportRow) -> (&'static str, Color) {
-    if row.concern {
-        ("❌ CONCERN", Color::Red)
-    } else if matches!(row.state_cause, StateCause::Unowned { .. }) {
-        ("🚫 unowned", Color::Red)
-    } else if matches!(row.state_cause, StateCause::Stalled) {
-        ("🔴 STALLED", Color::Red)
-    } else if row.warn {
-        ("🟡 WARN", Color::Yellow)
-    } else if row.active {
-        ("🔄 ACTIVE", Color::Cyan)
-    } else {
-        ("✅ CLEAN", Color::Green)
-    }
+    current_health::status(row)
 }
 
 // Layout tier 1: vertical (terminal < 120 cols)
@@ -5234,9 +5222,9 @@ fn print_repos_vertical(
                 .unwrap_or_else(|| row.repo.clone())
         };
 
-        // Push cell (icon + colored label, no plain text PUSH_STUCK)
-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
-        let push_styled = colorize(push_text, push_color);
+        // Historical observation, never inferred from current ahead/dirty flags.
+        let (push_text, push_color) = current_health::push(row);
+        let push_styled = colorize(&push_text, push_color);
 
         // HINT cell (one-liner)
         // Detail view must preserve cached/unknown pack evidence rather than
@@ -5246,11 +5234,8 @@ fn print_repos_vertical(
         let hint_styled = colorize(hint_text, hint_color);
 
         // State + activity combined
-        let activity = truncate_unicode_width(&activity_label(row), width.saturating_sub(20));
-        let state_styled = colorize(
-            &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
-            state_color_for(&row.state_cause),
-        );
+        let activity = truncate_unicode_width(&current_health::label(row), width.saturating_sub(20));
+        let state_styled = colorize(&current_health::label(row), status_color);
 
         // Compose commit summary (truncated to fit)
         let commit_width = width.saturating_sub(20);
@@ -5872,13 +5857,8 @@ fn print_repos_compact_table(
         // truncated mid-emoji (e.g., `🟠 dirty · ⏳ …`). Activity
         // is informative but secondary — the state component
         // (healthy/dirty/cold/etc.) is what the operator needs.
-        let state_plus_act = state_plus_act_cell(
-            row.state_cause.icon(),
-            row.state_cause.as_str(),
-            &activity_label(row),
-            15, // Absolute(17) minus 2 padding = 15
-        );
-        let state_plus_act_color = state_color_for(&row.state_cause);
+        let state_plus_act = truncate_unicode_width(&current_health::label(row), 15);
+        let state_plus_act_color = status_color;
 
         // HINT — author suffix intentionally omitted (v0.112.27 R2).
         // The author is `git log -1 --format=%an`; for a solo
@@ -5895,8 +5875,8 @@ fn print_repos_compact_table(
         hint_text = truncate_unicode_width(&hint_text, 24);
         let hint_color = status_color;
 
-        // Push cell (icon + label)
-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+        // Last daemon-recorded push, independent of current changes.
+        let (push_text, push_color) = current_health::push(row);
 
         // Classify each row's topology role (parent / submod / standalone).
         // Computed once before the row loop, not per-row at render time.
@@ -6071,8 +6051,8 @@ fn print_repos_full_table(
                 .unwrap_or_else(|| row.repo.clone())
         };
 
-        // Push cell (icon + colored label)
-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
+        // Last daemon-recorded push, independent of current changes.
+        let (push_text, push_color) = current_health::push(row);
 
         let commit_summary = if row.last_hash == "-" {
             "-".to_string()
@@ -6132,17 +6112,14 @@ fn print_repos_full_table(
             Cell::new(commit_summary),
             Cell::new(shorten_when(&row.last_push)),
             // R3-L34: ACTIVITY is Absolute(13), truncate to 11 to leave padding room
-            Cell::new(truncate_unicode_width(&activity_label(row), 11)),
+            Cell::new(truncate_unicode_width(&current_health::label(row), 11)),
             // F30v2: AUTHOR is Absolute(11), truncate to 9 to leave padding room
             Cell::new(truncate_unicode_width(&row.last_author, 9)),
             Cell::new(row.commits_1h),
             Cell::new(row.commits_6h),
             Cell::new(row.commits_24h),
-            Cell::new(truncate_unicode_width(
-                &format!("{} {}", row.state_cause.icon(), row.state_cause.as_str()),
-                13, // LowerBoundary(15) - 2 padding
-            ))
-            .fg(state_color_for(&row.state_cause)),
+            Cell::new(truncate_unicode_width(&current_health::label(row), 13))
+                .fg(status_color),
             Cell::new(truncate_unicode_width(
                 &format!("{} {}", row.daemon_last_action_when, row.daemon_last_action),
                 13, // LowerBoundary(15) - 2 padding
@@ -6707,7 +6684,7 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     // Activity already encodes the state icon + word + age.
     // `🟣 pushing 1m`, `🟠 dirty 0m`, `🔄 working · 🟢 synced 3m`,
     // `⚪ idle 13h`, `⚫ cold 5d`. Use it as-is for the lead.
-    let activity = activity_label(row);
+    let activity = current_health::label(row);
     let mut parts: Vec<String> = Vec::new();
     // Only include activity if it's not the bare "—" (which means
     // "nothing to say" — we'll fall through to hint + author).
@@ -7332,9 +7309,7 @@ fn build_repos_rich_table(
         };
         let ab_text = truncate_unicode_width(&ab_text, ab_budget);
 
-        let (push_text, push_color) = push_cell_label(&row.push_status, row.failure_count());
-        // v0.113.15: successful PUSH cells carry the last-push age.
-        let push_text = push_cell_with_age(push_text, &row.last_push);
+        let (push_text, push_color) = current_health::push(row);
         // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
         let push_text = push_cell_with_markers(push_text, row, PUSH_COL.saturating_sub(2));
         // v0.113.22 (operator): REM cell — active push remotes
