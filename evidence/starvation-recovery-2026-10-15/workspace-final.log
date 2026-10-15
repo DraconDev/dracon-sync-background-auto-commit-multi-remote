@@ -2889,4 +2889,26 @@ test tests::tests::salvage_invalid_json_no_marker_returns_none ... ok
 test tests::tests::salvage_invalid_json_preserves_unicode_before_marker ... ok
 test tests::tests::salvage_invalid_json_replaces_marker_tokens_and_parses ... ok
 test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_hook ... ok
-test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... 
+test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
+test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
+test tests::tests::smart_clean_with_path_hatch_resolves_against_files_repo_not_cwd ... ok
+test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... ok
+test tests::tests::storage_pre_commit_requires_valid_explicit_guard_binding ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+test tests::tests::zeroize_file_best_effort_wipes_full_length ... ok
+
+test result: ok. 206 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.06s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-e4d6cdfae425a55f)
+
+running 18 tests
+test test_filter_process_live_git_diff_and_add ... 
