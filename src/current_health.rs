@@ -1,4 +1,7 @@
 //! Current convergence and historical observations are independent axes.
+#[cfg(test)]
+#[path = "current_health_tests.rs"]
+mod tests;
 use super::{Color, RepoReportRow, StateCause};
 use crate::daemon::{
     push_history::Observation,
