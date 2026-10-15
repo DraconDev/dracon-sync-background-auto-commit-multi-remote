@@ -24,7 +24,15 @@ pub(crate) async fn with_local_work<T>(
     permit: OwnedSemaphorePermit,
     work: impl Future<Output = T>,
 ) -> T {
-    LOCAL_WORK.scope(LocalWork { semaphore, permit: RefCell::new(Some(permit)) }, work).await
+    LOCAL_WORK
+        .scope(
+            LocalWork {
+                semaphore,
+                permit: RefCell::new(Some(permit)),
+            },
+            work,
+        )
+        .await
 }
 
 /// This boundary encloses the entire push phase, including concurrent mirror
@@ -37,14 +45,22 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
         let permit = local.permit.borrow_mut().take();
         (semaphore, permit)
     });
-    let Ok((semaphore, permit)) = local else { return work.await; };
-    anyhow::ensure!(permit.is_some(), "nested push phase would violate local-work ownership");
+    let Ok((semaphore, permit)) = local else {
+        return work.await;
+    };
+    anyhow::ensure!(
+        permit.is_some(),
+        "nested push phase would violate local-work ownership"
+    );
     drop(permit);
     let result = PUSH_PHASE.scope(true, work).await;
     // Restore local execution ownership before any subsequent mutation. This
     // can wait behind healthy local workers, without holding a push-command
     // slot or changing the repository's exclusive scheduler reservation.
-    let permit = semaphore.acquire_owned().await.context("local-work semaphore closed")?;
+    let permit = semaphore
+        .acquire_owned()
+        .await
+        .context("local-work semaphore closed")?;
     LOCAL_WORK.with(|local| {
         *local.permit.borrow_mut() = Some(permit);
     });
@@ -64,7 +80,12 @@ fn push_slots() -> Arc<Semaphore> {
 /// runner (which kills its process group) before another command gets a slot.
 pub(super) async fn command<T>(args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
     let permit = if isolated_push(args) {
-        Some(push_slots().acquire_owned().await.context("push semaphore closed")?)
+        Some(
+            push_slots()
+                .acquire_owned()
+                .await
+                .context("push semaphore closed")?,
+        )
     } else {
         None
     };
@@ -74,7 +95,10 @@ pub(super) async fn command<T>(args: &[&str], work: impl Future<Output = Result<
         work: std::pin::Pin<Box<F>>,
         _permit: Option<OwnedSemaphorePermit>,
     }
-    let mut owned = OwnedCommand { work: Box::pin(work), _permit: permit };
+    let mut owned = OwnedCommand {
+        work: Box::pin(work),
+        _permit: permit,
+    };
     futures::future::poll_fn(|cx| owned.work.as_mut().poll(cx)).await
 }
 
