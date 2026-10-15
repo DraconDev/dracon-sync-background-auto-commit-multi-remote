@@ -46,7 +46,10 @@ async fn recovery_status_waits_for_teardown_and_healthy_peer_progresses() {
     finished(&fast_abort).await;
     jobs.push(fast);
     let mut pending = HashSet::from([hung.clone(), healthy.clone()]);
-    let mut aborts = HashMap::from([(hung.clone(), abort.clone().into()), (healthy.clone(), fast_abort.into())]);
+    let mut aborts = HashMap::from([
+        (hung.clone(), abort.clone().into()),
+        (healthy.clone(), fast_abort.into()),
+    ]);
     let mut since = HashMap::from([
         (hung.clone(), now - Duration::from_secs(61)),
         (healthy.clone(), now),
