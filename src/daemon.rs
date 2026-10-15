@@ -13,6 +13,7 @@ use tokio::signal::unix::SignalKind;
 use tokio::time::sleep;
 
 mod discovery_scheduler;
+mod recovery;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
@@ -55,11 +56,35 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 /// (repo path, counters, outcome) used by the in-flight collector.
 /// (R4-SC-07: the M1 dispatch-generation element is gone with the
 /// never-inserted discard-marker machinery.)
-pub(crate) type SyncTrioJoin = tokio::task::JoinHandle<(
+pub(crate) type SyncTrioJoin = futures::future::BoxFuture<'static, (
     PathBuf,
     HashMap<String, RemoteFailInfo>,
     Result<SyncOutcome, anyhow::Error>,
 )>;
+
+/// Keep identity outside the fallible task boundary. This future is polled by
+/// the coordinator, not another spawned task whose JoinError could lose it.
+fn tagged_sync_join(repo: PathBuf, handle: SyncTaskJoin) -> SyncTrioJoin {
+    Box::pin(async move {
+        match handle.await {
+            Ok((failures, outcome)) => (repo, failures, outcome),
+            Err(error) => (repo, HashMap::new(), Err(anyhow::Error::new(error).context("sync worker join"))),
+        }
+    })
+}
+
+fn release_sync_owner(
+    repo: &Path,
+    in_flight: &mut HashSet<PathBuf>,
+    workers: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    dispatched: &mut HashSet<PathBuf>,
+    detached_since: &mut HashMap<PathBuf, Instant>,
+) {
+    in_flight.remove(repo);
+    workers.remove(repo);
+    dispatched.remove(repo);
+    detached_since.remove(repo);
+}
 
 /// Result of one per-repo dirty-classification job: the path, the
 /// filter-aware diff entries, and whether classification failed. A
@@ -6973,6 +6998,8 @@ pub(crate) async fn run_daemon(
     // Abort the actual sync worker, not its result-collecting wrapper.
     // Ownership survives cancellation until the wrapper observes its join.
     let mut sync_workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
+    let mut sync_recovery = recovery::SyncRecovery::default();
+    let mut probe_admitted: HashMap<PathBuf, Instant> = HashMap::new();
     // FIXED 2026-10-03 (audit R4-SC-03): enforce
     // `policy.sem_max_concurrent_sync` (default 4). The field, the
     // COLLECT-phase comment, and the smoke test all claimed the
@@ -7375,6 +7402,8 @@ pub(crate) async fn run_daemon(
                 }),
             )
         });
+        probe_admitted.retain(|repo, _| repo_set.contains(repo));
+        recovery::fair_probe_order(&mut repos, &probe_admitted);
         if !due.is_empty() && debug_enabled() {
             eprintln!(
                 "scheduler: deadline_first_order n={} due={:?}",
@@ -7410,7 +7439,7 @@ pub(crate) async fn run_daemon(
 
             // Skip all repo maintenance/status work while a worker owns it.
             // This guard must cover both clean and dirty classification paths.
-            if in_flight.contains(&repo) {
+            if in_flight.contains(&repo) || !sync_recovery.ready(&repo, Instant::now()) {
                 continue;
             }
             if let Some(job) = provisioning_jobs.get(&repo) {
@@ -8255,6 +8284,7 @@ pub(crate) async fn run_daemon(
                 let repo_for_status = repo.clone();
                 status_pending.insert(repo.clone());
                 status_spawned_at.insert(repo.clone(), now);
+                probe_admitted.insert(repo.clone(), now);
                 let status_handle = tokio::spawn(async move {
                     let outcome = crate::git::inspect_status(
                         &repo_for_status,
@@ -8671,6 +8701,7 @@ pub(crate) async fn run_daemon(
                 {
                     classification_cooldowns.remove(&repo);
                     classification_pending.insert(repo.clone());
+                    probe_admitted.insert(repo.clone(), now);
                     // v0.113.89: the classification budget scales with the
                     // work this repo actually has (dracon-platform: 65
                     // modified, 25 age-filtered → 67.7s measured against a
@@ -9265,9 +9296,8 @@ pub(crate) async fn run_daemon(
             // until the apply phase removes it. This is the
             // no-redispatch invariant in action.
             let sem = sync_semaphore.clone();
-            to_sync.push((
-                repo.clone(),
-                tokio::spawn(async move {
+            let run_started = sync_recovery.reserve(&repo);
+            let handle = tokio::spawn(async move {
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: task_start repo={} unix_ms={}",
@@ -9283,6 +9313,7 @@ pub(crate) async fn run_daemon(
                     let Ok(_permit) = sem.acquire_owned().await else {
                         return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
                     };
+                    let _ = run_started.set(Instant::now());
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
@@ -9297,8 +9328,9 @@ pub(crate) async fn run_daemon(
                     )
                     .await;
                     (rf, r)
-                }),
-            ));
+                });
+            sync_workers.insert(repo.clone(), handle.abort_handle());
+            to_sync.push((repo.clone(), handle));
             continue;
         }
 
@@ -9334,21 +9366,7 @@ pub(crate) async fn run_daemon(
             let mut dispatched_this_cycle = drained_repo_set(&to_sync);
             let mut in_flight_tasks: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
             for (repo_path, handle) in to_sync.drain(..) {
-                sync_workers.insert(repo_path.clone(), handle.abort_handle());
-                in_flight_tasks.push(tokio::spawn(async move {
-                    let result = handle.await;
-                    match result {
-                        Ok((rf, r)) => (repo_path, rf, r),
-                        Err(e) => {
-                            // Preserve the JoinError type so a shutdown/wedge
-                            // cancellation stays distinguishable from a real
-                            // sync failure (see push_error_is_cancellation).
-                            eprintln!("⚠️ join error for sync task: {}", e);
-                            let error = anyhow::Error::new(e).context("join error");
-                            (repo_path, HashMap::new(), Err(error))
-                        }
-                    }
-                }));
+                in_flight_tasks.push(tagged_sync_join(repo_path, handle));
                 // Yield once after each spawn to let the runtime
                 // schedule the newly-spawned task. This prevents a
                 // tight spawn-loop from monopolizing the runtime.
@@ -9370,13 +9388,10 @@ pub(crate) async fn run_daemon(
             // A pending network operation must never consume scan-loop time.
             // Pending handles are retained below with their in-flight owner.
             while let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
-                let Ok((repo, remote_failures, sync_res)) = joined else {
-                    continue;
-                };
-                // Remove from in_flight set so the next cycle can
-                // re-dispatch if the repo still has work to do.
-                in_flight.remove(&repo);
-                sync_workers.remove(&repo);
+                let (repo, remote_failures, sync_res) = joined;
+                release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
+                    &mut dispatched_this_cycle, &mut detached_since);
+                sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
@@ -9466,7 +9481,8 @@ pub(crate) async fn run_daemon(
                 } else {
                     break;
                 };
-                if let Ok((repo, remote_failures, sync_res)) = joined {
+                {
+                    let (repo, remote_failures, sync_res) = joined;
                     // REMOVED 2026-10-03 (audit R4-SC-07): the M1/M8
                     // stale-result discard check lived here, but its
                     // marker map was never inserted anywhere — and
@@ -9475,10 +9491,9 @@ pub(crate) async fn run_daemon(
                     // must be applied (R4-SC-02 routes the wedge
                     // abort to PushPaused). Every joined result falls
                     // through to the apply phase below.
-                    in_flight.remove(&repo);
-                    sync_workers.remove(&repo);
-                    dispatched_this_cycle.remove(&repo);
-                    detached_since.remove(&repo);
+                    release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
+                        &mut dispatched_this_cycle, &mut detached_since);
+                    sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                     if let Some(entry) = activity.get_mut(&repo) {
                         // CHANGED 2026-07-27 (v0.113.5, audit M4):
                         // route the trailing-drain match through
@@ -9565,19 +9580,15 @@ pub(crate) async fn run_daemon(
             // reservation here. Aborting is only a request: synchronous work
             // may still be running. The normal joined-result path above is
             // the sole authority to release ownership after worker teardown.
-            let wedged: Vec<PathBuf> = detached_since
-                .iter()
-                .filter(|(_, t)| Instant::now().duration_since(**t) > Duration::from_secs(900))
-                .map(|(r, _)| r.clone())
-                .collect();
+            let wedged = sync_recovery.expired(Instant::now(), Duration::from_secs(900));
             for repo in wedged {
                 eprintln!(
                     "⚠️ {} sync task wedged for >15 min — requesting cancellation; retaining ownership until worker joins",
                     repo.display()
                 );
                 request_worker_cancellation(&sync_workers, &repo);
-                // Rate-limit warnings even if non-yielding work delays abort.
-                detached_since.insert(repo, Instant::now());
+                // Recovery records the request once; ownership stays held.
+                // Queued workers are not execution-timeout victims.
             }
         }
 
