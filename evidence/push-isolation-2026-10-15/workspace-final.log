@@ -2887,4 +2887,48 @@ test tests::tests::setup_hooks_local_resolves_linked_gitdir_and_chains_common_ho
 test tests::tests::setup_hooks_local_resolves_submodule_gitdir_and_preserves_hooks ... ok
 test tests::tests::setup_hooks_local_sets_core_hooks_path ... ok
 test tests::tests::smart_clean_with_path_hatch_resolves_against_files_repo_not_cwd ... ok
-test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... 
+test tests::tests::storage_pre_commit_quotes_pinned_executable_chains_and_propagates_failure ... ok
+test tests::tests::storage_pre_commit_requires_valid_explicit_guard_binding ... ok
+test tests::tests::test_deprecation_warning_for_watch_roots ... ok
+test tests::tests::test_no_deprecation_when_only_repo_roots_set ... ok
+test tests::tests::test_repo_roots_takes_precedence ... ok
+test tests::tests::warden_policy_allow_v1_fallback_wires_the_gate ... ok
+test tests::tests::warden_policy_validate_accepts_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_accepts_valid_policy ... ok
+test tests::tests::warden_policy_validate_rejects_non_allowlisted_plaintext ... ok
+test tests::tests::warden_policy_validate_rejects_overlapping_patterns ... ok
+test tests::tests::warden_policy_validate_rejects_secretish_plaintext ... ok
+test tests::tests::wire_managed_patterns_from_policy_loads_protected_patterns ... ok
+test tests::tests::zeroize_file_best_effort_wipes_full_length ... ok
+
+test result: ok. 206 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.20s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-e4d6cdfae425a55f)
+
+running 18 tests
+test test_filter_process_live_git_diff_and_add ... ok
+test test_filter_process_oversize_binary_passthrough_survives_real_pipes ... ok
+test test_merge_internal_error_exits_two_with_current_untouched ... ok
+test test_precommit_sync_only_dracon_dir_is_not_managed ... ok
+test test_precommit_warden_keys_dir_without_config_blocks_as_drift ... ok
+test test_prepush_newline_named_file_refuses_instead_of_skipping ... ok
+test test_prepush_space_named_file_still_pushes ... ok
+test test_warden_cli_help ... ok
+test test_warden_filter_clean ... ok
+test test_warden_filter_smudge ... ok
+test test_warden_keygen ... ok
+test test_warden_once_single_repo ... ok
+test test_warden_repair_dry_run ... ok
+test test_warden_repair_rejects_tracked_symlinks_end_to_end ... ok
+test test_warden_resmudge_dry_run ... ok
+test test_warden_scrub_markers ... ok
+test test_warden_setup_hooks_local ... ok
+test test_warden_status ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.79s
+
+     Running tests/storage_stream.rs (target/debug/deps/storage_stream-6fdee22ca8c5989c)
+
+running 2 tests
+test forged_repo_recipient_wrong_identity_corruption_and_budget_fail_closed ... ok
+test warden_streams_more_than_git_filter_limit_and_restores_exact_bytes ... 
