@@ -197,25 +197,54 @@ async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
             let permit = semaphore.clone().acquire_owned().await.unwrap();
             with_local_work(semaphore, permit, async move {
                 if route == "tag" {
-                    let result = crate::release::create_and_push_tag(&repo, "0.0.1").await.unwrap();
+                    let result = crate::release::create_and_push_tag(&repo, "0.0.1")
+                        .await
+                        .unwrap();
                     assert!(matches!(result, crate::release::ReleaseStep::TagCreated(_)));
                 } else {
-                    crate::git::maybe_prune_stale_backup_branches(&repo, true, backup.to_str().unwrap()).await;
+                    crate::git::maybe_prune_stale_backup_branches(
+                        &repo,
+                        true,
+                        backup.to_str().unwrap(),
+                    )
+                    .await;
                 }
-            }).await;
+            })
+            .await;
         })));
         let (hook, helper) = f.entered().await;
         assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, hook) }, 19);
         let before = f.git(&f.healthy, &["rev-parse", "HEAD"]);
-        std::fs::write(f.healthy.join("data"), format!("healthy commit while {route} hook waits\n")).unwrap();
+        std::fs::write(
+            f.healthy.join("data"),
+            format!("healthy commit while {route} hook waits\n"),
+        )
+        .unwrap();
         tokio::time::timeout(Duration::from_secs(5), async {
             let permit = local.clone().acquire_owned().await.unwrap();
             with_local_work(local.clone(), permit, async {
-                assert!(!crate::git::inspect_status(&f.healthy, Duration::from_secs(3)).await.unwrap().is_clean);
-                run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add").await.unwrap();
-                run_git_with_timeout(&f.healthy, &["commit", "--quiet", "-m", "independent commit"], 3, "fixture commit").await.unwrap();
-            }).await;
-        }).await.expect("late push entry retained commit capacity");
+                assert!(
+                    !crate::git::inspect_status(&f.healthy, Duration::from_secs(3))
+                        .await
+                        .unwrap()
+                        .is_clean
+                );
+                run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add")
+                    .await
+                    .unwrap();
+                run_git_with_timeout(
+                    &f.healthy,
+                    &["commit", "--quiet", "-m", "independent commit"],
+                    3,
+                    "fixture commit",
+                )
+                .await
+                .unwrap();
+            })
+            .await;
+        })
+        .await
+        .expect("late push entry retained commit capacity");
         assert_ne!(f.git(&f.healthy, &["rev-parse", "HEAD"]), before);
         assert!(!push.0.as_ref().unwrap().is_finished());
         assert!(!f.repo.join("hook-release").exists());
@@ -224,10 +253,24 @@ async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
         stopped(helper).await;
         assert_eq!(local.available_permits(), 1);
         if route == "tag" {
-            assert!(!f.git(&f.bare, &["rev-parse", "refs/tags/v0.0.1"]).is_empty());
+            assert!(!f
+                .git(&f.bare, &["rev-parse", "refs/tags/v0.0.1"])
+                .is_empty());
         } else {
-            assert!(f.git(&f.bare, &["for-each-ref", "--format=%(refname)", "refs/heads/daemon-standalone"]).is_empty());
-            assert!(std::fs::read_dir(backup_path(&f)).unwrap().next().is_some(), "janitor must preserve its bundle-first backup");
+            assert!(f
+                .git(
+                    &f.bare,
+                    &[
+                        "for-each-ref",
+                        "--format=%(refname)",
+                        "refs/heads/daemon-standalone"
+                    ]
+                )
+                .is_empty());
+            assert!(
+                std::fs::read_dir(backup_path(&f)).unwrap().next().is_some(),
+                "janitor must preserve its bundle-first backup"
+            );
         }
     }
 }
