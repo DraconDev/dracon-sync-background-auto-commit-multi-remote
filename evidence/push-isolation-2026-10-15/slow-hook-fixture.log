@@ -10,3 +10,32 @@
    Compiling git2 v0.21.0
    Compiling dracon-git v94.7.2
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 58.52s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-9361ebd0c5dd8916)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 2 tests
+test sync::push_isolation_tests::cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel ... ok
+test sync::push_isolation_tests::slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_rejection ... ⚠️ background push to origin failed for /tmp/.tmpzV7KtU/slow: git push failed in /tmp/.tmpzV7KtU/slow with status exit status: 1: pre-push: fixture reject
+error: failed to push some refs to '/tmp/.tmpzV7KtU/remote.git'
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1306 filtered out; finished in 0.47s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-e3a22ba05b943846)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-1f57907d26756cf8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
