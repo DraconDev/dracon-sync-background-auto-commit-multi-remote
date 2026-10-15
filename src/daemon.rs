@@ -1731,6 +1731,7 @@ mod tests {
         collect_ready_classifications(
             &mut jobs,
             &mut pending,
+            &mut HashMap::new(),
             &mut pending_since,
             &mut results,
             &mut HashMap::new(),
@@ -1744,6 +1745,7 @@ mod tests {
         collect_ready_classifications(
             &mut jobs,
             &mut pending,
+            &mut HashMap::new(),
             &mut pending_since,
             &mut results,
             &mut HashMap::new(),
@@ -3745,9 +3747,9 @@ mod tests {
             &repo,
             now
         ));
-        assert!(pending.is_empty(), "slot must free on abort");
-        assert!(spawned_at.is_empty());
-        assert!(aborts.is_empty());
+        assert!(pending.contains(&repo), "abort request must retain ownership until joined");
+        assert!(spawned_at.is_empty(), "request must not repeat every pulse");
+        assert!(aborts.contains_key(&repo), "join error needs task identity");
         tokio::task::yield_now().await;
         assert!(handle.is_finished(), "wedged task must be aborted");
         let err = handle.await.unwrap_err();
@@ -3793,7 +3795,7 @@ mod tests {
         let mut jobs = FuturesUnordered::new();
         jobs.push(handle);
         let mut results = HashMap::new();
-        collect_ready_status(&mut jobs, &mut pending, &mut spawned, &mut results);
+        collect_ready_status(&mut jobs, &mut pending, &mut aborts, &mut spawned, &mut results);
         assert!(!abort_wedged_status_inspection(&mut pending, &mut spawned, &mut aborts, &repo, now));
         assert!(pending.is_empty());
         assert!(spawned.is_empty());
@@ -3817,9 +3819,9 @@ mod tests {
         });
         handle.abort();
         jobs.push(handle);
-        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
         assert!(results.is_empty(), "cancelled join must insert no result");
         assert!(pending.is_empty());
     }
@@ -3895,7 +3897,7 @@ mod tests {
         // Let the spawned tasks run: the fast task completes, the slow
         // task parks on pending forever (the point of the test).
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
         // Fast result collected immediately; slow repo still pending
         // (its task untouched, still owned by the job set).
         assert!(results.contains_key(&fast_repo));
@@ -3945,7 +3947,7 @@ mod tests {
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), old);
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut spawned_at, &mut results);
+        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
         let (_, at) = results.get(&repo).unwrap();
         // The boundary's staleness check sees the 45s age and drops
         // it (>= 30s max age) — the repo re-probes next cycle.
@@ -7333,6 +7335,7 @@ pub(crate) async fn run_daemon(
         collect_ready_classifications(
             &mut classification_jobs,
             &mut classification_pending,
+            &mut classification_abort_handles,
             &mut classification_pending_since,
             &mut classification_results,
             &mut classification_failures,
@@ -7344,6 +7347,7 @@ pub(crate) async fn run_daemon(
         collect_ready_status(
             &mut status_jobs,
             &mut status_pending,
+            &mut status_abort_handles,
             &mut status_spawned_at,
             &mut status_results,
         );
@@ -8290,6 +8294,7 @@ pub(crate) async fn run_daemon(
             collect_ready_status(
                 &mut status_jobs,
                 &mut status_pending,
+                &mut status_abort_handles,
                 &mut status_spawned_at,
                 &mut status_results,
             );
@@ -8336,6 +8341,7 @@ pub(crate) async fn run_daemon(
             collect_ready_status(
                 &mut status_jobs,
                 &mut status_pending,
+                &mut status_abort_handles,
                 &mut status_spawned_at,
                 &mut status_results,
             );
@@ -8562,6 +8568,7 @@ pub(crate) async fn run_daemon(
             collect_ready_classifications(
                 &mut classification_jobs,
                 &mut classification_pending,
+                &mut classification_abort_handles,
                 &mut classification_pending_since,
                 &mut classification_results,
                 &mut classification_failures,
@@ -8669,7 +8676,7 @@ pub(crate) async fn run_daemon(
                             // `collect_ready_classifications`).
                             let failures = classification_failures
                                 .entry(repo.clone())
-                                .and_modify(|c| *c += 1)
+                                .and_modify(|c| *c = c.saturating_add(1))
                                 .or_insert(1);
                             let backoff = classification_backoff_secs(*failures);
                             if !classification_pending.contains(&repo) {
@@ -8685,44 +8692,12 @@ pub(crate) async fn run_daemon(
                         }
                     }
                 }
-                // ADDED 2026-09-18 (v0.113.65): pending watchdog. A
-                // reservation older than 90s (3x the job's 30s internal
-                // timeout) means its result will never arrive — job lost
-                // without a join error surfacing. Drop it so the gate
-                // below re-probes instead of suppressing this repo's
-                // dispatches silently forever.
-                // EXTENDED 2026-09-20 (v0.113.85): abort the wedged
-                // task too. Dropping the reservation without killing
-                // the job leaks it — the `git diff` child runs on and
-                // every re-probe piles another hung task on top while
-                // the cause persists. Abort is safe: the job carries
-                // no locks, and its orphaned cancelled join resolves
-                // repo-less (log-only) in `collect_ready_classifications`.
-                if classification_pending.contains(&repo)
-                    && classification_pending_since
-                        .get(&repo)
-                        .is_some_and(|(spawned, budget)| {
-                            classification_pending_watchdog_due(*spawned, now, *budget)
-                        })
-                {
-                    // Read the budget BEFORE dropping the reservation: the
-                    // log line quotes the real bound, which is 3x the job
-                    // budget (90s for a small repo, 540s for a 65-file
-                    // monorepo) rather than the old hardcoded 90s.
-                    let watchdog_secs = classification_pending_since
-                        .get(&repo)
-                        .map(|(_, budget)| (*budget * 3).as_secs())
-                        .unwrap_or(0);
-                    if let Some(handle) = classification_abort_handles.remove(&repo) {
-                        handle.abort();
-                    }
-                    classification_pending.remove(&repo);
-                    classification_pending_since.remove(&repo);
-                    eprintln!(
-                        "⚠️ {} classification pending over {}s without result — aborted wedged job, dropping stale reservation and re-probing",
-                        repo.display(),
-                        watchdog_secs
-                    );
+                // The pulse sweep covers even repos that never reach here.
+                // Recheck after a long scan, retaining ownership until join.
+                if abort_wedged_classification(&mut classification_pending,
+                    &mut classification_pending_since, &mut classification_abort_handles,
+                    &repo, now) {
+                    eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
                 }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
