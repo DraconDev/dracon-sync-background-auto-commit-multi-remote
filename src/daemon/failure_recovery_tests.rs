@@ -147,7 +147,7 @@ async fn stopped(pids: &[u32]) {
 }
 async fn publish(repo: &Path, capacity: Arc<Semaphore>) -> anyhow::Result<()> {
     let permit = capacity.clone().acquire_owned().await.unwrap();
-    with_local_work(capacity, permit, push_phase(crate::git::push_with_retries(repo, 5, 3, "integrated fixture push"))).await
+    with_local_work(capacity, permit, push_phase(crate::git::push_with_retries(repo, 40, 3, "integrated fixture push"))).await
 }
 
 #[tokio::test]
@@ -160,6 +160,7 @@ async fn episode() {
     let [healthy, filter, hook, bucket] = fleet.repos.as_slice() else { unreachable!() };
     fleet.configure_bucket();
     let capacity = Arc::new(Semaphore::new(1));
+    let healthy_baseline = Fleet::head(healthy);
     let mut discovery = Discovery::new();
     let mut initial = tokio::time::timeout(Duration::from_secs(5), async {
         loop { if let Some(snapshot) = discovery.poll(fleet.scope()).await { break snapshot; } tokio::task::yield_now().await; }
@@ -235,9 +236,12 @@ async fn episode() {
         assert!(!bucket.join(".git/simulated-store").exists());
         std::fs::write(healthy.join("data"), format!("healthy progress {tick}\n")).unwrap();
         fleet.sync(healthy, capacity.clone()).await;
-        publish(healthy, capacity.clone()).await.unwrap();
         healthy_heads.push(Fleet::head(healthy));
-        assert_eq!(Fleet::remote(healthy), healthy_heads[tick as usize]);
+        assert_ne!(healthy_heads[tick as usize], healthy_baseline);
+        assert_eq!(Fleet::git(healthy, &["show", "HEAD:data"]), format!("healthy progress {tick}"));
+        // Push admission is deliberately single-flight. Independent local
+        // commits must progress, but publication queues behind the slow hook.
+        assert_eq!(Fleet::remote(healthy), healthy_baseline);
         assert!(!inspection.0.as_ref().unwrap().is_finished());
         assert!(!pushing.0.as_ref().unwrap().is_finished());
         assert!(!discovery.pending.as_ref().unwrap().is_finished());
@@ -246,7 +250,7 @@ async fn episode() {
     }
     assert_ne!(healthy_heads[0], healthy_heads[1]);
     assert_eq!(scans.load(std::sync::atomic::Ordering::SeqCst), 1);
-    eprintln!("PASS: healthy commits/pushes progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes");
+    eprintln!("PASS: healthy inspection/commits progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes");
 
     std::fs::write(hook.join(".git/hook-release"), "release to reject").unwrap();
     let failure = pushing.join().await.unwrap().unwrap_err();
@@ -286,6 +290,8 @@ async fn episode() {
         assert!(recovery.ready(repo, recovered_at));
         assert_eq!(Fleet::remote(repo), Fleet::head(repo));
     }
+    publish(healthy, capacity.clone()).await.unwrap();
+    assert_eq!(Fleet::remote(healthy), Fleet::head(healthy));
     publish(hook, capacity.clone()).await.unwrap();
     assert_eq!(Fleet::count(hook, "hook-attempts"), 2);
     assert_eq!(Fleet::remote(hook), Fleet::head(hook));

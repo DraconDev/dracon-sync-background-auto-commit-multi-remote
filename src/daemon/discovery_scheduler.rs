@@ -100,6 +100,10 @@ impl Discovery {
     }
 }
 
+#[cfg(all(test, target_os = "linux"))]
+#[path = "failure_recovery_tests.rs"]
+mod failure_recovery_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;
