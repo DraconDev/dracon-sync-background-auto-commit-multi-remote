@@ -196,3 +196,4 @@
    Compiling git2 v0.21.0
    Compiling clap_derive v4.6.7
    Compiling clap_builder v4.6.7
+   Compiling zbus v5.19.0
