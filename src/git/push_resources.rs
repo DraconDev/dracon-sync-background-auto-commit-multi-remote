@@ -40,6 +40,9 @@ pub(crate) async fn with_local_work<T>(
 /// shared local-work permit while another mirror is still in its hook.
 /// Cancellation drops the enclosing sync worker and all its owned resources.
 pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Result<T> {
+    if PUSH_PHASE.try_with(|active| *active).unwrap_or(false) {
+        return work.await;
+    }
     let local = LOCAL_WORK.try_with(|local| {
         let semaphore = local.semaphore.clone();
         let permit = local.permit.borrow_mut().take();
@@ -65,6 +68,13 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
         *local.permit.borrow_mut() = Some(permit);
     });
     result
+}
+
+/// Per-repository coordinator maintenance has no local-work permit to release,
+/// but its push children need the same bounded lane and low priority. Call this
+/// only from an owned background job, never inline on the inspection loop.
+pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
+    PUSH_PHASE.scope(true, work).await
 }
 
 fn isolated_push(args: &[&str]) -> bool {
