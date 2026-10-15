@@ -182,19 +182,22 @@ mod tests {
         std::fs::write(dir.path().join("stall"), "").unwrap();
         if abort_owner {
             let repo = dir.path().to_path_buf();
-            let inspection = tokio::spawn(async move {
-                inspect_status(&repo, Duration::from_secs(60)).await
-            });
+            let inspection =
+                tokio::spawn(async move { inspect_status(&repo, Duration::from_secs(60)).await });
             // Reproduce the scheduler watchdog dropping the OWNER, rather
             // than relying on inspect_status's own timeout to fire.
             let ready = tokio::time::timeout(Duration::from_secs(5), async {
                 while !dir.path().join("child.pid").exists() {
                     tokio::time::sleep(Duration::from_millis(20)).await;
                 }
-            }).await;
+            })
+            .await;
             inspection.abort();
             assert!(inspection.await.unwrap_err().is_cancelled());
-            assert!(ready.is_ok(), "filter did not start before owner cancellation");
+            assert!(
+                ready.is_ok(),
+                "filter did not start before owner cancellation"
+            );
         } else {
             let error = inspect_status(dir.path(), Duration::from_secs(2))
                 .await
