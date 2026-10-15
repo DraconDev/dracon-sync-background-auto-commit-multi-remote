@@ -1,1 +1,23 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.93s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 1 test
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ⚠️ /tmp/.tmpX5litK/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+ℹ️ skip large file /tmp/.tmpX5litK/watched/healthy/data (19 bytes > 0 bytes)
+
+thread 'daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness' (3094523) panicked at dracon-sync/src/daemon/failure_recovery_tests.rs:377:9:
+assertion `left != right` failed
+  left: "ea0afa91996dc3b14ebecb1fadb23fb80f73a611"
+ right: "ea0afa91996dc3b14ebecb1fadb23fb80f73a611"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 1.42s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
