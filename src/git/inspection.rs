@@ -168,7 +168,7 @@ mod tests {
         std::fs::write(dir.path().join(".gitattributes"), "asset filter=stall\n").unwrap();
         std::fs::write(
             dir.path().join("filter.sh"),
-            "if test -e stall; then sleep 60 & echo $! > child.pid; wait; fi\ncat\n",
+            "if test -e stall; then sleep 60 & echo $! > child.pid.tmp; mv child.pid.tmp child.pid; wait; fi\ncat\n",
         )
         .unwrap();
         git(&["config", "filter.stall.clean", "sh filter.sh"]);
@@ -204,8 +204,12 @@ mod tests {
                 .unwrap_err();
             assert!(error.to_string().contains("timed out"));
         }
-        let pid = std::fs::read_to_string(dir.path().join("child.pid")).unwrap();
-        let proc_stat = format!("/proc/{}/stat", pid.trim());
+        // Readiness must publish a complete identity before owner abortion;
+        // otherwise an empty marker accidentally addresses /proc/stat.
+        let pid: u32 = std::fs::read_to_string(dir.path().join("child.pid"))
+            .unwrap().trim().parse().expect("complete published helper PID");
+        assert!(pid > 0);
+        let proc_stat = format!("/proc/{pid}/stat");
         let killed = tokio::time::timeout(Duration::from_secs(3), async {
             loop {
                 let stat = std::fs::read_to_string(&proc_stat);
