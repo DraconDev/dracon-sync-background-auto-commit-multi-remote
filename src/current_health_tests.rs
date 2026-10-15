@@ -197,9 +197,14 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
                 serde_json::to_value(expected).unwrap()
             );
             assert_eq!(json["health"]["last_push"]["succeeded"], succeeded);
-            let table = super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200).to_string();
+            let table =
+                super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200)
+                    .to_string();
             assert!(table.contains(visible), "actual table for {name}: {table}");
-            assert!(table.contains(if succeeded { "✅ OK" } else { "❌ FAIL" }), "history and convergence must both remain visible: {table}");
+            assert!(
+                table.contains(if succeeded { "✅ OK" } else { "❌ FAIL" }),
+                "history and convergence must both remain visible: {table}"
+            );
         }
     }
 }
@@ -219,7 +224,11 @@ fn current_convergence_freeze_block_and_missing_history_are_explicit() {
     row.push_status = "BROKEN".into();
     assert_eq!(classify(&row), Current::Blocked);
     row.push_status = "BLOCKED".into();
-    assert_eq!(classify(&row), Current::Excluded, "ownership opt-out is not a fake live worker");
+    assert_eq!(
+        classify(&row),
+        Current::Excluded,
+        "ownership opt-out is not a fake live worker"
+    );
     assert_eq!(
         push(&row).0,
         "— unknown",

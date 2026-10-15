@@ -209,20 +209,51 @@ mod tests {
         let now = Instant::now();
         let age = now - std::time::Duration::from_secs(1000);
         let make_activity = |blocked: bool| RepoActivity {
-            fingerprint: String::new(), changed_at: now, dirty_since: Some(age),
-            ahead_since: None, behind_since: None, mirror_consecutive_fails: HashMap::new(),
-            failure_count: 0, remote_failures: HashMap::new(), ownership: None,
-            ownership_at: None, blocked_since: blocked.then_some(age), unowned_since: None,
+            fingerprint: String::new(),
+            changed_at: now,
+            dirty_since: Some(age),
+            ahead_since: None,
+            behind_since: None,
+            mirror_consecutive_fails: HashMap::new(),
+            failure_count: 0,
+            remote_failures: HashMap::new(),
+            ownership: None,
+            ownership_at: None,
+            blocked_since: blocked.then_some(age),
+            unowned_since: None,
         };
-        let eligible = PathBuf::from("eligible"); let provisional = PathBuf::from("provisional");
-        let blocked = PathBuf::from("blocked"); let owned = PathBuf::from("owned");
-        let activity = HashMap::from([(eligible.clone(), make_activity(false)), (provisional.clone(), make_activity(false)), (blocked.clone(), make_activity(true))]);
+        let eligible = PathBuf::from("eligible");
+        let provisional = PathBuf::from("provisional");
+        let blocked = PathBuf::from("blocked");
+        let owned = PathBuf::from("owned");
+        let activity = HashMap::from([
+            (eligible.clone(), make_activity(false)),
+            (provisional.clone(), make_activity(false)),
+            (blocked.clone(), make_activity(true)),
+        ]);
         let eligible_set = HashSet::from([eligible.clone()]);
-        let probes = HashSet::from([provisional.clone()]); let maintenance = HashSet::new();
-        let retries = HashMap::from([(blocked.clone(), now + std::time::Duration::from_secs(300)), (owned.clone(), now + std::time::Duration::from_secs(30))]);
+        let probes = HashSet::from([provisional.clone()]);
+        let maintenance = HashSet::new();
+        let retries = HashMap::from([
+            (blocked.clone(), now + std::time::Duration::from_secs(300)),
+            (owned.clone(), now + std::time::Duration::from_secs(30)),
+        ]);
         let admitted = HashMap::from([(eligible.clone(), now - std::time::Duration::from_secs(5))]);
-        let mut recovery = SyncRecovery::default(); recovery.reserve(&owned).set(now).unwrap();
-        let snapshot = build(Inputs { activity: &activity, eligible: &eligible_set, probes: &probes, maintenance: &maintenance, retries: &[&retries], recovery: &recovery, admitted: &admitted }, now, 100);
+        let mut recovery = SyncRecovery::default();
+        recovery.reserve(&owned).set(now).unwrap();
+        let snapshot = build(
+            Inputs {
+                activity: &activity,
+                eligible: &eligible_set,
+                probes: &probes,
+                maintenance: &maintenance,
+                retries: &[&retries],
+                recovery: &recovery,
+                admitted: &admitted,
+            },
+            now,
+            100,
+        );
         assert_eq!(snapshot.repos[&eligible].dirty_secs, Some(1000));
         assert_eq!(snapshot.repos[&eligible].admitted_secs, Some(5));
         assert!(snapshot.repos[&eligible].eligible);
@@ -230,9 +261,18 @@ mod tests {
         assert_eq!(snapshot.repos[&provisional].phase, Some(Phase::Inspecting));
         assert_eq!(snapshot.repos[&blocked].phase, Some(Phase::Blocked));
         assert_eq!(snapshot.repos[&blocked].retry_secs, Some(300));
-        assert_eq!(snapshot.repos[&owned].phase, Some(Phase::Working), "owner wins over an old cooldown");
-        assert!(recovery.observations(now).contains_key(&owned), "observation does not release ownership");
+        assert_eq!(
+            snapshot.repos[&owned].phase,
+            Some(Phase::Working),
+            "owner wins over an old cooldown"
+        );
+        assert!(
+            recovery.observations(now).contains_key(&owned),
+            "observation does not release ownership"
+        );
         let keys: Vec<_> = snapshot.repos.keys().cloned().collect();
-        let mut sorted = keys.clone(); sorted.sort(); assert_eq!(keys, sorted);
+        let mut sorted = keys.clone();
+        sorted.sort();
+        assert_eq!(keys, sorted);
     }
 }
