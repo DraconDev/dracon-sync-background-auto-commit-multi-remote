@@ -64,18 +64,22 @@ impl Fleet {
         // Inherit the operator/CI's existing Git identity; never invent one.
         let name = Self::git(&repos[0], &["config", "user.name"]);
         let email = Self::git(&repos[0], &["config", "user.email"]);
-        let policy = SyncPolicy {
-            auto_github_private: false,
-            auto_pull: false,
-            auto_push: false,
-            auto_bump_versions: false,
-            auto_commit: true,
-            remotes: Vec::new(),
-            trusted_authors: vec![name],
-            trusted_emails: vec![email],
-            stage_op_timeout_secs: 3,
-            ..SyncPolicy::default()
-        };
+        // Deserialize as production does: derive(Default) deliberately has
+        // zero numeric limits, whereas serde supplies operational defaults.
+        let mut policy: SyncPolicy = toml::from_str(
+            r#"
+auto_github_private = false
+auto_pull = false
+auto_push = false
+auto_bump_versions = false
+auto_commit = true
+stage_op_timeout_secs = 3
+"#,
+        )
+        .unwrap();
+        policy.remotes.clear();
+        policy.trusted_authors = vec![name];
+        policy.trusted_emails = vec![email];
         Self {
             root,
             watch,
