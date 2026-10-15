@@ -507,6 +507,35 @@ index 0000000..85ee1e6
 +    .await;
 +    assert_eq!(local.available_permits(), 1);
 +}
+diff --git a/src/nix.rs b/src/nix.rs
+index a9c1f8a..64f54a4 100644
+--- a/src/nix.rs
++++ b/src/nix.rs
+@@ -197,7 +197,7 @@ pub async fn create_flake_pr(
+     }
+ }
+ 
+-async fn run_git_for_nix_pr(
++pub(crate) async fn run_git_for_nix_pr(
+     repo: &Path,
+     branch_name: &str,
+     commit_msg: &str,
+@@ -226,13 +226,13 @@ async fn run_git_for_nix_pr(
+     ];
+ 
+     use crate::git::run_git_with_timeout_env;
+-    let push_result = run_git_with_timeout_env(
++    let push_result = crate::git::push_resources::push_phase(run_git_with_timeout_env(
+         repo,
+         &["push", "-u", "origin", branch_name],
+         120,
+         "nix-pr-push",
+         &env,
+-    )
++    ))
+     .await;
+ 
+     // Always restore the previous branch even on push failure
 diff --git a/src/release.rs b/src/release.rs
 index 1c0ac5c..0c83350 100644
 --- a/src/release.rs
@@ -564,10 +593,10 @@ index 7e46c1a..d72f678 100644
      has_origin: bool,
 diff --git a/src/sync/push_isolation_tests.rs b/src/sync/push_isolation_tests.rs
 new file mode 100644
-index 0000000..0c766fc
+index 0000000..51fa7ef
 --- /dev/null
 +++ b/src/sync/push_isolation_tests.rs
-@@ -0,0 +1,420 @@
+@@ -0,0 +1,437 @@
 +//! Real Git hooks, real push entry, and the daemon's actual local-work scope.
 +use super::*;
 +use crate::git::push_resources::with_local_work;
@@ -747,8 +776,8 @@ index 0000000..0c766fc
 +}
 +
 +#[tokio::test]
-+async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
-+    for route in ["tag", "janitor"] {
++async fn release_tag_janitor_and_nix_hooks_yield_local_work_capacity() {
++    for route in ["tag", "janitor", "nix"] {
 +        let f = Fixture::new();
 +        let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
 +        if route == "janitor" {
@@ -757,6 +786,12 @@ index 0000000..0c766fc
 +            f.git(&f.repo, &["branch", "daemon-standalone"]);
 +            f.git(&f.repo, &["push", "origin", "main", "daemon-standalone"]);
 +            f.git(&f.bare, &["symbolic-ref", "HEAD", "refs/heads/main"]);
++        } else if route == "nix" {
++            std::fs::write(
++                f.repo.join("flake.nix"),
++                "# isolated fixture flake change\n",
++            )
++            .unwrap();
 +        }
 +        let local = Arc::new(Semaphore::new(1));
 +        let semaphore = local.clone();
@@ -771,6 +806,12 @@ index 0000000..0c766fc
 +                        .await
 +                        .unwrap();
 +                    assert!(matches!(result, crate::release::ReleaseStep::TagCreated(_)));
++                } else if route == "nix" {
++                    // Exercise the production Git preparation/push function
++                    // without invoking external GitHub API/PR creation.
++                    crate::nix::run_git_for_nix_pr(&repo, "nix-fixture", "fixture flake update")
++                        .await
++                        .unwrap();
 +                } else {
 +                    crate::git::maybe_prune_stale_backup_branches(
 +                        &repo,
@@ -826,6 +867,11 @@ index 0000000..0c766fc
 +            assert!(!f
 +                .git(&f.bare, &["rev-parse", "refs/tags/v0.0.1"])
 +                .is_empty());
++        } else if route == "nix" {
++            assert!(!f
++                .git(&f.bare, &["rev-parse", "refs/heads/nix-fixture"])
++                .is_empty());
++            assert_eq!(f.git(&f.repo, &["branch", "--show-current"]), "main");
 +        } else {
 +            assert!(f
 +                .git(
