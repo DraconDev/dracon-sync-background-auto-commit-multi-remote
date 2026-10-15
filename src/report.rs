@@ -3513,7 +3513,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
         (
             "ACTIVITY",
-            "Fresh scheduler evidence, not last commit age: queued = admitted/eligible; working = started worker or inspection; retrying = owned cancellation or a live cooldown", 
+            "Fresh scheduler evidence, not last commit age: queued = admitted/eligible; working = started worker or inspection; retrying = owned cancellation or a live cooldown",
         ),
         // v0.113.87: `⏸️ frozen` replaces `🟡 waiting` on every PENDING
         // row while the daemon is frozen — the queue is not moving
@@ -3521,7 +3521,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         // slow. Documented here because the legend is the column key.
         (
             "",
-            "⏸️ frozen = waiting, but the daemon is FROZEN (see the notice)",
+            "⏸️ PAUSED = outstanding work while the daemon is frozen; unchanged idle rows stay clean (see the notice)",
         ),
         ("", ""),
         (
@@ -3538,7 +3538,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("", ""),
         (
             "PUSH",
-            "Last daemon-recorded push result + observation age: ✅ OK · ❌ FAIL · — unknown. Historical OK never proves current changes published. REF AGE is the upstream commit age, NOT push time.", 
+            "Last daemon-recorded push result + observation age: ✅ OK · ❌ FAIL · — unknown. Historical OK never proves current changes published. REF AGE is upstream commit age, NOT push time. 🩹 current history issue · 🔑 token missing.",
         ),
         (
             "REM",
@@ -12129,8 +12129,9 @@ mod tests {
         row.hint = "daemon handles after changes settle".to_string();
         row.last_author = "DraconDev".to_string();
         row.last_when = "5 minutes ago".to_string();
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { phase: Some(crate::daemon::scheduler_evidence::Phase::Queued), ..Default::default() });
         let what = summary_what(&row, 200);
-        assert!(what.contains("⏳ dirty"), "activity: {what}");
+        assert!(what.contains("QUEUED"), "activity: {what}");
         assert!(what.contains("2 mod"), "modified count: {what}");
         assert!(what.contains("1 ut"), "untracked count: {what}");
         assert!(what.contains("daemon handles"), "hint visible: {what}");
@@ -12493,12 +12494,14 @@ mod tests {
     fn stalled_rows_stay_visible_even_when_active() {
         let mut row = make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
         row.active = true;
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
         assert_eq!(status_pair(&row), ("🔴 STALLED", Color::Red));
         assert_eq!(activity_label_base(&row), "🔴 stalled 2h");
         assert_eq!(severity_tier(&row), 1);
         row.state_cause = StateCause::Working;
         row.warn = true;
-        assert_eq!(status_pair(&row), ("🟡 WARN", Color::Yellow));
+        row.health.scheduler.as_mut().unwrap().phase = Some(crate::daemon::scheduler_evidence::Phase::Working);
+        assert_eq!(status_pair(&row), ("🔄 WORKING", Color::Cyan));
     }
 
     #[test]
@@ -12538,6 +12541,7 @@ mod tests {
         let mut stalled =
             make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
         stalled.repo = "/tmp/platform".into();
+        stalled.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
         let rows = [clean, stalled];
         for width in [165, 200, 320] {
             let rendered = build_repos_rich_table(&rows, false, width).to_string();
@@ -13736,20 +13740,11 @@ mod tests {
     #[test]
     fn test_repos_legend_covers_all_push_cell_labels() {
         // Collect every documented cell label.
-        let cell_label_statuses = [
-            "OK",
-            "INTENTIONAL",
-            "PENDING",
-            "PUSH_STUCK",
-            "STUCK",
-            "FAIL",
-            "BROKEN",
-            "BLOCKED",
-        ];
-        let cell_label_outputs: Vec<String> = cell_label_statuses
-            .iter()
-            .map(|s| push_cell_label(s, None).0.to_string())
-            .collect();
+        let cell_label_outputs: Vec<String> = [Some(true), Some(false), None].into_iter().map(|result| {
+            let mut row = RepoReportRow::for_tests("/fixture");
+            row.health.last_push = result.map(|succeeded| crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded });
+            current_health::push(&row).0.split_whitespace().take(2).collect::<Vec<_>>().join(" ")
+        }).collect();
         // The legend should contain every cell label's text. We
         // concatenate the legend rows into a single haystack and search
         // for each needle (case-sensitive, since the labels are
