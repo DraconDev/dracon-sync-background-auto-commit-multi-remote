@@ -7,3 +7,6 @@
    Compiling tokio-native-tls v0.3.1
    Compiling hyper-tls v0.6.0
    Compiling reqwest v0.12.28
+   Compiling git2 v0.21.0
+   Compiling dracon-git v94.7.2
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
