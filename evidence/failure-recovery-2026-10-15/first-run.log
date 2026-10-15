@@ -10,3 +10,23 @@
    Compiling git2 v0.21.0
    Compiling dracon-git v94.7.2
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.58s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 1 test
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... 
+thread 'daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness' (3083067) panicked at dracon-sync/src/daemon/failure_recovery_tests.rs:25:9:
+fixture Git ["commit", "-qm", "fixture baseline"]: ❌ Warden filter missing from .gitattributes.
+   Run: dracon-warden once /tmp/.tmpNVdI7O/watched/healthy
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
