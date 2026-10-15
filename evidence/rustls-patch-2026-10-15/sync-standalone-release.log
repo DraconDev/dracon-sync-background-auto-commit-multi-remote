@@ -105,3 +105,17 @@
    Compiling foreign-types-shared v0.1.1
    Compiling foreign-types v0.3.2
    Compiling idna v1.1.0
+   Compiling enumflags2 v0.7.12
+   Compiling tokio-util v0.7.19
+   Compiling polling v3.11.0
+   Compiling zcheapstr v1.1.0
+   Compiling openssl-macros v0.1.1
+   Compiling async-task v4.7.1
+   Compiling native-tls v0.2.18
+   Compiling try-lock v0.2.5
+   Compiling fnv v1.0.7
+   Compiling endi v1.1.1
+   Compiling tower-service v0.3.3
+   Compiling zvariant v5.15.0
+   Compiling h2 v0.4.19
+   Compiling want v0.3.1
