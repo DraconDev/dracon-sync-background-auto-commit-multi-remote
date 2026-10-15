@@ -965,4 +965,217 @@ test git::github_pack_tests::precomputed_small_size_short_circuits_without_git .
 test git::github_pack_tests::pushed_branch_size_is_reported_for_small_repo ... ok
 test git::github_pack_tests::small_repo_is_not_too_big_for_github ... ok
 test git::inspection::tests::handles_clean_detached_and_unborn_heads_and_rejects_bad_output ... ok
-test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... 
+test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... ok
+test git::inspection::tests::inspects_real_repository_and_counts_nested_untracked_files ... ok
+test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... 
+thread 'git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers' (3367793) panicked at dracon-sync/src/git/inspection.rs:222:9:
+filter helper survived inspection cancellation
+FAILED
+test git::inspection::tests::parses_branch_counts_renames_conflicts_and_non_utf8_paths ... ok
+test git::janitor_tests::aborts_when_bundle_fails ... ⚠️ 🧹 janitor: cannot create /proc/definitely-not-writable/auto-prune: No such file or directory (os error 2) — nothing deleted
+ok
+test git::janitor_tests::disabled_is_noop ... ok
+test git::janitor_tests::prunes_daemon_branches_with_bundle_and_remote_delete ... ⚠️ 🧹 /tmp/.tmpl0QLYe/repo pruned stale ref refs/heads/backup/pre-sync-largeblob-fix-999 (tip ec7c638be47f1ed9855483542b99d23230bb9bd5) — bundled to /tmp/.tmpXIYmqK/auto-prune/repo-1792093018.bundle
+⚠️ 🧹 /tmp/.tmpl0QLYe/repo pruned stale ref refs/heads/daemon-standalone (tip ec7c638be47f1ed9855483542b99d23230bb9bd5) — bundled to /tmp/.tmpXIYmqK/auto-prune/repo-1792093018.bundle
+⚠️ 🧹 /tmp/.tmpl0QLYe/repo deleted stale branch backup/pre-sync-largeblob-fix-999 on remote origin (tip matched ec7c638be47f1ed9855483542b99d23230bb9bd5)
+⚠️ 🧹 /tmp/.tmpl0QLYe/repo deleted stale branch daemon-standalone on remote origin (tip matched ec7c638be47f1ed9855483542b99d23230bb9bd5)
+ok
+test git::janitor_tests::prunes_orphaned_tracking_refs ... ⚠️ 🧹 /tmp/.tmpGMePIP/repo pruned stale ref refs/heads/backup/pre-sync-largeblob-fix-999 (tip ff23a023e18e98aca2adbdefe65d8dd5daa9cdbd) — bundled to /tmp/.tmpID4O54/auto-prune/repo-1792093019.bundle
+⚠️ 🧹 /tmp/.tmpGMePIP/repo pruned stale ref refs/heads/daemon-standalone (tip ff23a023e18e98aca2adbdefe65d8dd5daa9cdbd) — bundled to /tmp/.tmpID4O54/auto-prune/repo-1792093019.bundle
+⚠️ 🧹 /tmp/.tmpGMePIP/repo pruned stale ref refs/remotes/restore/main (tip ff23a023e18e98aca2adbdefe65d8dd5daa9cdbd) — bundled to /tmp/.tmpID4O54/auto-prune/repo-1792093019.bundle
+⚠️ 🧹 /tmp/.tmpGMePIP/repo deleted stale branch backup/pre-sync-largeblob-fix-999 on remote origin (tip matched ff23a023e18e98aca2adbdefe65d8dd5daa9cdbd)
+⚠️ 🧹 /tmp/.tmpGMePIP/repo deleted stale branch daemon-standalone on remote origin (tip matched ff23a023e18e98aca2adbdefe65d8dd5daa9cdbd)
+ok
+test git::janitor_tests::skips_remote_delete_when_tracking_tip_differs ... ⚠️ 🧹 /tmp/.tmp5gA9by/repo pruned stale ref refs/heads/backup/pre-sync-largeblob-fix-999 (tip 73ce01331670d52719ae1608b4e2510f67687afa) — bundled to /tmp/.tmpi2sMrD/auto-prune/repo-1792093020.bundle
+⚠️ 🧹 /tmp/.tmp5gA9by/repo pruned stale ref refs/heads/daemon-standalone (tip 73ce01331670d52719ae1608b4e2510f67687afa) — bundled to /tmp/.tmpi2sMrD/auto-prune/repo-1792093020.bundle
+⚠️ 🧹 /tmp/.tmp5gA9by/repo deleted stale branch daemon-standalone on remote origin (tip matched 73ce01331670d52719ae1608b4e2510f67687afa)
+ok
+test git::multi_remote::tests::cancelled_mirror_parent_terminates_push_process_group ... ok
+test git::multi_remote::tests::concurrent_forge_confirmations_preserve_every_pair ... ok
+test git::multi_remote::tests::test_codeberg_excluded_no_codeberg_remote_in_policy ... ok
+test git::multi_remote::tests::test_codeberg_excluded_via_push_url_autodetect ... ok
+test git::multi_remote::tests::test_codeberg_excluded_when_auto_create_off_and_no_tracking_ref ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_global_auto_create_on ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_opted_in ... ok
+test git::multi_remote::tests::test_codeberg_kept_when_tracking_ref_exists ... ok
+test git::multi_remote::tests::test_configure_all_remotes_bootstraps_origin_when_missing ... ok
+test git::multi_remote::tests::test_configure_all_remotes_does_not_overwrite_existing_origin ... ok
+test git::multi_remote::tests::test_configure_all_remotes_no_origin_when_no_github_in_policy ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_branch_config ... ok
+test git::multi_remote::tests::test_ensure_origin_reports_nonzero_remote_add ... ok
+test git::multi_remote::tests::test_evict_forge_existence_absent_key ... ok
+test git::multi_remote::tests::test_evict_without_persisted_file_writes_nothing ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_matching_remote ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_drops_multiple_remotes ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_empty_exclude_is_noop ... ok
+test git::multi_remote::tests::test_filter_remotes_by_exclude_is_per_call_not_global ... ok
+test git::multi_remote::tests::test_forge_confirmed_helpers_cycle ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_absent_for_fresh_repo ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_follows_non_main_branch ... ok
+test git::multi_remote::tests::test_has_codeberg_tracking_ref_present_after_update_ref ... ok
+test git::multi_remote::tests::test_ls_remote_indicates_missing_classification ... ok
+test git::multi_remote::tests::test_persistent_forge_exists_roundtrip_and_eviction ... ok
+test git::multi_remote::tests::test_private_or_unknown_visibility_blocks_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_public_visibility_allows_new_codeberg_mirror ... ok
+test git::multi_remote::tests::test_push_err_indicates_repo_missing ... ok
+test git::multi_remote::tests::test_push_retries_counts_total_attempts ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_continues_after_failure ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_empty_list_returns_empty ... ok
+test git::multi_remote::tests::test_push_to_all_remotes_respects_priority_order ... ok
+test git::multi_remote::tests::test_remote_repo_exists_checks_remote_head ... ok
+test git::ops::tests::cancellation_after_leader_exit_kills_stderr_holder ... ok
+test git::ops::tests::child_exit_wakes_runner_without_poll_interval ... ok
+test git::ops::tests::progress_timeout_has_a_bounded_hard_ceiling ... ok
+test git::ops::tests::test_askpass_drop_logs_unlink_failure ... ⚠️ askpass cleanup failed for /tmp/.tmpbEypON/not-a-file: Is a directory (os error 21) (token script lingers on disk)
+ok
+test git::ops::tests::test_f48_tightened_progress_predicate ... ok
+test git::ops::tests::test_git_askpass_script_atomic_0o700_create_and_cleanup ... ok
+test git::ops::tests::test_git_askpass_script_creates_distinct_paths_without_remove ... ok
+test git::ops::tests::test_git_askpass_script_rejects_single_quote ... ok
+test git::ops::tests::test_git_push_progress_predicate_detects_pack_progress ... ok
+test git::push::tests::daemon_push_paths_honor_pre_push_hooks ... ⚠️ no pre-rewrite upstream sha for /tmp/.tmpFqrXXb/repo — force-pushing origin WITHOUT lease
+⚠️ no pre-rewrite upstream sha for /tmp/.tmpFqrXXb/repo — force-pushing origin WITHOUT lease
+ok
+test git::push::tests::test_classify_push_failure_maps_every_mode ... ok
+test git::push::tests::test_github_https_leg_wires_gh_token_via_askpass ... ok
+test git::push::tests::test_is_pack_too_large_case_insensitive ... ok
+test git::push::tests::test_is_pack_too_large_ignores_transient_errors ... ok
+test git::push::tests::test_is_pack_too_large_recognises_github_gh001 ... ok
+test git::push::tests::test_is_pack_too_large_recognises_pack_exceeds ... ok
+test git::push::tests::test_is_permanent_push_rejection_ignores_transient_errors ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_github_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_gitlab_protected_branch ... ok
+test git::push::tests::test_is_permanent_push_rejection_recognises_repo_gone ... ok
+test git::push::tests::test_is_push_rejected_still_works ... ok
+test git::push::tests::test_local_hook_rejection_does_not_swallow_server_side_policy ... ok
+test git::push::tests::test_local_hook_rejection_fails_fast_in_named_remote ... ok
+test git::push::tests::test_local_hook_rejection_fails_fast_in_origin_retries ... ok
+test git::push::tests::test_local_hook_rejection_is_not_transport_failure ... ok
+test git::push::tests::test_local_hook_rejection_leaves_real_transport_alone ... ok
+test git::push::tests::test_local_workspace_gate_refusal_is_not_transport_failure ... ok
+test git::push::tests::test_permanent_rejection_bypasses_auto_pull ... ok
+test git::push::tests::test_pull_refspec_for_branch_rejects_unsafe_names ... ok
+test git::push::tests::test_push_with_retries_total_budget_counts_https_chain ... ⏱️ push retry 3/3 for /tmp/.tmpfj4zGl/repo after 2s
+ok
+test git::push::tests::test_redact_credentials_for_log_covers_all_schemes ... ok
+test git::push::tests::test_token_skip_entry_names_forge_without_material ... ok
+test git::push::tests::test_transient_forge_outage_does_not_swallow_policy ... ok
+test git::push::tests::test_transient_forge_outage_gitaly_unavailable ... ok
+test git::push::tests::test_transient_forge_outage_gitlab_push_timeout ... ok
+test git::push::tests::test_transient_forge_outage_http_numeric_5xx ... ok
+test git::push::tests::test_transient_network_outage_dns_resolution ... ok
+test git::push_resources::tests::hook_command_lane_is_single_flight_and_drops_work_before_releasing_slot ... ok
+test git::push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
+test git::staging::detect_large_blobs_ahead_regression::reports_a_blob_committed_ahead_of_upstream ... ok
+test git::staging::detect_large_blobs_ahead_regression::rev_list_failure_propagates_instead_of_empty ... ok
+test git::staging::tests::large_blob_record_preserves_spaces_in_path ... ok
+test git::staging::tests::test_build_filter_branch_args_escapes_single_quotes ... ok
+test git::staging::tests::test_build_filter_branch_args_shape ... ok
+test git::staging::tests::test_f31_noop_rewrite_deletes_backup_branch ... Parsed 1 commitsHEAD is now at cf9ae72 init
+
+New history written in 0.02 seconds...
+Completely finished after 0.03 seconds.
+ok
+test git::staging::tests::test_real_rewrite_returns_outcome_with_bundle_and_lease ... Parsed 1 commitsHEAD is now at 0f79050 c1
+
+New history written in 0.03 seconds...
+Completely finished after 0.04 seconds.
+ok
+test git::staging::tests::test_unstage_oversized_paths_exempts_gitlinks ... ok
+test git::staging::tests::test_unstage_oversized_paths_measures_staged_blob_not_worktree ... ok
+test git::staging::tests::test_unstage_oversized_paths_quotes_glob_metachars ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_false_for_fresh_clone ... ok
+test git::status::tests::test_any_mirror_tracking_ref_exists_true_with_mirror_ref ... ok
+test git::status::tests::test_conflict_state_detected_through_gitfile ... ok
+test git::status::tests::test_conflict_state_plain_repo_layout ... ok
+test git::status::tests::test_count_all_head_commits_counts_everything ... ok
+test git::status::tests::test_count_pushable_unpushed_mirrors_excludes_divergence ... ok
+test git::status::tests::test_has_origin_remote_falls_back_on_parse_miss ... ok
+test git::status::tests::test_index_lock_path_resolves_linked_worktree_gitdir ... ok
+test git::status::tests::test_index_lock_resolves_real_gitdir_for_submodule ... ok
+test git::status::tests::test_is_stable_empty_repo_detached_head_rejected ... ok
+test git::status::tests::test_is_stable_empty_repo_fresh_init ... ok
+test git::status::tests::test_is_stable_empty_repo_head_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_index_lock_blocks ... ok
+test git::status::tests::test_is_stable_empty_repo_tmp_pack_blocks ... ok
+test git::status::tests::test_mirror_tracking_helpers_follow_non_main_branch ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_config_without_ref ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_no_config ... ok
+test git::status::tests::test_upstream_tracking_ref_missing_ref_exists ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_missing_token ... ok
+test git::tests::test_auto_create_all_remotes_codeberg_override_opt_in ... ok
+test git::tests::test_auto_create_all_remotes_empty_when_no_auto_create ... ok
+test git::tests::test_auto_create_all_remotes_generic_error ... ok
+test git::tests::test_auto_create_all_remotes_github_success ... ok
+test git::tests::test_auto_create_all_remotes_gitlab_success ... 🛡️ gitlab: protected main on testaccount/test-repo
+ok
+test git::tests::test_codeberg_https_url_already_https ... ok
+test git::tests::test_codeberg_https_url_non_codeberg ... ok
+test git::tests::test_codeberg_https_url_ssh_colon_path ... ok
+test git::tests::test_codeberg_https_url_ssh_protocol ... ok
+test git::tests::test_configure_all_remotes_adds_mirror ... ok
+test git::tests::test_configure_all_remotes_adds_multiple ... ok
+test git::tests::test_configure_all_remotes_idempotent ... ok
+test git::tests::test_consolidate_to_main_deletes_master_and_keeps_main ... [master (root-commit) 9f5bc52] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
+To /tmp/.tmppDPjcY/bare.git
+ * [new branch]      master -> master
+branch 'master' set up to track 'origin/master'.
+Switched to a new branch 'main'
+[main 7a186b7] main commit
+To /tmp/.tmppDPjcY/bare.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Deleted branch master (was 9f5bc52).
+ok
+test git::tests::test_create_repo_on_codeberg_conflict_409 ... ok
+test git::tests::test_create_repo_on_codeberg_success_201 ... ok
+test git::tests::test_create_repo_on_codeberg_unauthorized_401 ... ok
+test git::tests::test_create_repo_on_codeberg_unprocessable_422 ... ok
+test git::tests::test_create_repo_on_github_already_exists_returns_url_without_suffix ... ok
+test git::tests::test_create_repo_on_github_pat_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_github_public_flag_when_private_false ... ok
+test git::tests::test_create_repo_on_github_success ... ok
+test git::tests::test_create_repo_on_gitlab_already_exists_returns_url_without_suffix ... ⚠️ gitlab protect main failed for testuser/dracon-demons: Repository has already been taken
+ok
+test git::tests::test_create_repo_on_gitlab_network_error ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_success ... 🛡️ gitlab: protected main on testuser/my-repo
+ok
+test git::tests::test_create_repo_on_gitlab_token_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_detect_orphan_origin_detects_single_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_numeric_repo_suffix ... ok
+test git::tests::test_detect_orphan_origin_ignores_legitimate_version ... ok
+test git::tests::test_detect_orphan_origin_ignores_multi_digit_suffix ... ok
+test git::tests::test_detect_orphan_origin_no_suffix ... ok
+test git::tests::test_diagnose_divergence_divergent ... [master (root-commit) b8d72aa] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+[master d6f8396] other commit
+HEAD is now at b8d72aa init
+ok
+test git::tests::test_diagnose_divergence_remote_purely_behind ... [master (root-commit) b8d72aa] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_ensure_remote_adds_new ... ok
+test git::tests::test_ensure_remote_idempotent ... ok
+test git::tests::test_ensure_remote_updates_url ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_fix_orphan_origin_updates_remote_url ... [main (root-commit) b8d72aa] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test git::tests::test_fix_orphan_origin_updates_upstream_tracking ... [main (root-commit) 8d9c340] init
+ 6 files changed, 165 insertions(+)
+ create mode 100644 bare.git/HEAD
+ create mode 100644 bare.git/config
+ create mode 100755 bare.git/hooks/pre-commit
+ create mode 100755 bare.git/hooks/pre-push
+ create mode 100755 bare.git/hooks/pre-rebase
+ create mode 100644 file.txt
