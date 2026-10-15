@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::git::gh_cmd;
+#[path = "current_health.rs"]
+mod current_health;
 
 // Concurrency cap for the parallel per-repo work in `run_repos_report`.
 // Most of the per-repo cost is a few `git` subprocess calls (status, log,
@@ -1670,6 +1672,8 @@ pub(crate) struct RepoReportRow {
     /// asking why. With this field the affected rows carry the reason
     /// themselves (`⏸️ frozen 9m` instead of `🟡 waiting 9m`).
     frozen_secs: Option<u64>,
+    /// Independent current convergence and last observed daemon push result.
+    health: current_health::Evidence,
 }
 
 /// `repos --json` contract (DOCUMENTED 2026-10-03, audit R3-L10 —
@@ -3986,6 +3990,7 @@ pub(crate) async fn run_repos_report(
     // actively syncing vs. whether the user is still editing. The
     // `DAEMON` column closes that gap.
     let daemon_last_actions = build_daemon_last_action_map(policy_path);
+    let scheduler_snapshot = crate::daemon::scheduler_evidence::load();
 
     // CHANGED 2026-07-04 (goal mr5s1530-755tj8): parallelize the per-repo
     // work. Each iteration's main cost is a handful of `git` subprocess
@@ -3999,6 +4004,7 @@ pub(crate) async fn run_repos_report(
     let row_results: Vec<Option<RepoReportRow>> = {
         let recent_push_failures = &recent_push_failures;
         let daemon_last_actions = &daemon_last_actions;
+        let scheduler_snapshot = &scheduler_snapshot;
         let init_status_failures = &init_status_failures;
         let policy = &policy;
         let cache_lookup = std::sync::Arc::clone(&cache_lookup);
@@ -4718,7 +4724,15 @@ pub(crate) async fn run_repos_report(
             repo.as_ref(),
             pack_too_large.0,
         );
-        Some(RepoReportRow {
+        let health = current_health::Evidence {
+            scheduler: scheduler_snapshot.as_ref().and_then(|s| s.repos.get(&repo)).cloned(),
+            observed_at: scheduler_snapshot.as_ref().map(|s| s.written_at),
+            mode: scheduler_snapshot.as_ref().map(|s| s.mode.clone()),
+            last_push: crate::daemon::push_history::load(&repo),
+            ..Default::default()
+        };
+        let mut row = RepoReportRow {
+            health,
             repo: repo.display().to_string(),
             state_flags: flags,
             branch: effective_status.branch.clone(),
@@ -4826,7 +4840,11 @@ pub(crate) async fn run_repos_report(
             // deathrun CLEAN-vs-red contradiction this prevents.
             pack_too_large: pack_too_large.0,
             frozen_secs,
-        })
+        };
+        row.health.current = current_health::classify(&row);
+        row.active = matches!(row.health.current, current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying);
+        row.warn = matches!(row.health.current, current_health::Current::Stalled | current_health::Current::Blocked | current_health::Current::Unknown);
+        Some(row)
             }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
             .collect()
@@ -6569,6 +6587,7 @@ impl crate::report::RepoReportRow {
     #[cfg(test)]
     pub(crate) fn for_tests(repo_path: &str) -> Self {
         Self {
+            health: Default::default(),
             frozen_secs: None,
             repo: repo_path.to_string(),
             state_flags: vec![],
@@ -11616,6 +11635,7 @@ mod tests {
     #[test]
     fn test_repo_report_row_structure() {
         let row = RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["OK".to_string()],
@@ -11677,6 +11697,7 @@ mod tests {
         // emitter. Exactly the four `Option` row fields serialize as
         // null when absent; everything else is non-null.
         let row = RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["OK".to_string()],
@@ -11811,6 +11832,7 @@ mod tests {
 
     fn full_row_for_json_test() -> RepoReportRow {
         RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["OK".to_string()],
@@ -12447,6 +12469,7 @@ mod tests {
     ) -> RepoReportRow {
         let label = state_cause.as_str().to_string();
         RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/tmp/test-activity-repo".to_string(),
             state_flags: vec![],
@@ -13176,6 +13199,7 @@ mod tests {
     #[test]
     fn test_repo_report_row_push_status_fields() {
         let row = RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/test/repo".to_string(),
             state_flags: vec!["STUCK_PUSH".to_string()],
@@ -14259,6 +14283,7 @@ mod tests {
     #[test]
     fn test_touched_label_renders_author_and_when() {
         let row = |last_hash: &str, last_author: &str, last_when: &str| RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: "/tmp/test".into(),
             state_flags: vec![],
@@ -15410,6 +15435,7 @@ mod v011313_tests {
     #[test]
     fn activity_label_appends_excl_marker() {
         let mk = |excluded: usize| RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             publish_state: PublishState::Ok,
             modified: 0,
@@ -16080,6 +16106,7 @@ mod v011321_tests {
 
     fn base_row() -> RepoReportRow {
         RepoReportRow {
+            health: Default::default(),
             frozen_secs: None,
             repo: String::new(),
             state_flags: vec![],
