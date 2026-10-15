@@ -4,6 +4,7 @@ use super::*;
 use crate::daemon::recovery::SyncRecovery;
 use crate::git::push_resources::{push_phase, with_local_work};
 use crate::policy::SyncPolicy;
+use std::collections::HashMap;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::sync::Arc;
@@ -351,26 +352,51 @@ async fn episode() {
     let mut stage_cooldowns = HashMap::new();
     let mut stuck = HashMap::new();
     let mut activity = crate::daemon::RepoActivity {
-        fingerprint: String::new(), changed_at: at, dirty_since: Some(at),
-        ahead_since: None, behind_since: None, mirror_consecutive_fails: HashMap::new(),
-        failure_count: 0, remote_failures: HashMap::new(), ownership: None,
-        ownership_at: None, blocked_since: None, unowned_since: None,
+        fingerprint: String::new(),
+        changed_at: at,
+        dirty_since: Some(at),
+        ahead_since: None,
+        behind_since: None,
+        mirror_consecutive_fails: HashMap::new(),
+        failure_count: 0,
+        remote_failures: HashMap::new(),
+        ownership: None,
+        ownership_at: None,
+        blocked_since: None,
+        unowned_since: None,
     };
     for tick in 0..2 {
         // Blocked is a successful worker result: production uses its stage
         // cooldown, NOT the error/panic SyncRecovery backoff. Advance only
         // the existing cooldown function's Instant input, never wall sleeps.
         if let Some(until) = stage_cooldowns.get(bucket).copied() {
-            assert!(crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, until).is_none());
+            assert!(
+                crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, until)
+                    .is_none()
+            );
         }
         let result = Ok(fleet.sync(bucket, capacity.clone()).await);
         let now = Instant::now();
-        assert!(matches!(crate::daemon::apply_outcome(bucket, &result, HashMap::new(), &mut activity, &mut stage_cooldowns, &mut stuck, false), crate::daemon::ApplyOutcome::Blocked));
+        assert!(matches!(
+            crate::daemon::apply_outcome(
+                bucket,
+                &result,
+                HashMap::new(),
+                &mut activity,
+                &mut stage_cooldowns,
+                &mut stuck,
+                false
+            ),
+            crate::daemon::ApplyOutcome::Blocked
+        ));
         bucket_attempts += 1;
         assert!(stage_cooldowns[bucket] >= now + Duration::from_secs(299));
         assert!(activity.blocked_since.is_some());
         for _ in 0..100 {
-            assert!(crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, now).is_some());
+            assert!(
+                crate::daemon::stage_cooldown_remaining(&mut stage_cooldowns, bucket, now)
+                    .is_some()
+            );
             assert_eq!(Fleet::count(bucket, "upload-attempts"), bucket_attempts);
             let mut snapshot = discovery
                 .poll_with(fleet.scope(), |_| panic!("duplicate discovery walk"))
