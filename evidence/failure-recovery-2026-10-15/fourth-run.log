@@ -1,0 +1,18 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 23.43s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 1 test
+test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ⚠️ /tmp/.tmpkdGtZe/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/.tmpkdGtZe/watched/healthy
+⚠️ /tmp/.tmpkdGtZe/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
+📝 committed 1 file(s) in /tmp/.tmpkdGtZe/watched/healthy
+PASS: healthy inspection/commits progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes
+PASS: bounded storage retries, fail-fast hook rejection and typed inspection cancellation clean owned descendants
+📝 committed 1 file(s) in /tmp/.tmpkdGtZe/watched/filter
+📝 committed 1 file(s) in /tmp/.tmpkdGtZe/watched/bucket
+PASS: discovery joins once; cleared filter/hook/storage faults recover; verified references publish without raw blobs or duplicate commits; all permits returned
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 2.58s
+

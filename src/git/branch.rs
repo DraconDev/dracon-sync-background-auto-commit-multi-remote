@@ -248,7 +248,11 @@ pub(crate) async fn prune_other_default_branch(repo: &Path) {
     {
         eprintln!("⚠️ failed to delete local {} branch: {}", other_str, e);
     }
-    if repo_has_origin {
+    // A normal single-default repo has nothing to prune. Do not queue a
+    // guaranteed-no-op deletion behind unrelated slow hooks after each commit.
+    // Only delete branches observed in the remote-tracking snapshot; later
+    // discovery/fetch can expose newly created alternates for the next pass.
+    if repo_has_origin && remote_branch_exists(repo, &other_str) {
         let other_c = other_str.clone();
         if let Err(e) = delete_remote_branch(&repo_c, "origin", &other_c).await {
             eprintln!("⚠️ failed to delete remote {} branch: {}", other_str, e);
