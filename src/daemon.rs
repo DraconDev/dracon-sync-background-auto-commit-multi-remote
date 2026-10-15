@@ -16,6 +16,8 @@ mod discovery_scheduler;
 mod recovery;
 #[cfg(test)]
 mod recovery_tests;
+#[cfg(test)]
+mod probe_race_tests;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
