@@ -2,27 +2,12 @@ diff --git a/src/daemon.rs b/src/daemon.rs
 index 52e58c8..be8daf4 100644
 --- a/src/daemon.rs
 +++ b/src/daemon.rs
-@@ -7032,6 +7032,7 @@ pub(crate) async fn run_daemon(
-     // Forge provisioning may do network I/O. Retain one owner per repo,
-     // keeping it off the serial scan and mutually exclusive with sync.
-     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
+@@ -7034,0 +7035 @@ pub(crate) async fn run_daemon(
 +    let mut branch_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
-     // Per-repo classification jobs (filter-aware `git diff HEAD` +
-     // untracked listing). Spawned outside the pulse loop so a slow or
-     // failing required clean filter in one repo cannot stall the
-@@ -7474,7 +7475,7 @@ pub(crate) async fn run_daemon(
-                 if let Some(job) = provisioning_jobs.remove(&repo) {
-                     if let Err(error) = job.await {
-                         eprintln!(
+@@ -7477 +7478 @@ pub(crate) async fn run_daemon(
 -                            "⚠️ {} forge provisioning task failed: {}",
 +                            "⚠️ {} repository maintenance task failed: {}",
-                             repo.display(),
-                             error
-                         );
-@@ -8217,25 +8218,31 @@ pub(crate) async fn run_daemon(
-                 // entry vanished between cycles.
-                 commit_only_repos.remove(&repo);
-             }
+@@ -8220,16 +8221,6 @@ pub(crate) async fn run_daemon(
 -            if has_both_main_and_master(&repo) {
 -                eprintln!(
 -                    "🔧 {} has both main+master, consolidating to main",
@@ -45,8 +30,7 @@ index 52e58c8..be8daf4 100644
 +                // same heavy hooks. Keep it off the serial inspection loop,
 +                // with one maintenance owner and bounded per-repo retries.
 +                if branch_retry_after.get(&repo).is_some_and(|until| now < *until) {
-                     continue;
-                 }
+@@ -8237,0 +8229,15 @@ pub(crate) async fn run_daemon(
 +                branch_retry_after.insert(repo.clone(), now + Duration::from_secs(300));
 +                let repair_repo = repo.clone();
 +                provisioning_jobs.insert(repo.clone(), tokio::spawn(
@@ -62,15 +46,9 @@ index 52e58c8..be8daf4 100644
 +                    }),
 +                ));
 +                continue;
-             }
+@@ -8238,0 +8245 @@ pub(crate) async fn run_daemon(
 +            branch_retry_after.remove(&repo);
-             if let Some(until) = repair_cooldowns.get(&repo).copied() {
-                 if now < until {
-                     continue;
-@@ -9301,15 +9308,14 @@ pub(crate) async fn run_daemon(
-                             scheduler_unix_ms()
-                         );
-                     }
+@@ -9304,6 +9311,4 @@ pub(crate) async fn run_daemon(
 -                    // R4-SC-03: hold a concurrency permit across
 -                    // the sync_repo call. Acquire fails only if
 -                    // the semaphore is closed, which never
@@ -81,35 +59,18 @@ index 52e58c8..be8daf4 100644
 +                    // phase returns this permit while hooks/network run, then
 +                    // reacquires it before subsequent local mutation.
 +                    let Ok(permit) = sem.clone().acquire_owned().await else {
-                         return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
-                     };
-                     let _ = run_started.set(Instant::now());
+@@ -9312,0 +9318 @@ pub(crate) async fn run_daemon(
 +                    crate::git::push_resources::with_local_work(sem, permit, async move {
-                     let mut rf = entry_rf;
-                     let r = sync_repo_with_ahead_since(
-                         &repo_for_task,
-@@ -9324,6 +9330,7 @@ pub(crate) async fn run_daemon(
-                     )
-                     .await;
-                     (rf, r)
+@@ -9326,0 +9333 @@ pub(crate) async fn run_daemon(
 +                    }).await
-                 });
-             sync_workers.insert(repo.clone(), handle.abort_handle());
-             to_sync.push((repo.clone(), handle));
 diff --git a/src/git/branch.rs b/src/git/branch.rs
 index eaeb8ec..d20d547 100644
 --- a/src/git/branch.rs
 +++ b/src/git/branch.rs
-@@ -15,33 +15,21 @@ fn remote_branch_already_absent(stderr: &str) -> bool {
- /// Delete a remote branch with the same non-interactive SSH policy used by
- /// normal daemon pushes. Branch cleanup is best-effort at its call sites, but
- /// a failed exit status must remain visible instead of looking successful.
+@@ -18 +18 @@ fn remote_branch_already_absent(stderr: &str) -> bool {
 -fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
 +async fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
-     if !is_safe_branch_name(branch) {
-         return Err(anyhow::anyhow!("branch name '{}' is unsafe", branch));
-     }
-     let ssh_hardening = git_ssh_hardening();
+@@ -23,22 +23,10 @@ fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result<()> {
 -    let output = crate::policy::std_git_command()
 -        .args(["push", remote, "--delete", branch])
 -        .current_dir(repo)
@@ -142,31 +103,13 @@ index eaeb8ec..d20d547 100644
 +    match result {
 +        Err(error) if remote_branch_already_absent(&error.to_string()) => Ok(()),
 +        result => result,
-     }
- }
- 
-@@ -193,7 +181,7 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
-     {
-         eprintln!("⚠️ failed to delete local master branch: {}", e);
-     }
+@@ -196 +184 @@ pub(crate) async fn consolidate_to_main(repo: &Path) -> Result<()> {
 -    if let Err(e) = delete_remote_branch(repo, "origin", "master") {
 +    if let Err(e) = delete_remote_branch(repo, "origin", "master").await {
-         eprintln!("⚠️ failed to delete remote master branch: {}", e);
-     }
-     if has_origin_remote(repo) && !has_tracking_upstream(repo) {
-@@ -226,7 +214,7 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
-         if let Err(e) = super::push_with_retries(repo, 60, 3, "rename-master-to-main").await {
-             eprintln!("⚠️ failed to push main to origin: {}", e);
-         }
+@@ -229 +217 @@ pub(crate) async fn rename_master_to_main(repo: &Path) -> Result<()> {
 -        if let Err(e) = delete_remote_branch(repo, "origin", "master") {
 +        if let Err(e) = delete_remote_branch(repo, "origin", "master").await {
-             eprintln!("⚠️ failed to delete remote master: {}", e);
-         }
-     }
-@@ -262,13 +250,7 @@ pub(crate) async fn prune_other_default_branch(repo: &Path) {
-     }
-     if repo_has_origin {
-         let other_c = other_str.clone();
+@@ -265,7 +253 @@ pub(crate) async fn prune_other_default_branch(repo: &Path) {
 -        if let Err(e) =
 -            tokio::task::spawn_blocking(move || delete_remote_branch(&repo_c, "origin", &other_c))
 -                .await
@@ -175,61 +118,27 @@ index eaeb8ec..d20d547 100644
 -                })
 -        {
 +        if let Err(e) = delete_remote_branch(&repo_c, "origin", &other_c).await {
-             eprintln!("⚠️ failed to delete remote {} branch: {}", other_str, e);
-         }
-     }
 diff --git a/src/git/mod.rs b/src/git/mod.rs
 index c1eb0b3..1e82305 100644
 --- a/src/git/mod.rs
 +++ b/src/git/mod.rs
-@@ -1341,6 +1341,7 @@ pub(crate) use discovery::*;
- pub(crate) mod multi_remote;
- mod ops;
- pub(crate) use ops::*;
+@@ -1343,0 +1344 @@ pub(crate) use ops::*;
 +pub(crate) mod push_resources;
- mod status;
- pub(crate) use status::*;
- mod inspection;
-@@ -5184,13 +5185,13 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
-             if remote_head == format!("refs/remotes/{}/{}", r, name) {
-                 continue; // remote's default branch — never delete
-             }
+@@ -5187 +5188 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
 -            match run_git_with_timeout_env(
 +            match push_resources::push_phase(run_git_with_timeout_env(
-                 repo,
-                 &["push", r, "--delete", name],
-                 600,
-                 "push --delete (stale daemon branch)",
-                 &[("DRACON_ALLOW_REWRITE", "1")],
+@@ -5193 +5194 @@ pub(crate) async fn maybe_prune_stale_backup_branches(
 -            )
 +            ))
-             .await
-             {
-                 Ok(()) => {
 diff --git a/src/git/ops.rs b/src/git/ops.rs
 index a8a303a..d19205c 100644
 --- a/src/git/ops.rs
 +++ b/src/git/ops.rs
-@@ -336,6 +336,7 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
-         .stdout(std::process::Stdio::null())
-         .stderr(std::process::Stdio::piped());
-     configure_git_process_group(&mut cmd);
+@@ -338,0 +339 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
 +    super::push_resources::configure_child(&mut cmd, args);
-     cmd.spawn()
-         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
- }
-@@ -441,6 +442,7 @@ fn spawn_git_command_env(
-         cmd.env(k, v);
-     }
-     configure_git_process_group(&mut cmd);
+@@ -443,0 +445 @@ fn spawn_git_command_env(
 +    super::push_resources::configure_child(&mut cmd, args);
-     cmd.spawn()
-         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))
- }
-@@ -451,6 +453,15 @@ pub(crate) async fn run_git_with_timeout(
-     args: &[&str],
-     timeout_secs: u64,
-     op_label: &str,
+@@ -453,0 +456,9 @@ pub(crate) async fn run_git_with_timeout(
 +) -> Result<()> {
 +    super::push_resources::command(args, run_git_with_timeout_inner(repo, args, timeout_secs, op_label)).await
 +}
@@ -239,13 +148,7 @@ index a8a303a..d19205c 100644
 +    args: &[&str],
 +    timeout_secs: u64,
 +    op_label: &str,
- ) -> Result<()> {
-     let label = format!("git {}", op_label);
-     let trace_add = args.first() == Some(&"add") && crate::policy::debug_enabled();
-@@ -523,9 +534,11 @@ pub(crate) async fn run_git_with_timeout_env(
-     op_label: &str,
-     env: &[(&str, &str)],
- ) -> Result<()> {
+@@ -526,3 +537,5 @@ pub(crate) async fn run_git_with_timeout_env(
 -    let label = format!("git {}", op_label);
 -    let child = spawn_git_command_env(repo, args, op_label, env)?;
 -    run_child(child, repo, timeout_secs, &label).await
@@ -254,13 +157,7 @@ index a8a303a..d19205c 100644
 +        let child = spawn_git_command_env(repo, args, op_label, env)?;
 +        run_child(child, repo, timeout_secs, &label).await
 +    }).await
- }
- 
- /// Run a git push/pull with a progress-aware idle timeout.
-@@ -536,9 +549,11 @@ pub(crate) async fn run_git_with_timeout_env_progress(
-     op_label: &str,
-     env: &[(&str, &str)],
- ) -> Result<()> {
+@@ -539,3 +552,5 @@ pub(crate) async fn run_git_with_timeout_env_progress(
 -    let label = format!("git {}", op_label);
 -    let child = spawn_git_command_env(repo, args, op_label, env)?;
 -    run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
@@ -269,9 +166,6 @@ index a8a303a..d19205c 100644
 +        let child = spawn_git_command_env(repo, args, op_label, env)?;
 +        run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
 +    }).await
- }
- #[cfg(unix)]
- pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
 diff --git a/src/git/push_resources.rs b/src/git/push_resources.rs
 new file mode 100644
 index 0000000..84b2f08
@@ -511,72 +405,35 @@ diff --git a/src/nix.rs b/src/nix.rs
 index a9c1f8a..64f54a4 100644
 --- a/src/nix.rs
 +++ b/src/nix.rs
-@@ -197,7 +197,7 @@ pub async fn create_flake_pr(
-     }
- }
- 
+@@ -200 +200 @@ pub async fn create_flake_pr(
 -async fn run_git_for_nix_pr(
 +pub(crate) async fn run_git_for_nix_pr(
-     repo: &Path,
-     branch_name: &str,
-     commit_msg: &str,
-@@ -226,13 +226,13 @@ async fn run_git_for_nix_pr(
-     ];
- 
-     use crate::git::run_git_with_timeout_env;
+@@ -229 +229 @@ async fn run_git_for_nix_pr(
 -    let push_result = run_git_with_timeout_env(
 +    let push_result = crate::git::push_resources::push_phase(run_git_with_timeout_env(
-         repo,
-         &["push", "-u", "origin", branch_name],
-         120,
-         "nix-pr-push",
-         &env,
+@@ -235 +235 @@ async fn run_git_for_nix_pr(
 -    )
 +    ))
-     .await;
- 
-     // Always restore the previous branch even on push failure
 diff --git a/src/release.rs b/src/release.rs
 index 1c0ac5c..0c83350 100644
 --- a/src/release.rs
 +++ b/src/release.rs
-@@ -69,7 +69,7 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
-     .await?;
- 
-     // Push tag
+@@ -72 +72 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
 -    match run_git_with_timeout_env(
 +    match crate::git::push_resources::push_phase(run_git_with_timeout_env(
-         repo,
-         &["push", "origin", &tag],
-         120,
-@@ -78,7 +78,7 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
-             ("GIT_SSH_COMMAND", &git_ssh_hardening()),
-             ("GIT_TERMINAL_PROMPT", "0"),
-         ],
+@@ -81 +81 @@ pub(crate) async fn create_and_push_tag(repo: &Path, version: &str) -> Result<Re
 -    )
 +    ))
-     .await
-     {
-         Ok(_) => {
 diff --git a/src/sync.rs b/src/sync.rs
 index 7e46c1a..d72f678 100644
 --- a/src/sync.rs
 +++ b/src/sync.rs
-@@ -3,6 +3,10 @@ use std::io::Write;
- use std::path::{Path, PathBuf};
- use std::time::Duration;
- 
+@@ -5,0 +6,4 @@ use std::time::Duration;
 +#[cfg(all(test, target_os = "linux"))]
 +#[path = "sync/push_isolation_tests.rs"]
 +mod push_isolation_tests;
 +
- use crate::log_warn;
- #[cfg(test)]
- use crate::test_helpers::{test_commit_cmd, test_git_cmd};
-@@ -2239,6 +2243,17 @@ pub(crate) fn paused_remote_names_incident(
- /// a separate `push_with_blob_check` function that did this but was never
- /// called from the live code path.
- async fn push_background(
+@@ -2241,0 +2246,11 @@ async fn push_background(
 +    repo: &std::path::Path,
 +    policy: &SyncPolicy,
 +    has_origin: bool,
@@ -588,9 +445,6 @@ index 7e46c1a..d72f678 100644
 +}
 +
 +async fn push_background_inner(
-     repo: &std::path::Path,
-     policy: &SyncPolicy,
-     has_origin: bool,
 diff --git a/src/sync/push_isolation_tests.rs b/src/sync/push_isolation_tests.rs
 new file mode 100644
 index 0000000..51fa7ef
