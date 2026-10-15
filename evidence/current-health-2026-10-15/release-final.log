@@ -15,3 +15,20 @@
    Compiling idna v1.1.0
    Compiling rustls v0.23.46
    Compiling url v2.5.8
+   Compiling getrandom v0.3.4
+   Compiling tokio-rustls v0.26.5
+   Compiling intl-memoizer v0.5.3
+   Compiling intl_pluralrules v7.0.2
+   Compiling fluent-langneg v0.13.1
+   Compiling fluent-bundle v0.15.3
+   Compiling hyper-rustls v0.27.9
+   Compiling tower-http v0.6.11
+   Compiling reqwest v0.12.28
+   Compiling tempfile v3.27.0
+   Compiling fluent v0.16.1
+   Compiling i18n-embed v0.14.1
+   Compiling git2 v0.21.0
+   Compiling age v0.10.1
+   Compiling dracon-git v94.7.2
+   Compiling dracon-security v0.4.0 (/home/dracon/Dev/dracon-utilities/dracon-warden/src/security)
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
