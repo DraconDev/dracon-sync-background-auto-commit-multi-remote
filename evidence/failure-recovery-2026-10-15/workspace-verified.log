@@ -2022,3 +2022,331 @@ test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-co
 📝 committed 1 file(s) in /tmp/.tmpZCNNqA/test-repo
 ⏱️ push retry 2/3 for /tmp/.tmpZCNNqA/test-repo after 1s
 ⏱️ push retry 3/3 for /tmp/.tmpZCNNqA/test-repo after 2s
+⚠️ background push to origin failed for /tmp/.tmpZCNNqA/test-repo: git push failed in /tmp/.tmpZCNNqA/test-repo with status exit status: 128: ssh: connect to host 127.0.0.1 port 9: Connection refused
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmpZCNNqA/test-repo (remotes: origin)
+ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_concurrent_staging_defers_one_cycle_then_converges ... [master (root-commit) c8f00df] init
+🛡️ /tmp/.tmp6Xehbg/concurrent-stage-repo auto-hardened with warden before staging
+⏸️ /tmp/.tmp6Xehbg/concurrent-stage-repo staged set has 1 path(s) outside this cycle's intent (concurrent staging?) — deferring to next cycle: ["extra.txt"]
+📝 committed 5 file(s) in /tmp/.tmp6Xehbg/concurrent-stage-repo
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 636339a] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 636339a] init
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) d570f2a] c1
+[main 47baa47] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) b1d6fd0] init
+To /tmp/.tmpI8FybB/mirror.git
+ * [new branch]      master -> master
+🛡️ /tmp/.tmpI8FybB/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpI8FybB/test-repo
+⏸️ /tmp/.tmpI8FybB/test-repo origin push paused (3 consecutive fails, re-probe in 900s) — healthy mirrors still push
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) 9d3e4fa] init
+🛡️ /tmp/.tmpYbrzIf/deletion-commit-repo auto-hardened with warden before staging
+📝 committed 7 file(s) in /tmp/.tmpYbrzIf/deletion-commit-repo
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... 🛡️ /tmp/.tmp7r2okB/repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmp7r2okB/repo
+🧹 unstaging 1 excluded path(s) in /tmp/.tmp7r2okB/repo after commit (edits preserved)
+ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... 🛡️ /tmp/.tmpmwXOWk/repo auto-hardened with warden before staging
+📝 committed 2 file(s) in /tmp/.tmpmwXOWk/repo
+🧹 reverting 1 excluded path(s) to HEAD in /tmp/.tmpmwXOWk/repo after commit (revert_excluded_to_head)
+ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) e26cbfc] init
+🛡️ /tmp/.tmpWh282t/filter-only-reset-fail-repo auto-hardened with warden before staging
+⚠️ /tmp/.tmpWh282t/filter-only-reset-fail-repo git add -f failed for 1 tracked gitignored paths: ["debug.log"]
+⚠️ /tmp/.tmpWh282t/filter-only-reset-fail-repo filter-only commit: git reset failed (non-fatal, will retry next cycle): git reset failed in /tmp/.tmpWh282t/filter-only-reset-fail-repo with status exit status: 128: fatal: Unable to create '/tmp/.tmpWh282t/filter-only-reset-fail-repo/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... 🛡️ /tmp/.tmpNrje1e/filter-only-push-ahead auto-hardened with warden before staging
+⚠️ /tmp/.tmpNrje1e/filter-only-push-ahead git add -f failed for 1 tracked gitignored paths: ["file.txt"]
+⚠️ /tmp/.tmpNrje1e/filter-only-push-ahead filter-only commit: git reset failed (non-fatal, will retry next cycle): git reset failed in /tmp/.tmpNrje1e/filter-only-push-ahead with status exit status: 128: fatal: Unable to create '/tmp/.tmpNrje1e/filter-only-push-ahead/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) e26cbfc] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) e26cbfc] init
+[master (root-commit) e26cbfc] init
+🛡️ /tmp/.tmpTbqiqL/repo-a auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpTbqiqL/repo-a
+⚠️ push to mirror failed for /tmp/.tmpTbqiqL/repo-a: git push-to-mirror failed in /tmp/.tmpTbqiqL/repo-a with status exit status: 128: remote: Service Unavailable - Gitaly is not available at this time
+fatal: unable to access 'http://127.0.0.1:37939/repo-a.git/': The requested URL returned error: 503
+⚠️ push failed for /tmp/.tmpTbqiqL/repo-a (remotes: mirror)
+🛡️ /tmp/.tmpTbqiqL/repo-b auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpTbqiqL/repo-b
+⚠️ push to mirror failed for /tmp/.tmpTbqiqL/repo-b: git push-to-mirror failed in /tmp/.tmpTbqiqL/repo-b with status exit status: 128: remote: Service Unavailable - Gitaly is not available at this time
+fatal: unable to access 'http://127.0.0.1:37939/repo-b.git/': The requested URL returned error: 503
+🔥 forge incident declared: 127.0.0.1 (transient failures corroborated across repos) — per-repo push alerts coalesced, sick-remote re-probes stretched to 1h
+🔔 sync alert: /tmp/.tmpTbqiqL/repo-b — Forge Incident Declared: 127.0.0.1: transient forge-side failures corroborated across repos; per-repo push alerts coalesced until recovery
+🛡️ /tmp/.tmpTbqiqL/repo-b push failure shielded by forge incident (127.0.0.1) — no stuck-budget burn
+📝 committed 3 file(s) in /tmp/.tmpTbqiqL/repo-a
+⚠️ push to mirror failed for /tmp/.tmpTbqiqL/repo-a: git push-to-mirror failed in /tmp/.tmpTbqiqL/repo-a with status exit status: 128: remote: Service Unavailable - Gitaly is not available at this time
+fatal: unable to access 'http://127.0.0.1:37939/repo-a.git/': The requested URL returned error: 503
+🛡️ /tmp/.tmpTbqiqL/repo-a push failure shielded by forge incident (127.0.0.1) — no stuck-budget burn
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) 4e2fe7c] init
+🛡️ /tmp/.tmptL9yfO/lock-recovery-repo auto-hardened with warden before staging
+⏳ /tmp/.tmptL9yfO/lock-recovery-repo git add hit index.lock contention (retry 1/2)
+⏳ /tmp/.tmptL9yfO/lock-recovery-repo git add hit index.lock contention (retry 2/2)
+⚠️ /tmp/.tmptL9yfO/lock-recovery-repo git add failed for 1 paths: ["pending.txt"]
+⏸️ /tmp/.tmptL9yfO/lock-recovery-repo staging blocked by index.lock contention (retry next cycle)
+📝 committed 4 file(s) in /tmp/.tmptL9yfO/lock-recovery-repo
+ok
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) 5a6c431] init
+🛡️ /tmp/.tmp6bGXIl/lock-retry-repo auto-hardened with warden before staging
+⏳ /tmp/.tmp6bGXIl/lock-retry-repo git add hit index.lock contention (retry 1/2)
+📝 committed 1 file(s) in /tmp/.tmp6bGXIl/lock-retry-repo
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_is_index_lock_failure_matches_only_lock_errors ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 5a6c431] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 6457bde] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpWj5HTt/mirror.git'
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 6457bde] init
+⏱️ push retry 2/3 for /tmp/.tmpO9bdfj/test-repo after 1s
+⏱️ push retry 3/3 for /tmp/.tmpO9bdfj/test-repo after 2s
+⚠️ background push to origin failed for /tmp/.tmpO9bdfj/test-repo: git push failed in /tmp/.tmpO9bdfj/test-repo with status exit status: 1: ⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpO9bdfj/origin.git'
+⚠️ push to bad-mirror failed for /tmp/.tmpO9bdfj/test-repo: git push-to-bad-mirror failed in /tmp/.tmpO9bdfj/test-repo with status exit status: 128: ssh: Could not resolve hostname nonexistent.example.com: Name or service not known
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmpO9bdfj/test-repo (remotes: bad-mirror, origin)
+ok
+test sync::tests::test_partition_gitignored_tracked_file_with_gitignore_rule ... ok
+test sync::tests::test_partition_gitignored_untracked_gitignored_is_skipped ... ok
+test sync::tests::test_paused_remote_names_incident_stretches_reprobe ... ok
+test sync::tests::test_paused_remote_names_lists_only_gated ... ok
+test sync::tests::test_push_succeeds_with_detached_head ... [main (root-commit) c680d0b] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpLUpCAK/origin.git'
+[main e08a2ce] ahead
+HEAD is now at e08a2ce ahead
+To /tmp/.tmpLUpCAK/origin.git
+ * [new branch]      HEAD -> main
+ok
+test sync::tests::test_push_with_retries_fetches_first_on_rejection ... 🔄 push rejected (non-fast-forward) for /tmp/.tmpvKDhew/repo — pulling origin refs/heads/main and retrying
+ok
+test sync::tests::test_refresh_stale_upstream_ref_converges ... Initialized empty Git repository in /tmp/.tmptaVdI8/remote.git/
+[master (root-commit) 59b2f07] init
+ok
+test sync::tests::test_refspec_format_is_always_qualified ... ok
+test sync::tests::test_rename_token_excludes_new_del ... ok
+test sync::tests::test_repo_has_warden_filter_honors_git_bin_seam ... ok
+test sync::tests::test_repo_has_warden_filter_probe ... ok
+test sync::tests::test_safety_metric_predicate ... ok
+test sync::tests::test_sanitize_task_name_drops_explanatory_clauses ... ok
+test sync::tests::test_sanitize_task_name_limits_plain_text ... ok
+test sync::tests::test_sc01_stale_mirror_tracking_ref_retries_push ... [main (root-commit) 59b2f07] init
+[main a0dda17] second
+To /tmp/.tmp0nABwb/mirror.git
+ * [new branch]      HEAD~1 -> main
+⚠️ push to github failed for /tmp/.tmp0nABwb/test-repo: git push-to-github failed in /tmp/.tmp0nABwb/test-repo with status exit status: 128: ssh: connect to host 127.0.0.1 port 1: Connection refused
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmp0nABwb/test-repo (remotes: unknown)
+ok
+test sync::tests::test_sc05_post_stage_sweep_catches_filter_inflated_blob ... 🧹 removed 1 oversized staged paths in /tmp/.tmpNv74es/repo
+📝 committed 1 file(s) in /tmp/.tmpNv74es/repo
+ok
+test sync::tests::test_scale_push_timeout_absurd_base_saturates ... ok
+test sync::tests::test_scale_push_timeout_huge_push_sextuples ... ok
+test sync::tests::test_scale_push_timeout_large_push_quadruples ... ok
+test sync::tests::test_scale_push_timeout_medium_push_doubles ... ok
+test sync::tests::test_scale_push_timeout_never_truncates_live_base ... ok
+test sync::tests::test_scale_push_timeout_small_push_uses_base ... ok
+test sync::tests::test_scale_push_timeout_tiers_live_at_default_base ... ok
+test sync::tests::test_scale_push_timeout_zero_base_stays_zero ... ok
+test sync::tests::test_scope_fallback_spanning_crates_backcompat ... ok
+test sync::tests::test_scope_root_files_backcompat ... ok
+test sync::tests::test_scope_shared_subtree_keeps_bracket ... ok
+test sync::tests::test_scope_single_file_full_path_drops_bracket ... ok
+test sync::tests::test_stage_existing_files_empty_after_filter_returns_ok ... ok
+test sync::tests::test_stage_existing_files_expands_directory_with_files ... [main (root-commit) 5b8bc21] init
+[main de19327] add tracked
+ 1 file changed, 1 insertion(+)
+ create mode 100644 tracked.txt
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_excluded_pattern_nested ... 🛡️ /tmp/.tmpZuXw7C/repo auto-hardened with warden before staging
+ok
+test sync::tests::test_stage_existing_files_filtered_skips_oversized_nested ... 🛡️ /tmp/.tmpHbkpYV/repo auto-hardened with warden before staging
+ℹ️ skip large file /tmp/.tmpHbkpYV/repo/assets/big.bin (2048 bytes > 1024 bytes)
+ok
+test sync::tests::test_stage_existing_files_recurses_deeply ... [main (root-commit) 5b8bc21] init
+ok
+test sync::tests::test_stage_existing_files_recurses_into_pi_dir ... ok
+test sync::tests::test_stage_existing_files_skips_directory_entries ... [main (root-commit) 5b8bc21] init
+ok
+test sync::tests::test_stage_existing_files_skips_nested_git_repo ... [main (root-commit) 5b8bc21] init
+ok
+test sync::tests::test_stage_existing_files_skips_node_modules_and_dotdirs ... [main (root-commit) 5b8bc21] init
+ok
+test sync::tests::test_stage_existing_files_skips_symlink_descendants ... ok
+test sync::tests::test_stage_existing_files_skips_vanished_files ... [main (root-commit) 5b8bc21] init
+ok
+test sync::tests::test_stage_gitlink_updates_dry_run_does_not_modify_index ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+🔗 Would stage 1 gitlink pointer update(s) in /tmp/.tmpETiGuB/parent: ["sibling"]
+ok
+test sync::tests::test_stage_gitlink_updates_no_op_for_empty_input ... ok
+test sync::tests::test_stage_gitlink_updates_propagates_sibling_subrepo_pointer ... warning: adding embedded git repository: sibling
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sibling
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sibling
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_staged_extra_paths_matching ... ok
+test sync::tests::test_stale_upstream_refresh_cooldown_is_per_repo ... ok
+test sync::tests::test_sync_repo_ahead_count_failure_fails_cycle ... ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit ... [master (root-commit) 6590d2c] init
+🛡️ /tmp/.tmp0VpGG5/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmp0VpGG5/test-repo
+ok
+test sync::tests::test_sync_repo_auto_commit_creates_commit_for_dirty_repo ... [master (root-commit) 6590d2c] init
+🛡️ /tmp/.tmpCOx962/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmpCOx962/test-repo
+ok
+test sync::tests::test_sync_repo_auto_commit_disabled_skips_commit ... [master (root-commit) ce0dc78] init
+ok
+test sync::tests::test_sync_repo_auto_github_private_graceful_on_no_gh ... [master (root-commit) ce0dc78] init
+🔗 created remote for /tmp/.tmpz2LUQQ/test-repo: https://github.com/TestAccount/test-repo.git
+ℹ️ skip pull/merge for /tmp/.tmpz2LUQQ/test-repo (no tracking upstream on current branch)
+ok
+test sync::tests::test_sync_repo_auto_stage_untracked_false_skips_untracked ... [master (root-commit) 9cca750] init
+ok
+test sync::tests::test_sync_repo_bootstrap_failure_is_error_not_nothing_to_do ... 🛡️ /tmp/.tmpAnEkyf/repo auto-hardened with warden before staging
+⏳ /tmp/.tmpAnEkyf/repo git add hit index.lock contention (retry 1/2)
+⏳ /tmp/.tmpAnEkyf/repo git add hit index.lock contention (retry 2/2)
+⚠️ /tmp/.tmpAnEkyf/repo git add failed for 1 paths: ["a.txt"]
+ok
+test sync::tests::test_sync_repo_clean_repo_returns_false ... [master (root-commit) ed31da3] init
+ok
+test sync::tests::test_sync_repo_dirty_nothing_to_stage_still_pushes_ahead ... [master (root-commit) 2c15447] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dirty.txt
+[master 8b3cc25] unpushed
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ahead.txt
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_commit ... [master (root-commit) ed31da3] init
+📝 Would stage 1 file(s) in /tmp/.tmpu1ztKP/dry-run-test: ["new_file.txt"]
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_modify_working_tree ... [master (root-commit) ed31da3] init
+📝 Would stage 2 file(s) in /tmp/.tmpuFhrnm/dry-run-wt-test: ["modified.txt", "untracked.txt"]
+ok
+test sync::tests::test_sync_repo_dry_run_does_not_push ... [master (root-commit) ed31da3] init
+ok
+test sync::tests::test_sync_repo_empty_repo_end_to_end ... 🌱 /tmp/.tmpVWv4cB/repo created root commit (1 files, empty repo bootstrap)
+ok
+test sync::tests::test_sync_repo_empty_repo_no_panic ... [master (root-commit) d761c3f] init
+ok
+test sync::tests::test_sync_repo_exact_50_del ... [master (root-commit) d761c3f] init
+📝 committed 1 file(s) in /tmp/.tmpsIIQ5n/exact-50-del-repo
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_returns_false ... [master (root-commit) d761c3f] init
+⏱️ push retry 2/3 for /tmp/.tmp4R6vin/test-repo after 1s
+⏱️ push retry 3/3 for /tmp/.tmp4R6vin/test-repo after 2s
+⚠️ background push to origin failed for /tmp/.tmp4R6vin/test-repo: git push failed in /tmp/.tmp4R6vin/test-repo with status exit status: 1: ⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmp4R6vin/origin.git'
+⚠️ push to mirror failed for /tmp/.tmp4R6vin/test-repo: git push-to-mirror failed in /tmp/.tmp4R6vin/test-repo with status exit status: 128: ssh: Could not resolve hostname nonexistent.example.com: Name or service not known
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+⚠️ push failed for /tmp/.tmp4R6vin/test-repo (remotes: unknown)
+ok
+test sync::tests::test_sync_repo_mirror_push_failure_second ... [master (root-commit) d5822e1] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmp7w5LlA/origin.git'
+🛡️ /tmp/.tmp7w5LlA/test-repo auto-hardened with warden before staging
+📝 committed 1 file(s) in /tmp/.tmp7w5LlA/test-repo
+⏱️ push retry 2/3 for /tmp/.tmp7w5LlA/test-repo after 1s
