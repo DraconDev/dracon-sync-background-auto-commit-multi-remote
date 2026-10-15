@@ -434,6 +434,9 @@ fn shorten_when(s: &str) -> String {
 ///   - "idle Xm"    : clean, no in-flight, last commit 1h-24h ago
 ///   - "cold Xd"    : clean, no activity for > 24h
 ///   - "—"          : unknown / no data
+// Legacy formatter retained only for its compatibility fixtures. Production
+// convergence uses current_health and never infers work age from commit age.
+#[cfg(test)]
 pub(crate) fn activity_label(row: &RepoReportRow) -> String {
     let base = activity_label_base(row);
     // v0.113.13 (goal-list 2026-07-29): surface daemon-excluded dirty
@@ -447,6 +450,7 @@ pub(crate) fn activity_label(row: &RepoReportRow) -> String {
     }
 }
 
+#[cfg(test)]
 fn activity_label_base(row: &RepoReportRow) -> String {
     // Parse the last_when string ("N minutes ago", "N hours ago", etc.)
     // into a number of minutes. Returns None if unparseable.
@@ -1189,6 +1193,7 @@ fn remote_tracking_ref_exists(repo: &Path, upstream: &str) -> bool {
 /// `in_flight` (it gets cleared at cycle start), so the disk file
 /// is the only stale-source of the "🔄 now" indicator. Filtering
 /// by age makes the indicator reflect ground truth.
+#[cfg(test)]
 fn load_in_flight_for_path(repo_path: &str) -> bool {
     // If the file is older than the staleness threshold, treat as
     // empty — the daemon has effectively moved on, even if a slow
@@ -1217,6 +1222,7 @@ fn load_in_flight_for_path(repo_path: &str) -> bool {
 /// Parse "N minutes ago" / "N hours ago" / etc. into a u64 number
 /// of minutes. Mirrors the parsing in `parse_relative_minutes` but
 /// returns a plain integer for use in arithmetic.
+#[cfg(test)]
 fn parse_relative_minutes_to_u64(s: &str) -> Option<u64> {
     // CHANGED 2026-07-22 (v0.112.35): delegate to the complete
     // `parse_relative_minutes` (which handles weeks/months/years)
@@ -2591,6 +2597,7 @@ impl StateCause {
 
     /// Icon used in the human-readable table. The colour of the row is
     /// picked separately by `cause_color`.
+    #[cfg(test)]
     pub(crate) fn icon(&self) -> &'static str {
         match self {
             StateCause::Working => "🔄",
@@ -3085,6 +3092,7 @@ pub(crate) fn truncate_unicode_width(value: &str, max_width: usize) -> String {
 /// `🟠 dirty · ⏳ …` cell. This helper preserves the state
 /// component (the most important) and cleanly drops activity
 /// when it can't fit. See docs/design/repos-table-fix-2026-07-19.md.
+#[cfg(test)]
 pub(crate) fn state_plus_act_cell(
     state_icon: &str,
     state_word: &str,
@@ -3113,6 +3121,7 @@ pub(crate) fn state_plus_act_cell(
 
 /// Build the activity-part string `icon text`, or `None` if there
 /// is no activity (e.g., the activity was "—", a bare dash).
+#[cfg(test)]
 fn activity_part(icon: &str, text: &str) -> Option<String> {
     if text.is_empty() || text == "—" {
         None
@@ -3126,6 +3135,7 @@ fn activity_part(icon: &str, text: &str) -> Option<String> {
 /// 2026-10-03, audit L14: the old first-char split leaked VS16 into
 /// the text for base+selector icons like `⏸️`/`⚠️`); the text is
 /// everything after the next ASCII space.
+#[cfg(test)]
 fn split_activity(s: &str) -> (String, String) {
     let mut graphemes = unicode_segmentation::UnicodeSegmentation::graphemes(s, true);
     match graphemes.next() {
@@ -6186,18 +6196,6 @@ fn branch_color_for(branch: &str) -> Color {
     }
 }
 
-fn state_color_for(cause: &StateCause) -> Color {
-    match cause {
-        StateCause::Working | StateCause::Synced => Color::Green,
-        StateCause::Committing | StateCause::Pushing | StateCause::Dirty => Color::Yellow,
-        StateCause::Stalled | StateCause::Failed => Color::Red,
-        StateCause::Intentional => Color::Magenta,
-        StateCause::Untracked | StateCause::Idle => Color::White,
-        StateCause::Cold | StateCause::Healthy => Color::DarkGrey,
-        StateCause::Unowned { .. } => Color::Red,
-    }
-}
-
 /// Render the PUSH cell as a colored icon+label (no plain "PUSH_STUCK" text).
 /// When `failure_count` is Some, appends `(N failures)` for the PUSH_STUCK case.
 /// ADDED 2026-07-29 (v0.113.15): map a configured push-remote name to
@@ -6364,6 +6362,7 @@ fn rem_column_width(push_to: &[String]) -> usize {
 /// relative string ("4 minutes ago") — parsed to minutes and
 /// shortened via the same pipeline as ACTIVITY ages, because the
 /// raw string would overflow PUSH_COL=12 and truncate.
+#[cfg(test)]
 fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
     if push_text != "✅ OK" || last_push.is_empty() || last_push == "-" {
         return push_text.to_string();
@@ -6404,6 +6403,7 @@ fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> S
     out
 }
 
+#[cfg(test)]
 fn push_cell_label(push_status: &str, failure_count: Option<u32>) -> (&'static str, Color) {
     match push_status {
         "OK" => ("✅ OK", Color::Green),
@@ -7388,24 +7388,6 @@ fn build_repos_rich_table(
 // Extension trait: gives RepoReportRow access to the most recent failure count
 // from the recent-push-failure ledger. Returns None if not PUSH_STUCK.
 // ---------------------------------------------------------------------------
-trait RepoReportRowExt {
-    fn failure_count(&self) -> Option<u32>;
-}
-
-impl RepoReportRowExt for RepoReportRow {
-    fn failure_count(&self) -> Option<u32> {
-        if self.push_status == "PUSH_STUCK" {
-            // The failure count is not stored on the row directly. The HINT
-            // cell embeds it (e.g., "(173 failures)"). We don't re-parse it
-            // here to keep this trait method cheap. Returning None means the
-            // PUSH cell shows just "🛑 STUCK" without the count.
-            None
-        } else {
-            None
-        }
-    }
-}
-
 pub(crate) fn log_incident(
     policy_path: &Path,
     scope: impl Into<String>,

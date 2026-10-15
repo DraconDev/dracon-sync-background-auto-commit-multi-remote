@@ -6352,6 +6352,7 @@ pub(crate) fn save_dispatch_holds(holds: &HashMap<PathBuf, (String, Instant)>, n
 /// `repos` command to render the ACTIVITY column with the
 /// active/stalled distinction. Returns an empty set if the file
 /// does not exist (no daemon activity, or daemon not running).
+#[cfg(test)]
 pub(crate) fn load_in_flight() -> HashSet<PathBuf> {
     let path = in_flight_path();
     if !path.exists() {
@@ -6382,6 +6383,7 @@ pub(crate) fn load_in_flight() -> HashSet<PathBuf> {
 /// the daemon's in_flight file hasn't been refreshed in over a
 /// cycle's worth of time (a sign that a slow push from the
 /// previous cycle is still running while the daemon has moved on).
+#[cfg(test)]
 pub(crate) fn in_flight_file_age_secs() -> Option<u64> {
     let path = in_flight_path();
     if !path.exists() {
