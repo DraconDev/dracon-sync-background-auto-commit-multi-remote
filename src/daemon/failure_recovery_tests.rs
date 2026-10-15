@@ -45,8 +45,10 @@ impl Fleet {
                 root.path(),
                 &["init", "-q", "-b", "main", repo.to_str().unwrap()],
             );
-            let hooks = repo.join(".git/hooks");
-            // Disposable per-repo hook isolation, never global/production config.
+            let hooks = repo.join(".git/fixture-hooks");
+            std::fs::create_dir(&hooks).unwrap();
+            // Ignore any installed init-template hooks as well as global hooks.
+            // Disposable per-repo isolation, never global/production config.
             Self::git(
                 &repo,
                 &["config", "core.hooksPath", hooks.to_str().unwrap()],
@@ -324,7 +326,7 @@ async fn episode() {
     Fleet::git(hook, &["add", "--", "data"]);
     Fleet::git(hook, &["commit", "-qm", "fixture unpublished hook change"]);
     let hook_baseline = Fleet::remote(hook);
-    Fleet::script(hook, "hooks/pre-push", "#!/bin/sh\nset -eu\necho attempt >> .git/hook-attempts\nif [ -e .git/hook-reject ]; then\n (trap '' TERM; exec sleep 90) </dev/null >/dev/null 2>&1 &\n helper=$!\n printf '%s %s\\n' \"$$\" \"$helper\" > .git/hook-pids.tmp\n mv .git/hook-pids.tmp .git/hook-pids\n while [ ! -e .git/hook-release ]; do sleep 0.01; done\n kill -KILL \"$helper\" 2>/dev/null || :\n wait \"$helper\" 2>/dev/null || :\n echo 'pre-push: fixture policy rejects publication' >&2\n exit 1\nfi\n");
+    Fleet::script(hook, "fixture-hooks/pre-push", "#!/bin/sh\nset -eu\necho attempt >> .git/hook-attempts\nif [ -e .git/hook-reject ]; then\n (trap '' TERM; exec sleep 90) </dev/null >/dev/null 2>&1 &\n helper=$!\n printf '%s %s\\n' \"$$\" \"$helper\" > .git/hook-pids.tmp\n mv .git/hook-pids.tmp .git/hook-pids\n while [ ! -e .git/hook-release ]; do sleep 0.01; done\n kill -KILL \"$helper\" 2>/dev/null || :\n wait \"$helper\" 2>/dev/null || :\n echo 'pre-push: fixture policy rejects publication' >&2\n exit 1\nfi\n");
     std::fs::write(hook.join(".git/hook-reject"), "reject").unwrap();
     let path = hook.clone();
     let lane = capacity.clone();
