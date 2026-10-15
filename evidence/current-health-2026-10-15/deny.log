@@ -1,0 +1,230 @@
+error[vulnerability]: `Debug` impls for client session values expose TLS secrets
+    ┌─ /home/dracon/Dev/dracon-utilities/Cargo.lock:237:1
+    │
+237 │ rustls 0.23.45 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0346
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0346
+    ├ The `Debug` implementations of `Tls12ClientSessionValue` and
+      `Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master
+      secret or TLS 1.3 resumption PSK in their output.
+      
+      Custom `ClientSessionStore` implementations that format these values with
+      `Debug` (for example, when logging) could disclose these secrets to readers of
+      the logs. This conflicts with rustls's
+      [key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).
+      
+      Ordinary connection and built-in session cache `Debug` output is redacted and
+      is not affected.
+    ├ Announcement: https://github.com/rustls/rustls/pull/3299
+    ├ Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    ├ rustls v0.23.45
+      ├── hyper-rustls v0.27.9
+      │   └── reqwest v0.12.28
+      │       ├── dracon-sync v0.113.95
+      │       └── dracon-system-lib v94.2.7
+      │           └── dracon-system v0.112.45
+      ├── reqwest v0.12.28 (*)
+      └── tokio-rustls v0.26.5
+          ├── hyper-rustls v0.27.9 (*)
+          └── reqwest v0.12.28 (*)
+
+error[vulnerability]: Buffered application data sent to outer server after ECH rejection
+    ┌─ /home/dracon/Dev/dracon-utilities/Cargo.lock:237:1
+    │
+237 │ rustls 0.23.45 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0347
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0347
+    ├ When a server rejects Encrypted Client Hello (ECH), the client completes the
+      handshake using the outer ClientHello and authenticates the server against the
+      ECH config's `public_name`. At the end of that handshake, rustls encrypted and
+      queued any application data buffered via `ClientConnection::writer()` *before*
+      queueing the `ech_required` alert.
+      
+      The application correctly receives
+      `Error::PeerIncompatible(ServerRejectedEncryptedClientHello)`, but the next
+      `write_tls()` call (needed to send the alert) also sends the buffered
+      application data. Plaintext meant for the inner server therefore goes to the
+      client-facing server named by `public_name`.
+      
+      That server is authenticated, so this is not exploitable by an unauthenticated
+      party, but it violates RFC 9849 section 6.1.6, which requires the client to
+      abort with `ech_required` "before sending any application data to the server".
+      
+      This affects only clients that:
+      
+      - use `EchMode::Enable` (GREASE ECH is not affected),
+      - write application data before the handshake completes, and
+      - connect to a server that rejects their ECH config (for example, because it is stale).
+      
+      The underlying ordering bug is older, but before 0.23.44 the client checked
+      the server certificate against the inner server name rather than `public_name`,
+      so certificate verification failed first and no data was sent.
+    ├ Announcement: https://github.com/rustls/rustls/pull/3300
+    ├ Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    ├ rustls v0.23.45
+      ├── hyper-rustls v0.27.9
+      │   └── reqwest v0.12.28
+      │       ├── dracon-sync v0.113.95
+      │       └── dracon-system-lib v94.2.7
+      │           └── dracon-system v0.112.45
+      ├── reqwest v0.12.28 (*)
+      └── tokio-rustls v0.26.5
+          ├── hyper-rustls v0.27.9 (*)
+          └── reqwest v0.12.28 (*)
+
+error[vulnerability]: Brotli certificate decompression can allocate up to 1 GiB before authentication
+    ┌─ /home/dracon/Dev/dracon-utilities/Cargo.lock:237:1
+    │
+237 │ rustls 0.23.45 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0348
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0348
+    ├ The built-in Brotli certificate decompressor (enabled by the non-default
+      `brotli` crate feature) bounded the size of the decompressed output, but
+      accepted a peer-selected history window. Brotli's large-window extension was
+      enabled, so a five-byte header could cause an allocation of 1 GiB. A peer can
+      abort a process whose allocator cannot satisfy that request.
+      
+      No trusted certificate is required by the attacker. Affected configurations are:
+      
+      - clients that enable the `brotli` feature and connect to a malicious server, and
+      - servers that enable the `brotli` feature and request client certificates.
+      
+      Applications that do not enable the `brotli` feature are not affected.
+    ├ Announcement: https://github.com/rustls/rustls/pull/3297
+    ├ Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    ├ rustls v0.23.45
+      ├── hyper-rustls v0.27.9
+      │   └── reqwest v0.12.28
+      │       ├── dracon-sync v0.113.95
+      │       └── dracon-system-lib v94.2.7
+      │           └── dracon-system v0.112.45
+      ├── reqwest v0.12.28 (*)
+      └── tokio-rustls v0.26.5
+          ├── hyper-rustls v0.27.9 (*)
+          └── reqwest v0.12.28 (*)
+
+error[vulnerability]: Unauthenticated ServerHello can downgrade later connections to classical key exchange
+    ┌─ /home/dracon/Dev/dracon-utilities/Cargo.lock:237:1
+    │
+237 │ rustls 0.23.45 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0349
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0349
+    ├ The client recorded the server-selected key exchange group for each server
+      name when processing the ServerHello, before the server was authenticated.
+      This record is used to predict which key share to send in future ClientHellos
+      to that server name.
+      
+      A network attacker can answer one connection attempt with a ServerHello
+      selecting X25519, and then close the connection. Later ClientHellos for that
+      name carry only an X25519 key share, while `supported_groups` still lists
+      X25519MLKEM768 first. If the genuine server accepts that share rather than
+      sending a HelloRetryRequest for its preferred hybrid group, the handshake
+      completes with classical-only key exchange and no error. This persists for as
+      long as the entry stays in the client's session store.
+      
+      The impact is loss of post-quantum confidentiality for affected connections
+      ("harvest now, decrypt later"). There is no key compromise and no
+      authentication bypass.
+      
+      The following are not affected:
+      
+      - connections to servers which send a HelloRetryRequest for their preferred group,
+      - clients with resumption disabled (as nothing is stored), and
+      - other server names.
+      
+      This behaviour is discussed in
+      [draft-ietf-tls-key-share-prediction](https://www.ietf.org/archive/id/draft-ietf-tls-key-share-prediction-01.html#name-security-considerations),
+      so the practical impact depends largely on server policy.
+    ├ Announcement: https://github.com/rustls/rustls/pull/3355
+    ├ Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    ├ rustls v0.23.45
+      ├── hyper-rustls v0.27.9
+      │   └── reqwest v0.12.28
+      │       ├── dracon-sync v0.113.95
+      │       └── dracon-system-lib v94.2.7
+      │           └── dracon-system v0.112.45
+      ├── reqwest v0.12.28 (*)
+      └── tokio-rustls v0.26.5
+          ├── hyper-rustls v0.27.9 (*)
+          └── reqwest v0.12.28 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p yoke-derive`)
+    ┌─ /home/dracon/Dev/dracon-utilities/Cargo.lock:332:1
+    │
+332 │ yoke-derive 0.8.3 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+    │
+    ├ yoke-derive v0.8.3
+      └── yoke v0.8.3
+          ├── icu_collections v2.3.0
+          │   ├── icu_normalizer v2.3.0
+          │   │   └── idna_adapter v1.2.2
+          │   │       └── idna v1.1.0
+          │   │           └── url v2.5.8
+          │   │               ├── git2 v0.21.0
+          │   │               │   ├── dracon-git v94.7.2
+          │   │               │   │   └── dracon-sync v0.113.95
+          │   │               │   └── dracon-sync v0.113.95 (*)
+          │   │               ├── reqwest v0.12.28
+          │   │               │   ├── dracon-sync v0.113.95 (*)
+          │   │               │   └── dracon-system-lib v94.2.7
+          │   │               │       └── dracon-system v0.112.45
+          │   │               └── tower-http v0.6.11
+          │   │                   └── reqwest v0.12.28 (*)
+          │   └── icu_properties v2.3.0
+          │       └── idna_adapter v1.2.2 (*)
+          ├── icu_provider v2.3.1
+          │   ├── icu_normalizer v2.3.0 (*)
+          │   └── icu_properties v2.3.0 (*)
+          ├── zerotrie v0.2.5
+          │   ├── icu_properties v2.3.0 (*)
+          │   └── icu_provider v2.3.1 (*)
+          └── zerovec v0.11.8
+              ├── icu_collections v2.3.0 (*)
+              ├── icu_locale_core v2.3.0
+              │   ├── icu_properties v2.3.0 (*)
+              │   └── icu_provider v2.3.1 (*)
+              ├── icu_normalizer v2.3.0 (*)
+              ├── icu_properties v2.3.0 (*)
+              ├── icu_provider v2.3.1 (*)
+              ├── potential_utf v0.1.6
+              │   └── icu_collections v2.3.0 (*)
+              └── tinystr v0.8.4
+                  ├── icu_locale_core v2.3.0 (*)
+                  └── unic-langid-impl v0.9.6
+                      └── unic-langid v0.9.6
+                          ├── fluent v0.16.1
+                          │   ├── i18n-embed v0.14.1
+                          │   │   ├── age v0.10.1
+                          │   │   │   ├── (dev) dracon-security v0.4.0
+                          │   │   │   │   └── dracon-warden v0.113.15
+                          │   │   │   └── dracon-warden v0.113.15 (*)
+                          │   │   └── i18n-embed-fl v0.7.0
+                          │   │       └── age v0.10.1 (*)
+                          │   └── i18n-embed-fl v0.7.0 (*)
+                          ├── fluent-bundle v0.15.3
+                          │   └── fluent v0.16.1 (*)
+                          ├── fluent-langneg v0.13.1
+                          │   ├── fluent-bundle v0.15.3 (*)
+                          │   └── i18n-embed v0.14.1 (*)
+                          ├── i18n-config v0.4.8
+                          │   ├── i18n-embed-fl v0.7.0 (*)
+                          │   └── i18n-embed-impl v0.8.4
+                          │       └── i18n-embed v0.14.1 (*)
+                          ├── i18n-embed v0.14.1 (*)
+                          ├── i18n-embed-fl v0.7.0 (*)
+                          ├── intl-memoizer v0.5.3
+                          │   ├── fluent-bundle v0.15.3 (*)
+                          │   └── i18n-embed v0.14.1 (*)
+                          └── intl_pluralrules v7.0.2
+                              └── fluent-bundle v0.15.3 (*)
+
+advisories FAILED, bans ok, licenses ok, sources ok
