@@ -3,6 +3,10 @@
 //! Local work has its existing semaphore. A push phase temporarily gives its
 //! permit back, so waiting on hook/network work cannot exhaust commit capacity.
 //! Actual push commands have a separate one-command lane and low child priority.
+#[cfg(test)]
+#[path = "push_resources_tests.rs"]
+mod tests;
+
 use anyhow::{Context, Result};
 use std::cell::RefCell;
 use std::future::Future;
