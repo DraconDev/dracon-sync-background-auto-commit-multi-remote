@@ -1,0 +1,113 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 59.29s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-9361ebd0c5dd8916)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 5 tests
+test git::inspection::tests::handles_clean_detached_and_unborn_heads_and_rejects_bad_output ... ok
+test git::inspection::tests::hung_filter_is_killed_and_next_inspection_recovers ... ok
+test git::inspection::tests::inspects_real_repository_and_counts_nested_untracked_files ... ok
+test git::inspection::tests::owner_abort_kills_filter_and_next_inspection_recovers ... ok
+test git::inspection::tests::parses_branch_counts_renames_conflicts_and_non_utf8_paths ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1293 filtered out; finished in 4.71s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-e3a22ba05b943846)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-1f57907d26756cf8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.68s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-9361ebd0c5dd8916)
+
+running 1 test
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 156 filtered out; finished in 0.35s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+
+running 35 tests
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) cf79836] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpCUCpss/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main c969a1a] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmpCUCpss/remote.git
+   cf79836..c969a1a  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) 815fcf4] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpwQ9bt6/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main bd0d787] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) d8b7882] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::tests::completed_status_is_collected_before_wedge_sweep ... ok
+test daemon::tests::failed_status_inspectors_yield_capacity_and_retry_at_deadline ... ok
+test daemon::tests::healthy_status_task_spared_by_sweep ... ok
+test daemon::tests::orphan_cancelled_status_join_inserts_no_result ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::test_status_inspection_wedged_bound ... ok
+test daemon::tests::test_status_pipeline_collects_ready_while_slow_pending ... ok
+test daemon::tests::test_status_pipeline_result_carries_spawn_instant ... ok
+test daemon::tests::wedged_status_task_aborted_and_slot_freed ... ok
+test git::branch::tests::test_old_tracking_from_status_line_handles_missing_marker ... ok
+test git::branch::tests::test_old_tracking_from_status_line_parses_real_ref ... ok
+test git::branch::tests::test_old_tracking_from_status_line_rejects_empty_ref ... ok
+test git::diff::f33_tests::parse_name_status_basic_statuses ... ok
+test git::diff::f33_tests::parse_name_status_empty_line_returns_none ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_empty_paths_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_non_digit_suffix_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_score ... ok
+test git::diff::f33_tests::parse_name_status_rename_without_score_rejected ... ok
+test git::diff::f33_tests::parse_name_status_unknown_status_returns_none ... ok
+test git::diff::f33_tests::test_parse_name_status_z_consumes_copy_and_unmerged_records ... ok
+test git::diff::f33_tests::test_parse_name_status_z_non_ascii_and_basic ... ok
+test git::diff::f33_tests::test_parse_name_status_z_rename ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_parse_name_status_line_invalid_status ... ok
+test git::tests::test_parse_name_status_line_renamed ... ok
+test git::tests::test_parse_name_status_line_valid_lines ... ok
+test report::tests::test_empty_repo_push_status_is_empty_not_fail ... ok
+test report::tests::test_push_status_calculation_from_flags ... ok
+test report::tests::test_repo_failure_message_for_status_failed ... ok
+test report::tests::test_repo_report_row_push_status_fields ... ok
+test report::tests::test_status_json_structure ... ok
+test storage::tests::journal_status_is_read_only_and_redacts_source_metadata ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 1263 filtered out; finished in 2.58s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-e3a22ba05b943846)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-1f57907d26756cf8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
