@@ -177,8 +177,8 @@ async fn stopped(pid: u32) {
 }
 
 #[tokio::test]
-async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
-    for route in ["tag", "janitor"] {
+async fn release_tag_janitor_and_nix_hooks_yield_local_work_capacity() {
+    for route in ["tag", "janitor", "nix"] {
         let f = Fixture::new();
         let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
         if route == "janitor" {
@@ -187,6 +187,12 @@ async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
             f.git(&f.repo, &["branch", "daemon-standalone"]);
             f.git(&f.repo, &["push", "origin", "main", "daemon-standalone"]);
             f.git(&f.bare, &["symbolic-ref", "HEAD", "refs/heads/main"]);
+        } else if route == "nix" {
+            std::fs::write(
+                f.repo.join("flake.nix"),
+                "# isolated fixture flake change\n",
+            )
+            .unwrap();
         }
         let local = Arc::new(Semaphore::new(1));
         let semaphore = local.clone();
@@ -201,6 +207,12 @@ async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
                         .await
                         .unwrap();
                     assert!(matches!(result, crate::release::ReleaseStep::TagCreated(_)));
+                } else if route == "nix" {
+                    // Exercise the production Git preparation/push function
+                    // without invoking external GitHub API/PR creation.
+                    crate::nix::run_git_for_nix_pr(&repo, "nix-fixture", "fixture flake update")
+                        .await
+                        .unwrap();
                 } else {
                     crate::git::maybe_prune_stale_backup_branches(
                         &repo,
@@ -256,6 +268,11 @@ async fn release_tag_and_janitor_hooks_yield_local_work_capacity() {
             assert!(!f
                 .git(&f.bare, &["rev-parse", "refs/tags/v0.0.1"])
                 .is_empty());
+        } else if route == "nix" {
+            assert!(!f
+                .git(&f.bare, &["rev-parse", "refs/heads/nix-fixture"])
+                .is_empty());
+            assert_eq!(f.git(&f.repo, &["branch", "--show-current"]), "main");
         } else {
             assert!(f
                 .git(
