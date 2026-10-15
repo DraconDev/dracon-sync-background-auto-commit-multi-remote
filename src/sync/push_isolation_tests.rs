@@ -20,33 +20,58 @@ impl Fixture {
         // do not inject a hooksPath override or an identity override.
         let out = std::process::Command::new(&self.git)
             .args(["-c", "core.hooksPath=/dev/null"])
-            .args(args).current_dir(cwd).output().unwrap();
-        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         String::from_utf8(out.stdout).unwrap().trim().to_owned()
     }
     fn new() -> Self {
         let root = tempfile::tempdir().unwrap();
         let f = Self {
-            repo: root.path().join("slow"), bare: root.path().join("remote.git"),
-            healthy: root.path().join("healthy"), git: crate::policy::git_binary(), root,
+            repo: root.path().join("slow"),
+            bare: root.path().join("remote.git"),
+            healthy: root.path().join("healthy"),
+            git: crate::policy::git_binary(),
+            root,
         };
-        f.git(f.root.path(), &["init", "--bare", "--quiet", f.bare.to_str().unwrap()]);
+        f.git(
+            f.root.path(),
+            &["init", "--bare", "--quiet", f.bare.to_str().unwrap()],
+        );
         for repo in [&f.repo, &f.healthy] {
             std::fs::create_dir(repo).unwrap();
             f.git(repo, &["init", "--quiet", "-b", "main"]);
             f.git(repo, &["config", "user.name", "Hook Isolation Fixture"]);
             f.git(repo, &["config", "user.email", "hook-isolation@invalid"]);
             std::fs::create_dir(repo.join("hooks")).unwrap();
-            f.git(repo, &["config", "core.hooksPath", repo.join("hooks").to_str().unwrap()]);
+            f.git(
+                repo,
+                &[
+                    "config",
+                    "core.hooksPath",
+                    repo.join("hooks").to_str().unwrap(),
+                ],
+            );
             std::fs::write(repo.join("data"), "initial fixture\n").unwrap();
             f.git(repo, &["add", "--", "data"]);
             f.git(repo, &["commit", "--quiet", "-m", "fixture"]);
         }
-        f.git(&f.repo, &["remote", "add", "origin", f.bare.to_str().unwrap()]);
+        f.git(
+            &f.repo,
+            &["remote", "add", "origin", f.bare.to_str().unwrap()],
+        );
         f.git(&f.repo, &["config", "branch.main.remote", "origin"]);
         f.git(&f.repo, &["config", "branch.main.merge", "refs/heads/main"]);
         let hook = f.repo.join("hooks/pre-push");
-        std::fs::write(&hook, r##"#!/bin/sh
+        std::fs::write(
+            &hook,
+            r##"#!/bin/sh
 set -eu
 (sh -c 'trap "" TERM; exec sleep 120') </dev/null >/dev/null 2>&1 &
 helper=$!
@@ -57,14 +82,18 @@ kill -KILL "$helper" 2>/dev/null || :
 wait "$helper" 2>/dev/null || :
 if [ -e hook-reject ]; then echo 'pre-push: fixture reject' >&2; exit 1; fi
 exit 0
-"##).unwrap();
+"##,
+        )
+        .unwrap();
         std::fs::set_permissions(hook, std::fs::Permissions::from_mode(0o755)).unwrap();
         f
     }
     fn reset(&self) {
         for path in ["hook-entered", "hook-release", "hook-reject"] {
             let p = self.repo.join(path);
-            if p.exists() { std::fs::remove_file(p).unwrap(); }
+            if p.exists() {
+                std::fs::remove_file(p).unwrap();
+            }
         }
     }
     fn push(&self, local: Arc<Semaphore>) -> TaskGuard<Result<PushReport>> {
@@ -73,36 +102,51 @@ exit 0
             let permit = local.clone().acquire_owned().await.unwrap();
             with_local_work(local, permit, async move {
                 let policy = SyncPolicy {
-                    remotes: Vec::new(), push_retries: 0, push_op_timeout_secs: 10,
+                    remotes: Vec::new(),
+                    push_retries: 0,
+                    push_op_timeout_secs: 10,
                     ..SyncPolicy::default()
                 };
                 push_background(&repo, &policy, true, None).await
-            }).await
+            })
+            .await
         })))
     }
     async fn entered(&self) -> (u32, u32) {
         tokio::time::timeout(Duration::from_secs(10), async {
             loop {
                 if let Ok(text) = std::fs::read_to_string(self.repo.join("hook-entered")) {
-                    let pids: Vec<u32> = text.split_whitespace().map(|v| v.parse().unwrap()).collect();
+                    let pids: Vec<u32> = text
+                        .split_whitespace()
+                        .map(|v| v.parse().unwrap())
+                        .collect();
                     assert_eq!(pids.len(), 2);
                     assert!(pids.iter().all(|pid| *pid > 0));
                     return (pids[0], pids[1]);
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
-        }).await.expect("hook never entered")
+        })
+        .await
+        .expect("hook never entered")
     }
 }
 
 struct TaskGuard<T>(Option<tokio::task::JoinHandle<T>>);
 impl<T> Drop for TaskGuard<T> {
-    fn drop(&mut self) { if let Some(task) = &self.0 { task.abort(); } }
+    fn drop(&mut self) {
+        if let Some(task) = &self.0 {
+            task.abort();
+        }
+    }
 }
 impl<T> TaskGuard<T> {
     async fn join(mut self) -> Result<T, tokio::task::JoinError> {
-        let task = self.0.take().unwrap();
-        tokio::time::timeout(Duration::from_secs(15), task).await.expect("push fixture did not settle")
+        let result = tokio::time::timeout(Duration::from_secs(15), self.0.as_mut().unwrap())
+            .await
+            .expect("push fixture did not settle");
+        self.0.take();
+        result
     }
 }
 
@@ -111,15 +155,25 @@ async fn stopped(pid: u32) {
         loop {
             match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
                 Ok(stat) => {
-                    let state = stat.rsplit_once(") ").unwrap().1.split_whitespace().next().unwrap();
-                    if matches!(state, "Z" | "X") { return; }
+                    let state = stat
+                        .rsplit_once(") ")
+                        .unwrap()
+                        .1
+                        .split_whitespace()
+                        .next()
+                        .unwrap();
+                    if matches!(state, "Z" | "X") {
+                        return;
+                    }
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
                 Err(e) => panic!("cannot establish fixture process {pid} state: {e}"),
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-    }).await.expect("owned hook/helper still running");
+    })
+    .await
+    .expect("owned hook/helper still running");
 }
 
 #[tokio::test]
@@ -130,26 +184,62 @@ async fn slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_r
     let parent_nice = unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) };
     let push = f.push(local.clone());
     let (hook_pid, helper_pid) = f.entered().await;
-    assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, hook_pid) }, 19);
-    assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, helper_pid) }, 19);
+    assert_eq!(
+        unsafe { libc::getpriority(libc::PRIO_PROCESS, hook_pid) },
+        19
+    );
+    assert_eq!(
+        unsafe { libc::getpriority(libc::PRIO_PROCESS, helper_pid) },
+        19
+    );
     let before = f.git(&f.healthy, &["rev-parse", "HEAD"]);
-    std::fs::write(f.healthy.join("data"), "unrelated healthy edit with different length\n").unwrap();
+    std::fs::write(
+        f.healthy.join("data"),
+        "unrelated healthy edit with different length\n",
+    )
+    .unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
         let permit = local.clone().acquire_owned().await.unwrap();
         with_local_work(local.clone(), permit, async {
-            let status = crate::git::inspect_status(&f.healthy, Duration::from_secs(3)).await.unwrap();
+            let status = crate::git::inspect_status(&f.healthy, Duration::from_secs(3))
+                .await
+                .unwrap();
             assert!(!status.is_clean);
-            run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add").await.unwrap();
-            run_git_with_timeout(&f.healthy, &["commit", "--quiet", "-m", "healthy commit"], 3, "fixture commit").await.unwrap();
-        }).await;
-    }).await.expect("slow hook starved unrelated local work");
+            run_git_with_timeout(&f.healthy, &["add", "--", "data"], 3, "fixture add")
+                .await
+                .unwrap();
+            run_git_with_timeout(
+                &f.healthy,
+                &["commit", "--quiet", "-m", "healthy commit"],
+                3,
+                "fixture commit",
+            )
+            .await
+            .unwrap();
+        })
+        .await;
+    })
+    .await
+    .expect("slow hook starved unrelated local work");
     assert_ne!(f.git(&f.healthy, &["rev-parse", "HEAD"]), before);
-    assert_eq!(f.git(&f.healthy, &["show", "HEAD:data"]), "unrelated healthy edit with different length");
+    assert_eq!(
+        f.git(&f.healthy, &["show", "HEAD:data"]),
+        "unrelated healthy edit with different length"
+    );
     assert!(!f.repo.join("hook-release").exists());
-    assert!(!push.0.as_ref().unwrap().is_finished(), "hook must still be blocked during healthy commit");
-    assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) }, parent_nice);
+    assert!(
+        !push.0.as_ref().unwrap().is_finished(),
+        "hook must still be blocked during healthy commit"
+    );
+    assert_eq!(
+        unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) },
+        parent_nice
+    );
     std::fs::write(f.repo.join("hook-release"), "release").unwrap();
-    assert!(matches!(push.join().await.unwrap().unwrap(), PushReport::Attempted { ok: true, .. }));
+    assert!(matches!(
+        push.join().await.unwrap().unwrap(),
+        PushReport::Attempted { ok: true, .. }
+    ));
     stopped(helper_pid).await;
     let accepted = f.git(&f.bare, &["rev-parse", "refs/heads/main"]);
     assert_eq!(accepted, f.git(&f.repo, &["rev-parse", "HEAD"]));
@@ -161,7 +251,10 @@ async fn slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_r
     let push = f.push(local.clone());
     f.entered().await;
     std::fs::write(f.repo.join("hook-release"), "release").unwrap();
-    assert!(matches!(push.join().await.unwrap().unwrap(), PushReport::Attempted { ok: false, .. }));
+    assert!(matches!(
+        push.join().await.unwrap().unwrap(),
+        PushReport::Attempted { ok: false, .. }
+    ));
     assert_eq!(f.git(&f.bare, &["rev-parse", "refs/heads/main"]), accepted);
     assert_eq!(local.available_permits(), 1);
 }
@@ -173,16 +266,26 @@ async fn cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentin
     let _git = crate::test_helpers::GitBinRestorer::new(f.git.to_str().unwrap());
     let local = Arc::new(Semaphore::new(1));
     let mut sentinel = tokio::process::Command::new("sh");
-    sentinel.args(["-c", "while read line; do printf '%s\\n' \"$line\"; done"])
-        .process_group(0).kill_on_drop(true)
-        .stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped());
+    sentinel
+        .args(["-c", "while read line; do printf '%s\\n' \"$line\"; done"])
+        .process_group(0)
+        .kill_on_drop(true)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
     let mut sentinel = sentinel.spawn().unwrap();
     let sentinel_pid = sentinel.id().unwrap();
     let original_nice = unsafe { libc::getpriority(libc::PRIO_PROCESS, sentinel_pid) };
     let mut stdin = sentinel.stdin.take().unwrap();
     let mut stdout = BufReader::new(sentinel.stdout.take().unwrap()).lines();
     stdin.write_all(b"before\n").await.unwrap();
-    assert_eq!(tokio::time::timeout(Duration::from_secs(3), stdout.next_line()).await.unwrap().unwrap().unwrap(), "before");
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(3), stdout.next_line())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap(),
+        "before"
+    );
     let push = f.push(local.clone());
     let (hook, helper) = f.entered().await;
     push.0.as_ref().unwrap().abort();
@@ -190,12 +293,25 @@ async fn cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentin
     stopped(hook).await;
     stopped(helper).await;
     stdin.write_all(b"after\n").await.unwrap();
-    assert_eq!(tokio::time::timeout(Duration::from_secs(3), stdout.next_line()).await.unwrap().unwrap().unwrap(), "after");
-    assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, sentinel_pid) }, original_nice);
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(3), stdout.next_line())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap(),
+        "after"
+    );
+    assert_eq!(
+        unsafe { libc::getpriority(libc::PRIO_PROCESS, sentinel_pid) },
+        original_nice
+    );
     assert_eq!(local.available_permits(), 1);
     f.reset();
     std::fs::write(f.repo.join("hook-release"), "accept next push").unwrap();
-    assert!(matches!(f.push(local).join().await.unwrap().unwrap(), PushReport::Attempted { ok: true, .. }));
+    assert!(matches!(
+        f.push(local).join().await.unwrap().unwrap(),
+        PushReport::Attempted { ok: true, .. }
+    ));
     sentinel.kill().await.unwrap();
     sentinel.wait().await.unwrap();
 }

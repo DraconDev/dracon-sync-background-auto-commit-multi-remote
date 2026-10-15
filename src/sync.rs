@@ -3,6 +3,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+#[cfg(all(test, target_os = "linux"))]
+#[path = "sync/push_isolation_tests.rs"]
+mod push_isolation_tests;
+
 use crate::log_warn;
 #[cfg(test)]
 use crate::test_helpers::{test_commit_cmd, test_git_cmd};
