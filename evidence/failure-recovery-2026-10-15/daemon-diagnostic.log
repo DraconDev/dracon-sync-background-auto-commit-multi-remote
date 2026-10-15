@@ -51,3 +51,189 @@ test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_rec
 PASS: healthy inspection/commits progress during all four faults; blocked storage preserves HEAD, manifest and raw bytes
 PASS: bounded storage retries, fail-fast hook rejection and typed inspection cancellation clean owned descendants
 📝 committed 1 file(s) in /tmp/dracon-failure-recovery-GNBC6n/watched/filter
+📝 committed 1 file(s) in /tmp/dracon-failure-recovery-GNBC6n/watched/bucket
+PASS: discovery joins once; cleared filter/hook/storage faults recover; verified references publish without raw blobs or duplicate commits; all permits returned
+⚠️ failed to delete remote master branch: git delete remote branch failed in /tmp/dracon-failure-recovery-GNBC6n/watched/healthy with status exit status: 1: pre-push: reject prune
+error: failed to push some refs to '/tmp/dracon-failure-recovery-GNBC6n/healthy.git'
+PASS: absent alternate pruning issues no push; observed alternate deletion still honors rejecting hooks and recovers
+ok
+test daemon::discovery_scheduler::tests::blocked_refresh_keeps_snapshot_without_blocking_or_duplicate_walks ... ok
+test daemon::discovery_scheduler::tests::changed_configuration_never_uses_old_snapshot ... ok
+test daemon::probe_race_tests::recovery_completed_status_racing_cancellation_retains_original_age ... ok
+test daemon::recovery::tests::fair_admission_serves_every_repo_despite_repeated_early_failures ... ok
+test daemon::recovery::tests::queued_workers_keep_fifo_and_execution_retries_are_bounded ... ok
+test daemon::recovery_tests::recovery_abandoned_reservations_release_without_touching_live_owners ... ok
+test daemon::recovery_tests::recovery_classification_panic_and_cancellation_release_known_owners ... 
+thread 'daemon::recovery_tests::recovery_classification_panic_and_cancellation_release_known_owners' (3324646) panicked at dracon-sync/src/daemon/recovery_tests.rs:134:30:
+injected classifier panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test daemon::recovery_tests::recovery_fifo_healthy_syncs_run_after_hung_holder_joins ... ok
+test daemon::recovery_tests::recovery_status_waits_for_teardown_and_healthy_peer_progresses ... ⚠️ hung-status status task failed: probe worker join
+ok
+test daemon::recovery_tests::recovery_tagged_sync_join_releases_all_bookkeeping_on_panic_in_quiet_cycle ... 
+thread 'daemon::recovery_tests::recovery_tagged_sync_join_releases_all_bookkeeping_on_panic_in_quiet_cycle' (3324660) panicked at dracon-sync/src/daemon/recovery_tests.rs:230:53:
+injected sync panic
+ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_does_not_create_standalone_worktrees ... ok
+test daemon::submodule_materialize_tests::materialize_pending_submodules_leaves_existing_dirs_untouched ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_respects_total ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_notify ... ok
+test daemon::submodule_materialize_tests::test_sleep_responsive_wakes_early_on_predicate ... ok
+test daemon::test_auto_skip_unowned_default_is_true ... ok
+test daemon::test_escalating_cooldown_matrix ... ok
+test daemon::test_min_commit_interval_default_is_5 ... ok
+test daemon::test_notify_state_round_trip_and_expiry ... ok
+test daemon::test_notify_throttled_escalating_streak_and_reset ... ok
+test daemon::test_notify_throttled_fires_then_suppresses_then_refires ... ok
+test daemon::test_oldest_dirty_change_secs_core_mtime_based ... ℹ️ skip large file /tmp/dracon-sync-stale-dirty-test-3321822/new.txt (3 bytes > 1 bytes)
+ok
+test daemon::test_oldest_dirty_change_secs_core_skips_never_committed_nested_repo ... ok
+test daemon::test_oldest_dirty_change_secs_core_submodule_uses_gitlink_age ... ok
+test daemon::test_ownership_detection_end_to_end ... ok
+test daemon::test_ownership_needs_redetect_ttl ... ok
+test daemon::test_ownership_owned_needs_revalidate_ttl ... ok
+test daemon::test_ownership_per_repo_override_forces_unowned ... ok
+test daemon::test_push_failure_notification_requires_persistent_budget_exhaustion ... ok
+test daemon::test_record_push_failure_accumulates_across_calls ... ✅ push recovered for /tmp/h5-accum-test-repo
+ok
+test daemon::test_resolve_stuck_repo_arg_matrix ... ok
+test daemon::test_stale_dirty_alert_due_throttle_and_disable ... ok
+test daemon::test_stale_dirty_alert_policy_default_and_serde ... ok
+test daemon::test_stale_entry_persisted_matrix ... ok
+test daemon::test_stuck_ahead_covered_by_pause_matrix ... ok
+test daemon::test_stuck_decision_backoff_inside_window ... ok
+test daemon::test_stuck_decision_exhausted_at_budget ... ok
+test daemon::test_stuck_decision_retry_after_window ... ok
+test daemon::test_stuck_decision_retry_respects_last_retry_stamp ... ok
+test daemon::test_sustained_threshold_met ... ok
+test daemon::test_transient_dns_does_not_burn_stuck_budget ... ok
+test daemon::tests::classification_cooldown_waits_then_releases_repo ... ok
+test daemon::tests::classifier_completed_during_scan_is_available_at_repo_boundary ... ok
+test daemon::tests::completed_status_is_collected_before_wedge_sweep ... ok
+test daemon::tests::eligibility_uses_dispatch_clock_and_bounds_continuous_work ... ok
+test daemon::tests::failed_status_inspectors_yield_capacity_and_retry_at_deadline ... ok
+test daemon::tests::healthy_status_task_spared_by_sweep ... ok
+test daemon::tests::needs_classification_dirty_repo_with_ahead_override_classifies ... ok
+test daemon::tests::orphan_cancelled_status_join_inserts_no_result ... ⚠️ orphan probe join error: task 71 was cancelled
+ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::pending_result_collection_does_not_block_next_repo ... ok
+test daemon::tests::pre_start_dirty_activity_reaches_exact_quiet_boundary_once ... ok
+test daemon::tests::pulse_accounts_for_scan_work_and_overruns ... ok
+test daemon::tests::push_aggregation_cancellation_does_not_arm_backoff ... ⚠️ push to origin failed for fixture/abort-mid-push: join error: task 73 was cancelled
+✅ push recovered for fixture/abort-mid-push
+ok
+test daemon::tests::push_aggregation_mixed_failure_still_arms_backoff ... ⚠️ push to origin failed for fixture/mixed-push: Connection refused
+ok
+test daemon::tests::quiet_evidence_future_missing_and_prestart_are_bounded ... ok
+test daemon::tests::quiet_evidence_repeated_edits_keep_maximum_dirty_age ... ok
+test daemon::tests::quiet_evidence_uses_change_time_not_discovery_time ... ok
+test daemon::tests::ready_restart_work_precedes_unknown_inspection_with_fixed_pulse_budget ... ok
+test daemon::tests::refresh_publish_preserves_successfully_pushed_tracking_ref ... [main (root-commit) 8fc2fd7] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+branch 'main' set up to track 'origin/main'.
+ok
+test daemon::tests::stalled_worker_retains_exclusive_dispatch_ownership_across_cycles ... ok
+test daemon::tests::test_apply_outcome_push_paused_retains_without_cooldown ... ⏸️ /tmp/.tmpm5OA2J/test-repo committed but push paused (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+ok
+test daemon::tests::test_apply_outcome_wedge_abort_retains_pause_memory ... ⏭️ /tmp/.tmpEGL96p/test-repo sync task cancelled (wedge abort or shutdown — outcome unknown, not failed; retaining pause memory)
+⚠️ sync failed for /tmp/.tmpEGL96p/test-repo: boom
+ok
+test daemon::tests::test_classification_backoff_secs_matrix ... ok
+test daemon::tests::test_classification_pending_watchdog_due ... ok
+test daemon::tests::test_classification_result_expired_matrix ... ok
+test daemon::tests::test_commit_only_idle_skip_matrix ... ok
+test daemon::tests::test_configure_publish_upstream_if_missing_adds_github_upstream ... [main (root-commit) 8fc2fd7] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+🔧 /tmp/.tmpK3b2px/test-repo configured publish upstream for main on github
+ok
+test daemon::tests::test_configure_publish_upstream_if_missing_preserves_existing_upstream ... ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_merge_config ... [main (root-commit) 8fc2fd7] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_publish_upstream_reports_nonzero_remote_config ... [main (root-commit) 8fc2fd7] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_configure_standard_remotes_if_missing_adds_remotes ... 🔧 /tmp/.tmpgL3it1/test-repo configuring standard mirror remotes
+ok
+test daemon::tests::test_configure_standard_remotes_if_missing_preserves_existing_remote ... ok
+test daemon::tests::test_count_unpushed_vs_configured_remotes_detects_new_remote_head ... ok
+test daemon::tests::test_cyclic_lock_sweep_retains_fresh_lock ... ok
+test daemon::tests::test_cyclic_lock_sweep_retains_in_use_lock ... 🧹 index.lock sweep: found index.lock in /tmp/.tmpI84pvH (checking fuser...)
+⏳ index.lock sweep: retaining /tmp/.tmpI84pvH/.git/index.lock because fuser reports it is in use
+ok
+test daemon::tests::test_cyclic_lock_sweep_retains_on_fuser_error ... 🧹 index.lock sweep: found index.lock in /tmp/.tmp3vmwo3 (checking fuser...)
+⚠️ index.lock sweep: retaining /tmp/.tmp3vmwo3/.git/index.lock because fuser could not verify it is stale: fuser missing
+ok
+test daemon::tests::test_cyclic_lock_sweep_skips_fuser_when_no_lock ... ok
+test daemon::tests::test_dispatch_starved_boot_grace ... ok
+test daemon::tests::test_dispatch_starved_needs_dirty_and_no_dispatch ... ok
+test daemon::tests::test_fuser_failure_is_not_treated_as_unused ... ok
+test daemon::tests::test_hold_warn_due_gates_on_sixty_seconds ... ok
+test daemon::tests::test_m4_helper_structurally_unified ... 🔁 synced /tmp/.tmpARZros/test-repo
+⚠️ /tmp/.tmpARZros/test-repo committed but push failed (will retry)
+⚠️ sync failed for /tmp/.tmpARZros/test-repo: test error
+ok
+test daemon::tests::test_mirror_push_paused_skips_sick_reprobes_stale ... ok
+test daemon::tests::test_pile_alert_due_matrix ... ok
+test daemon::tests::test_pile_watch_sample_accumulates_arrival_and_drain ... ok
+test daemon::tests::test_prune_expired_cooldowns_keeps_owed_backoff ... ok
+test daemon::tests::test_prune_repo_liveness_drops_dead_repos ... ok
+test daemon::tests::test_record_push_failure_increments_counter ... 🔓 unstuck: /tmp/dracon-sync-test-failure-increments-3321822
+ok
+test daemon::tests::test_record_push_failure_redacts_url_credentials ... 🔓 unstuck: /tmp/dracon-sync-test-redact-ledger-3321822
+ok
+test daemon::tests::test_record_push_failure_returns_repo_state ... 🔓 unstuck: /tmp/dracon-sync-test-first-call-stuck-since-3321822
+ok
+test daemon::tests::test_record_push_success_clears_entry ... ✅ push recovered for /tmp/dracon-sync-test-success-clears-3321822
+ok
+test daemon::tests::test_refresh_publish_upstream_fetches_primary_remote_ref ... [main (root-commit) 0019aa3] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+To /tmp/.tmpVpkPdw/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'github/main'.
+ok
+test daemon::tests::test_refresh_publish_upstream_skips_origin_when_ssh_mirrors_exist ... [main (root-commit) 0019aa3] initial
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ok
+test daemon::tests::test_stage_cooldown_remaining_missing_is_none ... ok
+test daemon::tests::test_stage_cooldown_remaining_removes_expired_and_keeps_active ... ok
+test daemon::tests::test_stale_result_refresh_only_when_dirty_and_expired ... ok
+test daemon::tests::test_startup_lock_cleanup_resolves_linked_worktree_gitdir ... 🧹 index.lock sweep: found index.lock in /tmp/.tmp3KFpUc/linked (checking fuser...)
+🧹 index.lock sweep: removed stale lock in /tmp/.tmp3KFpUc/linked (fuser-clean, age over 120s)
+ok
+test daemon::tests::test_startup_lock_cleanup_resolves_nested_submodule_gitdir ... 🧹 index.lock sweep: found index.lock in /tmp/.tmpgzlKWC/parent/sub (checking fuser...)
+🧹 index.lock sweep: removed stale lock in /tmp/.tmpgzlKWC/parent/sub (fuser-clean, age over 120s)
+ok
+test daemon::tests::test_status_inspection_wedged_bound ... ok
+test daemon::tests::test_status_pipeline_collects_ready_while_slow_pending ... ok
+test daemon::tests::test_status_pipeline_result_carries_spawn_instant ... ok
+test daemon::tests::test_stuck_ledger_concurrent_increments_lose_no_updates ... ok
+test daemon::tests::test_stuck_repo_entry_clone ... ok
+test daemon::tests::test_stuck_repo_entry_debug ... ok
+test daemon::tests::test_stuck_repo_entry_deserialization ... ok
+test daemon::tests::test_stuck_repo_entry_equality ... ok
+test daemon::tests::test_stuck_repo_entry_path_stored_correctly ... ok
+test daemon::tests::test_stuck_repo_entry_serialization ... ok
+test daemon::tests::test_stuck_repo_entry_timestamp_ordering ... ok
+test daemon::tests::test_stuck_repo_expiry_constant ... ok
+test daemon::tests::test_stuck_repo_expiry_not_zero ... ok
+test daemon::tests::test_stuck_repo_expiry_one_day ... ok
+test daemon::tests::test_transient_forge_outage_does_not_burn_stuck_budget ... 🔓 unstuck: /tmp/dracon-sync-test-transient-outage-budget-3321822
+ok
+test daemon::tests::test_unavailable_fuser_cannot_remove_index_lock ... ok
+test daemon::tests::test_warn_aging_hold_throttles_per_episode ... ⚠️ held-repo held 'status-pending' for 61s — still undispatched (starves at 600s)
+ok
+test daemon::tests::v011389_inflight_caps_are_pinned_and_ordered ... ok
+test daemon::tests::wedge_cancellation_waits_for_worker_teardown_before_redispatch ... ok
+test daemon::tests::wedged_status_task_aborted_and_slot_freed ... ok
+
+test result: ok. 138 passed; 0 failed; 0 ignored; 0 measured; 1174 filtered out; finished in 13.92s
+
