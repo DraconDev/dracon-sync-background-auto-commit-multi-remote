@@ -20,10 +20,10 @@ index 44a56b5..c82a2c2 100644
  ```bash
 diff --git a/docs/design/current-health-2026-10-15.md b/docs/design/current-health-2026-10-15.md
 new file mode 100644
-index 0000000..e8018c2
+index 0000000..5755861
 --- /dev/null
 +++ b/docs/design/current-health-2026-10-15.md
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,134 @@
 +# Repository health: history versus current convergence
 +
 +## Two independent axes
@@ -57,7 +57,10 @@ index 0000000..e8018c2
 +
 +Excluded counts remain visible alongside mixed eligible work. A stale historical
 +warning cannot override a fresh started worker; a completed old push cannot
-+override queued new edits. No operation heartbeat is invented, and reserve age
++override queued new edits. Only explicit `PUSH_STUCK` budget exhaustion proves
++budget-based stalling; legacy `STUCK`/`FAIL` may be a single retryable failure.
++Likewise legacy `STUCK_PULL` means behind-with-upstream, not a proven pull blocker;
++ordinary behind work follows actual scheduler evidence or remains unknown. No operation heartbeat is invented, and reserve age
 +is never called execution age or last progress.
 +
 +"Clean" is a local/current-upstream observation, NOT an all-mirror verification,
@@ -131,14 +134,21 @@ index 0000000..e8018c2
 +
 +| Gate | Result | Evidence |
 +| --- | --- | --- |
-+| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,411 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
++| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,412 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
 +| `cargo clippy --workspace --locked --jobs 1 -- -D warnings` | passed | `clippy-final.log` |
 +| `cargo build --release --locked --jobs 1` | passed | `release-final.log` |
 +| `cargo deny check` | advisories, bans, licenses, sources all passed | `deny-final.log` |
 +| `target/release/dracon-sync repos --legend` | exited 0; shipped CLI legend captured | `legend.txt` |
 +
-+These paths are relative to the evidence directory above. Independent source
-+review is still pending; this is not completion or live deployment evidence.
++These paths are relative to the evidence directory above. The initial independent
++source review (`review-initial.md`) found two P1 classification issues: retryable
++push failure could falsely establish a stall, and ordinary behind work could
++falsely establish a pull blocker. Both are corrected as described above. Added
++output fixtures cover legacy STUCK/FAIL without scheduler evidence, behind work
++across absent/working/queued/retrying/blocked observations, and retention of hard
++pack guards even over started work. The final logs above were rerun after both
++corrections. Follow-up independent review remains pending; this is not completion
++or live deployment evidence.
 +No service restart, binary installation or fleet fault injection occurred.
 +
 +The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
@@ -150,10 +160,10 @@ index 0000000..e8018c2
 +this workspace-qualified item.
 diff --git a/src/current_health.rs b/src/current_health.rs
 new file mode 100644
-index 0000000..e53733e
+index 0000000..7165ab4
 --- /dev/null
 +++ b/src/current_health.rs
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,142 @@
 +//! Current convergence and historical observations are independent axes.
 +#[cfg(test)]
 +#[path = "current_health_tests.rs"]
@@ -194,10 +204,9 @@ index 0000000..e53733e
 +
 +pub(super) fn classify(row: &RepoReportRow) -> Current {
 +    let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
-+    let blocked = row.pack_too_large
-+        || row.missing_objects > 0
-+        || row.push_status == "BROKEN"
-+        || row.state_flags.iter().any(|f| f == "STUCK_PULL");
++    let blocked = row.pack_too_large || row.missing_objects > 0 || row.push_status == "BROKEN";
++    // Legacy STUCK_PULL means merely behind-with-upstream, not an actual
++    // pull blocker. A current blocker requires affirmative scheduler evidence.
 +    if blocked {
 +        return Current::Blocked;
 +    }
@@ -226,7 +235,9 @@ index 0000000..e53733e
 +            Phase::Blocked => return Current::Blocked,
 +        }
 +    }
-+    if row.ahead > 0 && matches!(row.push_status.as_str(), "PUSH_STUCK" | "STUCK" | "FAIL") {
++    // Only PUSH_STUCK is produced by explicit exhausted-budget evidence.
++    // Legacy STUCK/FAIL can mean a single recent failure with retries left.
++    if row.ahead > 0 && row.push_status == "PUSH_STUCK" {
 +        return Current::Stalled;
 +    }
 +    if row.push_status == "INTENTIONAL" {
@@ -297,10 +308,10 @@ index 0000000..e53733e
 +}
 diff --git a/src/current_health_tests.rs b/src/current_health_tests.rs
 new file mode 100644
-index 0000000..c25dbae
+index 0000000..7c8bb28
 --- /dev/null
 +++ b/src/current_health_tests.rs
-@@ -0,0 +1,246 @@
+@@ -0,0 +1,302 @@
 +use super::*;
 +
 +#[test]
@@ -417,6 +428,30 @@ index 0000000..c25dbae
 +            "UNKNOWN",
 +        ),
 +        (
++            "recent failure with retry budget remaining",
++            false,
++            1,
++            None,
++            None,
++            None,
++            0,
++            "STUCK",
++            Current::Unknown,
++            "UNKNOWN",
++        ),
++        (
++            "legacy failure without scheduler evidence",
++            false,
++            1,
++            None,
++            None,
++            None,
++            0,
++            "FAIL",
++            Current::Unknown,
++            "UNKNOWN",
++        ),
++        (
 +            "budget exhausted",
 +            false,
 +            1,
@@ -518,6 +553,38 @@ index 0000000..c25dbae
 +                "history and convergence must both remain visible: {table}"
 +            );
 +        }
++    }
++}
++
++#[test]
++fn behind_counts_do_not_prove_a_pull_blocker() {
++    for (phase, expected, visible) in [
++        (None, Current::Unknown, "UNKNOWN"),
++        (Some(Phase::Working), Current::Working, "WORKING"),
++        (Some(Phase::Queued), Current::Queued, "QUEUED"),
++        (Some(Phase::Retrying), Current::Retrying, "RETRYING"),
++        (Some(Phase::Blocked), Current::Blocked, "BLOCKED"),
++    ] {
++        let mut row = RepoReportRow::for_tests("/fixture");
++        row.behind = 2;
++        row.state_flags.push("STUCK_PULL".into());
++        row.health.scheduler = phase.map(|phase| RepoEvidence {
++            phase: Some(phase),
++            ..Default::default()
++        });
++        assert_eq!(classify(&row), expected, "phase={phase:?}");
++        row.health.current = classify(&row);
++        let json = serde_json::to_value(&row).unwrap();
++        assert_eq!(
++            json["health"]["current"],
++            serde_json::to_value(expected).unwrap()
++        );
++        let table = super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200)
++            .to_string();
++        assert!(table.contains(visible), "phase={phase:?}: {table}");
++        // Real history/pack safety guards must still win over started work.
++        row.pack_too_large = true;
++        assert_eq!(classify(&row), Current::Blocked);
 +    }
 +}
 +

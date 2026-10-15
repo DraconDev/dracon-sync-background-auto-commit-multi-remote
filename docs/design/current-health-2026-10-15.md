@@ -31,7 +31,10 @@ field **REF AGE**, and detail calls it **upstream commit age**.
 
 Excluded counts remain visible alongside mixed eligible work. A stale historical
 warning cannot override a fresh started worker; a completed old push cannot
-override queued new edits. No operation heartbeat is invented, and reserve age
+override queued new edits. Only explicit `PUSH_STUCK` budget exhaustion proves
+budget-based stalling; legacy `STUCK`/`FAIL` may be a single retryable failure.
+Likewise legacy `STUCK_PULL` means behind-with-upstream, not a proven pull blocker;
+ordinary behind work follows actual scheduler evidence or remains unknown. No operation heartbeat is invented, and reserve age
 is never called execution age or last progress.
 
 "Clean" is a local/current-upstream observation, NOT an all-mirror verification,
@@ -105,14 +108,21 @@ Final post-patch qualification:
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,411 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
+| `cargo test --workspace --locked --jobs 1 -- --nocapture` | 2,412 passed, 0 failed, 25 existing ignored across 35 summaries | `workspace-final.log` |
 | `cargo clippy --workspace --locked --jobs 1 -- -D warnings` | passed | `clippy-final.log` |
 | `cargo build --release --locked --jobs 1` | passed | `release-final.log` |
 | `cargo deny check` | advisories, bans, licenses, sources all passed | `deny-final.log` |
 | `target/release/dracon-sync repos --legend` | exited 0; shipped CLI legend captured | `legend.txt` |
 
-These paths are relative to the evidence directory above. Independent source
-review is still pending; this is not completion or live deployment evidence.
+These paths are relative to the evidence directory above. The initial independent
+source review (`review-initial.md`) found two P1 classification issues: retryable
+push failure could falsely establish a stall, and ordinary behind work could
+falsely establish a pull blocker. Both are corrected as described above. Added
+output fixtures cover legacy STUCK/FAIL without scheduler evidence, behind work
+across absent/working/queued/retrying/blocked observations, and retention of hard
+pack guards even over started work. The final logs above were rerun after both
+corrections. Follow-up independent review remains pending; this is not completion
+or live deployment evidence.
 No service restart, binary installation or fleet fault injection occurred.
 
 The first dependency audit found four rustls advisories (RUSTSEC-2026-0346 through
