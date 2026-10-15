@@ -224,6 +224,20 @@ fn find_anchor_root(parent: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
     None
 }
 
+/// Cargo and other tools mark disposable cache trees with CACHEDIR.TAG.
+/// This prunes *repository discovery only*: it never excludes tracked source
+/// named `target`, changes staging policy, or deletes anything. An explicitly
+/// configured watch root is still inspected even when it has a cache tag.
+fn is_tagged_cache(dir: &Path) -> bool {
+    use std::io::Read;
+    const SIGNATURE: &[u8] = b"Signature: 8a477f597d28d172789f06886806bc55";
+    let Ok(mut file) = std::fs::File::open(dir.join("CACHEDIR.TAG")) else {
+        return false;
+    };
+    let mut prefix = [0; SIGNATURE.len()];
+    file.read_exact(&mut prefix).is_ok() && prefix == SIGNATURE
+}
+
 fn discover_git_repos_recursive(
     dir: &Path,
     excluded_dir_names: &BTreeSet<String>,
@@ -274,7 +288,48 @@ fn discover_git_repos_recursive(
         } else if name.starts_with('.') {
             continue;
         }
+        if is_tagged_cache(&path) {
+            continue;
+        }
         discover_git_repos_recursive(&path, excluded_dir_names, repos, depth + 1, max_depth);
+    }
+}
+
+#[cfg(test)]
+mod cache_discovery_tests {
+    use super::*;
+
+    #[test]
+    fn prunes_tagged_build_cache_not_source_named_target_or_nested_repos() {
+        let root = tempfile::tempdir().unwrap();
+        let cache = root.path().join("target");
+        std::fs::create_dir_all(cache.join("debug/deps/fake/.git")).unwrap();
+        std::fs::write(cache.join("CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55\n# cargo cache\n").unwrap();
+        let source = root.path().join("vendor/cc/src/target");
+        std::fs::create_dir_all(source.join(".git")).unwrap();
+        let nested = root.path().join("utility");
+        std::fs::create_dir_all(nested.join(".git")).unwrap();
+        let mut found = Vec::new();
+        discover_git_repos_recursive(root.path(), &BTreeSet::new(), &mut found, 0, 8);
+        assert!(found.contains(&source), "source named target must remain discoverable");
+        assert!(found.contains(&nested), "nested standalone repos must remain discoverable");
+        assert!(!found.iter().any(|path| path.starts_with(&cache)));
+        // Markers never delete or modify cached/source bytes.
+        assert!(cache.join("debug/deps/fake/.git").is_dir());
+        assert!(source.join(".git").is_dir());
+    }
+
+    #[test]
+    fn malformed_tag_is_not_a_cache_and_explicit_root_is_still_scanned() {
+        let root = tempfile::tempdir().unwrap();
+        let explicit = root.path().join("target");
+        std::fs::create_dir_all(explicit.join("nested/.git")).unwrap();
+        std::fs::write(explicit.join("CACHEDIR.TAG"), "not a cache signature").unwrap();
+        assert!(!is_tagged_cache(&explicit));
+        std::fs::write(explicit.join("CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55").unwrap();
+        let mut found = Vec::new();
+        discover_git_repos_recursive(&explicit, &BTreeSet::new(), &mut found, 0, 4);
+        assert_eq!(found, vec![explicit.join("nested")]);
     }
 }
 

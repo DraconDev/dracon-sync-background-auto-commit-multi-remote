@@ -57,5 +57,36 @@ Bounded validation: `timeout 180 cargo test -p dracon-sync --locked status_`,
 `timeout 400 cargo deny check` still fails on existing dependency advisories;
 bans, licenses and sources pass. No advisory exceptions were added.
 
+## Follow-up: synchronous discovery was still starving result collection
+
+The first deployment did not resolve sustained fleet convergence. A bounded
+`strace` of the daemon coordinator at 14:49 showed `openat`/`getdents64` walking
+`dracon-utilities/target/debug/deps` (19 GiB locally) while its status reservations
+aged. At another observation the service had no live Git children despite status
+holds continuing. The trace proves coordinator-side build-cache enumeration;
+it does not prove the precise cause of every earlier filter timeout.
+
+The global `exclude_dir_names` intentionally omits `target` because using it
+for cleanup/staging had previously damaged vendored source named `target`.
+Restoring that blanket exclusion would regress source safety. Instead:
+
+- Discovery alone recognizes the standard 43-byte `CACHEDIR.TAG` signature and
+  prunes those explicitly tagged cache trees. No file is deleted or unstaged;
+  untagged source named `target` remains discoverable, as do nested standalone
+  utility repos. Explicitly watched roots remain discoverable.
+- `daemon/discovery_scheduler.rs` performs discovery in one background blocking
+  job, refreshing at most every 30s. Slow discovery cannot block the coordinator.
+  There is never more than one walk in flight, even when a filesystem stalls.
+- Scheduling retains the last complete snapshot for the same watch configuration.
+  Initial discovery and configuration changes do not supply partial/old-scope
+  snapshots to retain/prune operations. Completed results from an obsolete
+  configuration are discarded. Errors retain the last valid snapshot and retry
+  after cooldown; a walk exceeding 60s emits a warning without spawning another.
+
+Regression tests cover cache/source distinctions, explicit roots, nested repos,
+blocked discovery retaining a usable snapshot without duplicate walks, and watch
+configuration changes. All 22 discovery tests pass. Full workspace tests,
+Clippy and the release build pass after these changes.
+
 Release deployment and sustained live convergence must be checked independently;
 unit tests and a successful restart do not prove every fleet gate passes.

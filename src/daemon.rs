@@ -12,6 +12,8 @@ use std::time::{Duration, Instant};
 use tokio::signal::unix::SignalKind;
 use tokio::time::sleep;
 
+mod discovery_scheduler;
+
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
 /// Conditional eprintln based on verbosity level.
@@ -7004,6 +7006,7 @@ pub(crate) async fn run_daemon(
     // head-of-line-blocks the repos behind it. Spawn instants back
     // the 30s result-staleness bound.
     let mut status_jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
+    let mut repository_discovery = discovery_scheduler::Discovery::new();
     let mut status_pending: HashSet<PathBuf> = HashSet::new();
     let mut status_spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
     // Failed inspectors must yield the global slots to other repositories.
@@ -7188,12 +7191,17 @@ pub(crate) async fn run_daemon(
         let mut next_quiet_deadline: Option<Instant> = None;
         let roots = policy.watch_root_paths();
         let excluded_dir_names = excluded_dir_names_set(&policy);
-        let repos = discover_git_repos(
-            &roots,
-            &excluded_dir_names,
-            &policy.exclude_repos,
-            Some(&policy.system_repo),
-        );
+        let Some(repos) = repository_discovery.poll(discovery_scheduler::Scope {
+            roots: roots.clone(),
+            excluded_dirs: excluded_dir_names.clone(),
+            excluded_repos: policy.exclude_repos.clone(),
+            system_repo: policy.system_repo.clone(),
+        }).await else {
+            // Initial discovery or changed watch configuration: do not prune
+            // fleet state using an empty/partial/previous-scope snapshot.
+            sleep_responsive(&reload_notify, || freeze_reason(&policy_path).is_some(), Duration::from_secs(1)).await;
+            continue;
+        };
         note_discovered_repos(&policy_path, &repos);
         // Submodule pass: configure multi-remote push for
         // nested-on-`main` submodules. CHANGED 2026-09-09 (audit F33):
