@@ -15,18 +15,42 @@ pub(super) struct SyncRecovery {
 impl SyncRecovery {
     /// Copy-only view: queued reservations are not execution, and a cancel
     /// request does not release ownership. Never mutates recovery state.
-    pub(super) fn observations(&self, now: Instant) -> std::collections::BTreeMap<PathBuf, super::scheduler_evidence::RepoEvidence> {
+    pub(super) fn observations(
+        &self,
+        now: Instant,
+    ) -> std::collections::BTreeMap<PathBuf, super::scheduler_evidence::RepoEvidence> {
         use super::scheduler_evidence::{Phase, RepoEvidence};
         let mut result = std::collections::BTreeMap::new();
         for (repo, until) in &self.retry_after {
             if *until > now {
-                result.insert(repo.clone(), RepoEvidence { phase: Some(Phase::Retrying), retry_secs: Some(until.duration_since(now).as_secs().max(1)), ..Default::default() });
+                result.insert(
+                    repo.clone(),
+                    RepoEvidence {
+                        phase: Some(Phase::Retrying),
+                        retry_secs: Some(until.duration_since(now).as_secs().max(1)),
+                        ..Default::default()
+                    },
+                );
             }
         }
         for (repo, started) in &self.running {
-            let phase = if self.cancelling.contains(repo) { Phase::Cancelling }
-                else if started.get().is_some() { Phase::Working } else { Phase::Queued };
-            result.insert(repo.clone(), RepoEvidence { phase: Some(phase), execution_secs: started.get().map(|at| now.saturating_duration_since(*at).as_secs()), ..Default::default() });
+            let phase = if self.cancelling.contains(repo) {
+                Phase::Cancelling
+            } else if started.get().is_some() {
+                Phase::Working
+            } else {
+                Phase::Queued
+            };
+            result.insert(
+                repo.clone(),
+                RepoEvidence {
+                    phase: Some(phase),
+                    execution_secs: started
+                        .get()
+                        .map(|at| now.saturating_duration_since(*at).as_secs()),
+                    ..Default::default()
+                },
+            );
         }
         result
     }

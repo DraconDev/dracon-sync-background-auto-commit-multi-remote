@@ -14,6 +14,7 @@ use tokio::time::sleep;
 
 mod discovery_scheduler;
 mod recovery;
+pub(crate) mod scheduler_evidence;
 #[cfg(test)]
 mod recovery_tests;
 #[cfg(test)]
@@ -7242,6 +7243,7 @@ pub(crate) async fn run_daemon(
         // the current cycle ending.
         if let Some(reason) = freeze_reason(&policy_path) {
             eprintln!("⏸️ sync daemon paused ({})", reason);
+            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             sleep_responsive(
                 &reload_notify,
                 || freeze_reason(&policy_path).is_none(),
@@ -7262,6 +7264,7 @@ pub(crate) async fn run_daemon(
         }).await else {
             // Initial discovery or changed watch configuration: do not prune
             // fleet state using an empty/partial/previous-scope snapshot.
+            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("discovering"));
             sleep_responsive(&reload_notify, || freeze_reason(&policy_path).is_some(), Duration::from_secs(1)).await;
             continue;
         };
@@ -7279,6 +7282,7 @@ pub(crate) async fn run_daemon(
         // Re-discover after materialize so the newly created
         // worktrees are picked up by the standard report path.
         let mut to_sync: Vec<(PathBuf, SyncTaskJoin)> = Vec::new();
+        let mut evidence_eligible = HashSet::new();
         let repo_set: BTreeSet<PathBuf> = repos.iter().cloned().collect();
 
         activity.retain(|repo, _| {
@@ -7377,6 +7381,7 @@ pub(crate) async fn run_daemon(
 
         if let Some(reason) = freeze_reason(&policy_path) {
             eprintln!("⏸️ sync daemon paused ({})", reason);
+            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("paused"));
             // CHANGED 2026-08-11 (audit LOW): responsive sleep — a
             // `resume` (marker removed) or SIGHUP wakes this early
             // instead of waiting out a full scan_interval.
@@ -8933,6 +8938,7 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
+            if effective_dirty { evidence_eligible.insert(repo.clone()); }
 
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
@@ -9631,6 +9637,15 @@ pub(crate) async fn run_daemon(
         let persist_now = Instant::now();
         prune_expired_cooldowns(&mut max_fail_cooldowns, persist_now);
         save_dispatch_holds(&dispatch_holds, persist_now);
+        let evidence_probes = status_pending.union(&classification_pending).cloned().collect();
+        let evidence_maintenance = provisioning_jobs.keys().cloned().collect();
+        let retry_maps = [&status_retry_after, &classification_cooldowns,
+            &branch_retry_after, &max_fail_cooldowns, &stage_cooldowns];
+        scheduler_evidence::save(&scheduler_evidence::build(scheduler_evidence::Inputs {
+            activity: &activity, eligible: &evidence_eligible, probes: &evidence_probes,
+            maintenance: &evidence_maintenance, retries: &retry_maps,
+            recovery: &sync_recovery, admitted: &last_dispatch,
+        }, persist_now, scheduler_evidence::epoch()));
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.
@@ -9980,6 +9995,7 @@ pub(crate) async fn run_daemon(
     // Removing the file signals to `repos` that the daemon is no
     // running, so no rows can be "actively being processed".
     save_in_flight(&HashSet::new());
+    scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("stopped"));
     Ok(())
 }
 
