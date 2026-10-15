@@ -30,7 +30,10 @@ impl Fleet {
         String::from_utf8(out.stdout).unwrap().trim().to_owned()
     }
     fn new() -> Self {
-        let root = tempfile::tempdir().unwrap();
+        let root = tempfile::Builder::new()
+            .prefix("dracon-failure-recovery-")
+            .tempdir_in("/tmp")
+            .unwrap();
         let watch = root.path().join("watched");
         std::fs::create_dir(&watch).unwrap();
         let mut repos = Vec::new();
@@ -39,7 +42,7 @@ impl Fleet {
             let bare = root.path().join(format!("{name}.git"));
             Self::git(
                 root.path(),
-                &["init", "--bare", "-q", bare.to_str().unwrap()],
+                &["init", "--bare", "-q", "-b", "main", bare.to_str().unwrap()],
             );
             Self::git(
                 root.path(),
@@ -376,6 +379,12 @@ async fn episode() {
         assert_eq!(std::fs::read(bucket.join("data")).unwrap(), raw);
         assert!(!bucket.join(".git/simulated-store").exists());
         std::fs::write(healthy.join("data"), format!("healthy progress {tick}\n")).unwrap();
+        assert!(
+            !crate::git::inspect_status(healthy, Duration::from_secs(3))
+                .await
+                .unwrap()
+                .is_clean
+        );
         fleet.sync(healthy, capacity.clone()).await;
         healthy_heads.push(Fleet::head(healthy));
         assert_ne!(healthy_heads[tick as usize], healthy_baseline);
@@ -482,4 +491,23 @@ async fn episode() {
     stopped(&filter_pids).await;
     stopped(&hook_pids).await;
     eprintln!("PASS: discovery joins once; cleared filter/hook/storage faults recover; verified references publish without raw blobs or duplicate commits; all permits returned");
+
+    // Regression exposed by this episode: post-commit cleanup must not queue
+    // deletion of an unobserved alternate default behind the slow push lane.
+    // When an alternate IS observed, deletion still runs and honors hooks.
+    Fleet::script(healthy, "fixture-hooks/pre-push", "#!/bin/sh\necho attempt >> .git/prune-attempts\nif [ -e .git/reject-prune ]; then echo 'pre-push: reject prune' >&2; exit 1; fi\n");
+    crate::git::prune_other_default_branch(healthy).await;
+    assert_eq!(Fleet::count(healthy, "prune-attempts"), 0);
+    Fleet::git(healthy, &["push", "origin", "HEAD:refs/heads/master"]);
+    assert!(crate::git::remote_branch_exists(healthy, "master"));
+    std::fs::write(healthy.join(".git/reject-prune"), "reject").unwrap();
+    crate::git::prune_other_default_branch(healthy).await;
+    assert_eq!(Fleet::count(healthy, "prune-attempts"), 2);
+    assert!(!Fleet::git(healthy, &["ls-remote", "origin", "refs/heads/master"]).is_empty());
+    std::fs::remove_file(healthy.join(".git/reject-prune")).unwrap();
+    crate::git::prune_other_default_branch(healthy).await;
+    assert_eq!(Fleet::count(healthy, "prune-attempts"), 3);
+    assert!(Fleet::git(healthy, &["ls-remote", "origin", "refs/heads/master"]).is_empty());
+    assert_eq!(Fleet::remote(healthy), Fleet::head(healthy));
+    eprintln!("PASS: absent alternate pruning issues no push; observed alternate deletion still honors rejecting hooks and recovers");
 }
