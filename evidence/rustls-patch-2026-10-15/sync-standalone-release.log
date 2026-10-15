@@ -197,3 +197,9 @@
    Compiling clap_derive v4.6.7
    Compiling clap_builder v4.6.7
    Compiling zbus v5.19.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling toml_edit v0.22.27
+   Compiling dirs-sys v0.5.0
+   Compiling serde_urlencoded v0.7.1
+   Compiling console v0.16.6
+   Compiling hyper-tls v0.6.0
