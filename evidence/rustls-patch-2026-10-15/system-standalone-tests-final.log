@@ -564,4 +564,43 @@ test tests::test_graduated_nice_value_memory_tiers ... ok
 test tests::test_graduated_nice_value_negative_base_clamped ... ok
 test tests::tmp_e2e_fast_path_bypass_takes_fresh_unheld ... ok
 test tests::tmp_e2e_fast_path_keeps_open_held_tree ... ok
-test tests::tmp_e2e_fast_path_owns_only_the_general_skipped_window ... 
+test tests::tmp_e2e_fast_path_owns_only_the_general_skipped_window ... ok
+test tests::tmp_e2e_fast_path_zero_age_disables ... ok
+test tests::tmp_e2e_match_covers_glob_shapes ... ok
+test tests::tmp_entry_must_remain_under_validated_root ... ok
+test tests::tree_has_fresh_content_fails_closed_on_walk_errors ... ok
+test tests::truncate_log_handles_missing_trailing_newline_and_blank_lines ... ok
+test tests::truncate_log_preserves_non_utf8_lines_verbatim ... ok
+test tests::truncate_log_preserves_open_writer_inode ... ok
+test zram_tests::memory_percent_default_and_bounds ... ok
+
+test result: ok. 486 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.41s
+
+     Running tests/events_cli.rs (target/debug/deps/events_cli-1f75b709ad8599e7)
+
+running 4 tests
+test events_json_includes_rotated_segment_before_active_segment ... ok
+test events_json_with_empty_log_emits_empty_jsonl ... ok
+test events_json_with_filter_matching_nothing_emits_empty_jsonl ... ok
+test events_json_with_missing_log_emits_empty_jsonl ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/guard_service.rs (target/debug/deps/guard_service-55386cf42771531f)
+
+running 12 tests
+test disabled_policy_exits_cleanly_without_restart_trigger ... ok
+test malformed_policy_exits_with_config_status ... ok
+test missing_explicit_policy_exits_with_config_status ... ok
+test readme_documents_the_reload_path ... ok
+test shipped_unit_wires_execreload_to_sighup ... ok
+test status_reports_canonical_fallback_when_no_policy_exists ... ok
+test status_reports_explicit_policy_override_in_human_and_json_modes ... ok
+test status_reports_first_discovered_policy_in_human_and_json_modes ... ok
+test status_reports_missing_explicit_policy_override ... ok
+test unit_per_pass_comment_agrees_with_the_readme ... ok
+test watchdog_execstart_matches_install_destination ... ok
+test watchdog_unit_carries_baseline_sandbox ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
