@@ -1679,4 +1679,156 @@ test standard_files::tests::test_symlink_directory_target_cannot_write_or_delete
 test standard_files::tests::test_tilde_source_rejected ... ok
 test standard_files::tests::test_warns_when_template_missing ... ok
 test storage::tests::attribute_query_caps_output_and_deadlines_blocked_input ... ok
-test storage::tests::attribute_query_kills_descendants_holding_stdout_after_parent_exit ... 
+test storage::tests::attribute_query_kills_descendants_holding_stdout_after_parent_exit ... ok
+test storage::tests::attribute_response_rejects_duplicates_excess_fields_and_large_values ... ok
+test storage::tests::batched_attribute_inventory_drains_large_pipes_and_keeps_literal_names ... ok
+test storage::tests::cold_clone_and_staged_attribute_removal_cannot_disable_storage_guard ... ok
+test storage::tests::comments_and_storage_named_patterns_do_not_activate_guard ... ok
+test storage::tests::configured_storage_commits_verified_tree_and_preserves_rejected_index ... ok
+test storage::tests::default_disabled_explicit_false_and_complete_rule_replacement ... ok
+test storage::tests::exclusions_and_large_unmatched_files_remain_visible ... ok
+test storage::tests::history_inventory_counts_unique_reachable_blobs_not_current_tree_bytes ... ok
+test storage::tests::history_inventory_handles_unborn_repository ... ok
+test storage::tests::included_driver_settings_require_an_explicit_guard_binding ... ok
+test storage::tests::journal_status_is_read_only_and_redacts_source_metadata ... ok
+test storage::tests::malformed_repo_storage_policy_is_a_hard_error_for_planning ... ok
+test storage::tests::ordinary_repo_has_no_storage_commit_or_guard_requirement ... ok
+test storage::tests::parent_inventory_does_not_follow_nested_standalone_repository ... ok
+test storage::tests::portable_detection_refuses_missing_blobs_oversize_and_symlink_indexes ... ok
+test storage::tests::real_attribute_query_drains_full_pipes_and_enforces_input_budget ... ok
+test storage::tests::real_git_inventory_is_read_only_ignores_payload_filters_and_reports_migration ... ok
+test storage::tests::reject_invalid_rules_and_secret_bearing_endpoints ... ok
+test storage::tests::reject_unapproved_backend_and_repo_backend_injection ... ok
+test storage::tests::repo_policy_symlinks_cannot_read_outside_repository ... ok
+test storage::tests::repository_cannot_downgrade_operator_backend_encryption ... ok
+test storage::tests::rule_order_threshold_and_no_universal_media_policy ... ok
+test storage::tests::staged_nested_macro_and_quoted_storage_declarations_require_binding ... ok
+test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... ok
+test storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes ... ok
+test storage::tests::symlinks_and_non_utf8_paths_are_not_silently_followed_or_conflated ... ok
+test stuck_route::tests::cause_falls_back_to_first_lines ... ok
+test stuck_route::tests::dedups_same_tip_episode ... ok
+test stuck_route::tests::new_tip_is_a_new_episode ... ok
+test stuck_route::tests::rederive_files_despite_misclassified_summary ... warning: You appear to have cloned an empty repository.
+ok
+test stuck_route::tests::routes_hook_refusal_with_guard_json_cause ... ok
+test stuck_route::tests::skips_repo_without_ledger ... ok
+test stuck_route::tests::skips_transient_network ... ok
+test stuck_route::tests::skips_young_stuck ... ok
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) ab38a10] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) ab38a10] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_matches_head ... ok
+test sync::tests::test_bootstrap_empty_repo_all_oversized_returns_false ... ok
+test sync::tests::test_bootstrap_empty_repo_auto_commit_disabled ... ok
+test sync::tests::test_bootstrap_empty_repo_creates_root_commit ... ok
+test sync::tests::test_bootstrap_empty_repo_nothing_to_stage ... ok
+test sync::tests::test_bootstrap_empty_repo_respects_gitignore ... ok
+test sync::tests::test_bootstrap_empty_repo_skips_oversized_files ... ok
+test sync::tests::test_bootstrap_empty_repo_unowned_skipped ... ok
+test sync::tests::test_bootstrap_sweep_measures_staged_blob_not_worktree ... ok
+test sync::tests::test_budget_caps_pathological_subject ... ok
+test sync::tests::test_cap_batch_union_caps_the_union_not_each_list ... ok
+test sync::tests::test_cap_batch_union_gitlink_priority ... ok
+test sync::tests::test_cap_batch_union_single_class_behavior_unchanged ... ok
+test sync::tests::test_cap_batch_union_under_limit_is_unchanged ... ok
+test sync::tests::test_check_untracked_threshold_above ... ok
+test sync::tests::test_check_untracked_threshold_below ... ok
+test sync::tests::test_check_untracked_threshold_gitignored_excluded ... ok
+test sync::tests::test_check_untracked_threshold_keeps_plain_untracked_dirs ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_multiple_nested_repos ... ok
+test sync::tests::test_check_untracked_threshold_subtracts_nested_repo ... ok
+test sync::tests::test_check_untracked_threshold_zero_disables ... ok
+test sync::tests::test_classify_failing_remotes_dedupes_divergence ... ok
+test sync::tests::test_classify_failing_remotes_empty_map ... ok
+test sync::tests::test_commit_guard_allows_path_owned_untrusted_identity ... ok
+test sync::tests::test_commit_guard_allows_trusted_identity ... ok
+test sync::tests::test_commit_guard_blocks_on_unparsable_override ... ok
+test sync::tests::test_commit_guard_blocks_untrusted_without_override ... ok
+test sync::tests::test_commit_guard_honors_owned_override_with_custom_identity ... ok
+test sync::tests::test_commit_only_commits_but_never_pushes ... [master (root-commit) 679e862] init
+ok
+test sync::tests::test_commit_only_control_pushes_and_fails ... [master (root-commit) 679e862] init
+ok
+test sync::tests::test_compute_blast_radius_merge_prefix ... ok
+test sync::tests::test_compute_diff_entries_propagates_filter_diff_failure ... ok
+test sync::tests::test_concurrent_staging_defers_one_cycle_then_converges ... [master (root-commit) ed1065e] init
+ok
+test sync::tests::test_count_ahead_commits_counts_all_when_never_pushed ... [main (root-commit) 49ed3ac] init
+ok
+test sync::tests::test_count_ahead_commits_no_origin ... ok
+test sync::tests::test_count_ahead_commits_returns_zero_when_synced ... [main (root-commit) 49ed3ac] init
+ok
+test sync::tests::test_count_ahead_commits_uses_mirror_ref_when_no_origin ... [main (root-commit) 89ac0c8] c1
+[main e9a8a1d] c2
+ok
+test sync::tests::test_degraded_success_reports_paused_not_synced ... [master (root-commit) 0b50a46] init
+To /tmp/.tmpo7jkeI/mirror.git
+ * [new branch]      master -> master
+ok
+test sync::tests::test_deletions_committed_when_intentional ... [master (root-commit) abec34d] init
+ok
+test sync::tests::test_doc_lock_predicates ... ok
+test sync::tests::test_docsonly_mirror_and_negative ... ok
+test sync::tests::test_excluded_tracked_file_edits_preserved_by_default ... ok
+test sync::tests::test_excluded_tracked_file_reverted_when_opted_in ... ok
+test sync::tests::test_ext_excludes_gitlink_paths ... warning: adding embedded git repository: sub.mod
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> sub.mod
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached sub.mod
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
+ok
+test sync::tests::test_extension_histogram_top3_order ... ok
+test sync::tests::test_failing_remote_names_formats_sorted ... ok
+test sync::tests::test_file_extension_cases ... ok
+test sync::tests::test_filter_only_reset_failure_is_non_fatal ... [master (root-commit) c811307] init
+ok
+test sync::tests::test_filter_only_skip_still_pushes_ahead ... ok
+test sync::tests::test_filter_only_skips_cli_diff_fallback ... [master (root-commit) f0b481b] init
+ok
+test sync::tests::test_forge_incident_declares_and_shields ... [master (root-commit) f0b481b] init
+[master (root-commit) f0b481b] init
+ok
+test sync::tests::test_goal_metrics_multibyte_utf8_no_panic ... ok
+test sync::tests::test_index_lock_contention_preserves_work_and_recovers ... [master (root-commit) a68512f] init
+ok
+test sync::tests::test_index_lock_contention_retries_then_succeeds ... [master (root-commit) c671060] init
+ok
+test sync::tests::test_is_backstop_active_above_threshold_and_old ... ok
+test sync::tests::test_is_backstop_active_above_threshold_but_recent ... ok
+test sync::tests::test_is_backstop_active_below_threshold ... ok
+test sync::tests::test_is_backstop_active_no_ahead_since ... ok
+test sync::tests::test_is_backstop_active_threshold_zero_disables ... ok
+test sync::tests::test_is_index_lock_failure_matches_only_lock_errors ... ok
+test sync::tests::test_lcp_scope_cases ... ok
+test sync::tests::test_lock_token_and_negative ... ok
+test sync::tests::test_m2_filter_only_bypass_decision ... ok
+test sync::tests::test_m3_configured_upstream_missing_tracking_ref_still_pushes ... [master (root-commit) 48d28b2] init
+ok
+test sync::tests::test_m3_mirror_only_no_unwanted_push ... [master (root-commit) 7a7ebce] init
+⚠️  Push contains commits authored by a test identity:
+   test@test
+   Amend the author identity before pushing (git commit --amend --reset-author).
+error: failed to push some refs to '/tmp/.tmpeI3A0n/mirror.git'
+ok
+test sync::tests::test_mirror_failure_ledger_names_remote ... [master (root-commit) 7a7ebce] init
