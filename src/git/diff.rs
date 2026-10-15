@@ -496,17 +496,40 @@ mod v011389_budget_tests {
     use std::time::Duration;
 
     #[test]
-    fn small_repos_keep_the_original_30s_budget() {
-        // Bit-for-bit the pre-v0.113.89 behavior: nothing about the other
-        // 33 repos on the fleet may change.
-        assert_eq!(filter_aware_budget_secs(0), Duration::from_secs(30));
-        assert_eq!(filter_aware_budget_secs(1), Duration::from_secs(33));
-        assert_eq!(filter_aware_budget_secs(3), Duration::from_secs(39));
+    fn base_covers_the_fixed_tree_scan_cost_of_a_warden_repo() {
+        // THE 2026-10-15 regression. Measured on the live dracon-platform
+        // (4.2 GiB own + 24 GiB nested, `* filter=dracon`) with only EIGHT
+        // modified entries: `git diff HEAD --name-only` took 53.5s, but the
+        // old 30 + 3n model gave it 54s — so it timed out every cycle and
+        // the repo stayed `🔴 STALLED`. The fixed cost of the pass (tree
+        // stat + standing up the filter) depends on repo size, NOT on the
+        // modified-file count the per-file term scales against, so a low
+        // count with an expensive tree fell under its own budget. Pin the
+        // invariant: even a single modified file must clear the measured
+        // fixed cost with real headroom.
+        const MEASURED_FIXED_COST_SECS: u64 = 53;
+        assert!(
+            filter_aware_budget_secs(1) > Duration::from_secs(MEASURED_FIXED_COST_SECS),
+            "one modified file must not be budgeted under the measured fixed cost"
+        );
+        // The observed failing shape: 8 modified entries.
+        assert!(
+            filter_aware_budget_secs(8) >= Duration::from_secs(2 * MEASURED_FIXED_COST_SECS),
+            "the 8-file case needs comfortable headroom, got {:?}",
+            filter_aware_budget_secs(8)
+        );
+    }
+
+    #[test]
+    fn small_repos_keep_a_generous_base_budget() {
+        assert_eq!(filter_aware_budget_secs(0), Duration::from_secs(90));
+        assert_eq!(filter_aware_budget_secs(1), Duration::from_secs(93));
+        assert_eq!(filter_aware_budget_secs(3), Duration::from_secs(99));
     }
 
     #[test]
     fn budget_scales_linearly_with_modified_files() {
-        assert_eq!(filter_aware_budget_secs(10), Duration::from_secs(60));
+        assert_eq!(filter_aware_budget_secs(10), Duration::from_secs(120));
         assert_eq!(filter_aware_budget_secs(50), Duration::from_secs(180));
     }
 
