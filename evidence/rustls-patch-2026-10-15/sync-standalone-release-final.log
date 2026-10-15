@@ -18,3 +18,4 @@
    Compiling reqwest v0.12.28
    Compiling dracon-git v94.7.2
    Compiling dracon-sync v0.113.95 (/tmp/dracon-rustls-qualification-h9ylmkmm/dracon-sync)
+    Finished `release` profile [optimized] target(s) in 2m 43s
