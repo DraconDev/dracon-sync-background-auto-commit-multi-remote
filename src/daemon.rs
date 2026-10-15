@@ -110,6 +110,7 @@ fn next_ready_classification<S: futures::Stream + Unpin>(jobs: &mut S) -> Option
 fn collect_ready_classifications(
     jobs: &mut FuturesUnordered<ClassificationJoin>,
     pending: &mut HashSet<PathBuf>,
+    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
     // (spawn instant, that job's scaled budget) — v0.113.89
     pending_since: &mut HashMap<PathBuf, (Instant, Duration)>,
     results: &mut HashMap<
@@ -122,8 +123,7 @@ fn collect_ready_classifications(
     failures: &mut HashMap<PathBuf, usize>,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
-        match joined {
-            Ok((repo, outcome)) => {
+        if let Some((repo, outcome)) = identify_probe_join(joined, aborts) {
                 pending.remove(&repo);
                 pending_since.remove(&repo);
                 // ADDED 2026-09-18 (v0.113.74, firehose fairness):
@@ -137,19 +137,30 @@ fn collect_ready_classifications(
                     failures.remove(&repo);
                 }
                 results.insert(repo, (outcome, Instant::now()));
-            }
-            // NOTE 2026-09-18 (v0.113.65): a dead job (panic /
-            // cancellation) surfaces here WITHOUT its repo identity
-            // (JoinError carries no payload), so this arm cannot
-            // release that repo's `pending` reservation directly.
-            // Release is handled generically by the pending watchdog
-            // at the spawn gate (`classification_pending_watchdog_due`):
-            // any reservation older than 90s is dropped and re-probed.
-            // Without it, one lost job suppressed ALL future spawns
-            // for its repo (the gate requires !pending) — a dirty repo
-            // sat visible-but-undispatched with zero further output.
-            Err(error) => {
-                eprintln!("⚠️ classification job join error: {}", error);
+        }
+    }
+}
+
+/// Resolve even panicked/cancelled probes through Tokio's task ID. An unknown
+/// orphan join must never release a different repository's ownership.
+fn identify_probe_join<T>(
+    joined: Result<(PathBuf, Result<T>), tokio::task::JoinError>,
+    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+) -> Option<(PathBuf, Result<T>)> {
+    match joined {
+        Ok((repo, outcome)) => {
+            aborts.remove(&repo);
+            Some((repo, outcome))
+        }
+        Err(error) => {
+            let repo = aborts.iter().find(|(_, handle)| handle.id() == error.id())
+                .map(|(repo, _)| repo.clone());
+            if let Some(repo) = repo {
+                aborts.remove(&repo);
+                Some((repo, Err(anyhow::Error::new(error).context("probe worker join"))))
+            } else {
+                eprintln!("⚠️ orphan probe join error: {}", error);
+                None
             }
         }
     }
@@ -269,13 +280,9 @@ fn warn_aging_hold(
     }
 }
 
-/// Wedged-inspector sweep (ADDED 2026-09-20, v0.113.85): abort one
-/// repo's status task when it exceeds `STATUS_TASK_TIMEOUT_SECS` and
-/// free its slot. Returns true when it aborted. Abort-side cleanup
-/// (pending/spawned-at/abort-map removal) happens HERE — the
-/// orphaned cancelled join resolves repo-less in
-/// `collect_ready_status` and cannot release the slot itself.
-/// Pure over the maps (the task kill is via the stored AbortHandle).
+/// Request owned-task cancellation once at its execution deadline. Retain
+/// pending + task identity until the join proves teardown. A reservation
+/// without an owner is abandoned and can be reclaimed immediately.
 fn abort_wedged_status_inspection(
     pending: &mut HashSet<PathBuf>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
@@ -286,17 +293,38 @@ fn abort_wedged_status_inspection(
     if !pending.contains(repo) {
         return false;
     }
-    let wedged = spawned_at
+    let wedged = !aborts.contains_key(repo) || spawned_at
         .get(repo)
         .is_some_and(|spawned| status_inspection_wedged(*spawned, now));
     if !wedged {
         return false;
     }
-    if let Some(handle) = aborts.remove(repo) {
+    if let Some(handle) = aborts.get(repo) {
         handle.abort();
+    } else {
+        pending.remove(repo);
     }
-    pending.remove(repo);
     spawned_at.remove(repo);
+    true
+}
+
+fn abort_wedged_classification(
+    pending: &mut HashSet<PathBuf>,
+    since: &mut HashMap<PathBuf, (Instant, Duration)>,
+    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
+    repo: &Path,
+    now: Instant,
+) -> bool {
+    if !pending.contains(repo) || (aborts.contains_key(repo) && !since.get(repo)
+        .is_some_and(|(at, budget)| classification_pending_watchdog_due(*at, now, *budget))) {
+        return false;
+    }
+    if let Some(handle) = aborts.get(repo) {
+        handle.abort();
+    } else {
+        pending.remove(repo);
+    }
+    since.remove(repo);
     true
 }
 
@@ -406,6 +434,7 @@ const STATUS_RESULT_MAX_AGE_SECS: u64 = 30;
 fn collect_ready_status(
     jobs: &mut FuturesUnordered<StatusJoin>,
     pending: &mut HashSet<PathBuf>,
+    aborts: &mut HashMap<PathBuf, tokio::task::AbortHandle>,
     spawned_at: &mut HashMap<PathBuf, Instant>,
     results: &mut HashMap<
         PathBuf,
@@ -416,18 +445,13 @@ fn collect_ready_status(
     >,
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
-        match joined {
-            Ok((repo, outcome)) => {
+        if let Some((repo, outcome)) = identify_probe_join(joined, aborts) {
                 pending.remove(&repo);
                 let at = spawned_at.remove(&repo).unwrap_or_else(Instant::now);
                 if let Err(error) = &outcome {
                     eprintln!("⚠️ {} status task failed: {}", repo.display(), error);
                 }
                 results.insert(repo, (outcome, at));
-            }
-            Err(error) => {
-                eprintln!("⚠️ status job join error: {}", error);
-            }
         }
     }
 }
@@ -7323,11 +7347,22 @@ pub(crate) async fn run_daemon(
             &mut status_spawned_at,
             &mut status_results,
         );
-        // v0.113.85: abort handles track only live reservations;
-        // anything else is a completed-or-aborted orphan whose join
-        // already resolved (or will resolve repo-less and harmless).
-        status_abort_handles.retain(|repo, _| status_pending.contains(repo));
-        classification_abort_handles.retain(|repo, _| classification_pending.contains(repo));
+        // Sweep ALL reservations, including removed/paused repositories that
+        // will not reach a downstream gate, so they cannot pin global slots.
+        let sweep_now = Instant::now();
+        for repo in status_pending.clone() {
+            if abort_wedged_status_inspection(&mut status_pending, &mut status_spawned_at,
+                &mut status_abort_handles, &repo, sweep_now) {
+                status_retry_after.insert(repo.clone(), sweep_now + STATUS_RETRY_COOLDOWN);
+                eprintln!("⚠️ {} status recovery requested; waiting for owned join", repo.display());
+            }
+        }
+        for repo in classification_pending.clone() {
+            if abort_wedged_classification(&mut classification_pending, &mut classification_pending_since,
+                &mut classification_abort_handles, &repo, sweep_now) {
+                eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
+            }
+        }
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
         cycle_count += 1;
