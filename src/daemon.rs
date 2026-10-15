@@ -15,6 +15,7 @@ use tokio::time::sleep;
 mod discovery_scheduler;
 mod recovery;
 pub(crate) mod scheduler_evidence;
+pub(crate) mod push_history;
 #[cfg(test)]
 mod recovery_tests;
 #[cfg(test)]
@@ -5644,7 +5645,8 @@ pub(crate) fn unstuck_repo(repo: &Path) -> bool {
 /// the stuck repos file if present. Called from
 /// `push_background`'s callers when a push succeeds.
 pub(crate) fn record_push_success(repo: &Path) {
-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
+    let _guard = lock_stuck_ledger();
+    push_history::record(repo, true); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     if repos.remove(repo).is_some() {
         save_stuck_push_repos(&repos);
@@ -5694,7 +5696,8 @@ pub(crate) fn record_push_attempt_error(repo: &Path, error: &anyhow::Error) {
 /// and in `stuck-list` output with a truthful cause, but consecutive_failures
 /// never reaches the Exhausted arm on infra alone.
 pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
+    let _guard = lock_stuck_ledger();
+    push_history::record(repo, false); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos
@@ -5713,7 +5716,8 @@ pub(crate) fn record_push_transient_outage(repo: &Path, error: &str) {
 }
 
 pub(crate) fn record_push_failure(repo: &Path, error: &str) {
-    let _guard = lock_stuck_ledger(); // R3-L11: serialize ledger RMW.
+    let _guard = lock_stuck_ledger();
+    push_history::record(repo, false); // R3-L11: serialize ledger RMW.
     let mut repos = load_stuck_push_repos();
     let now = timestamp_secs();
     let entry = repos
