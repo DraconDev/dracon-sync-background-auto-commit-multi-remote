@@ -11,6 +11,15 @@ checked out as a nested standalone repo under `dracon-sync/` in the
 [`dracon-utilities`](https://github.com/DraconDev/dracon-utilities)
 parent repo — a regular nested repo, not a submodule.
 
+## Reading repository health
+
+`repos` separates the **last observed push result** from **current convergence**
+(queued, working, retrying, excluded, blocked, stalled, paused or unknown).
+Historical push success does not prove newer edits are published; unchanged idle
+repos remain clean. An upstream commit's age is not a push timestamp.
+See the [health legend and evidence rules](docs/design/current-health-2026-10-15.md)
+or run `dracon-sync repos --legend`.
+
 ## Install
 
 ```bash
