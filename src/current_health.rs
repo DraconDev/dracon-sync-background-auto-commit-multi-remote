@@ -38,10 +38,9 @@ pub(super) struct Evidence {
 
 pub(super) fn classify(row: &RepoReportRow) -> Current {
     let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
-    let blocked = row.pack_too_large
-        || row.missing_objects > 0
-        || row.push_status == "BROKEN"
-        || row.state_flags.iter().any(|f| f == "STUCK_PULL");
+    let blocked = row.pack_too_large || row.missing_objects > 0 || row.push_status == "BROKEN";
+    // Legacy STUCK_PULL means merely behind-with-upstream, not an actual
+    // pull blocker. A current blocker requires affirmative scheduler evidence.
     if blocked {
         return Current::Blocked;
     }
@@ -70,7 +69,9 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
             Phase::Blocked => return Current::Blocked,
         }
     }
-    if row.ahead > 0 && matches!(row.push_status.as_str(), "PUSH_STUCK" | "STUCK" | "FAIL") {
+    // Only PUSH_STUCK is produced by explicit exhausted-budget evidence.
+    // Legacy STUCK/FAIL can mean a single recent failure with retries left.
+    if row.ahead > 0 && row.push_status == "PUSH_STUCK" {
         return Current::Stalled;
     }
     if row.push_status == "INTENTIONAL" {

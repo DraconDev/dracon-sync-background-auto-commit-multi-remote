@@ -114,6 +114,30 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
             "UNKNOWN",
         ),
         (
+            "recent failure with retry budget remaining",
+            false,
+            1,
+            None,
+            None,
+            None,
+            0,
+            "STUCK",
+            Current::Unknown,
+            "UNKNOWN",
+        ),
+        (
+            "legacy failure without scheduler evidence",
+            false,
+            1,
+            None,
+            None,
+            None,
+            0,
+            "FAIL",
+            Current::Unknown,
+            "UNKNOWN",
+        ),
+        (
             "budget exhausted",
             false,
             1,
@@ -215,6 +239,38 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
                 "history and convergence must both remain visible: {table}"
             );
         }
+    }
+}
+
+#[test]
+fn behind_counts_do_not_prove_a_pull_blocker() {
+    for (phase, expected, visible) in [
+        (None, Current::Unknown, "UNKNOWN"),
+        (Some(Phase::Working), Current::Working, "WORKING"),
+        (Some(Phase::Queued), Current::Queued, "QUEUED"),
+        (Some(Phase::Retrying), Current::Retrying, "RETRYING"),
+        (Some(Phase::Blocked), Current::Blocked, "BLOCKED"),
+    ] {
+        let mut row = RepoReportRow::for_tests("/fixture");
+        row.behind = 2;
+        row.state_flags.push("STUCK_PULL".into());
+        row.health.scheduler = phase.map(|phase| RepoEvidence {
+            phase: Some(phase),
+            ..Default::default()
+        });
+        assert_eq!(classify(&row), expected, "phase={phase:?}");
+        row.health.current = classify(&row);
+        let json = serde_json::to_value(&row).unwrap();
+        assert_eq!(
+            json["health"]["current"],
+            serde_json::to_value(expected).unwrap()
+        );
+        let table = super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200)
+            .to_string();
+        assert!(table.contains(visible), "phase={phase:?}: {table}");
+        // Real history/pack safety guards must still win over started work.
+        row.pack_too_large = true;
+        assert_eq!(classify(&row), Current::Blocked);
     }
 }
 
