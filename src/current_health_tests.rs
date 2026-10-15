@@ -38,8 +38,8 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
             None,
             0,
             "OK",
-            Current::Working,
-            "WORKING",
+            Current::Queued,
+            "QUEUED",
         ),
         (
             "retry",

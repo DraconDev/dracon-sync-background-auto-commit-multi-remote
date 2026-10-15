@@ -3493,7 +3493,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("STATUS", "Current convergence: ✅ clean/idle · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 excluded/blocked · 🔴 stalled · ❔ unknown"),
         (
             "ACTIVITY",
-            "Fresh scheduler evidence, not last commit age: queued = admitted/eligible; working = started worker or inspection; retrying = owned cancellation or a live cooldown",
+            "Fresh scheduler evidence, not last commit age: queued = reserved/eligible (including unstarted inspections); working = started worker; retrying = owned cancellation or a live cooldown",
         ),
         // v0.113.87: `⏸️ frozen` replaces `🟡 waiting` on every PENDING
         // row while the daemon is frozen — the queue is not moving
