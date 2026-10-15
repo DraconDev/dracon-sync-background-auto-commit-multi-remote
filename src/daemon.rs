@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+#[cfg(test)]
 use dracon_git::GitService;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -147,6 +148,13 @@ fn collect_ready_classifications(
 /// would only make the daemon wait longer for tasks that never get
 /// CPU, and would delay the sweep that frees genuinely wedged slots.
 const MAX_INFLIGHT_STATUS_TASKS: usize = 4;
+
+/// Failed inspectors yield slots to later repositories in the scan order.
+const STATUS_RETRY_COOLDOWN: Duration = Duration::from_secs(300);
+
+fn status_retry_ready(until: Option<&Instant>, now: Instant) -> bool {
+    until.is_none_or(|until| now >= *until)
+}
 
 /// Global cap on in-flight classification jobs (v0.113.89).
 ///
@@ -3822,6 +3830,22 @@ mod tests {
         assert_eq!(jobs.len(), 1);
     }
 
+    #[test]
+    fn failed_status_inspectors_yield_capacity_and_retry_at_deadline() {
+        let now = Instant::now();
+        let repos: Vec<PathBuf> = (0..8).map(|n| PathBuf::from(format!("repo-{n}"))).collect();
+        let cooldowns: HashMap<PathBuf, Instant> = repos[..MAX_INFLIGHT_STATUS_TASKS]
+            .iter().map(|repo| (repo.clone(), now + STATUS_RETRY_COOLDOWN)).collect();
+        // The four early repos all hung. Their retries cannot monopolize
+        // the four slots again while later, healthy repos remain uninspected.
+        let admitted: Vec<_> = repos.iter()
+            .filter(|repo| status_retry_ready(cooldowns.get(*repo), now))
+            .take(MAX_INFLIGHT_STATUS_TASKS).cloned().collect();
+        assert_eq!(admitted, repos[4..]);
+        assert!(!status_retry_ready(cooldowns.get(&repos[0]), now + STATUS_RETRY_COOLDOWN - Duration::from_nanos(1)));
+        assert!(status_retry_ready(cooldowns.get(&repos[0]), now + STATUS_RETRY_COOLDOWN));
+    }
+
     /// ADDED 2026-09-18 (v0.113.74): results older than 30s are
     /// stale — but collection itself never drops (the boundary
     /// decides). A fresh result is kept with its spawn instant.
@@ -6982,6 +7006,8 @@ pub(crate) async fn run_daemon(
     let mut status_jobs: FuturesUnordered<StatusJoin> = FuturesUnordered::new();
     let mut status_pending: HashSet<PathBuf> = HashSet::new();
     let mut status_spawned_at: HashMap<PathBuf, Instant> = HashMap::new();
+    // Failed inspectors must yield the global slots to other repositories.
+    let mut status_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
     // ADDED 2026-09-20 (v0.113.85): abort handles for wedged status /
     // classification tasks. Dropping a reservation without aborting
     // the task leaks it (slot logic frees, the `git` child runs on,
@@ -8169,14 +8195,17 @@ pub(crate) async fn run_daemon(
                 &repo,
                 now,
             ) {
+                status_retry_after.insert(repo.clone(), now + STATUS_RETRY_COOLDOWN);
                 eprintln!(
-                    "⚠️ {} status inspection wedged over {}s without result — aborted, re-probing next cycle",
+                    "⚠️ {} status inspection wedged over {}s without result — aborted, retrying after cooldown",
                     repo.display(),
                     STATUS_TASK_TIMEOUT_SECS
                 );
             }
+            status_retry_after.retain(|_, until| now < *until);
             if !status_pending.contains(&repo)
                 && !status_results.contains_key(&repo)
+                && status_retry_ready(status_retry_after.get(&repo), now)
                 // v0.113.89: global in-flight cap (see
                 // MAX_INFLIGHT_STATUS_TASKS). Per-repo dedup alone let the
                 // whole dirty fleet walk its index at once.
@@ -8186,10 +8215,10 @@ pub(crate) async fn run_daemon(
                 status_pending.insert(repo.clone());
                 status_spawned_at.insert(repo.clone(), now);
                 let status_handle = tokio::spawn(async move {
-                    let outcome = match GitService::new(&repo_for_status) {
-                        Ok(svc) => svc.get_status().await.map_err(|e| anyhow::anyhow!("{}", e)),
-                        Err(e) => Err(anyhow::anyhow!("{}", e)),
-                    };
+                    let outcome = crate::git::inspect_status(
+                        &repo_for_status,
+                        Duration::from_secs(STATUS_TASK_TIMEOUT_SECS),
+                    ).await;
                     (repo_for_status, outcome)
                 });
                 // v0.113.85: retain the abort handle so the wedge
@@ -8236,7 +8265,8 @@ pub(crate) async fn run_daemon(
                     continue;
                 }
                 Err(e) => {
-                    eprintln!("⚠️ {} status_failed: {}", repo.display(), e);
+                    status_retry_after.insert(repo.clone(), now + STATUS_RETRY_COOLDOWN);
+                    eprintln!("⚠️ {} status_failed (retry in 300s): {}", repo.display(), e);
                     continue;
                 }
             };
