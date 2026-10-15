@@ -9301,15 +9301,14 @@ pub(crate) async fn run_daemon(
                             scheduler_unix_ms()
                         );
                     }
-                    // R4-SC-03: hold a concurrency permit across
-                    // the sync_repo call. Acquire fails only if
-                    // the semaphore is closed, which never
-                    // happens — fail closed (no unbounded run)
-                    // rather than panic the worker.
-                    let Ok(_permit) = sem.acquire_owned().await else {
+                    // Local-work admission remains bounded. The scoped push
+                    // phase returns this permit while hooks/network run, then
+                    // reacquires it before subsequent local mutation.
+                    let Ok(permit) = sem.clone().acquire_owned().await else {
                         return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
                     };
                     let _ = run_started.set(Instant::now());
+                    crate::git::push_resources::with_local_work(sem, permit, async move {
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
@@ -9324,6 +9323,7 @@ pub(crate) async fn run_daemon(
                     )
                     .await;
                     (rf, r)
+                    }).await
                 });
             sync_workers.insert(repo.clone(), handle.abort_handle());
             to_sync.push((repo.clone(), handle));
