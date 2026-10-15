@@ -197,6 +197,8 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
                 serde_json::to_value(expected).unwrap()
             );
             assert_eq!(json["health"]["last_push"]["succeeded"], succeeded);
+            let summary = super::super::summary_what(&row, 200);
+            assert!(summary.contains(if succeeded { "last push: ✅ OK" } else { "last push: ❌ FAIL" }), "summary must name historical results: {summary}");
             let table =
                 super::super::build_repos_rich_table(std::slice::from_ref(&row), false, 200)
                     .to_string();
