@@ -30,16 +30,19 @@ impl SyncRecovery {
     /// permit until the actual worker joins; never kill by PID/name or unlink
     /// a Git lock. A non-yielding task cannot be safely force-replaced.
     pub(super) fn expired(&mut self, now: Instant, budget: Duration) -> Vec<PathBuf> {
-        self.running.iter().filter_map(|(repo, started)| {
-            let started = started.get()?;
-            if now.saturating_duration_since(*started) >= budget
-                && self.cancelling.insert(repo.clone())
-            {
-                Some(repo.clone())
-            } else {
-                None
-            }
-        }).collect()
+        self.running
+            .iter()
+            .filter_map(|(repo, started)| {
+                let started = started.get()?;
+                if now.saturating_duration_since(*started) >= budget
+                    && self.cancelling.insert(repo.clone())
+                {
+                    Some(repo.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Only a joined worker can finish. Errors (including panics/cancellation)
@@ -50,7 +53,10 @@ impl SyncRecovery {
         if failed {
             let count = self.failures.entry(repo.to_path_buf()).or_default();
             *count = count.saturating_add(1);
-            self.retry_after.insert(repo.to_path_buf(), now + super::classification_backoff_secs(*count));
+            self.retry_after.insert(
+                repo.to_path_buf(),
+                now + super::classification_backoff_secs(*count),
+            );
         } else {
             self.failures.remove(repo);
             self.retry_after.remove(repo);
@@ -80,9 +86,15 @@ mod tests {
         let running = recovery.reserve(a);
         let queued = recovery.reserve(b);
         running.set(now).unwrap();
-        assert_eq!(recovery.expired(now + budget, budget), vec![a.to_path_buf()]);
+        assert_eq!(
+            recovery.expired(now + budget, budget),
+            vec![a.to_path_buf()]
+        );
         assert!(recovery.expired(now + budget * 2, budget).is_empty());
-        assert!(recovery.running.contains_key(a), "abort request retains ownership");
+        assert!(
+            recovery.running.contains_key(a),
+            "abort request retains ownership"
+        );
         assert!(queued.get().is_none(), "queue wait is not execution time");
         recovery.finish(a, true, now + budget);
         assert!(!recovery.ready(a, now + budget));
@@ -105,7 +117,9 @@ mod tests {
     #[test]
     fn fair_admission_serves_every_repo_despite_repeated_early_failures() {
         let now = Instant::now();
-        let repos: Vec<_> = (0..12).map(|n| PathBuf::from(format!("repo-{n}"))).collect();
+        let repos: Vec<_> = (0..12)
+            .map(|n| PathBuf::from(format!("repo-{n}")))
+            .collect();
         let mut admitted = HashMap::new();
         let mut seen = HashSet::new();
         // Adversarial fixed priority order on every pulse; four slots, with
