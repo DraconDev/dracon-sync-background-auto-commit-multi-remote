@@ -201,4 +201,157 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test prop_test_binary_passthrough_integrity ... ok
-test prop_test_hybrid_security_logic ... 
+test prop_test_hybrid_security_logic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.94s
+
+     Running tests/massive_secret_scan.rs (target/debug/deps/massive_secret_scan-7df0ecc0bc64f593)
+
+running 1 test
+test test_massive_dataset_permutations ... Verified 2590 permutations
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.56s
+
+     Running tests/pattern_integrity.rs (target/debug/deps/pattern_integrity-9af03137a3c23400)
+
+running 2 tests
+test test_no_nested_quantifiers_in_patterns ... ok
+test test_patterns_compile_and_have_reasonable_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/plaintext_sibling_test.rs (target/debug/deps/plaintext_sibling_test-f4304563e6001c48)
+
+running 11 tests
+test clean_encrypts_absolute_hatched_path_fail_closed ... ok
+test clean_encrypts_normally_without_plaintext_sibling ... ok
+test clean_skips_encryption_when_plaintext_sibling_exists ... ok
+test clean_with_empty_sibling_path_is_a_noop ... ok
+test clean_with_plaintext_sibling_does_not_add_env_version_header ... ok
+test clean_with_plaintext_sibling_preserves_binary_content ... ok
+test is_hatched_in_repo_accepts_contained_paths ... ok
+test is_hatched_in_repo_rejects_escape_even_when_sibling_exists ... ok
+test is_hatched_rejects_absolute_and_dotdot ... ok
+test is_hatched_returns_false_for_empty_path ... ok
+test is_hatched_returns_false_when_sibling_missing ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+
+     Running tests/redos_stress_test.rs (target/debug/deps/redos_stress_test-dd13b7df283281de)
+
+running 6 tests
+test test_azure_sas_scan ... ok
+test test_generic_assignment_pattern_completes_in_reasonable_time ... ok
+test test_nested_quantifier_patterns_do_not_cause_exponential_blowup ... ok
+test test_scanner_detects_known_secret_patterns ... ok
+test test_scanner_performance_mixed_secret_and_filler ... ok
+test test_scanner_performance_under_large_evil_input ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.25s
+
+     Running tests/registry_credentials_test.rs (target/debug/deps/registry_credentials_test-053f42bf98023e58)
+
+running 1 test
+test test_load_registry_credentials_when_none_exist ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/restore_test.rs (target/debug/deps/restore_test-49886a000d7414fd)
+
+running 1 test
+test test_restore_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/scanner_edge_cases_test.rs (target/debug/deps/scanner_edge_cases_test-e409a7fe049e1a7a)
+
+running 12 tests
+test test_patterns_are_valid_regexes ... ok
+test test_scanner_completes_quickly_on_large_clean_input ... ok
+test test_scanner_detects_aws_access_key ... ok
+test test_scanner_detects_github_token ... ok
+test test_scanner_detects_private_key_formats_by_specific_name ... ok
+test test_scanner_detects_stripe_key ... ok
+test test_scanner_detects_unquoted_padded_generic_secret ... ok
+test test_scanner_detects_unquoted_padded_password ... ok
+test test_scanner_handles_clean_text ... ok
+test test_scanner_handles_empty_input ... ok
+test test_scanner_handles_unicode_content ... ok
+test test_scanner_ignores_too_short_unquoted_password ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.59s
+
+     Running tests/scanner_stress.rs (target/debug/deps/scanner_stress-be2095f283772606)
+
+running 1 test
+test test_scanner_stress_1000 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+
+     Running tests/security_critical_test.rs (target/debug/deps/security_critical_test-7884d502e13cce3b)
+
+running 44 tests
+test test_authorize_recipient_writes_verified_direct_pair ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_create_team_creates_private_key_without_overwrite ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_create_team_name_validation_rejects_backslash ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_create_team_name_validation_rejects_colon ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_create_team_name_validation_rejects_slash ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_decrypt_with_repo_key_too_short_ciphertext ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_encrypt_decrypt_repo_key_roundtrip ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_encrypt_v2_for_all_uses_global_mesh_pub_without_master_identity ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ warden: ignoring recipient file /home/dracon/Dev/dracon-utilities/dracon-warden/.dracon/data/keys/owner_nixos.pub (recipient is not in the local owner trust anchors)
+ok
+test test_encrypt_with_repo_key_empty_plaintext ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_encrypt_with_repo_key_random_nonce_per_call ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_env_manager_combined ... ok
+test test_env_manager_load_from_env_file ... ok
+test test_env_manager_load_from_env_file_nonexistent ... ok
+test test_env_manager_load_from_env_file_with_embedded_equals ... ok
+test test_env_manager_load_from_env_file_with_single_quotes ... ok
+test test_env_manager_to_env_file_escapes_quotes ... ok
+test test_env_manager_to_env_file_secrets ... ok
+test test_env_manager_to_env_file_variables ... ok
+test test_gather_all_recipients_includes_global_mesh_pub_without_master_identity ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_gather_rejects_forged_repo_key_authorization_without_owner_proof ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ warden: ignoring recipient file /tmp/.tmpbfcgjy/.git/arcane/keys/evil.pub (not a canonical owner/master public key or authenticated machine/team key)
+ok
+test test_generate_master_identity_refuses_dedicated_master_private ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_generate_master_identity_refuses_dedicated_master_public ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_list_authorized_recipients_rejects_symlink_aliases ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ warden: ignoring repository recipient symlink /tmp/.tmpK4fTzu/.dracon/data/keys/evil.pub
+ok
+test test_load_repo_key_empty_keys_directory ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_load_repo_key_ignores_arbitrary_master_encrypted_age_blob ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_master_identity_success ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_load_repo_key_no_keys_directory ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_load_repo_key_team_key ... ignored
+test test_load_repo_key_with_master_identity_in_keys_dir ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_machine_and_team_recipients_require_authenticated_sidecars ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+ok
+test test_machine_only_repo_key_requires_owner_authenticated_proof ... ⚠️ Failed to load master identities: No valid identities found in any search path.
+⚠️ Failed to load master identities: No valid identities found in any search path.
