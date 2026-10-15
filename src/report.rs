@@ -4836,7 +4836,7 @@ pub(crate) async fn run_repos_report(
         row.health.current = current_health::classify(&row);
         row.state_cause = match row.health.current {
             current_health::Current::Converged => StateCause::Idle,
-            current_health::Current::Excluded => StateCause::Intentional,
+            current_health::Current::Excluded => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Intentional },
             current_health::Current::Queued | current_health::Current::Unknown | current_health::Current::Paused => StateCause::Dirty,
             current_health::Current::Working => StateCause::Working,
             current_health::Current::Retrying => StateCause::Committing,

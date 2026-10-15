@@ -40,11 +40,13 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     let pending = row.modified + row.staged + row.untracked > 0 || row.ahead > 0 || row.behind > 0;
     let blocked = row.pack_too_large
         || row.missing_objects > 0
-        || matches!(row.push_status.as_str(), "BROKEN" | "BLOCKED")
-        || row.state_flags.iter().any(|f| f == "STUCK_PULL")
-        || matches!(row.state_cause, StateCause::Unowned { .. });
+        || row.push_status == "BROKEN"
+        || row.state_flags.iter().any(|f| f == "STUCK_PULL");
     if blocked {
         return Current::Blocked;
+    }
+    if row.push_status == "BLOCKED" || matches!(row.state_cause, StateCause::Unowned { .. }) {
+        return Current::Excluded;
     }
     // Historical errors and ancient commits cannot make unchanged idle work
     // unhealthy. Excluded bytes remain explicitly outside daemon convergence.
