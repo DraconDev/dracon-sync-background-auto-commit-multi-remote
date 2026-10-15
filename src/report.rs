@@ -6689,8 +6689,8 @@ fn summary_what(row: &RepoReportRow, budget: usize) -> String {
     // (with the ahead count inline) — see activity_label() at
     // line ~318. The old standalone `push: pending (N ahead)` was
     // pure duplication, and a separate `N ahead` note is too.
-    if row.push_status == "STUCK" || row.push_status == "FAIL" {
-        parts.push(format!("push: {}", row.push_status.to_lowercase()));
+    if row.health.last_push.is_some() {
+        parts.push(format!("last push: {}", current_health::push(row).0));
     }
     // Dirty counts (how much work exists). For clean repos this
     // contributes nothing and is skipped.
@@ -12151,7 +12151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_summary_what_stuck_push_shows_status() {
+    fn test_summary_what_historical_failure_does_not_make_idle_unhealthy() {
         // When push is STUCK or FAIL, the activity does NOT show
         // it (activity only covers PENDING), so the summary must
         // surface it explicitly.
@@ -12166,11 +12166,11 @@ mod tests {
         row.push_status = "STUCK".to_string();
         row.hint = "run dracon-sync repair concerns --apply".to_string();
         row.last_author = "DraconDev".to_string();
+        row.health.last_push = Some(crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded: false });
         let what = summary_what(&row, 200);
-        assert!(
-            what.contains("push: stuck"),
-            "STUCK should surface as push: stuck: {what}"
-        );
+        assert!(what.contains("last push: ❌ FAIL"), "historical failure must be identified as history: {what}");
+        assert!(what.contains("idle"));
+        assert_eq!(status_pair(&row), ("✅ CLEAN", Color::Green));
         assert!(
             what.contains("run dracon-sync repair concerns"),
             "hint visible: {what}"
