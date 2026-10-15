@@ -35,3 +35,4 @@
     Checking dracon-system-lib v94.2.7
     Checking dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
     Checking dracon-warden v0.113.15 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.10s
