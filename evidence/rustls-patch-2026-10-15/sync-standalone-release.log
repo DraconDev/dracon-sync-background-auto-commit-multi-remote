@@ -7,3 +7,17 @@
    Compiling serde_core v1.0.229
    Compiling cfg-if v1.0.5
    Compiling syn v2.0.119
+   Compiling serde v1.0.229
+   Compiling futures-core v0.3.34
+   Compiling serde_derive v1.0.229
+   Compiling jobserver v0.1.35
+   Compiling find-msvc-tools v0.1.13
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.7
+   Compiling pkg-config v0.3.34
+   Compiling synstructure v0.14.0
+   Compiling smallvec v1.16.1
+   Compiling memchr v2.8.3
+   Compiling vcpkg v0.2.15
+   Compiling bitflags v2.13.2
+   Compiling zerofrom-derive v0.1.8
