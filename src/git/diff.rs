@@ -6,9 +6,30 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Base wall-clock budget for one filter-aware classification pass.
-/// Unchanged from the original flat cap, so a repo with a handful of
-/// modified files behaves EXACTLY as it did before this budget existed.
-pub(crate) const FILTER_AWARE_BASE_SECS: u64 = 30;
+///
+/// RAISED 30s → 90s (2026-10-15, fleet triage): the original 30s was tuned to
+/// the PER-FILE term below and left NO room for the fixed cost of the pass.
+/// `git diff HEAD --name-only` on a warden-managed repo must stat the whole
+/// tree and stand up the `filter=dracon` process once, and that fixed cost is
+/// a function of TREE SIZE, not of how many files changed. Measured on
+/// dracon-platform (4.2 GiB own + 24 GiB nested, `* filter=dracon`):
+///
+/// | date | modified | budget (30 + 3n) | actual | outcome |
+/// |---|---|---|---|---|
+/// | 2026-09-27 | 65 (25 age-filtered) | 180 (capped) | 67.7s | pass |
+/// | 2026-10-15 | 8 | 54s | 53.5s | timeout, streak 16 |
+///
+/// The second row is the bug: cost ≈ 50s fixed + ~0.25s/file, so a repo with
+/// FEW modified files but an expensive tree (the common case once a live loop
+/// has committed most of its backlog) fell UNDER its own budget and timed out
+/// every cycle. The failure is self-perpetuating — the interrupted diff leaves
+/// `.git/index.lock` behind, the lock sweep reaps it after 120s, the 300s
+/// re-probe starts over (journal: `classification failed (streak 16)`, `held
+/// 'classification-pending' for 125s`), so the repo stays `🔴 STALLED` and its
+/// modified files are never committed. 90s clears the measured fixed cost with
+/// 1.8x headroom on the 8-file case while the 180s ceiling still bounds the
+/// slot for genuinely pathological repos.
+pub(crate) const FILTER_AWARE_BASE_SECS: u64 = 90;
 /// Added per modified file. warden `filter=dracon` (age) files each cost
 /// one clean-filter subprocess inside `git diff`, so the cost is linear
 /// in the number of changed files, not in repo size.
