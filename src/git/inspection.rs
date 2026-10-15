@@ -150,8 +150,7 @@ mod tests {
     }
 
     #[cfg(target_os = "linux")]
-    #[tokio::test]
-    async fn hung_filter_is_killed_and_next_inspection_recovers() {
+    async fn check_hung_filter_recovery(abort_owner: bool) {
         let dir = tempfile::tempdir().unwrap();
         let git = |args: &[&str]| {
             let output = std::process::Command::new("git")
@@ -181,10 +180,27 @@ mod tests {
         // cheap size-mismatch dirty shortcut.
         std::fs::write(dir.path().join("asset"), "after!\n").unwrap();
         std::fs::write(dir.path().join("stall"), "").unwrap();
-        let error = inspect_status(dir.path(), Duration::from_secs(2))
-            .await
-            .unwrap_err();
-        assert!(error.to_string().contains("timed out"));
+        if abort_owner {
+            let repo = dir.path().to_path_buf();
+            let inspection = tokio::spawn(async move {
+                inspect_status(&repo, Duration::from_secs(60)).await
+            });
+            // Reproduce the scheduler watchdog dropping the OWNER, rather
+            // than relying on inspect_status's own timeout to fire.
+            let ready = tokio::time::timeout(Duration::from_secs(5), async {
+                while !dir.path().join("child.pid").exists() {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            }).await;
+            inspection.abort();
+            assert!(inspection.await.unwrap_err().is_cancelled());
+            assert!(ready.is_ok(), "filter did not start before owner cancellation");
+        } else {
+            let error = inspect_status(dir.path(), Duration::from_secs(2))
+                .await
+                .unwrap_err();
+            assert!(error.to_string().contains("timed out"));
+        }
         let pid = std::fs::read_to_string(dir.path().join("child.pid")).unwrap();
         let proc_stat = format!("/proc/{}/stat", pid.trim());
         let killed = tokio::time::timeout(Duration::from_secs(3), async {
@@ -209,6 +225,18 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(recovered.modified_files, 1);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn hung_filter_is_killed_and_next_inspection_recovers() {
+        check_hung_filter_recovery(false).await;
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn owner_abort_kills_filter_and_next_inspection_recovers() {
+        check_hung_filter_recovery(true).await;
     }
 
     #[tokio::test]

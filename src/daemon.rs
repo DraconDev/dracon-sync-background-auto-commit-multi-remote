@@ -3728,6 +3728,30 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn completed_status_is_collected_before_wedge_sweep() {
+        let repo = PathBuf::from("completed-but-not-collected");
+        let now = Instant::now();
+        let task_repo = repo.clone();
+        let handle: StatusJoin = tokio::spawn(async move {
+            (task_repo, Ok(dracon_git::types::RepoStatus::new()))
+        });
+        let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle())]);
+        let mut pending = HashSet::from([repo.clone()]);
+        let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(61))]);
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while !handle.is_finished() { tokio::task::yield_now().await; }
+        }).await.unwrap();
+        let mut jobs = FuturesUnordered::new();
+        jobs.push(handle);
+        let mut results = HashMap::new();
+        collect_ready_status(&mut jobs, &mut pending, &mut spawned, &mut results);
+        assert!(!abort_wedged_status_inspection(&mut pending, &mut spawned, &mut aborts, &repo, now));
+        assert!(pending.is_empty());
+        assert!(spawned.is_empty());
+        assert!(results.remove(&repo).unwrap().0.is_ok());
+    }
+
+    #[tokio::test]
     async fn orphan_cancelled_status_join_inserts_no_result() {
         // Locks the orphan contract the sweep relies on: an aborted
         // task's join resolves repo-less (Err), inserts nothing into
@@ -8196,6 +8220,15 @@ pub(crate) async fn run_daemon(
             // one hung `git status` pins its repo silent forever
             // (freeport 2026-09-20: 34 min status-pending, zero
             // failure lines).
+            // A completed job may have waited behind slow coordinator work.
+            // Collect it before the age-based watchdog: elapsed reservation
+            // age alone is not proof the owned inspection is still running.
+            collect_ready_status(
+                &mut status_jobs,
+                &mut status_pending,
+                &mut status_spawned_at,
+                &mut status_results,
+            );
             if abort_wedged_status_inspection(
                 &mut status_pending,
                 &mut status_spawned_at,
