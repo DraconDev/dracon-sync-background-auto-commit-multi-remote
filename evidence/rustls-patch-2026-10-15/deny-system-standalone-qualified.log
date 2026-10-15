@@ -1,0 +1,183 @@
+warning[license-not-encountered]: license was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:72:6
+   │
+72 │     "BSD-2-Clause",
+   │      ━━━━━━━━━━━━ unmatched license allowance
+
+warning[unmatched-skip]: skipped crate 'block-buffer = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:23:16
+   │
+23 │     { crate = "block-buffer@0.10", reason = "age's authenticated crypto stack uses digest 0.10; rust-embed uses digest 0.11" },
+   │                ━━━━━━━━━━━━━━━━━             ────────────────────────────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'block-buffer = =0.12' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:24:16
+   │
+24 │     { crate = "block-buffer@0.12", reason = "rust-embed's sha2 0.11 stack; age remains on digest 0.10" },
+   │                ━━━━━━━━━━━━━━━━━             ──────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'base64 = =0.21' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:25:16
+   │
+25 │     { crate = "base64@0.21", reason = "age (encryption) uses old version" },
+   │                ━━━━━━━━━━━             ───────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'bech32 = =0.9' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:26:16
+   │
+26 │     { crate = "bech32@0.9", reason = "age 0.10 uses the older Bech32 API while dracon-security uses 0.11" },
+   │                ━━━━━━━━━━             ────────────────────────────────────────────────────────────────── reason
+   │                │                       
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'cpufeatures = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:27:16
+   │
+27 │     { crate = "cpufeatures@0.2", reason = "age/aes-gcm crypto stack uses cpufeatures 0.2; sha2 0.11 uses 0.3" },
+   │                ━━━━━━━━━━━━━━━             ───────────────────────────────────────────────────────────────── reason
+   │                │                            
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'cpufeatures = =0.3' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:28:16
+   │
+28 │     { crate = "cpufeatures@0.3", reason = "sha2 0.11 transitive stack; age/aes-gcm remains on 0.2" },
+   │                ━━━━━━━━━━━━━━━             ────────────────────────────────────────────────────── reason
+   │                │                            
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'crypto-common = =0.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:29:16
+   │
+29 │     { crate = "crypto-common@0.1", reason = "age/aead 0.5 crypto stack uses crypto-common 0.1; sha2 0.11 uses 0.2" },
+   │                ━━━━━━━━━━━━━━━━━             ──────────────────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'crypto-common = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:30:16
+   │
+30 │     { crate = "crypto-common@0.2", reason = "sha2 0.11 transitive stack; age/aead 0.5 remains on 0.1" },
+   │                ━━━━━━━━━━━━━━━━━             ─────────────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'digest = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:31:16
+   │
+31 │     { crate = "digest@0.10", reason = "age and the authenticated encryption stack use digest 0.10; rust-embed uses 0.11" },
+   │                ━━━━━━━━━━━             ──────────────────────────────────────────────────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'digest = =0.11' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:32:16
+   │
+32 │     { crate = "digest@0.11", reason = "rust-embed's sha2 0.11 stack; age remains on digest 0.10" },
+   │                ━━━━━━━━━━━             ──────────────────────────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'hashbrown = =0.14' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:35:16
+   │
+35 │     { crate = "hashbrown@0.14", reason = "age/i18n-embed-fl 0.7 pulls dashmap 5" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unnecessary-skip]: skip 'hashbrown = =0.17' applied to a crate with only one version
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:36:16
+   │
+36 │     { crate = "hashbrown@0.17", reason = "reqwest/zbus stack pulls newer indexmap 2" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                           
+   │                unnecessary skip configuration
+
+warning[unmatched-skip]: skipped crate 'openssl-probe = =0.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:37:16
+   │
+37 │     { crate = "openssl-probe@0.1", reason = "git2/libgit2 uses the older native TLS probe API" },
+   │                ━━━━━━━━━━━━━━━━━             ──────────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'openssl-probe = =0.2' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:38:16
+   │
+38 │     { crate = "openssl-probe@0.2", reason = "reqwest/native-tls uses the newer probe API" },
+   │                ━━━━━━━━━━━━━━━━━             ─────────────────────────────────────────── reason
+   │                │                              
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'rustc-hash = =1.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:39:16
+   │
+39 │     { crate = "rustc-hash@1.1", reason = "fluent/i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'rustc-hash = =2.1' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:40:16
+   │
+40 │     { crate = "rustc-hash@2.1", reason = "fluent/intl-memoizer dependency chain" },
+   │                ━━━━━━━━━━━━━━             ───────────────────────────────────── reason
+   │                │                           
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'sha2 = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:41:16
+   │
+41 │     { crate = "sha2@0.10", reason = "age and dracon-security use the 0.10 API; rust-embed uses 0.11" },
+   │                ━━━━━━━━━             ────────────────────────────────────────────────────────────── reason
+   │                │                      
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'sha2 = =0.11' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:42:16
+   │
+42 │     { crate = "sha2@0.11", reason = "rust-embed's utility stack; age and dracon-security remain on 0.10" },
+   │                ━━━━━━━━━             ────────────────────────────────────────────────────────────────── reason
+   │                │                      
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'strsim = =0.10' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:43:16
+   │
+43 │     { crate = "strsim@0.10", reason = "i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━━━━━             ────────────────────────────────── reason
+   │                │                        
+   │                unmatched skip configuration
+
+warning[unnecessary-skip]: skip 'strsim = =0.11' applied to a crate with only one version
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:44:16
+   │
+44 │     { crate = "strsim@0.11", reason = "clap 4 dependency chain" },
+   │                ━━━━━━━━━━━             ─────────────────────── reason
+   │                │                        
+   │                unnecessary skip configuration
+
+warning[unmatched-skip]: skipped crate 'syn = =1.0' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:45:16
+   │
+45 │     { crate = "syn@1.0", reason = "proc-macro-error/i18n-embed-fl 0.7 dependency chain" },
+   │                ━━━━━━━             ─────────────────────────────────────────────────── reason
+   │                │                    
+   │                unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'toml = =0.5' was not encountered
+   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:47:16
+   │
+47 │     { crate = "toml@0.5", reason = "i18n-embed-fl/find-crate dependency chain" },
+   │                ━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                     
+   │                unmatched skip configuration
+
+advisories ok, bans ok, licenses ok, sources ok
