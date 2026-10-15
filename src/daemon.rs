@@ -7032,6 +7032,7 @@ pub(crate) async fn run_daemon(
     // Forge provisioning may do network I/O. Retain one owner per repo,
     // keeping it off the serial scan and mutually exclusive with sync.
     let mut provisioning_jobs: HashMap<PathBuf, tokio::task::JoinHandle<()>> = HashMap::new();
+    let mut branch_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
     // Per-repo classification jobs (filter-aware `git diff HEAD` +
     // untracked listing). Spawned outside the pulse loop so a slow or
     // failing required clean filter in one repo cannot stall the
@@ -7474,7 +7475,7 @@ pub(crate) async fn run_daemon(
                 if let Some(job) = provisioning_jobs.remove(&repo) {
                     if let Err(error) = job.await {
                         eprintln!(
-                            "⚠️ {} forge provisioning task failed: {}",
+                            "⚠️ {} repository maintenance task failed: {}",
                             repo.display(),
                             error
                         );
@@ -8217,25 +8218,31 @@ pub(crate) async fn run_daemon(
                 // entry vanished between cycles.
                 commit_only_repos.remove(&repo);
             }
-            if has_both_main_and_master(&repo) {
-                eprintln!(
-                    "🔧 {} has both main+master, consolidating to main",
-                    repo.display()
-                );
-                if let Err(e) = crate::git::consolidate_to_main(&repo).await {
-                    eprintln!("⚠️ failed to consolidate {} to main: {}", repo.display(), e);
+            let both_defaults = has_both_main_and_master(&repo);
+            if both_defaults || crate::git::has_only_master_branch(&repo) {
+                // Branch repair can push/delete a remote ref and invoke the
+                // same heavy hooks. Keep it off the serial inspection loop,
+                // with one maintenance owner and bounded per-repo retries.
+                if branch_retry_after.get(&repo).is_some_and(|until| now < *until) {
                     continue;
                 }
-            } else if crate::git::has_only_master_branch(&repo) {
-                eprintln!(
-                    "🔧 {} has only 'master', renaming to 'main'",
-                    repo.display()
-                );
-                if let Err(e) = crate::git::rename_master_to_main(&repo).await {
-                    eprintln!("⚠️ failed to rename {} master→main: {}", repo.display(), e);
-                    continue;
-                }
+                branch_retry_after.insert(repo.clone(), now + Duration::from_secs(300));
+                let repair_repo = repo.clone();
+                provisioning_jobs.insert(repo.clone(), tokio::spawn(
+                    crate::git::push_resources::background_pushes(async move {
+                        let result = if both_defaults {
+                            crate::git::consolidate_to_main(&repair_repo).await
+                        } else {
+                            crate::git::rename_master_to_main(&repair_repo).await
+                        };
+                        if let Err(error) = result {
+                            eprintln!("⚠️ {} default-branch repair failed: {}", repair_repo.display(), error);
+                        }
+                    }),
+                ));
+                continue;
             }
+            branch_retry_after.remove(&repo);
             if let Some(until) = repair_cooldowns.get(&repo).copied() {
                 if now < until {
                     continue;
