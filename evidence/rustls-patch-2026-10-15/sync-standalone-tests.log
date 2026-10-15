@@ -10,3 +10,5 @@
    Compiling libssh2-sys v0.3.3
    Compiling idna v1.1.0
    Compiling native-tls v0.2.18
+   Compiling url v2.5.8
+   Compiling libgit2-sys v0.18.8+1.9.7
