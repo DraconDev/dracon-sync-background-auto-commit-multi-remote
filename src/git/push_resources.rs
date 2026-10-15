@@ -63,12 +63,19 @@ fn push_slots() -> Arc<Semaphore> {
 /// The permit lives outside the owned process runner: cancellation drops the
 /// runner (which kills its process group) before another command gets a slot.
 pub(super) async fn command<T>(args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
-    let _permit = if isolated_push(args) {
+    let permit = if isolated_push(args) {
         Some(push_slots().acquire_owned().await.context("push semaphore closed")?)
     } else {
         None
     };
-    work.await
+    // Struct fields drop in declaration order, making teardown-before-slot-
+    // release explicit rather than relying on async-local drop ordering.
+    struct OwnedCommand<F: Future> {
+        work: std::pin::Pin<Box<F>>,
+        _permit: Option<OwnedSemaphorePermit>,
+    }
+    let mut owned = OwnedCommand { work: Box::pin(work), _permit: permit };
+    futures::future::poll_fn(|cx| owned.work.as_mut().poll(cx)).await
 }
 
 /// Apply only to the child of an enrolled daemon push. Setting our own child
