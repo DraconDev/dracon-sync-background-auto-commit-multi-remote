@@ -12270,7 +12270,7 @@ mod tests {
         // Truncated hint must end with either … (word-boundary hit)
         // or the natural sentence end (no truncation needed).
         assert!(
-            what.ends_with('…') || what.ends_with("DraconDev"),
+            what.ends_with('…') || what.ends_with(row.hint.as_str()),
             "truncated WHAT should end with … or natural end: {what}"
         );
     }
