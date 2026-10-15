@@ -10,3 +10,8 @@
    Compiling git2 v0.21.0
    Compiling dracon-git v94.7.2
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 57s
+  Executable unittests src/lib.rs (target/debug/deps/dracon_sync-9361ebd0c5dd8916)
+  Executable unittests src/main.rs (target/debug/deps/dracon_sync-24d94499d2413be7)
+  Executable tests/integration_test.rs (target/debug/deps/integration_test-e3a22ba05b943846)
+  Executable tests/storage_clean.rs (target/debug/deps/storage_clean-1f57907d26756cf8)
