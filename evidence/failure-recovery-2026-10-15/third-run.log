@@ -5,3 +5,18 @@
 running 1 test
 test daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness ... ⚠️ /tmp/.tmp9vgV22/watched/bucket private bucket preparation refused; no commit: private bucket upload refused; staged/worktree content retained
 📝 committed 1 file(s) in /tmp/.tmp9vgV22/watched/healthy
+⏱️ push retry 2/3 for /tmp/.tmp9vgV22/watched/hook after 1s
+
+thread 'daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness' (3104726) panicked at dracon-sync/src/daemon/failure_recovery_tests.rs:389:9:
+assertion failed: !inspection.0.as_ref().unwrap().is_finished()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::discovery_scheduler::failure_recovery_tests::integrated_failure_recovery_harness
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 50.32s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`
