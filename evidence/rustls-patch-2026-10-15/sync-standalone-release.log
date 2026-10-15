@@ -203,3 +203,15 @@
    Compiling serde_urlencoded v0.7.1
    Compiling console v0.16.6
    Compiling hyper-tls v0.6.0
+   Compiling ansi-str v0.9.0
+   Compiling tower-http v0.6.11
+   Compiling crossterm v0.29.0
+   Compiling futures-executor v0.3.34
+   Compiling bstr v1.13.1
+   Compiling unicode-segmentation v1.13.3
+   Compiling mime v0.3.17
+   Compiling iana-time-zone v0.1.65
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling chrono v0.4.45
+   Compiling reqwest v0.12.28
