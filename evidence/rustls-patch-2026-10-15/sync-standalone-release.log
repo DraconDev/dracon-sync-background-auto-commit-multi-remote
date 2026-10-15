@@ -21,3 +21,34 @@
    Compiling vcpkg v0.2.15
    Compiling bitflags v2.13.2
    Compiling zerofrom-derive v0.1.8
+   Compiling zerofrom v0.1.8
+   Compiling yoke-derive v0.8.4
+   Compiling futures-io v0.3.34
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.3
+   Compiling errno v0.3.14
+   Compiling scopeguard v1.2.0
+   Compiling parking_lot_core v0.9.12
+   Compiling slab v0.4.12
+   Compiling signal-hook-registry v1.4.8
+   Compiling openssl-sys v0.9.117
+   Compiling zerovec-derive v0.11.6
+   Compiling zerovec v0.11.8
+   Compiling lock_api v0.4.14
+   Compiling displaydoc v0.2.7
+   Compiling bytes v1.12.1
+   Compiling parking_lot v0.12.5
+   Compiling parking v2.2.1
+   Compiling futures-sink v0.3.34
+   Compiling rustix v1.1.5
+   Compiling winnow v1.0.4
+   Compiling tinystr v0.8.4
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling tokio-macros v2.7.2
+   Compiling equivalent v1.0.2
+   Compiling writeable v0.6.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling autocfg v1.5.1
+   Compiling litemap v0.8.3
+   Compiling hashbrown v0.17.1
