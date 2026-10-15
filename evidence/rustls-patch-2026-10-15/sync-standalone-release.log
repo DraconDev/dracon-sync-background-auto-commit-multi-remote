@@ -215,3 +215,11 @@
    Compiling sha2 v0.10.9
    Compiling chrono v0.4.45
    Compiling reqwest v0.12.28
+   Compiling comfy-table v7.2.2
+   Compiling globset v0.4.20
+   Compiling futures v0.3.34
+   Compiling tempfile v3.27.0
+   Compiling dracon-git v94.7.2
+   Compiling dirs v6.0.0
+   Compiling toml v0.8.23
+   Compiling notify-rust v4.18.0
