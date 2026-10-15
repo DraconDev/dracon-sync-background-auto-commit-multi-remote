@@ -54,10 +54,9 @@ pub(crate) type SyncTaskResult = (
 /// the in-flight collector can route the result back to the right repo.
 pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 
-/// Join handle for a spawned sync task that returns the full trio
-/// (repo path, counters, outcome) used by the in-flight collector.
-/// (R4-SC-07: the M1 dispatch-generation element is gone with the
-/// never-inserted discard-marker machinery.)
+/// Coordinator-polled tagged join: identity survives worker panic/cancellation.
+/// Only the actual worker is spawned; this future has no separate failure
+/// boundary that could lose its repository payload.
 pub(crate) type SyncTrioJoin = futures::future::BoxFuture<'static, (
     PathBuf,
     HashMap<String, RemoteFailInfo>,
@@ -150,13 +149,18 @@ struct ProbeOwner {
 
 impl From<tokio::task::AbortHandle> for ProbeOwner {
     fn from(abort: tokio::task::AbortHandle) -> Self {
-        Self { abort, cancelling: false }
+        Self {
+            abort,
+            cancelling: false,
+        }
     }
 }
 
 impl ProbeOwner {
     fn request_cancellation(&mut self) -> bool {
-        if self.cancelling { return false; }
+        if self.cancelling {
+            return false;
+        }
         self.cancelling = true;
         self.abort.abort();
         true
@@ -6997,8 +7001,8 @@ pub(crate) async fn run_daemon(
     // ledger failures). Now unfinished tasks move here, the repo
     // STAYS in `in_flight` (no duplicate dispatch), and the late
     // result is applied when the task actually finishes.
-    // `detached_since` tracks when each repo entered the registry
-    // for the 15-minute wedged-task safety valve. (R4-SC-07: the M1
+    // `detached_since` tracks registry residence for reporting only.
+    // SyncRecovery times execution after permit acquisition. (R4-SC-07: the M1
     // `detached_discard` stale-result map is gone — nothing is ever
     // force-cleared, so there is no stale result to drop.)
     let mut detached_syncs: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
@@ -7042,10 +7046,9 @@ pub(crate) async fn run_daemon(
     > = HashMap::new();
     let mut classification_pending: HashSet<PathBuf> = HashSet::new();
     // ADDED 2026-09-18 (v0.113.65): spawn instant per pending
-    // reservation, backing the 90s pending watchdog at the spawn gate.
-    // A reservation that outlives the job's 30s internal timeout by 3x
-    // means the result path desynced; the watchdog drops it and the
-    // gate re-probes instead of suppressing the repo forever.
+    // reservation, backing the scaled pending watchdog at pulse and repo
+    // boundaries. A reservation exceeding 3x its job budget requests owned
+    // cancellation; only a collected join releases it for a later retry.
     let mut classification_pending_since: HashMap<PathBuf, (Instant, Duration)> = HashMap::new();
     // ADDED 2026-09-18 (v0.113.67): dispatch-hold snapshot + last-dispatch
     // liveness. `dispatch_holds` records (reason, since) at each silent
@@ -7072,9 +7075,8 @@ pub(crate) async fn run_daemon(
     let mut status_retry_after: HashMap<PathBuf, Instant> = HashMap::new();
     // ADDED 2026-09-20 (v0.113.85): abort handles for wedged status /
     // classification tasks. Dropping a reservation without aborting
-    // the task leaks it (slot logic frees, the `git` child runs on,
-    // and the next probe piles on top). Pruned against the pending
-    // sets at the pulse boundary below.
+    // the task leaks it (the `git` child runs on, and the next probe piles
+    // on top). Owner IDs and cancellation state survive until join collection.
     let mut status_abort_handles: HashMap<PathBuf, ProbeOwner> = HashMap::new();
     let mut classification_abort_handles: HashMap<PathBuf, ProbeOwner> = HashMap::new();
     // ADDED 2026-09-20 (v0.113.85): throttle map for aging-hold
@@ -7389,7 +7391,8 @@ pub(crate) async fn run_daemon(
         // 1s pulse (measured pulse gaps 1.5–1.9s with 5 repos under load),
         // so a repo whose quiet window expired mid-cycle must not wait for
         // every later position in the scan. Repos already eligible at cycle
-        // start are inspected FIRST; everyone else keeps discovery order.
+        // start receive priority hints; least-recent admission below prevents
+        // those hints from indefinitely starving repositories without status.
         // Total cycle cost is unchanged — this removes the ARBITRARY part of
         // the delay (scan position), which is exactly the contract's
         // "first available pulse" requirement.
@@ -9331,7 +9334,7 @@ pub(crate) async fn run_daemon(
         // tokio task that runs sync_repo. Here we wrap each handle
         // in a `futures::future::RemoteHandle` equivalent: we
         // poll each handle in parallel using a `FuturesUnordered`
-        // of `JoinHandle<...>`. Tokio's multi-threaded runtime
+        // of coordinator-polled tagged joins. Tokio's multi-threaded runtime
         // schedules the spawned sync_repo tasks across worker
         // threads, so 4+ repos can be in-flight simultaneously.
         // CHANGED 2026-07-26 (v0.113.2, audit SYNC-H1): the gate
