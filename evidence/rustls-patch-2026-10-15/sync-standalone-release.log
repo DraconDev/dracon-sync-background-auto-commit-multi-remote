@@ -88,3 +88,19 @@
    Compiling version_check v0.9.5
    Compiling generic-array v0.14.7
    Compiling futures-util v0.3.34
+   Compiling tracing v0.1.44
+   Compiling event-listener-strategy v0.5.4
+   Compiling zvariant_derive v5.15.0
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling futures-lite v2.6.1
+   Compiling idna_adapter v1.2.2
+   Compiling http-body v1.1.0
+   Compiling form_urlencoded v1.2.2
+   Compiling async-io v2.6.0
+   Compiling libssh2-sys v0.3.3
+   Compiling httparse v1.10.1
+   Compiling openssl v0.10.81
+   Compiling typenum v1.20.1
+   Compiling foreign-types-shared v0.1.1
+   Compiling foreign-types v0.3.2
