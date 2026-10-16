@@ -278,3 +278,41 @@ test('all inherited GIT overrides are stripped and Git-root boundaries are verif
   await rm(join(f.root, '.git'), { recursive: true });
   await unsupported(f, 'missing-git-root');
 });
+
+test('Git metadata indirection, includes, symlinks and staged gitlinks fail closed', async t => {
+  const f = await fixture(t);
+  const config = await readFile(join(f.root, '.git/config'));
+  await writeFile(join(f.root, '.git/config'), `${config}\n[include]\n path = /not-read\n`);
+  await unsupported(f, 'unsupported-git-config-include');
+  await writeFile(join(f.root, '.git/config'), config);
+  await writeFile(join(f.root, '.git/commondir'), '/not-read');
+  await unsupported(f, 'unsupported-git-indirection');
+  await rm(join(f.root, '.git/commondir'));
+  await rm(join(f.root, '.git/HEAD'));
+  await symlink('/not-read', join(f.root, '.git/HEAD'));
+  await unsupported(f, 'symlink-path');
+  await rm(join(f.root, '.git/HEAD'));
+  await writeFile(join(f.root, '.git/HEAD'), 'ref: refs/heads/main\n');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+  execFileSync('git', ['-C', f.root, 'update-index', '--add', '--cacheinfo', '160000', '1111111111111111111111111111111111111111', 'public/nested'], { env });
+  await unsupported(f, 'nested-gitlink');
+});
+
+test('framework plugins, duplicate Vite declarations and lifecycle ignore environment are unsupported', async t => {
+  const f = await fixture(t);
+  f.pkg.devDependencies['@sveltejs/kit'] = '2.0.0';
+  await f.save();
+  await unsupported(f, 'unsupported-framework-or-plugin');
+  delete f.pkg.devDependencies['@sveltejs/kit'];
+  f.pkg.dependencies = { vite: '7.1.2' };
+  await f.save();
+  await unsupported(f, 'unsupported-vite-version');
+  const previous = process.env.npm_config_ignore_scripts;
+  try {
+    process.env.npm_config_ignore_scripts = 'true';
+    assert.equal((await f.inspect()).reason, 'unsupported-lifecycle-entrypoint');
+  } finally {
+    if (previous === undefined) delete process.env.npm_config_ignore_scripts;
+    else process.env.npm_config_ignore_scripts = previous;
+  }
+});

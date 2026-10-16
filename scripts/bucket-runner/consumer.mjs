@@ -118,14 +118,15 @@ async function snapshot(root) {
   // Git itself reads these for root/index queries. Bind and owner-check them
   // before invoking Git; external include/worktree indirection is not supported.
   const gitNames = await readdir(join(root, '.git'));
-  if (gitNames.some(name => ['commondir', 'gitdir', 'config.worktree'].includes(name))) fail('unsupported-git-indirection');
+  if (gitNames.length > 4096) fail('directory-entry-limit');
+  if (gitNames.some(name => ['commondir', 'gitdir', 'config.worktree'].includes(name) || name.startsWith('sharedindex.'))) fail('unsupported-git-indirection');
   for (const name of ['config', 'HEAD', 'index']) {
     if (!gitNames.includes(name)) {
       if (name !== 'index') fail('missing-git-metadata');
       reads[`.git/${name}`] = null;
     } else reads[`.git/${name}`] = await readStable(join(root, '.git', name), 1024 * 1024);
   }
-  if (/^\\s*\\[\\s*include(?:if)?(?:\\s|\\])/im.test(reads['.git/config'].bytes.toString('utf8'))) fail('unsupported-git-config-include');
+  if (/^\s*\[\s*include/im.test(reads['.git/config'].bytes.toString('utf8'))) fail('unsupported-git-config-include');
   const workflowPaths = [...files.keys()].filter(p => p.startsWith('.github/workflows/'));
   if ([...files.keys()].some(p => p !== MANIFEST && /(?:^|\/)(?:bucket-assets|restore-assets|assets-restore)[^/]*$/i.test(p))) fail('conflicting-restore-integration');
   for (const name of ['package.json', 'package-lock.json', 'index.html', MANIFEST, ...workflowPaths]) {
