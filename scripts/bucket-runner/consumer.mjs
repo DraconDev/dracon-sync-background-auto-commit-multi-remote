@@ -47,7 +47,7 @@ async function readStable(path, cap) {
     }
     if (length > cap) fail('file-size-limit');
     if (stamp(before) !== stamp(await handle.stat({ bigint: true })) || stamp(before) !== stamp(await stat(path))) fail('source-changed', true);
-    return { bytes: buffer.subarray(0, length), identity: stamp(before) };
+    return { bytes: buffer.subarray(0, length), identity: stamp(before), mode: Number(before.mode & 0o777n) };
   } finally { await handle.close(); }
 }
 function json(bytes, name) {
@@ -115,11 +115,14 @@ async function snapshot(root) {
   if (!files.has('index.html')) fail('missing-root-index');
   if (!entries.some(([p]) => p === 'public') || files.has('public')) fail('missing-default-public-directory');
   const reads = {};
-  for (const name of ['package.json', 'package-lock.json', 'index.html', MANIFEST]) {
+  const workflowPaths = [...files.keys()].filter(p => p.startsWith('.github/workflows/'));
+  if ([...files.keys()].some(p => p !== MANIFEST && /(?:^|\/)(?:bucket-assets|restore-assets|assets-restore)[^/]*$/i.test(p))) fail('conflicting-restore-integration');
+  for (const name of ['package.json', 'package-lock.json', 'index.html', MANIFEST, ...workflowPaths]) {
     if (!files.has(name)) {
       if (name !== MANIFEST) fail(`missing-${name}`);
       reads[name] = null;
     } else reads[name] = await readStable(join(root, name), 256 * 1024);
+    if (workflowPaths.includes(name) && /bucket|restore/i.test(reads[name].bytes.toString('utf8'))) fail('conflicting-restore-workflow');
   }
   return { reads, fingerprint: digest(JSON.stringify({ entries, reads: Object.entries(reads).map(([p, r]) => [p, r && [r.identity, digest(r.bytes)]]) })) };
 }
@@ -139,7 +142,7 @@ function qualify(reads) {
   if (own(pkg, 'workspaces')) fail('workspace-or-nested-package');
   if (pkg.packageManager !== undefined && !/^npm@\d+\.\d+\.\d+$/.test(pkg.packageManager)) fail('unsupported-package-manager');
   if (!object(pkg.scripts) || pkg.scripts.build !== 'vite build') fail('unsupported-build-script');
-  if (own(pkg.scripts, 'assets:restore') || Object.entries(pkg.scripts).some(([key, value]) => key !== 'prebuild' && key !== 'build' && typeof value === 'string' && /(?:bucket-assets|assets[: -]restore|restore[: -]assets)/i.test(value))) fail('conflicting-restore-integration');
+  if (own(pkg.scripts, 'assets:restore') || Object.entries(pkg.scripts).some(([key, value]) => key !== 'prebuild' && key !== 'build' && (/restore|bucket/i.test(key) || typeof value === 'string' && /restore|bucket/i.test(value)))) fail('conflicting-restore-integration');
   if (own(pkg.scripts, 'prebuild') && pkg.scripts.prebuild !== PREBUILD) fail('occupied-prebuild');
   const deps = [pkg.dependencies, pkg.devDependencies];
   if (deps.some(d => d !== undefined && !object(d))) fail('invalid-dependencies');
@@ -161,7 +164,8 @@ export async function inspectConsumer({ root, entrypoint = 'npm run build', life
   const base = { scope: 'plain-vite-bootstrap-text-v1', entrypoint: 'npm run build', manifestPath: MANIFEST,
     runtimeQualified: false, consumer: null, plan: null, evidence: null };
   const result = (status, reason) => ({ ...base, status, reason });
-  if (entrypoint !== 'npm run build' || lifecycleScripts !== true) return result('unsupported', 'unsupported-lifecycle-entrypoint');
+  if (entrypoint !== 'npm run build' || lifecycleScripts !== true
+    || Object.entries(process.env).some(([k, v]) => k.toLowerCase() === 'npm_config_ignore_scripts' && v !== '' && v !== 'false')) return result('unsupported', 'unsupported-lifecycle-entrypoint');
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root || /[\\\x00-\x1f\x7f]/.test(root)) return result('unsupported', 'invalid-root');
   try {
     const first = await snapshot(root);
@@ -179,7 +183,7 @@ export async function inspectConsumer({ root, entrypoint = 'npm run build', life
       output.plan = Object.freeze({ path: 'package.json', expectedDigest: evidence.packageDigest,
         expectedBytes: first.reads['package.json'].bytes.toString('utf8'),
         proposedBytes: `${JSON.stringify(pkg, null, 2)}\n`,
-        mode: Number((await stat(join(root, 'package.json'))).mode & 0o777n), requiresExclusiveMutationLock: true, requiresFreshInspection: true });
+        mode: first.reads['package.json'].mode, requiresExclusiveMutationLock: true, requiresFreshInspection: true });
     }
     return output;
   } catch (e) {
