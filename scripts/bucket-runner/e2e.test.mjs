@@ -57,17 +57,18 @@ async function repo(t, { name = 'e2e' } = {}) {
 function makeTransport(remoteBytes) {
   const objects = new Map();
   if (remoteBytes) for (const [k, v] of Object.entries(remoteBytes)) objects.set(k, v);
+  const operations = [];
   return {
     objects,
-    operations: [],
-    async head(key) { this.operations.push(['head', key]); return objects.has(key); },
+    operations,
+    async head(key) { operations.push(['head', key]); return objects.has(key); },
     async putIfAbsent(key, file) {
-      this.operations.push(['put', key]);
+      operations.push(['put', key]);
       if (objects.has(key)) { const e = new Error('PreconditionFailed'); e.$metadata = { httpStatusCode: 412 }; throw e; }
       objects.set(key, await readFile(file));
     },
     async download(key, file) {
-      this.operations.push(['download', key]);
+      operations.push(['download', key]);
       if (!objects.has(key)) { const e = new Error('NotFound'); e.$metadata = { httpStatusCode: 404 }; throw e; }
       await writeFile(file, objects.get(key));
     },
@@ -109,9 +110,6 @@ test('e2e: unregistered eligible asset enrolls, verifies and restores on a fresh
   const trans = makeTransport();
   const result = await publishRepository({ root, profile: makeProfile(), binding: binding(), consumer, assetRoot: '.',
     manifestPath, transport: trans, indexPath });
-  if (!result.manifestWritten) {
-    console.error('DEBUG publish result:', JSON.stringify(result, null, 2));
-  }
   assert.equal(result.manifestWritten, true, 'publisher must write the manifest');
   assert.equal(result.indexRebound, true, 'publisher must bind the index record');
   assert.equal(result.toUpload.length, 1, 'one asset enrolled');

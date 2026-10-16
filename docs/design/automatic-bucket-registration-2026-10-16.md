@@ -258,6 +258,45 @@ corruption, namespace isolation, race-with-concurrent-create, concurrent
 publishers and unsafe manifest paths. Combined adapter/capability/planner/
 publisher tests: 27/27 pass (`all-component-tests.log`).
 
+### End-to-end registration, restoration and fault-recovery qualification
+
+`scripts/bucket-runner/e2e.test.mjs` is the single bounded harness that
+satisfies the goal's third and fourth verification contract bullets
+(end-to-end automated harness + bounded fault/recovery harness). It runs
+entirely in-process against an in-memory transport and never starts a daemon
+or uses live storage. The harness executes eight scenarios:
+
+1. **Unregistered eligible asset** enrolls, verifies, writes manifest, binds
+   the index and is then restored by a fresh consumer that has no shared
+   state with the publisher. The restored bytes match the source digest.
+2. **Ineligible assets** (non-media extensions) are never uploaded: the
+   manifest stays empty and zero transport write/read calls leak.
+3. **Repeat enrollment is idempotent**: the second pass writes no manifest
+   and triggers no second upload, and the manifest digest is unchanged.
+4. **Storage outage**: `putIfAbsent` always fails with a 503-style error;
+   the manifest is absent, the source remains intact on disk and a retry
+   after the outage recovers cleanly.
+5. **Partial upload**: `head` lies and `download` returns garbage; the
+   publisher detects the SHA mismatch, refuses to write the manifest, and a
+   retry with a clean transport succeeds without leaking the corrupt object.
+6. **Concurrent manifest change**: a stale manifest is rewritten between
+   reads; the publisher's commit-time compare-and-set rejects, and the
+   retry re-reads and re-verifies. After a successful recovery, no manifest
+   entry is `bucketed: true` without a verified, addressable object.
+7. **Simulated daemon interruption** between the storage upload and the
+   manifest write: the manifest is absent, the storage object is pending
+   retry, the worktree is intact, and a retry finishes the registration
+   without duplicating the index entry.
+8. **Renamed asset** (original deleted, new file added): the new file is
+   enrolled, the legacy entry is preserved for any reader still holding its
+   digest, and a fresh consumer can resolve both the new and the legacy
+   entries by their respective SHA-keyed objects.
+
+`scripts/verify-bucket-registration-e2e.sh` runs the full bucket-runner
+suite (35 tests) and asserts every required scenario executed; a misspelled
+filter or a missing test fails the gate. The latest run is captured at
+`evidence/auto-registration-2026-10-16/e2e-registration-tests.log`.
+
 No live profile is installed and no `bucket-assets.json` opt-in is enabled.
 Live qualification remains task 6 and is gated on the fleet rollout decision.
 
