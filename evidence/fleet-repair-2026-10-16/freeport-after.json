@@ -1,0 +1,151 @@
+{
+  "ref": "refs/heads/main",
+  "refs": [
+    {
+      "name": "refs/heads/main",
+      "ref": "refs/heads/main",
+      "remoteRef": "refs/heads/main",
+      "objectId": "a919b8f52c0e1adb263e499cfe0c8ec54dc02eeb",
+      "remoteTip": "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e"
+    }
+  ],
+  "targetRemote": {
+    "name": "origin",
+    "url": "git@github.com:DraconDev/web-games-freeport.git"
+  },
+  "effectiveLimitBytes": 711983104,
+  "limitingRemote": "github",
+  "limitingProvider": "github",
+  "scenarios": [
+    {
+      "remote": "github",
+      "url": "git@github.com:DraconDev/web-games-freeport.git",
+      "provider": "github",
+      "limitBytes": 711983104,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "a919b8f52c0e1adb263e499cfe0c8ec54dc02eeb",
+          "remoteTip": "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e",
+          "trackingTip": null
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        null
+      ],
+      "objectCount": 25320,
+      "reachableObjectCount": 25319,
+      "deltaBaseCount": 18941,
+      "uncompressedBytes": 1570201154,
+      "storedBytes": 453304568,
+      "storedPackBytes": 475969797,
+      "storedPackReserveBytes": 22665229,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 475969797,
+      "policyEstimateBytes": 1730527766,
+      "packPolicyEstimateBytes": 1730527766,
+      "packUpperBoundBytes": 1730527766,
+      "prospectiveCommitAllowanceBytes": 0,
+      "prospectiveCommitMessageBytes": 0,
+      "basisBytes": 475969797
+    },
+    {
+      "remote": "gitlab",
+      "url": "git@gitlab.com:DraconDev/web-games-freeport.git",
+      "provider": "gitlab",
+      "limitBytes": 711983104,
+      "target": false,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "a919b8f52c0e1adb263e499cfe0c8ec54dc02eeb",
+          "remoteTip": "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e",
+          "trackingTip": null
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        null
+      ],
+      "objectCount": 25320,
+      "reachableObjectCount": 25319,
+      "deltaBaseCount": 18941,
+      "uncompressedBytes": 1570201154,
+      "storedBytes": 453304568,
+      "storedPackBytes": 475969797,
+      "storedPackReserveBytes": 22665229,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 475969797,
+      "policyEstimateBytes": 1730527766,
+      "packPolicyEstimateBytes": 1730527766,
+      "packUpperBoundBytes": 1730527766,
+      "prospectiveCommitAllowanceBytes": 0,
+      "prospectiveCommitMessageBytes": 0,
+      "basisBytes": 475969797
+    },
+    {
+      "remote": "origin",
+      "url": "git@github.com:DraconDev/web-games-freeport.git",
+      "provider": "github",
+      "limitBytes": 711983104,
+      "target": true,
+      "refs": [
+        {
+          "name": "refs/heads/main",
+          "ref": "refs/heads/main",
+          "remoteRef": "refs/heads/main",
+          "objectId": "a919b8f52c0e1adb263e499cfe0c8ec54dc02eeb",
+          "remoteTip": "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e",
+          "trackingTip": "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e"
+        }
+      ],
+      "measurementBasis": "complete-reachable-stored-pack-plus-repack-reserve",
+      "trackingTips": [
+        "2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e"
+      ],
+      "objectCount": 25320,
+      "reachableObjectCount": 25319,
+      "deltaBaseCount": 18941,
+      "uncompressedBytes": 1570201154,
+      "storedBytes": 453304568,
+      "storedPackBytes": 475969797,
+      "storedPackReserveBytes": 22665229,
+      "storedPackReservePercent": 5,
+      "pushableBytes": 475969797,
+      "policyEstimateBytes": 1730527766,
+      "packPolicyEstimateBytes": 1730527766,
+      "packUpperBoundBytes": 1730527766,
+      "prospectiveCommitAllowanceBytes": 0,
+      "prospectiveCommitMessageBytes": 0,
+      "basisBytes": 475969797
+    }
+  ],
+  "maxBasisBytes": 475969797,
+  "stagedBytes": 0,
+  "stagedTree": null,
+  "projectedBytes": 475969797,
+  "highWaterBytes": 711983104,
+  "atOrAboveLimit": false,
+  "measurable": true,
+  "ok": true,
+  "code": "OK",
+  "limitBytes": 711983104,
+  "remainingBytes": 236013307,
+  "errors": [],
+  "forwardOnly": {
+    "ok": true,
+    "code": "OK",
+    "checked": {
+      "staged": false,
+      "refs": 1
+    },
+    "violations": [],
+    "errors": []
+  }
+}

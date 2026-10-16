@@ -1,0 +1,10 @@
+🔍 Pre-push: 2 affected workspace(s) — running 4-gate (typecheck, build, test, lint).
+  ▸ extensions/standalones/clean-web TYPECHECK
+  ▸ extensions/standalones/clean-web BUILD
+  ▸ extensions/standalones/clean-web TEST
+  ▸ extensions/standalones/clean-web LINT
+  ▸ extensions/standalones/youtube-filter TYPECHECK
+  ▸ extensions/standalones/youtube-filter BUILD
+  ▸ extensions/standalones/youtube-filter TEST
+  ▸ extensions/standalones/youtube-filter LINT
+✅ Pre-push: 4-gate passed for all 2 workspace(s).
