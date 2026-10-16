@@ -229,6 +229,22 @@ anomaly (canonical email); the integration committer is canonical DraconDev.
 Published metadata is retained, not rewritten; subsequent component commits
 must specify the canonical name/email explicitly.
 
+### Enrollment planner
+
+`scripts/bucket-runner/planner.mjs` is a read-only enrollment planner: it
+enumerates Git-visible tracked/nonignored-untracked media under a positively
+qualified consumer scope, drops all inherited Git overrides, validates the
+root, runs the provenance probe and either extends the prior manifest or
+returns a new manifest for the publisher. It never uploads, never modifies
+source bytes and never rewrites legacy entries. Outcomes explicitly cover
+unsupported adapter/consumer/storage scope, missing source, retryable source
+change, symlink/nested-git paths and git-ignored files. Stable collision-
+resistant IDs derive from `(repositoryId, sourcePath)` so repeats are
+idempotent and new files get added without touching existing ones. Seven
+planner tests pass (`all-component-tests.log` totals: 19 test groups, 0
+failures across adapter, capability and planner components). No live profile
+is installed; the planner runs against operator-supplied capability fixtures.
+
 ### Active lane board
 
 | Lane | Checkout / isolation | Exclusive authority | Gate / handoff |
