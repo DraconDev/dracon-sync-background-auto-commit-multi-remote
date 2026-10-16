@@ -8,7 +8,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, open, readdir } from 'node:fs/promises';
+import { lstat, open, opendir } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -24,6 +24,15 @@ const object = o => o !== null && typeof o === 'object' && !Array.isArray(o);
 const fail = (reason, retry = false) => { throw Object.assign(new Error(reason), { retry }); };
 const stamp = s => [s.dev, s.ino, s.uid, s.gid, s.mode, s.nlink, s.size, s.mtimeNs, s.ctimeNs].map(String).join(':');
 const stat = p => lstat(p, { bigint: true });
+async function namesIn(path, limit = 4096) {
+  const names = [];
+  const directory = await opendir(path);
+  for await (const entry of directory) {
+    if (names.length >= limit) fail('directory-entry-limit');
+    names.push(entry.name);
+  }
+  return names;
+}
 function owned(s, directory = false) {
   if (s.isSymbolicLink()) fail('symlink-path');
   if (s.uid !== BigInt(process.geteuid()) || (s.mode & 0o022n)) fail('unsafe-ownership-or-permissions');
@@ -66,9 +75,9 @@ async function ancestors(root) {
       // Shared sticky temp ancestors are allowed; writable nonsticky ancestors
       // or foreign non-root owners could redirect a supposedly stable checkout.
       if ((s.uid !== 0n && s.uid !== BigInt(process.geteuid())) || ((s.mode & 0o022n) && !(s.mode & 0o1000n))) fail('unsafe-ancestor');
-      const names = await readdir(p);
-      if (names.includes('package.json')) fail('workspace-or-nested-package');
-      if (names.includes('.git')) fail('nested-git');
+      // An independent checkout is allowed beneath another repo/package.
+      // Git root verification and this checkout's own workspace/lock metadata
+      // establish its boundary; ancestor marker presence is not membership.
     }
     if (p === dirname(p)) break;
   }
@@ -83,7 +92,7 @@ async function snapshot(root) {
     const path = relative ? join(root, relative) : root;
     const before = await stat(path);
     owned(before, true);
-    const names = (await readdir(path)).sort();
+    const names = (await namesIn(path, 4096 - count)).sort();
     for (const name of names) {
       if (++count > 4096) fail('directory-entry-limit');
       const rel = relative ? `${relative}/${name}` : name;
@@ -117,8 +126,7 @@ async function snapshot(root) {
   const reads = {};
   // Git itself reads these for root/index queries. Bind and owner-check them
   // before invoking Git; external include/worktree indirection is not supported.
-  const gitNames = await readdir(join(root, '.git'));
-  if (gitNames.length > 4096) fail('directory-entry-limit');
+  const gitNames = await namesIn(join(root, '.git'));
   if (gitNames.some(name => ['commondir', 'gitdir', 'config.worktree'].includes(name) || name.startsWith('sharedindex.'))) fail('unsupported-git-indirection');
   for (const name of ['config', 'HEAD', 'index']) {
     if (!gitNames.includes(name)) {

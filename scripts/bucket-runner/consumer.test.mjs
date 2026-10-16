@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmod, chown, link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, chown, link, mkdir, mkdtemp, readFile, rm, symlink, writeFile, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspectConsumer, revalidateConsumer, PREBUILD, MANIFEST } from './consumer.mjs';
@@ -39,6 +39,19 @@ async function unsupported(f, reason) {
   assert.equal(result.plan, null);
   return result;
 }
+
+test('independent checkout beneath parent Git/package boundary remains eligible for text qualification', async t => {
+  const f = await fixture(t);
+  const parent = await mkdtemp(join(tmpdir(), 'consumer-parent-repo-'));
+  t.after(() => rm(parent, { recursive: true, force: true }));
+  execFileSync('git', ['init', '-q', parent]);
+  await writeFile(join(parent, 'package.json'), canonical({ name: 'parent', private: true, workspaces: ['unrelated/*'] }));
+  const nested = join(parent, 'independent');
+  await rename(f.root, nested);
+  const result = await inspectConsumer({ root: nested });
+  assert.equal(result.status, 'supported', JSON.stringify(result));
+  assert.equal((await revalidateConsumer(result.evidence)).status, 'supported');
+});
 
 test('managed plain Vite verifies text only, does not build or mutate; manifest is snapshot data only', async t => {
   const f = await fixture(t);
