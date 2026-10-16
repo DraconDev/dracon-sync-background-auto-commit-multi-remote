@@ -55,7 +55,8 @@ function limits(options) {
  * to it; evidence paths are ALWAYS repository-relative. Options only lower caps.
  * No returned entry may be marked bucketed until separate verified publication.
  */
-export async function inspectRepository({ root, profile, binding, consumer, assetRoot = '.', manifest, repositoryId: explicitId } = {}, options = {}) {
+export async function inspectRepository({ root, profile, binding, consumer, assetRoot = '.', manifest, repositoryId: explicitId,
+  allowedCandidates = null } = {}, options = {}) {
   const repositoryId = explicitId ?? binding?.repositoryId ?? null;
   const outcomes = [];
   const base = { repositoryId, assetRoot, outcomes, added: [], proposedManifest: null,
@@ -63,6 +64,11 @@ export async function inspectRepository({ root, profile, binding, consumer, asse
   const fail = (status, reason) => ({ ...base, status, reason });
   let cap;
   try { cap = limits(options); } catch (e) { return fail('refused', e.message); }
+  if (allowedCandidates !== null && (!Array.isArray(allowedCandidates) || allowedCandidates.length > cap.maxCandidates
+    || !allowedCandidates.every(safe))) return fail('refused', 'invalid-authorized-candidates');
+  // The production bridge supplies an exact sealed candidate set after Rust's
+  // effective per-repo policy matching. Later-created paths wait for next scan.
+  const allowed = allowedCandidates === null ? null : new Set(allowedCandidates);
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root || /[\\\x00-\x1f\x7f]/.test(root)
     || (assetRoot !== '.' && (!safe(assetRoot) || isExcluded(assetRoot)))) return fail('refused', 'invalid-root');
   // Drop ALL inherited Git overrides (including index, worktree, config injection,
@@ -127,6 +133,7 @@ export async function inspectRepository({ root, profile, binding, consumer, asse
     const previous = byPath.get(sourcePath);
     const result = (status, reason, extra = {}) => outcomes.push({ sourcePath, ...(previous ? { id: previous.id } : {}), status, reason, ...extra });
     if (!safe(sourcePath) || isExcluded(sourcePath)) { result('excluded', 'unsafe-or-excluded-path'); continue; }
+    if (allowed && !allowed.has(sourcePath)) { result('excluded', 'operator-policy-excluded-or-not-snapshotted'); continue; }
     if (ignored.has(sourcePath)) { result('excluded', 'git-ignored'); continue; }
     if (!below(sourcePath, assetRoot)) { result('excluded', 'outside-asset-root'); continue; }
     if (gitlinks.some(p => sourcePath === p || sourcePath.startsWith(`${p}/`))) { result('excluded', 'nested-gitlink'); continue; }

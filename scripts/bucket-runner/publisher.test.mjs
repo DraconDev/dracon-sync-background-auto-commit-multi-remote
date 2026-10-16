@@ -343,6 +343,46 @@ test('publishRepository: unsupported edits retain previous manifest and edited s
   assert.equal(trans.objects.size, 1);
 });
 
+test('publishRepository: failed index write leaves manifest absent and retry re-verifies', async t => {
+  const { root, manifestPath, indexPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  const trans = transport();
+  await writeFile(join(root, 'index'), 'not a directory');
+  const first = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, indexPath, transport: trans });
+  assert.equal(first.manifestWritten, false);
+  await assert.rejects(readFile(manifestPath), { code: 'ENOENT' });
+  await rm(join(root, 'index'));
+  const second = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, indexPath, transport: trans });
+  assert.equal(second.manifestWritten, true);
+  assert.equal(second.indexRebound, true);
+  assert.equal(JSON.parse(await readFile(indexPath, 'utf8')).manifestDigest, sha(await readFile(manifestPath)));
+});
+
+test('publishRepository: sealed operator candidate set cannot be enlarged by new files', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  await writeFile(join(root, 'authorized/excluded.png'), renderSolidPng(brand));
+  const trans = transport();
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans, allowedCandidates: ['authorized/icon.png'] });
+  assert.equal(result.toUpload.length, 1);
+  assert.equal(result.plan.outcomes.find(o => o.sourcePath.endsWith('excluded.png')).reason, 'operator-policy-excluded-or-not-snapshotted');
+  assert.deepEqual(JSON.parse(await readFile(manifestPath, 'utf8')).assets.map(a => a.sourcePath), ['authorized/icon.png']);
+});
+
+test('planRepository: lowering inspection limits remains effective through publication bridge', async t => {
+  const { root } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  await writeFile(join(root, 'authorized/other.png'), renderSolidPng(brand));
+  const result = await planRepository({ root, profile: profile(), binding: binding(), consumer,
+    options: { maxCandidates: 1 } });
+  assert.equal(result.plan.status, 'retryable');
+  assert.equal(result.plan.reason, 'candidate-limit');
+  assert.equal(result.toUpload.length, 0);
+});
+
 test('publishRepository: refuses an unsafely rooted manifest path', async t => {
   const { root, manifestPath } = await repo(t);
   await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));

@@ -4,7 +4,7 @@
  * are reused from the existing platform transfer. Identity is bound to
  * the trusted profile/binding and immutable object keys.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -69,12 +69,14 @@ async function sourceSnapshot(root, sourcePath, entry, trusted, consumer) {
   } finally { await file.close(); }
 }
 const readUtf8 = async path => (await readFile(path, TEXT)).toString('utf8');
-const atomicWrite = async (path, contents) => {
-  const dir = dirname(path), temp = `${path}.${hash(contents).slice(0, 12)}.tmp`;
+const atomicWrite = async (path, contents, mode = 0o644) => {
+  const dir = dirname(path), temp = `${path}.${randomUUID()}.tmp`;
   await mkdir(dir, { recursive: true });
-  await writeFile(temp, contents, { encoding: 'utf8', mode: 0o644, flag: 'wx' });
-  await rename(temp, path);
-  return path;
+  try {
+    await writeFile(temp, contents, { encoding: 'utf8', mode, flag: 'wx' });
+    await rename(temp, path);
+    return path;
+  } finally { await rm(temp, { force: true }); }
 };
 function rewritePath(relative) { return isAssetRoot(relative) ? relative : null; }
 
@@ -138,12 +140,12 @@ export async function publicationLock(path, { waitMs = 1000 } = {}) {
  * No manifest, transport, or index state is touched.
  */
 export async function planRepository({ root, profile, binding, consumer, assetRoot = '.', manifest,
-  budget, options = {} } = {}) {
+  budget, allowedCandidates = null, options = {} } = {}) {
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root) throw new Error('invalid-root');
   if (assetRoot !== '.' && !isAssetRoot(assetRoot)) throw new Error('invalid-asset-root');
   const authority = validateProfile(profile);
   const trusted = validateBinding(authority, binding);
-  const plan = await inspectRepository({ root, profile, binding: { ...trusted, repositoryId: trusted.repositoryId }, consumer, assetRoot, manifest, options });
+  const plan = await inspectRepository({ root, profile, binding: trusted, consumer, assetRoot, manifest, allowedCandidates }, options);
   if (plan.status !== 'planned') return { plan, toUpload: [] };
   const routing = validateBudget(budget);
   const before = new Map((manifest?.assets ?? []).map(a => [a.sourcePath, a]));
@@ -182,7 +184,7 @@ function failPending(plan, reason) {
  * enrolled manifest's digest against the bound namespace.
  */
 export async function publishRepository({ root, profile, binding, consumer, assetRoot = '.', manifestPath,
-  transport, budget, options = {}, indexPath } = {}) {
+  transport, budget, allowedCandidates = null, options = {}, indexPath } = {}) {
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root) throw new Error('invalid-root');
   if (assetRoot !== '.' && !isAssetRoot(assetRoot)) throw new Error('invalid-asset-root');
   if (typeof manifestPath !== 'string' || !isAbsolute(manifestPath)) throw new Error('invalid-manifest-path');
@@ -201,7 +203,7 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     catch (error) { if (error.code !== 'ENOENT') throw error; prior = null; }
     const priorManifest = prior === null ? null : JSON.parse(prior);
     const { plan, toUpload } = await planRepository({ root, profile, binding: trusted, consumer, assetRoot,
-      manifest: priorManifest, budget, options });
+      manifest: priorManifest, budget, allowedCandidates, options });
     const registrationChanged = (priorManifest !== null || plan.proposedManifest?.assets.length > 0)
       && JSON.stringify(plan.proposedManifest) !== JSON.stringify(priorManifest);
     if (plan.status !== 'planned' || (!registrationChanged && !toUpload.length)) {
@@ -272,16 +274,19 @@ export async function publishRepository({ root, profile, binding, consumer, asse
       throw error;
     });
     if (current !== prior) throw new Error('manifest-changed-concurrently');
-    await atomicWrite(manifestPath, finalBytes);
+    // Index first: an interrupted transaction may leave an index pointing
+    // ahead, but never a new manifest whose index write failed. Exact digest
+    // verification forbids staging until both agree; retry re-probes/uploads.
     let indexRebound = false;
     if (indexPath && isAbsolute(indexPath)) {
       const indexDir = dirname(indexPath);
       const indexRecord = { schemaVersion: 1, profileId: authority.id, repositoryId: trusted.repositoryId,
         namespace: trusted.namespace, manifestPath, manifestDigest: hash(finalBytes), updatedAt: new Date().toISOString() };
       await mkdir(indexDir, { recursive: true });
-      await atomicWrite(indexPath, `${JSON.stringify(indexRecord, null, 2)}\n`);
+      await atomicWrite(indexPath, `${JSON.stringify(indexRecord, null, 2)}\n`, 0o600);
       indexRebound = true;
     }
+    await atomicWrite(manifestPath, finalBytes);
     return { plan, toUpload: verified, indexRebound, manifestWritten: true,
       manifestDigest: hash(finalBytes), manifestPath };
   } catch (error) {
