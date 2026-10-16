@@ -1,0 +1,8 @@
+Post-restart identity verification 2026-10-16T15:53:05Z
+8bbc559eb45378c98fa19918d9286b52dc67c138c49c25a255de9400e5949ac5  /proc/2453439/exe
+8bbc559eb45378c98fa19918d9286b52dc67c138c49c25a255de9400e5949ac5  target/release/dracon-sync
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  /home/dracon/.local/bin/dracon-warden
+/home/dracon/.local/bin/dracon-sync
+active
+active
+freeze marker absent; maintenance resumed

@@ -23,7 +23,14 @@ timeout 120 systemctl --user restart dracon-sync.service
 timeout 15 systemctl --user is-active dracon-sync.service dracon-system-guard.service
 pid=$(systemctl --user show dracon-sync.service -p MainPID --value)
 [[ "$pid" -gt 0 ]]
-cmp -- target/release/dracon-sync "/proc/$pid/exe"
+# MainPID may be published during systemd's exec transition. Require the
+# tested identity to settle within ten seconds, never assume Active=ready.
+matched=false
+for attempt in {1..100}; do
+    if cmp -s -- target/release/dracon-sync "/proc/$pid/exe"; then matched=true; break; fi
+    sleep 0.1
+done
+[[ "$matched" == true ]]
 printf 'running_pid=%s\nfinished=%s\n' "$pid" "$(date -u +%FT%TZ)"
 sha256sum target/release/dracon-sync target/release/dracon-warden \
     "$HOME/.local/bin/dracon-sync" "$HOME/.local/bin/dracon-warden" "/proc/$pid/exe"

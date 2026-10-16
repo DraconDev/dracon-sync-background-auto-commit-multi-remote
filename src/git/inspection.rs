@@ -60,7 +60,17 @@ fn for_record<'a>(
         if record.is_empty() {
             continue;
         }
-        if let Some(head) = record.strip_prefix(b"# branch.head ") {
+        if let Some(oid) = record.strip_prefix(b"# branch.oid ") {
+            // Reports use presence of HEAD to distinguish a real repository
+            // from an unborn branch. Omitting this made every report EMPTY
+            // after switching from GitService to the owned inspection path.
+            if oid != b"(initial)" {
+                if !matches!(oid.len(), 40 | 64) || !oid.iter().all(u8::is_ascii_hexdigit) {
+                    bail!("malformed branch.oid");
+                }
+                status.last_commit_hash = Some(std::str::from_utf8(oid)?.into());
+            }
+        } else if let Some(head) = record.strip_prefix(b"# branch.head ") {
             status.branch = if head == b"(detached)" {
                 "detached".into()
             } else {
@@ -78,7 +88,7 @@ fn for_record<'a>(
                 .context("missing behind prefix")?
                 .parse()?;
         } else if record.starts_with(b"# ") {
-            // oid/upstream and future optional branch headers.
+            // upstream and future optional branch headers.
         } else if record.starts_with(b"? ") {
             status.untracked_files += 1;
         } else if matches!(record[0], b'1' | b'2' | b'u') {
@@ -115,6 +125,19 @@ fn for_record<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn head_presence_survives_owned_inspection_for_report_empty_detection() {
+        for len in [40, 64] {
+            let oid = "a".repeat(len);
+            let bytes = format!("# branch.oid {oid}\0# branch.head main\0");
+            let status = parse_status(bytes.as_bytes()).unwrap();
+            assert_eq!(status.last_commit_hash.as_deref(), Some(oid.as_str()));
+        }
+        assert!(parse_status(b"# branch.oid (initial)\0# branch.head main\0")
+            .unwrap().last_commit_hash.is_none());
+        assert!(parse_status(b"# branch.oid garbage\0").is_err());
+    }
 
     #[test]
     fn parses_branch_counts_renames_conflicts_and_non_utf8_paths() {
