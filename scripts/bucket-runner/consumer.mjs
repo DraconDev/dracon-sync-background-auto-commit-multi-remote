@@ -115,6 +115,17 @@ async function snapshot(root) {
   if (!files.has('index.html')) fail('missing-root-index');
   if (!entries.some(([p]) => p === 'public') || files.has('public')) fail('missing-default-public-directory');
   const reads = {};
+  // Git itself reads these for root/index queries. Bind and owner-check them
+  // before invoking Git; external include/worktree indirection is not supported.
+  const gitNames = await readdir(join(root, '.git'));
+  if (gitNames.some(name => ['commondir', 'gitdir', 'config.worktree'].includes(name))) fail('unsupported-git-indirection');
+  for (const name of ['config', 'HEAD', 'index']) {
+    if (!gitNames.includes(name)) {
+      if (name !== 'index') fail('missing-git-metadata');
+      reads[`.git/${name}`] = null;
+    } else reads[`.git/${name}`] = await readStable(join(root, '.git', name), 1024 * 1024);
+  }
+  if (/^\\s*\\[\\s*include(?:if)?(?:\\s|\\])/im.test(reads['.git/config'].bytes.toString('utf8'))) fail('unsupported-git-config-include');
   const workflowPaths = [...files.keys()].filter(p => p.startsWith('.github/workflows/'));
   if ([...files.keys()].some(p => p !== MANIFEST && /(?:^|\/)(?:bucket-assets|restore-assets|assets-restore)[^/]*$/i.test(p))) fail('conflicting-restore-integration');
   for (const name of ['package.json', 'package-lock.json', 'index.html', MANIFEST, ...workflowPaths]) {
@@ -175,7 +186,7 @@ export async function inspectConsumer({ root, entrypoint = 'npm run build', life
     if (first.fingerprint !== second.fingerprint) fail('source-changed', true);
     const evidence = Object.freeze({ root, snapshotDigest: first.fingerprint, packageDigest: digest(first.reads['package.json'].bytes) });
     const managed = own(pkg.scripts, 'prebuild');
-    proofs.set(evidence, { root, fingerprint: first.fingerprint, managed });
+    proofs.set(evidence, { root, fingerprint: first.fingerprint });
     const output = { ...base, status: managed ? 'supported' : 'plannable', reason: managed ? 'managed-bootstrap-text-verified' : 'missing-prebuild', evidence };
     if (managed) output.consumer = Object.freeze({ id: 'filesystem-restore', version: 1, assetRoots: Object.freeze(['public']) });
     else {
