@@ -9,8 +9,9 @@ import { assertObjectKey, validateProfile, validateBinding } from './capabilitie
 import { CAPS } from './adapters.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const excluded = /^(?:node_modules|vendor|dist|build|out|target|coverage|cache|caches|tmp|temp|test|tests|__tests__|fixtures|audit|audits|evidence|secrets?|credentials?)$/i;
 const safe = path => typeof path === 'string' && path.length <= 4096
-  && !/[\\\x00-\x1f\x7f:]/.test(path) && path.split('/').every(p => p && p !== '.' && p !== '..' && !p.startsWith('.'));
+  && !/[\\\x00-\x1f\x7f:]/.test(path) && path.split('/').every(p => p && p !== '.' && p !== '..' && !p.startsWith('.') && !excluded.test(p));
 const require = (ok, reason) => { if (!ok) throw new Error(reason); };
 async function directory(path, create = false) {
   const chain = [];
