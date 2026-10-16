@@ -132,7 +132,7 @@ Window `2026-10-16T16:02:58Z` to `2026-10-16T16:33:29Z` (duration
 - T10 (16:13:02Z): 26 OK / 7 active / 1 warn / 0 concern
 - T20 (16:23:14Z): 28 OK / 1 active / 5 warn / 0 concern
 - T30 (16:33:24Z): 32 OK / 0 active / 2 warn / 0 concern (`.dracon` is
-  push-stuck, evidence-stale events.jsonl line; the live hint suggests
+  push-stuck; the live hint suggests
   `dracon-sync repair concerns --apply`).
 - Daemon MainPID 2674977 and the live executable digest
   `8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030` match
@@ -141,9 +141,9 @@ Window `2026-10-16T16:02:58Z` to `2026-10-16T16:33:29Z` (duration
   the snapshot windows; 40 trailing-drain handoffs (no wedge); zero
   status-stale or status-failed messages. Concurrent slow/fast repositories
   progress (T0 had 6 active, T30 had 0 active) without starvation or
-  orphan work. The only persistent nonhealthy signal is the pre-existing
-  push-stuck `.dracon` case, evidenced by its hint and the unchanged
-  `events.jsonl` line.
+  orphan work. The persistent nonhealthy signal is `.dracon` push-stuck.
+  Its generic hint established a hook refusal, not the precise offending file;
+  the original event-log attribution was unproven (corrected below).
 
 ## Documented limits
 
@@ -153,6 +153,11 @@ Window `2026-10-16T16:02:58Z` to `2026-10-16T16:33:29Z` (duration
   nonchildren and processes outside retained ownership.
 - Non-Linux abrupt-owner cleanup is explicitly unsupported (the rest of
   the platform's behaviour is unchanged).
-- `.dracon` push-stuck persists across the window: pre-existing
-  warden/secret-scan refusal on a long-lived `events.jsonl` write; not
-  caused by this change.
+- `.dracon` push-stuck persisted across this observation window. Follow-up
+  investigation reproduced the exact hook refusal on the rollback executables
+  this deployment stored in daemon-home, NOT on `events.jsonl`. The original
+  attribution to a pre-existing event-log secret refusal was incorrect.
+  Corrective transport-independent hook fix and safe backup location:
+  `dracon-warden/docs/design/rollback-binary-hook-false-positive-2026-10-16.md`.
+  The false positive was compiled PEM vocabulary, not serialized key material;
+  no guard was bypassed and published history was not rewritten.
