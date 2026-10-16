@@ -1,0 +1,5 @@
+captured=2026-10-16T16:02:54Z
+main_pid=2674977
+8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030  /proc/2674977/exe
+8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030  /home/dracon/.local/bin/dracon-sync
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  /home/dracon/.local/bin/dracon-warden

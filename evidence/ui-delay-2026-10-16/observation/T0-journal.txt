@@ -1,0 +1,57 @@
+Oct 16 16:59:59 nixos dracon-sync[2453439]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-platform/web/games/wip/darklord: git push-to-gitlab failed in /home/dracon/Dev/dracon-platform/web/games/wip/darklord with status exit status: 1: remote: GitLab: 500 Internal Server Error
+Oct 16 16:59:59 nixos dracon-sync[2453439]: To gitlab.com:DraconDev/web-games-darklord.git
+Oct 16 16:59:59 nixos dracon-sync[2453439]:  ! [remote rejected]     HEAD -> main (pre-receive hook declined)
+Oct 16 16:59:59 nixos dracon-sync[2453439]: error: failed to push some refs to 'gitlab.com:DraconDev/web-games-darklord.git'
+Oct 16 16:59:59 nixos dracon-sync[2453439]: ⚠️ push failed for /home/dracon/Dev/dracon-platform/web/games/wip/darklord (remotes: gitlab)
+Oct 16 17:00:02 nixos dracon-sync[2453439]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed but push failed (late) (will retry)
+Oct 16 17:00:08 nixos dracon-sync[2453439]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:00:09 nixos dracon-sync[2453439]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:00:09 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed; push paused (commit-only mode)
+Oct 16 17:00:11 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:00:51 nixos dracon-sync[2453439]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:00:52 nixos dracon-sync[2453439]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:00:52 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed; push paused (commit-only mode)
+Oct 16 17:00:52 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:01:03 nixos dracon-sync[2453439]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-platform/web/games/wip/freeport: git push-to-gitlab failed in /home/dracon/Dev/dracon-platform/web/games/wip/freeport with status exit status: 1: remote: GitLab: 500 Internal Server Error
+Oct 16 17:01:03 nixos dracon-sync[2453439]: To gitlab.com:DraconDev/web-games-freeport.git
+Oct 16 17:01:03 nixos dracon-sync[2453439]:  ! [remote rejected]   HEAD -> main (pre-receive hook declined)
+Oct 16 17:01:03 nixos dracon-sync[2453439]: error: failed to push some refs to 'gitlab.com:DraconDev/web-games-freeport.git'
+Oct 16 17:01:03 nixos dracon-sync[2453439]: 🔥 forge incident declared: gitlab.com (transient failures corroborated across repos) — per-repo push alerts coalesced, sick-remote re-probes stretched to 1h
+Oct 16 17:01:03 nixos dracon-sync[2453439]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/freeport — Forge Incident Declared: gitlab.com: transient forge-side failures corroborated across repos; per-repo push alerts coalesced until recovery
+Oct 16 17:01:03 nixos dracon-sync[2453439]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport push failure shielded by forge incident (gitlab.com) — no stuck-budget burn
+Oct 16 17:01:04 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:01:10 nixos dracon-sync[2453439]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:01:13 nixos dracon-sync[2453439]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/freeport
+Oct 16 17:01:13 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport committed; push paused (commit-only mode)
+Oct 16 17:01:13 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:01:44 nixos dracon-sync[2453439]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:01:44 nixos dracon-sync[2453439]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/freeport
+Oct 16 17:01:44 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport committed; push paused (commit-only mode)
+Oct 16 17:01:45 nixos dracon-sync[2453439]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/freeport committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:02:02 nixos dracon-sync[2453439]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 16 17:02:03 nixos dracon-sync[2453439]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 16 17:02:04 nixos dracon-sync[2453439]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 16 17:02:04 nixos systemd[1224]: Stopping Dracon Sync (deterministic sync runtime)...
+Oct 16 17:02:05 nixos systemd[1224]: Stopped Dracon Sync (deterministic sync runtime).
+Oct 16 17:02:05 nixos systemd[1224]: dracon-sync.service: Consumed 9min 49.606s CPU time, 1.5G memory peak, 342.2M memory swap peak.
+Oct 16 17:02:05 nixos systemd[1224]: Starting Dracon Sync (deterministic sync runtime)...
+Oct 16 17:02:05 nixos systemd[1224]: Started Dracon Sync (deterministic sync runtime).
+Oct 16 17:02:05 nixos dracon-sync[2674977]: 🔄 dracon-sync daemon started
+Oct 16 17:02:05 nixos dracon-sync[2674977]: 📋 startup: 3 repo(s) in the stuck-push ledger: freeport (0 failures), darklord (1 failures), .dracon (1 failures)
+Oct 16 17:02:05 nixos dracon-sync[2674977]: 🧹 startup: running cleanup...
+Oct 16 17:02:08 nixos dracon-sync[2674977]: 🧹 startup: pruned 8 stale visibility cache entries
+Oct 16 17:02:20 nixos dracon-sync[2674977]: 🔄 trailing-drain: 7 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:02:20 nixos dracon-sync[2674977]: 🛡️ /home/dracon/.dracon auto-hardened with warden before staging
+Oct 16 17:02:21 nixos dracon-sync[2674977]: 🛡️ /home/dracon/Dev/dracon-utilities/dracon-sync auto-hardened with warden before staging
+Oct 16 17:02:21 nixos dracon-sync[2674977]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 16 17:02:21 nixos dracon-sync[2674977]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td auto-hardened with warden before staging
+Oct 16 17:02:22 nixos dracon-sync[2674977]: 🛡️ /home/dracon/Dev/browser-extensions-shared auto-hardened with warden before staging
+Oct 16 17:02:22 nixos dracon-sync[2674977]: 📝 committed 3 file(s) in /home/dracon/.dracon
+Oct 16 17:02:22 nixos dracon-sync[2674977]: ⏸️ /home/dracon/.dracon committed; push paused (commit-only mode)
+Oct 16 17:02:22 nixos dracon-sync[2674977]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:02:22 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 16 17:02:23 nixos dracon-sync[2674977]: ⏸️ /home/dracon/.dracon committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:02:23 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:02:23 nixos dracon-sync[2674977]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak auto-hardened with warden before staging
+Oct 16 17:02:25 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:02:43 nixos dracon-sync[2674977]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-platform

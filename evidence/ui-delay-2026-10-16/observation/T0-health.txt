@@ -1,0 +1,10 @@
+🏥 Health · ✅ healthy · daemon running · freeze off · policy valid
+┌────┬────────┬──────────────────────────────┐
+│    ┆ KEY    ┆ VALUE                        │
+╞════╪════════╪══════════════════════════════╡
+│ ✅ ┆ Status ┆ healthy                      │
+│ ✅ ┆ Daemon ┆ running                      │
+│    ┆ Freeze ┆ off                          │
+│ ✅ ┆ Policy ┆ valid                        │
+│ 📦 ┆ Repos  ┆ 34 discovered across 2 roots │
+└────┴────────┴──────────────────────────────┘
