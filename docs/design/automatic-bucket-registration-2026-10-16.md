@@ -24,11 +24,28 @@ corrupt PUTs, concurrent initial manifest creation, source changes before and
 during upload, and manifest escape/symlink ancestors. The bounded gate passes
 42/42 tests (`evidence/auto-registration-2026-10-16/publisher-safety-regressions.log`).
 
+The next component checkpoint adds `bindings.mjs`: operator-selected exact
+remote identity, common-Git-directory inode identity and a committed ancestry
+anchor are stored privately outside the checkout. Directory renames preserve
+the binding; a copied descriptor cannot grant it. The independent static
+component review accepted the boundary and identified a temporary-file leak
+on failed writes/fsync. The parent fixed cleanup and added injected write/fsync
+regressions with successful retry.
+
+`routing.mjs` requires an explicit measured budget; no absent-budget implicit
+upload is possible. Eligible small assets enroll as local manifest entries
+without remote calls. They route later when measured pressure rises; a
+previously bucketed entry remains routed. Managed changed assets require a
+fresh trusted probe and upload/read-back; stable IDs are retained and old
+immutable objects remain. Arbitrary legacy entries and unsupported operator
+edits are left intact. Fixture upload scenarios now explicitly provide synthetic
+pressure rather than assuming every eligible asset should upload. All 60
+component/E2E tests pass; this is still NOT production integration.
+
 Remaining implementation order: dependency-closed installed runner/CLI and
-scoped real transport; trusted stable repository identity/anchor state;
-positively verified consumer bootstrap; ordinary routing policy and changed-
-entry renewal; bounded clean/new/changed-repository scheduling under the
-existing repo mutation owner; digest-bound pre-stage checks; then final gates,
+scoped real transport; positively verified consumer bootstrap; bounded
+clean/new/changed-repository scheduling under the existing repo mutation
+owner; digest-bound pre-stage checks; then final gates,
 sanctioned deploy, fresh inventory and actual live storage qualification.
 No permissions or credentials were changed to manufacture a live success.
 

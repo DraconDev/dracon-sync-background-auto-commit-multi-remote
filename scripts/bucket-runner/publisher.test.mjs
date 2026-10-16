@@ -65,13 +65,16 @@ test('planRepository: returns concrete eligible candidates needing upload', asyn
   assert.equal(plan.toUpload[0].provenance.consumer.id, 'filesystem-restore');
 });
 
-test('planRepository: idempotent re-plan reports no new candidates', async t => {
+test('planRepository: idempotent re-plan retains unverified pending uploads', async t => {
   const { root } = await repo(t);
   await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
   const first = await planRepository({ root, profile: profile(), binding: binding(), consumer, assetRoot: '.' });
   const second = await planRepository({ root, profile: profile(), binding: binding(), consumer, assetRoot: '.', manifest: first.plan.proposedManifest });
   assert.equal(first.toUpload.length, 1);
-  assert.equal(second.toUpload.length, 0);
+  // Planning is not upload verification: an unbucketed pending entry must
+  // remain due on retry, while registration itself is byte-for-byte stable.
+  assert.equal(second.toUpload.length, 1);
+  assert.deepEqual(second.plan.proposedManifest, first.plan.proposedManifest);
 });
 
 test('publishRepository: writes manifest, verifies, sets bucketed:true, and binds index', async t => {
@@ -250,6 +253,94 @@ test('publishRepository: rejects manifest escape and symlink ancestors before tr
     manifestPath: join(root, 'alias', 'manifest.json'), transport: trans }), /Symlink/);
   assert.equal(trans.objects.size, 0);
   await assert.rejects(readFile(join(outside, 'manifest.json')), { code: 'ENOENT' });
+});
+
+test('publishRepository: small assets register locally then route when measured pressure rises', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  const trans = transport();
+  const local = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans, budget: { projectedBytes: 10, limitBytes: 1000 } });
+  assert.equal(local.manifestWritten, true);
+  assert.equal(local.toUpload.length, 0);
+  assert.equal(trans.objects.size, 0);
+  const entry = JSON.parse(await readFile(manifestPath, 'utf8')).assets[0];
+  assert.equal(entry.bucketed, false);
+  const later = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(later.manifestWritten, true);
+  assert.equal(later.toUpload.length, 1);
+  const routed = JSON.parse(await readFile(manifestPath, 'utf8')).assets[0];
+  assert.equal(routed.id, entry.id);
+  assert.equal(routed.bucketed, true);
+});
+
+test('publishRepository: absent routing budget refuses before storage or manifest mutation', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  const trans = transport();
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans, budget: undefined });
+  assert.equal(result.manifestWritten, false);
+  assert.match(result.reason, /routing-budget/);
+  assert.equal(trans.objects.size, 0);
+  await assert.rejects(readFile(manifestPath), { code: 'ENOENT' });
+});
+
+test('publishRepository: explicit large threshold routes only qualified assets', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  await writeFile(join(root, 'authorized/not-media.txt'), Buffer.alloc(200));
+  const trans = transport();
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans, budget: { projectedBytes: 10, limitBytes: 1000, largeBytes: 100 } });
+  assert.equal(result.toUpload.length, 1);
+  assert.equal(trans.objects.size, 1);
+  assert.equal(JSON.parse(await readFile(manifestPath, 'utf8')).assets.length, 1);
+});
+
+test('publishRepository: changed managed asset renews proof and preserves old immutable object', async t => {
+  const { root, manifestPath } = await repo(t);
+  const source = join(root, 'authorized/icon.png');
+  const original = renderSolidPng(brand);
+  await writeFile(source, original);
+  const trans = transport();
+  const first = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(first.manifestWritten, true);
+  const before = JSON.parse(await readFile(manifestPath, 'utf8')).assets[0];
+  const changed = renderSolidPng({ ...brand, rgba: [2, 3, 4, 255] });
+  await writeFile(source, changed);
+  // Once bucketed, a changed eligible asset stays routed even at low pressure.
+  const second = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans, budget: { projectedBytes: 10, limitBytes: 1000 } });
+  assert.equal(second.manifestWritten, true);
+  assert.equal(second.toUpload.length, 1);
+  const after = JSON.parse(await readFile(manifestPath, 'utf8')).assets[0];
+  assert.equal(after.id, before.id);
+  assert.equal(after.sha256, sha(changed));
+  assert.equal(after.provenance.sha256, sha(changed));
+  assert.equal(after.bucketed, true);
+  assert.deepEqual(trans.objects.get(`games/auto/repo-123/${before.sha256}.png`), original);
+  assert.deepEqual(trans.objects.get(`games/auto/repo-123/${after.sha256}.png`), changed);
+  assert.deepEqual(await readFile(source), changed);
+});
+
+test('publishRepository: unsupported edits retain previous manifest and edited source', async t => {
+  const { root, manifestPath } = await repo(t);
+  const source = join(root, 'authorized/icon.png');
+  await writeFile(source, renderSolidPng(brand));
+  const trans = transport();
+  await publishRepository({ root, profile: profile(), binding: binding(), consumer, manifestPath, transport: trans });
+  const before = await readFile(manifestPath);
+  await writeFile(source, Buffer.from('unsupported operator bytes'));
+  const second = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(second.manifestWritten, false);
+  assert.equal(second.plan.outcomes[0].status, 'unsupported');
+  assert.deepEqual(await readFile(manifestPath), before);
+  assert.equal(await readFile(source, 'utf8'), 'unsupported operator bytes');
+  assert.equal(trans.objects.size, 1);
 });
 
 test('publishRepository: refuses an unsafely rooted manifest path', async t => {

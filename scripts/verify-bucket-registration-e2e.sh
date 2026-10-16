@@ -21,17 +21,19 @@ trap 'rm -f -- "$log"' EXIT
 timeout --signal=TERM --kill-after=10s 120s node --test \
   scripts/bucket-runner/adapters.test.mjs \
   scripts/bucket-runner/capabilities.test.mjs \
+  scripts/bucket-runner/bindings.test.mjs \
+  scripts/bucket-runner/routing.test.mjs \
   scripts/bucket-runner/planner.test.mjs \
   scripts/bucket-runner/publisher.test.mjs \
   scripts/bucket-runner/e2e.test.mjs 2>&1 | tee "$log"
 # The runner must execute every named suite. A misspelled filter or missing
 # script would silently pass. Fail closed.
-grep -Eq '^.*tests 42$' "$log" || {
-  echo 'Bucket-runner suite did not execute 42 tests; refusing a zero-test pass.' >&2
+grep -Eq '^.*tests 60$' "$log" || {
+  echo 'Bucket-runner suite did not execute 60 tests; refusing a zero-test pass.' >&2
   exit 1
 }
-grep -Eq '^.*pass 42$' "$log" || {
-  echo 'Bucket-runner suite did not pass 42 tests; refusing a partial pass.' >&2
+grep -Eq '^.*pass 60$' "$log" || {
+  echo 'Bucket-runner suite did not pass 60 tests; refusing a partial pass.' >&2
   exit 1
 }
 # Required e2e scenarios must have run (every goal verification contract bullet).
@@ -51,6 +53,12 @@ required=(
   'publishRepository: raced source is revalidated before any upload'
   'publishRepository: generator changes during upload prevent stale references'
   'publishRepository: rejects manifest escape and symlink ancestors before transport'
+  'failed state write or fsync cleans temporary files and permits retry'
+  'routing: small qualified assets remain local below measured pressure'
+  'publishRepository: small assets register locally then route when measured pressure rises'
+  'publishRepository: absent routing budget refuses before storage or manifest mutation'
+  'publishRepository: changed managed asset renews proof and preserves old immutable object'
+  'publishRepository: unsupported edits retain previous manifest and edited source'
 )
 for scenario in "${required[@]}"; do
   grep -Fq "$scenario" "$log" || {
@@ -58,4 +66,4 @@ for scenario in "${required[@]}"; do
     exit 1
   }
 done
-echo 'bucket-runner qualification passed: 42/42 tests, all required e2e scenarios executed.'
+echo 'bucket-runner qualification passed: 60/60 tests, all required e2e scenarios executed.'

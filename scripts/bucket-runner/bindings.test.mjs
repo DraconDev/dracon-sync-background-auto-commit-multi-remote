@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, chmod, rm, rename, symlink, writeFile, readFile, stat, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, chmod, rm, rename, symlink, writeFile, readFile, stat, cp, open, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { bindRepository } from './bindings.mjs';
 
@@ -33,6 +33,22 @@ async function fixture(t) {
   return { base, trees, stateDirectory, repositoryRoot, profile, remoteName: 'origin', trustedRemoteUrl: URL };
 }
 const request = f => Object.fromEntries(['stateDirectory', 'repositoryRoot', 'profile', 'remoteName', 'trustedRemoteUrl'].map(k => [k, f[k]]));
+
+test('failed state write or fsync cleans temporary files and permits retry', async t => {
+  const f = await fixture(t), input = request(f);
+  const handle = await open(join(f.base, 'prototype-probe'), 'w');
+  const prototype = Object.getPrototypeOf(handle);
+  await handle.close();
+  for (const method of ['writeFile', 'sync']) {
+    const mock = t.mock.method(prototype, method, async () => { throw new Error(`injected-${method}-failure`); });
+    try {
+      await assert.rejects(bindRepository(input), new RegExp(`injected-${method}-failure`));
+    } finally { mock.mock.restore(); }
+    assert.deepEqual((await readdir(f.stateDirectory)).filter(name => name.startsWith('.bindings-')), []);
+    await assert.rejects(readFile(join(f.stateDirectory, 'bindings.json')), { code: 'ENOENT' });
+  }
+  assert.equal((await bindRepository(input)).status, 'bound');
+});
 
 test('first binding is private, durable, idempotent and retained after physical rename', async t => {
   const f = await fixture(t), input = request(f);

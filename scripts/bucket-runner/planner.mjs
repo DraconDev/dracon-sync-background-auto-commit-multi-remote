@@ -148,7 +148,21 @@ export async function inspectRepository({ root, profile, binding, consumer, asse
     const evidence = probe.evidence;
     if (previous) {
       const same = previous.sha256 === evidence.sha256 && previous.bytes === evidence.bytes;
-      result(same ? 'already-registered' : 'unsupported', same ? 'already-registered' : 'changed-legacy-source', { priorProofReusable: same, evidence });
+      // Only renew registrations created by this protocol. Arbitrary legacy
+      // records remain byte-identical; their migration is not implied by a scan.
+      const managed = previous.id === `asset-${hash(JSON.stringify([trusted.repositoryId, sourcePath]))}`
+        && previous.provenance?.repositoryId === trusted.repositoryId
+        && previous.provenance?.sourcePath === sourcePath;
+      if (!same && managed) {
+        previous.sha256 = evidence.sha256;
+        previous.bytes = evidence.bytes;
+        previous.provenance = evidence;
+        previous.generator = { adapterId: evidence.adapterId, adapterVersion: evidence.adapterVersion,
+          runner: { sha256: authority.runner.sha256, version: authority.runner.version }, inputs: [] };
+        result('eligible', 'renewed-registration', { priorProofReusable: false, evidence });
+      } else {
+        result(same ? 'already-registered' : 'unsupported', same ? 'already-registered' : 'changed-legacy-source', { priorProofReusable: same, evidence });
+      }
       continue;
     }
     const id = `asset-${hash(JSON.stringify([trusted.repositoryId, sourcePath]))}`;

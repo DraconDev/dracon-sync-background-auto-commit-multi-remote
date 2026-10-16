@@ -152,8 +152,8 @@ async function writeState(stateDirectory, path, entries) {
   require(entries.length <= 1000 && Buffer.byteLength(bytes) <= LIMIT, 'binding-state-capacity');
   const temporary = join(stateDirectory, `.bindings-${randomUUID()}.tmp`);
   const file = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
-  try { await file.writeFile(bytes); await file.sync(); } finally { await file.close(); }
   try {
+    try { await file.writeFile(bytes); await file.sync(); } finally { await file.close(); }
     await privateFile(path, true);
     await rename(temporary, path);
     const parent = await open(stateDirectory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
