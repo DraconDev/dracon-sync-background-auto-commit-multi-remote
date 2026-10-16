@@ -49,6 +49,36 @@ owner; digest-bound pre-stage checks; then final gates,
 sanctioned deploy, fresh inventory and actual live storage qualification.
 No permissions or credentials were changed to manufacture a live success.
 
+### Installed-runner prerequisites checkpoint
+
+The scoped SDK transport is implemented with pinned dependencies. Its two
+independent-review P1 findings were fixed: error-body collection is capped and
+request-abort-aware before SDK deserialization, and credential ancestors must
+be root/operator-owned. Tests cover oversized 403 bodies on GET/PUT, stalled
+error-body cancellation and foreign-owner rejection. Credential fixtures now
+live outside watched source trees.
+
+Consumer text qualification and digest-bound revalidation are implemented for
+plain Vite/npm only; no installer or runtime proof is implied. The independent
+review's nested-standalone exclusion was fixed: a parent repo/package does not
+invalidate a child's independently verified Git root. Directory enumeration
+now streams with a cap before collecting/sorting, rather than limiting after
+an unbounded readdir. The parent added create-only cache-first restoration:
+matching bytes require no remote request, differing local edits are retained,
+missing local-only entries fail explicitly, and corrupt/interrupted downloads
+never appear at the final path.
+
+The publisher now persists the private digest index before the manifest so
+an index-write failure cannot leave a newly published manifest; retries
+revalidate remote data. Exact authorized candidate sets from the future Rust
+bridge prevent files appearing after policy selection from evading excludes.
+An options-forwarding defect was corrected so lowered enumeration caps apply.
+All 139 current component/E2E tests pass in the bounded script gate; evidence
+is `evidence/auto-registration-2026-10-16/storage-consumer-restore-regressions.log`.
+The installed protocol CLI, dependency-closed bundle, Rust bridge/scheduler,
+fresh installed lifecycle qualification and real-storage rollout remain open.
+
+
 
 ## Authorized outcome
 
