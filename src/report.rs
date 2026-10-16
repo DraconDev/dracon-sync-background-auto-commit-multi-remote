@@ -4006,15 +4006,6 @@ pub(crate) async fn run_repos_report(
                 let cache_lookup = std::sync::Arc::clone(&cache_lookup);
                 let cache_record = std::sync::Arc::clone(&cache_record);
                 async move {
-            let svc = match GitService::new(&repo) {
-                    Ok(svc) => svc,
-                    Err(e) => {
-                        init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        emit_repo_failure(json, "init_failed", &repo, &e);
-                        return None;
-                    }
-                };
-
                 // Use the same owned-process inspection as the scheduler.
                 // A timed-out detail/report must cancel Git and its filter
                 // descendants, not leave an uncancellable blocking task behind.
