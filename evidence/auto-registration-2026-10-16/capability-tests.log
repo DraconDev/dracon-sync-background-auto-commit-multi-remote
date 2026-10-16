@@ -1,0 +1,14 @@
+✔ profile authority is strict, immutable and independent of caller mutation (3.060183ms)
+✔ authorized subtrees cover new nested repositories without a per-repo registry (0.603911ms)
+✔ every object request is bound to trusted namespace, not manifest claims (2.954533ms)
+✔ consumer transport has no write operation even if underlying client can write (0.506687ms)
+✔ operator loader enforces ownership permissions and runner hash without reading credential files (18.321463ms)
+✔ operator loader refuses symlink ancestors/leaves, malformed and oversized profiles (6.242907ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.267976
