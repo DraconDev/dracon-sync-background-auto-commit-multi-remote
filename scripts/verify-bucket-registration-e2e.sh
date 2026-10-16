@@ -23,17 +23,20 @@ timeout --signal=TERM --kill-after=10s 120s node --test \
   scripts/bucket-runner/capabilities.test.mjs \
   scripts/bucket-runner/bindings.test.mjs \
   scripts/bucket-runner/routing.test.mjs \
+  scripts/bucket-runner/storage.test.mjs \
+  scripts/bucket-runner/consumer.test.mjs \
+  scripts/bucket-runner/restore.test.mjs \
   scripts/bucket-runner/planner.test.mjs \
   scripts/bucket-runner/publisher.test.mjs \
   scripts/bucket-runner/e2e.test.mjs 2>&1 | tee "$log"
 # The runner must execute every named suite. A misspelled filter or missing
 # script would silently pass. Fail closed.
-grep -Eq '^.*tests 60$' "$log" || {
-  echo 'Bucket-runner suite did not execute 60 tests; refusing a zero-test pass.' >&2
+grep -Eq '^.*tests 139$' "$log" || {
+  echo 'Bucket-runner suite did not execute 139 tests; refusing a zero-test pass.' >&2
   exit 1
 }
-grep -Eq '^.*pass 60$' "$log" || {
-  echo 'Bucket-runner suite did not pass 60 tests; refusing a partial pass.' >&2
+grep -Eq '^.*pass 139$' "$log" || {
+  echo 'Bucket-runner suite did not pass 139 tests; refusing a partial pass.' >&2
   exit 1
 }
 # Required e2e scenarios must have run (every goal verification contract bullet).
@@ -59,6 +62,12 @@ required=(
   'publishRepository: absent routing budget refuses before storage or manifest mutation'
   'publishRepository: changed managed asset renews proof and preserves old immutable object'
   'publishRepository: unsupported edits retain previous manifest and edited source'
+  'SDK error bodies are bounded before deserialization for downloads and uploads'
+  'credential ancestor authority refuses foreign owners even with mode 0755'
+  'independent checkout beneath parent Git/package boundary remains eligible for text qualification'
+  'consumer restore: corruption or interruption leaves final destination absent and retry succeeds'
+  'publishRepository: failed index write leaves manifest absent and retry re-verifies'
+  'publishRepository: sealed operator candidate set cannot be enlarged by new files'
 )
 for scenario in "${required[@]}"; do
   grep -Fq "$scenario" "$log" || {
@@ -66,4 +75,4 @@ for scenario in "${required[@]}"; do
     exit 1
   }
 done
-echo 'bucket-runner qualification passed: 60/60 tests, all required e2e scenarios executed.'
+echo 'bucket-runner qualification passed: 139/139 tests, all required e2e scenarios executed.'
