@@ -1,0 +1,1098 @@
+{
+ "T0": {
+  "capture-anime-g\u2026": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 41s",
+   "hint": "run dracon-sync repair \u2026"
+  },
+  "endless-td": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 49s",
+   "hint": "daemon will push after \u2026"
+  },
+  "db-gateway": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-plugins": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-goal-list-lo\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 2m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "darklord": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 2m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "browser-extensi\u2026": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 2m",
+   "hint": "daemon will push after \u2026"
+  },
+  ".dracon": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 2m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "hellhunter": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 3m",
+   "hint": "\u26a0\ufe0f path-owned identity/\u2026"
+  },
+  "dracon-platform": {
+   "status": "\u23f3 RETRYING",
+   "ahead": "0",
+   "mod": "1",
+   "ut": "2",
+   "push": "\u2705 OK 4m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "doomtap": {
+   "status": "\u23f3 RETRYING",
+   "ahead": "0",
+   "mod": "2",
+   "ut": "0",
+   "push": "\u2705 OK 6m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "dracon-sync": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 25m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "freeport": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 27m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "deathrun": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 29m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "junk-runner": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 39m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "neonbreak": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 44m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "polis": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 58m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-strategy": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "football-forever": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 2h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-utilities": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-system": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-video": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "convos": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-writer": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "space-trucker": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-warden": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "terhub": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-agnes-tools": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-use-last-sel\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-codebuddy-sdk": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "DraconDev": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "come-get-me": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "warden-vid": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "one-mil-girls": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  }
+ },
+ "T10": {
+  "hellhunter": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 4m",
+   "hint": "\u26a0\ufe0f path-owned identity/\u2026"
+  },
+  "neonbreak": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 54m",
+   "hint": "daemon will push after \u2026"
+  },
+  "darklord": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 46s",
+   "hint": "run dracon-sync repair \u2026"
+  },
+  "dracon-platform": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "7",
+   "ut": "0",
+   "push": "\u2705 OK 58s",
+   "hint": "daemon will push after \u2026"
+  },
+  "doomtap": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 44s",
+   "hint": "daemon will push after \u2026"
+  },
+  "endless-td": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "3",
+   "ut": "0",
+   "push": "\u2705 OK 1m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "browser-extensi\u2026": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "4",
+   "ut": "1",
+   "push": "\u2705 OK 8s",
+   "hint": "daemon will push after \u2026"
+  },
+  ".dracon": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 4m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-plugins": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-goal-list-lo\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "db-gateway": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "capture-anime-g\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 9m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-sync": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 36m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "freeport": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 38m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "deathrun": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 39m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "junk-runner": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 50m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "polis": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-strategy": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "football-forever": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 3h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-utilities": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-system": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-video": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "convos": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-writer": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "space-trucker": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-warden": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "terhub": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-agnes-tools": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-use-last-sel\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-codebuddy-sdk": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "DraconDev": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "come-get-me": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "warden-vid": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "one-mil-girls": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  }
+ },
+ "T20": {
+  "endless-td": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "5",
+   "ut": "0",
+   "push": "\u2705 OK 13s",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "neonbreak": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 36s",
+   "hint": "run dracon-sync repair \u2026"
+  },
+  "browser-extensi\u2026": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "2",
+   "ut": "0",
+   "push": "\u2705 OK 48s",
+   "hint": "daemon will push after \u2026"
+  },
+  "doomtap": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 45s",
+   "hint": "run dracon-sync repair \u2026"
+  },
+  "darklord": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "2",
+   "ut": "0",
+   "push": "\u2705 OK 5s",
+   "hint": "daemon handles after ch\u2026"
+  },
+  ".dracon": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 14s",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-platform": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "4",
+   "ut": "0",
+   "push": "\u2705 OK 23s",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "hellhunter": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 2m",
+   "hint": "\u26a0\ufe0f path-owned identity/\u2026"
+  },
+  "pi-plugins": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 15m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-goal-list-lo\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 15m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "db-gateway": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 16m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "capture-anime-g\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 19m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-sync": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 46m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "freeport": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 48m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "deathrun": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 49m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "junk-runner": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "polis": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-strategy": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "football-forever": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 3h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-utilities": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-system": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-video": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "convos": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-writer": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "space-trucker": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-warden": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "terhub": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-agnes-tools": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-use-last-sel\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-codebuddy-sdk": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "DraconDev": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "come-get-me": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "warden-vid": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "one-mil-girls": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  }
+ },
+ "Tend": {
+  "deathrun": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "3",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "daemon will push after \u2026"
+  },
+  "neonbreak": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 3m",
+   "hint": "daemon will push after \u2026"
+  },
+  "hellhunter": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 6m",
+   "hint": "\u26a0\ufe0f path-owned identity/\u2026"
+  },
+  "doomtap": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "3",
+   "ut": "0",
+   "push": "\u2705 OK 4m",
+   "hint": "daemon will push after \u2026"
+  },
+  "browser-extensi\u2026": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "1",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 4m",
+   "hint": "run dracon-sync repair \u2026"
+  },
+  "dracon-platform": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "1",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "freeport": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "2",
+   "ut": "0",
+   "push": "\u2705 OK 59m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "endless-td": {
+   "status": "\ud83d\udd04 WORKING",
+   "ahead": "0",
+   "mod": "2",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "daemon handles after ch\u2026"
+  },
+  "football-forever": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 3m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  ".dracon": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 4m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "darklord": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 5m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-plugins": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 26m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-goal-list-lo\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 26m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "db-gateway": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 26m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "capture-anime-g\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 30m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-sync": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 57m",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "junk-runner": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "polis": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-strategy": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2705 OK 1h",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-utilities": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-system": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-video": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "convos": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "ai-auto-writer": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "space-trucker": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "dracon-warden": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "terhub": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-agnes-tools": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-use-last-sel\u2026": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "pi-codebuddy-sdk": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "DraconDev": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "come-get-me": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "warden-vid": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  },
+  "one-mil-girls": {
+   "status": "\u2705 CLEAN",
+   "ahead": "0",
+   "mod": "0",
+   "ut": "0",
+   "push": "\u2014 unknown",
+   "hint": "healthy; GitHub pack gu\u2026"
+  }
+ }
+}
