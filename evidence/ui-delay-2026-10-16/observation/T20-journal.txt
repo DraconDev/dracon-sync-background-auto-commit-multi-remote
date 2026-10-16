@@ -1,0 +1,42 @@
+Oct 16 17:20:26 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:20:29 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:20:32 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter
+Oct 16 17:20:52 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 16 17:21:01 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:21:07 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (3 consecutive failures), retrying push after 1604s
+Oct 16 17:21:07 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter
+Oct 16 17:21:08 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (3 consecutive failures), retrying push after 1605s
+Oct 16 17:21:08 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:21:10 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:21:10 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (3 consecutive failures), retrying push after 1607s
+Oct 16 17:21:10 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:21:10 nixos dracon-sync[2674977]: ⏫ /home/dracon/.dracon scaling push timeout 900s → 1800s (9 commits ahead)
+Oct 16 17:21:16 nixos dracon-sync[2674977]: ⚠️ background push to origin failed for /home/dracon/.dracon: git push failed in /home/dracon/.dracon with status exit status: 1: ⚠️  Possible plaintext secrets detected in added file backups/ui-delay-20261016-155232/dracon-sync (binary-safe scan).
+Oct 16 17:21:16 nixos dracon-sync[2674977]:    The warden filter may have been bypassed.
+Oct 16 17:21:16 nixos dracon-sync[2674977]:    Run: dracon-warden once /home/dracon/.dracon
+Oct 16 17:21:16 nixos dracon-sync[2674977]: error: failed to push some refs to 'github.com:DraconDev/dracon-home.git'
+Oct 16 17:21:22 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:21:24 nixos dracon-sync[2674977]: ⚠️ push to gitlab failed for /home/dracon/.dracon: git push-to-gitlab failed in /home/dracon/.dracon with status exit status: 1: ⚠️  Possible plaintext secrets detected in added file backups/ui-delay-20261016-155232/dracon-sync (binary-safe scan).
+Oct 16 17:21:24 nixos dracon-sync[2674977]:    The warden filter may have been bypassed.
+Oct 16 17:21:24 nixos dracon-sync[2674977]:    Run: dracon-warden once /home/dracon/.dracon
+Oct 16 17:21:24 nixos dracon-sync[2674977]: error: failed to push some refs to 'gitlab.com:DraconDev/dracon-home.git'
+Oct 16 17:21:24 nixos dracon-sync[2674977]: ⚠️ push failed for /home/dracon/.dracon (remotes: github, gitlab, origin)
+Oct 16 17:21:27 nixos dracon-sync[2674977]: ⚠️ /home/dracon/.dracon committed but push failed (late) (will retry)
+Oct 16 17:21:27 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/.dracon — Mirror Degraded: origin: 3 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network)
+Oct 16 17:21:27 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/.dracon — Mirror Degraded: gitlab: 3 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network)
+Oct 16 17:21:41 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:21:45 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:22:01 nixos dracon-sync[2674977]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=45382 outcome=success
+Oct 16 17:22:04 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:22:04 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:22:10 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (2 consecutive failures), retrying push after 920s
+Oct 16 17:22:11 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (2 consecutive failures), retrying push after 921s
+Oct 16 17:22:14 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (2 consecutive failures), retrying push after 924s
+Oct 16 17:22:14 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:22:14 nixos dracon-sync[2674977]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:22:18 nixos dracon-sync[2674977]: ✅ push recovered for /home/dracon/Dev/dracon-platform/web/games/wip/freeport
+Oct 16 17:22:37 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 16 17:23:04 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:23:05 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 16 17:23:17 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:23:18 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
