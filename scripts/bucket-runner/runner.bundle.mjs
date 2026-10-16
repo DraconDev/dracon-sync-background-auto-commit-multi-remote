@@ -40122,7 +40122,7 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
       require6(current.plan.status === "planned" && current.plan.complete && current.toUpload.length === 0);
       const paths = [];
       for (const entry of manifest.value.assets) {
-        require6(safe3(entry.sourcePath) && r5.allowedCandidates.includes(entry.sourcePath));
+        require6(safe3(entry.sourcePath) && r5.allowedCandidates.includes(entry.sourcePath) && current.plan.outcomes.some((o3) => o3.sourcePath === entry.sourcePath && o3.evidence && ["eligible", "already-registered"].includes(o3.status)));
         const bytes = await read(join10(r5.root, entry.sourcePath), 64 * 1024 * 1024);
         require6(bytes.length === entry.bytes && sha2(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
@@ -40143,7 +40143,12 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
     } catch {
       return refused("request-or-authority-refused");
     } finally {
-      if (transport) await transport.close();
+      if (transport) {
+        try {
+          await transport.close();
+        } catch {
+        }
+      }
     }
   };
 }
