@@ -58,12 +58,43 @@ async function git(root, args, optional = false) {
   } catch (error) { if (optional && error.code === 1) return null; throw new Error('git-inspection-refused', { cause: error }); }
 }
 
+/** Inspect Git pointer files without following a symlink that Git might resolve
+ * away before reporting its canonical directory. Normal Git metadata is public
+ * but must remain operator-owned and not writable by other users.
+ */
+async function gitPointer(path, prefix = '') {
+  const before = await lstat(path, { bigint: true });
+  require(before.isFile() && before.uid === BigInt(uid) && (before.mode & 0o022n) === 0n
+    && before.size > 0n && before.size <= 4096n, 'unsafe-git-pointer');
+  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const bytes = Buffer.alloc(Number(before.size) + 1);
+    const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
+    require(bytesRead === Number(before.size) && stamp(await file.stat({ bigint: true })) === stamp(before)
+      && stamp(await lstat(path, { bigint: true })) === stamp(before), 'git-pointer-changed');
+    const text = bytes.subarray(0, bytesRead).toString('utf8');
+    require(text.startsWith(prefix) && !/[\x00-\x1f\x7f]/.test(text.replace(/\n$/, '')), 'invalid-git-pointer');
+    return resolve(dirname(path), text.slice(prefix.length).replace(/\n$/, ''));
+  } finally { await file.close(); }
+}
+
 async function inspect(root, remoteName, trustedRemoteUrl) {
   await directory(root);
   require(await git(root, ['rev-parse', '--show-toplevel']) === root, 'ambiguous-repository-root');
+  const dotGit = join(root, '.git');
+  const entry = await lstat(dotGit);
+  require(!entry.isSymbolicLink(), 'unsafe-git-directory-symlink');
+  const gitDirectory = entry.isDirectory() ? dotGit : await gitPointer(dotGit, 'gitdir: ');
+  await directory(gitDirectory);
+  const commonPointer = join(gitDirectory, 'commondir');
+  let declaredCommon = gitDirectory;
+  try { declaredCommon = await gitPointer(commonPointer); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  await directory(declaredCommon);
   require(await git(root, ['rev-parse', '--is-bare-repository']) === 'false', 'bare-repository-refused');
   await git(root, ['symbolic-ref', '-q', 'HEAD']);
   const common = await git(root, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  require(common === declaredCommon, 'ambiguous-common-directory');
   const stat = await directory(common);
   const head = await git(root, ['rev-parse', '--verify', 'HEAD^{commit}']);
   require(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(head), 'invalid-head');
@@ -84,6 +115,8 @@ function records(value, profile) {
     require(exact(record, ['binding', 'commonIdentity', 'remoteName', 'trustedRemoteUrl', 'anchor']), 'malformed-binding-record');
     // A state directory belongs to one profile; another profile cannot reuse it.
     const binding = validateBinding(profile, record.binding);
+    require(/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(binding.repositoryId)
+      && binding.namespace === `${profile.storage.namespaceRoot}/${binding.repositoryId}`, 'malformed-stored-binding');
     require(/^\d+:\d+$/.test(record.commonIdentity) && typeof record.commonIdentity === 'string'
       && typeof record.remoteName === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(record.remoteName)
       && validUrl(record.trustedRemoteUrl) && typeof record.anchor === 'string'
@@ -158,7 +191,8 @@ export async function bindRepository(request) {
     const existing = entries.find(record => record.commonIdentity === inspected.commonIdentity);
     if (existing) {
       require(existing.remoteName === remoteName && existing.trustedRemoteUrl === trustedRemoteUrl, 'stored-remote-conflict');
-      require(!supplied || JSON.stringify(supplied) === JSON.stringify(validateBinding(profile, existing.binding)), 'descriptor-binding-conflict');
+      require(!supplied || ['schemaVersion', 'profileId', 'repositoryId', 'namespace']
+        .every(key => supplied[key] === existing.binding[key]), 'descriptor-binding-conflict');
       await git(repositoryRoot, ['merge-base', '--is-ancestor', existing.anchor, inspected.head]);
     } else require(!supplied, 'descriptor-without-trusted-physical-binding');
     const repositoryId = existing?.binding.repositoryId ?? randomUUID();
