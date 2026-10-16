@@ -136,7 +136,7 @@ async function snapshot(root) {
   }
   if (/^\s*\[\s*include/im.test(reads['.git/config'].bytes.toString('utf8'))) fail('unsupported-git-config-include');
   const workflowPaths = [...files.keys()].filter(p => p.startsWith('.github/workflows/'));
-  if ([...files.keys()].some(p => p !== MANIFEST && /(?:^|\/)(?:bucket-assets|restore-assets|assets-restore)[^/]*$/i.test(p))) fail('conflicting-restore-integration');
+  if ([...files.keys()].some(p => p !== MANIFEST && p !== `${MANIFEST}.lock` && /(?:^|\/)(?:bucket-assets|restore-assets|assets-restore)[^/]*$/i.test(p))) fail('conflicting-restore-integration');
   for (const name of ['package.json', 'package-lock.json', 'index.html', MANIFEST, ...workflowPaths]) {
     if (!files.has(name)) {
       if (name !== MANIFEST) fail(`missing-${name}`);
