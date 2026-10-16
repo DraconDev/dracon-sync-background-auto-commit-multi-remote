@@ -11,23 +11,40 @@
 | dracon-platform | UNKNOWN/lifecycle warnings during normal commit-push flow, not a persistent inspection fault. | None required; daemon healthy throughout; one 666s dispatch-starved hold resolved through normal retry; no orphaned gitlinks; new fresh builds committed. | WORKING at all four samples, push OK 35s. |
 | doomtap | Queued/UNKNOWN transitions during normal commit-push flow. | None required; daemon healthy; queue cleared by Tend. | WORKING at all four samples, push OK 28s. |
 
-## 30-minute observation (UTC 2026-10-16T09:26:59Z – 09:58:15Z)
+## 30-minute observation (UTC 2026-10-16T10:07:28Z – 10:41:56Z)
+
+Five raw samples with embedded capture headers (UTC timestamp, daemon
+PID, running-executable SHA256) at real ~10-minute intervals:
+`evidence/fleet-repair-2026-10-16/observation/fleet-obs-T{0,10,20,Tend,30}.txt`
+(T0 10:07:28Z, T10 10:17:50Z, T20 10:20:01Z, Tend 10:30:25Z,
+T30 10:41:56Z — 34m28s end to end). Parsed per-repo states in
+`observation/parsed.json`.
 
 - Same daemon PID 3440303 and running-executable digest
-  `b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a` at
-  T0 and Tend. `dracon-sync health` healthy at every sample.
-- 177 commit/sync lines in 32 minutes; stuck-push ledger
+  `b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a`
+  embedded in all five capture headers. `dracon-sync health` healthy
+  at every sample.
+- 250 commit/sync/pushed lines in the 40 minutes ending at T30;
+  stuck-push ledger
   (`~/.local/state/dracon/dracon-sync-stuck-push-repos.json`) is `[]`
-  at Tend. No STALLED/STUCK/UNREPAIRED rows, no wedged tasks, no
+  at T30. No STALLED/STUCK/UNREPAIRED rows, no wedged tasks, no
   orphan-work accumulation.
-- Per-repo delta across the four samples: `.dracon` CLEAN
-  throughout; `deathrun` CLEAN → WORKING (1 ahead 1h) — normal in-
-  flight work; `freeport` CLEAN → WORKING (3 mod 59m) — normal; capture-
-  anime-girls WORKING → CLEAN; darklord WORKING → CLEAN; hellhunter
-  alternating WORKING/CLEAN; endless-td and neonbreak WORKING;
-  browser-extensions-shared WORKING 0-1 ahead 5m. No unexplained
-  starvation and no unchanged stuck backlog; live-generator churn is
-  supported by commit/push evidence.
+- Per-repo delta across the five samples: `.dracon` WORKING/CLEAN
+  alternating, CLEAN 0/0 push OK 27s at T30; `deathrun`
+  WORKING/CLEAN alternating with a single-sample UNKNOWN at T30
+  (1 mod, push OK 9s) — transient inspection state, CLEAN 0/0 push
+  OK 58s live; `freeport` WORKING throughout after T10, push OK 21s
+  at T30; `dracon-platform` WORKING at all five samples (live
+  generator churn, push OK 30s); `doomtap` WORKING → CLEAN from T10
+  on, CLEAN at T30. No unexplained starvation and no unchanged stuck
+  backlog; live-generator churn is supported by commit/push evidence.
+- `browser-extensions-shared` transient (new work, accounted
+  separately): T10 showed UNKNOWN with 5 ahead and push FAIL 5m
+  while concurrent product agents pushed a test batch
+  (classifier.test.ts +32); T20 CLEAN 0/0 with a stale FAIL 7m cell;
+  Tend CLEAN 0/0 push OK 44s; T30 CLEAN 0/0 push OK 5m; live CLEAN
+  0/0 push OK 6m. The daemon retried and converged the batch without
+  intervention — no stuck-ledger entry, no repair needed.
 
 ## Safety record
 
