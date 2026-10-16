@@ -1,5 +1,6 @@
 /** Private S3 transport. Only operator-selected profiles grant authority. */
 import { S3Client, HeadObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { constants } from 'node:fs';
 import { lstat, open } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve } from 'node:path';
@@ -10,6 +11,41 @@ import { CAPS } from './adapters.mjs';
 
 const identity = s => [s.dev, s.ino, s.mode, s.uid, s.size, s.mtimeNs, s.ctimeNs].join(':');
 const require = (ok, message) => { if (!ok) throw new Error(message); };
+const ERROR_BODY_LIMIT = 64 * 1024;
+
+/** Pure predicate shared with ownership-negative tests; never caller authority. */
+export function trustedCredentialAncestor(stat) {
+  return stat.isDirectory() && !stat.isSymbolicLink() && !(stat.mode & 0o022)
+    && (stat.uid === 0 || stat.uid === process.geteuid());
+}
+
+// The SDK deserializes error bodies before send() rejects. Bound that path too,
+// not only successful object downloads. Bind abort to this request's context.
+async function collectErrorBody(body, signal) {
+  if (body instanceof Uint8Array) {
+    require(body.byteLength <= ERROR_BODY_LIMIT, 'storage error body too large');
+    return body;
+  }
+  require(body && typeof body[Symbol.asyncIterator] === 'function'
+    && typeof body.destroy === 'function', 'unsupported storage response body');
+  const abort = () => body.destroy(new Error('storage deadline exceeded'));
+  signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) abort();
+  try {
+    const chunks = [];
+    let length = 0;
+    for await (const chunk of body) {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      length += bytes.byteLength;
+      require(length <= ERROR_BODY_LIMIT, 'storage error body too large');
+      chunks.push(bytes);
+    }
+    return Buffer.concat(chunks, length);
+  } finally {
+    signal?.removeEventListener('abort', abort);
+    body.destroy();
+  }
+}
 
 /** Credential authority refuses even sticky writable ancestors. Snapshot/cache
  * files may live under /tmp, but every component must still be symlink-free. */
@@ -17,7 +53,7 @@ async function ancestors(path, trusted = false) {
   require(typeof path === 'string' && isAbsolute(path) && resolve(path) === path && !/[\x00-\x1f\x7f]/.test(path), 'unsafe storage file path');
   for (let current = dirname(path); ; current = dirname(current)) {
     const stat = await lstat(current);
-    require(stat.isDirectory() && !stat.isSymbolicLink() && (!trusted || !(stat.mode & 0o022)), 'unsafe storage file ancestor');
+    require(stat.isDirectory() && !stat.isSymbolicLink() && (!trusted || trustedCredentialAncestor(stat)), 'unsafe storage file ancestor');
     if (current === dirname(current)) break;
   }
 }
@@ -92,7 +128,9 @@ export async function createPrivateS3Transport(profile, binding, { role, timeout
   let scopedCredentials;
   try { scopedCredentials = await credentials(role === 'consumer' ? authority.storage.consumerCredentialFile : authority.storage.uploaderCredentialFile); }
   catch { throw new Error('scoped credential file refused'); }
+  const requestContext = new AsyncLocalStorage();
   const client = new S3Client({ region: authority.storage.region, endpoint: authority.storage.endpoint,
+    streamCollector: body => collectErrorBody(body, requestContext.getStore()),
     credentials: scopedCredentials, forcePathStyle: true, maxAttempts: 1, followRegionRedirects: false,
     ...(requestHandler ? { requestHandler } : {}) });
   const Bucket = authority.storage.bucket;
@@ -107,7 +145,7 @@ export async function createPrivateS3Transport(profile, binding, { role, timeout
       controller.signal.addEventListener('abort', () => reject(new Error('storage deadline exceeded')), { once: true });
       timer = setTimeout(() => controller.abort(), timeoutMs);
     });
-    try { return await Promise.race([action(controller.signal), aborted]); }
+    try { return await Promise.race([requestContext.run(controller.signal, () => action(controller.signal)), aborted]); }
     catch (error) { controller.abort(); throw sanitized(error); }
     finally { clearTimeout(timer); active.delete(controller); }
   }
