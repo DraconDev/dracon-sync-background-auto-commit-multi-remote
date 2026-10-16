@@ -54,30 +54,40 @@ function rewritePath(relative) { return isAssetRoot(relative) ? relative : null;
 
 /** Acquire an exclusive flock against a sibling file. Refusing to ever unlink
  * the inode preserves lock integrity; the OS releases it when the process exits.
- * The lock-holder keeps its file descriptor open and reads the path's lock
- * file descriptor; closing it releases the flock. A second writer waiting on
- * the same lock spins for up to ten seconds before refusing.
+ * The lock-holder keeps the file descriptor open in a subshell that consumes
+ * stdin until EOF. Closing the pipe (or terminating the process) releases
+ * the flock. A second writer waiting on the same lock waits briefly, then
+ * is refused with a clear `EEXIST` error.
  */
-export async function publicationLock(path) {
+export async function publicationLock(path, { waitMs = 1000 } = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('invalid-lock-path');
   const { open } = await import('node:fs/promises');
   const { spawn } = await import('node:child_process');
   const handle = await open(path, 'a');
-  const fd = handle.fd;
-  // Hold the flock via a dedicated subshell that reads from the parent's stdout.
-  // When the parent closes the pipe (or writes EOF), the shell exits and the
-  // flock is released. This is the same model the platform's
-  // `bucket-asset-transfer.mjs` uses, simplified for the unit-test seam.
-  const child = spawn('/bin/sh', ['-c', `exec 9>&${fd}; flock 9; cat - >/dev/null`], { stdio: ['ignore', 'pipe', 'ignore'] });
+  // Node returns a high fd (>=20). `flock` and shell redirection need a low
+  // fd, so spawn a tiny helper that owns fd 9 and execs into the lock script.
+  const wait = Math.max(0, Math.floor(waitMs / 1000));
+  // The helper holds fd 9 (a dup of the parent's lock fd), acquires the flock,
+  // then sleeps until the parent kills the process. Stdout is piped so the
+  // child doesn't accidentally inherit a closing fd.
+  const script = `flock -E 73 -w ${wait} 9 || exit 73; exec sleep 86400`;
+  const helper = spawn('/bin/sh', ['-c', `exec 9<>/proc/${process.pid}/fd/${handle.fd}; exec /bin/sh -c ${JSON.stringify(script)}`],
+    { stdio: 'ignore' });
+  const child = helper;
   const ready = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('lock-timeout')), 5000);
-    child.once('error', error => { clearTimeout(timer); reject(error); });
-    child.once('spawn', () => { clearTimeout(timer); resolve(); });
+    let settled = false;
+    const finish = fn => { if (settled) return; settled = true; clearTimeout(timer); fn(); };
+    const timer = setTimeout(finish, Math.max(50, waitMs) + 5000);
+    timer.unref();
+    child.once('error', error => finish(() => reject(error)));
+    child.once('exit', code => finish(() => reject(new Error(code === 73 ? 'EEXIST: publication lock held' : 'lock-failed'))));
+    // After a tiny grace period, if the child is still running, we own the lock.
+    setTimeout(() => { if (child.exitCode === null) finish(resolve); }, 200).unref();
   });
   await ready;
   return async () => {
-    try { child.stdin.end(); } catch {}
-    try { await new Promise(resolve => child.once('exit', resolve)); } catch {}
+    try { process.kill(child.pid); } catch {}
+    try { await new Promise(resolve => { if (child.exitCode !== null) resolve(); else child.once('exit', resolve); }); } catch {}
     try { await handle.close(); } catch {}
   };
 }
@@ -92,7 +102,7 @@ export async function planRepository({ root, profile, binding, consumer, assetRo
   if (assetRoot !== '.' && !isAssetRoot(assetRoot)) throw new Error('invalid-asset-root');
   const authority = validateProfile(profile);
   const trusted = validateBinding(authority, binding);
-  const plan = await inspectRepository({ root, profile, binding: trusted, consumer, assetRoot, manifest, options });
+  const plan = await inspectRepository({ root, profile, binding: { ...trusted, repositoryId: trusted.repositoryId }, consumer, assetRoot, manifest, options });
   if (plan.status !== 'planned') return { plan, toUpload: [] };
   const before = new Set(manifest ? manifest.assets.map(a => a.sourcePath) : []);
   const toUpload = plan.proposedManifest.assets

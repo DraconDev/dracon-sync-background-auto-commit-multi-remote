@@ -55,8 +55,8 @@ function limits(options) {
  * to it; evidence paths are ALWAYS repository-relative. Options only lower caps.
  * No returned entry may be marked bucketed until separate verified publication.
  */
-export async function inspectRepository({ root, profile, binding, consumer, assetRoot = '.', manifest } = {}, options = {}) {
-  const repositoryId = binding?.repositoryId ?? null;
+export async function inspectRepository({ root, profile, binding, consumer, assetRoot = '.', manifest, repositoryId: explicitId } = {}, options = {}) {
+  const repositoryId = explicitId ?? binding?.repositoryId ?? null;
   const outcomes = [];
   const base = { repositoryId, assetRoot, outcomes, added: [], proposedManifest: null,
     complete: false, publicationRequiresRevalidation: true };
@@ -106,13 +106,13 @@ export async function inspectRepository({ root, profile, binding, consumer, asse
         || manifest.namespace !== binding?.namespace) return fail('refused', 'manifest-binding-mismatch');
       proposal = structuredClone(manifest);
     } else {
-      proposal = { schemaVersion: 1, bucket: 'dracon-lfs', repository: repositoryId, namespace: binding?.namespace, assets: [] };
+      proposal = { schemaVersion: 1, bucket: 'dracon-lfs', repository: repositoryId, namespace: binding.namespace, assets: [] };
     }
     const ids = new Set(), sources = new Set();
     for (const entry of proposal.assets) {
       if (!entry || typeof entry.id !== 'string' || !entry.id || !safe(entry.sourcePath)
         || ids.has(entry.id) || sources.has(entry.sourcePath)) return fail('refused', 'invalid-or-duplicate-manifest-entry');
-      if (typeof entry.objectKey !== 'string' || !entry.objectKey.startsWith(`${binding?.namespace}/`)) return fail('refused', 'manifest-binding-mismatch');
+      if (typeof entry.objectKey !== 'string' || !entry.objectKey.startsWith(`${binding.namespace}/`)) return fail('refused', 'manifest-binding-mismatch');
       ids.add(entry.id); sources.add(entry.sourcePath);
     }
   } catch { return fail('refused', 'invalid-manifest'); }
