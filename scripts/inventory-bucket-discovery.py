@@ -27,7 +27,7 @@ def config_summary(repo):
     # Mirror current root-first discovery order; do not read credential files.
     for relative in ('bucket-assets.json', '.dracon/bucket-assets.json'):
         path = repo / relative
-        if any(p.is_symlink() for p in (path, *path.parents) if p != repo.parent):
+        if any(p.is_symlink() for p in (path, *path.parents)):
             if path.exists() or path.is_symlink():
                 return {'path': relative, 'error': 'symlink path refused'}
             continue

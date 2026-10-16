@@ -1,0 +1,25 @@
+✔ hybrid routing preserves small eligible files until pressure and routes large ones (5.190899ms)
+✔ private schema preserves legacy public validation and rejects mismatched keys (1.177375ms)
+✔ multi-asset per-asset templates publish, stay valid and restore (2026.938973ms)
+✔ paths reject traversal and symlink ancestors (2023.713753ms)
+✔ publish read-back precedes publication, restore verifies size/hash in independent cache (5423.793007ms)
+✔ corrupt remote object or wrong size refuses reference publication even with good cache (5114.445104ms)
+✔ interrupted download retries and removes partial temp files (1779.332847ms)
+✔ concurrent publication lock fails closed and failed upload preserves reference (5475.504061ms)
+✔ SIGKILL during publication releases exclusion and next upload recovers (1672.845026ms)
+✔ interrupted upload retries and concurrent restore is byte-safe (290.7725ms)
+✔ restore refuses to overwrite operator edits and retains matching inode (306.156762ms)
+✔ file created during a restore download is not replaced (11.932359ms)
+✔ two consumers can restore the same missing destination without replacing it (251.548226ms)
+✔ source edit during upload refuses publication without discarding edit (587.590423ms)
+✔ unchanged references do not rewrite and prior objects are retained on update (384.47435ms)
+✔ operational workflow restores cache-first offline and keeps opt-in disabled (1104.482564ms)
+✔ credential loading rejects broad ambient fallback, insecure modes and symlinks (1546.691223ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 28431.148336

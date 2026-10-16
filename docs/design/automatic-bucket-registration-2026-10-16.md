@@ -1,0 +1,199 @@
+# Automatic bucket registration — implementation design and evidence
+
+Status: implementation in progress; NOT a rollout or completion claim.
+
+## Authorized outcome
+
+All watched repositories are in discovery scope, including pre-existing assets
+and newly discovered repositories. Enrollment requires demonstrable regeneration
+provenance, a compatible consumer, safe ownership/path boundaries and authorized
+private storage. Extension or size alone never grants eligibility. Existing
+published history, tracked baselines, operator materializations and required
+hooks remain intact. Unsupported cases must be visible, not silently skipped.
+
+## Initial fleet baseline
+
+`evidence/auto-registration-2026-10-16/fleet-initial.json` inventories 34
+repositories and 10,797 Git-visible supported-media candidate paths. This is
+**not** 10,797 eligible assets. Only dracon-platform has an explicit enabled
+private workflow configuration at this baseline. The status report returned 33
+rows and one inspection timeout for dracon-platform; the inventory includes
+that failed repository explicitly. It did not treat an incomplete status report
+as a complete discovery snapshot.
+
+Reproduce the read-only inventory after saving `dracon-sync repos --json`:
+
+```
+python3 scripts/inventory-bucket-discovery.py STATUS.json \
+  --failed-repo /home/dracon/Dev/dracon-platform \
+  --output evidence/auto-registration-2026-10-16/fleet-initial.json
+python3 scripts/test_inventory_bucket_discovery.py
+```
+
+The script reads filenames/configuration metadata, not asset contents or
+credentials. Generator-like filenames are only hints, never trusted commands.
+The final qualification must refresh this baseline against current discovery.
+
+## Confirmed existing seams and gaps
+
+- `bucket_assets::prepare` currently returns immediately without repo config;
+  it runs a repo-selected Node workflow before computing/staging ordinary diffs.
+- Publication serializes existing manifest entries under a kernel-owned flock,
+  verifies immutable remote objects by read-back and returns a manifest digest.
+  There is no candidate-discovery or enrollment operation in that loop.
+- Existing generator command strings/empty input lists do not prove a candidate
+  can be regenerated. Never promote them directly into automatic authority.
+- Repo-local workflow resolution prevents using one installed shared workflow
+  from independent new repositories. Copying sibling-checkout paths into config
+  would not fix packaging or fresh-consumer portability.
+- Quiet/new repositories need enrollment work even when their ordinary Git diff
+  is clean. Reuse the daemon's complete repository discovery snapshots rather
+  than introducing another independent recursive fleet walker.
+- Existing restore used rename over an existing destination, which could discard
+  operator edits. This prerequisite is now changed to create-only hard-link
+  publication: matching existing bytes are left untouched; conflicts fail;
+  concurrent consumers may succeed only if the destination also verifies.
+  Seventeen transfer tests pass, including three new no-overwrite regressions
+  (`restore-safety.log`). This is a bounded prerequisite, not full qualification.
+
+## Architecture and implementation boundaries
+
+### 1. Shared trusted workflow and explicit storage authority
+
+Ship one versioned workflow with the utility rather than executing arbitrary
+new per-repo generator commands with uploader access. Resolve it through an
+operator-controlled installed profile, bind the installed bundle to its tested
+hash/version and preserve existing explicit opt-outs. Bundle its complete local
+module/dependency closure; do not depend on dracon-platform being present as a
+sibling checkout. A configuration/manifest remains portable repository data,
+not new executable authority.
+
+The profile selects already-authorized bucket/prefix and explicit scoped
+uploader/consumer credential locations. Do not expand IAM or inherit ambient
+credentials. Derive collision-resistant per-repository namespaces within that
+prefix; preserve established namespaces and compatibility for existing pilot
+entries. A repository without a valid storage/consumer capability is reported
+unsupported until those capabilities actually exist.
+
+### 2. Candidate discovery is not enrollment authority
+
+Enumerate bounded Git-visible tracked/nonignored-untracked paths per discovered
+repository. Never descend through gitlinks or nested Git ownership boundaries,
+symlink ancestors, excluded/build/cache/secret paths. Preserve filenames safely
+(NUL boundaries, no shell interpolation), and distinguish enumeration errors
+from an empty candidate set. Revalidate paths and source identities before use.
+
+Use a versioned adapter registry whose implementations are shipped/trusted
+with the workflow. An adapter must positively verify regeneration evidence and
+produce stable IDs, exact source/input digests, adapter version and expected
+output identity. Do not execute a repository's arbitrary command string or
+accept self-declared `regenerable:true` as proof. The first production adapter
+should cover the existing deterministic brand favicon; additional adapters
+must satisfy the same verification contract, not loosen it. Consider generic
+bounded deterministic PNG recipes and recorded, pinned generator receipts,
+but do not claim either is supported until implemented and tested.
+
+For each repository/candidate, emit an explicit outcome such as eligible,
+already registered, excluded, unsupported generator, unsupported consumer,
+ambiguous ownership, source changed, or inspection failed. Initial inventory
+hints do not become positive capability evidence.
+
+### 3. One enrollment/publication transaction
+
+Discover and validate registrations inside the same publication lock used by
+upload. Assign stable collision-resistant IDs and unique content-addressed
+object templates. Compare source, provenance inputs and prior manifest again
+before atomic publication. Upload and independently verify before committing
+any bucketed reference. Registration must not race ordinary staging of newly
+selected raw bytes; the index verifier must cover newly enrolled paths too.
+
+Keep existing small eligible assets unbucketed until normal routing selects
+them. Preserve original tracked baselines and all local source bytes. New
+registration does not delete an existing Git path to manufacture savings.
+Changes to existing registered bytes require renewed eligibility evidence;
+unsupported edits cannot inherit old proof or be silently discarded.
+
+### 4. Lifecycle and consumer compatibility
+
+A missing source is not proof of an intentional deletion and must not trigger
+unconditional restoration during enrollment. Preserve existing references on
+ambiguous rename/delete events, report them and use explicit lifecycle state;
+never delete remote immutable objects as cleanup. Repeated observations are
+idempotent. Partial uploads may leave harmless verified immutable objects,
+never a published unverified reference.
+
+A consumer must restore the original logical/source path from independent
+cache/storage without replacing differing local bytes. Positively qualify the
+supported application's build/restore entrypoint before enabling enrollment;
+a filename extension is not a consumer adapter. Preserve operator-owned build
+scripts and make any restore wiring reproducible in a fresh checkout.
+
+### 5. Scheduling, visibility and rollout
+
+Use existing discovery snapshots and bounded single-flight per-repository work
+for initial/periodic clean-repo scans as well as changed/new repositories. A
+slow or failed asset scan must not monopolize unrelated commit/push capacity.
+Persist explicit unsupported outcomes and retryable failures distinctly.
+
+Deploy only after end-to-end and fault qualification plus final workspace and
+script gates. Use sanctioned maintenance, atomic artifact installation,
+identity checks and rollback copies outside watched source repositories.
+Demonstrate real autonomous discovery/registration, policy-selected routing,
+consumer restoration, retry recovery and unrelated repository progress.
+
+## Component ownership for implementation
+
+This is multi-seam work. Keep one writer per checkout/worktree:
+
+1. Utility integration: installed workflow/profile resolution, repository-scan
+   dispatch, index binding, CLI/reporting, scheduling and Rust tests.
+2. Transfer/discovery: adapter verification, manifest enrollment transaction,
+   safe restoration, Node tests and fresh-consumer harness.
+3. Integration/qualification only after those contracts are stable: packaging,
+   installation, final gates, live observation and safety review.
+
+### Architectural review disposition
+
+The independent reviewer identified three valid P1 gaps: an executable
+provenance verification protocol, independent storage/consumer authority, and
+quiet-repo scheduling plus stable ownership. All three are accepted for inline
+implementation; none is a reason to weaken eligibility or narrow discovery.
+
+The adapter protocol is `probeCandidate(context) -> explicit outcome + Evidence`
+and `verifyEvidence(evidence, uploadSnapshot, trustedBinding) -> expectedDigest`.
+Evidence binds schema/adapter version, stable repository ID, relative source
+path, exact source digest/size, deterministic recipe digest, toolchain identity,
+input digests and consumer adapter identity. The upload snapshot must reproduce
+exactly; changed bytes never inherit old proof. The first bounded implementation
+is a trusted deterministic solid-RGBA PNG recipe (covering the actual existing
+32x32 brand favicon), with strict size/dimension/format caps and exact canonical
+byte comparison. Unsupported PNG encodings remain unsupported, not guessed.
+This is real regeneration from a bounded numeric recipe, not embedding arbitrary
+asset bytes and calling that provenance. No repository command is executed.
+
+Shared runner installation must include its dependency closure. Repo descriptors
+must be credential-free; a separate operator-owned fleet capability profile
+supplies permitted namespaces and credential handles. A portable descriptor does
+not authorize a namespace on its own. Build bootstrap must be qualified against
+recognized entrypoints before enabling automatic routing; API availability alone
+is not a supported consumer. Neither IAM expansion nor relabeling arbitrary
+non-game assets into the pilot's games prefix is authorized.
+
+The scheduler must inspect clean repos before the ordinary clean-sync dispatch
+gate, maintain bounded single-flight work and retry deadlines, and serialize
+publication with ordinary repo mutation ownership. Stable generated bindings are
+automatic daemon state plus portable repository descriptors, not an operator's
+manually maintained per-repo registry. Conflicting copied descriptors must fail
+closed; path rename must not churn a valid established namespace.
+
+### Active lane board
+
+| Lane | Checkout / isolation | Exclusive authority | Gate / handoff |
+|---|---|---|---|
+| Adapter component | `~/.local/state/dracon-sync/dev-worktrees/bucket-adapters-hpFRn5` (detached worktree of dracon-sync at `20893c8`) | New `scripts/bucket-runner/adapters.mjs` and its test only; no cloud/config/integration changes | Node adapter tests; committed or durable file handoff |
+| Parent utility integration | Canonical dracon-sync checkout | Inventory/design, capability/profile/runner integration, scheduling and CLI; no writes in adapter worktree | Consume tested adapter handoff before integration |
+| Parent transfer prerequisite | dracon-platform | Create-only restore and focused regressions only | 17 Node tests passed; no other active platform writer |
+
+The initial scout and architecture reviewer were read-only. The adapter lane is
+one independently testable provenance seam, not an issue-wide writer assignment.
+The parent remains the integration owner after the component handoff.
