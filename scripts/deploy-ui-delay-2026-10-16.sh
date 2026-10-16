@@ -8,8 +8,9 @@ expected_warden=d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574
 [[ -d "$out" && -f target/release/dracon-sync && -f target/release/dracon-warden ]]
 [[ $(sha256sum target/release/dracon-sync | cut -d' ' -f1) == $expected_sync ]] || { echo 'sync digest mismatch'; exit 2; }
 [[ $(sha256sum target/release/dracon-warden | cut -d' ' -f1) == $expected_warden ]] || { echo 'warden digest mismatch'; exit 2; }
-backup="$HOME/.dracon/backups/ui-delay-20261016-$(date -u +%H%M%S)"
-mkdir -m 700 "$backup"
+# Rollback executables must not enter the daemon-home source repository.
+backup="$HOME/.local/state/dracon/rollback-binaries/ui-delay-20261016-$(date -u +%H%M%S)"
+mkdir -p -m 700 "$backup"
 printf 'started=%s\nbackup=%s\n' "$(date -u +%FT%TZ)" "$backup"
 for name in dracon-sync dracon-warden; do
     destination="$HOME/.local/bin/$name"
