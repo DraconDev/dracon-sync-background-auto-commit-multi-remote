@@ -7308,6 +7308,33 @@ pub(crate) async fn run_daemon(
                 eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
             }
         }
+        // Existing worker lifecycle must also advance while discovery is
+        // refreshing. No new repo is admitted here; only already-owned joins
+        // are applied. In particular, a scope change cannot pin reservations
+        // or defer the running-worker cancellation deadline indefinitely.
+        while let Some((repo, remote_failures, sync_res)) = next_ready_result(&mut detached_syncs).await {
+            release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
+                &mut HashSet::new(), &mut detached_since);
+            sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
+            if let Some(entry) = activity.get_mut(&repo) {
+                match apply_outcome(&repo, &sync_res, remote_failures, entry,
+                    &mut stage_cooldowns, &mut stuck_push_repos, true) {
+                    ApplyOutcome::Success => {
+                        max_fail_cooldowns.remove(&repo);
+                        activity.remove(&repo);
+                    }
+                    ApplyOutcome::Failure => {
+                        entry.failure_count += 1;
+                        entry.blocked_since = None;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        for repo in sync_recovery.expired(Instant::now(), Duration::from_secs(900)) {
+            eprintln!("⚠️ {} sync task wedged for >15 min — requesting cancellation; retaining ownership until worker joins", repo.display());
+            request_worker_cancellation(&sync_workers, &repo);
+        }
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
         let mut next_quiet_deadline: Option<Instant> = None;
         let roots = policy.watch_root_paths();
@@ -7320,7 +7347,18 @@ pub(crate) async fn run_daemon(
         }).await else {
             // Initial discovery or changed watch configuration: do not prune
             // fleet state using an empty/partial/previous-scope snapshot.
-            scheduler_evidence::save(&scheduler_evidence::Snapshot::empty("discovering"));
+            save_in_flight(&in_flight);
+            let probes = status_pending.union(&classification_pending).cloned().collect();
+            let maintenance = provisioning_jobs.keys().cloned().collect();
+            let retry_maps = [&status_retry_after, &classification_cooldowns,
+                &branch_retry_after, &max_fail_cooldowns, &stage_cooldowns];
+            let mut snapshot = scheduler_evidence::build(scheduler_evidence::Inputs {
+                activity: &activity, eligible: &HashSet::new(), probes: &probes,
+                maintenance: &maintenance, retries: &retry_maps,
+                recovery: &sync_recovery, admitted: &last_dispatch,
+            }, Instant::now(), scheduler_evidence::epoch());
+            snapshot.mode = "discovering".into();
+            scheduler_evidence::save(&snapshot);
             sleep_responsive(&reload_notify, || freeze_reason(&policy_path).is_some(), Duration::from_secs(1)).await;
             continue;
         };

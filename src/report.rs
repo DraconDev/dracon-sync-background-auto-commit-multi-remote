@@ -6948,12 +6948,15 @@ fn build_repos_rich_table(
     // Dynamic + Absolute; it never clips digits). Fleet is ~35
     // today; widen to 5 (all tiers + mirrors + floors) if it nears 99.
     const NUM_COL: usize = 4;
-    const STATUS_COL: usize = 12;
+    // EXCLUDED/RETRYING include a width-two emoji and eight ASCII
+    // letters: 11 content columns plus two padding. Twelve wrapped them.
+    const STATUS_COL: usize = 13;
     // CHANGED 2026-07-29 (v0.113.15): REPO narrowed 22 → 20 and
     // ACTIVITY narrowed 28 → 24 to fund the new REM column (+9 cols
     // incl. border+padding) within the 165-col rich-tier budget
     // (operator: show which remotes each repo syncs to as icons).
-    const REPO_COL: usize = 20;
+    // Fund the complete STATUS label without raising the rich-tier floor.
+    const REPO_COL: usize = 19;
     // v0.113.30 (operator: "make the table as wide as the screen,
     // and flex grow like the repo name"): REPO is the flex column —
     // it absorbs every terminal column beyond the fixed floor (159,

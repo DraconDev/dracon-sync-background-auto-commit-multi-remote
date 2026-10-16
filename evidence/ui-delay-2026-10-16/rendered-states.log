@@ -1,0 +1,101 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: unused variable: `svc`
+    --> dracon-sync/src/report.rs:4009:17
+     |
+4009 |             let svc = match GitService::new(&repo) {
+     |                 ^^^ help: if this is intentional, prefix it with an underscore: `_svc`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync") generated 1 warning (run `cargo fix --bin "dracon-sync" -p dracon-sync` to apply 1 suggestion)
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.02s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-322cfb94f90bdfca)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 9 tests
+test report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows ... === rich renderer 165 columns ===
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ✅ CLEAN          長い名前-👩‍💻-…   ⚪ idle            —     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  2   🚫 EXCLUDED       長い名前-👩‍💻-…   🚫 EXCLUDED        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  3   🟡 QUEUED         長い名前-👩‍💻-…   🟡 QUEUED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  4   🔄 WORKING        長い名前-👩‍💻-…   🔄 WORKING         1     —     —     —   ↑1        — unknown    —            0       0   12345           ?   -             │
+│  5   ⏳ RETRYING       長い名前-👩‍💻-…   ⏳ RETRYING        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  6   🔴 STALLED        長い名前-👩‍💻-…   🔴 STALLED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  7   🚫 BLOCKED        長い名前-👩‍💻-…   🚫 BLOCKED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  8   ⏸️ PAUSED         長い名前-👩‍💻-…   ⏸️ PAUSED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  9   ❔ UNKNOWN        長い名前-👩‍💻-…   ❔ UNKNOWN         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+=== rich renderer 200 columns ===
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                                                   ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ✅ CLEAN          長い名前-👩‍💻-é-Converged-very-long-repository       ⚪ idle            —     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  2   🚫 EXCLUDED       長い名前-👩‍💻-é-Excluded-very-long-repository        🚫 EXCLUDED        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  3   🟡 QUEUED         長い名前-👩‍💻-é-Queued-very-long-repository          🟡 QUEUED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  4   🔄 WORKING        長い名前-👩‍💻-é-Working-very-long-repository         🔄 WORKING         1     —     —     —   ↑1        — unknown    —            0       0   12345           ?   -             │
+│  5   ⏳ RETRYING       長い名前-👩‍💻-é-Retrying-very-long-repository        ⏳ RETRYING        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  6   🔴 STALLED        長い名前-👩‍💻-é-Stalled-very-long-repository         🔴 STALLED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  7   🚫 BLOCKED        長い名前-👩‍💻-é-Blocked-very-long-repository         🚫 BLOCKED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  8   ⏸️ PAUSED         長い名前-👩‍💻-é-Paused-very-long-repository          ⏸️ PAUSED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  9   ❔ UNKNOWN        長い名前-👩‍💻-é-Unknown-very-long-repository         ❔ UNKNOWN         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+=== rich renderer 240 columns ===
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                                                                                           ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ✅ CLEAN          長い名前-👩‍💻-é-Converged-very-long-repository                                               ⚪ idle            —     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  2   🚫 EXCLUDED       長い名前-👩‍💻-é-Excluded-very-long-repository                                                🚫 EXCLUDED        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  3   🟡 QUEUED         長い名前-👩‍💻-é-Queued-very-long-repository                                                  🟡 QUEUED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  4   🔄 WORKING        長い名前-👩‍💻-é-Working-very-long-repository                                                 🔄 WORKING         1     —     —     —   ↑1        — unknown    —            0       0   12345           ?   -             │
+│  5   ⏳ RETRYING       長い名前-👩‍💻-é-Retrying-very-long-repository                                                ⏳ RETRYING        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  6   🔴 STALLED        長い名前-👩‍💻-é-Stalled-very-long-repository                                                 🔴 STALLED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  7   🚫 BLOCKED        長い名前-👩‍💻-é-Blocked-very-long-repository                                                 🚫 BLOCKED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  8   ⏸️ PAUSED         長い名前-👩‍💻-é-Paused-very-long-repository                                                  ⏸️ PAUSED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  9   ❔ UNKNOWN        長い名前-👩‍💻-é-Unknown-very-long-repository                                                 ❔ UNKNOWN         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+=== rich renderer 320 columns ===
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                                                                                                                                                                           ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ✅ CLEAN          長い名前-👩‍💻-é-Converged-very-long-repository                                                                                                                               ⚪ idle            —     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  2   🚫 EXCLUDED       長い名前-👩‍💻-é-Excluded-very-long-repository                                                                                                                                🚫 EXCLUDED        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  3   🟡 QUEUED         長い名前-👩‍💻-é-Queued-very-long-repository                                                                                                                                  🟡 QUEUED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  4   🔄 WORKING        長い名前-👩‍💻-é-Working-very-long-repository                                                                                                                                 🔄 WORKING         1     —     —     —   ↑1        — unknown    —            0       0   12345           ?   -             │
+│  5   ⏳ RETRYING       長い名前-👩‍💻-é-Retrying-very-long-repository                                                                                                                                ⏳ RETRYING        1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  6   🔴 STALLED        長い名前-👩‍💻-é-Stalled-very-long-repository                                                                                                                                 🔴 STALLED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  7   🚫 BLOCKED        長い名前-👩‍💻-é-Blocked-very-long-repository                                                                                                                                 🚫 BLOCKED         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  8   ⏸️ PAUSED         長い名前-👩‍💻-é-Paused-very-long-repository                                                                                                                                  ⏸️ PAUSED          1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+│  9   ❔ UNKNOWN        長い名前-👩‍💻-é-Unknown-very-long-repository                                                                                                                                 ❔ UNKNOWN         1     —     —     —   —         — unknown    —            0       0   12345           ?   -             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ok
+test report::tests::rich_ab_cell_compacts_hostile_ahead_counts ... ok
+test report::tests::rich_activity_does_not_clip_duplicate_counts ... ok
+test report::tests::rich_footer_surfaces_reasons_without_healthy_noise ... ok
+test report::tests::rich_table_renders_single_line_rows_at_supported_widths ... ok
+test report::tests::test_repos_legend_covers_all_rich_columns ... ok
+test report::tests::test_rich_hint_link_out ... ok
+test report::tests::test_rich_table_fits_narrow_terminal ... ok
+test report::tests::test_rich_table_headers_fit_columns ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1314 filtered out; finished in 0.01s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-6681aabf82d21914)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-5d6514e28006c029)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.01s
+
