@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { renderSolidPng, CONSUMER_ID, CONSUMER_VERSION } from './adapters.mjs';
-import { planRepository, publishRepository } from './publisher.mjs';
+import { planRepository, publishRepository, publicationLock } from './publisher.mjs';
 
 const brand = { width: 32, height: 32, rgba: [255, 46, 136, 255] };
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -146,6 +146,61 @@ test('publishRepository: concurrent publisher blocks until the first releases th
     manifestPath, transport: trans });
   const [a, b] = await Promise.all([first, second]);
   assert.equal(a.manifestWritten || b.manifestWritten, true, 'at least one publisher wrote the manifest');
+});
+
+test('publicationLock: readiness waits for kernel ownership, not a grace timer', async t => {
+  const { root } = await repo(t);
+  const path = join(root, 'publication.lock');
+  const release = await publicationLock(path);
+  let acquired = false;
+  const second = publicationLock(path, { waitMs: 1500 }).then(unlock => { acquired = true; return unlock; });
+  try {
+    await new Promise(resolve => setTimeout(resolve, 350));
+    assert.equal(acquired, false, 'second writer must not enter while first owns the lock');
+  } finally { await release(); }
+  await (await second)();
+});
+
+test('publicationLock: rejects symlink and timeout without leaking ownership', async t => {
+  const { root } = await repo(t);
+  const path = join(root, 'publication.lock');
+  const release = await publicationLock(path);
+  try {
+    await assert.rejects(publicationLock(path, { waitMs: 50 }), /publication lock held/);
+    const link = join(root, 'alias.lock');
+    await symlink(path, link);
+    await assert.rejects(publicationLock(link), /ELOOP/);
+  } finally { await release(); }
+  await (await publicationLock(path))();
+});
+
+test('publishRepository: successful PUT with corrupt stored bytes cannot publish', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  const trans = transport();
+  trans.putIfAbsent = async key => { trans.objects.set(key, Buffer.from('corrupt')); };
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(result.manifestWritten, false);
+  await assert.rejects(readFile(manifestPath), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(join(root, 'authorized/icon.png')), renderSolidPng(brand));
+});
+
+test('publishRepository: concurrent creation of previously absent manifest is retained', async t => {
+  const { root, manifestPath } = await repo(t);
+  await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
+  const trans = transport();
+  const put = trans.putIfAbsent;
+  const operatorBytes = '{"operatorEdit":true}\n';
+  trans.putIfAbsent = async (key, file) => {
+    await put(key, file);
+    await writeFile(manifestPath, operatorBytes);
+  };
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(result.manifestWritten, false);
+  assert.equal(result.reason, 'manifest-changed-concurrently');
+  assert.equal(await readFile(manifestPath, 'utf8'), operatorBytes);
 });
 
 test('publishRepository: refuses an unsafely rooted manifest path', async t => {

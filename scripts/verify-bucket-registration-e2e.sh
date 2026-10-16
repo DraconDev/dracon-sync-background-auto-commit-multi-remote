@@ -26,12 +26,12 @@ timeout --signal=TERM --kill-after=10s 120s node --test \
   scripts/bucket-runner/e2e.test.mjs 2>&1 | tee "$log"
 # The runner must execute every named suite. A misspelled filter or missing
 # script would silently pass. Fail closed.
-grep -Fq 'tests 35' "$log" || {
-  echo 'Bucket-runner suite did not execute 35 tests; refusing a zero-test pass.' >&2
+grep -Eq '^.*tests 39$' "$log" || {
+  echo 'Bucket-runner suite did not execute 39 tests; refusing a zero-test pass.' >&2
   exit 1
 }
-grep -Eq 'pass 35' "$log" || {
-  echo 'Bucket-runner suite did not pass 35 tests; refusing a partial pass.' >&2
+grep -Eq '^.*pass 39$' "$log" || {
+  echo 'Bucket-runner suite did not pass 39 tests; refusing a partial pass.' >&2
   exit 1
 }
 # Required e2e scenarios must have run (every goal verification contract bullet).
@@ -44,6 +44,10 @@ required=(
   'recovery: concurrent manifest change aborts the second publisher; retry re-reads and succeeds'
   'recovery: simulated daemon interruption between storage upload and manifest write preserves invariant'
   'e2e: fresh consumer restores a renamed asset and refuses a deleted one'
+  'publicationLock: readiness waits for kernel ownership, not a grace timer'
+  'publicationLock: rejects symlink and timeout without leaking ownership'
+  'publishRepository: successful PUT with corrupt stored bytes cannot publish'
+  'publishRepository: concurrent creation of previously absent manifest is retained'
 )
 for scenario in "${required[@]}"; do
   grep -Fq "$scenario" "$log" || {
@@ -51,4 +55,4 @@ for scenario in "${required[@]}"; do
     exit 1
   }
 done
-echo 'bucket-runner qualification passed: 35/35 tests, all required e2e scenarios executed.'
+echo 'bucket-runner qualification passed: 39/39 tests, all required e2e scenarios executed.'

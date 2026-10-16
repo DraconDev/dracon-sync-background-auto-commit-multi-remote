@@ -5,7 +5,9 @@
  * the trusted profile/binding and immutable object keys.
  */
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { inspectRepository } from './planner.mjs';
 import { assertObjectKey, validateBinding, validateProfile } from './capabilities.mjs';
@@ -64,35 +66,50 @@ function rewritePath(relative) { return isAssetRoot(relative) ? relative : null;
  * is refused with a clear `EEXIST` error.
  */
 export async function publicationLock(path, { waitMs = 1000 } = {}) {
-  if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('invalid-lock-path');
-  const { open } = await import('node:fs/promises');
+  if (typeof path !== 'string' || !isAbsolute(path)
+    || !Number.isSafeInteger(waitMs) || waitMs < 0 || waitMs > 60000) throw new Error('invalid-lock-path');
   const { spawn } = await import('node:child_process');
-  const handle = await open(path, 'a');
-  // Node returns a high fd (>=20). `flock` and shell redirection need a low
-  // fd, so spawn a tiny helper that owns fd 9 and execs into the lock script.
-  const wait = Math.max(0, Math.floor(waitMs / 1000));
-  // The helper holds fd 9 (a dup of the parent's lock fd), acquires the flock,
-  // then sleeps until the parent kills the process. Stdout is piped so the
-  // child doesn't accidentally inherit a closing fd.
-  const script = `flock -E 73 -w ${wait} 9 || exit 73; exec sleep 86400`;
-  const helper = spawn('/bin/sh', ['-c', `exec 9<>/proc/${process.pid}/fd/${handle.fd}; exec /bin/sh -c ${JSON.stringify(script)}`],
-    { stdio: 'ignore' });
-  const child = helper;
-  const ready = new Promise((resolve, reject) => {
-    let settled = false;
-    const finish = fn => { if (settled) return; settled = true; clearTimeout(timer); fn(); };
-    const timer = setTimeout(finish, Math.max(50, waitMs) + 5000);
-    timer.unref();
-    child.once('error', error => finish(() => reject(error)));
-    child.once('exit', code => finish(() => reject(new Error(code === 73 ? 'EEXIST: publication lock held' : 'lock-failed'))));
-    // After a tiny grace period, if the child is still running, we own the lock.
-    setTimeout(() => { if (child.exitCode === null) finish(resolve); }, 200).unref();
-  });
-  await ready;
+  const handle = await open(path, constants.O_CREAT | constants.O_RDWR | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
+  let child;
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.uid !== process.geteuid()) throw new Error('unsafe-lock-file');
+    // fd 3 is inherited directly. The shell emits readiness ONLY after flock
+    // succeeds, then reads the parent pipe; EOF on parent death releases it.
+    // No paths or repository data are interpolated into shell source.
+    child = spawn('/bin/sh', ['-c', 'flock -E 73 -w "$1" 3 || exit 73; printf "locked\\n"; exec cat >/dev/null',
+      'bucket-lock', String(waitMs / 1000)], { stdio: ['pipe', 'pipe', 'ignore', handle.fd] });
+    child.stdin.on('error', () => {});
+    await new Promise((resolve, reject) => {
+      let settled = false, received = '';
+      const finish = error => {
+        if (settled) return;
+        settled = true; clearTimeout(timer);
+        if (error) reject(error); else resolve();
+      };
+      const timer = setTimeout(() => finish(new Error('lock-readiness-timeout')), waitMs + 5000);
+      child.once('error', finish);
+      child.once('exit', code => finish(new Error(code === 73 ? 'EEXIST: publication lock held' : 'lock-failed')));
+      child.stdout.on('data', data => {
+        received += data.toString();
+        if (received === 'locked\n') finish();
+        else if (received.length > 7) finish(new Error('invalid-lock-readiness'));
+      });
+    });
+  } catch (error) {
+    child?.stdin.destroy();
+    child?.kill();
+    await handle.close();
+    throw error;
+  }
   return async () => {
-    try { process.kill(child.pid); } catch {}
-    try { await new Promise(resolve => { if (child.exitCode !== null) resolve(); else child.once('exit', resolve); }); } catch {}
-    try { await handle.close(); } catch {}
+    const exited = new Promise(resolve => {
+      if (child.exitCode !== null || child.signalCode !== null) resolve();
+      else child.once('exit', resolve);
+    });
+    child.stdin.end();
+    await exited;
+    await handle.close();
   };
 }
 
@@ -167,8 +184,10 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     for (const entry of toUpload) {
       const ext = entry.sourcePath.split('.').at(-1).toLowerCase();
       const key = assertObjectKey(authority, trusted, `${trusted.namespace}/${entry.sha256}.${ext}`);
-      const cache = `${root}/.bucket-cache/upload-${hash(entry.id).slice(0, 12)}`;
-      await mkdir(dirname(cache), { recursive: true });
+      // Private scratch outside the watched worktree, never a repository-owned
+      // cache directory whose symlinks could redirect upload/download writes.
+      const scratch = await mkdtemp(`${tmpdir()}/bucket-upload-`);
+      const cache = `${scratch}/snapshot`;
       try {
         const exists = await head(key);
         if (exists) {
@@ -187,8 +206,10 @@ export async function publishRepository({ root, profile, binding, consumer, asse
             if (!error?.$metadata || error.$metadata.httpStatusCode !== 412) throw error;
             // A racing conditional create is safe; the bytes we just wrote
             // may not match what was actually stored. Verify from remote.
-            await download(key, cache);
           }
+          // Even a successful PUT is not verification: always read the stored
+          // object back, including conditional-create races.
+          await download(key, cache);
         }
         const { readFile } = await import('node:fs/promises');
         const bytes = await readFile(cache);
@@ -202,7 +223,7 @@ export async function publishRepository({ root, profile, binding, consumer, asse
         const digest = hash(bytes);
         if (digest !== entry.sha256 || bytes.length !== entry.bytes) throw new Error('snapshot-mismatch');
         verified.push({ entry, key, sha256: digest, bytes: bytes.length });
-      } finally { await rm(cache, { force: true }); }
+      } finally { await rm(scratch, { recursive: true, force: true }); }
     }
     const existingIds = new Set(priorManifest?.assets.map(a => a.id) ?? []);
     for (const entry of plan.proposedManifest.assets) {
@@ -216,8 +237,11 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     });
     const finalManifest = { ...plan.proposedManifest, assets: nextAssets };
     const finalBytes = `${JSON.stringify(finalManifest, null, 2)}\n`;
-    const current = prior === null ? null : await readUtf8(manifestPath).catch(() => null);
-    if (current !== null && current !== prior) throw new Error('manifest-changed-concurrently');
+    const current = await readUtf8(manifestPath).catch(error => {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    });
+    if (current !== prior) throw new Error('manifest-changed-concurrently');
     await atomicWrite(manifestPath, finalBytes);
     let indexRebound = false;
     if (indexPath && isAbsolute(indexPath)) {
