@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-10-16T08:48:14.717099+00:00",
+  "repos": [
+    {
+      "path": "/home/dracon/.dracon",
+      "head": "1ca1c920287b8bc35a0ea6da87cf25e99c44ca59",
+      "branch": "main",
+      "status": "M events.jsonl\n M utilities/sync/repos-seen-ledger.json",
+      "remotes": "gitlab\tgit@gitlab.com:DraconDev/dracon-home.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/dracon-home.git (push)\norigin\tgit@github.com:DraconDev/dracon-home.git (fetch)\norigin\tgit@github.com:DraconDev/dracon-home.git (push)",
+      "tracking": "refs/remotes/origin/HEAD 353eb37350040765a837e4ebf06eb10d8e89092f\nrefs/remotes/origin/main 353eb37350040765a837e4ebf06eb10d8e89092f"
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "head": "0a64257d7360059775756b7c796e1324588d3612",
+      "branch": "main",
+      "status": "M  .pi-glla/audit-loop/findings.md\nM  GATE_STATUS.md\nM  README.md\nM  SPEC.md\nA  scripts/edge-writer-ownership.vitest.spec.mjs\nM  scripts/generate-assets-v3.5.0-edge.sh\nD  static/images/edge-ai-screenline.png",
+      "remotes": "github\tgit@github.com:DraconDev/web-games-deathrun.git (fetch)\ngithub\tgit@github.com:DraconDev/web-games-deathrun.git (push)\ngitlab\tgit@gitlab.com:DraconDev/web-games-deathrun.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/web-games-deathrun.git (push)\norigin\tgit@github.com:DraconDev/web-games-deathrun.git (fetch)\norigin\tgit@github.com:DraconDev/web-games-deathrun.git (push)",
+      "tracking": "refs/remotes/gitlab/main 0a64257d7360059775756b7c796e1324588d3612\nrefs/remotes/origin/HEAD 0a64257d7360059775756b7c796e1324588d3612\nrefs/remotes/origin/main 0a64257d7360059775756b7c796e1324588d3612"
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+      "head": "a919b8f52c0e1adb263e499cfe0c8ec54dc02eeb",
+      "branch": "main",
+      "status": "M SPEC.md\n M design/GAME-PLAN.md\n M design/ROADMAP.md\n M design/phase-1/PLAYER-TASKS.md\n M tests/unit/assertion-floor.ts\n M tests/unit/renderer-lighting.test.ts",
+      "remotes": "github\tgit@github.com:DraconDev/web-games-freeport.git (fetch)\ngithub\tgit@github.com:DraconDev/web-games-freeport.git (push)\ngitlab\tgit@gitlab.com:DraconDev/web-games-freeport.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/web-games-freeport.git (push)\norigin\tgit@github.com:DraconDev/web-games-freeport.git (fetch)\norigin\tgit@github.com:DraconDev/web-games-freeport.git (push)",
+      "tracking": "refs/remotes/origin/HEAD 2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e\nrefs/remotes/origin/main 2e3c8f7d394f33d66d0b86e90b7554b3ce874f3e"
+    },
+    {
+      "path": "/home/dracon/Dev/browser-extensions-shared",
+      "head": "c64f764f4fe8a6ed0a4b122220a399eb6a762830",
+      "branch": "main",
+      "status": "M extensions/standalones/clean-web/scripts/browser-test/verify-cache-confirm.mjs\n M extensions/standalones/youtube-filter/tests/engine.test.ts\n?? extensions/standalones/clean-web/plan/measurements/strict-by-default-2026-10-09/audit/cache-confirm-2026-10-16-google/\n?? extensions/standalones/clean-web/plan/measurements/strict-by-default-2026-10-09/audit/cache-confirm-2026-10-16-warm/\n?? extensions/standalones/clean-web/plan/measurements/strict-by-default-2026-10-09/audit/cache-confirm-2026-10-16/",
+      "remotes": "gitlab\tgit@gitlab.com:DraconDev/browser-extensions-shared.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/browser-extensions-shared.git (push)\norigin\tgit@github.com:DraconDev/browser-extensions-shared.git (fetch)\norigin\tgit@github.com:DraconDev/browser-extensions-shared.git (push)",
+      "tracking": "refs/remotes/gitlab/HEAD 4cd434683b60b618dd6531e32d71717cc7258c76\nrefs/remotes/gitlab/main 6d756e21519ad77f9a33044333ef09a488a423b6\nrefs/remotes/gitlab/master 4cd434683b60b618dd6531e32d71717cc7258c76\nrefs/remotes/origin/HEAD 6d756e21519ad77f9a33044333ef09a488a423b6\nrefs/remotes/origin/archive/multi-provider-byok-lib a23b7f1b141294402412cd0dabef128ded34fe17\nrefs/remotes/origin/main 6d756e21519ad77f9a33044333ef09a488a423b6"
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform",
+      "head": "5d02b7b0690fd2d783f7ab927ee32920b3843311",
+      "branch": "main",
+      "status": "M web/games/wip/deathrun\n M web/games/wip/freeport\n M web/games/wip/hegemon\n M web/games/wip/outpost-eden/scripts/e2e-slots.mjs",
+      "remotes": "github\tgit@github.com:DraconDev/dracon-platform.git (fetch)\ngithub\tgit@github.com:DraconDev/dracon-platform.git (push)\ngitlab\tgit@gitlab.com:DraconDev/dracon-platform.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/dracon-platform.git (push)\norigin\tgit@github.com:DraconDev/dracon-platform.git (fetch)\norigin\tgit@github.com:DraconDev/dracon-platform.git (push)",
+      "tracking": "refs/remotes/github/main 5d02b7b0690fd2d783f7ab927ee32920b3843311\nrefs/remotes/gitlab/main 5d02b7b0690fd2d783f7ab927ee32920b3843311\nrefs/remotes/origin/HEAD 5d02b7b0690fd2d783f7ab927ee32920b3843311\nrefs/remotes/origin/main 5d02b7b0690fd2d783f7ab927ee32920b3843311"
+    },
+    {
+      "path": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+      "head": "e72d95aa4e9c71e0e35b1c47a074e88bb699c579",
+      "branch": "main",
+      "status": "",
+      "remotes": "github\tgit@github.com:DraconDev/doomtap.git (fetch)\ngithub\tgit@github.com:DraconDev/doomtap.git (push)\ngitlab\tgit@gitlab.com:DraconDev/doomtap.git (fetch)\ngitlab\tgit@gitlab.com:DraconDev/doomtap.git (push)\norigin\tgit@github.com:DraconDev/doomtap.git (fetch)\norigin\tgit@github.com:DraconDev/doomtap.git (push)",
+      "tracking": "refs/remotes/gitlab/main e72d95aa4e9c71e0e35b1c47a074e88bb699c579\nrefs/remotes/origin/HEAD e72d95aa4e9c71e0e35b1c47a074e88bb699c579\nrefs/remotes/origin/audit/tasklist-2026-10-07 70283d5757e65fb82968e71b84274794cb7c28ca\nrefs/remotes/origin/main e72d95aa4e9c71e0e35b1c47a074e88bb699c579"
+    }
+  ]
+}
