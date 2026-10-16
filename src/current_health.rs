@@ -106,14 +106,19 @@ pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
         Current::Unknown => ("❔ UNKNOWN", Color::Yellow),
     }
 }
+/// Rich tables have dedicated ahead and excluded columns. Keep the entire
+/// state visible rather than clipping a duplicate count suffix.
+pub(super) fn rich_activity(row: &RepoReportRow) -> &'static str {
+    if classify(row) == Current::Converged {
+        "⚪ idle"
+    } else {
+        status(row).0
+    }
+}
+
 pub(super) fn label(row: &RepoReportRow) -> String {
     let current = classify(row);
-    let (text, _) = status(row);
-    let mut label = if current == Current::Converged {
-        "⚪ idle".to_owned()
-    } else {
-        text.to_owned()
-    };
+    let mut label = rich_activity(row).to_owned();
     if row.ahead > 0 {
         label.push_str(&format!(" ({} ahead)", row.ahead));
     }

@@ -4015,7 +4015,10 @@ pub(crate) async fn run_repos_report(
                     }
                 };
 
-                let status = match svc.get_status().await {
+                // Use the same owned-process inspection as the scheduler.
+                // A timed-out detail/report must cancel Git and its filter
+                // descendants, not leave an uncancellable blocking task behind.
+                let status = match crate::git::inspect_status(&repo, Duration::from_secs(8)).await {
                     Ok(status) => status,
                     Err(e) => {
                         init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -6859,22 +6862,30 @@ fn format_compact_count(n: usize) -> String {
 /// keeps hint-free fleets noise-free. Hint-emptiness mirrors the
 /// summary tier: empty or `"-"` means none.
 fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
-    let n = rows
-        .iter()
-        .filter(|row| !row.hint.is_empty() && row.hint != "-")
-        .count();
-    if n == 0 {
-        None
-    } else {
-        Some(format!(
-            "💡 {} with HINT detail hidden in wide view — `dracon-sync repos <n|name>` or `--layout vertical`",
-            if n == 1 {
-                "1 repo".to_string()
-            } else {
-                format!("{n} repos")
-            }
-        ))
+    use current_health::Current;
+    let mut indexed: Vec<_> = rows.iter().enumerate().collect();
+    indexed.sort_by_key(|(index, row)| (severity_tier(row), *index));
+    let details: Vec<_> = indexed
+        .into_iter()
+        .filter(|(_, row)| matches!(current_health::classify(row),
+            Current::Blocked | Current::Stalled | Current::Retrying |
+            Current::Paused | Current::Unknown | Current::Queued | Current::Excluded))
+        .filter(|(_, row)| !row.hint.is_empty() && row.hint != "-")
+        .map(|(_, row)| {
+            let name = std::path::Path::new(&row.repo)
+                .file_name().unwrap_or_default().to_string_lossy();
+            // Treat footer content as terminal text, never as escape sequences.
+            let detail = crate::ownership::redact_url_credentials(&row.hint);
+            let safe: String = format!("{name}: {detail}").chars()
+                .map(|c| if c.is_control() { ' ' } else { c }).collect();
+            safe
+        })
+        .collect();
+    if details.is_empty() {
+        return None;
     }
+    Some(format!("💡 {} repo{} requiring attention — `dracon-sync repos <n|name>` for full detail\n{}",
+        details.len(), if details.len() == 1 { "" } else { "s" }, details.join("\n")))
 }
 
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
@@ -6905,7 +6916,7 @@ fn print_repos_rich_table(
         build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
     );
     if let Some(line) = rich_hint_link_out(rows) {
-        println!("{line}");
+        println!("{}", wrap_legend_text(&line, usize::from(terminal_width().unwrap_or(120))));
     }
 }
 
@@ -7078,7 +7089,7 @@ fn build_repos_rich_table(
     table.apply_modifier(UTF8_ROUND_CORNERS);
     table.set_style(TableComponent::LeftHeaderIntersection, '├');
     table.set_style(TableComponent::HeaderLines, '─');
-    table.set_style(TableComponent::MiddleHeaderIntersections, '┼');
+    table.set_style(TableComponent::MiddleHeaderIntersections, '─');
     table.set_style(TableComponent::RightHeaderIntersection, '┤');
     table.set_content_arrangement(ContentArrangement::Dynamic);
     if (40..=2000).contains(&terminal_columns) {
@@ -7237,7 +7248,7 @@ fn build_repos_rich_table(
         // counts moved to their own CHANGES column (operator: "the
         // activity can just have the first part"). The `(N ahead)`
         // strip stays: the A/B column carries that count.
-        let activity = truncate_unicode_width(&current_health::label(row), activity_budget);
+        let activity = truncate_unicode_width(current_health::rich_activity(row), activity_budget);
 
         // CHANGES (v0.113.19): one narrow column per class —
         // 📝 modified, 📦 staged, 🆕 untracked, 🚫 excluded by
@@ -12480,6 +12491,40 @@ mod tests {
     }
 
     #[test]
+    fn rich_activity_does_not_clip_duplicate_counts() {
+        use crate::daemon::scheduler_evidence::{Phase, RepoEvidence};
+        let mut row = make_activity_row("5 minutes ago", 1, 0, "OK");
+        row.ahead = 12345;
+        row.excluded_dirty = 12;
+        row.health.scheduler = Some(RepoEvidence { phase: Some(Phase::Working), ..Default::default() });
+        assert_eq!(current_health::rich_activity(&row), "🔄 WORKING");
+        // Other layouts keep their detailed label.
+        assert!(current_health::label(&row).contains("12345 ahead"));
+        for width in [165, 200, 240, 320] {
+            let output = build_repos_rich_table(std::slice::from_ref(&row), false, width).to_string();
+            assert!(!output.contains("WORKING ("), "{output}");
+            assert!(!output.contains("ahead"), "{output}");
+            assert_eq!(output.lines().count(), 5);
+        }
+    }
+
+    #[test]
+    fn rich_footer_surfaces_reasons_without_healthy_noise() {
+        let mut healthy = make_activity_row("5 minutes ago", 0, 0, "FAIL");
+        healthy.hint = "healthy; historical failure".into();
+        assert!(rich_hint_link_out(&[healthy]).is_none());
+        let mut blocked = make_activity_row("5 minutes ago", 1, 0, "BROKEN");
+        blocked.repo = "/tmp/blocked-repo".into();
+        blocked.hint = "guard refused protected deletion".into();
+        let footer = rich_hint_link_out(&[blocked]).unwrap();
+        assert!(footer.contains("blocked-repo: guard refused protected deletion"));
+        for width in [80, 165, 240] {
+            let wrapped = wrap_legend_text(&footer, width);
+            assert!(wrapped.lines().all(|line| unicode_width::UnicodeWidthStr::width(line) <= width));
+        }
+    }
+
+    #[test]
     fn rich_ab_cell_compacts_hostile_ahead_counts() {
         // ADDED 2026-10-03 (audit R3-L39): A/B uses
         // `format_compact_count` like the CHANGES columns — "↑99k"
@@ -12536,6 +12581,9 @@ mod tests {
                 "counts must align: {rendered}"
             );
             assert!(!rendered.contains('┆'));
+            assert!(lines[2].starts_with('├') && lines[2].ends_with('┤'));
+            assert!(lines[2].trim_start_matches('├').trim_end_matches('┤')
+                .chars().all(|c| c == '─'), "header ticks: {rendered}");
             assert!(
                 !rendered.contains('═'),
                 "single-line header style: {rendered}"
@@ -14392,6 +14440,7 @@ mod tests {
         dash.hint = "-".to_string();
         assert_eq!(rich_hint_link_out(&[dash]), None, "'-' means no hint");
         let mut hinted = RepoReportRow::for_tests("/tmp/hinted");
+        hinted.modified = 1;
         hinted.hint = "run dracon-sync repair concerns --apply".to_string();
         let line = rich_hint_link_out(std::slice::from_ref(&hinted)).expect("link-out");
         assert!(line.contains("1 repo"), "counts hinted rows: {line}");
@@ -14400,6 +14449,7 @@ mod tests {
             "names the drill-down: {line}"
         );
         let mut hinted2 = RepoReportRow::for_tests("/tmp/hinted2");
+        hinted2.modified = 1;
         hinted2.hint = "second hint".to_string();
         let line2 = rich_hint_link_out(&[hinted, hinted2]).expect("link-out");
         assert!(line2.contains("2 repos"), "pluralizes: {line2}");

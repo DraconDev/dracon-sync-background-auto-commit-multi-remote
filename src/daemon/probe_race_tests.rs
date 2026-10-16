@@ -4,7 +4,7 @@ use super::*;
 async fn recovery_completed_status_racing_cancellation_retains_original_age() {
     let repo = PathBuf::from("finished-between-collect-and-watchdog");
     let now = Instant::now();
-    let old = now - Duration::from_secs(61);
+    let old = now - Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS + 1);
     let path = repo.clone();
     let task: StatusJoin =
         tokio::spawn(async move { (path, Ok(dracon_git::types::RepoStatus::new())) });

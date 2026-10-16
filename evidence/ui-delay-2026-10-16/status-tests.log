@@ -1,0 +1,96 @@
+warning: unused variable: `svc`
+    --> dracon-sync/src/report.rs:4009:17
+     |
+4009 |             let svc = match GitService::new(&repo) {
+     |                 ^^^ help: if this is intentional, prefix it with an underscore: `_svc`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dracon-sync` (bin "dracon-sync") generated 1 warning (run `cargo fix --bin "dracon-sync" -p dracon-sync` to apply 1 suggestion)
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+warning: `dracon-sync` (bin "dracon-sync" test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 52.64s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-322cfb94f90bdfca)
+
+running 1 test
+test storage_core::journal::tests::record_budget_and_read_only_status_never_delete_or_create_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 156 filtered out; finished in 0.60s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 38 tests
+test daemon::daemon_tests::test_get_status_after_push ... [main (root-commit) 31b7265] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmp1LTb0n/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main c28d051] second
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/.tmp1LTb0n/remote.git
+   31b7265..c28d051  main -> main
+ok
+test daemon::daemon_tests::test_get_status_detects_unpushed_commits ... [main (root-commit) df2cb6b] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+To /tmp/.tmpiffDss/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+[main a74bc00] unpushed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ok
+test daemon::daemon_tests::test_get_status_refreshes_index ... [main (root-commit) c694664] init
+ 1 file changed, 1 insertion(+)
+ create mode 100644 file.txt
+ok
+test daemon::probe_race_tests::recovery_completed_status_racing_cancellation_retains_original_age ... ok
+test daemon::recovery_tests::recovery_status_waits_for_teardown_and_healthy_peer_progresses ... ok
+test daemon::tests::completed_status_is_collected_before_wedge_sweep ... ok
+test daemon::tests::failed_status_inspectors_yield_capacity_and_retry_at_deadline ... ok
+test daemon::tests::healthy_status_task_spared_by_sweep ... ok
+test daemon::tests::orphan_cancelled_status_join_inserts_no_result ... ok
+test daemon::tests::pending_classification_preserves_status_transition_clock ... ok
+test daemon::tests::slow_status_within_execution_budget_can_make_progress ... ok
+test daemon::tests::test_status_inspection_wedged_bound ... ok
+test daemon::tests::test_status_pipeline_collects_ready_while_slow_pending ... ok
+test daemon::tests::test_status_pipeline_result_carries_spawn_instant ... ok
+test daemon::tests::wedged_status_task_aborted_and_slot_freed ... ok
+test git::branch::tests::test_old_tracking_from_status_line_handles_missing_marker ... ok
+test git::branch::tests::test_old_tracking_from_status_line_parses_real_ref ... ok
+test git::branch::tests::test_old_tracking_from_status_line_rejects_empty_ref ... ok
+test git::diff::f33_tests::parse_name_status_basic_statuses ... ok
+test git::diff::f33_tests::parse_name_status_empty_line_returns_none ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_empty_paths_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_non_digit_suffix_rejected ... ok
+test git::diff::f33_tests::parse_name_status_rename_with_score ... ok
+test git::diff::f33_tests::parse_name_status_rename_without_score_rejected ... ok
+test git::diff::f33_tests::parse_name_status_unknown_status_returns_none ... ok
+test git::diff::f33_tests::test_parse_name_status_z_consumes_copy_and_unmerged_records ... ok
+test git::diff::f33_tests::test_parse_name_status_z_non_ascii_and_basic ... ok
+test git::diff::f33_tests::test_parse_name_status_z_rename ... ok
+test git::tests::test_fallback_status_rank_ordering ... ok
+test git::tests::test_parse_name_status_line_invalid_status ... ok
+test git::tests::test_parse_name_status_line_renamed ... ok
+test git::tests::test_parse_name_status_line_valid_lines ... ok
+test report::tests::test_empty_repo_push_status_is_empty_not_fail ... ok
+test report::tests::test_push_status_calculation_from_flags ... ok
+test report::tests::test_repo_failure_message_for_status_failed ... ok
+test report::tests::test_repo_report_row_push_status_fields ... ok
+test report::tests::test_status_json_structure ... ok
+test storage::tests::journal_status_is_read_only_and_redacts_source_metadata ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 1284 filtered out; finished in 1.48s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-6681aabf82d21914)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-5d6514e28006c029)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+

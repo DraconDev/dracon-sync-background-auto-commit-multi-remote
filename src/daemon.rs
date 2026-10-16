@@ -452,11 +452,16 @@ pub(crate) type StatusJoin = tokio::task::JoinHandle<(
     Result<dracon_git::types::RepoStatus, anyhow::Error>,
 )>;
 
-/// A collected status older than this is stale (spawned before the
-/// worktree's current state) — drop it and re-probe. Bounds how long
-/// a slow repo's result can gate its own dispatch, and keeps a
-/// wedged status task from pinning a stale snapshot forever.
-const STATUS_RESULT_MAX_AGE_SECS: u64 = 30;
+/// Maximum advisory snapshot age, still measured from SPAWN, not collection.
+/// Allow the full bounded inspection plus a 30-second collection window.
+/// Previously every 31–59s successful inspection was rejected despite its
+/// 60s execution budget. Classification/staging still revalidates content;
+/// this snapshot only admits work, never bypasses a commit or ownership gate.
+const STATUS_RESULT_MAX_AGE_SECS: u64 = STATUS_TASK_TIMEOUT_SECS + 30;
+
+fn status_result_is_stale(spawned: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(spawned) >= Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS)
+}
 
 /// Collect finished status tasks without blocking. Finished tasks
 /// release their repo's `pending` reservation; results stamp into
@@ -3954,9 +3959,21 @@ mod tests {
         assert!(status_retry_ready(cooldowns.get(&repos[0]), now + STATUS_RETRY_COOLDOWN));
     }
 
-    /// ADDED 2026-09-18 (v0.113.74): results older than 30s are
-    /// stale — but collection itself never drops (the boundary
-    /// decides). A fresh result is kept with its spawn instant.
+    /// Collection retains the original spawn clock, even for snapshots
+    /// older than the allowed inspection plus collection window.
+    #[test]
+    fn slow_status_within_execution_budget_can_make_progress() {
+        let now = Instant::now();
+        for secs in [0, 29, 30, 31, 45, 59, STATUS_TASK_TIMEOUT_SECS] {
+            assert!(!status_result_is_stale(now - Duration::from_secs(secs), now),
+                "successful {secs}s inspection must not be discarded solely for execution time");
+        }
+        let max = STATUS_RESULT_MAX_AGE_SECS;
+        assert!(!status_result_is_stale(now - Duration::from_secs(max - 1), now));
+        assert!(status_result_is_stale(now - Duration::from_secs(max), now));
+        assert!(status_result_is_stale(now - Duration::from_secs(max + 1), now));
+    }
+
     #[tokio::test]
     async fn test_status_pipeline_result_carries_spawn_instant() {
         let repo: PathBuf = "/tmp/stale-repo".into();
@@ -3970,7 +3987,7 @@ mod tests {
                 Instant,
             ),
         > = HashMap::new();
-        let old = Instant::now() - Duration::from_secs(45);
+        let old = Instant::now() - Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS + 15);
         let r = repo.clone();
         jobs.push(tokio::spawn(async move {
             (r, Ok(dracon_git::types::RepoStatus::new()))
@@ -3980,8 +3997,8 @@ mod tests {
         tokio::task::yield_now().await;
         collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
         let (_, at) = results.get(&repo).unwrap();
-        // The boundary's staleness check sees the 45s age and drops
-        // it (>= 30s max age) — the repo re-probes next cycle.
+        // Collection must not relabel an old snapshot as fresh merely
+        // because the task was joined now.
         assert!(
             Instant::now().saturating_duration_since(*at)
                 >= Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS)
@@ -7258,6 +7275,39 @@ pub(crate) async fn run_daemon(
             .await;
             continue;
         }
+        // Lifecycle collection is independent of discovery admission. A first
+        // or changed-scope walk may be slow, but must not pin completed probe
+        // owners or prevent cancellation of existing inspections. This does
+        // not admit repositories from an obsolete discovery snapshot.
+        collect_ready_classifications(
+            &mut classification_jobs,
+            &mut classification_pending,
+            &mut classification_abort_handles,
+            &mut classification_pending_since,
+            &mut classification_results,
+            &mut classification_failures,
+        );
+        collect_ready_status(
+            &mut status_jobs,
+            &mut status_pending,
+            &mut status_abort_handles,
+            &mut status_spawned_at,
+            &mut status_results,
+        );
+        let sweep_now = Instant::now();
+        for repo in status_pending.clone() {
+            if abort_wedged_status_inspection(&mut status_pending, &mut status_spawned_at,
+                &mut status_abort_handles, &repo, sweep_now) {
+                status_retry_after.insert(repo.clone(), sweep_now + STATUS_RETRY_COOLDOWN);
+                eprintln!("⚠️ {} status recovery requested; waiting for owned join", repo.display());
+            }
+        }
+        for repo in classification_pending.clone() {
+            if abort_wedged_classification(&mut classification_pending, &mut classification_pending_since,
+                &mut classification_abort_handles, &repo, sweep_now) {
+                eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
+            }
+        }
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
         let mut next_quiet_deadline: Option<Instant> = None;
         let roots = policy.watch_root_paths();
@@ -7325,44 +7375,6 @@ pub(crate) async fn run_daemon(
         // benign (worst case: one-cycle-stale view).
         stuck_push_repos = load_stuck_push_repos();
         stuck_push_repos.retain(|repo, _| repo_set.contains(repo));
-
-        // Collect ready classification results (ready-only, never blocking);
-        // retain only jobs whose repo is still watched.
-        collect_ready_classifications(
-            &mut classification_jobs,
-            &mut classification_pending,
-            &mut classification_abort_handles,
-            &mut classification_pending_since,
-            &mut classification_results,
-            &mut classification_failures,
-        );
-        // ADDED 2026-09-18 (v0.113.74, firehose fairness): collect
-        // ready status results at the same pulse boundary, so a
-        // status that finished while earlier repos were inspected
-        // is available without spending another pulse waiting.
-        collect_ready_status(
-            &mut status_jobs,
-            &mut status_pending,
-            &mut status_abort_handles,
-            &mut status_spawned_at,
-            &mut status_results,
-        );
-        // Sweep ALL reservations, including removed/paused repositories that
-        // will not reach a downstream gate, so they cannot pin global slots.
-        let sweep_now = Instant::now();
-        for repo in status_pending.clone() {
-            if abort_wedged_status_inspection(&mut status_pending, &mut status_spawned_at,
-                &mut status_abort_handles, &repo, sweep_now) {
-                status_retry_after.insert(repo.clone(), sweep_now + STATUS_RETRY_COOLDOWN);
-                eprintln!("⚠️ {} status recovery requested; waiting for owned join", repo.display());
-            }
-        }
-        for repo in classification_pending.clone() {
-            if abort_wedged_classification(&mut classification_pending, &mut classification_pending_since,
-                &mut classification_abort_handles, &repo, sweep_now) {
-                eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
-            }
-        }
 
         // Periodic broken tracking repair (every ~5 min at 1s interval)
         cycle_count += 1;
@@ -8367,11 +8379,11 @@ pub(crate) async fn run_daemon(
                 continue;
             };
             dispatch_holds.remove(&repo);
-            let stale = now.saturating_duration_since(spawned)
-                >= Duration::from_secs(STATUS_RESULT_MAX_AGE_SECS);
+            let stale = status_result_is_stale(spawned, now);
             let mut status = match status_outcome {
                 Ok(status) if !stale => status,
                 Ok(_) => {
+                    dispatch_holds.insert(repo.clone(), ("status-stale (re-probing)".into(), now));
                     if debug_enabled() {
                         eprintln!(
                             "scheduler: skip repo={} reason=status-stale (re-probing)",
@@ -8382,6 +8394,7 @@ pub(crate) async fn run_daemon(
                 }
                 Err(e) => {
                     status_retry_after.insert(repo.clone(), now + STATUS_RETRY_COOLDOWN);
+                    dispatch_holds.insert(repo.clone(), ("status-failed (retry cooldown)".into(), now));
                     eprintln!("⚠️ {} status_failed (retry in 300s): {}", repo.display(), e);
                     continue;
                 }
