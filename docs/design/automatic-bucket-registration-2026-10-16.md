@@ -186,6 +186,49 @@ automatic daemon state plus portable repository descriptors, not an operator's
 manually maintained per-repo registry. Conflicting copied descriptors must fail
 closed; path rename must not churn a valid established namespace.
 
+### Concrete authority and binding protocol
+
+`scripts/bucket-runner/capabilities.mjs` now validates an immutable version-1
+operator profile: one hashed installed runner, the existing private bucket,
+HTTPS endpoint/region, separate explicit uploader/consumer credential-file
+handles, authorized asset subtrees, and supported consumer protocol versions.
+The profile loader refuses nonprivate/group-writable files and symlink paths;
+it does not open credentials. Authorized asset **trees** cover future nested
+repositories automatically, not a manually maintained per-repo enrollment list.
+A tree authorization is only a prefilter, never provenance or consumer proof.
+The live profile is not installed/enabled by these component tests.
+
+Bindings are separate trusted state (`schemaVersion`, `profileId`,
+`repositoryId`, `namespace`). Transport checks every key against the bound
+namespace plus a full-SHA immutable identity independently of manifest claims.
+The read-only transport has no upload/delete/provisioning method. Tests cover
+caller-mutation isolation, cross-namespace/key attacks and capability-file/
+runner integrity (six tests; `capability-tests.log`).
+
+The automatic binding store must persist a random stable ID, the canonical
+Git-common-directory identity and an enrollment commit anchor. A directory
+rename retains the same identity and namespace. A new checkout carrying an
+existing descriptor must also establish the trusted remote identity and anchor
+ancestry before reusing an uploader binding; copying a descriptor into unrelated
+history is a conflict, not authority. Consumers may read already-authorized
+portable references without acquiring an uploader binding. Empty/missing or
+ambiguous repositories receive explicit outcomes instead of guessed ownership.
+
+### Component review and validation
+
+The adapter component was independently reviewed at `a806ae7`: no production
+blocker found; the P2 scheduling-dependent concurrent-write test was valid and
+is replaced in canonical integration by a coordinated same-size valid PNG
+replacement inside the read phase. It asserts exactly `retryable/source-changed`
+and separately verifies the stable replacement is eligible. No production
+probe callback was introduced for testing. Twelve combined adapter/capability
+test groups pass (`component-tests.log`). No broad live enrollment is enabled.
+
+The worker's original adapter commit carried an `okDraconDev` author-name
+anomaly (canonical email); the integration committer is canonical DraconDev.
+Published metadata is retained, not rewritten; subsequent component commits
+must specify the canonical name/email explicitly.
+
 ### Active lane board
 
 | Lane | Checkout / isolation | Exclusive authority | Gate / handoff |

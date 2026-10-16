@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, open, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync } from 'node:zlib';
@@ -95,14 +95,29 @@ test('probeCandidate: traversal, exclusions, consumers, symlinks and nested owne
   await writeFile(join(root, 'assets/nested/icon.png'), bytes);
   assert.equal((await probeCandidate({ ...context, relativePath: 'assets/nested/icon.png' })).reason, 'nested-git');
 });
-test('probeCandidate: missing and concurrently changed source are retryable', async (t) => {
-  const { context, root } = await fixture(t, { width: 512, height: 512, rgba: [1, 2, 3, 4] });
+test('probeCandidate: same-size valid replacement during read is retryable/source-changed', async (t) => {
+  const { context, root, bytes } = await fixture(t);
   assert.deepEqual(await probeCandidate({ ...context, relativePath: 'assets/missing.png' }), { status: 'retryable', reason: 'source-disappeared' });
-  let running = true;
-  const writer = (async () => { while (running) await writeFile(join(root, context.relativePath), Buffer.alloc(4096, 7)); })();
-  let changed = false;
+  const replacement = Array.from({ length: 256 }, (_, red) => renderSolidPng({ ...brand, rgba: [red, 46, 136, 255] }))
+    .find(candidate => candidate.length === bytes.length && !candidate.equals(bytes));
+  assert.ok(replacement, 'fixture must have a different, same-size canonical PNG');
+  const source = join(root, context.relativePath);
+  const handle = await open(source, 'r');
+  const prototype = Object.getPrototypeOf(handle), originalRead = prototype.read;
+  await handle.close();
+  let mutated = false;
+  // Coordinate a valid in-place replacement after the probe inspected/opened
+  // its source but before its first read. No sleep, invalid-byte writer or
+  // probabilistic retry loop; a length-only implementation would accept it.
+  t.mock.method(prototype, 'read', async function (...args) {
+    if (!mutated) { mutated = true; await writeFile(source, replacement); }
+    return Reflect.apply(originalRead, this, args);
+  });
   try {
-    for (let i = 0; i < 40 && !changed; i++) changed = (await probeCandidate(context)).status === 'retryable';
-  } finally { running = false; await writer; }
-  assert.equal(changed, true, 'concurrent mutation must not gain eligibility');
+    assert.deepEqual(await probeCandidate(context), { status: 'retryable', reason: 'source-changed' });
+    assert.equal(mutated, true);
+  } finally { t.mock.restoreAll(); }
+  const stable = await probeCandidate(context);
+  assert.equal(stable.status, 'eligible', 'stable replacement is independently supported');
+  assert.equal(stable.evidence.sha256, sha(replacement));
 });

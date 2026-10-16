@@ -1,0 +1,20 @@
+✔ renderSolidPng: actual brand golden and bounded numeric recipe (3.242597ms)
+✔ probeCandidate: deterministic evidence and other recipes (11.449857ms)
+✔ probeCandidate: malformed, bomb, oversized, non-solid and noncanonical PNGs (32.062797ms)
+✔ verifyEvidence: edits and every authority/provenance field fail closed (5.125646ms)
+✔ probeCandidate: traversal, exclusions, consumers, symlinks and nested ownership (4.559315ms)
+✔ probeCandidate: same-size valid replacement during read is retryable/source-changed (27.363839ms)
+✔ profile authority is strict, immutable and independent of caller mutation (3.273676ms)
+✔ authorized subtrees cover new nested repositories without a per-repo registry (0.636894ms)
+✔ every object request is bound to trusted namespace, not manifest claims (1.951458ms)
+✔ consumer transport has no write operation even if underlying client can write (0.3338ms)
+✔ operator loader enforces ownership permissions and runner hash without reading credential files (8.144681ms)
+✔ operator loader refuses symlink ancestors/leaves, malformed and oversized profiles (2.851508ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 144.457063
