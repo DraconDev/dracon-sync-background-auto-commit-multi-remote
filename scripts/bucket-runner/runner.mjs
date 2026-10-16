@@ -155,7 +155,9 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       require(current.plan.status === 'planned' && current.plan.complete && current.toUpload.length === 0);
       const paths = [];
       for (const entry of manifest.value.assets) {
-        require(safe(entry.sourcePath) && r.allowedCandidates.includes(entry.sourcePath));
+        require(safe(entry.sourcePath) && r.allowedCandidates.includes(entry.sourcePath)
+          && current.plan.outcomes.some(o => o.sourcePath === entry.sourcePath && o.evidence
+            && ['eligible', 'already-registered'].includes(o.status)));
         const bytes = await read(join(r.root, entry.sourcePath), 64 * 1024 * 1024);
         require(bytes.length === entry.bytes && sha(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
@@ -168,7 +170,7 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
         outcomes: current.plan.outcomes.map(o => ({ sourcePath: o.sourcePath, status: o.status })),
         generatedInternalPaths: [`${MANIFEST}.lock`, '.bucket-cache'] };
     } catch { return refused('request-or-authority-refused'); }
-    finally { if (transport) await transport.close(); }
+    finally { if (transport) { try { await transport.close(); } catch {} } }
   };
 }
 

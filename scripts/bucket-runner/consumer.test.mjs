@@ -329,3 +329,17 @@ test('framework plugins, duplicate Vite declarations and lifecycle ignore enviro
     else process.env.npm_config_ignore_scripts = previous;
   }
 });
+
+test('inspectConsumer: exact persistent manifest lock is internal, not a generic restore exemption', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.root, `${MANIFEST}.lock`), '', { mode: 0o600 });
+  assert.equal((await f.inspect()).status, 'supported');
+  await writeFile(join(f.root, `${MANIFEST}.lock-other`), 'conflict');
+  await unsupported(f, 'conflicting-restore-integration');
+});
+
+test('inspectConsumer: manifest lock exemption still rejects symlinks', async t => {
+  const f = await fixture(t);
+  await symlink('package.json', join(f.root, `${MANIFEST}.lock`));
+  await unsupported(f, 'symlink-path');
+});
