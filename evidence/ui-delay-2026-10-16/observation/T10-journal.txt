@@ -1,0 +1,111 @@
+Oct 16 17:10:06 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:08 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:10:09 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed; push paused (commit-only mode)
+Oct 16 17:10:10 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:11 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:11 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:10:11 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed; push paused (commit-only mode)
+Oct 16 17:10:13 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:13 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter was stuck (1 consecutive failures), retrying push after 301s
+Oct 16 17:10:17 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/deathrun was stuck (1 consecutive failures), retrying push after 301s
+Oct 16 17:10:17 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/deathrun — Stuck Push Retry: retrying after 301s; stuck since unix 1792166716; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:10:17 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter was stuck (1 consecutive failures), retrying push after 305s
+Oct 16 17:10:17 nixos dracon-sync[2674977]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:17 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:10:17 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 16 17:10:18 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/deathrun was stuck (1 consecutive failures), retrying push after 302s
+Oct 16 17:10:18 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter was stuck (1 consecutive failures), retrying push after 306s
+Oct 16 17:10:18 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:18 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:18 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-utilities/dracon-sync was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:10:18 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-utilities/dracon-sync — Stuck Push Retry: retrying after 300s; stuck since unix 1792166718; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:10:21 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/deathrun was stuck (1 consecutive failures), retrying push after 305s
+Oct 16 17:10:21 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:21 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-utilities/dracon-sync was stuck (1 consecutive failures), retrying push after 303s
+Oct 16 17:10:24 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-utilities/dracon-sync was stuck (1 consecutive failures), retrying push after 306s
+Oct 16 17:10:24 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:24 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:10:24 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/endless-td — Stuck Push Retry: retrying after 300s; stuck since unix 1792166724; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:10:25 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:10:25 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed; push paused (commit-only mode)
+Oct 16 17:10:25 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-utilities/dracon-sync was stuck (1 consecutive failures), retrying push after 307s
+Oct 16 17:10:25 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:25 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:28 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 304s
+Oct 16 17:10:28 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 304s
+Oct 16 17:10:28 nixos dracon-sync[2674977]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 16 17:10:30 nixos dracon-sync[2674977]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:10:31 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed; push paused (commit-only mode)
+Oct 16 17:10:31 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 307s
+Oct 16 17:10:31 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:32 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 308s
+Oct 16 17:10:34 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 310s
+Oct 16 17:10:34 nixos dracon-sync[2674977]: ✅ push recovered for /home/dracon/Dev/dracon-platform/web/games/wip/hellhunter
+Oct 16 17:10:35 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 311s
+Oct 16 17:10:35 nixos dracon-sync[2674977]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:35 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+Oct 16 17:10:35 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed; push paused (commit-only mode)
+Oct 16 17:10:35 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:35 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:10:35 nixos dracon-sync[2674977]: ⏫ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td scaling push timeout 900s → 1800s (11 commits ahead)
+Oct 16 17:10:37 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:10:41 nixos dracon-sync[2674977]: ✅ push recovered for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:10:51 nixos dracon-sync[2674977]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:10:51 nixos dracon-sync[2674977]: ✅ push recovered for /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 16 17:10:52 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed; push paused (commit-only mode)
+Oct 16 17:10:52 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:10:55 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 302s
+Oct 16 17:10:55 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Stuck Push Retry: retrying after 302s; stuck since unix 1792166753; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:10:56 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 303s
+Oct 16 17:10:58 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 305s
+Oct 16 17:10:58 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:02 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:12 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:11:22 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:11:22 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform — Stuck Push Retry: retrying after 300s; stuck since unix 1792166782; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:11:22 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:31 nixos dracon-sync[2674977]: ⏫ /home/dracon/Dev/dracon-platform scaling push timeout 900s → 1800s (9 commits ahead)
+Oct 16 17:11:35 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (2 consecutive failures), retrying push after 1032s
+Oct 16 17:11:36 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (2 consecutive failures), retrying push after 1033s
+Oct 16 17:11:36 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:36 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:11:36 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed; push paused (commit-only mode)
+Oct 16 17:11:39 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (2 consecutive failures), retrying push after 1036s
+Oct 16 17:11:39 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:11:40 nixos dracon-sync[2674977]: 🔄 /home/dracon/.dracon was stuck (2 consecutive failures), retrying push after 1037s
+Oct 16 17:11:40 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:40 nixos dracon-sync[2674977]: ⏫ /home/dracon/.dracon scaling push timeout 900s → 1800s (7 commits ahead)
+Oct 16 17:11:46 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:46 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:11:47 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed; push paused (commit-only mode)
+Oct 16 17:11:47 nixos dracon-sync[2674977]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/darklord committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:11:47 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/darklord was stuck (2 consecutive failures), retrying push after 708s
+Oct 16 17:11:50 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:11:50 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/darklord was stuck (2 consecutive failures), retrying push after 711s
+Oct 16 17:11:50 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:11:53 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/darklord was stuck (2 consecutive failures), retrying push after 714s
+Oct 16 17:11:53 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/freeport was stuck (1 consecutive failures), retrying push after 303s
+Oct 16 17:11:53 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:54 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/darklord was stuck (2 consecutive failures), retrying push after 715s
+Oct 16 17:11:54 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:11:56 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak was stuck (1 consecutive failures), retrying push after 301s
+Oct 16 17:11:56 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak — Stuck Push Retry: retrying after 301s; stuck since unix 1792166815; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:11:57 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak was stuck (1 consecutive failures), retrying push after 302s
+Oct 16 17:11:58 nixos dracon-sync[2674977]: ✅ push recovered for /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:12:00 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak was stuck (1 consecutive failures), retrying push after 305s
+Oct 16 17:12:00 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:12:01 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak was stuck (1 consecutive failures), retrying push after 306s
+Oct 16 17:12:01 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:12:01 nixos dracon-sync[2674977]: ⏫ /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak scaling push timeout 900s → 1800s (7 commits ahead)
+Oct 16 17:12:08 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:12:09 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:12:20 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/.dracon — Stuck Ahead (Unpushed): commits not reaching origin for >10 min — push may be failing
+Oct 16 17:12:20 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/neonbreak — Stuck Ahead (Unpushed): commits not reaching origin for >10 min — push may be failing
+Oct 16 17:12:20 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/browser-extensions-shared — Stuck Ahead (Unpushed): commits not reaching origin for >10 min — push may be failing
+Oct 16 17:12:23 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform — Stuck Ahead (Unpushed): commits not reaching origin for >10 min — push may be failing
+Oct 16 17:12:44 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/polis was stuck (1 consecutive failures), retrying push after 300s
+Oct 16 17:12:44 nixos dracon-sync[2674977]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/polis — Stuck Push Retry: retrying after 300s; stuck since unix 1792166864; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 16 17:12:46 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/polis was stuck (1 consecutive failures), retrying push after 302s
+Oct 16 17:12:49 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/polis was stuck (1 consecutive failures), retrying push after 305s
+Oct 16 17:12:50 nixos dracon-sync[2674977]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/polis was stuck (1 consecutive failures), retrying push after 306s
+Oct 16 17:12:50 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
