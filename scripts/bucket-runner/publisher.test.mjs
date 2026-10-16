@@ -203,6 +203,36 @@ test('publishRepository: concurrent creation of previously absent manifest is re
   assert.equal(await readFile(manifestPath, 'utf8'), operatorBytes);
 });
 
+test('publishRepository: raced source is revalidated before any upload', async t => {
+  const { root, manifestPath } = await repo(t);
+  const path = join(root, 'authorized/icon.png');
+  await writeFile(path, renderSolidPng(brand));
+  const trans = transport();
+  trans.head = async () => { await writeFile(path, Buffer.from('operator edit')); return false; };
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(result.manifestWritten, false);
+  assert.equal(trans.objects.size, 0, 'changed bytes must never be uploaded');
+  assert.equal(await readFile(path, 'utf8'), 'operator edit');
+});
+
+test('publishRepository: generator changes during upload prevent stale references', async t => {
+  const { root, manifestPath } = await repo(t);
+  const path = join(root, 'authorized/icon.png');
+  await writeFile(path, renderSolidPng(brand));
+  const trans = transport();
+  const download = trans.download;
+  trans.download = async (key, file) => {
+    await download(key, file);
+    await writeFile(path, renderSolidPng({ ...brand, rgba: [1, 2, 3, 255] }));
+  };
+  const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath, transport: trans });
+  assert.equal(result.manifestWritten, false);
+  await assert.rejects(readFile(manifestPath), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(path), renderSolidPng({ ...brand, rgba: [1, 2, 3, 255] }));
+});
+
 test('publishRepository: refuses an unsafely rooted manifest path', async t => {
   const { root, manifestPath } = await repo(t);
   await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));

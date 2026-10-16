@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { inspectRepository } from './planner.mjs';
 import { assertObjectKey, validateBinding, validateProfile } from './capabilities.mjs';
-import { ADAPTER_ID, ADAPTER_VERSION, verifyEvidence } from './adapters.mjs';
+import { ADAPTER_ID, ADAPTER_VERSION, CAPS, verifyEvidence } from './adapters.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const TEXT = { 'utf8': true, fatal: true };
@@ -47,6 +47,25 @@ async function contained(root, name, { missing = false } = {}) {
     throw error;
   }
   return target;
+}
+async function sourceSnapshot(root, sourcePath, entry, trusted, consumer) {
+  const path = await contained(root, sourcePath);
+  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const stat = await file.stat();
+    if (!stat.isFile() || stat.size !== entry.bytes || stat.size > CAPS.maxSourceBytes) throw new Error('source-changed');
+    const bytes = Buffer.alloc(entry.bytes + 1);
+    let length = 0;
+    while (length < bytes.length) {
+      const result = await file.read(bytes, length, bytes.length - length, length);
+      if (!result.bytesRead) break;
+      length += result.bytesRead;
+    }
+    const snapshot = bytes.subarray(0, length);
+    verifyEvidence(entry.provenance, snapshot, { root, repositoryId: trusted.repositoryId,
+      relativePath: sourcePath, consumer });
+    return snapshot;
+  } finally { await file.close(); }
 }
 const readUtf8 = async path => (await readFile(path, TEXT)).toString('utf8');
 const atomicWrite = async (path, contents) => {
@@ -168,6 +187,9 @@ export async function publishRepository({ root, profile, binding, consumer, asse
   }
   const authority = validateProfile(profile);
   const trusted = validateBinding(authority, binding);
+  // A repository manifest must stay inside this checkout; neither a caller
+  // path nor an ancestor symlink may redirect publication outside ownership.
+  await contained(root, relative(root, manifestPath), { missing: true });
   const release = await publicationLock(`${manifestPath}.lock`);
   try {
     let prior;
@@ -194,13 +216,10 @@ export async function publishRepository({ root, profile, binding, consumer, asse
           // Download for verification, but never trust the cache as authoritative.
           await download(key, cache);
         } else {
-          const sourcePath = assetRoot === '.' ? entry.sourcePath : entry.sourcePath.startsWith(`${assetRoot}/`)
-            ? entry.sourcePath.slice(assetRoot.length + 1) : entry.sourcePath;
-          await contained(root, sourcePath, { missing: false });
-          const source = resolve(root, sourcePath);
-          const { copyFile, chmod } = await import('node:fs/promises');
-          await copyFile(source, cache, 0);
-          await chmod(cache, 0o600);
+          const sourcePath = assetRoot === '.' ? entry.sourcePath : `${assetRoot}/${entry.sourcePath}`;
+          // Verify a bounded immutable snapshot BEFORE disclosing it remotely.
+          const snapshot = await sourceSnapshot(root, sourcePath, entry, trusted, consumer);
+          await writeFile(cache, snapshot, { flag: 'wx', mode: 0o600 });
           try { await putIfAbsent(key, cache); }
           catch (error) {
             if (!error?.$metadata || error.$metadata.httpStatusCode !== 412) throw error;
@@ -213,8 +232,7 @@ export async function publishRepository({ root, profile, binding, consumer, asse
         }
         const { readFile } = await import('node:fs/promises');
         const bytes = await readFile(cache);
-        const sourcePath = assetRoot === '.' ? entry.sourcePath : entry.sourcePath.startsWith(`${assetRoot}/`)
-            ? entry.sourcePath.slice(assetRoot.length + 1) : entry.sourcePath;
+        const sourcePath = assetRoot === '.' ? entry.sourcePath : `${assetRoot}/${entry.sourcePath}`;
         verifyEvidence(entry.provenance, bytes, {
           root, repositoryId: trusted.repositoryId, relativePath: sourcePath,
           consumer: { id: entry.provenance.consumer.id, version: entry.provenance.consumer.version,
@@ -224,6 +242,12 @@ export async function publishRepository({ root, profile, binding, consumer, asse
         if (digest !== entry.sha256 || bytes.length !== entry.bytes) throw new Error('snapshot-mismatch');
         verified.push({ entry, key, sha256: digest, bytes: bytes.length });
       } finally { await rm(scratch, { recursive: true, force: true }); }
+    }
+    // Changed/deleted generator outputs cannot acquire a stale reference just
+    // because a previously captured snapshot was valid.
+    for (const { entry } of verified) {
+      const sourcePath = assetRoot === '.' ? entry.sourcePath : `${assetRoot}/${entry.sourcePath}`;
+      await sourceSnapshot(root, sourcePath, entry, trusted, consumer);
     }
     const existingIds = new Set(priorManifest?.assets.map(a => a.id) ?? []);
     for (const entry of plan.proposedManifest.assets) {
