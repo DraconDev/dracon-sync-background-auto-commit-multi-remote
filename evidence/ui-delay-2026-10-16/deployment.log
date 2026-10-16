@@ -1,0 +1,11 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+started=2026-10-16T15:52:32Z
+backup=/home/dracon/.dracon/backups/ui-delay-20261016-155232
+b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a  /home/dracon/.local/bin/dracon-sync
+b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a  /home/dracon/.dracon/backups/ui-delay-20261016-155232/dracon-sync
+9b04cf23cd76dd48d68554d2a3e6c9838d2020a37cdee3b9352939f016da16b7  /home/dracon/.local/bin/dracon-warden
+9b04cf23cd76dd48d68554d2a3e6c9838d2020a37cdee3b9352939f016da16b7  /home/dracon/.dracon/backups/ui-delay-20261016-155232/dracon-warden
+active
+active
+target/release/dracon-sync /proc/2453439/exe differ: byte 25, line 1
+▶️  Sync resumed (freeze marker removed)
