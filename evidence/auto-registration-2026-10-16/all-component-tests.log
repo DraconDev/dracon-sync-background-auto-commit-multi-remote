@@ -1,0 +1,27 @@
+✔ renderSolidPng: actual brand golden and bounded numeric recipe (3.826119ms)
+✔ probeCandidate: deterministic evidence and other recipes (20.318118ms)
+✔ probeCandidate: malformed, bomb, oversized, non-solid and noncanonical PNGs (51.271118ms)
+✔ verifyEvidence: edits and every authority/provenance field fail closed (4.357914ms)
+✔ probeCandidate: traversal, exclusions, consumers, symlinks and nested ownership (2.282532ms)
+✔ probeCandidate: same-size valid replacement during read is retryable/source-changed (42.87194ms)
+✔ profile authority is strict, immutable and independent of caller mutation (7.434647ms)
+✔ authorized subtrees cover new nested repositories without a per-repo registry (0.905541ms)
+✔ every object request is bound to trusted namespace, not manifest claims (2.193274ms)
+✔ consumer transport has no write operation even if underlying client can write (0.420114ms)
+✔ operator loader enforces ownership permissions and runner hash without reading credential files (22.890708ms)
+✔ operator loader refuses symlink ancestors/leaves, malformed and oversized profiles (8.191246ms)
+✔ inspectRepository: discovers supported eligible asset and ignores unsafe/unsupported files (58.024107ms)
+✔ inspectRepository: new asset root only enrolls files beneath it (31.479675ms)
+✔ inspectRepository: existing manifest is preserved, legacy entries retained and changed ones refused (58.014258ms)
+✔ inspectRepository: manifest/binding mismatch and unsafe consumer are refused (55.112686ms)
+✔ inspectRepository: missing/deleted source keeps the prior manifest entry and reports missing (33.170881ms)
+✔ inspectRepository: phantom checkout, symlink and nested gitlink are refused (33.632252ms)
+✔ inspectRepository: same plan twice is idempotent; new file is enrolled on the second pass (100.661082ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 434.219284
