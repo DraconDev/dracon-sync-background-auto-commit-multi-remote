@@ -233,6 +233,20 @@ test('publishRepository: generator changes during upload prevent stale reference
   assert.deepEqual(await readFile(path), renderSolidPng({ ...brand, rgba: [1, 2, 3, 255] }));
 });
 
+test('publishRepository: rejects manifest escape and symlink ancestors before transport', async t => {
+  const { root } = await repo(t);
+  const outside = await mkdtemp(join(tmpdir(), 'publisher-outside-'));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  const trans = transport();
+  await assert.rejects(publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath: join(outside, 'manifest.json'), transport: trans }), /Unsafe/);
+  await symlink(outside, join(root, 'alias'));
+  await assert.rejects(publishRepository({ root, profile: profile(), binding: binding(), consumer,
+    manifestPath: join(root, 'alias', 'manifest.json'), transport: trans }), /Symlink/);
+  assert.equal(trans.objects.size, 0);
+  await assert.rejects(readFile(join(outside, 'manifest.json')), { code: 'ENOENT' });
+});
+
 test('publishRepository: refuses an unsafely rooted manifest path', async t => {
   const { root, manifestPath } = await repo(t);
   await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));

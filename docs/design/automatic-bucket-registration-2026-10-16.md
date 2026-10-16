@@ -2,6 +2,37 @@
 
 Status: implementation in progress; NOT a rollout or completion claim.
 
+## Post-rehearsal checkpoint (2026-10-16)
+
+The task ledger was overoptimistic: component completion does not establish
+production integration. Reopened integration and deployment after verifying
+that only fixture/stub callers invoke `publishRepository`, no live capability
+profile is installed, and the daemon still requires explicit per-repo config.
+The parent evidence `evidence/auto-registration-2026-10-16/verification-correction.md`
+records the full repeated cargo gates (2430 tests, zero failed) and a rebuilt
+binary SHA different from the installed/running SHA. No new deploy occurred.
+
+The publisher now waits for an explicit post-flock readiness message, refuses
+symlink lock leaves and releases via parent-pipe EOF. Scratch upload snapshots
+are private temporary directories outside watched source trees. Snapshot bytes
+are bounded and provenance-verified before upload; every successful put is read
+back and verified before publication. Current source bytes are revalidated
+before manifest write. Concurrent creation/deletion of a manifest invalidates
+the prior-state comparison; manifest paths cannot escape checkout ownership.
+Seven new regressions cover lock exclusion/timeout/symlinks, successful-but-
+corrupt PUTs, concurrent initial manifest creation, source changes before and
+during upload, and manifest escape/symlink ancestors. The bounded gate passes
+42/42 tests (`evidence/auto-registration-2026-10-16/publisher-safety-regressions.log`).
+
+Remaining implementation order: dependency-closed installed runner/CLI and
+scoped real transport; trusted stable repository identity/anchor state;
+positively verified consumer bootstrap; ordinary routing policy and changed-
+entry renewal; bounded clean/new/changed-repository scheduling under the
+existing repo mutation owner; digest-bound pre-stage checks; then final gates,
+sanctioned deploy, fresh inventory and actual live storage qualification.
+No permissions or credentials were changed to manufacture a live success.
+
+
 ## Authorized outcome
 
 All watched repositories are in discovery scope, including pre-existing assets
