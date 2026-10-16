@@ -1,0 +1,27 @@
+Oct 16 17:30:39 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 16 17:30:50 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 16 17:30:57 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:30:58 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:31:02 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:31:05 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:31:09 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:31:12 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:31:12 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:31:14 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:31:17 nixos dracon-sync[2674977]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:31:22 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:31:24 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:31:44 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 16 17:31:48 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:31:49 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 16 17:31:49 nixos dracon-sync[2674977]: ⏸️ /home/dracon/.dracon committed; push paused (commit-only mode)
+Oct 16 17:31:51 nixos dracon-sync[2674977]: ⏸️ /home/dracon/.dracon committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 16 17:31:51 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:31:59 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:32:04 nixos dracon-sync[2674977]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:32:09 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 16 17:32:13 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 16 17:32:19 nixos dracon-sync[2674977]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 16 17:32:24 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/darklord
+Oct 16 17:32:31 nixos dracon-sync[2674977]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 16 17:32:54 nixos dracon-sync[2674977]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
