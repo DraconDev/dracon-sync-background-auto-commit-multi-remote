@@ -11,29 +11,31 @@ import { CAPS } from './adapters.mjs';
 const identity = s => [s.dev, s.ino, s.mode, s.uid, s.size, s.mtimeNs, s.ctimeNs].join(':');
 const require = (ok, message) => { if (!ok) throw new Error(message); };
 
-/** Check each component, including /; writable ancestors are never authority. */
-async function ancestors(path) {
+/** Credential authority refuses even sticky writable ancestors. Snapshot/cache
+ * files may live under /tmp, but every component must still be symlink-free. */
+async function ancestors(path, trusted = false) {
   require(typeof path === 'string' && isAbsolute(path) && resolve(path) === path && !/[\x00-\x1f\x7f]/.test(path), 'unsafe storage file path');
   for (let current = dirname(path); ; current = dirname(current)) {
     const stat = await lstat(current);
-    require(stat.isDirectory() && !stat.isSymbolicLink() && !(stat.mode & 0o022), 'unsafe storage file ancestor');
+    require(stat.isDirectory() && !stat.isSymbolicLink() && (!trusted || !(stat.mode & 0o022)), 'unsafe storage file ancestor');
     if (current === dirname(current)) break;
   }
 }
-async function checkedOpen(path, flags, privateFile) {
-  await ancestors(path);
+async function checkedOpen(path, flags, privateFile, trustedAncestors = false) {
+  await ancestors(path, trustedAncestors);
   const file = await open(path, flags | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
   try {
     const stat = await file.stat({ bigint: true });
     require(stat.isFile(), 'storage file must be regular');
     if (privateFile) require(stat.uid === BigInt(process.geteuid()) && !(stat.mode & 0o077n), 'storage file must be private and operator-owned');
-    await ancestors(path);
+    if (flags & constants.O_WRONLY) require(stat.nlink === 1n, 'shared download target refused');
+    await ancestors(path, trustedAncestors);
     require(identity(stat) === identity(await lstat(path, { bigint: true })), 'storage file changed');
     return file;
   } catch (error) { await file.close(); throw error; }
 }
 async function snapshot(path, limit, privateFile) {
-  const file = await checkedOpen(path, constants.O_RDONLY, privateFile);
+  const file = await checkedOpen(path, constants.O_RDONLY, privateFile, privateFile);
   try {
     const before = await file.stat({ bigint: true });
     require(before.size > 0n && before.size <= BigInt(limit), 'storage file size refused');
@@ -44,7 +46,7 @@ async function snapshot(path, limit, privateFile) {
       if (!read.bytesRead) break;
       length += read.bytesRead;
     }
-    await ancestors(path);
+    await ancestors(path, privateFile);
     require(length === Number(before.size) && identity(before) === identity(await file.stat({ bigint: true }))
       && identity(before) === identity(await lstat(path, { bigint: true })), 'storage file changed');
     return bytes.subarray(0, length);
