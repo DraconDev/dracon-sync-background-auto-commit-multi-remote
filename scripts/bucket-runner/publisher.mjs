@@ -161,7 +161,8 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     const { head, download, putIfAbsent } = transport;
     const verified = [];
     for (const entry of toUpload) {
-      const key = assertObjectKey(authority, trusted, entry.objectKey);
+      const ext = entry.sourcePath.split('.').at(-1).toLowerCase();
+      const key = assertObjectKey(authority, trusted, `${trusted.namespace}/${entry.sha256}.${ext}`);
       const cache = `${root}/.bucket-cache/upload-${hash(entry.id).slice(0, 12)}`;
       await mkdir(dirname(cache), { recursive: true });
       try {

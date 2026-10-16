@@ -101,7 +101,7 @@ export async function inspectRepository({ root, profile, binding, consumer, asse
   catch { authorityReason = 'unsupported-storage-scope'; }
   let proposal;
   try {
-    if (manifest !== undefined) {
+    if (manifest) {
       if (!manifest || manifest.schemaVersion !== 1 || manifest.bucket !== 'dracon-lfs' || !Array.isArray(manifest.assets)
         || manifest.namespace !== binding?.namespace) return fail('refused', 'manifest-binding-mismatch');
       proposal = structuredClone(manifest);
