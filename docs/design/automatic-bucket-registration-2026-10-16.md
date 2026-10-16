@@ -241,9 +241,25 @@ unsupported adapter/consumer/storage scope, missing source, retryable source
 change, symlink/nested-git paths and git-ignored files. Stable collision-
 resistant IDs derive from `(repositoryId, sourcePath)` so repeats are
 idempotent and new files get added without touching existing ones. Seven
-planner tests pass (`all-component-tests.log` totals: 19 test groups, 0
-failures across adapter, capability and planner components). No live profile
-is installed; the planner runs against operator-supplied capability fixtures.
+planner tests pass.
+
+### Atomic publisher, verify, and index binding
+
+`scripts/bucket-runner/publisher.mjs` closes the enrollment transaction: it
+acquires the existing publication lock (kernel `flock` via a tiny shell
+helper that dupes the parent's lock fd), re-runs the planner against the
+on-disk manifest, downloads the immutable object (or copies from the worktree
+and `putIfAbsent`s it), then `verifyEvidence` against the actual bytes.
+Successful uploads mark `bucketed: true` and the index record is rewritten
+under the same lock, binding the trusted namespace to the new manifest's
+digest. Refused uploads leave the worktree, prior manifest and index
+unchanged. Eight publisher tests cover write+verify+bind, refusal on remote
+corruption, namespace isolation, race-with-concurrent-create, concurrent
+publishers and unsafe manifest paths. Combined adapter/capability/planner/
+publisher tests: 27/27 pass (`all-component-tests.log`).
+
+No live profile is installed and no `bucket-assets.json` opt-in is enabled.
+Live qualification remains task 6 and is gated on the fleet rollout decision.
 
 ### Active lane board
 
