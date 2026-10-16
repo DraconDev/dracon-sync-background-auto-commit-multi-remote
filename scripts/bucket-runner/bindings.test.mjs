@@ -66,6 +66,7 @@ test('remote selection and enrollment anchor fail closed on drift', async t => {
   const f = await fixture(t), input = request(f);
   await assert.rejects(bindRepository({ ...input, trustedRemoteUrl: `${URL}-wrong` }), /remote-mismatch/);
   await bindRepository(input);
+  const anchor = git(f.repositoryRoot, 'rev-parse', 'HEAD');
   git(f.repositoryRoot, 'remote', 'set-url', 'origin', `${URL}-changed`);
   await assert.rejects(bindRepository(input), /remote-mismatch/);
   await assert.rejects(bindRepository({ ...input, trustedRemoteUrl: `${URL}-changed` }), /stored-remote-conflict/);
@@ -79,6 +80,12 @@ test('remote selection and enrollment anchor fail closed on drift', async t => {
   git(f.repositoryRoot, 'checkout', '--orphan', 'unrelated');
   git(f.repositoryRoot, 'commit', '--allow-empty', '-m', 'unrelated history');
   await assert.rejects(bindRepository(input), /git-inspection-refused/);
+  git(f.repositoryRoot, 'replace', '--graft', 'HEAD', anchor);
+  git(f.repositoryRoot, 'merge-base', '--is-ancestor', anchor, 'HEAD');
+  await assert.rejects(bindRepository(input), /git-inspection-refused/);
+  await mkdir(join(f.repositoryRoot, '.git', 'info'), { recursive: true });
+  await writeFile(join(f.repositoryRoot, '.git', 'info', 'grafts'), `${git(f.repositoryRoot, 'rev-parse', 'HEAD')} ${anchor}\n`);
+  await assert.rejects(bindRepository(input), /git-grafts-refused/);
 });
 
 test('disabled, other-profile, unauthorized tree and malformed input refuse', async t => {
@@ -141,6 +148,14 @@ test('single state lock serializes simultaneous first enrollments without losing
   assert.equal(new Set(results.map(r => r.binding.repositoryId)).size, 2);
   const state = JSON.parse(await readFile(join(f.stateDirectory, 'bindings.json'), 'utf8'));
   assert.equal(state.records.length, 2);
+});
+
+test('linked worktrees share actual common-directory authority within authorized trees', async t => {
+  const f = await fixture(t), input = request(f);
+  const first = await bindRepository(input);
+  const worktree = join(f.trees, 'linked');
+  git(f.repositoryRoot, 'worktree', 'add', '-b', 'fixture-linked', worktree);
+  assert.deepEqual((await bindRepository({ ...input, repositoryRoot: worktree, binding: first.binding })).binding, first.binding);
 });
 
 test('inherited Git overrides cannot redirect inspected repository', async t => {

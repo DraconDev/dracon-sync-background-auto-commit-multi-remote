@@ -53,7 +53,7 @@ async function git(root, args, optional = false) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
   env.GIT_TERMINAL_PROMPT = '0'; env.GIT_OPTIONAL_LOCKS = '0';
   try {
-    const { stdout } = await execute('git', ['-C', root, ...args], { env, timeout: 5000, maxBuffer: 16384, encoding: 'utf8' });
+    const { stdout } = await execute('git', ['--no-replace-objects', '-C', root, ...args], { env, timeout: 5000, maxBuffer: 16384, encoding: 'utf8' });
     return stdout.replace(/\n$/, '');
   } catch (error) { if (optional && error.code === 1) return null; throw new Error('git-inspection-refused', { cause: error }); }
 }
@@ -96,6 +96,9 @@ async function inspect(root, remoteName, trustedRemoteUrl) {
   const common = await git(root, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
   require(common === declaredCommon, 'ambiguous-common-directory');
   const stat = await directory(common);
+  // Legacy grafts can forge ancestry independently of replace refs.
+  try { await lstat(join(common, 'info', 'grafts')); throw new Error('git-grafts-refused'); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
   const head = await git(root, ['rev-parse', '--verify', 'HEAD^{commit}']);
   require(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(head), 'invalid-head');
   const url = await git(root, ['config', '--get-all', `remote.${remoteName}.url`]);
@@ -146,7 +149,7 @@ async function readState(path, profile) {
 
 async function writeState(stateDirectory, path, entries) {
   const bytes = JSON.stringify({ schemaVersion: 1, records: entries });
-  require(Buffer.byteLength(bytes) <= LIMIT, 'binding-state-capacity');
+  require(entries.length <= 1000 && Buffer.byteLength(bytes) <= LIMIT, 'binding-state-capacity');
   const temporary = join(stateDirectory, `.bindings-${randomUUID()}.tmp`);
   const file = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
   try { await file.writeFile(bytes); await file.sync(); } finally { await file.close(); }
