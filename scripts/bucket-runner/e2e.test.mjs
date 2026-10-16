@@ -15,7 +15,12 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
 import { renderSolidPng, CONSUMER_ID, CONSUMER_VERSION } from './adapters.mjs';
-import { planRepository, publishRepository } from './publisher.mjs';
+import { planRepository as planWithBudget, publishRepository as publishWithBudget } from './publisher.mjs';
+
+// Explicit measured-pressure fixture, never an implicit production default.
+const pressureBudget = { projectedBytes: 800, limitBytes: 1000 };
+const planRepository = args => planWithBudget({ budget: pressureBudget, ...args });
+const publishRepository = args => publishWithBudget({ budget: pressureBudget, ...args });
 import { assertObjectKey, bindTransport, validateBinding, validateProfile } from './capabilities.mjs';
 
 const brand = { width: 32, height: 32, rgba: [255, 46, 136, 255] };

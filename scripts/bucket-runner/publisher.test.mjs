@@ -6,7 +6,12 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { renderSolidPng, CONSUMER_ID, CONSUMER_VERSION } from './adapters.mjs';
-import { planRepository, publishRepository, publicationLock } from './publisher.mjs';
+import { planRepository as planWithBudget, publishRepository as publishWithBudget, publicationLock } from './publisher.mjs';
+
+// Upload fixtures explicitly model measured pressure; missing real budgets fail closed.
+const pressureBudget = { projectedBytes: 800, limitBytes: 1000 };
+const planRepository = args => planWithBudget({ budget: pressureBudget, ...args });
+const publishRepository = args => publishWithBudget({ budget: pressureBudget, ...args });
 
 const brand = { width: 32, height: 32, rgba: [255, 46, 136, 255] };
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');

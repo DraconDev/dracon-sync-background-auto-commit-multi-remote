@@ -39,6 +39,8 @@ const profile = {
 const binding = { schemaVersion: 1, profileId: 'games-scoped-v1', repositoryId: 'repo-live-qual',
   namespace: 'games/auto/repo-live-qual' };
 const consumer = { id: CONSUMER_ID, version: CONSUMER_VERSION, assetRoots: ['authorized'] };
+// Synthetic routing pressure: this remains a fixture, not a real policy measurement.
+const budget = { projectedBytes: 800, limitBytes: 1000 };
 
 function git(cwd, ...args) {
   return execFileSync('git', ['--no-optional-locks', '-c', 'core.fsmonitor=false', '-C', cwd, ...args],
@@ -86,7 +88,7 @@ note(`source asset written: authorized/icon.png sha256=${sha(bytes)} bytes=${byt
 // --- Pass 1: initial enrollment ---
 const trans = makeTransport();
 const t1 = stamp();
-const first = await publishRepository({ root, profile, binding, consumer, assetRoot: '.',
+const first = await publishRepository({ root, profile, binding, consumer, budget, assetRoot: '.',
   manifestPath, transport: trans, indexPath });
 if (!first.manifestWritten) fail(`pass 1 did not write manifest: ${first.reason}`);
 note(`pass 1 published at ${t1}: manifestWritten=true toUpload=${first.toUpload.length} indexRebound=${first.indexRebound}`);
@@ -104,7 +106,7 @@ note(`index updatedAt: ${index.updatedAt} namespace=${index.namespace}`);
 // --- Pass 2: retry cycle (must be idempotent) ---
 const t2 = stamp();
 const putsBefore = trans.operations.filter(([op]) => op === 'put').length;
-const second = await publishRepository({ root, profile, binding, consumer, assetRoot: '.',
+const second = await publishRepository({ root, profile, binding, consumer, budget, assetRoot: '.',
   manifestPath, transport: trans, indexPath });
 if (second.manifestWritten) fail('pass 2 (retry) must not rewrite the manifest');
 const putsAfter = trans.operations.filter(([op]) => op === 'put').length;

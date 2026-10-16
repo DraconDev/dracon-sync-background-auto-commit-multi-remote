@@ -12,6 +12,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { inspectRepository } from './planner.mjs';
 import { assertObjectKey, validateBinding, validateProfile } from './capabilities.mjs';
 import { ADAPTER_ID, ADAPTER_VERSION, CAPS, verifyEvidence } from './adapters.mjs';
+import { validateBudget, shouldRouteEligible } from './routing.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const TEXT = { 'utf8': true, fatal: true };
@@ -137,16 +138,19 @@ export async function publicationLock(path, { waitMs = 1000 } = {}) {
  * No manifest, transport, or index state is touched.
  */
 export async function planRepository({ root, profile, binding, consumer, assetRoot = '.', manifest,
-  options = {} } = {}) {
+  budget, options = {} } = {}) {
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root) throw new Error('invalid-root');
   if (assetRoot !== '.' && !isAssetRoot(assetRoot)) throw new Error('invalid-asset-root');
   const authority = validateProfile(profile);
   const trusted = validateBinding(authority, binding);
   const plan = await inspectRepository({ root, profile, binding: { ...trusted, repositoryId: trusted.repositoryId }, consumer, assetRoot, manifest, options });
   if (plan.status !== 'planned') return { plan, toUpload: [] };
-  const before = new Set(manifest ? manifest.assets.map(a => a.sourcePath) : []);
+  const routing = validateBudget(budget);
+  const before = new Map((manifest?.assets ?? []).map(a => [a.sourcePath, a]));
+  const qualified = new Set(plan.outcomes.filter(o => o.evidence && ['eligible', 'already-registered'].includes(o.status)).map(o => o.id));
   const toUpload = plan.proposedManifest.assets
-    .filter(a => !before.has(a.sourcePath) && a.bucketed === false)
+    .filter(a => qualified.has(a.id) && shouldRouteEligible(a, routing))
+    .filter(a => !(before.get(a.sourcePath)?.bucketed === true && before.get(a.sourcePath)?.sha256 === a.sha256))
     .filter(a => a.provenance?.adapterId === ADAPTER_ID && a.provenance?.adapterVersion === ADAPTER_VERSION
       && typeof a.sha256 === 'string' && /^[a-f0-9]{64}$/.test(a.sha256)
       && Number.isSafeInteger(a.bytes) && a.bytes > 0);
@@ -178,7 +182,7 @@ function failPending(plan, reason) {
  * enrolled manifest's digest against the bound namespace.
  */
 export async function publishRepository({ root, profile, binding, consumer, assetRoot = '.', manifestPath,
-  transport, options = {}, indexPath } = {}) {
+  transport, budget, options = {}, indexPath } = {}) {
   if (typeof root !== 'string' || !isAbsolute(root) || resolve(root) !== root) throw new Error('invalid-root');
   if (assetRoot !== '.' && !isAssetRoot(assetRoot)) throw new Error('invalid-asset-root');
   if (typeof manifestPath !== 'string' || !isAbsolute(manifestPath)) throw new Error('invalid-manifest-path');
@@ -197,8 +201,10 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     catch (error) { if (error.code !== 'ENOENT') throw error; prior = null; }
     const priorManifest = prior === null ? null : JSON.parse(prior);
     const { plan, toUpload } = await planRepository({ root, profile, binding: trusted, consumer, assetRoot,
-      manifest: priorManifest, options });
-    if (plan.status !== 'planned' || !toUpload.length) {
+      manifest: priorManifest, budget, options });
+    const registrationChanged = (priorManifest !== null || plan.proposedManifest?.assets.length > 0)
+      && JSON.stringify(plan.proposedManifest) !== JSON.stringify(priorManifest);
+    if (plan.status !== 'planned' || (!registrationChanged && !toUpload.length)) {
       return { plan, toUpload, indexRebound: false, manifestWritten: false };
     }
     const { head, download, putIfAbsent } = transport;
