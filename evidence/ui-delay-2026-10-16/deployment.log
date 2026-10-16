@@ -1,11 +1,22 @@
 ⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
-started=2026-10-16T15:52:32Z
-backup=/home/dracon/.dracon/backups/ui-delay-20261016-155232
-b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a  /home/dracon/.local/bin/dracon-sync
-b8621ceefef30f90c5297b73b0a85d3ec0a6329c1b5bdda122d1994f2c90115a  /home/dracon/.dracon/backups/ui-delay-20261016-155232/dracon-sync
-9b04cf23cd76dd48d68554d2a3e6c9838d2020a37cdee3b9352939f016da16b7  /home/dracon/.local/bin/dracon-warden
-9b04cf23cd76dd48d68554d2a3e6c9838d2020a37cdee3b9352939f016da16b7  /home/dracon/.dracon/backups/ui-delay-20261016-155232/dracon-warden
+started=2026-10-16T16:02:02Z
+backup=/home/dracon/.dracon/backups/ui-delay-20261016-160202
+8bbc559eb45378c98fa19918d9286b52dc67c138c49c25a255de9400e5949ac5  /home/dracon/.local/bin/dracon-sync
+8bbc559eb45378c98fa19918d9286b52dc67c138c49c25a255de9400e5949ac5  /home/dracon/.dracon/backups/ui-delay-20261016-160202/dracon-sync
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  /home/dracon/.local/bin/dracon-warden
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  /home/dracon/.dracon/backups/ui-delay-20261016-160202/dracon-warden
 active
 active
-target/release/dracon-sync /proc/2453439/exe differ: byte 25, line 1
+running_pid=2674977
+finished=2026-10-16T16:02:05Z
+8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030  target/release/dracon-sync
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  target/release/dracon-warden
+8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030  /home/dracon/.local/bin/dracon-sync
+d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574  /home/dracon/.local/bin/dracon-warden
+8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030  /proc/2674977/exe
+ActiveState=active
+MainPID=2674977
+ExecMainStartTimestamp=Fri 2026-10-16 17:02:05 BST
+KillMode=control-group
+Warden is a Git filter, not an installed daemon unit; new invocations use the atomically installed binary.
 ▶️  Sync resumed (freeze marker removed)
