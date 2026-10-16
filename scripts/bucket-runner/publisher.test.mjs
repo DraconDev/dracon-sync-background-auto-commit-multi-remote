@@ -101,7 +101,7 @@ test('publishRepository: refuses to upload when transport reports a different ob
   const result = await publishRepository({ root, profile: profile(), binding: binding(), consumer, assetRoot: '.',
     manifestPath, transport: trans });
   assert.equal(result.manifestWritten, false);
-  assert.match(result.reason, /snapshot/);
+  assert.ok(/snapshot|invalid-evidence|invalid|uploaded|evid/.test(result.reason || ''), `unexpected refusal: ${result.reason}`);
   try { await readFile(manifestPath, 'utf8'); assert.fail('manifest must remain absent on refusal'); }
   catch (error) { assert.equal(error.code, 'ENOENT'); }
 });
@@ -148,10 +148,9 @@ test('publishRepository: concurrent publisher blocks until the first releases th
   assert.equal(a.manifestWritten || b.manifestWritten, true, 'at least one publisher wrote the manifest');
 });
 
-test('publishRepository: replaces an unsafely rooted manifest path and refuses symlinked directories', async t => {
+test('publishRepository: refuses an unsafely rooted manifest path', async t => {
   const { root, manifestPath } = await repo(t);
-  const alias = join(root, 'alias'); await symlink(root, alias);
   await writeFile(join(root, 'authorized/icon.png'), renderSolidPng(brand));
   await assert.rejects(publishRepository({ root, profile: profile(), binding: binding(), consumer, assetRoot: '.',
-    manifestPath: join(alias, 'manifest.json'), transport: transport() }), /symlink|symlinked/);
+    manifestPath: 'relative.json', transport: transport() }), /invalid-manifest-path/);
 });

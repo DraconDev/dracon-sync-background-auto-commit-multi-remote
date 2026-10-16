@@ -23,14 +23,18 @@ async function contained(root, name, { missing = false } = {}) {
   const target = resolve(root, name);
   const rel = relative(root, target);
   if (!rel || rel.startsWith(`..${sep}`)) throw new Error('Asset path escapes root');
-  const parts = [root, ...name.split('/').slice(0, -1).reduce((acc, part) => {
-    acc.push(acc.length ? `${acc[acc.length - 1]}/${part}` : part);
-    return acc;
-  }, [])];
-  for (const path of [root, ...parts]) {
+  let parent = target;
+  const ancestors = [];
+  while (parent !== root && parent !== dirname(parent)) {
+    const next = dirname(parent);
+    if (next === parent) break;
+    ancestors.unshift(next);
+    parent = next;
+  }
+  for (const path of [root, ...ancestors]) {
     const stat = await lstat(path);
     if (stat.isSymbolicLink()) throw new Error('Symlink manifest path refused');
-    if (path !== target && !stat.isDirectory()) throw new Error('Manifest ancestor must be a directory');
+    if (!stat.isDirectory()) throw new Error('Manifest ancestor must be a directory');
   }
   try {
     const stat = await lstat(target);
@@ -167,23 +171,33 @@ export async function publishRepository({ root, profile, binding, consumer, asse
       await mkdir(dirname(cache), { recursive: true });
       try {
         const exists = await head(key);
-        if (exists) await download(key, cache);
-        else {
-          await contained(root, entry.sourcePath, { missing: false });
-          const source = resolve(root, entry.sourcePath);
-          const { copyFile } = await import('node:fs/promises');
-          await copyFile(source, cache, 0o600);
+        if (exists) {
+          // Download for verification, but never trust the cache as authoritative.
+          await download(key, cache);
+        } else {
+          const sourcePath = assetRoot === '.' ? entry.sourcePath : entry.sourcePath.startsWith(`${assetRoot}/`)
+            ? entry.sourcePath.slice(assetRoot.length + 1) : entry.sourcePath;
+          await contained(root, sourcePath, { missing: false });
+          const source = resolve(root, sourcePath);
+          const { copyFile, chmod } = await import('node:fs/promises');
+          await copyFile(source, cache, 0);
+          await chmod(cache, 0o600);
           try { await putIfAbsent(key, cache); }
           catch (error) {
             if (!error?.$metadata || error.$metadata.httpStatusCode !== 412) throw error;
+            // A racing conditional create is safe; the bytes we just wrote
+            // may not match what was actually stored. Verify from remote.
             await download(key, cache);
           }
         }
         const { readFile } = await import('node:fs/promises');
         const bytes = await readFile(cache);
+        const sourcePath = assetRoot === '.' ? entry.sourcePath : entry.sourcePath.startsWith(`${assetRoot}/`)
+            ? entry.sourcePath.slice(assetRoot.length + 1) : entry.sourcePath;
         verifyEvidence(entry.provenance, bytes, {
-          root, repositoryId: trusted.repositoryId, relativePath: entry.sourcePath,
-          consumer: { id: entry.provenance.consumer.id, version: entry.provenance.consumer.version, assetRoots: [rewritePath(assetRoot)].filter(Boolean) }
+          root, repositoryId: trusted.repositoryId, relativePath: sourcePath,
+          consumer: { id: entry.provenance.consumer.id, version: entry.provenance.consumer.version,
+            assetRoots: consumer.assetRoots }
         });
         const digest = hash(bytes);
         if (digest !== entry.sha256 || bytes.length !== entry.bytes) throw new Error('snapshot-mismatch');
