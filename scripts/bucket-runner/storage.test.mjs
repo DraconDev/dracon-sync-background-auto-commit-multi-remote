@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, chmod, symlink, mkdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { Readable } from 'node:stream';
-import { createPrivateS3Transport } from './storage.mjs';
+import { createPrivateS3Transport, trustedCredentialAncestor } from './storage.mjs';
 import { CAPS } from './adapters.mjs';
 
 const key = `games/repo/${'a'.repeat(64)}.png`;
@@ -12,7 +12,8 @@ const secret = 'fixture-secret-never-echo';
 const credentialText = `OVH_ACCESS_KEY_ID=fixture-access\nOVH_SECRET_ACCESS_KEY=${secret}\n`;
 async function fixture(t) {
   // /tmp is intentionally rejected: even sticky writable ancestors aren't trusted.
-  const dir = await mkdtemp(join(process.cwd(), '.storage-test-'));
+  // Outside daemon-watched source trees; /tmp is deliberately not credential authority.
+  const dir = await mkdtemp(join(homedir(), '.dracon-storage-fixture-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const uploader = join(dir, 'uploader'), consumer = join(dir, 'consumer');
   await writeFile(uploader, credentialText, { mode: 0o600 });
@@ -100,6 +101,28 @@ test('404 alone means missing; forbidden, outage, redirect and 412 are sanitized
   await assert.rejects(transport.head(key), error => !error.message.includes(secret));
 });
 
+test('SDK error bodies are bounded before deserialization for downloads and uploads', async t => {
+  const f = await fixture(t), transport = await f.create();
+  const source = join(f.dir, 'snapshot');
+  await writeFile(source, 'qualified snapshot');
+  for (const method of ['download', 'putIfAbsent']) {
+    let produced = 0, body;
+    f.respond(() => ({ statusCode: 403, headers: {}, body: (body = Readable.from((async function* () {
+      for (let i = 0; i < 10000; i++) { produced++; yield Buffer.alloc(4096, 120); }
+    })())) }));
+    await assert.rejects(transport[method](key, source), /private storage/);
+    assert.ok(body.destroyed, 'oversized error stream must be destroyed');
+    assert.ok(produced <= 20, `collector must stop near 64KiB, consumed ${produced} chunks`);
+  }
+});
+
+test('credential ancestor authority refuses foreign owners even with mode 0755', () => {
+  const directory = uid => ({ uid, mode: 0o40755, isDirectory: () => true, isSymbolicLink: () => false });
+  assert.equal(trustedCredentialAncestor(directory(process.geteuid())), true);
+  assert.equal(trustedCredentialAncestor(directory(0)), true);
+  assert.equal(trustedCredentialAncestor(directory(process.geteuid() + 12345)), false);
+});
+
 test('bounded private downloads destroy successful, oversized and failed streams', async t => {
   const f = await fixture(t), transport = await f.create();
   let body;
@@ -133,6 +156,10 @@ test('deadlines abort both requests and stalled bodies; close aborts in-flight w
   await assert.rejects(transport.download(key, join(f.dir, 'target')), /private storage/);
   await new Promise(resolve => setImmediate(resolve));
   assert.ok(body.destroyed);
+  f.respond(() => ({ statusCode: 500, headers: {}, body: (body = new Readable({ read() {} })) }));
+  await assert.rejects(transport.download(key, join(f.dir, 'error-target')), /private storage/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(body.destroyed, 'deadline must also tear down the SDK error collector');
   f.respond(() => new Promise(() => {}));
   const pending = transport.head(key); transport.close();
   await assert.rejects(pending, /private storage/);
