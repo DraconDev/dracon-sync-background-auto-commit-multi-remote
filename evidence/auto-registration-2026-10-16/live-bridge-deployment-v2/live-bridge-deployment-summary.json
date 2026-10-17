@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-17T04:46:22Z",
+  "completedAt": "2026-10-17T04:46:31Z",
+  "bundle": {
+    "installed": "/home/dracon/.dracon/bin/runner.bundle.mjs",
+    "sha256": "f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612",
+    "rollbackCopies": 1,
+    "profileRunnerSha256": "f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612",
+    "match": true
+  },
+  "binary": {
+    "target": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+    "installed": "/home/dracon/.local/bin/dracon-sync",
+    "sha256": "b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a",
+    "identityMatch": true
+  },
+  "service": {
+    "daemon": "dracon-sync.service",
+    "status": "active"
+  },
+  "cycles": {
+    "cycleA": {
+      "startedAt": "2026-10-17T04:46:22Z",
+      "finishedAt": "2026-10-17T04:46:25Z",
+      "exitStatus": 0,
+      "change": "live-bridge-cycle-a-20261017044622"
+    },
+    "cycleB": {
+      "startedAt": "2026-10-17T04:46:25Z",
+      "finishedAt": "2026-10-17T04:46:27Z",
+      "exitStatus": 0,
+      "change": "live-bridge-cycle-b-20261017044625"
+    },
+    "unrelated": {
+      "startedAt": "2026-10-17T04:46:27Z",
+      "finishedAt": "2026-10-17T04:46:31Z",
+      "exitStatus": 0,
+      "change": "live-bridge-unrelated-20261017044627"
+    }
+  },
+  "artifacts": {
+    "manifest": "/home/dracon/dracon/bridge-fixture/bucket-assets.manifest.json",
+    "manifestSha256": "7f548094b53986a7fa96a0963506c1cfde74cb8c5a3e0f2039fca4b0baff1c7a",
+    "manifestBytes": 3301,
+    "binding": "/home/dracon/dracon/bridge-fixture/bucket-binding.json",
+    "bindingSha256": "1c3e38b8eb099e0ef7c0ec46cfca344cd5c622dc7da965d9168b0c116fe62e80"
+  },
+  "evidence": "/home/dracon/Dev/dracon-utilities/dracon-sync/evidence/auto-registration-2026-10-16/live-bridge-deployment-v2",
+  "outcome": "live autonomous bridge cycle on a real watched repo with bundle-installed rollback and tested-vs-installed binary identity; retry cycle and unrelated-repo progress demonstrated"
+}
