@@ -1,0 +1,3 @@
+5ba4172e722a0e5fec6fcb10ca71da7212e5d041 2026-10-18 00:41:48 +0100 Size qual-20261017 fixture above routing threshold (2200 bytes)
+61ef7d1989e6fe0d7880740f7ae0a1c3e6d2a578 2026-10-18 00:40:57 +0100 1 file(s) [bucket-assets.manifest.json] DELTA:+50/-0 | EXT:json
+6fc36da5557f567de2dfa7f0a152d642cb17a472 2026-10-18 00:40:48 +0100 Add qual-20261017 enrollment candidate (config only; manifest by daemon)

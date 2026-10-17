@@ -1,0 +1,26 @@
+{
+  "namespace": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db",
+  "assets": [
+    {
+      "sourcePath": "public/icon.png",
+      "sha256": "a2efd455ecd8d42f4eb1a45ffeb858b07cf54e5ff3552f739878c49723229de1",
+      "bytes": 75,
+      "bucketed": true,
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/a2efd455ecd8d42f4eb1a45ffeb858b07cf54e5ff3552f739878c49723229de1.png"
+    },
+    {
+      "sourcePath": "public/cover.png",
+      "sha256": "175dcdabcb7037ece8fda8ae70545633e79e6c94ae67318e2e6de2e553a2eefd",
+      "bytes": 75,
+      "bucketed": true,
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/175dcdabcb7037ece8fda8ae70545633e79e6c94ae67318e2e6de2e553a2eefd.png"
+    },
+    {
+      "sourcePath": "public/qual-20261017.png",
+      "sha256": "a96149acc31b97858eb514dafe7ede5c4f431616f7eb6424cfe6e41bdc94a8a6",
+      "bytes": 82,
+      "bucketed": false,
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/{sha256}.{ext}"
+    }
+  ]
+}
