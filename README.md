@@ -643,3 +643,15 @@ Both verified binaries are required for the server suite; absent prerequisites
 error rather than skip. Live pilot,
 independent server recovery, application staging authorization, and the
 complete daemon/manual integration matrix remain unverified.
+
+### Hermetic automatic-bucket daemon-worker qualification
+
+```sh
+timeout 420 bash scripts/qualify-daemon-bridge-e2e.sh
+```
+
+This gate proves new enrollment and reference-only Git commits through the
+real sync worker and runner, plus outage/partial-upload recovery, concurrent
+manifest protection, idempotent retries and byte-identical fresh restoration.
+Only storage I/O is injected. It neither deploys nor claims live OVH/service
+qualification. See [scope, checks and evidence](docs/design/bucket-daemon-qualification-2026-10-17.md).
