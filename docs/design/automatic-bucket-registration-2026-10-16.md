@@ -75,8 +75,40 @@ bridge prevent files appearing after policy selection from evading excludes.
 An options-forwarding defect was corrected so lowered enumeration caps apply.
 All 139 current component/E2E tests pass in the bounded script gate; evidence
 is `evidence/auto-registration-2026-10-16/storage-consumer-restore-regressions.log`.
-The installed protocol CLI, dependency-closed bundle, Rust bridge/scheduler,
-fresh installed lifecycle qualification and real-storage rollout remain open.
+No permissions or credentials were changed to manufacture a live success.
+
+### Trusted-bridge runner review remediation (commit 747f0ed)
+
+The first independent review of the dependency-closed runner protocol
+(`runner.mjs` + `publisher.mjs`) found three P1 issues; all fixed inline with
+durable root-cause fixes and new tests:
+
+1. **Stranded index-ahead transaction** (`runner.mjs:140-149`,
+   `publisher.mjs:189-208`) — an interrupted transaction whose index rename
+   succeeded but whose manifest rename did not was a permanent refusal. The
+   publisher now detects a stranded index digest, re-issues the same record
+   during a subsequent call, and exposes `recoveredFromStrandedIndex`. The
+   runner rejects only foreign-identity indices; legitimate stranded
+   transactions self-heal. Regression test:
+   `runner recovers from a stranded index-ahead transaction and never imports a mismatched index`.
+2. **Local-only assets returned as stage-suppression paths** — the
+   `materializedPaths` list now filters to `bucketed: true` AND positively
+   re-verified current outcomes. `outcomes[i].bucketed` and a `local-only`
+   reason communicate the local-only path to the future Rust stage bridge.
+   Regressions: `runner suppresses only positively re-verified bucketed entries
+   and does not stage deleted ones` and `runner local-only entries stay
+   unenrolled and are reported bucketed:false with local-only reason`.
+3. **Retained missing/unsupported entry vetoes unrelated progress** — covered
+   by the same two regressions: a deleted bucketed entry no longer returns as
+   `eligible`/`already-registered`, and `commitEligible` remains true on
+   idempotent retries of the remaining entries.
+
+The bounded gate (`scripts/verify-bucket-registration-e2e.sh`) now runs 153
+tests, all passing; the gate is the single source of truth for the runner's
+harness. The installed protocol CLI, dependency-closed bundle, Rust
+bridge/scheduler, fresh installed lifecycle qualification and real-storage
+rollout remain open.
+
 
 
 
