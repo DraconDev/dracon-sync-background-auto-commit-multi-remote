@@ -18,6 +18,8 @@ fn fixture() -> tempfile::TempDir {
     run(repo, &["config", "user.email", "fixture@dracon.local"]);
     run(repo, &["config", "core.hooksPath", "/dev/null"]);
     run(repo, &["commit", "--allow-empty", "-qm", "baseline"]);
+    run(repo, &["config", "branch.main.remote", "origin"]);
+    run(repo, &["config", "branch.main.merge", "refs/heads/main"]);
     run(
         repo,
         &[
@@ -101,13 +103,10 @@ async fn accounting_keeps_lagging_mirror_objects_and_respects_exclusions() {
     put(repo, "ignored-by-git.txt", 999);
     assert_eq!(measure(repo, &p).await.unwrap(), 0);
     // A policy mirror not yet configured locally is still a possible push
-    // destination; unknown availability must refuse, not omit its history.
+    // destination. Bound unknown availability by all reachable history, never
+    // silently omit it or assume a zero-byte outgoing payload.
     run(repo, &["remote", "remove", "gitlab"]);
-    assert!(measure(repo, &p)
-        .await
-        .unwrap_err()
-        .to_string()
-        .contains("missing-publish-tip"));
+    assert!(measure(repo, &p).await.unwrap() >= 300);
     std::fs::create_dir(repo.join(".dracon")).unwrap();
     std::fs::write(
         repo.join(".dracon/dracon-sync.toml"),

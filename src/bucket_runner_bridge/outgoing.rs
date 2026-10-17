@@ -156,26 +156,14 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         })
         .collect();
     // Mirror push can configure a policy destination later in this cycle.
-    // Its absence from local `git remote` cannot justify omitting its bytes.
-    // Respect the pure Codeberg no-create/quota posture without probing the
-    // network or invoking mutating mirror configuration helpers.
-    let has_codeberg_tip = text(&before.tips)?
-        .lines()
-        .any(|line| line.starts_with("refs/remotes/codeberg/"));
-    let skip_codeberg = crate::git::multi_remote::codeberg_push_excluded(
-        &policy.remotes,
-        override_.auto_create_on_codeberg,
-        has_codeberg_tip,
-    );
+    // Include a conservative superset of potential policy destinations, even
+    // visibility/quota-gated Codeberg: a public cache can activate that mirror
+    // despite auto_create=false. Only explicit exclusions remove destinations.
+    // No mutable/cache-dependent availability guess may reduce this bound.
     for remote in &policy.remotes {
-        if !override_.exclude_remotes.contains(&remote.name)
-            && !(remote.name == "codeberg" && skip_codeberg)
-        {
+        if !override_.exclude_remotes.contains(&remote.name) {
             destinations.insert(&remote.name);
         }
-    }
-    if skip_codeberg {
-        destinations.remove("codeberg");
     }
     if destinations.is_empty() {
         bail!("accounting-no-publish-destination");

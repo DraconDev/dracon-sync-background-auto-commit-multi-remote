@@ -224,6 +224,8 @@ fn init_repo(dir: &Path) {
         .output()
         .expect("git core.hooksPath");
     git(dir, &["commit", "--allow-empty", "-qm", "accounting baseline"]);
+    git(dir, &["config", "branch.main.remote", "origin"]);
+    git(dir, &["config", "branch.main.merge", "refs/heads/main"]);
     git(dir, &["remote", "add", "origin", "https://example.com/repo.git"]);
     git(dir, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
 }
