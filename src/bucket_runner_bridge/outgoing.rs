@@ -4,6 +4,10 @@ use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[cfg(test)]
+#[path = "outgoing_tests.rs"]
+mod tests;
+
 const MAX_ITEMS: usize = 20_000;
 const MAX_FILE: u64 = 16 * 1024 * 1024;
 
