@@ -1,4 +1,4 @@
-startedAt=2026-10-17T04:46:22Z
+startedAt=2026-10-17T05:05:49Z
 bundle.installed: /home/dracon/.dracon/bin/runner.bundle.mjs
 bundle.sha256: f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612
 profile.runner.sha256: f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612
@@ -10,27 +10,27 @@ repo.bridge-fixture: /home/dracon/dracon/bridge-fixture
 repo.bucket-runner.json: present
 repo.unrelated: /home/dracon/Dev/dracon-strategy
 service.daemon.status: active
-cycle-a: live-bridge-cycle-a-20261017044622
+cycle-a: live-bridge-cycle-a-20261017050549
 cycle-a-exit: 0
 ℹ️ skip pull/merge for /home/dracon/dracon/bridge-fixture (no tracking upstream on current branch)
 🛡️ /home/dracon/dracon/bridge-fixture auto-hardened with warden before staging
-📝 committed 1 file(s) in /home/dracon/dracon/bridge-fixture
+📝 committed 2 file(s) in /home/dracon/dracon/bridge-fixture
 🔁 synced /home/dracon/dracon/bridge-fixture
-cycle-b: live-bridge-cycle-b-20261017044625
+cycle-b: live-bridge-cycle-b-20261017050552
 cycle-b-exit: 0
 ℹ️ skip pull/merge for /home/dracon/dracon/bridge-fixture (no tracking upstream on current branch)
 🛡️ /home/dracon/dracon/bridge-fixture auto-hardened with warden before staging
 📝 committed 1 file(s) in /home/dracon/dracon/bridge-fixture
 🔁 synced /home/dracon/dracon/bridge-fixture
-unrelated: live-bridge-unrelated-20261017044627
+unrelated: live-bridge-unrelated-20261017050554
 unrelated-exit: 0
 🛡️ /home/dracon/Dev/dracon-strategy auto-hardened with warden before staging
 📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy
 🔁 synced /home/dracon/Dev/dracon-strategy
 {
   "schemaVersion": 1,
-  "startedAt": "2026-10-17T04:46:22Z",
-  "completedAt": "2026-10-17T04:46:31Z",
+  "startedAt": "2026-10-17T05:05:49Z",
+  "completedAt": "2026-10-17T05:05:58Z",
   "bundle": {
     "installed": "/home/dracon/.dracon/bin/runner.bundle.mjs",
     "sha256": "f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612",
@@ -50,28 +50,28 @@ unrelated-exit: 0
   },
   "cycles": {
     "cycleA": {
-      "startedAt": "2026-10-17T04:46:22Z",
-      "finishedAt": "2026-10-17T04:46:25Z",
+      "startedAt": "2026-10-17T05:05:49Z",
+      "finishedAt": "2026-10-17T05:05:52Z",
       "exitStatus": 0,
-      "change": "live-bridge-cycle-a-20261017044622"
+      "change": "live-bridge-cycle-a-20261017050549"
     },
     "cycleB": {
-      "startedAt": "2026-10-17T04:46:25Z",
-      "finishedAt": "2026-10-17T04:46:27Z",
+      "startedAt": "2026-10-17T05:05:52Z",
+      "finishedAt": "2026-10-17T05:05:54Z",
       "exitStatus": 0,
-      "change": "live-bridge-cycle-b-20261017044625"
+      "change": "live-bridge-cycle-b-20261017050552"
     },
     "unrelated": {
-      "startedAt": "2026-10-17T04:46:27Z",
-      "finishedAt": "2026-10-17T04:46:31Z",
+      "startedAt": "2026-10-17T05:05:54Z",
+      "finishedAt": "2026-10-17T05:05:58Z",
       "exitStatus": 0,
-      "change": "live-bridge-unrelated-20261017044627"
+      "change": "live-bridge-unrelated-20261017050554"
     }
   },
   "artifacts": {
     "manifest": "/home/dracon/dracon/bridge-fixture/bucket-assets.manifest.json",
-    "manifestSha256": "7f548094b53986a7fa96a0963506c1cfde74cb8c5a3e0f2039fca4b0baff1c7a",
-    "manifestBytes": 3301,
+    "manifestSha256": "ce749d66c7fc6c2002458145ad485a592ca4329219745c76f3b85aa0979a0e69",
+    "manifestBytes": 1137,
     "binding": "/home/dracon/dracon/bridge-fixture/bucket-binding.json",
     "bindingSha256": "1c3e38b8eb099e0ef7c0ec46cfca344cd5c622dc7da965d9168b0c116fe62e80"
   },

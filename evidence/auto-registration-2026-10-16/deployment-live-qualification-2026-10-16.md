@@ -20,7 +20,7 @@ cycle.
   `/home/dracon/.dracon/bin/runner.bundle.mjs` (1.5 MiB, sha256
   `f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612`)
   with a retained rollback copy at
-  `/home/dracon/.dracon/state/bucket-runner/backups/runner.bundle.mjs.20261017053538`.
+  `/home/dracon/.local/state/dracon-bundle-rollbacks/runner.bundle.mjs.20261017053538` (moved out of the `.dracon/` system_repo watch root on 2026-10-17 to satisfy the "outside watched source trees" contract requirement; the `.dracon/state/bucket-runner/` directory's persistent state files `bindings.json` and `*.index.json` remain under `.dracon/` because they are gitignored by `.dracon/.gitignore` line 83 (`state/`) and the daemon's auto-commit never sweeps them).
 - The new Rust bridge (`src/bucket_runner_bridge.rs`) spawns the
   installed bundle with a bounded JSON request, parses the bounded
   verdict, and returns a `bucket_assets::Prepared` so the existing
@@ -82,7 +82,7 @@ watched repos during the live qualification window.
 | --- | --- | --- |
 | `/home/dracon/.dracon/bin/runner.bundle.mjs` | installed | sha256 `f1d0ff1f…88612`; matches `profile.json` |
 | `/home/dracon/.dracon/state/bucket-runner/profile.json` | present | mode 0600; recorded runner sha256 = installed sha256 |
-| `/home/dracon/.dracon/state/bucket-runner/backups/runner.bundle.mjs.20261017053538` | retained | pre-install rollback copy |
+| `/home/dracon/.local/state/dracon-bundle-rollbacks/runner.bundle.mjs.20261017053538` | retained | pre-install rollback copy (moved out of `.dracon/` on 2026-10-17) |
 | `/home/dracon/dracon/bridge-fixture/bucket-runner.json` | tracked | opt-in for the bridge-fixture watched repo |
 | `/home/dracon/dracon/bridge-fixture/bucket-binding.json` | tracked | written by the bundle's published verdict |
 | `/home/dracon/dracon/bridge-fixture/bucket-assets.manifest.json` | tracked | written by the bundle's published verdict |
@@ -138,12 +138,14 @@ dracon-sync/src/sync.rs
 ## Unresolved (deferred to a separate follow-up)
 
 - Installed HTTPS / live bucket write qualification against the
-  actual `dracon-lfs` private bucket. The current daemon-bridge
-  harness exercises the bundle's *eligibility* and *binding* pipeline
-  end-to-end (the bundle writes the manifest and binding locally),
-  but the bundle's uploader transport cannot reach the operator's
-  OVH S3 endpoint from this environment. The follow-up
-  (`dracon-sync` v0.114.x) will exercise the live S3 round-trip with
-  operator-supplied scoped credentials.
+  actual `dracon-lfs` private bucket is structurally impossible
+  with the current production bundle: `CAPS.maxSourceBytes: 2097152`
+  (2 MiB) and `CAPS.maxDimension: 512` reject any source larger
+  than 2 MiB, but `shouldRouteEligible` only routes assets to the
+  uploader when `eligible.bytes >= largeBytes` (default 10 MiB) or
+  under pressure. No asset can satisfy both constraints. The
+  follow-up (`dracon-sync` v0.114.x) will lower `largeBytes` (or
+  raise `maxSourceBytes`) in the bundle, then re-run the live S3
+  qualification with operator-supplied scoped credentials.
 - Independent third-party contract review (out of scope for an
   agent run; requires the operator's authorized reviewer).

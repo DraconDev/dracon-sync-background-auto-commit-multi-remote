@@ -43,7 +43,7 @@ log="$evidence_dir/run.log"
 : > "$log"
 
 bundle_path=/home/dracon/.dracon/bin/runner.bundle.mjs
-backup_dir=/home/dracon/.dracon/state/bucket-runner/backups
+backup_dir=/home/dracon/.local/state/dracon-bundle-rollbacks
 profile_path=/home/dracon/.dracon/state/bucket-runner/profile.json
 target_binary=/home/dracon/Dev/dracon-utilities/target/release/dracon-sync
 installed_binary=$HOME/.local/bin/dracon-sync
