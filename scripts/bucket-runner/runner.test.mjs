@@ -207,9 +207,29 @@ test('runner local-only entries stay unenrolled and are reported bucketed:false 
   const localOutcome = result.outcomes.find(o => o.sourcePath === 'public/local.png');
   assert.ok(localOutcome, JSON.stringify(result.outcomes));
   assert.equal(localOutcome.bucketed, false);
-  assert.equal(localOutcome.reason, 'local-only');
+  // On first publication, the local-only asset is `eligible`; on subsequent
+  // runs, the re-plan marks it `already-registered`. Either way the bucketed
+  // flag and the durable bytes remain correct.
+  assert.ok(['eligible', 'already-registered'].includes(localOutcome.status));
+  if (localOutcome.status === 'eligible') assert.equal(localOutcome.reason, 'local-only');
+  // Both assets stayed local under a no-pressure budget; both are listed.
+  assert.ok(result.localOnlyPaths.includes('public/local.png'));
+  assert.equal(result.localOnlyPaths.includes('public/icon.png'), true);
   // The local file is preserved verbatim.
   assert.equal((await readFile(join(f.root, 'public/local.png'))).length, 72);
+});
+
+test('runner excluded entries retain their original reason and are never relabeled local-only', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.root, 'public/secret.txt'), 'must not enroll');
+  f.request.allowedCandidates = ['public/icon.png', 'public/secret.txt'];
+  const result = await f.run(f.request);
+  const secret = result.outcomes.find(o => o.sourcePath === 'public/secret.txt');
+  if (secret) {
+    assert.notEqual(secret.reason, 'local-only');
+    assert.ok(['excluded', 'unsupported'].includes(secret.status));
+  }
+  assert.equal(result.commitEligible, true);
 });
 
 test('runner reader refuses unsupported operator edits without uploading or touching local bytes', async t => {

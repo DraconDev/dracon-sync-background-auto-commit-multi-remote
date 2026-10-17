@@ -169,7 +169,6 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       // Only entries the current plan positively re-verifies get suppression
       // authority. Retained missing/unsupported/excluded entries never veto
       // unrelated verified progress and never enter the durable list.
-      const outcomeByPath = new Map(current.plan.outcomes.map(o => [o.sourcePath, o]));
       const verified = new Map();
       for (const o of current.plan.outcomes) {
         if (!o.evidence || !['eligible', 'already-registered'].includes(o.status)) continue;
@@ -190,12 +189,13 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       return { schemaVersion: 1, status: 'published', commitEligible: true, manifestSha256: sha(manifest.bytes),
         portablePaths: [DESCRIPTOR, MANIFEST], materializedPaths: paths, verifiedBucketedCount: paths.length,
         localOnlyPaths: manifest.value.assets.filter(a => a.bucketed === false).map(a => a.sourcePath),
+        recoveredFromStrandedIndex: result.recoveredFromStrandedIndex === true,
         outcomes: current.plan.outcomes.map(o => {
           const entry = manifest.value.assets.find(a => a.sourcePath === o.sourcePath);
+          const localOnly = entry && entry.bucketed === false && o.status === 'eligible';
           return { sourcePath: o.sourcePath, status: o.status,
             bucketed: entry?.bucketed === true,
-            ...(o.reason ? { reason: o.reason } : {}),
-            ...(!entry || entry.bucketed !== true ? { reason: 'local-only' } : {}) };
+            reason: localOnly ? 'local-only' : o.reason };
         }),
         generatedInternalPaths: [`${MANIFEST}.lock`, '.bucket-cache'] };
     } catch { return refused('request-or-authority-refused'); }

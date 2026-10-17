@@ -40138,7 +40138,6 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
         allowedCandidates: r5.allowedCandidates
       });
       require6(current.plan.status === "planned" && current.plan.complete && current.toUpload.length === 0);
-      const outcomeByPath = new Map(current.plan.outcomes.map((o3) => [o3.sourcePath, o3]));
       const verified = /* @__PURE__ */ new Map();
       for (const o3 of current.plan.outcomes) {
         if (!o3.evidence || !["eligible", "already-registered"].includes(o3.status)) continue;
@@ -40165,14 +40164,15 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
         materializedPaths: paths,
         verifiedBucketedCount: paths.length,
         localOnlyPaths: manifest.value.assets.filter((a5) => a5.bucketed === false).map((a5) => a5.sourcePath),
+        recoveredFromStrandedIndex: result.recoveredFromStrandedIndex === true,
         outcomes: current.plan.outcomes.map((o3) => {
           const entry = manifest.value.assets.find((a5) => a5.sourcePath === o3.sourcePath);
+          const localOnly = entry && entry.bucketed === false && o3.status === "eligible";
           return {
             sourcePath: o3.sourcePath,
             status: o3.status,
             bucketed: entry?.bucketed === true,
-            ...o3.reason ? { reason: o3.reason } : {},
-            ...!entry || entry.bucketed !== true ? { reason: "local-only" } : {}
+            reason: localOnly ? "local-only" : o3.reason
           };
         }),
         generatedInternalPaths: [`${MANIFEST}.lock`, ".bucket-cache"]

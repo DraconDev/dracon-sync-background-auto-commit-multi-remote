@@ -32,12 +32,12 @@ timeout --signal=TERM --kill-after=10s 120s node --test \
   scripts/bucket-runner/e2e.test.mjs 2>&1 | tee "$log"
 # The runner must execute every named suite. A misspelled filter or missing
 # script would silently pass. Fail closed.
-grep -Eq '^.*tests 153$' "$log" || {
-  echo 'Bucket-runner suite did not execute 153 tests; refusing a zero-test pass.' >&2
+grep -Eq '^.*tests 154$' "$log" || {
+  echo 'Bucket-runner suite did not execute 154 tests; refusing a zero-test pass.' >&2
   exit 1
 }
-grep -Eq '^.*pass 153$' "$log" || {
-  echo 'Bucket-runner suite did not pass 153 tests; refusing a partial pass.' >&2
+grep -Eq '^.*pass 154$' "$log" || {
+  echo 'Bucket-runner suite did not pass 154 tests; refusing a partial pass.' >&2
   exit 1
 }
 # Required e2e scenarios must have run (every goal verification contract bullet).
@@ -72,6 +72,7 @@ required=(
   'runner recovers from a stranded index-ahead transaction and never imports a mismatched index'
   'runner suppresses only positively re-verified bucketed entries and does not stage deleted ones'
   'runner local-only entries stay unenrolled and are reported bucketed:false with local-only reason'
+  'runner excluded entries retain their original reason and are never relabeled local-only'
 )
 for scenario in "${required[@]}"; do
   grep -Fq "$scenario" "$log" || {
@@ -79,4 +80,4 @@ for scenario in "${required[@]}"; do
     exit 1
   }
 done
-echo 'bucket-runner qualification passed: 153/153 tests, all required e2e scenarios executed.'
+echo 'bucket-runner qualification passed: 154/154 tests, all required e2e scenarios executed.'
