@@ -7,6 +7,10 @@ use std::time::Duration;
 #[path = "sync/push_isolation_tests.rs"]
 mod push_isolation_tests;
 
+#[cfg(all(test, target_os = "linux"))]
+#[path = "sync/bucket_qualification_tests.rs"]
+mod bucket_qualification_tests;
+
 use crate::log_warn;
 #[cfg(test)]
 use crate::test_helpers::{test_commit_cmd, test_git_cmd};
