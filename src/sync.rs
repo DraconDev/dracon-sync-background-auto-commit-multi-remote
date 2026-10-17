@@ -1169,6 +1169,19 @@ async fn stage_existing_files_filtered(
     excluded_dir_names: &std::collections::BTreeSet<String>,
     filter: Option<(&SyncPolicy, &[String])>,
 ) -> Result<()> {
+    stage_existing_files_suppressing(repo, existing, dry_run, stage_timeout_secs,
+        excluded_dir_names, filter, None).await
+}
+
+async fn stage_existing_files_suppressing(
+    repo: &Path,
+    existing: &[String],
+    dry_run: bool,
+    stage_timeout_secs: u64,
+    excluded_dir_names: &BTreeSet<String>,
+    filter: Option<(&SyncPolicy, &[String])>,
+    suppressed: Option<&HashSet<PathBuf>>,
+) -> Result<()> {
     if existing.is_empty() {
         return Ok(());
     }
@@ -1435,6 +1448,12 @@ async fn stage_existing_files_filtered(
                 }
             }
         }
+    }
+    // Reapply exact path suppression AFTER directory expansion. A libgit2
+    // untracked `public/` entry must not sweep verified bucket materializations
+    // into Git while unrelated local files in that directory remain stageable.
+    if let Some(paths) = suppressed {
+        expanded.retain(|p| !paths.iter().any(|root| Path::new(p).starts_with(root)));
     }
     let existing = expanded;
     if existing.is_empty() {
@@ -4413,13 +4432,14 @@ async fn stage_commit_and_push(
     // after the add-site retries maps to Blocked (non-failure, work
     // retained for next cycle) instead of Err (failure budget burn +
     // MAX_FAILURES backoff for a healthy repo).
-    match stage_existing_files_filtered(
+    match stage_existing_files_suppressing(
         repo,
         &existing,
         dry_run,
         ctx.policy.stage_op_timeout_secs,
         ctx.excluded_dir_names,
         Some((ctx.policy, &auto_commit_exclude_for_staging)),
+        private_assets.map(|prepared| &prepared.materialized_paths),
     )
     .await
     {

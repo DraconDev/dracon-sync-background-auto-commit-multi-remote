@@ -578,7 +578,8 @@ pub(crate) async fn prepare(
         bail!("manifest sha256 mismatch; no commit permitted");
     }
 
-    let materialized_paths = parse_materialized(&manifest_bytes, &config.asset_root)?;
+    let mut materialized_paths = parse_materialized(&manifest_bytes, &config.asset_root)?;
+    materialized_paths.insert(PathBuf::from(format!("{}.lock", config.manifest_path)));
     Ok(Some(Prepared::from_parts(
         PathBuf::from(&config.manifest_path),
         manifest_bytes,

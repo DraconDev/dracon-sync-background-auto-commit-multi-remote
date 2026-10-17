@@ -89,6 +89,7 @@ auto_push = false
 auto_pull = false
 auto_stage_untracked = true
 auto_bump_versions = false
+auto_harden_with_warden = false
 standard_files_auto = false
 build_artifact_cleanup = false
 stage_op_timeout_secs = 30
