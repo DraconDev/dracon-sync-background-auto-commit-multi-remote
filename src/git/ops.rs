@@ -349,11 +349,30 @@ pub(crate) fn spawn_git_command_cancellable(
     args: &[&str],
     op_label: &str,
 ) -> Result<tokio::process::Child> {
+    spawn_git_command_cancellable_io(repo, args, op_label, false)
+}
+
+/// Captured Git with caller-owned stdin; drain output concurrently with input.
+pub(crate) fn spawn_git_command_cancellable_stdin(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+) -> Result<tokio::process::Child> {
+    spawn_git_command_cancellable_io(repo, args, op_label, true)
+}
+
+fn spawn_git_command_cancellable_io(
+    repo: &Path,
+    args: &[&str],
+    op_label: &str,
+    stdin: bool,
+) -> Result<tokio::process::Child> {
     let label = format!("git {}", op_label);
     let mut cmd = crate::policy::tokio_git_command();
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
+        .stdin(if stdin { Stdio::piped() } else { Stdio::null() })
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     configure_git_process_group(&mut cmd);
