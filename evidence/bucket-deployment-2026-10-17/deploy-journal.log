@@ -1,0 +1,678 @@
+Oct 17 23:32:00 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:00 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:32:03 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 17 23:32:04 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:32:08 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:32:10 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:10 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:32:16 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:32:20 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:26 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:32:31 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:32:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:39 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:32:39 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:41 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:32:43 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:44 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:32:45 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:32:45 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:45 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/db-gateway
+Oct 17 23:32:45 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 17 23:32:46 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 17 23:32:52 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 17 23:32:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:32:52 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:33:00 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:33:01 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:33:08 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:33:12 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:33:42 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:33:50 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:33:55 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:33:59 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/db-gateway
+Oct 17 23:34:04 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:34:04 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:34:10 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:34:15 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 17 23:34:19 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:34:21 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:34:28 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:34:31 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:34:31 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:34:36 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:34:36 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:34:38 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 17 23:34:39 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 17 23:34:47 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:34:47 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 17 23:34:51 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:34:51 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:35:01 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:35:09 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:35:09 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:35:24 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:35:25 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:35:27 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:35:30 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:35:34 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:35:34 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:35:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:35:37 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:35:45 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 17 23:35:48 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 17 23:35:49 nixos dracon-sync[2936146]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:35:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:35:58 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:35:58 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:35:58 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:36:05 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:06 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:36:12 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:36:15 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:36:19 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:19 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:36:22 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:22 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:36:29 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:36:33 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:36:36 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:36:36 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:41 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:36:44 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:36:44 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:45 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:36:48 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:36:48 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:36:49 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:36:50 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:50 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:36:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:52 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:36:56 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:36:56 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:37:09 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:37:17 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:37:18 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:37:20 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:37:20 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:37:23 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:37:23 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:37:27 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:37:27 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:37:30 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:37:38 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:37:39 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:37:39 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:37:43 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:37:53 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:37:57 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:38:01 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:38:02 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:38:09 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:38:09 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:38:12 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:38:19 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:38:23 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:38:24 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:38:28 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:38:48 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:38:49 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:38:51 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:38:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:38:56 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:38:57 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:39:01 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:39:04 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:39:06 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:39:12 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:39:12 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:39:27 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:39:31 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:39:39 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:39:39 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:40:31 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:40:31 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:40:39 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:40:45 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:41:23 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:41:24 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:41:35 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/pi-plugins classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 17 23:41:35 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:41:35 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:41:43 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:41:43 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:42:02 nixos dracon-sync[2936146]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-platform/web/games/wip/endless-td: git push-to-gitlab failed in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td with status exit status: 1: remote: calling pre_receive endpoint: http post to gitlab api /pre_receive endpoint:
+Oct 17 23:42:02 nixos dracon-sync[2936146]: To gitlab.com:DraconDev/web-games-endless-td.git
+Oct 17 23:42:02 nixos dracon-sync[2936146]:  ! [remote rejected]     HEAD -> main (pre-receive hook declined)
+Oct 17 23:42:02 nixos dracon-sync[2936146]: error: failed to push some refs to 'gitlab.com:DraconDev/web-games-endless-td.git'
+Oct 17 23:42:02 nixos dracon-sync[2936146]: ⚠️ push failed for /home/dracon/Dev/dracon-platform/web/games/wip/endless-td (remotes: gitlab)
+Oct 17 23:42:06 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push failed (late) (will retry)
+Oct 17 23:42:36 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:42:40 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:42:46 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:42:46 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:42:49 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:42:49 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:42:49 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:42:50 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 17 23:42:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:42:59 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:42:59 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:00 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:43:01 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 17 23:43:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:01 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:43:05 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:06 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:43:06 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:43:08 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:43:08 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:09 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:43:09 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:43:10 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:11 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:43:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:43:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:43:22 nixos dracon-sync[2936146]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=70012 outcome=success
+Oct 17 23:43:24 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:27 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:27 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:43:28 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:43:35 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:36 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:43:36 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:43:36 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:43:36 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:43:36 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:43:37 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:43:43 nixos dracon-sync[2936146]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:43:43 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:43:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:44:02 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:44:02 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:44:02 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:44:02 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:44:05 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:44:22 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:44:22 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:44:22 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:44:22 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:44:23 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:44:27 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:44:29 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:44:34 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:44:35 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:44:35 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:44:35 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:44:37 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:44:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:44:38 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:44:47 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:44:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:45:03 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:45:03 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:45:03 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:45:05 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:45:08 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:45:08 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:45:10 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:45:13 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:45:17 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:45:19 nixos dracon-sync[2936146]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:45:24 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:45:33 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:45:40 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:45:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:46:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:46:04 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:46:04 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:46:04 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:46:04 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:46:10 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:46:16 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:46:36 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:46:48 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:46:48 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:46:48 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:46:51 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:46:58 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:46:59 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:46:59 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed; push paused (commit-only mode)
+Oct 17 23:46:59 nixos dracon-sync[2936146]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 17 23:47:03 nixos dracon-sync[2936146]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 301s
+Oct 17 23:47:03 nixos dracon-sync[2936146]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/endless-td — Stuck Push Retry: retrying after 301s; stuck since unix 1792276922; 1 consecutive failures; server-side policy rejection (protected branch / hook declined / missing repo / lost key)
+Oct 17 23:47:06 nixos dracon-sync[2936146]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 304s
+Oct 17 23:47:07 nixos dracon-sync[2936146]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/endless-td was stuck (1 consecutive failures), retrying push after 305s
+Oct 17 23:47:07 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:47:10 nixos dracon-sync[2936146]: ⏫ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td scaling push timeout 900s → 1800s (9 commits ahead)
+Oct 17 23:47:19 nixos dracon-sync[2936146]: ✅ push recovered for /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:48:04 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:48:04 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:48:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:48:12 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:48:14 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:48:18 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:48:26 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:48:26 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:48:35 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:48:48 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:48:48 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:48:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:48:58 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:49:05 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:49:12 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:12 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:49:14 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:14 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:49:28 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:35 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:35 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:49:36 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:49:41 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:49:45 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:49:46 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:47 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 17 23:49:48 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:49:52 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:50:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:03 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls git add -f failed for 1 tracked gitignored paths: [".pi-glla/audit-loop/findings.md"]
+Oct 17 23:50:05 nixos dracon-sync[2936146]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:50:09 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:50:12 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:50:13 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:14 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:50:16 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:50:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 17 23:50:17 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:17 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:50:17 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:50:20 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:21 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:50:49 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:50:53 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:50:56 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:57 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:50:59 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:50:59 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:51:01 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:51:03 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:06 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:51:06 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:06 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 17 23:51:11 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:51:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:12 nixos dracon-sync[2936146]: 📝 committed 9 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:51:12 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:51:12 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:51:15 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:15 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:51:21 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 17 23:51:21 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:24 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:51:42 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 17 23:51:43 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:43 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:51:45 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:51:46 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:51 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:51 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:51:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:51:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:51:56 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 17 23:52:05 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:52:07 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:52:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:52:14 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:52:14 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 17 23:52:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:52:26 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:52:26 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:52:28 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:52:41 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:52:41 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 17 23:52:44 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:53:38 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:53:44 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 17 23:53:44 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:53:45 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:53:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:53:56 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 17 23:55:06 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:55:07 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 17 23:55:28 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 17 23:55:31 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 17 23:55:34 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:55:35 nixos dracon-sync[2936146]: 📝 committed 12 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 17 23:55:40 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:55:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:55:56 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 17 23:56:00 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:56:03 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:56:10 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:56:15 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:56:16 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:56:19 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform
+Oct 17 23:56:23 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:56:23 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:56:30 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:56:31 nixos dracon-sync[2936146]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 17 23:57:39 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 17 23:57:43 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 17 23:57:50 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:57:52 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 17 23:58:31 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:58:32 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 17 23:59:05 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:59:05 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 17 23:59:21 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 17 23:59:27 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 17 23:59:27 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 17 23:59:28 nixos dracon-sync[2936146]: 📝 committed 8 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 17 23:59:47 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 17 23:59:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 17 23:59:58 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:00:03 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:00:10 nixos dracon-sync[2936146]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner elapsed_ms=6859 outcome=success
+Oct 18 00:00:12 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:00:15 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:00:29 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:01:36 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:01:38 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:01:38 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:01:45 nixos dracon-sync[2936146]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=74946 outcome=success
+Oct 18 00:01:46 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:01:49 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:02:19 nixos dracon-sync[2936146]: 📝 committed 10 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:02:29 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:02:32 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:02:34 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:02:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:02:37 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:02:41 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:02:42 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/.dracon
+Oct 18 00:04:47 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:04:48 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:04:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:04:56 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:05:07 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:05:14 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:05:14 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:05:15 nixos dracon-sync[2936146]: 📝 committed 11 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:05:20 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:05:28 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:05:31 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:05:32 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:05:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:05:37 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:05:38 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:05:44 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:05:45 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:05:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:05:59 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:05:59 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:06:19 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:06:27 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:06:34 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:06:38 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:06:46 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:06:47 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:06:48 nixos dracon-sync[2936146]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:08:11 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/pi-plugins classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 18 00:08:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:08:11 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:08:18 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:08:19 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 18 00:08:34 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:08:35 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:09:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:09:16 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:09:19 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:09:22 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:09:23 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:09:25 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:09:26 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:11:46 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:11:52 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:11:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:11:57 nixos dracon-sync[2936146]: 📝 committed 10 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:11:59 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:11:59 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:05 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:12:09 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:12:09 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:09 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:12:15 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:12:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:12:21 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:22 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:12:23 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:23 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:12:36 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:12:39 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:12:42 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 18 00:12:42 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:46 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:12:46 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:12:48 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:12:59 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:13:00 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:13:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:13:02 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/capture-anime-girls": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/deathrun": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/doomtap": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/endless-td": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/football-forever": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform git update-index (gitlink) failed for path "web/games/wip/junk-runner": git update-index (gitlink -> shared canonical head) failed in /home/dracon/Dev/dracon-platform with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/dracon-platform/.git/index.lock': File exists.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: Another git process seems to be running in this repository, e.g.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: an editor opened by 'git commit'. Please make sure all processes
+Oct 18 00:13:07 nixos dracon-sync[2936146]: are terminated then try again. If it still fails, a git process
+Oct 18 00:13:07 nixos dracon-sync[2936146]: may have crashed in this repository earlier:
+Oct 18 00:13:07 nixos dracon-sync[2936146]: remove the file manually to continue.
+Oct 18 00:13:07 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:15:09 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:15:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:15:15 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:15:19 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:15:20 nixos dracon-sync[2936146]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:15:21 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:17:33 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:17:39 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:17:39 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:17:39 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:17:39 nixos dracon-sync[2936146]: 📝 committed 12 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:17:45 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:17:46 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:17:48 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:17:49 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:17:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:17:57 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:17:57 nixos dracon-sync[2936146]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner elapsed_ms=5306 outcome=success
+Oct 18 00:17:57 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:17:58 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:17:59 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:18:00 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:18:02 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:18:05 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:18:05 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:18:05 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 18 00:18:12 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:18:12 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 18 00:18:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:18:23 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:18:26 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:18:28 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:18:45 nixos dracon-sync[2936146]: 📝 committed 12 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:20:21 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:20:24 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:20:27 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:20:28 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:20:36 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:31 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:22:32 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:34 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:22:37 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:22:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:38 nixos dracon-sync[2936146]: 📝 committed 5 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:22:38 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:22:44 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:44 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:22:46 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:22:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:22:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 18 00:22:54 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:55 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:22:57 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:22:58 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:22:58 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:22:59 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:23:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:23:01 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 18 00:23:04 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:23:05 nixos dracon-sync[2936146]: 📝 committed 5 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:23:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:23:15 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:23:16 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:23:20 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:23:39 nixos dracon-sync[2936146]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:23:40 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:23:41 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:24:32 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:24:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:24:37 nixos dracon-sync[2936146]: 📝 committed 11 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:24:51 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:24:57 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:24:57 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:26:05 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/polis classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 18 00:26:10 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:26:11 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:26:21 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:26:24 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:26:29 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:26:35 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 18 00:26:37 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:26:38 nixos dracon-sync[2936146]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:26:43 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:26:46 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 18 00:26:47 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:26:49 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:26:49 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:26:52 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:26:52 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:26:52 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/pi-plugins
+Oct 18 00:26:58 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:27:01 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:27:05 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:27:07 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:27:08 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:27:08 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:27:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:27:15 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:27:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:27:23 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:27:26 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:27:26 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:27:28 nixos dracon-sync[2936146]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:27:29 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:28:13 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/polis
+Oct 18 00:28:17 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:28:24 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit
+Oct 18 00:28:26 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/pi-plugins
+Oct 18 00:28:26 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:28:37 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:28:44 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:28:50 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:28:54 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:29:11 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:29:11 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:29:20 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:29:21 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/deathrun classification returned empty on status-dirty worktree (modified=1 staged=0 untracked=0) — dropped, re-probing
+Oct 18 00:29:24 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 18 00:29:28 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:29:28 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:29:28 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:29:29 nixos dracon-sync[2936146]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:29:29 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:29:29 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:29:45 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:29:53 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:30:11 nixos dracon-sync[2936146]: 📝 committed 4 file(s) in /home/dracon/Dev/dracon-platform
+Oct 18 00:30:40 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:30:44 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:30:47 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:30:47 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:30:55 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:30:55 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:30:56 nixos dracon-sync[2936146]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:31:30 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:31:33 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:31:34 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+Oct 18 00:31:40 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:31:40 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 18 00:31:41 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:31:41 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:31:50 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 18 00:31:54 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:31:57 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 18 00:32:01 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:32:02 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:32:08 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/.dracon
+Oct 18 00:32:16 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:32:20 nixos dracon-sync[2936146]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 18 00:32:31 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:32:33 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:32:34 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:32:39 nixos dracon-sync[2936146]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 18 00:32:40 nixos dracon-sync[2936146]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:32:40 nixos dracon-sync[2936146]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:32:45 nixos systemd[1224]: Stopping Dracon Sync (deterministic sync runtime)...
+Oct 18 00:32:45 nixos dracon-sync[2936146]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=29332 outcome=nonzero-exit
+Oct 18 00:32:48 nixos dracon-sync[2936146]: ⚠️ /home/dracon/Dev/dracon-platform status task failed: status inspection failed in /home/dracon/Dev/dracon-platform:
+Oct 18 00:32:48 nixos systemd[1224]: Stopped Dracon Sync (deterministic sync runtime).
+Oct 18 00:32:48 nixos systemd[1224]: dracon-sync.service: Consumed 1d 6h 11min 28.039s CPU time, 1.5G memory peak, 374M memory swap peak.
+Oct 18 00:32:48 nixos systemd[1224]: Starting Dracon Sync (deterministic sync runtime)...
+Oct 18 00:32:48 nixos systemd[1224]: Started Dracon Sync (deterministic sync runtime).
+Oct 18 00:32:48 nixos dracon-sync[2833179]: 🔄 dracon-sync daemon started
+Oct 18 00:32:48 nixos dracon-sync[2833179]: 🧹 startup: running cleanup...
+Oct 18 00:32:48 nixos dracon-sync[2833179]: 🧹 startup: pruned 145 stale visibility cache entries
+Oct 18 00:32:49 nixos dracon-sync[2833179]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 18 00:33:00 nixos dracon-sync[2833179]: 🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:33:01 nixos dracon-sync[2833179]: 🛡️ /home/dracon/.dracon auto-hardened with warden before staging
+Oct 18 00:33:01 nixos dracon-sync[2833179]: 📝 committed 2 file(s) in /home/dracon/.dracon
+Oct 18 00:33:01 nixos dracon-sync[2833179]: 🛡️ /home/dracon/Dev/browser-extensions-shared auto-hardened with warden before staging
+Oct 18 00:33:02 nixos dracon-sync[2833179]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 18 00:33:04 nixos dracon-sync[2833179]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:33:04 nixos dracon-sync[2833179]: 🛡️ /home/dracon/Dev/dracon-utilities/dracon-sync auto-hardened with warden before staging
+Oct 18 00:33:04 nixos dracon-sync[2833179]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 18 00:33:08 nixos dracon-sync[2833179]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:33:22 nixos dracon-sync[2833179]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 18 00:33:22 nixos dracon-sync[2833179]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/deathrun auto-hardened with warden before staging
+Oct 18 00:33:22 nixos dracon-sync[2833179]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun

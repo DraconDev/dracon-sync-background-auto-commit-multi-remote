@@ -1,0 +1,14 @@
+verifiedAt=2026-10-17T23:33:25Z
+MainPID=2833179
+installed daemon:
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /home/dracon/.local/bin/dracon-sync
+installed runner:
+352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020  /home/dracon/.dracon/bin/runner.bundle.mjs
+loaded exe:
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /proc/2833179/exe
+profile:
+21e4b3476561e0b3270142d6211fb65dbb628a53cb774d6a2f49e9cd342a4f7d  /home/dracon/.dracon/state/bucket-runner/profile.json
+frozen daemon:
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /home/dracon/.local/state/dracon-sync/qualified-bucket/20261017-2b74bb7c84cb/dracon-sync
+frozen runner:
+352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020  /home/dracon/.local/state/dracon-sync/qualified-bucket/20261017-2b74bb7c84cb/runner.bundle.mjs
