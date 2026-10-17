@@ -436,7 +436,7 @@ async fn unsafe_config_paths_are_refused() {
         write_bucket_runner_config(&repo, &fake_dir, &state_dir, overrides.clone());
         let result = prepare(&repo, false, &policy).await;
         match result {
-            Ok(value) => panic!("case {label} should have erred, got ok"),
+            Ok(_) => panic!("case {label} should have erred, got ok"),
             Err(_) => {}
         }
         let _ = profile_path; // keep variable alive
@@ -469,7 +469,7 @@ async fn refused_spawn_is_indexed_and_refused() {
     std::env::remove_var("FAKE_VERDICT_REASON");
 
     let error = match result {
-        Ok(value) => panic!("refused verdict must error, got ok"),
+        Ok(_) => panic!("refused verdict must error, got ok"),
         Err(e) => e,
     };
     let msg = format!("{error:#}");
@@ -512,7 +512,7 @@ async fn non_refused_status_without_commit_eligible_is_refused() {
     std::env::remove_var("FAKE_REMOTE_NAME");
     std::env::remove_var("FAKE_TRUSTED_REMOTE_URL");
     let error = match result {
-        Ok(value) => panic!("plannable without commitEligible must error, got ok"),
+        Ok(_) => panic!("plannable without commitEligible must error, got ok"),
         Err(e) => e,
     };
     let msg = format!("{error:#}");
@@ -640,7 +640,7 @@ async fn timeout_is_refused() {
     let result = prepare(&repo, false, &policy).await;
     std::env::remove_var("FAKE_SLEEP_SECS");
     let error = match result {
-        Ok(value) => panic!("slow runner must time out, got ok"),
+        Ok(_) => panic!("slow runner must time out, got ok"),
         Err(e) => e,
     };
     let msg = format!("{error:#}");
@@ -681,7 +681,7 @@ async fn oversized_stdin_is_refused() {
     let policy = fast_policy();
     let result = prepare(&repo, false, &policy).await;
     let error = match result {
-        Ok(value) => panic!("oversized stdin must error, got ok"),
+        Ok(_) => panic!("oversized stdin must error, got ok"),
         Err(e) => e,
     };
     let msg = format!("{error:#}");
@@ -708,7 +708,7 @@ async fn oversized_stdout_is_refused() {
     let policy = fast_policy();
     let result = prepare(&repo, false, &policy).await;
     let error = match result {
-        Ok(value) => panic!("oversized stdout must error, got ok"),
+        Ok(_) => panic!("oversized stdout must error, got ok"),
         Err(e) => e,
     };
     let msg = format!("{error:#}");
