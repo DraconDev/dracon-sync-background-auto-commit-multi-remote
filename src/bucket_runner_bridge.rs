@@ -50,6 +50,43 @@ const MAX_CANDIDATES: usize = 20000;
 /// mid-upload commit.
 const MIN_BUNDLE_TIMEOUT_SECS: u64 = 60;
 
+/// Default policy is shared with the JS runner, never supplied by repo config.
+const ROUTING_DEFAULTS_JSON: &str =
+    include_str!("../scripts/bucket-runner/routing-defaults.json");
+const MAX_JS_INTEGER: u64 = 9_007_199_254_740_991;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RoutingDefaults {
+    schema_version: u32,
+    large_bytes: u64,
+    pressure_ratio: f64,
+    pressure_limit_bytes: u64,
+}
+
+fn routing_budget_from_json(defaults: &str, projected_bytes: u64) -> Result<serde_json::Value> {
+    let policy: RoutingDefaults =
+        serde_json::from_str(defaults).context("invalid shared routing policy")?;
+    if policy.schema_version != 1
+        || policy.large_bytes == 0
+        || policy.large_bytes > MAX_JS_INTEGER
+        || policy.pressure_limit_bytes == 0
+        || policy.pressure_limit_bytes > MAX_JS_INTEGER
+        || projected_bytes > MAX_JS_INTEGER
+        || !policy.pressure_ratio.is_finite()
+        || policy.pressure_ratio <= 0.0
+        || policy.pressure_ratio >= 1.0
+    {
+        bail!("invalid shared routing policy or projected bytes");
+    }
+    Ok(serde_json::json!({
+        "projectedBytes": projected_bytes,
+        "limitBytes": policy.pressure_limit_bytes,
+        "largeBytes": policy.large_bytes,
+        "pressureRatio": policy.pressure_ratio,
+    }))
+}
+
 /// Default manifest path inside the repo when the config omits one.
 fn default_manifest_path() -> String {
     "bucket-assets.manifest.json".to_owned()
@@ -485,12 +522,9 @@ pub(crate) async fn prepare(
         "stateDirectory": state_directory.to_string_lossy(),
         "remoteName": config.remote_name,
         "trustedRemoteUrl": config.trusted_remote_url,
-        "budget": {
-            "projectedBytes": 0u64,
-            "limitBytes": policy.max_push_blob_bytes,
-            "largeBytes": 10u64 * 1024 * 1024,
-            "pressureRatio": 0.8_f64,
-        },
+        // Outgoing-byte measurement is the next item; do not conflate the
+        // aggregate pressure budget with the separate per-blob safety limit.
+        "budget": routing_budget_from_json(ROUTING_DEFAULTS_JSON, 0)?,
         "allowedCandidates": allowed_candidates,
     });
     let request_bytes = serde_json::to_vec(&request).context("request serialization")?;

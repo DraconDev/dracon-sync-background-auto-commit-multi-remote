@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "largeBytes": 1024,
+  "pressureRatio": 0.8,
+  "pressureLimitBytes": 2147483648
+}

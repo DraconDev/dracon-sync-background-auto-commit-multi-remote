@@ -20,6 +20,41 @@ use super::*;
 use crate::policy::SyncPolicy;
 use std::os::unix::fs::PermissionsExt;
 
+#[test]
+fn shared_routing_defaults_validate_and_preserve_measured_bytes() {
+    for projected in [1023, 1024, 1025] {
+        let budget = routing_budget_from_json(ROUTING_DEFAULTS_JSON, projected).unwrap();
+        assert_eq!(budget["largeBytes"], 1024);
+        assert_eq!(budget["limitBytes"], 2u64 * 1024 * 1024 * 1024);
+        assert_eq!(budget["pressureRatio"], 0.8);
+        assert_eq!(budget["projectedBytes"], projected);
+        assert_eq!(budget.as_object().unwrap().len(), 4);
+    }
+}
+
+#[test]
+fn shared_routing_defaults_fail_closed_on_invalid_data() {
+    let base: serde_json::Value = serde_json::from_str(ROUTING_DEFAULTS_JSON).unwrap();
+    for (key, value) in [
+        ("schemaVersion", serde_json::json!(2)),
+        ("largeBytes", serde_json::json!(0)),
+        ("largeBytes", serde_json::json!(-1)),
+        ("largeBytes", serde_json::json!(MAX_JS_INTEGER + 1)),
+        ("pressureLimitBytes", serde_json::json!(0)),
+        ("pressureLimitBytes", serde_json::json!(MAX_JS_INTEGER + 1)),
+        ("pressureRatio", serde_json::json!(0)),
+        ("pressureRatio", serde_json::json!(1)),
+        ("extra", serde_json::json!(true)),
+    ] {
+        let mut invalid = base.clone();
+        invalid[key] = value;
+        assert!(routing_budget_from_json(&invalid.to_string(), 0).is_err());
+    }
+    assert!(routing_budget_from_json("{}", 0).is_err());
+    assert!(routing_budget_from_json("not json", 0).is_err());
+    assert!(routing_budget_from_json(ROUTING_DEFAULTS_JSON, MAX_JS_INTEGER + 1).is_err());
+}
+
 const FAKE_BODY: &str = r#"const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -506,8 +541,8 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     let candidates: Vec<String> = vec!["bucket-assets.manifest.json".into()];
     let expected_budget = serde_json::json!({
         "projectedBytes": 0u64,
-        "limitBytes": policy.max_push_blob_bytes,
-        "largeBytes": 10u64 * 1024 * 1024,
+        "limitBytes": 2u64 * 1024 * 1024 * 1024,
+        "largeBytes": 1024u64,
         "pressureRatio": 0.8_f64,
     });
     let repo_str = repo.to_string_lossy().into_owned();

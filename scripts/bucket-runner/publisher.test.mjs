@@ -53,6 +53,25 @@ function transport(remoteBytes) {
   };
 }
 
+test('planRepository: shared size policy routes real eligible PNGs without granting eligibility', async t => {
+  const { root } = await repo(t);
+  const small = renderSolidPng(brand);
+  const large = renderSolidPng({ width: 512, height: 512, rgba: [32, 64, 96, 255] });
+  await writeFile(join(root, 'authorized/small.png'), small);
+  await writeFile(join(root, 'authorized/large.png'), large);
+  const budget = { projectedBytes: 0, limitBytes: 2147483648 };
+  const args = { root, profile: profile(), binding: binding(), consumer, assetRoot: '.', budget };
+  const planned = await planWithBudget(args);
+  assert.equal(planned.toUpload.length, 1);
+  assert.equal(planned.toUpload[0].sha256, sha(large));
+  assert.ok(small.length < 1024 && large.length >= 1024);
+  // A much larger noncanonical PNG is still unsupported, even under pressure.
+  await writeFile(join(root, 'authorized/invalid.png'), Buffer.alloc(4096, 65));
+  const withInvalid = await planWithBudget({ ...args, budget: { ...budget, projectedBytes: 2147483648 } });
+  assert.ok(withInvalid.plan.outcomes.some(o => o.status === 'unsupported'));
+  assert.ok(!withInvalid.toUpload.some(a => a.sha256 === sha(Buffer.alloc(4096, 65))));
+});
+
 test('planRepository: returns concrete eligible candidates needing upload', async t => {
   const { root } = await repo(t);
   const bytes = renderSolidPng(brand);

@@ -1,7 +1,15 @@
 /** Routing never grants eligibility. Call only after trusted provenance and
  * consumer qualification. Budgets are measured operator policy, not repo data.
  */
-export const DEFAULT_ROUTING = Object.freeze({ largeBytes: 10 * 1024 * 1024, pressureRatio: 0.8 });
+import defaults from './routing-defaults.json' with { type: 'json' };
+
+// Shared with Rust via include_str!; bundled into the dependency-closed runner.
+// Fail closed on schema drift rather than silently restoring unreachable values.
+if (Object.keys(defaults).sort().join(',') !== 'largeBytes,pressureLimitBytes,pressureRatio,schemaVersion'
+  || defaults.schemaVersion !== 1) throw new Error('invalid-shared-routing-policy');
+export const DEFAULT_ROUTING = Object.freeze({ largeBytes: defaults.largeBytes, pressureRatio: defaults.pressureRatio });
+export const DEFAULT_PRESSURE_LIMIT_BYTES = defaults.pressureLimitBytes;
+validateBudget({ projectedBytes: 0, limitBytes: DEFAULT_PRESSURE_LIMIT_BYTES });
 
 /** @typedef {{projectedBytes:number,limitBytes:number,largeBytes?:number,pressureRatio?:number}} RoutingBudget */
 /** @param {RoutingBudget} budget */
