@@ -100,6 +100,24 @@ async fn accounting_keeps_lagging_mirror_objects_and_respects_exclusions() {
     run(repo, &["update-ref", "refs/remotes/gitlab/main", "HEAD"]);
     put(repo, "ignored-by-git.txt", 999);
     assert_eq!(measure(repo, &p).await.unwrap(), 0);
+    // A policy mirror not yet configured locally is still a possible push
+    // destination; unknown availability must refuse, not omit its history.
+    run(repo, &["remote", "remove", "gitlab"]);
+    assert!(measure(repo, &p)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("missing-publish-tip"));
+    std::fs::create_dir(repo.join(".dracon")).unwrap();
+    std::fs::write(
+        repo.join(".dracon/dracon-sync.toml"),
+        "exclude_remotes = [\"gitlab\"]\n",
+    )
+    .unwrap();
+    run(repo, &["add", "--", ".dracon/dracon-sync.toml"]);
+    run(repo, &["commit", "-qm", "explicit mirror exclusion"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    assert_eq!(measure(repo, &p).await.unwrap(), 0);
 }
 
 #[tokio::test]

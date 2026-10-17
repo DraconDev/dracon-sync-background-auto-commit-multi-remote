@@ -10,6 +10,18 @@ mod tests;
 
 const MAX_ITEMS: usize = 20_000;
 const MAX_FILE: u64 = 16 * 1024 * 1024;
+type FileIdentity = (u64, u64, u64, i64, i64, i64, i64);
+fn identity(m: &std::fs::Metadata) -> FileIdentity {
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
 
 async fn git(repo: &Path, args: &[String], input: Option<Vec<u8>>) -> Result<Vec<u8>> {
     let mut command = vec![
@@ -147,17 +159,24 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
     // Its absence from local `git remote` cannot justify omitting its bytes.
     // Respect the pure Codeberg no-create/quota posture without probing the
     // network or invoking mutating mirror configuration helpers.
-    let has_codeberg_tip = text(&before.tips)?.lines()
+    let has_codeberg_tip = text(&before.tips)?
+        .lines()
         .any(|line| line.starts_with("refs/remotes/codeberg/"));
     let skip_codeberg = crate::git::multi_remote::codeberg_push_excluded(
-        &policy.remotes, override_.auto_create_on_codeberg, has_codeberg_tip,
+        &policy.remotes,
+        override_.auto_create_on_codeberg,
+        has_codeberg_tip,
     );
     for remote in &policy.remotes {
         if !override_.exclude_remotes.contains(&remote.name)
             && !(remote.name == "codeberg" && skip_codeberg)
-        { destinations.insert(&remote.name); }
+        {
+            destinations.insert(&remote.name);
+        }
     }
-    if skip_codeberg { destinations.remove("codeberg"); }
+    if skip_codeberg {
+        destinations.remove("codeberg");
+    }
     if destinations.is_empty() {
         bail!("accounting-no-publish-destination");
     }
@@ -364,27 +383,27 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             if !meta.is_file() || meta.len() > MAX_FILE {
                 bail!("accounting-file-read-limit");
             }
-            let file = tokio::fs::OpenOptions::new()
+            let mut file = tokio::fs::OpenOptions::new()
                 .read(true)
                 .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
                 .open(&full)
                 .await?;
+            if identity(&file.metadata().await?) != identity(&meta) {
+                bail!("accounting-candidate-changed");
+            }
             let mut bytes = Vec::new();
-            file.take(MAX_FILE + 1).read_to_end(&mut bytes).await?;
-            if bytes.len() as u64 != meta.len() {
+            (&mut file)
+                .take(MAX_FILE + 1)
+                .read_to_end(&mut bytes)
+                .await?;
+            if identity(&file.metadata().await?) != identity(&meta)
+                || bytes.len() as u64 != meta.len()
+            {
                 bail!("accounting-candidate-changed");
             }
             bytes
         };
-        let identity = (
-            meta.dev(),
-            meta.ino(),
-            meta.len(),
-            meta.mtime(),
-            meta.mtime_nsec(),
-            meta.ctime(),
-            meta.ctime_nsec(),
-        );
+        let observed_identity = identity(&meta);
         let object = git(
             repo,
             &args(&["hash-object", "--no-filters", "--stdin"]),
@@ -413,26 +432,16 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             add(&mut total, bytes.len() as u64)?;
             entry.insert(bytes.len() as u64);
         }
-        files.push((full, identity));
+        files.push((full, observed_identity));
         if files.len() > MAX_ITEMS {
             bail!("accounting-candidate-limit");
         }
     }
     let after = snapshot(repo, &status_cmd).await?;
     before.ensure_unchanged(&after)?;
-    for (path, identity) in files {
+    for (path, observed_identity) in files {
         let m = std::fs::symlink_metadata(path)?;
-        if identity
-            != (
-                m.dev(),
-                m.ino(),
-                m.len(),
-                m.mtime(),
-                m.mtime_nsec(),
-                m.ctime(),
-                m.ctime_nsec(),
-            )
-        {
+        if observed_identity != identity(&m) {
             bail!("accounting-candidate-changed");
         }
     }
