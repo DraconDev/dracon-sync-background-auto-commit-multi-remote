@@ -148,7 +148,7 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         if untracked && (!policy.auto_stage_untracked || crate::exclude::matches_untracked_exclude(repo, &relative, &policy.untracked_exclude_patterns)) { continue; }
         if !crate::exclude::should_stage_entry(repo, &entry, &dirs, &policy.exclude_file_patterns, policy.max_stage_file_bytes, &excludes) { continue; }
         if let Some((mode, _)) = index.get(path) { if mode == "160000" { continue; } }
-        if status == dracon_git::types::FileStatus::Deleted && !repo.join(path).exists() { continue; }
+        if entry.status == dracon_git::types::FileStatus::Deleted && !repo.join(path).exists() { continue; }
         // No traversal through linked ancestors; symlink blobs are sized by
         // link text rather than their referent. Nested Git directories add
         // no parent blob and are never enumerated recursively here.
