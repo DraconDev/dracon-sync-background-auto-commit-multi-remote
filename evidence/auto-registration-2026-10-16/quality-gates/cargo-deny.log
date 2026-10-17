@@ -1,6 +1,5 @@
-   ┌─ /home/dracon/Dev/dracon-utilities/deny.toml:74:6
-   │
-74 │     "ISC",
-   │      ━━━ unmatched license allowance
+   │                ━━━━━━━━             ───────────────────────────────────────── reason
+   │                │                     
+   │                unmatched skip configuration
 
 advisories ok, bans ok, licenses ok, sources ok

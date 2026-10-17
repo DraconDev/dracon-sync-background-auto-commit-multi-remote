@@ -4,6 +4,7 @@
 
 mod bucket_assets;
 mod bucket_guard;
+mod bucket_runner_bridge;
 mod bump;
 mod cooldown;
 mod daemon;

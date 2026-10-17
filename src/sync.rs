@@ -5402,10 +5402,22 @@ pub(crate) async fn sync_repo_with_ahead_since(
     clean_staged_paths(&ctx).await?;
     // Explicit checkout opt-in only. Upload/read-back must precede computing
     // the diff, so verified reference changes enter this same commit cycle.
-    let private_assets = match crate::bucket_assets::prepare(repo, dry_run, policy.stage_op_timeout_secs).await {
-        Ok(prepared) => prepared,
+    // The bridge attempts first (when `bucket-runner.json` is present and
+    // enabled) and falls back to the legacy inline-script workflow when it
+    // is absent. Either path returns a `bucket_assets::Prepared` so the
+    // downstream `verify_staged` / `staged_paths` checks at sync.rs:4580
+    // and sync.rs:5598 work without further changes.
+    let private_assets = match crate::bucket_runner_bridge::prepare(repo, dry_run, policy).await {
+        Ok(Some(prepared)) => Some(prepared),
+        Ok(None) => match crate::bucket_assets::prepare(repo, dry_run, policy.stage_op_timeout_secs).await {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                eprintln!("⚠️ {} private bucket preparation refused; no commit: {error:#}", repo.display());
+                return Ok(SyncOutcome::Blocked);
+            }
+        },
         Err(error) => {
-            eprintln!("⚠️ {} private bucket preparation refused; no commit: {error:#}", repo.display());
+            eprintln!("⚠️ {} bucket runner bridge refused; no commit: {error:#}", repo.display());
             return Ok(SyncOutcome::Blocked);
         }
     };

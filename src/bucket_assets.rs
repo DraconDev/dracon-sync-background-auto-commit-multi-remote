@@ -217,6 +217,25 @@ pub(crate) async fn prepare(
 }
 
 impl Prepared {
+    /// Construct a `Prepared` from its parts. Used by sibling modules
+    /// (e.g. `bucket_runner_bridge`) that produce equivalent verified
+    /// references from a different workflow. The fields stay private so
+    /// downstream call sites continue to rely on the same invariants
+    /// (sha256-verified manifest, suppressed materialized paths,
+    /// `.bucket-cache` exclusion); this constructor is the only
+    /// external construction path.
+    pub(crate) fn from_parts(
+        manifest_path: PathBuf,
+        verified_manifest: Vec<u8>,
+        materialized_paths: HashSet<PathBuf>,
+    ) -> Self {
+        Self {
+            manifest_path,
+            verified_manifest,
+            materialized_paths,
+        }
+    }
+
     pub(crate) async fn verify_staged(&self, repo: &Path, timeout_secs: u64) -> Result<()> {
         let mut command = tokio::process::Command::from(crate::git::git_cmd().into_std());
         command

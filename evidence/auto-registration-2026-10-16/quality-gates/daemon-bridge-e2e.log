@@ -1,0 +1,5 @@
+ℹ todo 0
+ℹ duration_ms 3156.398551
+bucket-runner qualification passed: 154/154 tests, all required e2e scenarios executed.
+daemon-bridge qualification passed: 10/10 bridge tests + bucket-runner gate green
+binary identity: target=b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a installed=b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a
