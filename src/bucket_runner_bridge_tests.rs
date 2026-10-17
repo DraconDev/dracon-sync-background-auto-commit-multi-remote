@@ -523,6 +523,31 @@ async fn non_refused_status_without_commit_eligible_is_refused() {
 }
 
 #[tokio::test]
+async fn accounting_failure_never_spawns_publisher_or_writes_manifest() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    init_repo(&repo);
+    let fake_dir = tmp.path().join("fake");
+    let state_dir = tmp.path().join("state");
+    write_state_dir(&state_dir);
+    let marker = tmp.path().join("PUBLISHER_EXECUTED");
+    let code = format!("require('node:fs').writeFileSync({}, 'unexpected'); process.exit(1);",
+        serde_json::to_string(&marker.to_string_lossy()).unwrap());
+    install_fake(&fake_dir, "profile.json", &code, &[]);
+    write_bucket_runner_config(&repo, &fake_dir, &state_dir, ConfigOverrides::default());
+    git(&repo, &["update-ref", "-d", "refs/remotes/origin/main"]);
+    let index_before = git(&repo, &["ls-files", "--stage", "-z"]);
+    let error = match prepare(&repo, false, &fast_policy()).await {
+        Err(error) => error,
+        Ok(_) => panic!("missing accounting input must refuse"),
+    };
+    assert!(format!("{error:#}").contains("accounting"));
+    assert!(!marker.exists(), "upload-capable publisher was executed");
+    assert!(!repo.join("bucket-assets.manifest.json").exists());
+    assert_eq!(index_before, git(&repo, &["ls-files", "--stage", "-z"]));
+}
+
+#[tokio::test]
 async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
