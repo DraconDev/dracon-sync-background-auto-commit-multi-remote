@@ -18,7 +18,7 @@ trap 'rm -f -- "$log"' EXIT
 # The full bucket-runner suite covers discovery, capabilities, publisher, e2e
 # registration, and bounded fault recovery (storage outage, partial upload,
 # concurrent manifest change, daemon interruption, rename, idempotence).
-timeout --signal=TERM --kill-after=10s 120s node --test \
+timeout --signal=TERM --kill-after=10s 120s node --test --test-reporter=tap \
   scripts/bucket-runner/adapters.test.mjs \
   scripts/bucket-runner/capabilities.test.mjs \
   scripts/bucket-runner/bindings.test.mjs \
@@ -32,12 +32,13 @@ timeout --signal=TERM --kill-after=10s 120s node --test \
   scripts/bucket-runner/e2e.test.mjs 2>&1 | tee "$log"
 # The runner must execute every named suite. A misspelled filter or missing
 # script would silently pass. Fail closed.
-grep -Eq '^.*tests 154$' "$log" || {
-  echo 'Bucket-runner suite did not execute 154 tests; refusing a zero-test pass.' >&2
-  exit 1
-}
-grep -Eq '^.*pass 154$' "$log" || {
-  echo 'Bucket-runner suite did not pass 154 tests; refusing a partial pass.' >&2
+tests=$(awk '$1 == "#" && $2 == "tests" { print $3 }' "$log")
+passes=$(awk '$1 == "#" && $2 == "pass" { print $3 }' "$log")
+[[ "$tests" =~ ^[0-9]+$ && "$passes" =~ ^[0-9]+$ ]] &&
+  [[ "$tests" -ge 157 && "$passes" -eq "$tests" ]] &&
+  grep -Eq '^# fail 0$' "$log" && grep -Eq '^# skipped 0$' "$log" &&
+  grep -Eq '^# cancelled 0$' "$log" && grep -Eq '^# todo 0$' "$log" || {
+  echo 'Incomplete runner execution (minimum 157, every test passing, no skips); refusing success.' >&2
   exit 1
 }
 # Required e2e scenarios must have run (every goal verification contract bullet).
@@ -80,4 +81,4 @@ for scenario in "${required[@]}"; do
     exit 1
   }
 done
-echo 'bucket-runner qualification passed: 154/154 tests, all required e2e scenarios executed.'
+echo "bucket-runner qualification passed: $passes/$tests tests, all required e2e scenarios executed."

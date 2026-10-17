@@ -280,11 +280,9 @@ fn parse_materialized(bytes: &[u8], asset_root: &str) -> Result<HashSet<PathBuf>
         if !safe_relative(source) {
             bail!("unsafe manifest source path");
         }
-        let path = if asset_root == "." {
-            PathBuf::from(source)
-        } else {
-            Path::new(asset_root).join(source)
-        };
+        // Runner requests use repository root; manifest sources are already
+        // repo-relative even when assetRoot narrows discovery to a subtree.
+        let path = PathBuf::from(source);
         if !paths.insert(path) {
             bail!("duplicate materialized path");
         }

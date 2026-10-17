@@ -55,6 +55,42 @@ fn shared_routing_defaults_fail_closed_on_invalid_data() {
     assert!(routing_budget_from_json(ROUTING_DEFAULTS_JSON, MAX_JS_INTEGER + 1).is_err());
 }
 
+#[test]
+fn materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root() {
+    let bytes = br#"{"schemaVersion":1,"bucket":"dracon-lfs","assets":[{"sourcePath":"public/a.png","bucketed":true}]}"#;
+    let paths = parse_materialized(bytes, "public").unwrap();
+    assert!(paths.contains(Path::new("public/a.png")));
+    assert!(!paths.contains(Path::new("public/public/a.png")));
+}
+
+#[tokio::test]
+async fn candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots() {
+    let tmp = tempfile::tempdir().unwrap(); let repo = tmp.path().join("repo");
+    init_repo(&repo);
+    std::fs::create_dir(repo.join("public")).unwrap();
+    for name in ["tracked.png", "fresh name.png", "ignored.png", "operator.png", "scratch.png", "skip.tmp.png", "local.png"] {
+        std::fs::write(repo.join("public").join(name), b"discovery only").unwrap();
+    }
+    std::fs::write(repo.join(".gitignore"), "public/ignored.png\n").unwrap();
+    git(&repo, &["add", "--", "public/tracked.png", ".gitignore"]);
+    std::fs::create_dir(repo.join(".dracon")).unwrap();
+    std::fs::write(repo.join(".dracon/dracon-sync.toml"), "auto_commit_exclude_patterns = [\"public/local.png\"]\n").unwrap();
+    std::fs::create_dir(repo.join("public/nested")).unwrap();
+    git(&repo.join("public/nested"), &["init", "-q"]);
+    std::fs::write(repo.join("public/nested/foreign.png"), b"never select").unwrap();
+    std::os::unix::fs::symlink("tracked.png", repo.join("public/link.png")).unwrap();
+    let mut policy = fast_policy(); policy.auto_stage_untracked = true;
+    policy.auto_commit_exclude_patterns.push("public/operator.png".into());
+    policy.untracked_exclude_patterns.push("public/scratch.png".into());
+    policy.exclude_file_patterns.push("*.tmp.png".into());
+    let expected = vec!["public/fresh name.png".to_string(), "public/tracked.png".to_string()];
+    assert_eq!(discover_candidates(&repo, ".", &policy).await.unwrap(), expected);
+    assert_eq!(discover_candidates(&repo, "public", &policy).await.unwrap(), expected);
+    policy.auto_stage_untracked = false;
+    assert_eq!(discover_candidates(&repo, ".", &policy).await.unwrap(), vec!["public/tracked.png"]);
+    assert!(!repo.join("bucket-assets.manifest.json").exists());
+}
+
 const FAKE_BODY: &str = r#"const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -607,7 +643,8 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     std::env::remove_var("FAKE_ALLOWED_CANDIDATES");
     std::env::remove_var("FAKE_MANIFEST_PATH");
 
-    assert_eq!(prepared.materialized_paths.len(), 2);
+    assert!(prepared.materialized_paths.contains(Path::new("bucket-assets.manifest.json.lock")));
+    assert_eq!(prepared.materialized_paths.len(), 3);
     assert!(prepared
         .materialized_paths
         .contains(&PathBuf::from("static/a.png")));
