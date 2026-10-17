@@ -34,6 +34,8 @@ use tokio::process::Command;
 use crate::bucket_assets::Prepared;
 use crate::policy::SyncPolicy;
 
+mod outgoing;
+
 /// Tracked config basename. Lives at the repo root only.
 const CONFIG_RELATIVE: &str = "bucket-runner.json";
 
@@ -514,6 +516,8 @@ pub(crate) async fn prepare(
         config.allowed_candidates.clone()
     };
 
+    let projected_bytes = outgoing::measure(repo, policy).await
+        .context("bucket outgoing-byte accounting refused; no publish")?;
     let request = serde_json::json!({
         "schemaVersion": 1u32,
         "operation": "publish",
@@ -522,9 +526,9 @@ pub(crate) async fn prepare(
         "stateDirectory": state_directory.to_string_lossy(),
         "remoteName": config.remote_name,
         "trustedRemoteUrl": config.trusted_remote_url,
-        // Outgoing-byte measurement is the next item; do not conflate the
-        // aggregate pressure budget with the separate per-blob safety limit.
-        "budget": routing_budget_from_json(ROUTING_DEFAULTS_JSON, 0)?,
+        // Measured read-only upper bound; failure above cannot fall back to
+        // a zero budget or launch the upload-capable bundle.
+        "budget": routing_budget_from_json(ROUTING_DEFAULTS_JSON, projected_bytes)?,
         "allowedCandidates": allowed_candidates,
     });
     let request_bytes = serde_json::to_vec(&request).context("request serialization")?;

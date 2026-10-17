@@ -223,6 +223,9 @@ fn init_repo(dir: &Path) {
         .current_dir(dir)
         .output()
         .expect("git core.hooksPath");
+    git(dir, &["commit", "--allow-empty", "-qm", "accounting baseline"]);
+    git(dir, &["remote", "add", "origin", "https://example.com/repo.git"]);
+    git(dir, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
 }
 
 fn write_state_dir(path: &Path) {
@@ -539,8 +542,10 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
 
     let policy = fast_policy();
     let candidates: Vec<String> = vec!["bucket-assets.manifest.json".into()];
+    let measured = outgoing::measure(&repo, &policy).await.expect("measured fixture");
+    assert!(measured > 0, "real outgoing fixture bytes must reach the runner");
     let expected_budget = serde_json::json!({
-        "projectedBytes": 0u64,
+        "projectedBytes": measured,
         "limitBytes": 2u64 * 1024 * 1024 * 1024,
         "largeBytes": 1024u64,
         "pressureRatio": 0.8_f64,

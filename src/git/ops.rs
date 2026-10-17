@@ -372,9 +372,17 @@ fn spawn_git_command_cancellable_io(
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdin(if stdin { Stdio::piped() } else { Stdio::null() })
+        .stdin(if stdin { std::process::Stdio::piped() } else { std::process::Stdio::null() })
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
+    if stdin {
+        // Accounting callers explicitly own the target repository. Do not
+        // inherit repository/config injection or permit promisor lazy fetches.
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") { cmd.env_remove(key); }
+        }
+        cmd.env("GIT_OPTIONAL_LOCKS", "0").env("GIT_NO_LAZY_FETCH", "1");
+    }
     configure_git_process_group(&mut cmd);
     cmd.spawn()
         .with_context(|| format!("failed to spawn {} in {}", label, repo.display()))

@@ -8,12 +8,10 @@ const MAX_ITEMS: usize = 20_000;
 const MAX_FILE: u64 = 16 * 1024 * 1024;
 
 async fn git(repo: &Path, args: &[String], input: Option<Vec<u8>>) -> Result<Vec<u8>> {
-    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let mut child = if input.is_some() {
-        crate::git::spawn_git_command_cancellable_stdin(repo, &refs, "bucket-accounting")?
-    } else {
-        crate::git::spawn_git_command_cancellable(repo, &refs, "bucket-accounting")?
-    };
+    let mut command = vec!["--no-optional-locks".to_owned(), "-c".to_owned(), "core.fsmonitor=false".to_owned()];
+    command.extend_from_slice(args);
+    let refs: Vec<&str> = command.iter().map(String::as_str).collect();
+    let mut child = crate::git::spawn_git_command_cancellable_stdin(repo, &refs, "bucket-accounting")?;
     let stdin = child.stdin.take();
     let capture = crate::git::run_git_captured_output(child, repo, "bucket-accounting");
     let write = async move {
@@ -186,7 +184,7 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         // Worktree restaging wins on selected paths. Conservatively retain
         // staged-only index blobs as well; no outgoing historical subtraction.
         if let Some((mode, staged)) = index.get(path) {
-            if mode != "160000" && staged != &object && !blob_sizes.contains_key(staged) {
+            if xy[0] != b' ' && mode != "160000" && staged != &object && !blob_sizes.contains_key(staged) {
                 let size = git(repo, &args(&["cat-file", "-s", staged]), None).await?;
                 let size = text(&size)?.trim().parse::<u64>()?;
                 add(&mut total, size)?; blob_sizes.insert(staged.clone(), size);
