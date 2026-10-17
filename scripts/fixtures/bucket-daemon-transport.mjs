@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRunner, VERSION, LIMIT } from '../bucket-runner/runner.mjs';
 import { renderSolidPng } from '../bucket-runner/adapters.mjs';
-import { PREBUILD } from '../bucket-runner/consumer.mjs';
+import { PREBUILD, inspectConsumer } from '../bucket-runner/consumer.mjs';
 const canonical = value => `${JSON.stringify(value, null, 2)}\n`;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const exists = async p => { try { await access(p); return true; } catch (e) { if (e.code === 'ENOENT') return false; throw e; } };
@@ -55,6 +55,8 @@ export async function serve(executingPath, base) {
     };
     return transport;
   } });
+  const diagnostic = await inspectConsumer({ root: request.root });
+  await record({ op: 'consumer-diagnostic', status: diagnostic.status, reason: diagnostic.reason });
   const verdict = await run(request);
   await record({ op: 'verdict', status: verdict.status, commitEligible: verdict.commitEligible });
   process.stdout.write(`${JSON.stringify(verdict)}\n`);
