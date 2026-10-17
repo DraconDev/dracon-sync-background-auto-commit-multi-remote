@@ -146,12 +146,13 @@ stage_op_timeout_secs = 30
     async fn cycle(&self) -> SyncOutcome {
         // Same production worker entry called by the daemon, including cleaning,
         // discovery, measured pressure, bridge child, verification and Git commit.
+        let excluded = self.policy.exclude_dir_names.iter().cloned().collect();
         let outcome = tokio::time::timeout(
             Duration::from_secs(90),
             sync_repo(
                 &self.repo,
                 &self.policy,
-                &BTreeSet::new(),
+                &excluded,
                 10000,
                 None,
                 false,
