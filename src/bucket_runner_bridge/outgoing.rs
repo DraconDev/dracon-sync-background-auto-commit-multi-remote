@@ -134,7 +134,12 @@ async fn snapshot(repo: &Path, status_cmd: &[String]) -> Result<Snapshot> {
 /// NUL-safe, bounded, cancellation-owned enumeration; no filters or network.
 pub(super) async fn candidate_lists(repo: &Path) -> Result<(Vec<u8>, Vec<u8>)> {
     let tracked = git(repo, &args(&["ls-files", "--cached", "-z"]), None).await?;
-    let untracked = git(repo, &args(&["ls-files", "--others", "--exclude-standard", "-z"]), None).await?;
+    let untracked = git(
+        repo,
+        &args(&["ls-files", "--others", "--exclude-standard", "-z"]),
+        None,
+    )
+    .await?;
     Ok((tracked, untracked))
 }
 

@@ -163,7 +163,10 @@ stage_op_timeout_secs = 30
         .expect("worker result");
         if outcome == SyncOutcome::Blocked {
             eprintln!("qualification operations: {:?}", self.operations());
-            eprintln!("staged paths: {}", String::from_utf8_lossy(&git(&self.repo, &["diff", "--cached", "--name-only"])));
+            eprintln!(
+                "staged paths: {}",
+                String::from_utf8_lossy(&git(&self.repo, &["diff", "--cached", "--name-only"]))
+            );
         }
         outcome
     }
@@ -171,17 +174,29 @@ stage_op_timeout_secs = 30
         use std::io::Write;
         let request = json!({"schemaVersion":1, "operation":"restore", "root":reader,
             "profilePath": self.temp.path().join("profile.json")});
-        let mut child = Command::new("timeout").args(["30s", "node"])
+        let mut child = Command::new("timeout")
+            .args(["30s", "node"])
             .arg(self.temp.path().join("runner.bundle.mjs"))
-            .stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped()).spawn().unwrap();
-        child.stdin.take().unwrap().write_all(request.to_string().as_bytes()).unwrap();
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(request.to_string().as_bytes())
+            .unwrap();
         child.wait_with_output().unwrap()
     }
     fn assert_enrolled(&self) -> (Vec<u8>, PathBuf, Vec<u8>) {
         self.intact();
         assert!(git(&self.repo, &["ls-files", "--", &format!("{MANIFEST}.lock")]).is_empty());
-        assert_eq!(git(&self.repo, &["show", "HEAD:public/local.txt"]), b"unrelated local file must still commit\n");
+        assert_eq!(
+            git(&self.repo, &["show", "HEAD:public/local.txt"]),
+            b"unrelated local file must still commit\n"
+        );
         let bytes = read(self.repo.join(MANIFEST));
         let manifest: Value = serde_json::from_slice(&bytes).unwrap();
         let entries = manifest["assets"].as_array().unwrap();
@@ -251,15 +266,31 @@ async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
     }
     let binding_before = read(f.temp.path().join("state/bindings.json"));
     // Corruption must exit nonzero without creating a final destination.
-    let first_key = f.operations().into_iter().find(|o| o["op"] == "stored").unwrap();
-    let object = f.temp.path().join("objects").join(hash(first_key["key"].as_str().unwrap().as_bytes()));
+    let first_key = f
+        .operations()
+        .into_iter()
+        .find(|o| o["op"] == "stored")
+        .unwrap();
+    let object = f
+        .temp
+        .path()
+        .join("objects")
+        .join(hash(first_key["key"].as_str().unwrap().as_bytes()));
     let original_object = read(&object);
     std::fs::write(&object, b"corrupt remote bytes").unwrap();
     let corrupt = f.restore(&reader);
-    assert!(!corrupt.status.success(), "corrupt restore must return nonzero");
+    assert!(
+        !corrupt.status.success(),
+        "corrupt restore must return nonzero"
+    );
     let refused: Value = serde_json::from_slice(&corrupt.stdout).unwrap();
     assert_eq!(refused["status"], "refused");
-    for p in SOURCES { assert!(!reader.join(p).exists(), "corrupt restore created final data"); }
+    for p in SOURCES {
+        assert!(
+            !reader.join(p).exists(),
+            "corrupt restore created final data"
+        );
+    }
     std::fs::write(object, original_object).unwrap();
     let out = f.restore(&reader);
     assert!(
@@ -340,7 +371,12 @@ async fn bucket_qualification_daemon_concurrent_manifest_preserves_independent_w
         .iter()
         .any(|o| o["op"] == "verdict" && o["status"] == "refused"));
     f.mode("healthy");
-    assert_eq!(f.cycle().await, SyncOutcome::Blocked, "retry must not overwrite independent authority");
+    assert_eq!(
+        f.cycle().await,
+        SyncOutcome::Blocked,
+        "retry must not overwrite independent authority"
+    );
     assert_eq!(read(f.repo.join(MANIFEST)), concurrent);
-    assert_eq!(f.head(), head); f.intact();
+    assert_eq!(f.head(), head);
+    f.intact();
 }

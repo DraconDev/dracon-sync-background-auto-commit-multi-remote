@@ -1453,7 +1453,7 @@ async fn stage_existing_files_suppressing(
     // untracked `public/` entry must not sweep verified bucket materializations
     // into Git while unrelated local files in that directory remain stageable.
     if let Some(paths) = suppressed {
-        expanded.retain(|p| !paths.iter().any(|root| Path::new(p).starts_with(root)));
+        expanded.retain(|p| !Path::new(p).ancestors().any(|part| paths.contains(part)));
     }
     let existing = expanded;
     if existing.is_empty() {

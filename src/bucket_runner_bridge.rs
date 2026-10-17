@@ -293,62 +293,83 @@ fn parse_materialized(bytes: &[u8], asset_root: &str) -> Result<HashSet<PathBuf>
 
 /// Discover tracked and new Git-visible media, using the same operator
 /// staging exclusions. Keep paths repo-relative, including non-dot roots.
-async fn discover_candidates(repo: &Path, asset_root: &str, policy: &SyncPolicy) -> Result<Vec<String>> {
+async fn discover_candidates(
+    repo: &Path,
+    asset_root: &str,
+    policy: &SyncPolicy,
+) -> Result<Vec<String>> {
     if asset_root != "." && !safe_relative(asset_root) {
         bail!("unsafe assetRoot");
     }
     let (tracked, untracked) = outgoing::candidate_lists(repo).await?;
     let repo_override = crate::policy::load_repo_override(repo);
-    if repo_override.override_parse_error.is_some() { bail!("invalid candidate policy"); }
+    if repo_override.override_parse_error.is_some() {
+        bail!("invalid candidate policy");
+    }
     let excludes = crate::policy::effective_auto_commit_excludes(policy, &repo_override);
     let dirs = policy.exclude_dir_names.iter().cloned().collect();
-    let prefix_slash = if asset_root == "." {
-        None
-    } else {
-        Some(if asset_root.ends_with('/') {
-            asset_root.to_string()
-        } else {
-            format!("{asset_root}/")
-        })
-    };
+    let prefix = (asset_root != ".").then(|| format!("{asset_root}/"));
     let mut candidates = std::collections::BTreeSet::new();
     let mut scanned = 0;
     for (bytes, is_untracked) in [(&tracked, false), (&untracked, true)] {
-      for raw in bytes.split(|b| *b == 0).filter(|s| !s.is_empty()) {
-        scanned += 1;
-        if scanned > MAX_CANDIDATES { bail!("candidate scan exceeds limit"); }
-        let line = std::str::from_utf8(raw).context("non-UTF8 candidate")?;
-        if is_untracked && (!policy.auto_stage_untracked || crate::exclude::matches_untracked_exclude(repo, Path::new(line), &policy.untracked_exclude_patterns)) { continue; }
-        if prefix_slash.as_ref().is_some_and(|prefix| !line.starts_with(prefix)) { continue; }
-        let relative = line.to_string();
-        if !safe_relative(&relative) {
-            continue;
+        for raw in bytes.split(|b| *b == 0).filter(|s| !s.is_empty()) {
+            scanned += 1;
+            if scanned > MAX_CANDIDATES {
+                bail!("candidate scan exceeds limit");
+            }
+            let line = std::str::from_utf8(raw).context("non-UTF8 candidate")?;
+            if is_untracked
+                && (!policy.auto_stage_untracked
+                    || crate::exclude::matches_untracked_exclude(
+                        repo, Path::new(line), &policy.untracked_exclude_patterns,
+                    ))
+            {
+                continue;
+            }
+            if prefix.as_ref().is_some_and(|prefix| !line.starts_with(prefix))
+                || !safe_relative(line)
+            {
+                continue;
+            }
+            let ext = match Path::new(line).extension().and_then(|e| e.to_str()) {
+                Some(e) => e.to_ascii_lowercase(),
+                None => continue,
+            };
+            if !MEDIA_EXTENSIONS.contains(&ext.as_str()) {
+                continue;
+            }
+            let path = repo.join(line);
+            let meta = std::fs::symlink_metadata(&path).context("candidate vanished")?;
+            if !meta.is_file() || meta.file_type().is_symlink() {
+                continue;
+            }
+            let mut ancestor = path.parent();
+            let mut nested = false;
+            while let Some(parent) = ancestor {
+                if parent == repo {
+                    break;
+                }
+                if parent.join(".git").exists()
+                    || std::fs::symlink_metadata(parent)?.file_type().is_symlink()
+                {
+                    nested = true;
+                    break;
+                }
+                ancestor = parent.parent();
+            }
+            if nested {
+                continue;
+            }
+            let entry = dracon_git::types::DiffFile::new(
+                PathBuf::from(line), dracon_git::types::FileStatus::Added,
+            );
+            if crate::exclude::should_stage_entry_with_blob_size(
+                repo, &entry, meta.len(), &dirs, &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes, &excludes,
+            ) {
+                candidates.insert(line.to_owned());
+            }
         }
-        let ext = match Path::new(&relative)
-            .extension()
-            .and_then(|e| e.to_str())
-        {
-            Some(e) => e.to_ascii_lowercase(),
-            None => continue,
-        };
-        if !MEDIA_EXTENSIONS.contains(&ext.as_str()) {
-            continue;
-        }
-        let path = repo.join(&relative);
-        let meta = std::fs::symlink_metadata(&path).context("candidate vanished")?;
-        if !meta.is_file() || meta.file_type().is_symlink() { continue; }
-        let mut ancestor = path.parent(); let mut nested = false;
-        while let Some(parent) = ancestor {
-            if parent == repo { break; }
-            if parent.join(".git").exists() || std::fs::symlink_metadata(parent)?.file_type().is_symlink() { nested = true; break; }
-            ancestor = parent.parent();
-        }
-        if nested { continue; }
-        let entry = dracon_git::types::DiffFile::new(PathBuf::from(&relative), dracon_git::types::FileStatus::Added);
-        if !crate::exclude::should_stage_entry_with_blob_size(repo, &entry, meta.len(), &dirs,
-            &policy.exclude_file_patterns, policy.max_stage_file_bytes, &excludes) { continue; }
-        candidates.insert(relative);
-      }
     }
     Ok(candidates.into_iter().collect())
 }
