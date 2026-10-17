@@ -129,8 +129,51 @@ test('bundled CLI works from empty cwd without dependencies and bounds/sanitizes
   const result = execute(JSON.stringify({ schemaVersion: 1, operation: 'inspect', root: f.root, profilePath: f.profilePath }));
   assert.equal(result.status, 'plannable');
   assert.equal(result.runtimeQualified, true);
+  await writeFile(join(f.root, 'bucket-assets.json'), '{"enabled":false}');
+  assert.equal(execute(JSON.stringify({ schemaVersion: 1, operation: 'inspect', root: f.root, profilePath: f.profilePath })).status, 'unsupported');
   for (const input of ['{SECRET', ' '.repeat(LIMIT + 1), JSON.stringify({ credential: 'SECRET' })]) {
     const refusal = execute(input); assert.equal(refusal.commitEligible, false); assert.ok(!JSON.stringify(refusal).includes('SECRET'));
   }
-  execFileSync(process.execPath, [fileURLToPath(new URL('../build-bucket-runner.mjs', import.meta.url)), '--check'], { timeout: 30000 });
+  execFileSync(process.execPath, [fileURLToPath(new URL('../build-bucket-runner.mjs', import.meta.url)), '--check'], { cwd, timeout: 30000 });
+});
+
+test('runner legacy opt-out, disabled authority and installed digest mismatch never select storage', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.root, 'bucket-assets.json'), '{"enabled":false}');
+  assert.equal((await f.run(f.request)).status, 'unsupported');
+  await rm(join(f.root, 'bucket-assets.json'));
+  await writeFile(f.profilePath, canonical({ ...f.profile, enabled: false }));
+  assert.equal((await f.run(f.request)).commitEligible, false);
+  await writeFile(f.profilePath, canonical(f.profile));
+  await writeFile(f.bundle, '\n// tampered\n', { flag: 'a' });
+  assert.equal((await f.run(f.request)).commitEligible, false);
+  assert.deepEqual(f.roles, []);
+});
+
+test('runner refuses an index ahead of manifest without repair or transport', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.run(f.request)).commitEligible, true);
+  const binding = JSON.parse(await readFile(join(f.root, DESCRIPTOR)));
+  const path = join(f.stateDirectory, `${binding.repositoryId}.index.json`);
+  const value = JSON.parse(await readFile(path));
+  const changed = canonical({ ...value, manifestDigest: 'f'.repeat(64) });
+  await writeFile(path, changed);
+  const calls = f.roles.length;
+  assert.equal((await f.run(f.request)).commitEligible, false);
+  assert.equal(f.roles.length, calls);
+  assert.equal(await readFile(path, 'utf8'), changed);
+});
+
+test('runner reader refuses unsupported operator edits without uploading or touching local bytes', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.run(f.request)).commitEligible, true);
+  const changed = canonical({ ...f.pkg, scripts: { ...f.pkg.scripts, prebuild: 'operator-command' } });
+  await writeFile(join(f.root, 'package.json'), changed);
+  const source = await readFile(join(f.root, 'public/icon.png'));
+  const calls = f.roles.length;
+  const result = await f.run({ schemaVersion: 1, operation: 'restore', root: f.root, profilePath: f.profilePath });
+  assert.equal(result.status, 'unsupported');
+  assert.equal(f.roles.length, calls);
+  assert.equal(await readFile(join(f.root, 'package.json'), 'utf8'), changed);
+  assert.deepEqual(await readFile(join(f.root, 'public/icon.png')), source);
 });

@@ -105,6 +105,7 @@ async function snapshot(root) {
         continue;
       }
       owned(s, s.isDirectory());
+      if (rel === `${MANIFEST}.lock` && !s.isFile()) fail('unexpected-file-type');
       entries.push([rel, stamp(s)]);
       if (relative && name === 'package.json') fail('workspace-or-nested-package');
       if (!relative && config.test(name)) fail(`unsupported-config:${name}`);

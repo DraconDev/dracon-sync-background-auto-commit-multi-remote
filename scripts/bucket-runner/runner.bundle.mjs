@@ -39489,6 +39489,7 @@ async function snapshot(root5) {
         continue;
       }
       owned(s2, s2.isDirectory());
+      if (rel === `${MANIFEST}.lock` && !s2.isFile()) fail("unexpected-file-type");
       entries.push([rel, stamp2(s2)]);
       if (relative5 && name === "package.json") fail("workspace-or-nested-package");
       if (!relative5 && config.test(name)) fail(`unsupported-config:${name}`);
@@ -39944,6 +39945,7 @@ async function createPrivateS3Transport(profile, binding2, { role, timeoutMs = 1
 
 // scripts/bucket-runner/runner.mjs
 init_routing();
+init_adapters();
 var LIMIT2 = 2 * 1024 * 1024;
 var DESCRIPTOR = "bucket-binding.json";
 var canonical = (value) => `${JSON.stringify(value, null, 2)}
@@ -40123,7 +40125,7 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
       const paths = [];
       for (const entry of manifest.value.assets) {
         require6(safe3(entry.sourcePath) && r5.allowedCandidates.includes(entry.sourcePath) && current.plan.outcomes.some((o3) => o3.sourcePath === entry.sourcePath && o3.evidence && ["eligible", "already-registered"].includes(o3.status)));
-        const bytes = await read(join10(r5.root, entry.sourcePath), 64 * 1024 * 1024);
+        const bytes = await read(join10(r5.root, entry.sourcePath), CAPS.maxSourceBytes);
         require6(bytes.length === entry.bytes && sha2(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
       }

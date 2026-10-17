@@ -343,3 +343,9 @@ test('inspectConsumer: manifest lock exemption still rejects symlinks', async t 
   await symlink('package.json', join(f.root, `${MANIFEST}.lock`));
   await unsupported(f, 'symlink-path');
 });
+
+test('inspectConsumer: exact manifest lock cannot be a directory', async t => {
+  const f = await fixture(t);
+  await mkdir(join(f.root, `${MANIFEST}.lock`));
+  await unsupported(f, 'unexpected-file-type');
+});

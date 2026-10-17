@@ -11,6 +11,7 @@ import { planRepository, publishRepository } from './publisher.mjs';
 import { restoreRepository } from './restore.mjs';
 import { createPrivateS3Transport } from './storage.mjs';
 import { validateBudget } from './routing.mjs';
+import { CAPS } from './adapters.mjs';
 
 export const LIMIT = 2 * 1024 * 1024;
 export const DESCRIPTOR = 'bucket-binding.json';
@@ -158,7 +159,7 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
         require(safe(entry.sourcePath) && r.allowedCandidates.includes(entry.sourcePath)
           && current.plan.outcomes.some(o => o.sourcePath === entry.sourcePath && o.evidence
             && ['eligible', 'already-registered'].includes(o.status)));
-        const bytes = await read(join(r.root, entry.sourcePath), 64 * 1024 * 1024);
+        const bytes = await read(join(r.root, entry.sourcePath), CAPS.maxSourceBytes);
         require(bytes.length === entry.bytes && sha(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
       }

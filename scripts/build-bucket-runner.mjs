@@ -8,7 +8,7 @@ const esbuild = require('esbuild');
 if (esbuild.version !== '0.25.12') throw new Error('pinned esbuild required');
 const output = join(root, 'bucket-runner/runner.bundle.mjs');
 const builtins = new Set(builtinModules.flatMap(n => [n, `node:${n}`]));
-const result = await esbuild.build({ entryPoints: [join(root, 'bucket-runner/runner.mjs')], outfile: output,
+const result = await esbuild.build({ absWorkingDir: dirname(root), entryPoints: [join(root, 'bucket-runner/runner.mjs')], outfile: output,
   bundle: true, platform: 'node', format: 'esm', target: 'node20', write: false, metafile: true,
   legalComments: 'inline', banner: { js: "import { createRequire as __bundleCreateRequire } from 'node:module'; const require = __bundleCreateRequire(import.meta.url);" } });
 for (const entry of Object.values(result.metafile.outputs)) for (const dependency of entry.imports) {
