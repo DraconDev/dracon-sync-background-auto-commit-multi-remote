@@ -86,11 +86,20 @@ async fn status_args(repo: &Path) -> Result<Vec<String>> {
     Ok(result)
 }
 
+#[derive(PartialEq, Eq)]
 struct Snapshot {
     head: Vec<u8>,
     index: Vec<u8>,
     tips: Vec<u8>,
     status: Vec<u8>,
+}
+impl Snapshot {
+    fn ensure_unchanged(&self, after: &Self) -> Result<()> {
+        if self != after {
+            bail!("accounting-snapshot-changed");
+        }
+        Ok(())
+    }
 }
 async fn snapshot(repo: &Path, status_cmd: &[String]) -> Result<Snapshot> {
     Ok(Snapshot {
@@ -267,15 +276,28 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         // have no safe output bound and refuse the measurement.
         let source_meta = match std::fs::symlink_metadata(repo.join(path)) {
             Ok(meta) => meta,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound
-                && entry.status == dracon_git::types::FileStatus::Deleted => continue,
+            Err(error)
+                if error.kind() == std::io::ErrorKind::NotFound
+                    && entry.status == dracon_git::types::FileStatus::Deleted =>
+            {
+                continue
+            }
             Err(error) => return Err(error).context("accounting-unreadable-candidate"),
         };
-        if source_meta.is_dir() { continue; }
+        if source_meta.is_dir() {
+            continue;
+        }
         if !crate::exclude::should_stage_entry_with_blob_size(
-            repo, &entry, source_meta.len(), &dirs, &policy.exclude_file_patterns,
-            policy.max_stage_file_bytes, &excludes,
-        ) { continue; }
+            repo,
+            &entry,
+            source_meta.len(),
+            &dirs,
+            &policy.exclude_file_patterns,
+            policy.max_stage_file_bytes,
+            &excludes,
+        ) {
+            continue;
+        }
         if let Some((mode, _)) = index.get(path) {
             if mode == "160000" {
                 continue;
@@ -382,13 +404,7 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         }
     }
     let after = snapshot(repo, &status_cmd).await?;
-    if before.head != after.head
-        || before.index != after.index
-        || before.tips != after.tips
-        || before.status != after.status
-    {
-        bail!("accounting-snapshot-changed");
-    }
+    before.ensure_unchanged(&after)?;
     for (path, identity) in files {
         let m = std::fs::symlink_metadata(path)?;
         if identity

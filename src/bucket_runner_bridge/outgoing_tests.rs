@@ -185,6 +185,29 @@ async fn accounting_refuses_unknown_filter_without_executing_it() {
 }
 
 #[tokio::test]
+async fn accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes() {
+    let td = fixture();
+    let repo = td.path();
+    let command = status_args(repo).await.unwrap();
+    let initial = snapshot(repo, &command).await.unwrap();
+    put(repo, "edit.txt", 10);
+    let dirty = snapshot(repo, &command).await.unwrap();
+    assert!(initial.ensure_unchanged(&dirty).is_err());
+    run(repo, &["add", "--", "edit.txt"]);
+    let staged = snapshot(repo, &command).await.unwrap();
+    assert!(dirty.ensure_unchanged(&staged).is_err());
+    run(repo, &["commit", "-qm", "snapshot mutation"]);
+    let committed = snapshot(repo, &command).await.unwrap();
+    assert!(staged.ensure_unchanged(&committed).is_err());
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    let pushed = snapshot(repo, &command).await.unwrap();
+    assert!(committed.ensure_unchanged(&pushed).is_err());
+    assert!(pushed
+        .ensure_unchanged(&snapshot(repo, &command).await.unwrap())
+        .is_ok());
+}
+
+#[tokio::test]
 async fn accounting_ignores_replacements_for_outgoing_deleted_history() {
     let td = fixture();
     let repo = td.path();
@@ -196,7 +219,8 @@ async fn accounting_ignores_replacements_for_outgoing_deleted_history() {
     run(repo, &["rm", "-q", "--", "original.txt"]);
     run(repo, &["commit", "-qm", "remove from worktree"]);
     put(repo, "one.txt", 1);
-    let replacement = String::from_utf8(run(repo, &["hash-object", "-w", "--no-filters", "one.txt"])).unwrap();
+    let replacement =
+        String::from_utf8(run(repo, &["hash-object", "-w", "--no-filters", "one.txt"])).unwrap();
     std::fs::remove_file(repo.join("one.txt")).unwrap();
     run(repo, &["replace", original.trim(), replacement.trim()]);
     assert_eq!(measure(repo, &p).await.unwrap(), 700);
@@ -204,7 +228,9 @@ async fn accounting_ignores_replacements_for_outgoing_deleted_history() {
 
 #[tokio::test]
 async fn accounting_untracked_toggle_and_read_limit_are_explicit() {
-    let td = fixture(); let repo = td.path(); let mut p = policy();
+    let td = fixture();
+    let repo = td.path();
+    let mut p = policy();
     put(repo, "new.txt", 400);
     p.auto_stage_untracked = false;
     assert_eq!(measure(repo, &p).await.unwrap(), 0);
@@ -212,7 +238,11 @@ async fn accounting_untracked_toggle_and_read_limit_are_explicit() {
     p.max_stage_file_bytes = MAX_FILE + 100;
     let large = std::fs::File::create(repo.join("large.txt")).unwrap();
     large.set_len(MAX_FILE + 1).unwrap();
-    assert!(measure(repo, &p).await.unwrap_err().to_string().contains("file-read-limit"));
+    assert!(measure(repo, &p)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("file-read-limit"));
     let mut total = MAX_JS_INTEGER;
     assert!(add(&mut total, 1).is_err());
 }
