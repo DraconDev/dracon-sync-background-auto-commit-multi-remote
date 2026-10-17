@@ -1,0 +1,18 @@
+{
+  "dracon-sync": {
+    "baseline": "ed88f801a9ccadd0b75f11840093699070488d3b",
+    "productionSourceAndManifestChanges": []
+  },
+  "dracon-system": {
+    "baseline": "4775a9e0ec1b9e397cad57f75bf8e2693910526d",
+    "productionSourceAndManifestChanges": []
+  },
+  "dracon-warden": {
+    "baseline": "da94c391bb6e4833ea41e9bc8ffaaba7b52a56e7",
+    "productionSourceAndManifestChanges": []
+  },
+  "workspace": {
+    "manifestChanges": [],
+    "ambientCompilerOverridesPresent": {}
+  }
+}
