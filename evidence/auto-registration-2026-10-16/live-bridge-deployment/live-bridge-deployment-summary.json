@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-17T04:24:19Z",
+  "startedAt": "2026-10-17T04:23:13Z",
+  "binaryPath": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+  "binarySha256": "b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a",
+  "binaryInstalled": "b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a",
+  "binaryIdentityVerified": true,
+  "daemonBridgeEndToEnd": "PASS",
+  "unrelatedRepoProgress": "PASS",
+  "unrelatedCommits": 3,
+  "evidence": "evidence/auto-registration-2026-10-16/live-bridge-deployment"
+}
