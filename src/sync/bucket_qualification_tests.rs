@@ -167,6 +167,17 @@ stage_op_timeout_secs = 30
         }
         outcome
     }
+    fn restore(&self, reader: &Path) -> std::process::Output {
+        use std::io::Write;
+        let request = json!({"schemaVersion":1, "operation":"restore", "root":reader,
+            "profilePath": self.temp.path().join("profile.json")});
+        let mut child = Command::new("timeout").args(["30s", "node"])
+            .arg(self.temp.path().join("runner.bundle.mjs"))
+            .stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped()).spawn().unwrap();
+        child.stdin.take().unwrap().write_all(request.to_string().as_bytes()).unwrap();
+        child.wait_with_output().unwrap()
+    }
     fn assert_enrolled(&self) -> (Vec<u8>, PathBuf, Vec<u8>) {
         self.intact();
         assert!(git(&self.repo, &["ls-files", "--", &format!("{MANIFEST}.lock")]).is_empty());
