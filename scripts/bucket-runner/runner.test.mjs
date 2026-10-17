@@ -150,18 +150,66 @@ test('runner legacy opt-out, disabled authority and installed digest mismatch ne
   assert.deepEqual(f.roles, []);
 });
 
-test('runner refuses an index ahead of manifest without repair or transport', async t => {
+test('runner recovers from a stranded index-ahead transaction and never imports a mismatched index', async t => {
   const f = await fixture(t);
   assert.equal((await f.run(f.request)).commitEligible, true);
   const binding = JSON.parse(await readFile(join(f.root, DESCRIPTOR)));
   const path = join(f.stateDirectory, `${binding.repositoryId}.index.json`);
   const value = JSON.parse(await readFile(path));
-  const changed = canonical({ ...value, manifestDigest: 'f'.repeat(64) });
-  await writeFile(path, changed);
+  await writeFile(path, canonical({ ...value, manifestDigest: 'f'.repeat(64) }));
   const calls = f.roles.length;
+  assert.equal((await f.run(f.request)).commitEligible, true);
+  assert.equal(f.roles.length, calls + 1);
+  const recovered = JSON.parse(await readFile(path));
+  assert.equal(recovered.manifestDigest, hash(await readFile(join(f.root, MANIFEST))));
+  // A genuinely foreign index (wrong profile/repository/namespace/path) is still refused.
+  const foreign = canonical({ ...value, profileId: 'foreign' });
+  await writeFile(path, foreign);
   assert.equal((await f.run(f.request)).commitEligible, false);
-  assert.equal(f.roles.length, calls);
-  assert.equal(await readFile(path, 'utf8'), changed);
+  // The two publishes (initial + recovery) used the uploader role exactly twice.
+  assert.equal(f.roles.filter(r => r === 'uploader').length, 2);
+  // The foreign index is preserved on disk: refusing never edits state.
+  assert.equal(JSON.parse(await readFile(path)).profileId, 'foreign');
+});
+
+test('runner suppresses only positively re-verified bucketed entries and does not stage deleted ones', async t => {
+  const f = await fixture(t);
+  // First publish: high pressure forces the icon to bucket; outcome is reported bucketed:true.
+  f.request.budget = { projectedBytes: 100000, limitBytes: 1000, largeBytes: 100000, pressureRatio: 0.8 };
+  const first = await f.run(f.request);
+  assert.equal(first.commitEligible, true);
+  assert.deepEqual(first.materializedPaths, ['public/icon.png']);
+  const iconOutcome = first.outcomes.find(o => o.sourcePath === 'public/icon.png');
+  assert.equal(iconOutcome.bucketed, true);
+  // Operator deletes the bucketed source. A subsequent publish retains the
+  // ability to commit (idempotence: no other new candidates) and must not
+  // re-stage the deleted bytes or return it as a verified bucketed path.
+  await rm(join(f.root, 'public/icon.png'));
+  f.request.budget = { projectedBytes: 0, limitBytes: 1000, largeBytes: 100000, pressureRatio: 0.8 };
+  const second = await f.run(f.request);
+  assert.equal(second.commitEligible, true);
+  assert.deepEqual(second.materializedPaths, []);
+  // The deleted entry is reported as missing, NOT re-staged as bucketed.
+  const removed = second.outcomes.find(o => o.sourcePath === 'public/icon.png');
+  if (removed) { assert.notEqual(removed.status, 'eligible'); assert.notEqual(removed.status, 'already-registered'); }
+});
+
+test('runner local-only entries stay unenrolled and are reported bucketed:false with local-only reason', async t => {
+  const f = await fixture(t);
+  // A media asset that is small enough to stay local under the budget: a
+  // single-byte no-pressure budget keeps it out of the publisher's upload
+  // path and the manifest keeps bucketed:false for it.
+  await writeFile(join(f.root, 'public/local.png'), renderSolidPng({ width: 8, height: 8, rgba: [0, 255, 0, 255] }));
+  f.request.budget = { projectedBytes: 0, limitBytes: 1000, largeBytes: 100000, pressureRatio: 0.8 };
+  f.request.allowedCandidates = ['public/icon.png', 'public/local.png'];
+  const result = await f.run(f.request);
+  // Both assets are reported in outcomes; only bucketed entries are staged.
+  const localOutcome = result.outcomes.find(o => o.sourcePath === 'public/local.png');
+  assert.ok(localOutcome, JSON.stringify(result.outcomes));
+  assert.equal(localOutcome.bucketed, false);
+  assert.equal(localOutcome.reason, 'local-only');
+  // The local file is preserved verbatim.
+  assert.equal((await readFile(join(f.root, 'public/local.png'))).length, 72);
 });
 
 test('runner reader refuses unsupported operator edits without uploading or touching local bytes', async t => {

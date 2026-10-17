@@ -856,8 +856,20 @@ async function publishRepository({
       allowedCandidates,
       options
     });
+    let strandedIndexDigest = null;
+    if (indexPath && isAbsolute4(indexPath)) {
+      try {
+        const previous = JSON.parse(await readUtf8(indexPath));
+        if (previous?.manifestDigest !== hash3(plan.proposedManifest ? `${JSON.stringify(plan.proposedManifest, null, 2)}
+` : "")) {
+          strandedIndexDigest = previous?.manifestDigest;
+        }
+      } catch (error2) {
+        if (error2.code !== "ENOENT") throw error2;
+      }
+    }
     const registrationChanged = (priorManifest !== null || plan.proposedManifest?.assets.length > 0) && JSON.stringify(plan.proposedManifest) !== JSON.stringify(priorManifest);
-    if (plan.status !== "planned" || !registrationChanged && !toUpload.length) {
+    if (plan.status !== "planned" || !registrationChanged && !toUpload.length && strandedIndexDigest === null) {
       return { plan, toUpload, indexRebound: false, manifestWritten: false };
     }
     const { head, download, putIfAbsent } = transport;
@@ -941,6 +953,7 @@ async function publishRepository({
 `, 384);
       indexRebound = true;
     }
+    const recoveredFromStrandedIndex = strandedIndexDigest !== null;
     await atomicWrite(manifestPath, finalBytes);
     return {
       plan,
@@ -948,7 +961,8 @@ async function publishRepository({
       indexRebound,
       manifestWritten: true,
       manifestDigest: hash3(finalBytes),
-      manifestPath
+      manifestPath,
+      recoveredFromStrandedIndex
     };
   } catch (error2) {
     return failPending({
@@ -40091,7 +40105,9 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
       if (prior) coherent(prior.value, binding2);
       const indexPath = join10(r5.stateDirectory, `${binding2.repositoryId}.index.json`);
       const previousIndex = await jsonFile(indexPath, true);
-      if (previousIndex) require6(prior && previousIndex.value.manifestDigest === sha2(prior.bytes) && previousIndex.value.repositoryId === binding2.repositoryId && previousIndex.value.namespace === binding2.namespace && previousIndex.value.profileId === profile.id && previousIndex.value.manifestPath === manifestPath);
+      if (previousIndex) {
+        require6(previousIndex.value.schemaVersion === 1 && previousIndex.value.repositoryId === binding2.repositoryId && previousIndex.value.namespace === binding2.namespace && previousIndex.value.profileId === profile.id && previousIndex.value.manifestPath === manifestPath);
+      }
       await descriptor(r5.root, binding2);
       transport = await transportFactory(profile, binding2, { role: "uploader" });
       const result = await publishRepository({
@@ -40122,9 +40138,17 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
         allowedCandidates: r5.allowedCandidates
       });
       require6(current.plan.status === "planned" && current.plan.complete && current.toUpload.length === 0);
+      const outcomeByPath = new Map(current.plan.outcomes.map((o3) => [o3.sourcePath, o3]));
+      const verified = /* @__PURE__ */ new Map();
+      for (const o3 of current.plan.outcomes) {
+        if (!o3.evidence || !["eligible", "already-registered"].includes(o3.status)) continue;
+        verified.set(o3.sourcePath, o3);
+      }
       const paths = [];
       for (const entry of manifest.value.assets) {
-        require6(safe3(entry.sourcePath) && r5.allowedCandidates.includes(entry.sourcePath) && current.plan.outcomes.some((o3) => o3.sourcePath === entry.sourcePath && o3.evidence && ["eligible", "already-registered"].includes(o3.status)));
+        if (entry.bucketed !== true) continue;
+        if (!verified.has(entry.sourcePath)) continue;
+        require6(safe3(entry.sourcePath) && r5.allowedCandidates.includes(entry.sourcePath));
         const bytes = await read(join10(r5.root, entry.sourcePath), CAPS.maxSourceBytes);
         require6(bytes.length === entry.bytes && sha2(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
@@ -40139,7 +40163,18 @@ function createRunner({ transportFactory = createPrivateS3Transport, executingPa
         manifestSha256: sha2(manifest.bytes),
         portablePaths: [DESCRIPTOR, MANIFEST],
         materializedPaths: paths,
-        outcomes: current.plan.outcomes.map((o3) => ({ sourcePath: o3.sourcePath, status: o3.status })),
+        verifiedBucketedCount: paths.length,
+        localOnlyPaths: manifest.value.assets.filter((a5) => a5.bucketed === false).map((a5) => a5.sourcePath),
+        outcomes: current.plan.outcomes.map((o3) => {
+          const entry = manifest.value.assets.find((a5) => a5.sourcePath === o3.sourcePath);
+          return {
+            sourcePath: o3.sourcePath,
+            status: o3.status,
+            bucketed: entry?.bucketed === true,
+            ...o3.reason ? { reason: o3.reason } : {},
+            ...!entry || entry.bucketed !== true ? { reason: "local-only" } : {}
+          };
+        }),
         generatedInternalPaths: [`${MANIFEST}.lock`, ".bucket-cache"]
       };
     } catch {

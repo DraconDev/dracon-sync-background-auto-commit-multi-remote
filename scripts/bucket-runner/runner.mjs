@@ -118,6 +118,10 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       let binding;
       const manifestPath = join(r.root, MANIFEST);
       const prior = await jsonFile(manifestPath, true);
+      // Re-entry of a publish request whose index rename succeeded but whose
+      // manifest rename did not is the recovery case the publisher was built
+      // for. The publisher re-probes remote objects and re-runs the verified
+      // upload; refuse only if the existing index/manifest disagree.
       if (r.operation === 'restore') {
         require(portable && prior);
         binding = validateBinding(profile, portable.value);
@@ -135,9 +139,17 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       if (prior) coherent(prior.value, binding);
       const indexPath = join(r.stateDirectory, `${binding.repositoryId}.index.json`);
       const previousIndex = await jsonFile(indexPath, true);
-      if (previousIndex) require(prior && previousIndex.value.manifestDigest === sha(prior.bytes)
-        && previousIndex.value.repositoryId === binding.repositoryId && previousIndex.value.namespace === binding.namespace
-        && previousIndex.value.profileId === profile.id && previousIndex.value.manifestPath === manifestPath);
+      if (previousIndex) {
+        // Foreign indices (different profile/repository/namespace/manifest
+        // path) are NEVER imported or overwritten: the recovery path is to
+        // refuse and let the operator resolve identity drift.
+        require(previousIndex.value.schemaVersion === 1
+          && previousIndex.value.repositoryId === binding.repositoryId && previousIndex.value.namespace === binding.namespace
+          && previousIndex.value.profileId === profile.id && previousIndex.value.manifestPath === manifestPath);
+        // A matching index (or a missing prior manifest with null digest) is
+        // a no-op; a mismatched index is a stranded index-ahead transaction
+        // and the publisher will rewrite it as part of normal publication.
+      }
       await descriptor(r.root, binding);
       transport = await transportFactory(profile, binding, { role: 'uploader' });
       const result = await publishRepository({ root: r.root, profile, binding, consumer: initial.consumer,
@@ -154,11 +166,20 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       const current = await planRepository({ root: r.root, profile, binding, consumer: fresh.consumer,
         manifest: manifest.value, budget: r.budget, allowedCandidates: r.allowedCandidates });
       require(current.plan.status === 'planned' && current.plan.complete && current.toUpload.length === 0);
+      // Only entries the current plan positively re-verifies get suppression
+      // authority. Retained missing/unsupported/excluded entries never veto
+      // unrelated verified progress and never enter the durable list.
+      const outcomeByPath = new Map(current.plan.outcomes.map(o => [o.sourcePath, o]));
+      const verified = new Map();
+      for (const o of current.plan.outcomes) {
+        if (!o.evidence || !['eligible', 'already-registered'].includes(o.status)) continue;
+        verified.set(o.sourcePath, o);
+      }
       const paths = [];
       for (const entry of manifest.value.assets) {
-        require(safe(entry.sourcePath) && r.allowedCandidates.includes(entry.sourcePath)
-          && current.plan.outcomes.some(o => o.sourcePath === entry.sourcePath && o.evidence
-            && ['eligible', 'already-registered'].includes(o.status)));
+        if (entry.bucketed !== true) continue;
+        if (!verified.has(entry.sourcePath)) continue;
+        require(safe(entry.sourcePath) && r.allowedCandidates.includes(entry.sourcePath));
         const bytes = await read(join(r.root, entry.sourcePath), CAPS.maxSourceBytes);
         require(bytes.length === entry.bytes && sha(bytes) === entry.sha256);
         paths.push(entry.sourcePath);
@@ -167,8 +188,15 @@ export function createRunner({ transportFactory = createPrivateS3Transport, exec
       require(last.status === 'supported' && last.evidence.snapshotDigest === fresh.evidence.snapshotDigest);
       require((await read(manifestPath, 256 * 1024)).equals(manifest.bytes));
       return { schemaVersion: 1, status: 'published', commitEligible: true, manifestSha256: sha(manifest.bytes),
-        portablePaths: [DESCRIPTOR, MANIFEST], materializedPaths: paths,
-        outcomes: current.plan.outcomes.map(o => ({ sourcePath: o.sourcePath, status: o.status })),
+        portablePaths: [DESCRIPTOR, MANIFEST], materializedPaths: paths, verifiedBucketedCount: paths.length,
+        localOnlyPaths: manifest.value.assets.filter(a => a.bucketed === false).map(a => a.sourcePath),
+        outcomes: current.plan.outcomes.map(o => {
+          const entry = manifest.value.assets.find(a => a.sourcePath === o.sourcePath);
+          return { sourcePath: o.sourcePath, status: o.status,
+            bucketed: entry?.bucketed === true,
+            ...(o.reason ? { reason: o.reason } : {}),
+            ...(!entry || entry.bucketed !== true ? { reason: 'local-only' } : {}) };
+        }),
         generatedInternalPaths: [`${MANIFEST}.lock`, '.bucket-cache'] };
     } catch { return refused('request-or-authority-refused'); }
     finally { if (transport) { try { await transport.close(); } catch {} } }

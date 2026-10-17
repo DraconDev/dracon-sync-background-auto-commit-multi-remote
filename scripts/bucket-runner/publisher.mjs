@@ -204,9 +204,21 @@ export async function publishRepository({ root, profile, binding, consumer, asse
     const priorManifest = prior === null ? null : JSON.parse(prior);
     const { plan, toUpload } = await planRepository({ root, profile, binding: trusted, consumer, assetRoot,
       manifest: priorManifest, budget, allowedCandidates, options });
+    // A stranded index-ahead transaction (index rename succeeded, manifest
+    // rename did not) must NOT silently become a no-op. Detect the mismatch
+    // against the desired final manifest digest and re-issue the index.
+    let strandedIndexDigest = null;
+    if (indexPath && isAbsolute(indexPath)) {
+      try {
+        const previous = JSON.parse(await readUtf8(indexPath));
+        if (previous?.manifestDigest !== hash(plan.proposedManifest ? `${JSON.stringify(plan.proposedManifest, null, 2)}\n` : '')) {
+          strandedIndexDigest = previous?.manifestDigest;
+        }
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
     const registrationChanged = (priorManifest !== null || plan.proposedManifest?.assets.length > 0)
       && JSON.stringify(plan.proposedManifest) !== JSON.stringify(priorManifest);
-    if (plan.status !== 'planned' || (!registrationChanged && !toUpload.length)) {
+    if (plan.status !== 'planned' || (!registrationChanged && !toUpload.length && strandedIndexDigest === null)) {
       return { plan, toUpload, indexRebound: false, manifestWritten: false };
     }
     const { head, download, putIfAbsent } = transport;
@@ -286,9 +298,13 @@ export async function publishRepository({ root, profile, binding, consumer, asse
       await atomicWrite(indexPath, `${JSON.stringify(indexRecord, null, 2)}\n`, 0o600);
       indexRebound = true;
     }
+    // A stranded index-only transaction now points at the same digest as the
+    // manifest we are about to write. Mark the recovery so the runner can
+    // distinguish a real recovery from a routine re-bind.
+    const recoveredFromStrandedIndex = strandedIndexDigest !== null;
     await atomicWrite(manifestPath, finalBytes);
     return { plan, toUpload: verified, indexRebound, manifestWritten: true,
-      manifestDigest: hash(finalBytes), manifestPath };
+      manifestDigest: hash(finalBytes), manifestPath, recoveredFromStrandedIndex };
   } catch (error) {
     return failPending({ status: 'refused', reason: error.message, outcomes: [], added: [],
       complete: false, proposedManifest: null }, error.message);
