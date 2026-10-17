@@ -120,6 +120,29 @@ async fn accounting_keeps_lagging_mirror_objects_and_respects_exclusions() {
 }
 
 #[tokio::test]
+async fn accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess() {
+    let td = fixture(); let repo = td.path(); let mut p = policy();
+    put(repo, "published.txt", 700);
+    run(repo, &["add", "--", "published.txt"]);
+    run(repo, &["commit", "-qm", "published to primary"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    assert_eq!(measure(repo, &p).await.unwrap(), 0);
+    p.remotes.push(crate::policy::RemoteConfig {
+        name: "codeberg".into(), push_url: "https://codeberg.org/DraconDev/fixture.git".into(),
+        auto_create: false, auto_create_account: String::new(), auth_type: Default::default(),
+        priority: 1, api_endpoint: None, auto_create_token_var: None,
+        repo_name_map: Default::default(), force_push_when_behind: false,
+    });
+    // Public visibility may activate this mirror even with auto_create=false.
+    // Accounting includes the possibility irrespective of cache changes: all
+    // HEAD objects bound its unknown availability without guessing empty.
+    assert_eq!(measure(repo, &p).await.unwrap(), 700);
+    run(repo, &["config", "--unset", "branch.main.remote"]);
+    run(repo, &["update-ref", "-d", "refs/remotes/origin/main"]);
+    assert_eq!(measure(repo, &p).await.unwrap(), 700);
+}
+
+#[tokio::test]
 async fn accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries() {
     let td = fixture();
     let repo = td.path();
