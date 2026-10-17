@@ -174,14 +174,27 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         .lines()
         .map(|line| line.split_once(' ').context("accounting-invalid-tip"))
         .collect::<Result<_>>()?;
-    let upstream = git(repo, &args(&["config", "--default", "", "--get", &format!("branch.{branch}.remote")]), None).await?;
+    let upstream = git(
+        repo,
+        &args(&[
+            "config",
+            "--default",
+            "",
+            "--get",
+            &format!("branch.{branch}.remote"),
+        ]),
+        None,
+    )
+    .await?;
     let upstream = text(&upstream)?.trim();
     let mut objects = BTreeSet::new();
     for remote in destinations {
         let reference = format!("refs/remotes/{remote}/{branch}");
         let mut traversal = args(&["rev-list", "--objects", "--no-object-names", head]);
         if let Some(tip) = tips.get(reference.as_str()) {
-            if !oid(tip) { bail!("accounting-invalid-tip"); }
+            if !oid(tip) {
+                bail!("accounting-invalid-tip");
+            }
             traversal.extend(args(&["--not", tip]));
         } else if remote == upstream {
             // A configured upstream is expected to have a tracking tip. Do
