@@ -1,4 +1,4 @@
-# Outgoing raw-blob accounting implementation — 2026-10-18
+# Outgoing raw-blob accounting implementation — 2026-10-17
 
 Implements the pressure-accounting list item of the 2026-10-17 routing
 contract. No production deployment, credential changes or hook bypass.
@@ -98,7 +98,7 @@ The independent source reviewer identified replacement-ref undercounting and
 Codeberg quota/cache undercounting; both were fixed and regression-tested.
 Final source-only recheck reports no blockers; execution remained parent-run.
 Full Node runner suite also passes (157 tests). Durable logs are stored in
-`evidence/bucket-outgoing-accounting-2026-10-18/`.
+`evidence/bucket-outgoing-accounting-2026-10-17/`.
 
 This is source/test qualification only. Final workspace gates, production
 artifact installation, actual OVH upload/readback/restore and live retry
