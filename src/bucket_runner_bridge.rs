@@ -320,7 +320,7 @@ async fn discover_candidates(repo: &Path, asset_root: &str, policy: &SyncPolicy)
         scanned += 1;
         if scanned > MAX_CANDIDATES { bail!("candidate scan exceeds limit"); }
         let line = std::str::from_utf8(raw).context("non-UTF8 candidate")?;
-        if is_untracked && (!policy.auto_stage_untracked || crate::exclude::matches_any_pattern(line, &policy.untracked_exclude_patterns)) { continue; }
+        if is_untracked && (!policy.auto_stage_untracked || crate::exclude::matches_untracked_exclude(repo, line, &policy.untracked_exclude_patterns)) { continue; }
         if prefix_slash.as_ref().is_some_and(|prefix| !line.starts_with(prefix)) { continue; }
         let relative = line.to_string();
         if !safe_relative(&relative) {
@@ -346,8 +346,7 @@ async fn discover_candidates(repo: &Path, asset_root: &str, policy: &SyncPolicy)
             ancestor = parent.parent();
         }
         if nested { continue; }
-        let entry = dracon_git::types::DiffFile { path: relative.clone(), old_path: None,
-            status: dracon_git::types::FileStatus::Added, lines_added: 0, lines_removed: 0, binary: false };
+        let entry = dracon_git::types::DiffFile::new(relative.clone(), dracon_git::types::FileStatus::Added);
         if !crate::exclude::should_stage_entry_with_blob_size(repo, &entry, meta.len(), &dirs,
             &policy.exclude_file_patterns, policy.max_stage_file_bytes, &excludes) { continue; }
         candidates.insert(relative);
