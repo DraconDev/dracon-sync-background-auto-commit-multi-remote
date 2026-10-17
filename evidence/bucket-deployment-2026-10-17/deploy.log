@@ -1,0 +1,19 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+rollback=/home/dracon/.local/state/dracon-sync/bucket-rollbacks/20261017T233245Z
+active
+running_pid=2833179
+dracon-sync 0.113.95
+{"schemaVersion":1,"protocolVersion":1,"runner":"bucket-runner","operations":["inspect","publish","restore"]}
+{"schemaVersion":1,"check":"local-file-access-only","roles":{"uploader":true,"consumer":true},"networkRequests":0,"ok":true}
+finished=2026-10-17T23:32:49Z
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /home/dracon/.local/state/dracon-sync/qualified-bucket/20261017-2b74bb7c84cb/dracon-sync
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /home/dracon/.local/bin/dracon-sync
+2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba  /proc/2833179/exe
+352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020  /home/dracon/.local/state/dracon-sync/qualified-bucket/20261017-2b74bb7c84cb/runner.bundle.mjs
+352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020  /home/dracon/.dracon/bin/runner.bundle.mjs
+21e4b3476561e0b3270142d6211fb65dbb628a53cb774d6a2f49e9cd342a4f7d  /home/dracon/.dracon/state/bucket-runner/profile.json
+ActiveState=active
+MainPID=2833179
+ExecMainStartTimestamp=Sun 2026-10-18 00:32:48 BST
+rollback=/home/dracon/.local/state/dracon-sync/bucket-rollbacks/20261017T233245Z
+▶️  Sync resumed (freeze marker removed)
