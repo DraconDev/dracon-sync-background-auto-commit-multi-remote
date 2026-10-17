@@ -160,7 +160,10 @@ stage_op_timeout_secs = 30
         .await
         .expect("bounded daemon worker")
         .expect("worker result");
-        if outcome == SyncOutcome::Blocked { eprintln!("qualification operations: {:?}", self.operations()); }
+        if outcome == SyncOutcome::Blocked {
+            eprintln!("qualification operations: {:?}", self.operations());
+            eprintln!("staged paths: {}", String::from_utf8_lossy(&git(&self.repo, &["diff", "--cached", "--name-only"])));
+        }
         outcome
     }
     fn assert_enrolled(&self) -> (Vec<u8>, PathBuf, Vec<u8>) {
