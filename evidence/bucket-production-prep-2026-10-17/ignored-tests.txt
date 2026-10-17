@@ -1,0 +1,25 @@
+test test_encrypt_for_node_uses_disk_master_identities ... ignored
+test test_generate_master_identity_refuses_existing_identity ... ignored
+test test_generate_master_identity_refuses_legacy_identity ... ignored
+test test_load_repo_key_machine_key_env_var ... ignored
+test test_load_repo_key_team_key ... ignored
+test test_unlock_payload_empty ... ignored
+test storage_core::backend::tests::encrypted_payload_round_trip_uses_isolated_keys_and_cold_backend ... ignored, operational prototype: requires age and age-keygen on PATH
+test storage_core::hydration::tests::crash_helper ... ignored, subprocess helper invoked by hydration crash recovery
+test storage_core::index::tests::commit_lock_crash_helper ... ignored, commit-lock subprocess helper invoked by crash recovery test
+test storage_core::index::tests::index_crash_helper ... ignored, subprocess helper invoked by crash recovery test
+test storage_core::journal::tests::crash_child ... ignored, subprocess helper, invoked by the crash recovery test
+test storage_core::journal::tests::payload_crash_child ... ignored, subprocess helper, invoked by payload crash recovery test
+test storage_core::journal::tests::snapshot_crash_child ... ignored, subprocess helper, invoked by snapshot crash recovery test
+test storage_core::metadata::tests::metadata_crash_child ... ignored, subprocess helper, invoked by metadata crash test
+test storage_core::metadata::tests::metadata_import_crash_child ... ignored, subprocess helper invoked by cold-import crash test
+test storage_core::metadata::tests::real_warden_manifest_restores_without_original_metadata_store ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::restore::tests::real_cold_recovery_restores_large_encrypted_asset_without_original_source ... ignored, requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-built binary
+test storage_core::security::tests::real_warden_large_payload_copies_and_cold_restore_use_fixture_keys ... ignored, operational check: requires age-keygen and DRACON_STORAGE_TEST_WARDEN source-build binary
+test storage_core::security::tests::security_crash_child ... ignored, subprocess helper, invoked by security crash recovery test
+test git::tests::test_create_repo_on_github_pat_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_network_error ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test git::tests::test_create_repo_on_gitlab_token_passed_as_env_var ... ignored, depends on a clean PATH with no real gh/glab binaries; flaky in dev environments
+test actual_warden_hook_blocks_invalid_storage_commit_and_keeps_user_hook ... ignored, requires DRACON_STORAGE_TEST_WARDEN pointing to the built source Warden binary
+test cold_clone_restores_exact_asset_from_signed_https_s3 ... ignored, operational HTTPS fixture: requires openssl and python3
+test policy_capture_and_advance_encrypt_exact_version_with_actual_warden ... ignored, requires source-built Warden and age/age-keygen for isolated encryption

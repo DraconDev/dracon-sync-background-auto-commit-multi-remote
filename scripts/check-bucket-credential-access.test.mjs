@@ -55,4 +55,10 @@ test('local credential preflight requires explicit valid authority and never exe
   assert.equal(missing.ok, false); assert.equal(missing.networkRequests, 0);
   const out = spawnSync('node', [cli], { timeout: 15000, encoding: 'utf8' });
   assert.equal(out.status, 2);
+  const profile = JSON.parse(await readFile(f.profilePath, 'utf8'));
+  await writeFile(f.profilePath, canonical({ ...profile, enabled: false }));
+  assert.equal((await checkCredentialAccess(f.profilePath)).ok, false);
+  await writeFile(f.profilePath, canonical(profile));
+  await writeFile(profile.runner.path, '// changed after trusted profile snapshot\n');
+  assert.deepEqual((await checkCredentialAccess(f.profilePath)).roles, { uploader: false, consumer: false });
 });

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "preparedAt": "2026-10-17T23:20:52.367656+00:00",
+  "directory": "/home/dracon/.local/state/dracon-sync/qualified-bucket/20261017-2b74bb7c84cb",
+  "artifacts": {
+    "dracon-sync": "2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba",
+    "runner.bundle.mjs": "352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020"
+  },
+  "installedBefore": {
+    "daemon": "b1c9617024345353ab3fd7d5464de4ea68b28390c8e64def2603e92aef39999a",
+    "runner": "f1d0ff1fcb8b82d9bb3d835b07393f7cb94dca40c50dfba4136b847240b88612",
+    "profile": "d46ef28dbec60b8287ea1f1163a100b331b251429f671c4c6ea69a126b6685dc"
+  },
+  "deploymentPerformed": false
+}
