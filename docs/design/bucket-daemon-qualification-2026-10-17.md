@@ -85,6 +85,8 @@ and measured-payload regressions remain green.
   25 passed, zero failures.
 - `timeout 120 env CARGO_BUILD_JOBS=1 cargo test -p dracon-sync --locked bucket_qualification_daemon -- --test-threads=1`:
   3 passed, zero failures (also re-run after the final fixture policy adjustment).
+- `timeout 120 env CARGO_BUILD_JOBS=1 cargo test -p dracon-sync --locked test_stage_existing_files -- --test-threads=1`:
+  11 legacy directory-expansion/staging regressions passed, zero failures.
 - `timeout 120 env CARGO_BUILD_JOBS=1 cargo clippy -p dracon-sync --locked -- -D warnings`:
   passed without warnings/errors.
 - `timeout 20 node scripts/build-bucket-runner.mjs --check`: dependency closure

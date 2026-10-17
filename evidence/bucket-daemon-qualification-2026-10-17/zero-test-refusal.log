@@ -1,0 +1,3 @@
+Required daemon-worker scenario missing or not passed: bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored;

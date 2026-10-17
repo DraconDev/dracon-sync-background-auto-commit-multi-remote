@@ -1,0 +1,960 @@
+TAP version 13
+# Subtest: renderSolidPng: actual brand golden and bounded numeric recipe
+ok 1 - renderSolidPng: actual brand golden and bounded numeric recipe
+  ---
+  duration_ms: 5.433357
+  type: 'test'
+  ...
+# Subtest: probeCandidate: deterministic evidence and other recipes
+ok 2 - probeCandidate: deterministic evidence and other recipes
+  ---
+  duration_ms: 23.049042
+  type: 'test'
+  ...
+# Subtest: probeCandidate: malformed, bomb, oversized, non-solid and noncanonical PNGs
+ok 3 - probeCandidate: malformed, bomb, oversized, non-solid and noncanonical PNGs
+  ---
+  duration_ms: 24.398469
+  type: 'test'
+  ...
+# Subtest: verifyEvidence: edits and every authority/provenance field fail closed
+ok 4 - verifyEvidence: edits and every authority/provenance field fail closed
+  ---
+  duration_ms: 6.805387
+  type: 'test'
+  ...
+# Subtest: probeCandidate: traversal, exclusions, consumers, symlinks and nested ownership
+ok 5 - probeCandidate: traversal, exclusions, consumers, symlinks and nested ownership
+  ---
+  duration_ms: 3.818869
+  type: 'test'
+  ...
+# Subtest: probeCandidate: same-size valid replacement during read is retryable/source-changed
+ok 6 - probeCandidate: same-size valid replacement during read is retryable/source-changed
+  ---
+  duration_ms: 32.826029
+  type: 'test'
+  ...
+# Subtest: failed state write or fsync cleans temporary files and permits retry
+ok 7 - failed state write or fsync cleans temporary files and permits retry
+  ---
+  duration_ms: 259.557963
+  type: 'test'
+  ...
+# Subtest: first binding is private, durable, idempotent and retained after physical rename
+ok 8 - first binding is private, durable, idempotent and retained after physical rename
+  ---
+  duration_ms: 216.770749
+  type: 'test'
+  ...
+# Subtest: descriptor never enrolls unrelated or copied .git repositories
+ok 9 - descriptor never enrolls unrelated or copied .git repositories
+  ---
+  duration_ms: 278.697194
+  type: 'test'
+  ...
+# Subtest: remote selection and enrollment anchor fail closed on drift
+ok 10 - remote selection and enrollment anchor fail closed on drift
+  ---
+  duration_ms: 363.549738
+  type: 'test'
+  ...
+# Subtest: disabled, other-profile, unauthorized tree and malformed input refuse
+ok 11 - disabled, other-profile, unauthorized tree and malformed input refuse
+  ---
+  duration_ms: 110.916769
+  type: 'test'
+  ...
+# Subtest: symlink roots, symlink state paths, writable parents and unsafe files refuse
+ok 12 - symlink roots, symlink state paths, writable parents and unsafe files refuse
+  ---
+  duration_ms: 159.483403
+  type: 'test'
+  ...
+# Subtest: unborn, detached, nested root and symlink common directory refuse
+ok 13 - unborn, detached, nested root and symlink common directory refuse
+  ---
+  duration_ms: 84.233285
+  type: 'test'
+  ...
+# Subtest: single state lock serializes simultaneous first enrollments without losing records
+ok 14 - single state lock serializes simultaneous first enrollments without losing records
+  ---
+  duration_ms: 357.111394
+  type: 'test'
+  ...
+# Subtest: linked worktrees share actual common-directory authority within authorized trees
+ok 15 - linked worktrees share actual common-directory authority within authorized trees
+  ---
+  duration_ms: 142.757999
+  type: 'test'
+  ...
+# Subtest: inherited Git overrides cannot redirect inspected repository
+ok 16 - inherited Git overrides cannot redirect inspected repository
+  ---
+  duration_ms: 89.831784
+  type: 'test'
+  ...
+# Subtest: profile authority is strict, immutable and independent of caller mutation
+ok 17 - profile authority is strict, immutable and independent of caller mutation
+  ---
+  duration_ms: 4.955675
+  type: 'test'
+  ...
+# Subtest: authorized subtrees cover new nested repositories without a per-repo registry
+ok 18 - authorized subtrees cover new nested repositories without a per-repo registry
+  ---
+  duration_ms: 1.086993
+  type: 'test'
+  ...
+# Subtest: every object request is bound to trusted namespace, not manifest claims
+ok 19 - every object request is bound to trusted namespace, not manifest claims
+  ---
+  duration_ms: 2.092229
+  type: 'test'
+  ...
+# Subtest: consumer transport has no write operation even if underlying client can write
+ok 20 - consumer transport has no write operation even if underlying client can write
+  ---
+  duration_ms: 0.483353
+  type: 'test'
+  ...
+# Subtest: operator loader enforces ownership permissions and runner hash without reading credential files
+ok 21 - operator loader enforces ownership permissions and runner hash without reading credential files
+  ---
+  duration_ms: 16.771812
+  type: 'test'
+  ...
+# Subtest: operator loader refuses symlink ancestors/leaves, malformed and oversized profiles
+ok 22 - operator loader refuses symlink ancestors/leaves, malformed and oversized profiles
+  ---
+  duration_ms: 4.018736
+  type: 'test'
+  ...
+# Subtest: independent checkout beneath parent Git/package boundary remains eligible for text qualification
+ok 23 - independent checkout beneath parent Git/package boundary remains eligible for text qualification
+  ---
+  duration_ms: 75.121124
+  type: 'test'
+  ...
+# Subtest: managed plain Vite verifies text only, does not build or mutate; manifest is snapshot data only
+ok 24 - managed plain Vite verifies text only, does not build or mutate; manifest is snapshot data only
+  ---
+  duration_ms: 40.857461
+  type: 'test'
+  ...
+# Subtest: missing prebuild returns digest-bound proposed bytes, no authority; fixture-only application requalifies
+ok 25 - missing prebuild returns digest-bound proposed bytes, no authority; fixture-only application requalifies
+  ---
+  duration_ms: 57.798172
+  type: 'test'
+  ...
+# Subtest: occupied prebuild including empty value remains byte-identical
+    # Subtest: ""
+    ok 1 - ""
+      ---
+      duration_ms: 18.901803
+      type: 'test'
+      ...
+    # Subtest: "npm run sync-catalog"
+    ok 2 - "npm run sync-catalog"
+      ---
+      duration_ms: 15.895678
+      type: 'test'
+      ...
+    # Subtest: "dracon-sync bucket-assets restore && echo done"
+    ok 3 - "dracon-sync bucket-assets restore && echo done"
+      ---
+      duration_ms: 19.637963
+      type: 'test'
+      ...
+    # Subtest: null
+    ok 4 - null
+      ---
+      duration_ms: 15.818923
+      type: 'test'
+      ...
+    1..4
+ok 26 - occupied prebuild including empty value remains byte-identical
+  ---
+  duration_ms: 71.096736
+  type: 'test'
+  ...
+# Subtest: all Vite and Svelte config variants fail closed, never import config
+    # Subtest: vite.js
+    ok 1 - vite.js
+      ---
+      duration_ms: 6.976982
+      type: 'test'
+      ...
+    # Subtest: vite.mjs
+    ok 2 - vite.mjs
+      ---
+      duration_ms: 10.218611
+      type: 'test'
+      ...
+    # Subtest: vite.cjs
+    ok 3 - vite.cjs
+      ---
+      duration_ms: 9.991943
+      type: 'test'
+      ...
+    # Subtest: vite.ts
+    ok 4 - vite.ts
+      ---
+      duration_ms: 6.763909
+      type: 'test'
+      ...
+    # Subtest: vite.mts
+    ok 5 - vite.mts
+      ---
+      duration_ms: 8.602089
+      type: 'test'
+      ...
+    # Subtest: vite.cts
+    ok 6 - vite.cts
+      ---
+      duration_ms: 7.229728
+      type: 'test'
+      ...
+    # Subtest: svelte.js
+    ok 7 - svelte.js
+      ---
+      duration_ms: 8.516047
+      type: 'test'
+      ...
+    # Subtest: svelte.mjs
+    ok 8 - svelte.mjs
+      ---
+      duration_ms: 11.546968
+      type: 'test'
+      ...
+    # Subtest: svelte.cjs
+    ok 9 - svelte.cjs
+      ---
+      duration_ms: 7.767373
+      type: 'test'
+      ...
+    # Subtest: svelte.ts
+    ok 10 - svelte.ts
+      ---
+      duration_ms: 8.855838
+      type: 'test'
+      ...
+    # Subtest: svelte.mts
+    ok 11 - svelte.mts
+      ---
+      duration_ms: 8.301481
+      type: 'test'
+      ...
+    # Subtest: svelte.cts
+    ok 12 - svelte.cts
+      ---
+      duration_ms: 6.980427
+      type: 'test'
+      ...
+    1..12
+ok 27 - all Vite and Svelte config variants fail closed, never import config
+  ---
+  duration_ms: 103.620084
+  type: 'test'
+  ...
+# Subtest: static assets are not default public; root index is mandatory
+ok 28 - static assets are not default public; root index is mandatory
+  ---
+  duration_ms: 8.963842
+  type: 'test'
+  ...
+# Subtest: canonical JSON requirement rejects malformed, duplicate, minified and alternate formatting without rewriting
+    # Subtest: {
+    ok 1 - {
+      ---
+      duration_ms: 15.609448
+      type: 'test'
+      ...
+    # Subtest: {"scripts":{"build":"vite build"},"scripts":{}}\\n
+    ok 2 - {"scripts":{"build":"vite build"},"scripts":{}}\\n
+      ---
+      duration_ms: 18.451823
+      type: 'test'
+      ...
+    # Subtest: {"name":"x"}\\n
+    ok 3 - {"name":"x"}\\n
+      ---
+      duration_ms: 17.27918
+      type: 'test'
+      ...
+    # Subtest: {\\n  "name": "x",\\n  "name": "y"\\n}\\n
+    ok 4 - {\\n  "name": "x",\\n  "name": "y"\\n}\\n
+      ---
+      duration_ms: 15.22389
+      type: 'test'
+      ...
+    1..4
+ok 29 - canonical JSON requirement rejects malformed, duplicate, minified and alternate formatting without rewriting
+  ---
+  duration_ms: 67.28983
+  type: 'test'
+  ...
+# Subtest: exact pinned Vite 6/7 and matching npm lock metadata are required
+    # Subtest: ^7.1.2
+    ok 1 - ^7.1.2
+      ---
+      duration_ms: 18.161225
+      type: 'test'
+      ...
+    # Subtest: ~6.0.0
+    ok 2 - ~6.0.0
+      ---
+      duration_ms: 21.850058
+      type: 'test'
+      ...
+    # Subtest: 8.0.0
+    ok 3 - 8.0.0
+      ---
+      duration_ms: 17.117054
+      type: 'test'
+      ...
+    # Subtest: 5.4.0
+    ok 4 - 5.4.0
+      ---
+      duration_ms: 16.500569
+      type: 'test'
+      ...
+    # Subtest: 7.0.0-beta.1
+    ok 5 - 7.0.0-beta.1
+      ---
+      duration_ms: 14.003005
+      type: 'test'
+      ...
+    # Subtest: 07.1.0
+    ok 6 - 07.1.0
+      ---
+      duration_ms: 12.52302
+      type: 'test'
+      ...
+    # Subtest: npm:vite@7.0.0
+    ok 7 - npm:vite@7.0.0
+      ---
+      duration_ms: 19.746477
+      type: 'test'
+      ...
+    # Subtest: file:../vite
+    ok 8 - file:../vite
+      ---
+      duration_ms: 14.570496
+      type: 'test'
+      ...
+    1..8
+ok 30 - exact pinned Vite 6/7 and matching npm lock metadata are required
+  ---
+  duration_ms: 150.388203
+  type: 'test'
+  ...
+# Subtest: unsupported invocation, disabled lifecycle and alternative package manager
+ok 31 - unsupported invocation, disabled lifecycle and alternative package manager
+  ---
+  duration_ms: 41.882856
+  type: 'test'
+  ...
+# Subtest: legacy manifests, restore scripts, npm configuration and restore workflow conflict
+    # Subtest: bucket-assets.json
+    ok 1 - bucket-assets.json
+      ---
+      duration_ms: 11.708844
+      type: 'test'
+      ...
+    # Subtest: .dracon/bucket-assets.json
+    ok 2 - .dracon/bucket-assets.json
+      ---
+      duration_ms: 8.175033
+      type: 'test'
+      ...
+    # Subtest: .npmrc
+    ok 3 - .npmrc
+      ---
+      duration_ms: 6.498147
+      type: 'test'
+      ...
+    # Subtest: bun.lock
+    ok 4 - bun.lock
+      ---
+      duration_ms: 6.113311
+      type: 'test'
+      ...
+    1..4
+ok 32 - legacy manifests, restore scripts, npm configuration and restore workflow conflict
+  ---
+  duration_ms: 58.745339
+  type: 'test'
+  ...
+# Subtest: package edit races invalidate plan and opaque consumer evidence
+ok 33 - package edit races invalidate plan and opaque consumer evidence
+  ---
+  duration_ms: 32.669644
+  type: 'test'
+  ...
+# Subtest: config, index, public, lock and manifest changes invalidate evidence
+    # Subtest: vite.config.cts
+    ok 1 - vite.config.cts
+      ---
+      duration_ms: 18.579744
+      type: 'test'
+      ...
+    # Subtest: index.html
+    ok 2 - index.html
+      ---
+      duration_ms: 27.796945
+      type: 'test'
+      ...
+    # Subtest: public/new.txt
+    ok 3 - public/new.txt
+      ---
+      duration_ms: 32.150043
+      type: 'test'
+      ...
+    # Subtest: package-lock.json
+    ok 4 - package-lock.json
+      ---
+      duration_ms: 35.672673
+      type: 'test'
+      ...
+    # Subtest: bucket-assets.manifest.json
+    ok 5 - bucket-assets.manifest.json
+      ---
+      duration_ms: 49.414345
+      type: 'test'
+      ...
+    1..5
+ok 34 - config, index, public, lock and manifest changes invalidate evidence
+  ---
+  duration_ms: 164.476588
+  type: 'test'
+  ...
+# Subtest: symlink files/directories/ancestors and hardlinks are not proof
+    # Subtest: package.json
+    ok 1 - package.json
+      ---
+      duration_ms: 8.479227
+      type: 'test'
+      ...
+    # Subtest: index.html
+    ok 2 - index.html
+      ---
+      duration_ms: 6.715507
+      type: 'test'
+      ...
+    # Subtest: public
+    ok 3 - public
+      ---
+      duration_ms: 6.324189
+      type: 'test'
+      ...
+    # Subtest: public/extra
+    ok 4 - public/extra
+      ---
+      duration_ms: 6.506172
+      type: 'test'
+      ...
+    1..4
+ok 35 - symlink files/directories/ancestors and hardlinks are not proof
+  ---
+  duration_ms: 41.226978
+  type: 'test'
+  ...
+# Subtest: nested Git, workspaces, nested package, unsafe ownership and writable directories refused
+ok 36 - nested Git, workspaces, nested package, unsafe ownership and writable directories refused
+  ---
+  duration_ms: 24.323218
+  type: 'test'
+  ...
+# Subtest: bounded reads and directory enumeration fail closed
+ok 37 - bounded reads and directory enumeration fail closed
+  ---
+  duration_ms: 328.050072
+  type: 'test'
+  ...
+# Subtest: all inherited GIT overrides are stripped and Git-root boundaries are verified
+ok 38 - all inherited GIT overrides are stripped and Git-root boundaries are verified
+  ---
+  duration_ms: 19.73199
+  type: 'test'
+  ...
+# Subtest: Git metadata indirection, includes, symlinks and staged gitlinks fail closed
+ok 39 - Git metadata indirection, includes, symlinks and staged gitlinks fail closed
+  ---
+  duration_ms: 24.449546
+  type: 'test'
+  ...
+# Subtest: framework plugins, duplicate Vite declarations and lifecycle ignore environment are unsupported
+ok 40 - framework plugins, duplicate Vite declarations and lifecycle ignore environment are unsupported
+  ---
+  duration_ms: 29.164497
+  type: 'test'
+  ...
+# Subtest: inspectConsumer: exact persistent manifest lock is internal, not a generic restore exemption
+ok 41 - inspectConsumer: exact persistent manifest lock is internal, not a generic restore exemption
+  ---
+  duration_ms: 65.771544
+  type: 'test'
+  ...
+# Subtest: inspectConsumer: manifest lock exemption still rejects symlinks
+ok 42 - inspectConsumer: manifest lock exemption still rejects symlinks
+  ---
+  duration_ms: 8.403344
+  type: 'test'
+  ...
+# Subtest: inspectConsumer: exact manifest lock cannot be a directory
+ok 43 - inspectConsumer: exact manifest lock cannot be a directory
+  ---
+  duration_ms: 8.689835
+  type: 'test'
+  ...
+# Subtest: e2e: unregistered eligible asset enrolls, verifies and restores on a fresh consumer
+ok 44 - e2e: unregistered eligible asset enrolls, verifies and restores on a fresh consumer
+  ---
+  duration_ms: 72.560329
+  type: 'test'
+  ...
+# Subtest: e2e: ineligible assets are never uploaded, the manifest is empty and no transport calls leak
+ok 45 - e2e: ineligible assets are never uploaded, the manifest is empty and no transport calls leak
+  ---
+  duration_ms: 34.937134
+  type: 'test'
+  ...
+# Subtest: e2e: repeat enrollment is idempotent (no second upload, no second manifest write)
+ok 46 - e2e: repeat enrollment is idempotent (no second upload, no second manifest write)
+  ---
+  duration_ms: 63.45994
+  type: 'test'
+  ...
+# Subtest: recovery: storage outage during upload keeps local worktree and manifest absent; retry succeeds
+ok 47 - recovery: storage outage during upload keeps local worktree and manifest absent; retry succeeds
+  ---
+  duration_ms: 58.692549
+  type: 'test'
+  ...
+# Subtest: recovery: partial upload (storage lies about head()) is detected, manifest absent, retry succeeds
+ok 48 - recovery: partial upload (storage lies about head()) is detected, manifest absent, retry succeeds
+  ---
+  duration_ms: 61.02874
+  type: 'test'
+  ...
+# Subtest: recovery: concurrent manifest change aborts the second publisher; retry re-reads and succeeds
+ok 49 - recovery: concurrent manifest change aborts the second publisher; retry re-reads and succeeds
+  ---
+  duration_ms: 58.103297
+  type: 'test'
+  ...
+# Subtest: recovery: simulated daemon interruption between storage upload and manifest write preserves invariant
+ok 50 - recovery: simulated daemon interruption between storage upload and manifest write preserves invariant
+  ---
+  duration_ms: 60.577508
+  type: 'test'
+  ...
+# Subtest: e2e: fresh consumer restores a renamed asset and refuses a deleted one
+ok 51 - e2e: fresh consumer restores a renamed asset and refuses a deleted one
+  ---
+  duration_ms: 64.136487
+  type: 'test'
+  ...
+# Subtest: inspectRepository: discovers supported eligible asset and ignores unsafe/unsupported files
+ok 52 - inspectRepository: discovers supported eligible asset and ignores unsafe/unsupported files
+  ---
+  duration_ms: 63.768832
+  type: 'test'
+  ...
+# Subtest: inspectRepository: new asset root only enrolls files beneath it
+ok 53 - inspectRepository: new asset root only enrolls files beneath it
+  ---
+  duration_ms: 29.460716
+  type: 'test'
+  ...
+# Subtest: inspectRepository: existing manifest is preserved, legacy entries retained and changed ones refused
+ok 54 - inspectRepository: existing manifest is preserved, legacy entries retained and changed ones refused
+  ---
+  duration_ms: 54.765707
+  type: 'test'
+  ...
+# Subtest: inspectRepository: manifest/binding mismatch and unsafe consumer are refused
+ok 55 - inspectRepository: manifest/binding mismatch and unsafe consumer are refused
+  ---
+  duration_ms: 51.368884
+  type: 'test'
+  ...
+# Subtest: inspectRepository: missing/deleted source keeps the prior manifest entry and reports missing
+ok 56 - inspectRepository: missing/deleted source keeps the prior manifest entry and reports missing
+  ---
+  duration_ms: 25.45806
+  type: 'test'
+  ...
+# Subtest: inspectRepository: phantom checkout, symlink and nested gitlink are refused
+ok 57 - inspectRepository: phantom checkout, symlink and nested gitlink are refused
+  ---
+  duration_ms: 27.141137
+  type: 'test'
+  ...
+# Subtest: inspectRepository: same plan twice is idempotent; new file is enrolled on the second pass
+ok 58 - inspectRepository: same plan twice is idempotent; new file is enrolled on the second pass
+  ---
+  duration_ms: 70.847886
+  type: 'test'
+  ...
+# Subtest: planRepository: shared size policy routes real eligible PNGs without granting eligibility
+ok 59 - planRepository: shared size policy routes real eligible PNGs without granting eligibility
+  ---
+  duration_ms: 164.599711
+  type: 'test'
+  ...
+# Subtest: planRepository: returns concrete eligible candidates needing upload
+ok 60 - planRepository: returns concrete eligible candidates needing upload
+  ---
+  duration_ms: 30.037164
+  type: 'test'
+  ...
+# Subtest: planRepository: idempotent re-plan retains unverified pending uploads
+ok 61 - planRepository: idempotent re-plan retains unverified pending uploads
+  ---
+  duration_ms: 42.879868
+  type: 'test'
+  ...
+# Subtest: publishRepository: writes manifest, verifies, sets bucketed:true, and binds index
+ok 62 - publishRepository: writes manifest, verifies, sets bucketed:true, and binds index
+  ---
+  duration_ms: 57.572646
+  type: 'test'
+  ...
+# Subtest: publishRepository: refuses to upload when transport reports a different object
+ok 63 - publishRepository: refuses to upload when transport reports a different object
+  ---
+  duration_ms: 36.850506
+  type: 'test'
+  ...
+# Subtest: publishRepository: rejects transport claiming a wrong bucket namespace
+ok 64 - publishRepository: rejects transport claiming a wrong bucket namespace
+  ---
+  duration_ms: 31.333602
+  type: 'test'
+  ...
+# Subtest: publishRepository: writes manifest even when storage raced a concurrent create
+ok 65 - publishRepository: writes manifest even when storage raced a concurrent create
+  ---
+  duration_ms: 37.944873
+  type: 'test'
+  ...
+# Subtest: publishRepository: concurrent publisher blocks until the first releases the lock
+ok 66 - publishRepository: concurrent publisher blocks until the first releases the lock
+  ---
+  duration_ms: 51.779209
+  type: 'test'
+  ...
+# Subtest: publicationLock: readiness waits for kernel ownership, not a grace timer
+ok 67 - publicationLock: readiness waits for kernel ownership, not a grace timer
+  ---
+  duration_ms: 370.213628
+  type: 'test'
+  ...
+# Subtest: publicationLock: rejects symlink and timeout without leaking ownership
+ok 68 - publicationLock: rejects symlink and timeout without leaking ownership
+  ---
+  duration_ms: 83.46771
+  type: 'test'
+  ...
+# Subtest: publishRepository: successful PUT with corrupt stored bytes cannot publish
+ok 69 - publishRepository: successful PUT with corrupt stored bytes cannot publish
+  ---
+  duration_ms: 36.401318
+  type: 'test'
+  ...
+# Subtest: publishRepository: concurrent creation of previously absent manifest is retained
+ok 70 - publishRepository: concurrent creation of previously absent manifest is retained
+  ---
+  duration_ms: 39.900735
+  type: 'test'
+  ...
+# Subtest: publishRepository: raced source is revalidated before any upload
+ok 71 - publishRepository: raced source is revalidated before any upload
+  ---
+  duration_ms: 44.063954
+  type: 'test'
+  ...
+# Subtest: publishRepository: generator changes during upload prevent stale references
+ok 72 - publishRepository: generator changes during upload prevent stale references
+  ---
+  duration_ms: 38.530327
+  type: 'test'
+  ...
+# Subtest: publishRepository: rejects manifest escape and symlink ancestors before transport
+ok 73 - publishRepository: rejects manifest escape and symlink ancestors before transport
+  ---
+  duration_ms: 13.359019
+  type: 'test'
+  ...
+# Subtest: publishRepository: small assets register locally then route when measured pressure rises
+ok 74 - publishRepository: small assets register locally then route when measured pressure rises
+  ---
+  duration_ms: 54.43911
+  type: 'test'
+  ...
+# Subtest: publishRepository: absent routing budget refuses before storage or manifest mutation
+ok 75 - publishRepository: absent routing budget refuses before storage or manifest mutation
+  ---
+  duration_ms: 28.284486
+  type: 'test'
+  ...
+# Subtest: publishRepository: explicit large threshold routes only qualified assets
+ok 76 - publishRepository: explicit large threshold routes only qualified assets
+  ---
+  duration_ms: 32.103615
+  type: 'test'
+  ...
+# Subtest: publishRepository: changed managed asset renews proof and preserves old immutable object
+ok 77 - publishRepository: changed managed asset renews proof and preserves old immutable object
+  ---
+  duration_ms: 55.480587
+  type: 'test'
+  ...
+# Subtest: publishRepository: unsupported edits retain previous manifest and edited source
+ok 78 - publishRepository: unsupported edits retain previous manifest and edited source
+  ---
+  duration_ms: 50.552342
+  type: 'test'
+  ...
+# Subtest: publishRepository: failed index write leaves manifest absent and retry re-verifies
+ok 79 - publishRepository: failed index write leaves manifest absent and retry re-verifies
+  ---
+  duration_ms: 54.792217
+  type: 'test'
+  ...
+# Subtest: publishRepository: sealed operator candidate set cannot be enlarged by new files
+ok 80 - publishRepository: sealed operator candidate set cannot be enlarged by new files
+  ---
+  duration_ms: 34.925793
+  type: 'test'
+  ...
+# Subtest: planRepository: lowering inspection limits remains effective through publication bridge
+ok 81 - planRepository: lowering inspection limits remains effective through publication bridge
+  ---
+  duration_ms: 24.189054
+  type: 'test'
+  ...
+# Subtest: publishRepository: refuses an unsafely rooted manifest path
+ok 82 - publishRepository: refuses an unsafely rooted manifest path
+  ---
+  duration_ms: 10.883906
+  type: 'test'
+  ...
+# Subtest: consumer restore: fresh path verifies before create and matching local bytes need no network
+ok 83 - consumer restore: fresh path verifies before create and matching local bytes need no network
+  ---
+  duration_ms: 15.402887
+  type: 'test'
+  ...
+# Subtest: consumer restore: differing operator bytes never overwritten or uploaded
+ok 84 - consumer restore: differing operator bytes never overwritten or uploaded
+  ---
+  duration_ms: 5.280669
+  type: 'test'
+  ...
+# Subtest: consumer restore: corruption or interruption leaves final destination absent and retry succeeds
+ok 85 - consumer restore: corruption or interruption leaves final destination absent and retry succeeds
+  ---
+  duration_ms: 11.241752
+  type: 'test'
+  ...
+# Subtest: consumer restore: missing local-only asset is explicit and never requested remotely
+ok 86 - consumer restore: missing local-only asset is explicit and never requested remotely
+  ---
+  duration_ms: 2.999613
+  type: 'test'
+  ...
+# Subtest: consumer restore: unsafe entries and symlink destinations refuse without replacing target
+ok 87 - consumer restore: unsafe entries and symlink destinations refuse without replacing target
+  ---
+  duration_ms: 3.406971
+  type: 'test'
+  ...
+# Subtest: consumer restore: concurrent differing destination creation is retained
+ok 88 - consumer restore: concurrent differing destination creation is retained
+  ---
+  duration_ms: 4.356114
+  type: 'test'
+  ...
+# Subtest: routing: shared policy is exact and a real accepted PNG reaches the threshold
+ok 89 - routing: shared policy is exact and a real accepted PNG reaches the threshold
+  ---
+  duration_ms: 18.670777
+  type: 'test'
+  ...
+# Subtest: routing: exact size and pressure boundaries are inclusive
+ok 90 - routing: exact size and pressure boundaries are inclusive
+  ---
+  duration_ms: 0.165372
+  type: 'test'
+  ...
+# Subtest: routing: small qualified assets remain local below measured pressure
+ok 91 - routing: small qualified assets remain local below measured pressure
+  ---
+  duration_ms: 0.156927
+  type: 'test'
+  ...
+# Subtest: routing: invalid or absent budgets never become implicit routing authority
+ok 92 - routing: invalid or absent budgets never become implicit routing authority
+  ---
+  duration_ms: 0.546311
+  type: 'test'
+  ...
+# Subtest: routing: thresholds are copied, immutable and policy-selectable
+ok 93 - routing: thresholds are copied, immutable and policy-selectable
+  ---
+  duration_ms: 0.207492
+  type: 'test'
+  ...
+# Subtest: runner schema is exact and has no implicit budgets or candidate universe
+ok 94 - runner schema is exact and has no implicit budgets or candidate universe
+  ---
+  duration_ms: 1.361811
+  type: 'test'
+  ...
+# Subtest: runner missing authority and plannable bootstrap never select storage or write state
+ok 95 - runner missing authority and plannable bootstrap never select storage or write state
+  ---
+  duration_ms: 65.469473
+  type: 'test'
+  ...
+# Subtest: runner composes approved publish, stable binding/index, idempotence and reader-only new checkout
+ok 96 - runner composes approved publish, stable binding/index, idempotence and reader-only new checkout
+  ---
+  duration_ms: 417.472985
+  type: 'test'
+  ...
+# Subtest: runner descriptor conflict is retained without selecting transport
+ok 97 - runner descriptor conflict is retained without selecting transport
+  ---
+  duration_ms: 83.529276
+  type: 'test'
+  ...
+# Subtest: runner consumer edit during upload refuses commit eligibility and preserves edit
+ok 98 - runner consumer edit during upload refuses commit eligibility and preserves edit
+  ---
+  duration_ms: 158.593743
+  type: 'test'
+  ...
+# Subtest: bundled CLI works from empty cwd without dependencies and bounds/sanitizes requests
+ok 99 - bundled CLI works from empty cwd without dependencies and bounds/sanitizes requests
+  ---
+  duration_ms: 810.630426
+  type: 'test'
+  ...
+# Subtest: runner legacy opt-out, disabled authority and installed digest mismatch never select storage
+ok 100 - runner legacy opt-out, disabled authority and installed digest mismatch never select storage
+  ---
+  duration_ms: 29.498297
+  type: 'test'
+  ...
+# Subtest: runner recovers from a stranded index-ahead transaction and never imports a mismatched index
+ok 101 - runner recovers from a stranded index-ahead transaction and never imports a mismatched index
+  ---
+  duration_ms: 422.800993
+  type: 'test'
+  ...
+# Subtest: runner suppresses only positively re-verified bucketed entries and does not stage deleted ones
+ok 102 - runner suppresses only positively re-verified bucketed entries and does not stage deleted ones
+  ---
+  duration_ms: 337.406797
+  type: 'test'
+  ...
+# Subtest: runner local-only entries stay unenrolled and are reported bucketed:false with local-only reason
+ok 103 - runner local-only entries stay unenrolled and are reported bucketed:false with local-only reason
+  ---
+  duration_ms: 183.943609
+  type: 'test'
+  ...
+# Subtest: runner excluded entries retain their original reason and are never relabeled local-only
+ok 104 - runner excluded entries retain their original reason and are never relabeled local-only
+  ---
+  duration_ms: 187.188504
+  type: 'test'
+  ...
+# Subtest: runner reader refuses unsupported operator edits without uploading or touching local bytes
+ok 105 - runner reader refuses unsupported operator edits without uploading or touching local bytes
+  ---
+  duration_ms: 229.035643
+  type: 'test'
+  ...
+# Subtest: exact SDK requests use selected region, HTTPS endpoint, namespace, credentials and conditional PUT
+ok 106 - exact SDK requests use selected region, HTTPS endpoint, namespace, credentials and conditional PUT
+  ---
+  duration_ms: 38.578879
+  type: 'test'
+  ...
+# Subtest: consumer has an independent read-only surface and uses only consumer handle
+ok 107 - consumer has an independent read-only surface and uses only consumer handle
+  ---
+  duration_ms: 7.768024
+  type: 'test'
+  ...
+# Subtest: 404 alone means missing; forbidden, outage, redirect and 412 are sanitized, never retried
+ok 108 - 404 alone means missing; forbidden, outage, redirect and 412 are sanitized, never retried
+  ---
+  duration_ms: 19.48827
+  type: 'test'
+  ...
+# Subtest: SDK error bodies are bounded before deserialization for downloads and uploads
+ok 109 - SDK error bodies are bounded before deserialization for downloads and uploads
+  ---
+  duration_ms: 18.635751
+  type: 'test'
+  ...
+# Subtest: credential ancestor authority refuses foreign owners even with mode 0755
+ok 110 - credential ancestor authority refuses foreign owners even with mode 0755
+  ---
+  duration_ms: 0.203024
+  type: 'test'
+  ...
+# Subtest: bounded private downloads destroy successful, oversized and failed streams
+ok 111 - bounded private downloads destroy successful, oversized and failed streams
+  ---
+  duration_ms: 17.759005
+  type: 'test'
+  ...
+# Subtest: deadlines abort both requests and stalled bodies; close aborts in-flight work
+ok 112 - deadlines abort both requests and stalled bodies; close aborts in-flight work
+  ---
+  duration_ms: 96.304895
+  type: 'test'
+  ...
+# Subtest: snapshot bounds, regularity and symlinks fail before any PUT
+ok 113 - snapshot bounds, regularity and symlinks fail before any PUT
+  ---
+  duration_ms: 6.36215
+  type: 'test'
+  ...
+# Subtest: credential grammar, privacy, bounds, leaf and ancestor trust fail closed without ambient fallback
+ok 114 - credential grammar, privacy, bounds, leaf and ancestor trust fail closed without ambient fallback
+  ---
+  duration_ms: 15.460467
+  type: 'test'
+  ...
+# Subtest: publisher-style snapshots and private download caches work under a sticky temporary root
+ok 115 - publisher-style snapshots and private download caches work under a sticky temporary root
+  ---
+  duration_ms: 8.603452
+  type: 'test'
+  ...
+# Subtest: invalid authority, missing explicit role and unbounded timeouts rejected
+ok 116 - invalid authority, missing explicit role and unbounded timeouts rejected
+  ---
+  duration_ms: 1.284364
+  type: 'test'
+  ...
+1..116
+# tests 157
+# suites 0
+# pass 157
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3099.43053
+bucket-runner qualification passed: 157/157 tests, all required e2e scenarios executed.

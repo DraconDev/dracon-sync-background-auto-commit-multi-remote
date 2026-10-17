@@ -1,0 +1,50 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.69s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-322cfb94f90bdfca)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 25 tests
+test bucket_runner_bridge::bucket_runner_bridge_tests::accounting_failure_never_spawns_publisher_or_writes_manifest ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::disabled_repo_returns_none ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::mocked_end_to_end_returns_prepared_with_materialized_paths ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdin_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unconfigured_repo_does_not_spawn_bundle ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unsafe_config_paths_are_refused ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_ignores_replacements_for_outgoing_deleted_history ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_keeps_lagging_mirror_objects_and_respects_exclusions ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_missing_tip_and_unreadable_git_object_fail_closed ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_unknown_filter_without_executing_it ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_symlink_sizes_link_text_not_referent ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_untracked_toggle_and_read_limit_are_explicit ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 1327 filtered out; finished in 61.94s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-6681aabf82d21914)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-5d6514e28006c029)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+

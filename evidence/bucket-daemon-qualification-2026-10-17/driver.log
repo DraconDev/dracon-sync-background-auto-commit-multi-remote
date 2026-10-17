@@ -1,0 +1,6 @@
+# skipped 0
+# todo 0
+# duration_ms 3193.082946
+bucket-runner qualification passed: 157/157 tests, all required e2e scenarios executed.
+Hermetic daemon-worker qualification passed: fresh enrollment/commit, recovery, concurrency, retry and byte-identical fresh restore.
+Storage I/O injected only; no production installation or live OVH qualification claimed.
