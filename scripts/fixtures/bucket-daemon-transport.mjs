@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { createRunner, VERSION, LIMIT } from '../bucket-runner/runner.mjs';
 import { renderSolidPng } from '../bucket-runner/adapters.mjs';
 import { PREBUILD, inspectConsumer } from '../bucket-runner/consumer.mjs';
+import { planRepository } from '../bucket-runner/publisher.mjs';
 const canonical = value => `${JSON.stringify(value, null, 2)}\n`;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const exists = async p => { try { await access(p); return true; } catch (e) { if (e.code === 'ENOENT') return false; throw e; } };
@@ -58,6 +59,16 @@ export async function serve(executingPath, base) {
   const diagnostic = await inspectConsumer({ root: request.root });
   await record({ op: 'consumer-diagnostic', status: diagnostic.status, reason: diagnostic.reason });
   const verdict = await run(request);
+  if (verdict.status === 'refused' && diagnostic.consumer) {
+    try {
+      const binding = JSON.parse(await readFile(join(request.root, 'bucket-binding.json'), 'utf8'));
+      const profile = JSON.parse(await readFile(request.profilePath, 'utf8'));
+      const result = await planRepository({ root: request.root, profile, binding, consumer: diagnostic.consumer,
+        budget: request.budget, allowedCandidates: request.allowedCandidates });
+      await record({ op: 'plan-diagnostic', status: result.plan.status, reason: result.plan.reason,
+        outcomes: result.plan.outcomes?.map(o => ({ status: o.status, reason: o.reason, path: o.sourcePath })) });
+    } catch (e) { await record({ op: 'diagnostic-error', reason: e.message }); }
+  }
   await record({ op: 'verdict', status: verdict.status, commitEligible: verdict.commitEligible });
   process.stdout.write(`${JSON.stringify(verdict)}\n`);
   if (verdict.status === 'refused') process.exitCode = 1;

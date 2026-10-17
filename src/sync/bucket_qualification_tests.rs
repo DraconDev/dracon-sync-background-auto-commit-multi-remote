@@ -145,7 +145,7 @@ stage_op_timeout_secs = 30
     async fn cycle(&self) -> SyncOutcome {
         // Same production worker entry called by the daemon, including cleaning,
         // discovery, measured pressure, bridge child, verification and Git commit.
-        tokio::time::timeout(
+        let outcome = tokio::time::timeout(
             Duration::from_secs(90),
             sync_repo(
                 &self.repo,
@@ -159,7 +159,9 @@ stage_op_timeout_secs = 30
         )
         .await
         .expect("bounded daemon worker")
-        .expect("worker result")
+        .expect("worker result");
+        if outcome == SyncOutcome::Blocked { eprintln!("qualification operations: {:?}", self.operations()); }
+        outcome
     }
     fn assert_enrolled(&self) -> (Vec<u8>, PathBuf, Vec<u8>) {
         self.intact();
