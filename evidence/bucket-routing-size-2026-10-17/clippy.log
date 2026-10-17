@@ -1,0 +1,21 @@
+    Checking zerovec v0.11.8
+    Checking tinystr v0.8.4
+    Checking icu_locale_core v2.3.0
+    Checking potential_utf v0.1.6
+    Checking icu_collections v2.3.0
+    Checking icu_provider v2.3.1
+    Checking icu_properties v2.3.0
+    Checking icu_normalizer v2.3.0
+    Checking idna_adapter v1.2.2
+    Checking idna v1.1.0
+    Checking openssl v0.10.81
+    Checking url v2.5.8
+    Checking native-tls v0.2.18
+    Checking tokio-native-tls v0.3.1
+    Checking git2 v0.21.0
+    Checking hyper-tls v0.6.0
+    Checking tower-http v0.6.11
+    Checking reqwest v0.12.28
+    Checking dracon-git v94.7.2
+    Checking dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 20.32s

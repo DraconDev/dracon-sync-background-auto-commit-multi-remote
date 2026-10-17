@@ -631,6 +631,19 @@ var init_planner = __esm({
   }
 });
 
+// scripts/bucket-runner/routing-defaults.json
+var routing_defaults_default;
+var init_routing_defaults = __esm({
+  "scripts/bucket-runner/routing-defaults.json"() {
+    routing_defaults_default = {
+      schemaVersion: 1,
+      largeBytes: 1024,
+      pressureRatio: 0.8,
+      pressureLimitBytes: 2147483648
+    };
+  }
+});
+
 // scripts/bucket-runner/routing.mjs
 function validateBudget(budget) {
   if (!budget || typeof budget !== "object" || Array.isArray(budget) || Object.keys(budget).some((key) => !["projectedBytes", "limitBytes", "largeBytes", "pressureRatio"].includes(key))) {
@@ -649,10 +662,14 @@ function shouldRouteEligible(eligible, budget) {
   }
   return eligible.bucketed === true || eligible.bytes >= value.largeBytes || value.projectedBytes >= Math.floor(value.limitBytes * value.pressureRatio);
 }
-var DEFAULT_ROUTING;
+var DEFAULT_ROUTING, DEFAULT_PRESSURE_LIMIT_BYTES;
 var init_routing = __esm({
   "scripts/bucket-runner/routing.mjs"() {
-    DEFAULT_ROUTING = Object.freeze({ largeBytes: 10 * 1024 * 1024, pressureRatio: 0.8 });
+    init_routing_defaults();
+    if (Object.keys(routing_defaults_default).sort().join(",") !== "largeBytes,pressureLimitBytes,pressureRatio,schemaVersion" || routing_defaults_default.schemaVersion !== 1) throw new Error("invalid-shared-routing-policy");
+    DEFAULT_ROUTING = Object.freeze({ largeBytes: routing_defaults_default.largeBytes, pressureRatio: routing_defaults_default.pressureRatio });
+    DEFAULT_PRESSURE_LIMIT_BYTES = routing_defaults_default.pressureLimitBytes;
+    validateBudget({ projectedBytes: 0, limitBytes: DEFAULT_PRESSURE_LIMIT_BYTES });
   }
 });
 
