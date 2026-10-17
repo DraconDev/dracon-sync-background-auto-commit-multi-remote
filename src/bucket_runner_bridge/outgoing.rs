@@ -14,6 +14,7 @@ const MAX_FILE: u64 = 16 * 1024 * 1024;
 async fn git(repo: &Path, args: &[String], input: Option<Vec<u8>>) -> Result<Vec<u8>> {
     let mut command = vec![
         "--no-optional-locks".to_owned(),
+        "--no-replace-objects".to_owned(),
         "-c".to_owned(),
         "core.fsmonitor=false".to_owned(),
     ];
@@ -244,6 +245,8 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             dracon_git::types::FileStatus::Deleted
         } else if untracked {
             dracon_git::types::FileStatus::Added
+        } else if xy.contains(&b'T') {
+            dracon_git::types::FileStatus::TypeChange
         } else {
             dracon_git::types::FileStatus::Modified
         };
@@ -258,16 +261,21 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         {
             continue;
         }
-        if !crate::exclude::should_stage_entry(
-            repo,
-            &entry,
-            &dirs,
-            &policy.exclude_file_patterns,
-            policy.max_stage_file_bytes,
-            &excludes,
-        ) {
-            continue;
-        }
+        // Use the shared pattern/size gate without dereferencing links or
+        // invoking the directory/gitlink subprocess path. Raw stat length is
+        // conservative for normal text normalization; arbitrary filters below
+        // have no safe output bound and refuse the measurement.
+        let source_meta = match std::fs::symlink_metadata(repo.join(path)) {
+            Ok(meta) => meta,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound
+                && entry.status == dracon_git::types::FileStatus::Deleted => continue,
+            Err(error) => return Err(error).context("accounting-unreadable-candidate"),
+        };
+        if source_meta.is_dir() { continue; }
+        if !crate::exclude::should_stage_entry_with_blob_size(
+            repo, &entry, source_meta.len(), &dirs, &policy.exclude_file_patterns,
+            policy.max_stage_file_bytes, &excludes,
+        ) { continue; }
         if let Some((mode, _)) = index.get(path) {
             if mode == "160000" {
                 continue;

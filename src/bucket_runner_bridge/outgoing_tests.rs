@@ -185,6 +185,39 @@ async fn accounting_refuses_unknown_filter_without_executing_it() {
 }
 
 #[tokio::test]
+async fn accounting_ignores_replacements_for_outgoing_deleted_history() {
+    let td = fixture();
+    let repo = td.path();
+    let p = policy();
+    put(repo, "original.txt", 700);
+    run(repo, &["add", "--", "original.txt"]);
+    run(repo, &["commit", "-qm", "historical blob"]);
+    let original = String::from_utf8(run(repo, &["rev-parse", "HEAD:original.txt"])).unwrap();
+    run(repo, &["rm", "-q", "--", "original.txt"]);
+    run(repo, &["commit", "-qm", "remove from worktree"]);
+    put(repo, "one.txt", 1);
+    let replacement = String::from_utf8(run(repo, &["hash-object", "-w", "--no-filters", "one.txt"])).unwrap();
+    std::fs::remove_file(repo.join("one.txt")).unwrap();
+    run(repo, &["replace", original.trim(), replacement.trim()]);
+    assert_eq!(measure(repo, &p).await.unwrap(), 700);
+}
+
+#[tokio::test]
+async fn accounting_untracked_toggle_and_read_limit_are_explicit() {
+    let td = fixture(); let repo = td.path(); let mut p = policy();
+    put(repo, "new.txt", 400);
+    p.auto_stage_untracked = false;
+    assert_eq!(measure(repo, &p).await.unwrap(), 0);
+    p.auto_stage_untracked = true;
+    p.max_stage_file_bytes = MAX_FILE + 100;
+    let large = std::fs::File::create(repo.join("large.txt")).unwrap();
+    large.set_len(MAX_FILE + 1).unwrap();
+    assert!(measure(repo, &p).await.unwrap_err().to_string().contains("file-read-limit"));
+    let mut total = MAX_JS_INTEGER;
+    assert!(add(&mut total, 1).is_err());
+}
+
+#[tokio::test]
 async fn accounting_symlink_sizes_link_text_not_referent() {
     let td = fixture();
     let repo = td.path();
