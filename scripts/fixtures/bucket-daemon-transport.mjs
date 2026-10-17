@@ -82,6 +82,7 @@ async function setup(base) {
   await writeFile(join(root, 'package.json'), canonical(pkg));
   await writeFile(join(root, 'package-lock.json'), canonical({ lockfileVersion: 3, packages: { '': { devDependencies: { vite: '7.1.2' } }, 'node_modules/vite': { version: '7.1.2' } } }));
   await writeFile(join(root, 'index.html'), '<html></html>\n');
+  await writeFile(join(root, 'public/local.txt'), 'unrelated local file must still commit\n');
   await writeFile(join(root, '.dracon/dracon-sync.toml'), 'owned = true\nauto_bump_versions = false\n');
   for (const [name, rgba] of [['a', [20, 40, 60, 255]], ['b', [180, 160, 140, 255]]]) {
     const bytes = renderSolidPng({ width: 512, height: 512, rgba });

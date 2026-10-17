@@ -169,6 +169,8 @@ stage_op_timeout_secs = 30
     }
     fn assert_enrolled(&self) -> (Vec<u8>, PathBuf, Vec<u8>) {
         self.intact();
+        assert!(git(&self.repo, &["ls-files", "--", &format!("{MANIFEST}.lock")]).is_empty());
+        assert_eq!(git(&self.repo, &["show", "HEAD:public/local.txt"]), b"unrelated local file must still commit\n");
         let bytes = read(self.repo.join(MANIFEST));
         let manifest: Value = serde_json::from_slice(&bytes).unwrap();
         let entries = manifest["assets"].as_array().unwrap();
