@@ -1,0 +1,14 @@
+## Review
+- Correct: no `/etc` writes on any path (evidence)
+  - `20261018-operator-v3/migrate.py:29` `SYSTEM=/run/systemd/system`; all installs `SYSTEM/name` + `SYSTEM/UNIT.d` (`:145-149`); preflight `:118-120` (`is_dir`, root `W_OK`, stale-collision guard).
+  - Only `/etc` strings are reads/comments: `ExecStartPre ... /etc/profiles/...` (`:73`, `dracon-sync-operator.service:83`) and `PATH=...:/etc/profiles/...` (`service:11`). Live tree matches frozen (`migrate-sync-system-service.py:29,71,164`; test `:32,35,36` asserts `/run` + `NotIn /etc/systemd/system`).
+  - `systemd-analyze verify` exit 0 pre-stop (`:130`) preserved from v2 intent.
+- Correct: rollback/hold/freeze unchanged and sound with new path
+  - Freeze pre-check `:122`, hold exclusivity `:124`, `hold.touch(0600)+chown UID/GID` `:130`; success clears freeze/hold `:160-161`; failure re-establishes hold fail-closed `:171-174`, tears down `installed[]` in reverse with `daemon-reload` gating `:176-193`, restores `CONFIG` unit, re-enables user scheduler + watchdog, asserts `is-active` `:194-202`, else `Rollback incomplete; hold retained` `:204-206`.
+  - Sound because every new-path write is tracked in `installed[]` and both managers are reloaded; preflight fails before any scheduler stop.
+- Correct: no identity/confinement regression
+  - `service:75-77` `User=dracon,Group=users,PrivateUsers=no` + `migrate.py:UID,GID=1000,100` assert, `/proc MainPID Uid==[1000]*4`, `exe sha==EXPECTED_BINARY`, `ExecStartPre` euid-1000 + `/`,`/home` root-provenance (`:73,:83`); `NoNewPrivileges/ProtectSystem=strict/ProtectHome=read-only` retained on service + watchdog. `EnvironmentFile=-/run/...environment` 0600 root-owned is read by root manager pre-`User=` drop; `-` tolerates absence. No credential/secret handling touched.
+- Finding P2, reboot residual (explicit assessment): masked user unit (`CONFIG/...symlink_to(/dev/null)`, `:142`, persistent in `$HOME`) + ephemeral `/run` units ⇒ after reboot no scheduler exists (units vanished, mask persists). This is fail-safe idle (no double-scheduler, no root runaway), not unsafe. `runtimeInstallEphemeral:True` receipt (`:163-164`) + docstring declarative-module follow-up (`:5-8`) + `SYSTEM` comment (`:27-28`) is an acceptable bounded-qualification posture for candidate safety. v3 must NOT block on declarative reboot persistence (out of scope for this script; cannot enforce from a migration). Qualification condition, not safety blocker: operator handoff must state "reboot ⇒ no scheduler until re-apply or declarative `systemd.services` module lands"; script emits no stdout reboot warning (only docstring+receipt), so the handoff carries it.
+- Note (not a finding on v3): v2 root-owned inert `handover-backup` remains per context; out of delta scope. Test `12/12 offline fake managers` + simulated receipt is not live evidence — verdict is candidate safety only.
+
+Merge verdict: CLEAR FOR OPERATOR EXECUTION

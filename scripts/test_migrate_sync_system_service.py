@@ -28,6 +28,13 @@ class MigrationTests(unittest.TestCase):
         self.assertNotIn('%u', out)
         self.assertNotIn('User=root', out)
 
+    def test_nixos_runtime_install_path(self):
+        self.assertEqual(str(m.SYSTEM), '/run/systemd/system')
+        source = (Path(__file__).parents[1] / 'dracon-sync.service').read_text()
+        out = m.build_unit(source)
+        self.assertIn('EnvironmentFile=-/run/systemd/system/dracon-sync-operator.environment', out)
+        self.assertNotIn('/etc/systemd/system', out)
+
     def test_unexpected_execstart_rejected(self):
         with self.assertRaises(AssertionError): m.build_unit('[Service]\nExecStart=/other daemon\n')
 
