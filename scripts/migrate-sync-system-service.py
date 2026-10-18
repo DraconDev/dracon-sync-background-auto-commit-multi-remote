@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Pinned, bounded one-host migration; does not run the daemon as root.
+Prepare unprivileged; review frozen files; administrator invokes --apply.
+Rollback is automatic on failure. No credentials or repository contents copied.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import pwd
+import shutil
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+HOME = Path('/home/dracon')
+UID, GID = 1000, 100
+UNIT = 'dracon-sync-operator.service'
+WATCH = 'dracon-sync-operator-watchdog'
+CONFIG = HOME / '.config/systemd/user'
+SYSTEM = Path('/etc/systemd/system')
+BIN = HOME / '.local/bin/dracon-sync'
+EXPECTED_BINARY = '2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba'
+TOOLS = '/run/current-system/sw/bin'
+ENV = {**os.environ, 'PATH': TOOLS + ':/run/wrappers/bin', 'HOME': str(HOME)}
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def run(args, check=True, seconds=45):
+    return subprocess.run([str(a) for a in args], env=ENV, check=check,
+                          text=True, capture_output=True, timeout=seconds)
+
+def user(*args, check=True):
+    return run(['runuser', '-u', 'dracon', '--', 'env', 'HOME='+str(HOME),
+                'XDG_RUNTIME_DIR=/run/user/1000', 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus',
+                *args], check=check)
+
+def userctl(*args, check=True):
+    return user(TOOLS+'/systemctl', '--user', *args, check=check)
+
+def build_unit(original):
+    assert original.count('ExecStart=%h/.local/bin/dracon-sync daemon') == 1
+    result = original.replace('%h', str(HOME)).replace('%u', 'dracon')
+    result = result.replace('After=default.target', 'After=network-online.target')
+    result = result.replace('WantedBy=default.target', 'WantedBy=multi-user.target')
+    result += ('\n[Service]\nUser=dracon\nGroup=users\nPrivateUsers=no\n'
+               'Environment=HOME=/home/dracon\nEnvironment=XDG_RUNTIME_DIR=/run/user/1000\n'
+               'Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus\n'
+               'EnvironmentFile=-/etc/systemd/system/dracon-sync-operator.environment\n'
+               '# Fail before scheduling if root provenance or operator identity is lost.\n'
+               'ExecStartPre=/etc/profiles/per-user/dracon/bin/node -e "const s=require(\'node:fs\');if(process.geteuid()!==1000||s.statSync(\'/\').uid!==0||s.statSync(\'/home\').uid!==0)process.exit(78)"\n')
+    return result
+
+def prepare(dest):
+    assert os.geteuid() == UID
+    assert not dest.exists(), 'plan directory must be fresh'
+    assert dest.is_absolute() and str(dest).startswith(str(HOME / '.local/state/dracon-sync/service-migration')+'/')
+    assert sha(BIN) == EXPECTED_BINARY
+    dest.mkdir(parents=True, mode=0o700)
+    source = CONFIG / 'dracon-sync.service'
+    drops = sorted((CONFIG / 'dracon-sync.service.d').glob('*.conf'))
+    assert [p.name for p in drops] == ['10-resource-headroom.conf', '20-bridge-fixture.conf'], 'unexpected drop-in; review before preparing'
+    (dest / UNIT).write_text(build_unit(source.read_text()))
+    for p in drops:
+        shutil.copy2(p, dest / p.name)
+    (dest / (WATCH+'.service')).write_text('[Unit]\nDescription=Restart operator-UID sync scheduler if inactive\nConditionPathExists=!/home/dracon/.dracon/dracon-sync.maintenance-hold\n[Service]\nType=oneshot\nExecStart='+TOOLS+'/systemctl start '+UNIT+'\nNoNewPrivileges=true\nProtectSystem=strict\nProtectHome=read-only\n')
+    (dest / (WATCH+'.timer')).write_text('[Unit]\nDescription=Operator sync scheduler watchdog (2 minutes)\n[Timer]\nOnBootSec=2min\nOnUnitActiveSec=2min\nAccuracySec=10s\n[Install]\nWantedBy=timers.target\n')
+    pid = run([TOOLS+'/systemctl','--user','show','dracon-sync.service','-p','MainPID','--value']).stdout.strip()
+    assert int(pid)>0
+    env = dict(s.split(b'=',1) for s in Path('/proc/'+pid+'/environ').read_bytes().split(b'\0') if b'=' in s)
+    sock = env.get(b'SSH_AUTH_SOCK', b'').decode()
+    assert not sock or all(c.isalnum() or c in '/_:.@-' for c in sock), 'unsupported socket path'
+    (dest / 'dracon-sync-operator.environment').write_text(('SSH_AUTH_SOCK='+sock+'\n') if sock else '# No SSH_AUTH_SOCK in prior daemon environment.\n')
+    shutil.copy2(__file__, dest / 'migrate.py')
+    plan = {'preparedAt':datetime.now(timezone.utc).isoformat(), 'binarySha256':EXPECTED_BINARY,
+            'sourceHashes':{str(p):sha(p) for p in [source,*drops]},
+            'files':{p.name:sha(p) for p in dest.iterdir() if p.is_file()}}
+    (dest / 'plan.json').write_text(json.dumps(plan, indent=2)+'\n')
+    for p in dest.iterdir(): p.chmod(0o400)
+    print('Prepared only; no service or privileged changes:',dest)
+    print('plan.json sha256:',sha(dest/'plan.json'))
+
+def apply(dest):
+    assert os.geteuid() == 0 and os.environ.get('SUDO_USER') == 'dracon', 'operator sudo required'
+    assert pwd.getpwnam('dracon').pw_uid == UID and pwd.getpwnam('dracon').pw_gid == GID
+    plan = json.loads((dest/'plan.json').read_text())
+    for name, digest in plan['files'].items():
+        assert '/' not in name and name not in ('.','..')
+        assert not (dest/name).is_symlink() and sha(dest/name) == digest, 'frozen plan changed'
+    for path,digest in plan['sourceHashes'].items():
+        assert not Path(path).is_symlink() and sha(path)==digest, 'user unit drift'
+    assert sha(BIN) == plan['binarySha256'] == EXPECTED_BINARY
+    assert userctl('is-active','dracon-sync.service').stdout.strip() == 'active'
+    assert userctl('is-enabled','dracon-sync.service').stdout.strip() == 'enabled'
+    watchdog_enabled = userctl('is-enabled','dracon-sync-watchdog.timer',check=False).stdout.strip() == 'enabled'
+    assert not any((SYSTEM/n).exists() or (SYSTEM/n).is_symlink() for n in
+                   [UNIT,UNIT+'.d',WATCH+'.service',WATCH+'.timer','dracon-sync-operator.environment'])
+    assert not (HOME/'.dracon/dracon-sync.freeze').exists(), 'pre-existing freeze must be resolved'
+    hold = HOME/'.dracon/dracon-sync.maintenance-hold'
+    assert not hold.exists() and not hold.is_symlink(), 'pre-existing maintenance hold'
+    backup = dest/'handover-backup'
+    backup.mkdir(mode=0o700)
+    shutil.copy2(CONFIG/'dracon-sync.service',backup/'dracon-sync.service')
+    # Validate generated units offline before any scheduler is stopped.
+    run([TOOLS+'/systemd-analyze','verify',dest/UNIT,dest/(WATCH+'.service'),dest/(WATCH+'.timer')])
+    hold.touch(mode=0o600,exist_ok=False);os.chown(hold,UID,GID)
+    installed=[]; moved=False; stopped=False
+    try:
+        user(str(BIN),'pause')
+        userctl('disable','--now','dracon-sync-watchdog.timer')
+        userctl('stop','dracon-sync-watchdog.service',check=False)
+        # Explicit operator-approved migration, protected by hold+freeze+rollback.
+        userctl('disable','--now','dracon-sync.service');stopped=True
+        assert userctl('is-active','dracon-sync.service',check=False).stdout.strip() != 'active'
+        shutil.move(CONFIG/'dracon-sync.service',backup/'original.service');moved=True
+        (CONFIG/'dracon-sync.service').symlink_to('/dev/null')
+        userctl('daemon-reload')
+        for name in [UNIT,WATCH+'.service',WATCH+'.timer','dracon-sync-operator.environment']:
+            target=SYSTEM/name
+            shutil.copyfile(dest/name,target);os.chmod(target,0o600 if name.endswith('.environment') else 0o644);installed.append(target)
+        drop=SYSTEM/(UNIT+'.d');drop.mkdir();installed.append(drop)
+        for name in ['10-resource-headroom.conf','20-bridge-fixture.conf']:
+            shutil.copyfile(dest/name,drop/name);os.chmod(drop/name,0o644)
+        run([TOOLS+'/systemctl','daemon-reload'])
+        run([TOOLS+'/systemctl','enable','--now',UNIT],seconds=90)
+        assert run([TOOLS+'/systemctl','is-active',UNIT]).stdout.strip()=='active'
+        pid=int(run([TOOLS+'/systemctl','show',UNIT,'-p','MainPID','--value']).stdout.strip())
+        status=Path('/proc/'+str(pid)+'/status').read_text()
+        assert next(l for l in status.splitlines() if l.startswith('Uid:')).split()[1:] == [str(UID)]*4
+        assert sha('/proc/'+str(pid)+'/exe') == EXPECTED_BINARY
+        assert userctl('is-enabled','dracon-sync.service',check=False).stdout.strip()=='masked'
+        run([TOOLS+'/systemctl','enable','--now',WATCH+'.timer'])
+        user(str(BIN),'resume')
+        hold.unlink()
+        receipt={'at':datetime.now(timezone.utc).isoformat(),'service':UNIT,'pid':pid,'uid':UID,
+                 'binarySha256':EXPECTED_BINARY,'userSchedulerMasked':True,'systemWatchdogEnabled':True,
+                 'freezeCleared':not (HOME/'.dracon/dracon-sync.freeze').exists(),'holdCleared':not hold.exists(),
+                 'rollback':str(backup),'priorWatchdogEnabled':watchdog_enabled}
+        (dest/'migration-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+        os.chown(dest/'migration-receipt.json',UID,GID)
+        print(json.dumps(receipt))
+    except BaseException:
+        # Restore original scheduler before clearing hold/freeze. Never leave both active.
+        run([TOOLS+'/systemctl','disable','--now',WATCH+'.timer'],check=False)
+        run([TOOLS+'/systemctl','disable','--now',UNIT],check=False,seconds=90)
+        for p in reversed(installed):
+            if p.is_dir(): shutil.rmtree(p)
+            elif p.exists(): p.unlink()
+        run([TOOLS+'/systemctl','daemon-reload'],check=False)
+        if moved:
+            (CONFIG/'dracon-sync.service').unlink(missing_ok=True)
+            shutil.move(backup/'original.service',CONFIG/'dracon-sync.service')
+        userctl('daemon-reload',check=False)
+        if stopped: userctl('enable','--now','dracon-sync.service')
+        if watchdog_enabled:userctl('enable','--now','dracon-sync-watchdog.timer')
+        user(str(BIN),'resume',check=False)
+        assert userctl('is-active','dracon-sync.service').stdout.strip()=='active', 'rollback health failure; hold retained'
+        hold.unlink(missing_ok=True)
+        raise
+
+if __name__ == '__main__':
+    ap=argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('mode',choices=['prepare','apply']);ap.add_argument('directory',type=Path)
+    a=ap.parse_args()
+    try:
+        (prepare if a.mode=='prepare' else apply)(a.directory)
+    except Exception as error:
+        print('Migration refused/failed:',type(error).__name__,str(error),file=sys.stderr)
+        sys.exit(1)
