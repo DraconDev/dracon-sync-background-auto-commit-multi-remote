@@ -41,6 +41,19 @@ def user(*args, check=True):
 def userctl(*args, check=True):
     return user(TOOLS+'/systemctl', '--user', *args, check=check)
 
+def freeze_markers():
+    return [HOME/'.dracon/dracon-sync.freeze', HOME/'.dracon/freeze/dracon-sync']
+
+def require_stopped(control, name):
+    state = control('show', name, '-p', 'ActiveState', '-p', 'MainPID', '-p', 'ControlPID').stdout
+    fields = dict(line.split('=', 1) for line in state.splitlines() if '=' in line)
+    assert fields.get('ActiveState') in ('inactive', 'failed'), 'shutdown not confirmed: '+name
+    if name.endswith('.service'):
+        assert fields.get('MainPID') == '0' and fields.get('ControlPID') == '0', 'process still present: '+name
+
+def systemctl(*args):
+    return run([TOOLS+'/systemctl', *args])
+
 def build_unit(original):
     assert original.count('ExecStart=%h/.local/bin/dracon-sync daemon') == 1
     result = original.replace('%h', str(HOME)).replace('%u', 'dracon')
@@ -98,7 +111,7 @@ def apply(dest):
     watchdog_enabled = userctl('is-enabled','dracon-sync-watchdog.timer',check=False).stdout.strip() == 'enabled'
     assert not any((SYSTEM/n).exists() or (SYSTEM/n).is_symlink() for n in
                    [UNIT,UNIT+'.d',WATCH+'.service',WATCH+'.timer','dracon-sync-operator.environment'])
-    assert not (HOME/'.dracon/dracon-sync.freeze').exists(), 'pre-existing freeze must be resolved'
+    assert not any(p.exists() for p in freeze_markers()), 'pre-existing freeze must be resolved'
     hold = HOME/'.dracon/dracon-sync.maintenance-hold'
     assert not hold.exists() and not hold.is_symlink(), 'pre-existing maintenance hold'
     backup = dest/'handover-backup'
@@ -111,11 +124,12 @@ def apply(dest):
     try:
         user(str(BIN),'pause')
         userctl('disable','--now','dracon-sync-watchdog.timer')
-        userctl('stop','dracon-sync-watchdog.service',check=False)
+        userctl('stop','dracon-sync-watchdog.service')
+        require_stopped(userctl, 'dracon-sync-watchdog.service')
         # Explicit operator-approved migration, protected by hold+freeze+rollback.
         stopped=True
         userctl('disable','--now','dracon-sync.service')
-        assert userctl('is-active','dracon-sync.service',check=False).stdout.strip() != 'active'
+        require_stopped(userctl, 'dracon-sync.service')
         shutil.move(CONFIG/'dracon-sync.service',backup/'original.service');moved=True
         (CONFIG/'dracon-sync.service').symlink_to('/dev/null')
         userctl('daemon-reload')
@@ -135,6 +149,7 @@ def apply(dest):
         assert userctl('is-enabled','dracon-sync.service',check=False).stdout.strip()=='masked'
         run([TOOLS+'/systemctl','enable','--now',WATCH+'.timer'])
         user(str(BIN),'resume')
+        assert not any(p.exists() for p in freeze_markers()), 'resume left a freeze marker'
         hold.unlink()
         receipt={'at':datetime.now(timezone.utc).isoformat(),'service':UNIT,'pid':pid,'uid':UID,
                  'binarySha256':EXPECTED_BINARY,'userSchedulerMasked':True,'systemWatchdogEnabled':True,
@@ -143,23 +158,43 @@ def apply(dest):
         (dest/'migration-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
         os.chown(dest/'migration-receipt.json',UID,GID)
         print(json.dumps(receipt))
-    except BaseException:
-        # Restore original scheduler before clearing hold/freeze. Never leave both active.
-        run([TOOLS+'/systemctl','disable','--now',WATCH+'.timer'],check=False)
-        run([TOOLS+'/systemctl','disable','--now',UNIT],check=False,seconds=90)
-        for p in reversed(installed):
-            if p.is_dir(): shutil.rmtree(p)
-            elif p.exists(): p.unlink()
-        run([TOOLS+'/systemctl','daemon-reload'],check=False)
-        if moved:
-            (CONFIG/'dracon-sync.service').unlink(missing_ok=True)
-            shutil.move(backup/'original.service',CONFIG/'dracon-sync.service')
-        userctl('daemon-reload',check=False)
-        if stopped: userctl('enable','--now','dracon-sync.service')
-        if watchdog_enabled:userctl('enable','--now','dracon-sync-watchdog.timer')
-        user(str(BIN),'resume',check=False)
-        assert userctl('is-active','dracon-sync.service').stdout.strip()=='active', 'rollback health failure; hold retained'
-        hold.unlink(missing_ok=True)
+    except BaseException as original_error:
+        # Re-establish the hold even if failure happened after the successful
+        # path removed it. Fail closed before resurrecting the old scheduler.
+        hold.touch(mode=0o600, exist_ok=True)
+        os.chown(hold, UID, GID)
+        try:
+            if installed:
+                systemctl('daemon-reload')
+            if (SYSTEM/(WATCH+'.timer')).exists():
+                systemctl('disable', '--now', WATCH+'.timer')
+                require_stopped(systemctl, WATCH+'.timer')
+            if (SYSTEM/(WATCH+'.service')).exists():
+                systemctl('stop', WATCH+'.service')
+                require_stopped(systemctl, WATCH+'.service')
+            if (SYSTEM/UNIT).exists():
+                run([TOOLS+'/systemctl','disable','--now',UNIT], seconds=90)
+                require_stopped(systemctl, UNIT)
+            # Do not remove unit files or restart user scheduling until every
+            # possible system watchdog/scheduler process has stopped.
+            for p in reversed(installed):
+                if p.is_dir(): shutil.rmtree(p)
+                elif p.exists(): p.unlink()
+            systemctl('daemon-reload')
+            if moved:
+                (CONFIG/'dracon-sync.service').unlink(missing_ok=True)
+                shutil.move(backup/'original.service',CONFIG/'dracon-sync.service')
+            userctl('daemon-reload')
+            if stopped: userctl('enable','--now','dracon-sync.service')
+            if watchdog_enabled: userctl('enable','--now','dracon-sync-watchdog.timer')
+            user(str(BIN),'resume')
+            assert not any(p.exists() for p in freeze_markers()), 'rollback resume left a freeze marker'
+            assert userctl('is-active','dracon-sync.service').stdout.strip()=='active', 'rollback daemon not active'
+            hold.unlink()
+        except BaseException as recovery_error:
+            raise RuntimeError('Rollback incomplete; maintenance hold retained at '+str(hold)+
+                               '. Do not start another scheduler. Inspect system scheduler/watchdog state and backup '+
+                               str(backup)+' before recovery. Failure: '+type(recovery_error).__name__) from original_error
         raise
 
 if __name__ == '__main__':
