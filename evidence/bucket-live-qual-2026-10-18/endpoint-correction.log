@@ -1,0 +1,4 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+active
+{"at": "2026-10-18T10:18:24.181972+00:00", "backup": "/home/dracon/.local/state/dracon-sync/endpoint-correction/20261018T101823Z", "endpoint": "https://s3.uk.io.cloud.ovh.net", "region": "uk", "addedWatchRoot": "/home/dracon/dracon/bridge-fixture", "sha256": {"/home/dracon/.dracon/state/bucket-runner/profile.json": "5c4b16733d6cc3d69819b4b90492fc05704ef8d95564e5e66a81fdefe0b52302", "/home/dracon/.dracon/utilities/sync/dracon-sync.toml": "a3eaf13453b489f38e210d36e812df3308500ec0bbb2d179efd5c488284c2606"}}
+▶️  Sync resumed (freeze marker removed)
