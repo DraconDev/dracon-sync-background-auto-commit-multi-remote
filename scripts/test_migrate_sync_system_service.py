@@ -31,7 +31,7 @@ class MigrationTests(unittest.TestCase):
     def test_unexpected_execstart_rejected(self):
         with self.assertRaises(AssertionError): m.build_unit('[Service]\nExecStart=/other daemon\n')
 
-    def simulation(self, fail_start=False, tamper=False):
+    def simulation(self, fail_start=False, tamper=False, fail_stop=False, fail_resume=False, stale_marker=False, inflight_watchdog=False):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary); home=root/'home'; config=home/'.config/systemd/user'; config.mkdir(parents=True)
             (home/'.dracon').mkdir()
@@ -47,13 +47,16 @@ class MigrationTests(unittest.TestCase):
                   'files':{p.name:m.sha(p) for p in dest.iterdir()}}
             (dest/'plan.json').write_text(json.dumps(plan))
             if tamper:(dest/m.UNIT).write_text('tampered')
-            state={'user_active':True,'watchdog':True,'system_active':False};events=[]
+            state={'user_active':True,'watchdog':True,'system_active':False,'system_watchdog_active':False};events=[]
             def completed(args, stdout=''):return subprocess.CompletedProcess(args,0,stdout,'')
             def fake_userctl(*args,check=True):
                 events.append(('userctl',args))
                 if args==('is-active','dracon-sync.service'):return completed(args,'active\n' if state['user_active'] else 'inactive\n')
                 if args==('is-enabled','dracon-sync.service'):return completed(args,'masked\n' if original.is_symlink() else 'enabled\n')
                 if args==('is-enabled','dracon-sync-watchdog.timer'):return completed(args,'enabled\n')
+                if args[0]=='show':
+                    active = args[1]=='dracon-sync.service' and state['user_active']
+                    return completed(args,'ActiveState='+('active' if active else 'inactive')+'\nMainPID=0\nControlPID=0\n')
                 if args==('disable','--now','dracon-sync.service'):state['user_active']=False
                 if args==('enable','--now','dracon-sync.service'):state['user_active']=True
                 if args==('disable','--now','dracon-sync-watchdog.timer'):state['watchdog']=False
@@ -63,11 +66,27 @@ class MigrationTests(unittest.TestCase):
                 args=list(map(str,args));events.append(('system',args))
                 if args[1:]==['enable','--now',m.UNIT]:
                     assert not state['user_active'], 'duplicate schedulers'
-                    if fail_start:raise subprocess.CalledProcessError(1,args)
                     state['system_active']=True
-                if args[1:]==['disable','--now',m.UNIT]:state['system_active']=False
+                    state['system_watchdog_active']=inflight_watchdog
+                    if fail_start:raise subprocess.CalledProcessError(1,args)
+                if args[1:]==['stop',m.WATCH+'.service']:state['system_watchdog_active']=False
+                if args[1:]==['disable','--now',m.UNIT]:
+                    if fail_stop:raise subprocess.CalledProcessError(1,args)
+                    state['system_active']=False
+                if len(args)>2 and args[1]=='show':
+                    active = ((args[2]==m.UNIT and state['system_active']) or
+                              (args[2]==m.WATCH+'.service' and state['system_watchdog_active']))
+                    return completed(args,'ActiveState='+('active' if active else 'inactive')+'\nMainPID='+('123' if active else '0')+'\nControlPID=0\n')
                 if args[1:]==['is-active',m.UNIT]:return completed(args,'active\n')
                 if '-p' in args and 'MainPID' in args:return completed(args,str(os.getpid())+'\n')
+                return completed(args)
+            def fake_user(*args,check=True):
+                events.append(('user',args))
+                if args[-1]=='resume':
+                    if fail_resume:
+                        (home/'.dracon/dracon-sync.freeze').touch()
+                        raise subprocess.CalledProcessError(1,args)
+                    if stale_marker:(home/'.dracon/freeze').mkdir(exist_ok=True);(home/'.dracon/freeze/dracon-sync').touch()
                 return completed(args)
             real_sha=m.sha
             def fake_sha(path):
@@ -76,16 +95,32 @@ class MigrationTests(unittest.TestCase):
                  patch.object(m.os,'geteuid',return_value=0), patch.object(m.os,'chown'), \
                  patch.object(m.pwd,'getpwnam',return_value=types.SimpleNamespace(pw_uid=1000,pw_gid=100)), \
                  patch.dict(os.environ,{'SUDO_USER':'dracon'}), patch.object(m,'run',side_effect=fake_run), \
-                 patch.object(m,'userctl',side_effect=fake_userctl), patch.object(m,'user',return_value=completed([])), \
+                 patch.object(m,'userctl',side_effect=fake_userctl), patch.object(m,'user',side_effect=fake_user), \
                  patch.object(m,'sha',side_effect=fake_sha):
-                if fail_start or tamper:
-                    with self.assertRaises((subprocess.CalledProcessError,AssertionError)):m.apply(dest)
+                if fail_start or tamper or fail_resume or stale_marker:
+                    with self.assertRaises((subprocess.CalledProcessError,AssertionError,RuntimeError)):m.apply(dest)
                 else:m.apply(dest)
+            if fail_stop or fail_resume or stale_marker:
+                self.assertTrue((home/'.dracon/dracon-sync.maintenance-hold').exists())
+                if fail_stop:
+                    self.assertTrue(original.is_symlink())
+                    self.assertFalse(state['user_active'])
+                    self.assertTrue(state['system_active'])
+                    self.assertNotIn(('userctl',('enable','--now','dracon-sync.service')),events)
+                else:
+                    self.assertTrue(state['user_active'])
+                    self.assertFalse(state['system_active'])
+                return
             self.assertFalse((home/'.dracon/dracon-sync.maintenance-hold').exists())
             if fail_start or tamper:
                 self.assertTrue(state['user_active']);self.assertTrue(state['watchdog'])
                 self.assertEqual(original.read_text(),'original user unit\n')
                 self.assertFalse((system/m.UNIT).exists())
+                self.assertFalse(state['system_watchdog_active'])
+                if inflight_watchdog:
+                    stop_watch=next(i for i,e in enumerate(events) if e[0]=='system' and e[1][1:]==['stop',m.WATCH+'.service'])
+                    restart_user=events.index(('userctl',('enable','--now','dracon-sync.service')))
+                    self.assertLess(stop_watch,restart_user)
             else:
                 self.assertTrue(original.is_symlink());self.assertFalse(state['user_active'])
                 self.assertTrue(state['system_active']);self.assertTrue((dest/'migration-receipt.json').exists())
@@ -94,5 +129,15 @@ class MigrationTests(unittest.TestCase):
     def test_success_masks_old_before_starting_new(self):self.simulation()
     def test_failed_start_restores_original_and_watchdog(self):self.simulation(fail_start=True)
     def test_tampered_plan_refused_before_service_changes(self):self.simulation(tamper=True)
+    def test_failed_system_stop_never_restarts_user(self):self.simulation(fail_start=True,fail_stop=True)
+    def test_inflight_system_watchdog_stopped_before_user_restart(self):self.simulation(fail_start=True,inflight_watchdog=True)
+    def test_failed_resume_retains_hold(self):self.simulation(fail_resume=True)
+    def test_resume_leaving_alternate_marker_retains_hold(self):self.simulation(stale_marker=True)
+    def test_shutdown_confirmation_rejects_missing_process_metadata(self):
+        with self.assertRaises(AssertionError):
+            m.require_stopped(lambda *a:types.SimpleNamespace(stdout='ActiveState=inactive\n'), 'test.service')
+    def test_shutdown_confirmation_rejects_deactivating_service(self):
+        with self.assertRaises(AssertionError):
+            m.require_stopped(lambda *a:types.SimpleNamespace(stdout='ActiveState=deactivating\nMainPID=0\nControlPID=0\n'), 'test.service')
 
 if __name__=='__main__':unittest.main()
