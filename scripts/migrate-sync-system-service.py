@@ -104,6 +104,11 @@ def verify_running_scheduler(dest):
 def build_unit(original):
     assert original.count('ExecStart=%h/.local/bin/dracon-sync daemon') == 1
     result = original.replace('%h', str(HOME)).replace('%u', 'dracon')
+    # Type=simple reports startup after fork, before systemd-executor drops
+    # root and execs the operator binary. Type=exec makes systemctl start wait
+    # for execve, so the unchanged UID/hash checks observe the real daemon.
+    assert result.count('Type=simple\n') == 1, 'unexpected service readiness type'
+    result = result.replace('Type=simple\n', 'Type=exec\n')
     result = result.replace('After=default.target', 'After=network-online.target')
     result = result.replace('WantedBy=default.target', 'WantedBy=multi-user.target')
     result += ('\n[Service]\nUser=dracon\nGroup=users\nPrivateUsers=no\n'
