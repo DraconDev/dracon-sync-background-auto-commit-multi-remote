@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-18T10:29:22.830871+00:00",
+  "profileOnlyEndpointAndRegionChanged": true,
+  "credentialsChanged": false,
+  "manifestUnchanged": true,
+  "manifestSha256": "ad29c5d3a57c1c9f661238f699bfdfb752a065d3822c733d387427d8c4559451",
+  "service": "active",
+  "freezeCleared": true,
+  "uploadVerified": false,
+  "restoreVerified": false
+}
