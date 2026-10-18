@@ -2,6 +2,10 @@
 """Pinned, bounded one-host migration; does not run the daemon as root.
 Prepare unprivileged; review frozen files; administrator invokes --apply.
 Rollback is automatic on failure. No credentials or repository contents copied.
+NixOS note: /etc/systemd/system is an immutable symlink into /nix/store, so
+system units install to root-writable runtime /run/systemd/system (ephemeral
+across reboot; a declarative NixOS systemd.services module is the persistent
+follow-up). No /etc writes are attempted.
 """
 import argparse
 import hashlib
@@ -20,7 +24,9 @@ UID, GID = 1000, 100
 UNIT = 'dracon-sync-operator.service'
 WATCH = 'dracon-sync-operator-watchdog'
 CONFIG = HOME / '.config/systemd/user'
-SYSTEM = Path('/etc/systemd/system')
+# NixOS: /etc/systemd/system -> /etc/static/systemd/system -> /nix/store (read-only).
+# Root-writable system-manager runtime directory; ephemeral across reboot.
+SYSTEM = Path('/run/systemd/system')
 BIN = HOME / '.local/bin/dracon-sync'
 EXPECTED_BINARY = '2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba'
 TOOLS = '/run/current-system/sw/bin'
@@ -62,7 +68,7 @@ def build_unit(original):
     result += ('\n[Service]\nUser=dracon\nGroup=users\nPrivateUsers=no\n'
                'Environment=HOME=/home/dracon\nEnvironment=XDG_RUNTIME_DIR=/run/user/1000\n'
                'Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus\n'
-               'EnvironmentFile=-/etc/systemd/system/dracon-sync-operator.environment\n'
+               'EnvironmentFile=-/run/systemd/system/dracon-sync-operator.environment\n'
                '# Fail before scheduling if root provenance or operator identity is lost.\n'
                'ExecStartPre=/etc/profiles/per-user/dracon/bin/node -e "const s=require(\'node:fs\');if(process.geteuid()!==1000||s.statSync(\'/\').uid!==0||s.statSync(\'/home\').uid!==0)process.exit(78)"\n')
     return result
@@ -109,6 +115,8 @@ def apply(dest):
     assert userctl('is-active','dracon-sync.service').stdout.strip() == 'active'
     assert userctl('is-enabled','dracon-sync.service').stdout.strip() == 'enabled'
     watchdog_enabled = userctl('is-enabled','dracon-sync-watchdog.timer',check=False).stdout.strip() == 'enabled'
+    assert SYSTEM.is_dir(), 'system runtime directory missing: '+str(SYSTEM)
+    assert os.access(SYSTEM, os.W_OK), 'system runtime directory not writable as root (are you root?): '+str(SYSTEM)
     assert not any((SYSTEM/n).exists() or (SYSTEM/n).is_symlink() for n in
                    [UNIT,UNIT+'.d',WATCH+'.service',WATCH+'.timer','dracon-sync-operator.environment'])
     assert not any(p.exists() for p in freeze_markers()), 'pre-existing freeze must be resolved'
@@ -152,7 +160,8 @@ def apply(dest):
         assert not any(p.exists() for p in freeze_markers()), 'resume left a freeze marker'
         hold.unlink()
         receipt={'at':datetime.now(timezone.utc).isoformat(),'service':UNIT,'pid':pid,'uid':UID,
-                 'binarySha256':EXPECTED_BINARY,'userSchedulerMasked':True,'systemWatchdogEnabled':True,
+                 'binarySha256':EXPECTED_BINARY,'installPath':str(SYSTEM),
+                 'runtimeInstallEphemeral':True,'userSchedulerMasked':True,'systemWatchdogEnabled':True,
                  'freezeCleared':not (HOME/'.dracon/dracon-sync.freeze').exists(),'holdCleared':not hold.exists(),
                  'rollback':str(backup),'priorWatchdogEnabled':watchdog_enabled}
         (dest/'migration-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
