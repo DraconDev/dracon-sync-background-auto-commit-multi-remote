@@ -73,13 +73,15 @@ class MigrationTests(unittest.TestCase):
                 return completed(args)
             def fake_run(args,check=True,seconds=45,extra_env=None):
                 args=list(map(str,args));events.append(('system',args))
-                if args[1:]==['enable','--now',m.UNIT]:
+                if args[1] in ('enable','disable'):
+                    self.assertIn('--runtime',args,'system-manager enable/disable must never write /etc')
+                if args[1:]==['enable','--runtime','--now',m.UNIT]:
                     assert not state['user_active'], 'duplicate schedulers'
                     state['system_active']=True
                     state['system_watchdog_active']=inflight_watchdog
                     if fail_start:raise subprocess.CalledProcessError(1,args)
                 if args[1:]==['stop',m.WATCH+'.service']:state['system_watchdog_active']=False
-                if args[1:]==['disable','--now',m.UNIT]:
+                if args[1:]==['disable','--runtime','--now',m.UNIT]:
                     if fail_stop:raise subprocess.CalledProcessError(1,args)
                     state['system_active']=False
                 if len(args)>2 and args[1]=='show' and '--value' not in args:
@@ -134,6 +136,19 @@ class MigrationTests(unittest.TestCase):
                 self.assertTrue(original.is_symlink());self.assertFalse(state['user_active'])
                 self.assertTrue(state['system_active']);self.assertTrue((dest/'migration-receipt.json').exists())
             if tamper:self.assertEqual(events,[])
+
+    def test_real_offline_runtime_enable_links_only_under_run(self):
+        # Real systemctl against a disposable sysroot, never a live manager.
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);units=root/'run/systemd/system';units.mkdir(parents=True)
+            (units/'proof.service').write_text('[Service]\nExecStart=/bin/true\n[Install]\nWantedBy=multi-user.target\n')
+            subprocess.run(['systemctl','--root='+temporary,'enable','--runtime','proof.service'],
+                           check=True,capture_output=True,text=True,timeout=10)
+            self.assertTrue((units/'multi-user.target.wants/proof.service').is_symlink())
+            self.assertFalse((root/'etc/systemd/system').exists())
+            subprocess.run(['systemctl','--root='+temporary,'disable','--runtime','proof.service'],
+                           check=True,capture_output=True,text=True,timeout=10)
+            self.assertFalse((units/'multi-user.target.wants/proof.service').is_symlink())
 
     def test_success_masks_old_before_starting_new(self):self.simulation()
     def test_failed_start_restores_original_and_watchdog(self):self.simulation(fail_start=True)
