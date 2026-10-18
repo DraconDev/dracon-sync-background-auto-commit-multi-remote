@@ -1,2 +1,3 @@
 2026-10-18T16:20:44Z parked-healthy: user scheduler active+enabled, no hold/freeze, no stray system units; awaiting probe output
 2026-10-18T16:21:16Z daemon-alive: still refusing bridge-fixture (known namespace blocker, pile-up alert active); fleet otherwise syncing; awaiting probe output
+2026-10-18T16:21:43Z contract-intact: qualification candidate still untracked, no manual manifest commit; awaiting probe output
