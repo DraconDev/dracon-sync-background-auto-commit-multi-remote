@@ -175,7 +175,7 @@ def apply(dest):
             shutil.copyfile(dest/name,drop/name);os.chmod(drop/name,0o644)
         run([TOOLS+'/systemctl','daemon-reload'])
         try:
-            run([TOOLS+'/systemctl','enable','--now',UNIT],seconds=90)
+            run([TOOLS+'/systemctl','enable','--runtime','--now',UNIT],seconds=90)
         except subprocess.CalledProcessError as start_error:
             dump_failure(dest, 'enable-now-'+UNIT, start_error)
             raise
@@ -185,7 +185,7 @@ def apply(dest):
         assert next(l for l in status.splitlines() if l.startswith('Uid:')).split()[1:] == [str(UID)]*4
         assert sha('/proc/'+str(pid)+'/exe') == EXPECTED_BINARY
         assert userctl('is-enabled','dracon-sync.service',check=False).stdout.strip()=='masked'
-        run([TOOLS+'/systemctl','enable','--now',WATCH+'.timer'])
+        run([TOOLS+'/systemctl','enable','--runtime','--now',WATCH+'.timer'])
         user(str(BIN),'resume')
         assert not any(p.exists() for p in freeze_markers()), 'resume left a freeze marker'
         hold.unlink()
@@ -206,13 +206,13 @@ def apply(dest):
             if installed:
                 systemctl('daemon-reload')
             if (SYSTEM/(WATCH+'.timer')).exists():
-                systemctl('disable', '--now', WATCH+'.timer')
+                systemctl('disable', '--runtime', '--now', WATCH+'.timer')
                 require_stopped(systemctl, WATCH+'.timer')
             if (SYSTEM/(WATCH+'.service')).exists():
                 systemctl('stop', WATCH+'.service')
                 require_stopped(systemctl, WATCH+'.service')
             if (SYSTEM/UNIT).exists():
-                run([TOOLS+'/systemctl','disable','--now',UNIT], seconds=90)
+                run([TOOLS+'/systemctl','disable','--runtime','--now',UNIT], seconds=90)
                 require_stopped(systemctl, UNIT)
             # Do not remove unit files or restart user scheduling until every
             # possible system watchdog/scheduler process has stopped.
