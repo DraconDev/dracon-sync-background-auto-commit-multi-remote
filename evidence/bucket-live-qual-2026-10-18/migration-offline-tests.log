@@ -1,0 +1,11 @@
+test_failed_start_restores_original_and_watchdog (test_migrate_sync_system_service.MigrationTests.test_failed_start_restores_original_and_watchdog) ... ok
+test_success_masks_old_before_starting_new (test_migrate_sync_system_service.MigrationTests.test_success_masks_old_before_starting_new) ... ok
+test_tampered_plan_refused_before_service_changes (test_migrate_sync_system_service.MigrationTests.test_tampered_plan_refused_before_service_changes) ... ok
+test_unexpected_execstart_rejected (test_migrate_sync_system_service.MigrationTests.test_unexpected_execstart_rejected) ... ok
+test_unit_preserves_confinement_and_operator_identity (test_migrate_sync_system_service.MigrationTests.test_unit_preserves_confinement_and_operator_identity) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.013s
+
+OK
+{"at": "2026-10-18T11:09:28.605367+00:00", "service": "dracon-sync-operator.service", "pid": 461728, "uid": 1000, "binarySha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "userSchedulerMasked": true, "systemWatchdogEnabled": true, "freezeCleared": true, "holdCleared": true, "rollback": "/tmp/tmpdzo7smqp/plan/handover-backup", "priorWatchdogEnabled": true}
