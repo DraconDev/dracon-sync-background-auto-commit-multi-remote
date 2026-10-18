@@ -74,6 +74,33 @@ def dump_failure(dest, label, error):
         body += '(log write failed: '+str(log_error)+')\n'
     print(body, file=sys.stderr)
 
+def verify_running_scheduler(dest):
+    # Only public service metadata: never dump environments or journal bodies.
+    active = systemctl('is-active', UNIT).stdout.strip()
+    pid_text = systemctl('show', UNIT, '-p', 'MainPID', '--value').stdout.strip()
+    pid = int(pid_text)
+    if pid <= 0:
+        raise RuntimeError('post-start MainPID is not positive: '+repr(pid_text))
+    status = Path('/proc/'+str(pid)+'/status').read_text()
+    uids = next(line for line in status.splitlines() if line.startswith('Uid:')).split()[1:]
+    digest = sha('/proc/'+str(pid)+'/exe')
+    old_state = userctl('is-enabled', 'dracon-sync.service', check=False).stdout.strip()
+    observed = {'activeState':active, 'pid':pid, 'uids':uids,
+                'executableSha256':digest, 'oldUserUnitState':old_state}
+    log = dest/'post-start-checks.json'
+    log.write_text(json.dumps(observed, indent=2)+'\n')
+    os.chown(log, UID, GID)
+    print('Post-start checks: '+json.dumps(observed), flush=True)
+    if active != 'active':
+        raise RuntimeError('post-start system daemon state: '+repr(active))
+    if uids != [str(UID)]*4:
+        raise RuntimeError('post-start UID mismatch: '+repr(uids))
+    if digest != EXPECTED_BINARY:
+        raise RuntimeError('post-start executable digest mismatch: '+digest)
+    if old_state != 'masked':
+        raise RuntimeError('old user unit is not masked: '+repr(old_state))
+    return pid
+
 def build_unit(original):
     assert original.count('ExecStart=%h/.local/bin/dracon-sync daemon') == 1
     result = original.replace('%h', str(HOME)).replace('%u', 'dracon')
@@ -179,12 +206,7 @@ def apply(dest):
         except subprocess.CalledProcessError as start_error:
             dump_failure(dest, 'enable-now-'+UNIT, start_error)
             raise
-        assert run([TOOLS+'/systemctl','is-active',UNIT]).stdout.strip()=='active'
-        pid=int(run([TOOLS+'/systemctl','show',UNIT,'-p','MainPID','--value']).stdout.strip())
-        status=Path('/proc/'+str(pid)+'/status').read_text()
-        assert next(l for l in status.splitlines() if l.startswith('Uid:')).split()[1:] == [str(UID)]*4
-        assert sha('/proc/'+str(pid)+'/exe') == EXPECTED_BINARY
-        assert userctl('is-enabled','dracon-sync.service',check=False).stdout.strip()=='masked'
+        pid = verify_running_scheduler(dest)
         run([TOOLS+'/systemctl','enable','--runtime','--now',WATCH+'.timer'])
         user(str(BIN),'resume')
         assert not any(p.exists() for p in freeze_markers()), 'resume left a freeze marker'
