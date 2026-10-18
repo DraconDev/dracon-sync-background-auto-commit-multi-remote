@@ -1,0 +1,6 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+active
+ReadWritePaths=/home/dracon/.dracon /home/dracon/Dev /home/dracon/.local/state/dracon /home/dracon/.ssh /home/dracon/dracon/bridge-fixture
+ProtectHome=read-only
+ProtectSystem=strict
+▶️  Sync resumed (freeze marker removed)
