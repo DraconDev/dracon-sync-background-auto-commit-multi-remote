@@ -1,0 +1,29 @@
+{
+  "method": "OVH authenticated policy GET, compare-before-POST, POST import, GET exact readback",
+  "authorization": "Operator explicitly approved only exact fixture-prefix additions, uploader GET+PUT and consumer GET; preserve games/* and all Deny statements",
+  "resourceAdded": "arn:aws:s3:::dracon-lfs/dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/*",
+  "existingGamesResourcePreserved": true,
+  "allOtherStatementsUnchanged": true,
+  "readbackVerified": true,
+  "hashEncoding": "SHA256 of UTF8 JSON.stringify(policy or Deny statement array), no whitespace",
+  "roles": [
+    {
+      "role": "uploader", "userId": 858561,
+      "at": "2026-10-18T10:34:55.319Z",
+      "actions": ["s3:GetObject", "s3:PutObject"],
+      "beforeSha256": "a469f7e3a170eebb1f2a2d81bc0d273fd40bb966c8802b9c7e3386f07f5adc81",
+      "afterSha256": "7b91a9dd0cc6d0416c2792e13f360ab72cf82abd8a985391eaa8ab664e8c069c",
+      "denySha256Before": "34881ba4c2d3046d03efe68d584ca42f17e04db3a6045ceca127ee92278848be",
+      "denySha256After": "34881ba4c2d3046d03efe68d584ca42f17e04db3a6045ceca127ee92278848be"
+    },
+    {
+      "role": "consumer", "userId": 858562,
+      "at": "2026-10-18T10:34:56.313Z",
+      "actions": ["s3:GetObject"],
+      "beforeSha256": "3350c268c56494db73d89858e3e2a50cbe1de848b54a896aab9a74d38439d63e",
+      "afterSha256": "ba65afa72604bbe63d7ee4e5ce0b26ad1445b58d9e302cb1a6d024a1a5011f8c",
+      "denySha256Before": "98e45e0f154da64c54fb1e250d5b31868e4e48b0272693fa9a84dc9125c336a4",
+      "denySha256After": "98e45e0f154da64c54fb1e250d5b31868e4e48b0272693fa9a84dc9125c336a4"
+    }
+  ]
+}
