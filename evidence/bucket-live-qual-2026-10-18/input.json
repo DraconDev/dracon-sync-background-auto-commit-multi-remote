@@ -1,0 +1,18 @@
+{
+  "createdAt": "2026-10-18T10:18:36.059Z",
+  "path": "public/qualification-20261018/ovh-live-2fc91627ddb9.png",
+  "recipe": {
+    "width": 512,
+    "height": 512,
+    "rgba": [
+      82,
+      165,
+      191,
+      255
+    ]
+  },
+  "bytes": 2200,
+  "sha256": "215dc3a0b342d3d4855b07d7eb3555e69ce2ef520a4c0779b9b730e218116b9b",
+  "manifestBeforeSha256": "ad29c5d3a57c1c9f661238f699bfdfb752a065d3822c733d387427d8c4559451",
+  "root": "/home/dracon/dracon/bridge-fixture"
+}

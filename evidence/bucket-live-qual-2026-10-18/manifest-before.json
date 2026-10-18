@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "bucket": "dracon-lfs",
+  "repository": "f5829561-d50d-4644-8e6e-ad7e293fa1db",
+  "namespace": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db",
+  "assets": [
+    {
+      "id": "asset-icon",
+      "kind": "image",
+      "logicalPath": "public/icon.png",
+      "sourcePath": "public/icon.png",
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/a2efd455ecd8d42f4eb1a45ffeb858b07cf54e5ff3552f739878c49723229de1.png",
+      "sha256": "a2efd455ecd8d42f4eb1a45ffeb858b07cf54e5ff3552f739878c49723229de1",
+      "bytes": 75,
+      "regenerable": true,
+      "visibility": "private",
+      "bucketed": true
+    },
+    {
+      "id": "asset-cover",
+      "kind": "image",
+      "logicalPath": "public/cover.png",
+      "sourcePath": "public/cover.png",
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/175dcdabcb7037ece8fda8ae70545633e79e6c94ae67318e2e6de2e553a2eefd.png",
+      "sha256": "175dcdabcb7037ece8fda8ae70545633e79e6c94ae67318e2e6de2e553a2eefd",
+      "bytes": 75,
+      "regenerable": true,
+      "visibility": "private",
+      "bucketed": true
+    },
+    {
+      "id": "asset-f234533811779ffbd1a5b23d843ab47152a788b77cde1d89a151446a0f54afe4",
+      "kind": "image",
+      "logicalPath": "public/qual-20261017.png",
+      "sourcePath": "public/qual-20261017.png",
+      "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/{sha256}.{ext}",
+      "sha256": "a96149acc31b97858eb514dafe7ede5c4f431616f7eb6424cfe6e41bdc94a8a6",
+      "bytes": 82,
+      "regenerable": true,
+      "visibility": "private",
+      "bucketed": false,
+      "generator": {
+        "adapterId": "solid-rgba-png",
+        "adapterVersion": 1,
+        "runner": {
+          "sha256": "352e4de0a452991fa9ed99c9de9afecb633b8399478912a5169c043823893020",
+          "version": 1
+        },
+        "inputs": []
+      },
+      "provenance": {
+        "schemaVersion": 1,
+        "adapterId": "solid-rgba-png",
+        "adapterVersion": 1,
+        "repositoryId": "f5829561-d50d-4644-8e6e-ad7e293fa1db",
+        "sourcePath": "public/qual-20261017.png",
+        "sha256": "a96149acc31b97858eb514dafe7ede5c4f431616f7eb6424cfe6e41bdc94a8a6",
+        "bytes": 82,
+        "recipe": {
+          "width": 16,
+          "height": 16,
+          "rgba": [
+            255,
+            46,
+            136,
+            255
+          ]
+        },
+        "recipeDigest": "4dec03deb3602d4149ad1322d146f46d08f25f0df7ce5cfa093e3fea68e3fdfa",
+        "toolchain": {
+          "node": "24.18.0",
+          "zlib": "1.3.2"
+        },
+        "inputDigests": [],
+        "consumer": {
+          "id": "filesystem-restore",
+          "version": 1
+        }
+      }
+    }
+  ]
+}
