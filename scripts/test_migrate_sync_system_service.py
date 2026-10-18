@@ -1,5 +1,7 @@
 """Offline migration tests: fake managers, no sudo, services or host edits."""
+import contextlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -143,6 +145,19 @@ class MigrationTests(unittest.TestCase):
     def test_shutdown_confirmation_rejects_missing_process_metadata(self):
         with self.assertRaises(AssertionError):
             m.require_stopped(lambda *a:types.SimpleNamespace(stdout='ActiveState=inactive\n'), 'test.service')
+    def test_dump_failure_persists_captured_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            dest = Path(temporary)
+            error = subprocess.CalledProcessError(1, ['systemctl', 'enable', '--now', 'x'],
+                                                   output='out-text', stderr='err-text')
+            with patch.object(m.os, 'chown'):
+                with contextlib.redirect_stderr(io.StringIO()) as captured:
+                    m.dump_failure(dest, 'enable-now-x', error)
+            log = (dest/'handover-failure.log').read_text()
+            for text in ('enable-now-x', 'out-text', 'err-text'):
+                self.assertIn(text, log)
+                self.assertIn(text, captured.getvalue())
+
     def test_shutdown_confirmation_rejects_deactivating_service(self):
         with self.assertRaises(AssertionError):
             m.require_stopped(lambda *a:types.SimpleNamespace(stdout='ActiveState=deactivating\nMainPID=0\nControlPID=0\n'), 'test.service')

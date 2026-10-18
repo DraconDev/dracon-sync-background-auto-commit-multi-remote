@@ -35,8 +35,9 @@ ENV = {**os.environ, 'PATH': TOOLS + ':/run/wrappers/bin', 'HOME': str(HOME)}
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
-def run(args, check=True, seconds=45):
-    return subprocess.run([str(a) for a in args], env=ENV, check=check,
+def run(args, check=True, seconds=45, extra_env=None):
+    env = {**ENV, **extra_env} if extra_env else ENV
+    return subprocess.run([str(a) for a in args], env=env, check=check,
                           text=True, capture_output=True, timeout=seconds)
 
 def user(*args, check=True):
@@ -59,6 +60,19 @@ def require_stopped(control, name):
 
 def systemctl(*args):
     return run([TOOLS+'/systemctl', *args])
+
+def dump_failure(dest, label, error):
+    """Persist captured child output for a failed step; rollback still proceeds."""
+    body = ('failed step: '+label+'\nreturncode: '+str(getattr(error, 'returncode', '?'))+
+            '\n--- stdout ---\n'+(getattr(error, 'stdout', None) or '')+
+            '\n--- stderr ---\n'+(getattr(error, 'stderr', None) or '')+'\n')
+    try:
+        with open(dest/'handover-failure.log', 'a') as handle:
+            handle.write(body)
+        os.chown(dest/'handover-failure.log', UID, GID)
+    except OSError as log_error:
+        body += '(log write failed: '+str(log_error)+')\n'
+    print(body, file=sys.stderr)
 
 def build_unit(original):
     assert original.count('ExecStart=%h/.local/bin/dracon-sync daemon') == 1
@@ -125,8 +139,18 @@ def apply(dest):
     backup = dest/'handover-backup'
     backup.mkdir(mode=0o700)
     shutil.copy2(CONFIG/'dracon-sync.service',backup/'dracon-sync.service')
-    # Validate generated units offline before any scheduler is stopped.
+    # Validate generated units offline before any scheduler is stopped,
+    # including the exact installed composition (unit + .d drop-ins).
     run([TOOLS+'/systemd-analyze','verify',dest/UNIT,dest/(WATCH+'.service'),dest/(WATCH+'.timer')])
+    verify_tree = Path(tempfile.mkdtemp(prefix='sync-migration-verify-'))
+    try:
+        shutil.copyfile(dest/UNIT, verify_tree/UNIT)
+        verify_drop = verify_tree/(UNIT+'.d');verify_drop.mkdir()
+        for name in ['10-resource-headroom.conf','20-bridge-fixture.conf']:
+            shutil.copyfile(dest/name, verify_drop/name)
+        run([TOOLS+'/systemd-analyze','verify',UNIT], extra_env={'SYSTEMD_UNIT_PATH':str(verify_tree)})
+    finally:
+        shutil.rmtree(verify_tree, ignore_errors=True)
     hold.touch(mode=0o600,exist_ok=False);os.chown(hold,UID,GID)
     installed=[]; moved=False; stopped=False
     try:
@@ -148,7 +172,11 @@ def apply(dest):
         for name in ['10-resource-headroom.conf','20-bridge-fixture.conf']:
             shutil.copyfile(dest/name,drop/name);os.chmod(drop/name,0o644)
         run([TOOLS+'/systemctl','daemon-reload'])
-        run([TOOLS+'/systemctl','enable','--now',UNIT],seconds=90)
+        try:
+            run([TOOLS+'/systemctl','enable','--now',UNIT],seconds=90)
+        except subprocess.CalledProcessError as start_error:
+            dump_failure(dest, 'enable-now-'+UNIT, start_error)
+            raise
         assert run([TOOLS+'/systemctl','is-active',UNIT]).stdout.strip()=='active'
         pid=int(run([TOOLS+'/systemctl','show',UNIT,'-p','MainPID','--value']).stdout.strip())
         status=Path('/proc/'+str(pid)+'/status').read_text()
