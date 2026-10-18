@@ -148,7 +148,9 @@ def apply(dest):
         verify_drop = verify_tree/(UNIT+'.d');verify_drop.mkdir()
         for name in ['10-resource-headroom.conf','20-bridge-fixture.conf']:
             shutil.copyfile(dest/name, verify_drop/name)
-        run([TOOLS+'/systemd-analyze','verify',UNIT], extra_env={'SYSTEMD_UNIT_PATH':str(verify_tree)})
+        system_path = ':'.join([str(verify_tree), '/etc/systemd/system',
+                                  '/run/systemd/system', '/usr/lib/systemd/system'])
+        run([TOOLS+'/systemd-analyze','verify',UNIT], extra_env={'SYSTEMD_UNIT_PATH':system_path})
     finally:
         shutil.rmtree(verify_tree, ignore_errors=True)
     hold.touch(mode=0o600,exist_ok=False);os.chown(hold,UID,GID)

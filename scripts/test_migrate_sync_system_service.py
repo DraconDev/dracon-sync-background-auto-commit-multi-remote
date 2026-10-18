@@ -71,7 +71,7 @@ class MigrationTests(unittest.TestCase):
                 if args==('disable','--now','dracon-sync-watchdog.timer'):state['watchdog']=False
                 if args==('enable','--now','dracon-sync-watchdog.timer'):state['watchdog']=True
                 return completed(args)
-            def fake_run(args,check=True,seconds=45):
+            def fake_run(args,check=True,seconds=45,extra_env=None):
                 args=list(map(str,args));events.append(('system',args))
                 if args[1:]==['enable','--now',m.UNIT]:
                     assert not state['user_active'], 'duplicate schedulers'
