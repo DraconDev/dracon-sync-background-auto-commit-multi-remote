@@ -150,6 +150,27 @@ class MigrationTests(unittest.TestCase):
                            check=True,capture_output=True,text=True,timeout=10)
             self.assertFalse((units/'multi-user.target.wants/proof.service').is_symlink())
 
+    def test_post_start_reports_mask_failure_and_keeps_observations(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            def control(*args):
+                return types.SimpleNamespace(stdout='active\n' if args[0]=='is-active' else str(os.getpid())+'\n')
+            with patch.object(m,'systemctl',side_effect=control), \
+                 patch.object(m,'userctl',return_value=types.SimpleNamespace(stdout='enabled\n')), \
+                 patch.object(m,'sha',return_value=m.EXPECTED_BINARY), patch.object(m.os,'chown'):
+                with self.assertRaisesRegex(RuntimeError, 'old user unit is not masked'):
+                    m.verify_running_scheduler(Path(temporary))
+            self.assertEqual(json.loads((Path(temporary)/'post-start-checks.json').read_text())['oldUserUnitState'],'enabled')
+
+    def test_post_start_reports_digest_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            def control(*args):
+                return types.SimpleNamespace(stdout='active\n' if args[0]=='is-active' else str(os.getpid())+'\n')
+            with patch.object(m,'systemctl',side_effect=control), \
+                 patch.object(m,'userctl',return_value=types.SimpleNamespace(stdout='masked\n')), \
+                 patch.object(m,'sha',return_value='0'*64), patch.object(m.os,'chown'):
+                with self.assertRaisesRegex(RuntimeError, 'executable digest mismatch'):
+                    m.verify_running_scheduler(Path(temporary))
+
     def test_success_masks_old_before_starting_new(self):self.simulation()
     def test_failed_start_restores_original_and_watchdog(self):self.simulation(fail_start=True)
     def test_tampered_plan_refused_before_service_changes(self):self.simulation(tamper=True)
