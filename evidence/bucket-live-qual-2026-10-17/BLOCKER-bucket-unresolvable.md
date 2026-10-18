@@ -1,4 +1,17 @@
-# Live OVH qualification BLOCKED: bucket `dracon-lfs` unresolvable (2026-10-18)
+# SUPERSEDED diagnosis: wrong endpoint, not missing bucket
+
+Correction verified 2026-10-18 from the operator's signed-in OVH console:
+`dracon-lfs` exists in London, endpoint `https://s3.uk.io.cloud.ovh.net/`.
+The prior Strasbourg (`sbg`) profile endpoint was incorrect. HTTP 404s at
+that endpoint did NOT establish deletion or a bucket/account outage. Do NOT
+follow the earlier recreation suggestion below. Both existing scoped roles
+LIST the UK bucket successfully (HTTP 200). See
+`../bucket-live-qual-2026-10-18/endpoint-and-scope-correction.md`.
+
+Historical report below (incorrect root-cause conclusion retained explicitly
+as superseded, not as current operational guidance):
+
+# Earlier live OVH qualification report (2026-10-18)
 
 ## What was achieved before the block
 - New eligible fixture `public/qual-20261017.png` generated with the repo's own
