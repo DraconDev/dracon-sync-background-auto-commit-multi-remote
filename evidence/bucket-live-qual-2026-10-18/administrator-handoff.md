@@ -1,45 +1,44 @@
-# Administrator action required — 2026-10-18 (v5: diagnose first, then retry)
+# Administrator action — v6, after successful ownership probe
 
-v3 failed live at `systemctl enable --now dracon-sync-operator.service` (exit 1,
-no captured output). Rollback restored the original user scheduler (verified
-active+enabled, no hold/freeze, no leftover system units). The unit file plus
-drop-ins verify clean (exit 0), so the cause is unknown: either the start
-itself (e.g. the root-provenance ExecStartPre check) or an enable quirk.
+Operator's actual system-manager probe returned euid1000/root0/home0 and
+status0/SUCCESS. No need to repeat that probe. This is not yet proof of daemon
+startup or live bucket qualification.
 
-v5 (reviewed CLEAR FOR OPERATOR EXECUTION, migration-review-v5.md) changes
-nothing about handover/rollback/identity/confinement. It only (1) verifies the
-exact installed composition (unit + drop-ins) before stopping anything, and
-(2) captures systemctl's own stdout/stderr to `handover-failure.log` plus the
-terminal if the start fails again. DO NOT EXECUTE v2/v3/v4.
+A concrete script bug was independently reproduced with real systemctl and
+a disposable sysroot: plain enable creates wants links under /etc even when
+the unit is installed under /run. NixOS /etc is immutable. v6 fixes all four
+system-manager enable/rollback-disable commands to use --runtime. All
+user-manager operations, ownership checks, confinement and rollback ordering
+are unchanged. Historical v3 stderr was not captured, so it is a likely,
+not conclusively proven, explanation of that failure.
 
-## Step 1 — transient provenance probe (safe: installs nothing, stops nothing)
+14 tests pass, including a real offline sysroot enable/disable regression and
+a fake-manager runtime-flag tripwire. Independent v6 source review cleared
+operator execution (migration-review-v6.md). Installed user daemon remains
+active. Do not execute obsolete v2–v5 artifacts.
 
-Run in the operator's own terminal (password only at sudo's prompt, never chat):
-
-```sh
-sudo systemd-run --unit=bridge-provenance-probe --wait --pipe --collect -p User=dracon -p Group=users -p PrivateUsers=no -p ProtectHome=read-only -p ProtectSystem=strict -p 'ReadWritePaths=/home/dracon/.dracon /home/dracon/dracon/bridge-fixture' /etc/profiles/per-user/dracon/bin/node -e "const s=require('node:fs');console.log(JSON.stringify({euid:process.geteuid(),root:s.statSync('/').uid,home:s.statSync('/home').uid}));if(process.geteuid()!==1000||s.statSync('/').uid!==0||s.statSync('/home').uid!==0)process.exit(78)"
-echo probe-exit=$?
-```
-
-This runs the same ownership check the service would run, as a throwaway
-system unit. Paste back the JSON line and probe-exit.
-
-## Step 2 — migration retry ONLY if probe-exit=0
+Paste this block into your own terminal. Enter the password only at sudo's
+local prompt, then paste back the result:
 
 ```sh
-sudo /nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/bin/python3.13 -I /home/dracon/.local/state/dracon-sync/service-migration/20261018-operator-v5/migrate.py apply /home/dracon/.local/state/dracon-sync/service-migration/20261018-operator-v5
+d="$HOME/.local/state/dracon-sync/service-migration/20261018-operator-v6"
+sudo /nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/bin/python3.13 -I "$d/migrate.py" apply "$d"
 ```
 
-Use v5 only. Frozen script SHA256: c569aa70f142583dae0f0907d6d3b2b9407cbb46b7d5ebc99fe55b6b4215863c. Frozen plan SHA256: 36ab08eeb463881ef31602c7a7f5f67b87e2219f4b01c05084c3911d08abfc31. If the start fails again, the real error is now captured — paste the FAILED STEP block plus the result.
+Frozen script SHA256: fc8369c5e4e4c906e6cf57e3dad15a5d1ed06ea1dbc70d46425e177f93513b8b
+Plan SHA256: 3422fa4d50dd8b545fd7abc971157a026f0d374958a07643bd10e35ef90c02fd
+Apply checks payload, live source unit/drop-ins and pinned daemon before
+handover. Startup failure now prints/captures systemctl's stderr before
+rollback. Retained hold or incomplete rollback means stop and report; never
+start a second scheduler.
 
-If probe-exit is nonzero, STOP and report: the system manager also hides root
-ownership, and retrying cannot succeed — the strategy must change.
+REBOOT LIMITATION: this is a runtime qualification install. /run units vanish
+on reboot while the old user scheduler mask persists. Restore scheduling or
+install declarative NixOS persistence BEFORE any reboot. Migration is not
+qualified for unattended reboot persistence.
 
-REBOOT WARNING (unchanged): `/run` units vanish on reboot while the user-unit
-mask persists, so after any reboot NO scheduler runs until re-apply or a
-declarative NixOS `systemd.services` module lands. Do not reboot
-mid-qualification.
-
-After administrator execution, return the result to this session for
-independent re-verification before live upload/consumer/restore qualification.
-Migration alone does not satisfy the goal.
+After execution, parent must inspect actual migration receipt, runtime UID,
+binary hash, namespace root provenance, old/new scheduler and watchdog states,
+and freeze/hold clearance. Then complete actual scheduled upload, independent
+scoped consumer bytes/digest verification and fresh restoration with timestamped
+committed evidence. Migration alone does not satisfy the goal.
