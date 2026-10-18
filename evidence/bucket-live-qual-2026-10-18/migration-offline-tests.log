@@ -5,26 +5,13 @@ test_inflight_system_watchdog_stopped_before_user_restart (test_migrate_sync_sys
 test_resume_leaving_alternate_marker_retains_hold (test_migrate_sync_system_service.MigrationTests.test_resume_leaving_alternate_marker_retains_hold) ... ok
 test_shutdown_confirmation_rejects_deactivating_service (test_migrate_sync_system_service.MigrationTests.test_shutdown_confirmation_rejects_deactivating_service) ... ok
 test_shutdown_confirmation_rejects_missing_process_metadata (test_migrate_sync_system_service.MigrationTests.test_shutdown_confirmation_rejects_missing_process_metadata) ... ok
-test_success_masks_old_before_starting_new (test_migrate_sync_system_service.MigrationTests.test_success_masks_old_before_starting_new) ... ERROR
+test_success_masks_old_before_starting_new (test_migrate_sync_system_service.MigrationTests.test_success_masks_old_before_starting_new) ... ok
 test_tampered_plan_refused_before_service_changes (test_migrate_sync_system_service.MigrationTests.test_tampered_plan_refused_before_service_changes) ... ok
 test_unexpected_execstart_rejected (test_migrate_sync_system_service.MigrationTests.test_unexpected_execstart_rejected) ... ok
 test_unit_preserves_confinement_and_operator_identity (test_migrate_sync_system_service.MigrationTests.test_unit_preserves_confinement_and_operator_identity) ... ok
 
-======================================================================
-ERROR: test_success_masks_old_before_starting_new (test_migrate_sync_system_service.MigrationTests.test_success_masks_old_before_starting_new)
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/dracon/Dev/dracon-utilities/dracon-sync/scripts/test_migrate_sync_system_service.py", line 129, in test_success_masks_old_before_starting_new
-    def test_success_masks_old_before_starting_new(self):self.simulation()
-                                                         ~~~~~~~~~~~~~~~^^
-  File "/home/dracon/Dev/dracon-utilities/dracon-sync/scripts/test_migrate_sync_system_service.py", line 102, in simulation
-    else:m.apply(dest)
-         ~~~~~~~^^^^^^
-  File "/home/dracon/Dev/dracon-utilities/dracon-sync/scripts/migrate-sync-system-service.py", line 145, in apply
-    pid=int(run([TOOLS+'/systemctl','show',UNIT,'-p','MainPID','--value']).stdout.strip())
-ValueError: invalid literal for int() with base 10: 'ActiveState=active\nMainPID=123\nControlPID=0'
+Ran 11 tests in 0.035s
 
-----------------------------------------------------------------------
-Ran 11 tests in 0.030s
-
-FAILED (errors=1)
+OK
+{"at": "2026-10-18T11:12:22.680149+00:00", "service": "dracon-sync-operator.service", "pid": 574660, "uid": 1000, "binarySha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "userSchedulerMasked": true, "systemWatchdogEnabled": true, "freezeCleared": true, "holdCleared": true, "rollback": "/tmp/tmpmhs0bpat/plan/handover-backup", "priorWatchdogEnabled": true}

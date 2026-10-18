@@ -73,7 +73,7 @@ class MigrationTests(unittest.TestCase):
                 if args[1:]==['disable','--now',m.UNIT]:
                     if fail_stop:raise subprocess.CalledProcessError(1,args)
                     state['system_active']=False
-                if len(args)>2 and args[1]=='show':
+                if len(args)>2 and args[1]=='show' and '--value' not in args:
                     active = ((args[2]==m.UNIT and state['system_active']) or
                               (args[2]==m.WATCH+'.service' and state['system_watchdog_active']))
                     return completed(args,'ActiveState='+('active' if active else 'inactive')+'\nMainPID='+('123' if active else '0')+'\nControlPID=0\n')
