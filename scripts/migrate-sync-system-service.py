@@ -113,7 +113,8 @@ def apply(dest):
         userctl('disable','--now','dracon-sync-watchdog.timer')
         userctl('stop','dracon-sync-watchdog.service',check=False)
         # Explicit operator-approved migration, protected by hold+freeze+rollback.
-        userctl('disable','--now','dracon-sync.service');stopped=True
+        stopped=True
+        userctl('disable','--now','dracon-sync.service')
         assert userctl('is-active','dracon-sync.service',check=False).stdout.strip() != 'active'
         shutil.move(CONFIG/'dracon-sync.service',backup/'original.service');moved=True
         (CONFIG/'dracon-sync.service').symlink_to('/dev/null')
