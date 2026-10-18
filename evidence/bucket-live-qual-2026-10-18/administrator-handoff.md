@@ -1,51 +1,32 @@
-# Administrator handoff — v7 post-start diagnostics
+# Next administrator action — v8 (Type=exec readiness fix)
 
-## What actually happened in v6
+v7 identified the race: post-start sampled root systemd-executor before it
+became the operator-owned daemon. Parent matched the reported executable
+hash exactly to installed systemd-executor. v8 uses Type=exec so systemctl
+waits until execve before the SAME UID1000 and daemon-hash checks run. No
+security check relaxed. See migration-v7-executor-race.md. 17 offline tests
+pass; unit verification exits0. Parent-inspected change; no new claim of
+independent v8 runtime review or successful deployment.
 
-Operator reported `Migration refused/failed: AssertionError` with no message.
-Parent inspected system journal: new system service STARTED at 21:36:28 BST,
-printed daemon-start and startup-cleanup, then was stopped by the migration
-rollback that same second. User service restarted at 21:36:30 BST. This was
-NOT another enable/start failure. See migration-v6-system-journal.log.
-
-Live verification after failure: old user service active+enabled, MainPID3145249;
-new service inactive/MainPID0, no remaining /run units, neither freeze marker
-nor maintenance hold present. Installed daemon, live source unit/drop-ins,
-and frozen v6 payload hashes match. Backup directory exists, proving the
-attempt passed preflight. Exact failing post-start assertion cannot be
-recovered from historical output. Do NOT claim a particular check failed.
-
-## v7 change
-
-Replaced four bare post-start assertions with named RuntimeErrors and a
-public-metadata-only observation record: active state, MainPID, four UIDs,
-executable SHA256 and old-user-unit enable state. Same acceptance criteria,
-no sandbox/ownership relaxation or rollback changes. Report persists in
-`post-start-checks.json` before evaluating those checks. No credentials,
-environments, raw journal bodies or asset contents included. 16 offline
-tests pass (migration-offline-tests-v7.log), including digest/mask error
-messages and retained observations. Simulated receipts in test log are NOT
-live receipts. Parent-inspected change; previous independent reviews cover
-unchanged confinement and rollback, not a new v7 execution result.
-
-## Next action
-
-One diagnostic migration attempt using v7, not any older plan. It will either
-complete all checks or report exactly which observed value failed and roll
-back. This is not presented as a proven fix for the unidentified assertion.
+Paste three complete lines in your terminal (include final dot):
 
 ```sh
-d="$HOME/.local/state/dracon-sync/service-migration/20261018-operator-v7"
-sudo /nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/bin/python3.13 -I "$d/migrate.py" apply "$d"
+cd ~/.local/state/dracon-sync/service-migration/20261018-operator-v8
+p=/nix/store/vm6nxpp97fxgczw00bwkxdqdm2an3n95-python3-3.13.12/bin/python3.13
+sudo "$p" -I ./migrate.py apply .
 ```
 
-Enter password only locally and return the `Post-start checks` JSON and any
-error line. Agent can also inspect the persisted report afterward.
+Password only at sudo's local prompt. Return the Post-start checks JSON and
+result. Use only v8; earlier plans are obsolete or have existing backups.
 
-Script SHA256: ec85e9178ae965a3e612c3319935ca0e2cf804c8342560d643207ca0a8f4e0a7
-Plan SHA256: 94a954a8b0b124615a91de28cef4b39cbee7e88a787d9315b041fcb877423f65
+Frozen plan SHA256: a73bad17c4eddfcae660ac3c6c1ae427e91e8556ec010b28213241189c926c2c
 
-Runtime-install REBOOT LIMITATION still applies: /run units vanish but home
-mask persists. Restore scheduling or configure NixOS persistence before any
-reboot. Live scheduled upload/independent consumer/fresh restoration remain
-unqualified. Do not start a second scheduler after incomplete rollback.
+Current original user daemon restored active/enabled. Migration retains
+confinement, User=dracon/Group=users, runtime enable, failure observations,
+rollback stop confirmation and freeze/hold handling.
+
+Do not reboot mid-qualification. /run units vanish but persistent user mask
+remains: restore scheduling or declarative NixOS persistence BEFORE reboot.
+After success parent must verify actual service/watchdogs/UID/hash and then
+scheduled upload, independent consumer fetch and fresh restoration. A
+migration receipt alone does not satisfy the qualification goal.

@@ -1,0 +1,32 @@
+.Post-start checks: {"activeState": "active", "pid": 449600, "uids": ["1000", "1000", "1000", "1000"], "executableSha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "oldUserUnitState": "masked"}
+.failed step: enable-now-dracon-sync-operator.service
+returncode: 1
+--- stdout ---
+
+--- stderr ---
+
+
+.failed step: enable-now-dracon-sync-operator.service
+returncode: 1
+--- stdout ---
+
+--- stderr ---
+
+
+.failed step: enable-now-dracon-sync-operator.service
+returncode: 1
+--- stdout ---
+
+--- stderr ---
+
+
+..Post-start checks: {"activeState": "active", "pid": 449600, "uids": ["1000", "1000", "1000", "1000"], "executableSha256": "0000000000000000000000000000000000000000000000000000000000000000", "oldUserUnitState": "masked"}
+.Post-start checks: {"activeState": "active", "pid": 449600, "uids": ["1000", "1000", "1000", "1000"], "executableSha256": "2b74bb7c84cb9572b35b0ee246bdd29a9e9e56d622fe70fbe46779678d4dfdba", "oldUserUnitState": "enabled"}
+..Post-start checks: {"activeState": "active", "pid": 449600, "uids": ["1000", "1000", "1000", "1000"], "executableSha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "oldUserUnitState": "masked"}
+...Post-start checks: {"activeState": "active", "pid": 449600, "uids": ["1000", "1000", "1000", "1000"], "executableSha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "oldUserUnitState": "masked"}
+.....
+----------------------------------------------------------------------
+Ran 17 tests in 0.078s
+
+OK
+{"at": "2026-10-18T21:23:36.553545+00:00", "service": "dracon-sync-operator.service", "pid": 449600, "uid": 1000, "binarySha256": "09396b72624dd2441b291d5e9bf2c3c0cb9ee7cd8f8453d154b8f5852a98b4ae", "installPath": "/tmp/tmprb1260wn/system", "runtimeInstallEphemeral": true, "userSchedulerMasked": true, "systemWatchdogEnabled": true, "freezeCleared": true, "holdCleared": true, "rollback": "/tmp/tmprb1260wn/plan/handover-backup", "priorWatchdogEnabled": true}
