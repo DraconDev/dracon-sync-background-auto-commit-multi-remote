@@ -118,8 +118,30 @@ impl Snapshot {
     }
 }
 async fn snapshot(repo: &Path, status_cmd: &[String]) -> Result<Snapshot> {
-    let paths = git(repo, &args(&["ls-files", "--cached", "--others", "--exclude-standard", "-z"]), None).await?;
-    let attributes = git(repo, &args(&["check-attr", "-z", "--stdin", "filter", "working-tree-encoding"]), Some(paths)).await?;
+    let paths = git(
+        repo,
+        &args(&[
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ]),
+        None,
+    )
+    .await?;
+    let attributes = git(
+        repo,
+        &args(&[
+            "check-attr",
+            "-z",
+            "--stdin",
+            "filter",
+            "working-tree-encoding",
+        ]),
+        Some(paths),
+    )
+    .await?;
     Ok(Snapshot {
         attributes,
         // Do not log these bytes: configuration may contain credentials.
@@ -297,17 +319,36 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             input.extend_from_slice(path.as_bytes());
             input.push(0);
         }
-        let attrs = git(repo, &args(&["check-attr", "-z", "--stdin", "filter", "working-tree-encoding"]), Some(input)).await?;
+        let attrs = git(
+            repo,
+            &args(&[
+                "check-attr",
+                "-z",
+                "--stdin",
+                "filter",
+                "working-tree-encoding",
+            ]),
+            Some(input),
+        )
+        .await?;
         let mut fields = attrs.split(|b| *b == 0);
         while let Some(path) = fields.next().filter(|p| !p.is_empty()) {
             let name = fields.next().context("accounting-invalid-attributes")?;
             let value = fields.next().context("accounting-invalid-attributes")?;
-            if !matches!(name, b"filter" | b"working-tree-encoding") || !index.contains_key(text(path)?) {
+            if !matches!(name, b"filter" | b"working-tree-encoding")
+                || !index.contains_key(text(path)?)
+            {
                 bail!("accounting-invalid-attributes");
             }
-            let entry = tracked_attributes.entry(text(path)?.to_owned()).or_default();
+            let entry = tracked_attributes
+                .entry(text(path)?.to_owned())
+                .or_default();
             let set = !matches!(value, b"unspecified" | b"unset");
-            if name == b"filter" { entry.0 = set; } else { entry.1 = set; }
+            if name == b"filter" {
+                entry.0 = set;
+            } else {
+                entry.1 = set;
+            }
             if set {
                 status.extend_from_slice(b" M ");
                 status.extend_from_slice(path);
@@ -330,8 +371,12 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         // These are literal filesystem/Git paths, NOT bucket object keys or
         // revision expressions. Colons (e.g. SQLite URI-shaped filenames) are
         // valid here; all Git path arguments are after -- / NUL stdin.
-        if path.is_empty() || path.contains('\0') || Path::new(path).is_absolute()
-            || Path::new(path).components().any(|c| !matches!(c, std::path::Component::Normal(_)))
+        if path.is_empty()
+            || path.contains('\0')
+            || Path::new(path).is_absolute()
+            || Path::new(path)
+                .components()
+                .any(|c| !matches!(c, std::path::Component::Normal(_)))
         {
             bail!("accounting-unsafe-path");
         }
@@ -415,11 +460,25 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             continue;
         }
         let attrs = if let Some((filter, encoding)) = tracked_attributes.get(path) {
-            if *encoding { bail!("accounting-unsupported-encoding"); }
+            if *encoding {
+                bail!("accounting-unsupported-encoding");
+            }
             let value = if *filter { "reserved" } else { "unset" };
             format!("{path}\0filter\0{value}\0").into_bytes()
         } else {
-            git(repo, &args(&["check-attr", "-z", "filter", "working-tree-encoding", "--", path]), None).await?
+            git(
+                repo,
+                &args(&[
+                    "check-attr",
+                    "-z",
+                    "filter",
+                    "working-tree-encoding",
+                    "--",
+                    path,
+                ]),
+                None,
+            )
+            .await?
         };
         let mut filtered = false;
         let mut fields = attrs.split(|b| *b == 0);
@@ -436,8 +495,8 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
                 }
             }
         }
-        if filtered && (policy.max_stage_file_bytes == 0
-            || policy.max_stage_file_bytes > MAX_JS_INTEGER)
+        if filtered
+            && (policy.max_stage_file_bytes == 0 || policy.max_stage_file_bytes > MAX_JS_INTEGER)
         {
             bail!("accounting-unbounded-filter-ceiling");
         }

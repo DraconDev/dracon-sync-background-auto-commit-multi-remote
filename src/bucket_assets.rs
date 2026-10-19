@@ -196,8 +196,14 @@ pub(crate) async fn prepare(
         if verdict["ok"] != true {
             bail!("private workflow did not verify publication");
         }
-        let digest = verdict["manifestSha256"].as_str().context("workflow omitted upload-bound manifest digest")?;
-        if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+        let digest = verdict["manifestSha256"]
+            .as_str()
+            .context("workflow omitted upload-bound manifest digest")?;
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        {
             bail!("invalid upload-bound manifest digest");
         }
         verified_digest = Some(digest.to_owned());
@@ -260,7 +266,11 @@ impl Prepared {
         if let Some(ceiling) = self.output_ceiling {
             // Backstop the same staged-blob ceiling used by normal hygiene:
             // routing reservations must never authorize larger clean output.
-            for size in crate::git::staged_blob_sizes_for(repo, staged_paths.iter().cloned().collect()).await?.values() {
+            for size in
+                crate::git::staged_blob_sizes_for(repo, staged_paths.iter().cloned().collect())
+                    .await?
+                    .values()
+            {
                 if !matches!(size, Some(bytes) if *bytes <= ceiling) {
                     bail!("staged output exceeds accounting ceiling or cannot be measured");
                 }
@@ -386,12 +396,22 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
     async fn staged_accounting_ceiling_measures_clean_output_not_plaintext() {
         let dir = fixture();
         let repo = dir.path();
-        let prepared = prepare(repo, false, 30).await.unwrap().unwrap()
+        let prepared = prepare(repo, false, 30)
+            .await
+            .unwrap()
+            .unwrap()
             .with_output_ceiling(4096);
         git(repo, &["add", "--", "manifest.json"]);
         prepared.verify_staged(repo, 10).await.unwrap();
         std::fs::write(repo.join(".gitattributes"), "expanded.txt filter=expand\n").unwrap();
-        git(repo, &["config", "filter.expand.clean", "cat; head -c 8192 /dev/zero"]);
+        git(
+            repo,
+            &[
+                "config",
+                "filter.expand.clean",
+                "cat; head -c 8192 /dev/zero",
+            ],
+        );
         std::fs::write(repo.join("expanded.txt"), "x").unwrap();
         // This is ordinary authorized staging, never an accounting probe.
         git(repo, &["add", "--", "expanded.txt"]);
@@ -405,7 +425,9 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
         let dir = fixture();
         std::fs::write(dir.path().join(".git/tamper-after-verification"), "tamper").unwrap();
         let error = prepare(dir.path(), false, 30).await.err().unwrap();
-        assert!(error.to_string().contains("changed after upload verification"));
+        assert!(error
+            .to_string()
+            .contains("changed after upload verification"));
         assert_eq!(git(dir.path(), &["rev-list", "--count", "HEAD"]), b"1\n");
     }
 

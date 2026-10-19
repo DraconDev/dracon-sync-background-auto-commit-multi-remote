@@ -244,12 +244,22 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
 
 #[test]
 fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
-    let states = [Current::Converged, Current::Excluded, Current::Queued,
-        Current::Working, Current::Retrying, Current::Stalled, Current::Blocked,
-        Current::Paused, Current::Unknown];
+    let states = [
+        Current::Converged,
+        Current::Excluded,
+        Current::Queued,
+        Current::Working,
+        Current::Retrying,
+        Current::Stalled,
+        Current::Blocked,
+        Current::Paused,
+        Current::Unknown,
+    ];
     let mut rows = Vec::new();
     for state in states {
-        let mut row = RepoReportRow::for_tests(&format!("/fixture/長い名前-👩‍💻-e\u{301}-{state:?}-very-long-repository"));
+        let mut row = RepoReportRow::for_tests(&format!(
+            "/fixture/長い名前-👩‍💻-e\u{301}-{state:?}-very-long-repository"
+        ));
         row.modified = usize::from(state != Current::Converged);
         row.ahead = usize::from(state == Current::Working);
         row.last_author = "作者👩‍💻".into();
@@ -264,11 +274,18 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
                     Current::Retrying => Phase::Retrying,
                     _ => Phase::Blocked,
                 };
-                row.health.scheduler = Some(RepoEvidence { phase: Some(phase), ..Default::default() });
+                row.health.scheduler = Some(RepoEvidence {
+                    phase: Some(phase),
+                    ..Default::default()
+                });
             }
-            Current::Stalled => row.health.scheduler = Some(RepoEvidence {
-                eligible: true, dirty_secs: Some(900), ..Default::default()
-            }),
+            Current::Stalled => {
+                row.health.scheduler = Some(RepoEvidence {
+                    eligible: true,
+                    dirty_secs: Some(900),
+                    ..Default::default()
+                })
+            }
             Current::Paused => row.frozen_secs = Some(1),
             _ => {}
         }
@@ -277,16 +294,32 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
     }
     for width in [165, 200, 240, 320] {
         let output = super::super::build_repos_rich_table(&rows, false, width).to_string();
-        assert_eq!(output.lines().count(), rows.len() + 4, "wrapped at {width}: {output}");
+        assert_eq!(
+            output.lines().count(),
+            rows.len() + 4,
+            "wrapped at {width}: {output}"
+        );
         for line in output.lines() {
-            assert_eq!(unicode_width::UnicodeWidthStr::width(line), usize::from(width), "{line}");
+            assert_eq!(
+                unicode_width::UnicodeWidthStr::width(line),
+                usize::from(width),
+                "{line}"
+            );
         }
         for row in &rows {
             let label = rich_activity(row);
             // Both STATUS and ACTIVITY carry the COMPLETE state; mere global
             // substring presence used to conceal truncated ACTIVITY cells.
-            let expected = if classify(row) == Current::Converged { 1 } else { 2 };
-            assert_eq!(output.matches(label).count(), expected, "label {label}: {output}");
+            let expected = if classify(row) == Current::Converged {
+                1
+            } else {
+                2
+            };
+            assert_eq!(
+                output.matches(label).count(),
+                expected,
+                "label {label}: {output}"
+            );
         }
         assert!(!output.contains("WORKING ("));
         println!("=== rich renderer {width} columns ===\n{output}");

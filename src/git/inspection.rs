@@ -134,8 +134,12 @@ mod tests {
             let status = parse_status(bytes.as_bytes()).unwrap();
             assert_eq!(status.last_commit_hash.as_deref(), Some(oid.as_str()));
         }
-        assert!(parse_status(b"# branch.oid (initial)\0# branch.head main\0")
-            .unwrap().last_commit_hash.is_none());
+        assert!(
+            parse_status(b"# branch.oid (initial)\0# branch.head main\0")
+                .unwrap()
+                .last_commit_hash
+                .is_none()
+        );
         assert!(parse_status(b"# branch.oid garbage\0").is_err());
     }
 
@@ -230,7 +234,10 @@ mod tests {
         // Readiness must publish a complete identity before owner abortion;
         // otherwise an empty marker accidentally addresses /proc/stat.
         let pid: u32 = std::fs::read_to_string(dir.path().join("child.pid"))
-            .unwrap().trim().parse().expect("complete published helper PID");
+            .unwrap()
+            .trim()
+            .parse()
+            .expect("complete published helper PID");
         assert!(pid > 0);
         let proc_stat = format!("/proc/{pid}/stat");
         let killed = tokio::time::timeout(Duration::from_secs(3), async {

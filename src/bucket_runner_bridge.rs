@@ -53,8 +53,7 @@ const MAX_CANDIDATES: usize = 20000;
 const MIN_BUNDLE_TIMEOUT_SECS: u64 = 60;
 
 /// Default policy is shared with the JS runner, never supplied by repo config.
-const ROUTING_DEFAULTS_JSON: &str =
-    include_str!("../scripts/bucket-runner/routing-defaults.json");
+const ROUTING_DEFAULTS_JSON: &str = include_str!("../scripts/bucket-runner/routing-defaults.json");
 const MAX_JS_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Deserialize)]
@@ -321,12 +320,16 @@ async fn discover_candidates(
             if is_untracked
                 && (!policy.auto_stage_untracked
                     || crate::exclude::matches_untracked_exclude(
-                        repo, Path::new(line), &policy.untracked_exclude_patterns,
+                        repo,
+                        Path::new(line),
+                        &policy.untracked_exclude_patterns,
                     ))
             {
                 continue;
             }
-            if prefix.as_ref().is_some_and(|prefix| !line.starts_with(prefix))
+            if prefix
+                .as_ref()
+                .is_some_and(|prefix| !line.starts_with(prefix))
                 || !safe_relative(line)
             {
                 continue;
@@ -361,11 +364,17 @@ async fn discover_candidates(
                 continue;
             }
             let entry = dracon_git::types::DiffFile::new(
-                PathBuf::from(line), dracon_git::types::FileStatus::Added,
+                PathBuf::from(line),
+                dracon_git::types::FileStatus::Added,
             );
             if crate::exclude::should_stage_entry_with_blob_size(
-                repo, &entry, meta.len(), &dirs, &policy.exclude_file_patterns,
-                policy.max_stage_file_bytes, &excludes,
+                repo,
+                &entry,
+                meta.len(),
+                &dirs,
+                &policy.exclude_file_patterns,
+                policy.max_stage_file_bytes,
+                &excludes,
             ) {
                 candidates.insert(line.to_owned());
             }
@@ -404,13 +413,10 @@ async fn run_version(bundle: &Path) -> Result<()> {
     cmd.stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let output = tokio::time::timeout(
-        Duration::from_secs(MIN_BUNDLE_TIMEOUT_SECS),
-        cmd.output(),
-    )
-    .await
-    .context("bundle --version timed out")?
-    .context("bundle --version spawn failed")?;
+    let output = tokio::time::timeout(Duration::from_secs(MIN_BUNDLE_TIMEOUT_SECS), cmd.output())
+        .await
+        .context("bundle --version timed out")?
+        .context("bundle --version spawn failed")?;
     if !output.status.success() {
         bail!("bundle --version refused");
     }
@@ -449,13 +455,10 @@ async fn spawn_bundle(
             .context("bundle stdin write failed")?;
         // stdin dropped here → EOF for the bundle's read loop
     }
-    let output = tokio::time::timeout(
-        Duration::from_secs(timeout_secs),
-        child.wait_with_output(),
-    )
-    .await
-    .context("bundle timed out")?
-    .context("bundle wait failed")?;
+    let output = tokio::time::timeout(Duration::from_secs(timeout_secs), child.wait_with_output())
+        .await
+        .context("bundle timed out")?
+        .context("bundle wait failed")?;
     if output.stdout.len() > MAX_IO_BYTES {
         bail!("bundle stdout exceeded 2 MiB");
     }
@@ -515,7 +518,9 @@ pub(crate) async fn prepare(
         .with_context(|| format!("read profile {}", profile_path.display()))?;
     let profile: Profile = serde_json::from_slice(&profile_bytes)
         .with_context(|| format!("invalid profile JSON {}", profile_path.display()))?;
-    if !profile.runner.path.ends_with("/runner.bundle.mjs") && !profile.runner.path.ends_with("/runner.bundle.cjs") {
+    if !profile.runner.path.ends_with("/runner.bundle.mjs")
+        && !profile.runner.path.ends_with("/runner.bundle.cjs")
+    {
         bail!("profile.runner.path must end with /runner.bundle.mjs or /runner.bundle.cjs");
     }
     let bundle_path = PathBuf::from(&profile.runner.path);
@@ -534,11 +539,13 @@ pub(crate) async fn prepare(
         config.allowed_candidates.clone()
     };
 
-    let measured_bytes = outgoing::measure(repo, policy).await
+    let measured_bytes = outgoing::measure(repo, policy)
+        .await
         .context("bucket outgoing-byte accounting refused; no publish")?;
     // Publication may create/grow a previously clean or absent manifest.
     // Reserve its enforced output ceiling BEFORE the routing decision.
-    let projected_bytes = measured_bytes.checked_add(policy.max_stage_file_bytes)
+    let projected_bytes = measured_bytes
+        .checked_add(policy.max_stage_file_bytes)
         .filter(|bytes| *bytes <= MAX_JS_INTEGER)
         .context("accounting-manifest-reserve-overflow")?;
     let request = serde_json::json!({
@@ -604,11 +611,14 @@ pub(crate) async fn prepare(
 
     let mut materialized_paths = parse_materialized(&manifest_bytes, &config.asset_root)?;
     materialized_paths.insert(PathBuf::from(format!("{}.lock", config.manifest_path)));
-    Ok(Some(Prepared::from_parts(
-        PathBuf::from(&config.manifest_path),
-        manifest_bytes,
-        materialized_paths,
-    ).with_output_ceiling(policy.max_stage_file_bytes)))
+    Ok(Some(
+        Prepared::from_parts(
+            PathBuf::from(&config.manifest_path),
+            manifest_bytes,
+            materialized_paths,
+        )
+        .with_output_ceiling(policy.max_stage_file_bytes),
+    ))
 }
 
 #[cfg(test)]

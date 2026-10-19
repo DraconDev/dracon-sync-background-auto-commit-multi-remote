@@ -1169,8 +1169,16 @@ async fn stage_existing_files_filtered(
     excluded_dir_names: &std::collections::BTreeSet<String>,
     filter: Option<(&SyncPolicy, &[String])>,
 ) -> Result<()> {
-    stage_existing_files_suppressing(repo, existing, dry_run, stage_timeout_secs,
-        excluded_dir_names, filter, None).await
+    stage_existing_files_suppressing(
+        repo,
+        existing,
+        dry_run,
+        stage_timeout_secs,
+        excluded_dir_names,
+        filter,
+        None,
+    )
+    .await
 }
 
 async fn stage_existing_files_suppressing(
@@ -2271,9 +2279,13 @@ async fn push_background(
     has_origin: bool,
     remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
 ) -> Result<PushReport> {
-    crate::git::push_resources::push_phase(
-        push_background_inner(repo, policy, has_origin, remote_failures),
-    ).await
+    crate::git::push_resources::push_phase(push_background_inner(
+        repo,
+        policy,
+        has_origin,
+        remote_failures,
+    ))
+    .await
 }
 
 async fn push_background_inner(
@@ -4601,8 +4613,14 @@ async fn stage_commit_and_push(
         // with the index intact. Repos without a discoverable guard
         // script are unaffected.
         if let Some(prepared) = private_assets {
-            if let Err(error) = prepared.verify_staged(repo, policy.stage_op_timeout_secs).await {
-                eprintln!("⚠️ {} private bucket index verification refused auto-commit: {error:#}", repo.display());
+            if let Err(error) = prepared
+                .verify_staged(repo, policy.stage_op_timeout_secs)
+                .await
+            {
+                eprintln!(
+                    "⚠️ {} private bucket index verification refused auto-commit: {error:#}",
+                    repo.display()
+                );
                 return Ok(Some(SyncOutcome::Blocked));
             }
         }
@@ -5433,15 +5451,23 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // and sync.rs:5598 work without further changes.
     let private_assets = match crate::bucket_runner_bridge::prepare(repo, dry_run, policy).await {
         Ok(Some(prepared)) => Some(prepared),
-        Ok(None) => match crate::bucket_assets::prepare(repo, dry_run, policy.stage_op_timeout_secs).await {
-            Ok(prepared) => prepared,
-            Err(error) => {
-                eprintln!("⚠️ {} private bucket preparation refused; no commit: {error:#}", repo.display());
-                return Ok(SyncOutcome::Blocked);
+        Ok(None) => {
+            match crate::bucket_assets::prepare(repo, dry_run, policy.stage_op_timeout_secs).await {
+                Ok(prepared) => prepared,
+                Err(error) => {
+                    eprintln!(
+                        "⚠️ {} private bucket preparation refused; no commit: {error:#}",
+                        repo.display()
+                    );
+                    return Ok(SyncOutcome::Blocked);
+                }
             }
-        },
+        }
         Err(error) => {
-            eprintln!("⚠️ {} bucket runner bridge refused; no commit: {error:#}", repo.display());
+            eprintln!(
+                "⚠️ {} bucket runner bridge refused; no commit: {error:#}",
+                repo.display()
+            );
             return Ok(SyncOutcome::Blocked);
         }
     };
@@ -5631,7 +5657,10 @@ pub(crate) async fn sync_repo_with_ahead_since(
         let (to_stage, to_restore): (Vec<_>, Vec<_>) = entries
             .into_iter()
             .filter(|e| {
-                if private_assets.as_ref().is_some_and(|prepared| prepared.materialized_paths.contains(&e.path)) {
+                if private_assets
+                    .as_ref()
+                    .is_some_and(|prepared| prepared.materialized_paths.contains(&e.path))
+                {
                     // Leave existing Git baselines and operator worktree bytes
                     // intact. Only the verified reference is newly committed.
                     return false;
@@ -5714,8 +5743,15 @@ pub(crate) async fn sync_repo_with_ahead_since(
                         .as_millis()
                 );
             }
-            let staged =
-                stage_commit_and_push(&svc, &mut ctx, &status, &to_stage, &to_restore, private_assets.as_ref()).await;
+            let staged = stage_commit_and_push(
+                &svc,
+                &mut ctx,
+                &status,
+                &to_stage,
+                &to_restore,
+                private_assets.as_ref(),
+            )
+            .await;
             if debug_enabled() {
                 eprintln!(
                     "scheduler: stage_exit repo={} thread={:?} unix_ms={} ok={}",

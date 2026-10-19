@@ -23,10 +23,17 @@ async fn delete_remote_branch(repo: &Path, remote: &str, branch: &str) -> Result
     // Retain the existing narrow maintenance override and content hooks.
     // This owned runner bounds hook time and cleans descendants on cancel.
     let result = super::push_resources::push_phase(super::run_git_with_timeout_env(
-        repo, &["push", remote, "--delete", branch], 60, "delete remote branch",
-        &[("GIT_SSH_COMMAND", ssh_hardening.as_str()), ("GIT_TERMINAL_PROMPT", "0"),
-          ("DRACON_ALLOW_REWRITE", "1")],
-    )).await;
+        repo,
+        &["push", remote, "--delete", branch],
+        60,
+        "delete remote branch",
+        &[
+            ("GIT_SSH_COMMAND", ssh_hardening.as_str()),
+            ("GIT_TERMINAL_PROMPT", "0"),
+            ("DRACON_ALLOW_REWRITE", "1"),
+        ],
+    ))
+    .await;
     match result {
         Err(error) if remote_branch_already_absent(&error.to_string()) => Ok(()),
         result => result,

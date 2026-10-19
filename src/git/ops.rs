@@ -239,7 +239,10 @@ where
                             let keep = n.min((64 * 1024usize).saturating_sub(captured.len()));
                             captured.extend_from_slice(&chunk[..keep]);
                         }
-                        Err(_) => { captured.extend_from_slice(b"<stdout pipe error>"); break; }
+                        Err(_) => {
+                            captured.extend_from_slice(b"<stdout pipe error>");
+                            break;
+                        }
                     }
                 }
             }
@@ -248,7 +251,9 @@ where
         let (mut stderr, stdout) = tokio::join!(stderr_task, stdout_task);
         if !stdout.is_empty() {
             stderr.push_str("\n<hook/stdout diagnostics>\n");
-            stderr.push_str(&super::push::redact_credentials_for_log(&String::from_utf8_lossy(&stdout)));
+            stderr.push_str(&super::push::redact_credentials_for_log(
+                &String::from_utf8_lossy(&stdout),
+            ));
         }
         stderr
     };
@@ -363,7 +368,11 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdout(if args.contains(&"push") { std::process::Stdio::piped() } else { std::process::Stdio::null() })
+        .stdout(if args.contains(&"push") {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .stderr(std::process::Stdio::piped());
     configure_git_process_group(&mut cmd);
     super::push_resources::configure_child(&mut cmd, args);
@@ -402,16 +411,23 @@ fn spawn_git_command_cancellable_io(
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdin(if stdin { std::process::Stdio::piped() } else { std::process::Stdio::null() })
+        .stdin(if stdin {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     if stdin {
         // Accounting callers explicitly own the target repository. Do not
         // inherit repository/config injection or permit promisor lazy fetches.
         for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_") { cmd.env_remove(key); }
+            if key.to_string_lossy().starts_with("GIT_") {
+                cmd.env_remove(key);
+            }
         }
-        cmd.env("GIT_OPTIONAL_LOCKS", "0").env("GIT_NO_LAZY_FETCH", "1");
+        cmd.env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_NO_LAZY_FETCH", "1");
     }
     configure_git_process_group(&mut cmd);
     cmd.spawn()
@@ -493,7 +509,11 @@ fn spawn_git_command_env(
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdout(if args.contains(&"push") { std::process::Stdio::piped() } else { std::process::Stdio::null() })
+        .stdout(if args.contains(&"push") {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .stderr(std::process::Stdio::piped());
     for (k, v) in env {
         cmd.env(k, v);
@@ -511,7 +531,11 @@ pub(crate) async fn run_git_with_timeout(
     timeout_secs: u64,
     op_label: &str,
 ) -> Result<()> {
-    super::push_resources::command(args, run_git_with_timeout_inner(repo, args, timeout_secs, op_label)).await
+    super::push_resources::command(
+        args,
+        run_git_with_timeout_inner(repo, args, timeout_secs, op_label),
+    )
+    .await
 }
 
 async fn run_git_with_timeout_inner(
@@ -595,7 +619,8 @@ pub(crate) async fn run_git_with_timeout_env(
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env(repo, args, op_label, env)?;
         run_child(child, repo, timeout_secs, &label).await
-    }).await
+    })
+    .await
 }
 
 /// Run a git push/pull with a progress-aware idle timeout.
@@ -610,7 +635,8 @@ pub(crate) async fn run_git_with_timeout_env_progress(
         let label = format!("git {}", op_label);
         let child = spawn_git_command_env(repo, args, op_label, env)?;
         run_child_with_progress(child, repo, timeout_secs, &label, is_git_push_progress_line).await
-    }).await
+    })
+    .await
 }
 #[cfg(unix)]
 pub(crate) async fn git_askpass_script(token: &str) -> Result<PathBuf> {
@@ -791,7 +817,9 @@ mod tests {
         super::configure_git_process_group(&mut command);
         let child = command.spawn().unwrap();
         let error = super::run_child(child, std::path::Path::new("."), 5, "push-fixture")
-            .await.unwrap_err().to_string();
+            .await
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("Pre-push: TEST gate failed"));
         assert!(error.contains("fatal"));
         assert!(error.len() < 66000);

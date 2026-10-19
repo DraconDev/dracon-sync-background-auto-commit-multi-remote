@@ -25,7 +25,10 @@ impl ReviewRules {
     /// Build rules from an explicit allow-list slice.
     pub fn new(asset_extensions: &[&str]) -> Self {
         Self {
-            asset_extensions: asset_extensions.iter().map(|s| s.to_ascii_lowercase()).collect(),
+            asset_extensions: asset_extensions
+                .iter()
+                .map(|s| s.to_ascii_lowercase())
+                .collect(),
         }
     }
 }
@@ -83,7 +86,10 @@ pub fn classify(path: &Path, rules: &ReviewRules) -> io::Result<Classification> 
     let name = file_name_lower(path);
     let ext = extension_lower(path);
     if matches!(ext.as_str(), "pem" | "key" | "age" | "env")
-        || matches!(name.as_str(), ".env" | "id_rsa" | "id_ed25519" | "secrets.json")
+        || matches!(
+            name.as_str(),
+            ".env" | "id_rsa" | "id_ed25519" | "secrets.json"
+        )
     {
         return Ok(Classification::Sensitive);
     }
@@ -187,7 +193,12 @@ mod tests {
             Ok(path)
         }
 
-        fn route(&self, path: &Path, history: Option<u64>, churn: Option<u64>) -> io::Result<Decision> {
+        fn route(
+            &self,
+            path: &Path,
+            history: Option<u64>,
+            churn: Option<u64>,
+        ) -> io::Result<Decision> {
             let evidence = evidence_for(path, &rules(), context(history, churn))?;
             assert_eq!(evidence.bytes, fs::metadata(path)?.len());
             Ok(lfs_policy::evaluate(Some(policy()), evidence))
@@ -243,10 +254,7 @@ mod tests {
             handle.write_all(b"SQLite format 3\0")?;
         }
         for candidate in [&path, &magicless] {
-            assert_eq!(
-                classify(candidate, &rules())?,
-                Classification::Database
-            );
+            assert_eq!(classify(candidate, &rules())?, Classification::Database);
             assert_eq!(
                 fixture.route(candidate, Some(200 * MIB), Some(0))?,
                 Decision::Hold(HoldReason::Classification)
@@ -304,7 +312,10 @@ mod tests {
         ctx.enrolled = true;
         ctx.filter = Filter::Lfs;
         let evidence = evidence_for(&path, &rules(), ctx)?;
-        assert_eq!(lfs_policy::evaluate(Some(policy()), evidence), Decision::RetainLfs);
+        assert_eq!(
+            lfs_policy::evaluate(Some(policy()), evidence),
+            Decision::RetainLfs
+        );
         // Shrink the real file to one byte: representation must be retained.
         File::create(&path)?.set_len(1)?;
         let shrunken = evidence_for(&path, &rules(), ctx)?;
@@ -321,7 +332,10 @@ mod tests {
         let fixture = Fixture::fresh()?;
         let path = fixture.sized("clip-07.mp4", 60 * MIB)?;
         let evidence = evidence_for(&path, &rules(), context(Some(200 * MIB), Some(0)))?;
-        assert_eq!(lfs_policy::evaluate(Some(policy()), evidence), Decision::KeepGit);
+        assert_eq!(
+            lfs_policy::evaluate(Some(policy()), evidence),
+            Decision::KeepGit
+        );
         let tuned = policy().with_override(PolicyOverride {
             individual_trigger_bytes: Some(50 * MIB),
             ..PolicyOverride::default()

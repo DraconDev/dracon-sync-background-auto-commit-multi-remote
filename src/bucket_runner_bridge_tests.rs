@@ -65,29 +65,59 @@ fn materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root() {
 
 #[tokio::test]
 async fn candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots() {
-    let tmp = tempfile::tempdir().unwrap(); let repo = tmp.path().join("repo");
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
     init_repo(&repo);
     std::fs::create_dir(repo.join("public")).unwrap();
-    for name in ["tracked.png", "fresh name.png", "ignored.png", "operator.png", "scratch.png", "skip.tmp.png", "local.png"] {
+    for name in [
+        "tracked.png",
+        "fresh name.png",
+        "ignored.png",
+        "operator.png",
+        "scratch.png",
+        "skip.tmp.png",
+        "local.png",
+    ] {
         std::fs::write(repo.join("public").join(name), b"discovery only").unwrap();
     }
     std::fs::write(repo.join(".gitignore"), "public/ignored.png\n").unwrap();
     git(&repo, &["add", "--", "public/tracked.png", ".gitignore"]);
     std::fs::create_dir(repo.join(".dracon")).unwrap();
-    std::fs::write(repo.join(".dracon/dracon-sync.toml"), "auto_commit_exclude_patterns = [\"public/local.png\"]\n").unwrap();
+    std::fs::write(
+        repo.join(".dracon/dracon-sync.toml"),
+        "auto_commit_exclude_patterns = [\"public/local.png\"]\n",
+    )
+    .unwrap();
     std::fs::create_dir(repo.join("public/nested")).unwrap();
     git(&repo.join("public/nested"), &["init", "-q"]);
     std::fs::write(repo.join("public/nested/foreign.png"), b"never select").unwrap();
     std::os::unix::fs::symlink("tracked.png", repo.join("public/link.png")).unwrap();
-    let mut policy = fast_policy(); policy.auto_stage_untracked = true;
-    policy.auto_commit_exclude_patterns.push("public/operator.png".into());
-    policy.untracked_exclude_patterns.push("public/scratch.png".into());
+    let mut policy = fast_policy();
+    policy.auto_stage_untracked = true;
+    policy
+        .auto_commit_exclude_patterns
+        .push("public/operator.png".into());
+    policy
+        .untracked_exclude_patterns
+        .push("public/scratch.png".into());
     policy.exclude_file_patterns.push("*.tmp.png".into());
-    let expected = vec!["public/fresh name.png".to_string(), "public/tracked.png".to_string()];
-    assert_eq!(discover_candidates(&repo, ".", &policy).await.unwrap(), expected);
-    assert_eq!(discover_candidates(&repo, "public", &policy).await.unwrap(), expected);
+    let expected = vec![
+        "public/fresh name.png".to_string(),
+        "public/tracked.png".to_string(),
+    ];
+    assert_eq!(
+        discover_candidates(&repo, ".", &policy).await.unwrap(),
+        expected
+    );
+    assert_eq!(
+        discover_candidates(&repo, "public", &policy).await.unwrap(),
+        expected
+    );
     policy.auto_stage_untracked = false;
-    assert_eq!(discover_candidates(&repo, ".", &policy).await.unwrap(), vec!["public/tracked.png"]);
+    assert_eq!(
+        discover_candidates(&repo, ".", &policy).await.unwrap(),
+        vec!["public/tracked.png"]
+    );
     assert!(!repo.join("bucket-assets.manifest.json").exists());
 }
 
@@ -259,16 +289,23 @@ fn init_repo(dir: &Path) {
         .current_dir(dir)
         .output()
         .expect("git core.hooksPath");
-    git(dir, &["commit", "--allow-empty", "-qm", "accounting baseline"]);
+    git(
+        dir,
+        &["commit", "--allow-empty", "-qm", "accounting baseline"],
+    );
     git(dir, &["config", "branch.main.remote", "origin"]);
     git(dir, &["config", "branch.main.merge", "refs/heads/main"]);
-    git(dir, &["remote", "add", "origin", "https://example.com/repo.git"]);
+    git(
+        dir,
+        &["remote", "add", "origin", "https://example.com/repo.git"],
+    );
     git(dir, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
 }
 
 fn write_state_dir(path: &Path) {
     std::fs::create_dir_all(path).expect("create state dir");
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).expect("state dir perms");
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))
+        .expect("state dir perms");
 }
 
 fn git(repo: &Path, args: &[&str]) -> Vec<u8> {
@@ -310,7 +347,12 @@ struct ConfigOverrides {
     raw: Option<String>,
 }
 
-fn write_bucket_runner_config(repo: &Path, fake_dir: &Path, state_dir: &Path, overrides: ConfigOverrides) {
+fn write_bucket_runner_config(
+    repo: &Path,
+    fake_dir: &Path,
+    state_dir: &Path,
+    overrides: ConfigOverrides,
+) {
     let default = || -> String {
         serde_json::json!({
             "schemaVersion": 1,
@@ -407,7 +449,10 @@ async fn disabled_repo_returns_none() {
         &repo,
         &fake_dir,
         &state_dir,
-        ConfigOverrides { enabled: Some(false), ..Default::default() },
+        ConfigOverrides {
+            enabled: Some(false),
+            ..Default::default()
+        },
     );
     let policy = fast_policy();
     let result = prepare(&repo, false, &policy).await.expect("prepare");
@@ -449,8 +494,20 @@ async fn unsafe_config_paths_are_refused() {
 
     let policy = fast_policy();
     let cases: &[(&str, ConfigOverrides)] = &[
-        ("relative profilePath", ConfigOverrides { profile_path: Some("relative/profile.json".into()), ..Default::default() }),
-        ("relative stateDirectory", ConfigOverrides { state_directory: Some("relative/state".into()), ..Default::default() }),
+        (
+            "relative profilePath",
+            ConfigOverrides {
+                profile_path: Some("relative/profile.json".into()),
+                ..Default::default()
+            },
+        ),
+        (
+            "relative stateDirectory",
+            ConfigOverrides {
+                state_directory: Some("relative/state".into()),
+                ..Default::default()
+            },
+        ),
         (
             "stateDirectory without 0700",
             ConfigOverrides {
@@ -463,11 +520,41 @@ async fn unsafe_config_paths_are_refused() {
                 ..Default::default()
             },
         ),
-        ("assetRoot='..'", ConfigOverrides { asset_root: Some("..".into()), ..Default::default() }),
-        ("manifestPath='..'", ConfigOverrides { manifest_path: Some("..".into()), ..Default::default() }),
-        ("allowedCandidates=['../escape']", ConfigOverrides { allowed_candidates: Some(r#"["../escape"]"#.into()), ..Default::default() }),
-        ("bad remoteName", ConfigOverrides { remote_name: Some("name with space".into()), ..Default::default() }),
-        ("malformed JSON", ConfigOverrides { raw: Some("{not json".into()), ..Default::default() }),
+        (
+            "assetRoot='..'",
+            ConfigOverrides {
+                asset_root: Some("..".into()),
+                ..Default::default()
+            },
+        ),
+        (
+            "manifestPath='..'",
+            ConfigOverrides {
+                manifest_path: Some("..".into()),
+                ..Default::default()
+            },
+        ),
+        (
+            "allowedCandidates=['../escape']",
+            ConfigOverrides {
+                allowed_candidates: Some(r#"["../escape"]"#.into()),
+                ..Default::default()
+            },
+        ),
+        (
+            "bad remoteName",
+            ConfigOverrides {
+                remote_name: Some("name with space".into()),
+                ..Default::default()
+            },
+        ),
+        (
+            "malformed JSON",
+            ConfigOverrides {
+                raw: Some("{not json".into()),
+                ..Default::default()
+            },
+        ),
     ];
 
     for (label, overrides) in cases {
@@ -566,8 +653,10 @@ async fn accounting_failure_never_spawns_publisher_or_writes_manifest() {
     let state_dir = tmp.path().join("state");
     write_state_dir(&state_dir);
     let marker = tmp.path().join("PUBLISHER_EXECUTED");
-    let code = format!("require('node:fs').writeFileSync({}, 'unexpected'); process.exit(1);",
-        serde_json::to_string(&marker.to_string_lossy()).unwrap());
+    let code = format!(
+        "require('node:fs').writeFileSync({}, 'unexpected'); process.exit(1);",
+        serde_json::to_string(&marker.to_string_lossy()).unwrap()
+    );
     install_fake(&fake_dir, "profile.json", &code, &[]);
     write_bucket_runner_config(&repo, &fake_dir, &state_dir, ConfigOverrides::default());
     git(&repo, &["update-ref", "-d", "refs/remotes/origin/main"]);
@@ -591,19 +680,30 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     let state_dir = tmp.path().join("state");
     write_state_dir(&state_dir);
     let profile_path = install_fake(&fake_dir, "profile.json", FAKE_BODY, &[]);
-    let candidates_json = serde_json::to_string(&vec!["bucket-assets.manifest.json".to_string()]).unwrap();
-    write_bucket_runner_config(&repo, &fake_dir, &state_dir, ConfigOverrides {
-        allowed_candidates: Some(candidates_json),
-        ..Default::default()
-    });
+    let candidates_json =
+        serde_json::to_string(&vec!["bucket-assets.manifest.json".to_string()]).unwrap();
+    write_bucket_runner_config(
+        &repo,
+        &fake_dir,
+        &state_dir,
+        ConfigOverrides {
+            allowed_candidates: Some(candidates_json),
+            ..Default::default()
+        },
+    );
     std::fs::write(repo.join("bucket-assets.manifest.json"), manifest_bytes()).expect("manifest");
     git(&repo, &["add", "--", "bucket-assets.manifest.json"]);
     git(&repo, &["commit", "-qm", "manifest"]);
 
     let policy = fast_policy();
     let candidates: Vec<String> = vec!["bucket-assets.manifest.json".into()];
-    let measured = outgoing::measure(&repo, &policy).await.expect("measured fixture");
-    assert!(measured > 0, "real outgoing fixture bytes must reach the runner");
+    let measured = outgoing::measure(&repo, &policy)
+        .await
+        .expect("measured fixture");
+    assert!(
+        measured > 0,
+        "real outgoing fixture bytes must reach the runner"
+    );
     let expected_budget = serde_json::json!({
         // The runner may grow/create its manifest after accounting.
         "projectedBytes": measured + policy.max_stage_file_bytes,
@@ -621,7 +721,10 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     std::env::set_var("FAKE_REMOTE_NAME", "origin");
     std::env::set_var("FAKE_TRUSTED_REMOTE_URL", "https://example.com/repo.git");
     std::env::set_var("FAKE_BUDGET", expected_budget.to_string());
-    std::env::set_var("FAKE_ALLOWED_CANDIDATES", serde_json::to_string(&candidates).unwrap());
+    std::env::set_var(
+        "FAKE_ALLOWED_CANDIDATES",
+        serde_json::to_string(&candidates).unwrap(),
+    );
     std::env::set_var("FAKE_MANIFEST_PATH", "bucket-assets.manifest.json");
     std::env::remove_var("FAKE_VERDICT_KIND");
     let _path_unused = path_with_set_git_env(&repo);
@@ -641,12 +744,16 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     std::env::remove_var("FAKE_ALLOWED_CANDIDATES");
     std::env::remove_var("FAKE_MANIFEST_PATH");
 
-    assert!(prepared.materialized_paths.contains(Path::new("bucket-assets.manifest.json.lock")));
+    assert!(prepared
+        .materialized_paths
+        .contains(Path::new("bucket-assets.manifest.json.lock")));
     assert_eq!(prepared.materialized_paths.len(), 3);
     assert!(prepared
         .materialized_paths
         .contains(&PathBuf::from("static/a.png")));
-    assert!(prepared.materialized_paths.contains(&PathBuf::from(".bucket-cache")));
+    assert!(prepared
+        .materialized_paths
+        .contains(&PathBuf::from(".bucket-cache")));
     // verify_staged accepts the prepared value's manifest_path and
     // verified_manifest bytes; this is the same code path the daemon
     // calls at sync.rs:4580, so a green check there confirms the
@@ -681,7 +788,10 @@ async fn timeout_is_refused() {
         Err(e) => e,
     };
     let msg = format!("{error:#}");
-    assert!(msg.contains("timed out") || msg.contains("timeout"), "msg: {msg}");
+    assert!(
+        msg.contains("timed out") || msg.contains("timeout"),
+        "msg: {msg}"
+    );
 }
 
 #[tokio::test]
@@ -709,7 +819,10 @@ async fn oversized_stdin_is_refused() {
         &repo,
         &fake_dir,
         &state_dir,
-        ConfigOverrides { allowed_candidates: Some(many_str), ..Default::default() },
+        ConfigOverrides {
+            allowed_candidates: Some(many_str),
+            ..Default::default()
+        },
     );
     std::fs::write(repo.join("bucket-assets.manifest.json"), manifest_bytes()).expect("manifest");
     git(&repo, &["add", "--", "bucket-assets.manifest.json"]);

@@ -227,7 +227,10 @@ async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() 
     assert_eq!(measure(repo, &p).await.unwrap(), 2 * p.max_stage_file_bytes);
     let mut unbounded = p.clone();
     unbounded.max_stage_file_bytes = u64::MAX;
-    assert!(measure(repo, &unbounded).await.unwrap_err().to_string()
+    assert!(measure(repo, &unbounded)
+        .await
+        .unwrap_err()
+        .to_string()
         .contains("unbounded-filter-ceiling"));
     // A zero ceiling drops every non-empty candidate through the SAME shared
     // size gate the commit path uses, so nothing is reserved and nothing can
@@ -252,11 +255,21 @@ async fn accounting_refuses_zero_ceiling_for_a_filtered_candidate_that_would_be_
     run(repo, &["add", "--", ".gitattributes"]);
     run(repo, &["commit", "-qm", "attributes"]);
     run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
-    run(repo, &["config", "filter.upload.clean", "touch FILTER_EXECUTED; cat"]);
+    run(
+        repo,
+        &[
+            "config",
+            "filter.upload.clean",
+            "touch FILTER_EXECUTED; cat",
+        ],
+    );
     // An empty source passes the size gate, so its filtered output would be
     // admitted with no measurable bound: refuse instead of assuming it is free.
     put(repo, "empty.png", 0);
-    assert!(measure(repo, &p).await.unwrap_err().to_string()
+    assert!(measure(repo, &p)
+        .await
+        .unwrap_err()
+        .to_string()
         .contains("unbounded-filter-ceiling"));
     assert!(!repo.join("FILTER_EXECUTED").exists());
 }
@@ -271,7 +284,10 @@ async fn accounting_accepts_literal_colon_paths_without_revision_interpretation(
     run(repo, &["commit", "-qm", "literal colon path"]);
     run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
     // Both tracked paths carry the filter even though raw status is clean.
-    assert_eq!(measure(repo, &policy()).await.unwrap(), 2 * policy().max_stage_file_bytes);
+    assert_eq!(
+        measure(repo, &policy()).await.unwrap(),
+        2 * policy().max_stage_file_bytes
+    );
 }
 
 #[tokio::test]
@@ -283,10 +299,20 @@ async fn accounting_reserves_tracked_filter_even_when_raw_status_is_clean() {
     run(repo, &["add", "--", "source.txt", ".gitattributes"]);
     run(repo, &["commit", "-qm", "plaintext baseline"]);
     run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
-    run(repo, &["config", "filter.expand.clean", "touch FILTER_EXECUTED; cat; head -c 4096 /dev/zero"]);
+    run(
+        repo,
+        &[
+            "config",
+            "filter.expand.clean",
+            "touch FILTER_EXECUTED; cat; head -c 4096 /dev/zero",
+        ],
+    );
     // Same raw bytes as index: only filter-aware inspection would see dirt.
     put(repo, "source.txt", 20);
-    assert_eq!(measure(repo, &policy()).await.unwrap(), policy().max_stage_file_bytes);
+    assert_eq!(
+        measure(repo, &policy()).await.unwrap(),
+        policy().max_stage_file_bytes
+    );
     assert!(!repo.join("FILTER_EXECUTED").exists());
 }
 
@@ -294,12 +320,19 @@ async fn accounting_reserves_tracked_filter_even_when_raw_status_is_clean() {
 async fn accounting_refuses_unsupported_encoding_without_transcoding() {
     let td = fixture();
     let repo = td.path();
-    std::fs::write(repo.join(".gitattributes"), "*.txt working-tree-encoding=UTF-16\n").unwrap();
+    std::fs::write(
+        repo.join(".gitattributes"),
+        "*.txt working-tree-encoding=UTF-16\n",
+    )
+    .unwrap();
     run(repo, &["add", "--", ".gitattributes"]);
     run(repo, &["commit", "-qm", "encoding"]);
     run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
     put(repo, "source.txt", 20);
-    assert!(measure(repo, &policy()).await.unwrap_err().to_string()
+    assert!(measure(repo, &policy())
+        .await
+        .unwrap_err()
+        .to_string()
         .contains("unsupported-encoding"));
 }
 

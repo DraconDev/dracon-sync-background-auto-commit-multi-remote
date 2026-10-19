@@ -304,15 +304,25 @@ mod cache_discovery_tests {
         let root = tempfile::tempdir().unwrap();
         let cache = root.path().join("target");
         std::fs::create_dir_all(cache.join("debug/deps/fake/.git")).unwrap();
-        std::fs::write(cache.join("CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55\n# cargo cache\n").unwrap();
+        std::fs::write(
+            cache.join("CACHEDIR.TAG"),
+            "Signature: 8a477f597d28d172789f06886806bc55\n# cargo cache\n",
+        )
+        .unwrap();
         let source = root.path().join("vendor/cc/src/target");
         std::fs::create_dir_all(source.join(".git")).unwrap();
         let nested = root.path().join("utility");
         std::fs::create_dir_all(nested.join(".git")).unwrap();
         let mut found = Vec::new();
         discover_git_repos_recursive(root.path(), &BTreeSet::new(), &mut found, 0, 8);
-        assert!(found.contains(&source), "source named target must remain discoverable");
-        assert!(found.contains(&nested), "nested standalone repos must remain discoverable");
+        assert!(
+            found.contains(&source),
+            "source named target must remain discoverable"
+        );
+        assert!(
+            found.contains(&nested),
+            "nested standalone repos must remain discoverable"
+        );
         assert!(!found.iter().any(|path| path.starts_with(&cache)));
         // Markers never delete or modify cached/source bytes.
         assert!(cache.join("debug/deps/fake/.git").is_dir());
@@ -326,7 +336,11 @@ mod cache_discovery_tests {
         std::fs::create_dir_all(explicit.join("nested/.git")).unwrap();
         std::fs::write(explicit.join("CACHEDIR.TAG"), "not a cache signature").unwrap();
         assert!(!is_tagged_cache(&explicit));
-        std::fs::write(explicit.join("CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55").unwrap();
+        std::fs::write(
+            explicit.join("CACHEDIR.TAG"),
+            "Signature: 8a477f597d28d172789f06886806bc55",
+        )
+        .unwrap();
         let mut found = Vec::new();
         discover_git_repos_recursive(&explicit, &BTreeSet::new(), &mut found, 0, 4);
         assert_eq!(found, vec![explicit.join("nested")]);

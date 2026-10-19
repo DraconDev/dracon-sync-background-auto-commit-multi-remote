@@ -2594,7 +2594,6 @@ impl StateCause {
             StateCause::Unowned { .. } => "unowned",
         }
     }
-
 }
 
 /// Compute the state_cause_label string. For most variants this
@@ -2861,7 +2860,9 @@ fn current_blocker_hint(current: current_health::Current, hint: &str) -> String 
         && (hint.starts_with("daemon will push after changes settle")
             || hint.starts_with("daemon handles after changes settle"))
     {
-        let suffix: String = hint.split(';').skip(1)
+        let suffix: String = hint
+            .split(';')
+            .skip(1)
             .filter(|part| !part.contains("sync-now"))
             .map(|part| format!(";{part}"))
             .collect();
@@ -5249,7 +5250,8 @@ fn print_repos_vertical(
         let hint_styled = colorize(hint_text, hint_color);
 
         // State + activity combined
-        let activity = truncate_unicode_width(&current_health::label(row), width.saturating_sub(20));
+        let activity =
+            truncate_unicode_width(&current_health::label(row), width.saturating_sub(20));
         let state_styled = colorize(&current_health::label(row), status_color);
 
         // Compose commit summary (truncated to fit)
@@ -5350,7 +5352,10 @@ fn print_repos_vertical(
         );
         println!("{gutter}size key:  not bucket/worktree/download size; GitHub limit is per push");
         println!("{gutter}last:      {commit_summary}");
-        println!("{gutter}upstream commit age: {}", shorten_when(&row.last_push));
+        println!(
+            "{gutter}upstream commit age: {}",
+            shorten_when(&row.last_push)
+        );
         println!("{gutter}activity:  {activity}");
         println!("{gutter}state:     {state_styled}");
         // NOTE: author intentionally omitted (v0.112.27 R2). The
@@ -6133,8 +6138,7 @@ fn print_repos_full_table(
             Cell::new(row.commits_1h),
             Cell::new(row.commits_6h),
             Cell::new(row.commits_24h),
-            Cell::new(truncate_unicode_width(&current_health::label(row), 13))
-                .fg(status_color),
+            Cell::new(truncate_unicode_width(&current_health::label(row), 13)).fg(status_color),
             Cell::new(truncate_unicode_width(
                 &format!("{} {}", row.daemon_last_action_when, row.daemon_last_action),
                 13, // LowerBoundary(15) - 2 padding
@@ -6876,25 +6880,42 @@ fn rich_hint_link_out(rows: &[RepoReportRow]) -> Option<String> {
     indexed.sort_by_key(|(index, row)| (severity_tier(row), *index));
     let details: Vec<_> = indexed
         .into_iter()
-        .filter(|(_, row)| matches!(current_health::classify(row),
-            Current::Blocked | Current::Stalled | Current::Retrying |
-            Current::Paused | Current::Unknown | Current::Queued | Current::Excluded))
+        .filter(|(_, row)| {
+            matches!(
+                current_health::classify(row),
+                Current::Blocked
+                    | Current::Stalled
+                    | Current::Retrying
+                    | Current::Paused
+                    | Current::Unknown
+                    | Current::Queued
+                    | Current::Excluded
+            )
+        })
         .filter(|(_, row)| !row.hint.is_empty() && row.hint != "-")
         .map(|(_, row)| {
             let name = std::path::Path::new(&row.repo)
-                .file_name().unwrap_or_default().to_string_lossy();
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy();
             // Treat footer content as terminal text, never as escape sequences.
             let detail = crate::ownership::redact_url_credentials(&row.hint);
-            let safe: String = format!("{name}: {detail}").chars()
-                .map(|c| if c.is_control() { ' ' } else { c }).collect();
+            let safe: String = format!("{name}: {detail}")
+                .chars()
+                .map(|c| if c.is_control() { ' ' } else { c })
+                .collect();
             safe
         })
         .collect();
     if details.is_empty() {
         return None;
     }
-    Some(format!("💡 {} repo{} requiring attention — `dracon-sync repos <n|name>` for full detail\n{}",
-        details.len(), if details.len() == 1 { "" } else { "s" }, details.join("\n")))
+    Some(format!(
+        "💡 {} repo{} requiring attention — `dracon-sync repos <n|name>` for full detail\n{}",
+        details.len(),
+        if details.len() == 1 { "" } else { "s" },
+        details.join("\n")
+    ))
 }
 
 /// ADDED 2026-07-22 (v0.112.38): the default table view — a rich
@@ -6925,7 +6946,10 @@ fn print_repos_rich_table(
         build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
     );
     if let Some(line) = rich_hint_link_out(rows) {
-        println!("{}", wrap_legend_text(&line, usize::from(terminal_width().unwrap_or(120))));
+        println!(
+            "{}",
+            wrap_legend_text(&line, usize::from(terminal_width().unwrap_or(120)))
+        );
     }
 }
 
@@ -12128,7 +12152,10 @@ mod tests {
         row.hint = "daemon handles after changes settle".to_string();
         row.last_author = "DraconDev".to_string();
         row.last_when = "5 minutes ago".to_string();
-        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { phase: Some(crate::daemon::scheduler_evidence::Phase::Queued), ..Default::default() });
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            phase: Some(crate::daemon::scheduler_evidence::Phase::Queued),
+            ..Default::default()
+        });
         let what = summary_what(&row, 200);
         assert!(what.contains("QUEUED"), "activity: {what}");
         assert!(what.contains("2 mod"), "modified count: {what}");
@@ -12183,9 +12210,17 @@ mod tests {
         row.push_status = "STUCK".to_string();
         row.hint = "run dracon-sync repair concerns --apply".to_string();
         row.last_author = "DraconDev".to_string();
-        row.health.last_push = Some(crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded: false });
+        row.health.last_push = Some(crate::daemon::push_history::Observation {
+            version: 1,
+            repo: row.repo.clone(),
+            attempted_at: timestamp_secs(),
+            succeeded: false,
+        });
         let what = summary_what(&row, 200);
-        assert!(what.contains("last push: ❌ FAIL"), "historical failure must be identified as history: {what}");
+        assert!(
+            what.contains("last push: ❌ FAIL"),
+            "historical failure must be identified as history: {what}"
+        );
         assert!(what.contains("idle"));
         assert_eq!(status_pair(&row), ("✅ CLEAN", Color::Green));
         assert!(
@@ -12492,13 +12527,18 @@ mod tests {
     fn stalled_rows_stay_visible_even_when_active() {
         let mut row = make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
         row.active = true;
-        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
+        row.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            eligible: true,
+            dirty_secs: Some(7200),
+            ..Default::default()
+        });
         assert_eq!(status_pair(&row), ("🔴 STALLED", Color::Red));
         assert_eq!(activity_label_base(&row), "🔴 stalled 2h");
         assert_eq!(severity_tier(&row), 1);
         row.state_cause = StateCause::Working;
         row.warn = true;
-        row.health.scheduler.as_mut().unwrap().phase = Some(crate::daemon::scheduler_evidence::Phase::Working);
+        row.health.scheduler.as_mut().unwrap().phase =
+            Some(crate::daemon::scheduler_evidence::Phase::Working);
         assert_eq!(status_pair(&row), ("🔄 WORKING", Color::Cyan));
     }
 
@@ -12508,12 +12548,16 @@ mod tests {
         let mut row = make_activity_row("5 minutes ago", 1, 0, "OK");
         row.ahead = 12345;
         row.excluded_dirty = 12;
-        row.health.scheduler = Some(RepoEvidence { phase: Some(Phase::Working), ..Default::default() });
+        row.health.scheduler = Some(RepoEvidence {
+            phase: Some(Phase::Working),
+            ..Default::default()
+        });
         assert_eq!(current_health::rich_activity(&row), "🔄 WORKING");
         // Other layouts keep their detailed label.
         assert!(current_health::label(&row).contains("12345 ahead"));
         for width in [165, 200, 240, 320] {
-            let output = build_repos_rich_table(std::slice::from_ref(&row), false, width).to_string();
+            let output =
+                build_repos_rich_table(std::slice::from_ref(&row), false, width).to_string();
             assert!(!output.contains("WORKING ("), "{output}");
             assert!(!output.contains("ahead"), "{output}");
             assert_eq!(output.lines().count(), 5);
@@ -12532,7 +12576,9 @@ mod tests {
         assert!(footer.contains("blocked-repo: guard refused protected deletion"));
         for width in [80, 165, 240] {
             let wrapped = wrap_legend_text(&footer, width);
-            assert!(wrapped.lines().all(|line| unicode_width::UnicodeWidthStr::width(line) <= width));
+            assert!(wrapped
+                .lines()
+                .all(|line| unicode_width::UnicodeWidthStr::width(line) <= width));
         }
     }
 
@@ -12573,7 +12619,11 @@ mod tests {
         let mut stalled =
             make_activity_row_with_state("2 hours ago", 44, 0, "OK", StateCause::Stalled);
         stalled.repo = "/tmp/platform".into();
-        stalled.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence { eligible: true, dirty_secs: Some(7200), ..Default::default() });
+        stalled.health.scheduler = Some(crate::daemon::scheduler_evidence::RepoEvidence {
+            eligible: true,
+            dirty_secs: Some(7200),
+            ..Default::default()
+        });
         let rows = [clean, stalled];
         for width in [165, 200, 320] {
             let rendered = build_repos_rich_table(&rows, false, width).to_string();
@@ -12594,8 +12644,14 @@ mod tests {
             );
             assert!(!rendered.contains('┆'));
             assert!(lines[2].starts_with('├') && lines[2].ends_with('┤'));
-            assert!(lines[2].trim_start_matches('├').trim_end_matches('┤')
-                .chars().all(|c| c == '─'), "header ticks: {rendered}");
+            assert!(
+                lines[2]
+                    .trim_start_matches('├')
+                    .trim_end_matches('┤')
+                    .chars()
+                    .all(|c| c == '─'),
+                "header ticks: {rendered}"
+            );
             assert!(
                 !rendered.contains('═'),
                 "single-line header style: {rendered}"
@@ -13775,11 +13831,25 @@ mod tests {
     #[test]
     fn test_repos_legend_covers_all_push_cell_labels() {
         // Collect every documented cell label.
-        let cell_label_outputs: Vec<String> = [Some(true), Some(false), None].into_iter().map(|result| {
-            let mut row = RepoReportRow::for_tests("/fixture");
-            row.health.last_push = result.map(|succeeded| crate::daemon::push_history::Observation { version: 1, repo: row.repo.clone(), attempted_at: timestamp_secs(), succeeded });
-            current_health::push(&row).0.split_whitespace().take(2).collect::<Vec<_>>().join(" ")
-        }).collect();
+        let cell_label_outputs: Vec<String> = [Some(true), Some(false), None]
+            .into_iter()
+            .map(|result| {
+                let mut row = RepoReportRow::for_tests("/fixture");
+                row.health.last_push =
+                    result.map(|succeeded| crate::daemon::push_history::Observation {
+                        version: 1,
+                        repo: row.repo.clone(),
+                        attempted_at: timestamp_secs(),
+                        succeeded,
+                    });
+                current_health::push(&row)
+                    .0
+                    .split_whitespace()
+                    .take(2)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .collect();
         // The legend should contain every cell label's text. We
         // concatenate the legend rows into a single haystack and search
         // for each needle (case-sensitive, since the labels are

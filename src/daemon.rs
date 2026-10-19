@@ -13,13 +13,13 @@ use tokio::signal::unix::SignalKind;
 use tokio::time::sleep;
 
 mod discovery_scheduler;
-mod recovery;
-pub(crate) mod scheduler_evidence;
-pub(crate) mod push_history;
-#[cfg(test)]
-mod recovery_tests;
 #[cfg(test)]
 mod probe_race_tests;
+pub(crate) mod push_history;
+mod recovery;
+#[cfg(test)]
+mod recovery_tests;
+pub(crate) mod scheduler_evidence;
 
 pub(crate) static VERBOSITY: AtomicU8 = AtomicU8::new(0);
 
@@ -61,11 +61,14 @@ pub(crate) type SyncTaskJoin = tokio::task::JoinHandle<SyncTaskResult>;
 /// Coordinator-polled tagged join: identity survives worker panic/cancellation.
 /// Only the actual worker is spawned; this future has no separate failure
 /// boundary that could lose its repository payload.
-pub(crate) type SyncTrioJoin = futures::future::BoxFuture<'static, (
-    PathBuf,
-    HashMap<String, RemoteFailInfo>,
-    Result<SyncOutcome, anyhow::Error>,
-)>;
+pub(crate) type SyncTrioJoin = futures::future::BoxFuture<
+    'static,
+    (
+        PathBuf,
+        HashMap<String, RemoteFailInfo>,
+        Result<SyncOutcome, anyhow::Error>,
+    ),
+>;
 
 /// Keep identity outside the fallible task boundary. This future is polled by
 /// the coordinator, not another spawned task whose JoinError could lose it.
@@ -73,7 +76,11 @@ fn tagged_sync_join(repo: PathBuf, handle: SyncTaskJoin) -> SyncTrioJoin {
     Box::pin(async move {
         match handle.await {
             Ok((failures, outcome)) => (repo, failures, outcome),
-            Err(error) => (repo, HashMap::new(), Err(anyhow::Error::new(error).context("sync worker join"))),
+            Err(error) => (
+                repo,
+                HashMap::new(),
+                Err(anyhow::Error::new(error).context("sync worker join")),
+            ),
         }
     })
 }
@@ -129,19 +136,19 @@ fn collect_ready_classifications(
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         if let Some((repo, outcome)) = identify_probe_join(joined, aborts) {
-                pending.remove(&repo);
-                pending_since.remove(&repo);
-                // ADDED 2026-09-18 (v0.113.74, firehose fairness):
-                // any finished job — success OR failure — ends the
-                // current failure streak accounting below; a success
-                // clears it outright, a failure re-arms from the
-                // incremented count at the spawn gate. Without the
-                // success reset, one ancient timeout would inflate
-                // every future backoff for the repo forever.
-                if outcome.is_ok() {
-                    failures.remove(&repo);
-                }
-                results.insert(repo, (outcome, Instant::now()));
+            pending.remove(&repo);
+            pending_since.remove(&repo);
+            // ADDED 2026-09-18 (v0.113.74, firehose fairness):
+            // any finished job — success OR failure — ends the
+            // current failure streak accounting below; a success
+            // clears it outright, a failure re-arms from the
+            // incremented count at the spawn gate. Without the
+            // success reset, one ancient timeout would inflate
+            // every future backoff for the repo forever.
+            if outcome.is_ok() {
+                failures.remove(&repo);
+            }
+            results.insert(repo, (outcome, Instant::now()));
         }
     }
 }
@@ -183,11 +190,16 @@ fn identify_probe_join<T>(
             Some((repo, outcome))
         }
         Err(error) => {
-            let repo = aborts.iter().find(|(_, owner)| owner.abort.id() == error.id())
+            let repo = aborts
+                .iter()
+                .find(|(_, owner)| owner.abort.id() == error.id())
                 .map(|(repo, _)| repo.clone());
             if let Some(repo) = repo {
                 aborts.remove(&repo);
-                Some((repo, Err(anyhow::Error::new(error).context("probe worker join"))))
+                Some((
+                    repo,
+                    Err(anyhow::Error::new(error).context("probe worker join")),
+                ))
             } else {
                 eprintln!("⚠️ orphan probe join error: {}", error);
                 None
@@ -323,9 +335,10 @@ fn abort_wedged_status_inspection(
     if !pending.contains(repo) {
         return false;
     }
-    let wedged = !aborts.contains_key(repo) || spawned_at
-        .get(repo)
-        .is_some_and(|spawned| status_inspection_wedged(*spawned, now));
+    let wedged = !aborts.contains_key(repo)
+        || spawned_at
+            .get(repo)
+            .is_some_and(|spawned| status_inspection_wedged(*spawned, now));
     if !wedged {
         return false;
     }
@@ -347,8 +360,12 @@ fn abort_wedged_classification(
     repo: &Path,
     now: Instant,
 ) -> bool {
-    if !pending.contains(repo) || (aborts.contains_key(repo) && !since.get(repo)
-        .is_some_and(|(at, budget)| classification_pending_watchdog_due(*at, now, *budget))) {
+    if !pending.contains(repo)
+        || (aborts.contains_key(repo)
+            && !since
+                .get(repo)
+                .is_some_and(|(at, budget)| classification_pending_watchdog_due(*at, now, *budget)))
+    {
         return false;
     }
     if let Some(owner) = aborts.get_mut(repo) {
@@ -483,12 +500,12 @@ fn collect_ready_status(
 ) {
     while let Some(joined) = next_ready_classification(jobs) {
         if let Some((repo, outcome)) = identify_probe_join(joined, aborts) {
-                pending.remove(&repo);
-                let at = spawned_at.remove(&repo).unwrap_or_else(Instant::now);
-                if let Err(error) = &outcome {
-                    eprintln!("⚠️ {} status task failed: {}", repo.display(), error);
-                }
-                results.insert(repo, (outcome, at));
+            pending.remove(&repo);
+            let at = spawned_at.remove(&repo).unwrap_or_else(Instant::now);
+            if let Err(error) = &outcome {
+                eprintln!("⚠️ {} status task failed: {}", repo.display(), error);
+            }
+            results.insert(repo, (outcome, at));
         }
     }
 }
@@ -3784,8 +3801,14 @@ mod tests {
             &repo,
             now
         ));
-        assert!(pending.contains(&repo), "abort request must retain ownership until joined");
-        assert!(spawned_at.contains_key(&repo), "late normal result must keep its original age");
+        assert!(
+            pending.contains(&repo),
+            "abort request must retain ownership until joined"
+        );
+        assert!(
+            spawned_at.contains_key(&repo),
+            "late normal result must keep its original age"
+        );
         assert!(aborts.contains_key(&repo), "join error needs task identity");
         tokio::task::yield_now().await;
         assert!(handle.is_finished(), "wedged task must be aborted");
@@ -3820,20 +3843,35 @@ mod tests {
         let repo = PathBuf::from("completed-but-not-collected");
         let now = Instant::now();
         let task_repo = repo.clone();
-        let handle: StatusJoin = tokio::spawn(async move {
-            (task_repo, Ok(dracon_git::types::RepoStatus::new()))
-        });
+        let handle: StatusJoin =
+            tokio::spawn(async move { (task_repo, Ok(dracon_git::types::RepoStatus::new())) });
         let mut aborts = HashMap::from([(repo.clone(), handle.abort_handle().into())]);
         let mut pending = HashSet::from([repo.clone()]);
         let mut spawned = HashMap::from([(repo.clone(), now - Duration::from_secs(61))]);
         tokio::time::timeout(Duration::from_secs(3), async {
-            while !handle.is_finished() { tokio::task::yield_now().await; }
-        }).await.unwrap();
+            while !handle.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
         let mut jobs = FuturesUnordered::new();
         jobs.push(handle);
         let mut results = HashMap::new();
-        collect_ready_status(&mut jobs, &mut pending, &mut aborts, &mut spawned, &mut results);
-        assert!(!abort_wedged_status_inspection(&mut pending, &mut spawned, &mut aborts, &repo, now));
+        collect_ready_status(
+            &mut jobs,
+            &mut pending,
+            &mut aborts,
+            &mut spawned,
+            &mut results,
+        );
+        assert!(!abort_wedged_status_inspection(
+            &mut pending,
+            &mut spawned,
+            &mut aborts,
+            &repo,
+            now
+        ));
         assert!(pending.is_empty());
         assert!(spawned.is_empty());
         assert!(results.remove(&repo).unwrap().0.is_ok());
@@ -3855,9 +3893,21 @@ mod tests {
         });
         handle.abort();
         jobs.push(handle);
-        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
+        collect_ready_status(
+            &mut jobs,
+            &mut pending,
+            &mut HashMap::new(),
+            &mut spawned_at,
+            &mut results,
+        );
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
+        collect_ready_status(
+            &mut jobs,
+            &mut pending,
+            &mut HashMap::new(),
+            &mut spawned_at,
+            &mut results,
+        );
         assert!(results.is_empty(), "cancelled join must insert no result");
         assert!(pending.is_empty());
     }
@@ -3933,7 +3983,13 @@ mod tests {
         // Let the spawned tasks run: the fast task completes, the slow
         // task parks on pending forever (the point of the test).
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
+        collect_ready_status(
+            &mut jobs,
+            &mut pending,
+            &mut HashMap::new(),
+            &mut spawned_at,
+            &mut results,
+        );
         // Fast result collected immediately; slow repo still pending
         // (its task untouched, still owned by the job set).
         assert!(results.contains_key(&fast_repo));
@@ -3948,15 +4004,26 @@ mod tests {
         let now = Instant::now();
         let repos: Vec<PathBuf> = (0..8).map(|n| PathBuf::from(format!("repo-{n}"))).collect();
         let cooldowns: HashMap<PathBuf, Instant> = repos[..MAX_INFLIGHT_STATUS_TASKS]
-            .iter().map(|repo| (repo.clone(), now + STATUS_RETRY_COOLDOWN)).collect();
+            .iter()
+            .map(|repo| (repo.clone(), now + STATUS_RETRY_COOLDOWN))
+            .collect();
         // The four early repos all hung. Their retries cannot monopolize
         // the four slots again while later, healthy repos remain uninspected.
-        let admitted: Vec<_> = repos.iter()
+        let admitted: Vec<_> = repos
+            .iter()
             .filter(|repo| status_retry_ready(cooldowns.get(*repo), now))
-            .take(MAX_INFLIGHT_STATUS_TASKS).cloned().collect();
+            .take(MAX_INFLIGHT_STATUS_TASKS)
+            .cloned()
+            .collect();
         assert_eq!(admitted, repos[4..]);
-        assert!(!status_retry_ready(cooldowns.get(&repos[0]), now + STATUS_RETRY_COOLDOWN - Duration::from_nanos(1)));
-        assert!(status_retry_ready(cooldowns.get(&repos[0]), now + STATUS_RETRY_COOLDOWN));
+        assert!(!status_retry_ready(
+            cooldowns.get(&repos[0]),
+            now + STATUS_RETRY_COOLDOWN - Duration::from_nanos(1)
+        ));
+        assert!(status_retry_ready(
+            cooldowns.get(&repos[0]),
+            now + STATUS_RETRY_COOLDOWN
+        ));
     }
 
     /// Collection retains the original spawn clock, even for snapshots
@@ -3965,13 +4032,21 @@ mod tests {
     fn slow_status_within_execution_budget_can_make_progress() {
         let now = Instant::now();
         for secs in [0, 29, 30, 31, 45, 59, STATUS_TASK_TIMEOUT_SECS] {
-            assert!(!status_result_is_stale(now - Duration::from_secs(secs), now),
-                "successful {secs}s inspection must not be discarded solely for execution time");
+            assert!(
+                !status_result_is_stale(now - Duration::from_secs(secs), now),
+                "successful {secs}s inspection must not be discarded solely for execution time"
+            );
         }
         let max = STATUS_RESULT_MAX_AGE_SECS;
-        assert!(!status_result_is_stale(now - Duration::from_secs(max - 1), now));
+        assert!(!status_result_is_stale(
+            now - Duration::from_secs(max - 1),
+            now
+        ));
         assert!(status_result_is_stale(now - Duration::from_secs(max), now));
-        assert!(status_result_is_stale(now - Duration::from_secs(max + 1), now));
+        assert!(status_result_is_stale(
+            now - Duration::from_secs(max + 1),
+            now
+        ));
     }
 
     #[tokio::test]
@@ -3995,7 +4070,13 @@ mod tests {
         pending.insert(repo.clone());
         spawned_at.insert(repo.clone(), old);
         tokio::task::yield_now().await;
-        collect_ready_status(&mut jobs, &mut pending, &mut HashMap::new(), &mut spawned_at, &mut results);
+        collect_ready_status(
+            &mut jobs,
+            &mut pending,
+            &mut HashMap::new(),
+            &mut spawned_at,
+            &mut results,
+        );
         let (_, at) = results.get(&repo).unwrap();
         // Collection must not relabel an old snapshot as fresh merely
         // because the task was joined now.
@@ -4399,8 +4480,17 @@ mod daemon_tests {
         let live = PathBuf::from("still-running");
         let mut in_flight = HashSet::from([done.clone(), live.clone()]);
         let mut dispatched = in_flight.clone();
-        let mut ages = HashMap::from([(done.clone(), Instant::now()), (live.clone(), Instant::now())]);
-        release_sync_owner(&done, &mut in_flight, &mut HashMap::new(), &mut dispatched, &mut ages);
+        let mut ages = HashMap::from([
+            (done.clone(), Instant::now()),
+            (live.clone(), Instant::now()),
+        ]);
+        release_sync_owner(
+            &done,
+            &mut in_flight,
+            &mut HashMap::new(),
+            &mut dispatched,
+            &mut ages,
+        );
         assert_eq!(in_flight, HashSet::from([live.clone()]));
         assert_eq!(dispatched, HashSet::from([live.clone()]));
         assert_eq!(ages.len(), 1);
@@ -7296,29 +7386,59 @@ pub(crate) async fn run_daemon(
         );
         let sweep_now = Instant::now();
         for repo in status_pending.clone() {
-            if abort_wedged_status_inspection(&mut status_pending, &mut status_spawned_at,
-                &mut status_abort_handles, &repo, sweep_now) {
+            if abort_wedged_status_inspection(
+                &mut status_pending,
+                &mut status_spawned_at,
+                &mut status_abort_handles,
+                &repo,
+                sweep_now,
+            ) {
                 status_retry_after.insert(repo.clone(), sweep_now + STATUS_RETRY_COOLDOWN);
-                eprintln!("⚠️ {} status recovery requested; waiting for owned join", repo.display());
+                eprintln!(
+                    "⚠️ {} status recovery requested; waiting for owned join",
+                    repo.display()
+                );
             }
         }
         for repo in classification_pending.clone() {
-            if abort_wedged_classification(&mut classification_pending, &mut classification_pending_since,
-                &mut classification_abort_handles, &repo, sweep_now) {
-                eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
+            if abort_wedged_classification(
+                &mut classification_pending,
+                &mut classification_pending_since,
+                &mut classification_abort_handles,
+                &repo,
+                sweep_now,
+            ) {
+                eprintln!(
+                    "⚠️ {} classification recovery requested; waiting for owned join",
+                    repo.display()
+                );
             }
         }
         // Existing worker lifecycle must also advance while discovery is
         // refreshing. No new repo is admitted here; only already-owned joins
         // are applied. In particular, a scope change cannot pin reservations
         // or defer the running-worker cancellation deadline indefinitely.
-        while let Some((repo, remote_failures, sync_res)) = next_ready_result(&mut detached_syncs).await {
-            release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
-                &mut HashSet::new(), &mut detached_since);
+        while let Some((repo, remote_failures, sync_res)) =
+            next_ready_result(&mut detached_syncs).await
+        {
+            release_sync_owner(
+                &repo,
+                &mut in_flight,
+                &mut sync_workers,
+                &mut HashSet::new(),
+                &mut detached_since,
+            );
             sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
             if let Some(entry) = activity.get_mut(&repo) {
-                match apply_outcome(&repo, &sync_res, remote_failures, entry,
-                    &mut stage_cooldowns, &mut stuck_push_repos, true) {
+                match apply_outcome(
+                    &repo,
+                    &sync_res,
+                    remote_failures,
+                    entry,
+                    &mut stage_cooldowns,
+                    &mut stuck_push_repos,
+                    true,
+                ) {
                     ApplyOutcome::Success => {
                         max_fail_cooldowns.remove(&repo);
                         activity.remove(&repo);
@@ -7339,27 +7459,51 @@ pub(crate) async fn run_daemon(
         let mut next_quiet_deadline: Option<Instant> = None;
         let roots = policy.watch_root_paths();
         let excluded_dir_names = excluded_dir_names_set(&policy);
-        let Some(repos) = repository_discovery.poll(discovery_scheduler::Scope {
-            roots: roots.clone(),
-            excluded_dirs: excluded_dir_names.clone(),
-            excluded_repos: policy.exclude_repos.clone(),
-            system_repo: policy.system_repo.clone(),
-        }).await else {
+        let Some(repos) = repository_discovery
+            .poll(discovery_scheduler::Scope {
+                roots: roots.clone(),
+                excluded_dirs: excluded_dir_names.clone(),
+                excluded_repos: policy.exclude_repos.clone(),
+                system_repo: policy.system_repo.clone(),
+            })
+            .await
+        else {
             // Initial discovery or changed watch configuration: do not prune
             // fleet state using an empty/partial/previous-scope snapshot.
             save_in_flight(&in_flight);
-            let probes = status_pending.union(&classification_pending).cloned().collect();
+            let probes = status_pending
+                .union(&classification_pending)
+                .cloned()
+                .collect();
             let maintenance = provisioning_jobs.keys().cloned().collect();
-            let retry_maps = [&status_retry_after, &classification_cooldowns,
-                &branch_retry_after, &max_fail_cooldowns, &stage_cooldowns];
-            let mut snapshot = scheduler_evidence::build(scheduler_evidence::Inputs {
-                activity: &activity, eligible: &HashSet::new(), probes: &probes,
-                maintenance: &maintenance, retries: &retry_maps,
-                recovery: &sync_recovery, admitted: &last_dispatch,
-            }, Instant::now(), scheduler_evidence::epoch());
+            let retry_maps = [
+                &status_retry_after,
+                &classification_cooldowns,
+                &branch_retry_after,
+                &max_fail_cooldowns,
+                &stage_cooldowns,
+            ];
+            let mut snapshot = scheduler_evidence::build(
+                scheduler_evidence::Inputs {
+                    activity: &activity,
+                    eligible: &HashSet::new(),
+                    probes: &probes,
+                    maintenance: &maintenance,
+                    retries: &retry_maps,
+                    recovery: &sync_recovery,
+                    admitted: &last_dispatch,
+                },
+                Instant::now(),
+                scheduler_evidence::epoch(),
+            );
             snapshot.mode = "discovering".into();
             scheduler_evidence::save(&snapshot);
-            sleep_responsive(&reload_notify, || freeze_reason(&policy_path).is_some(), Duration::from_secs(1)).await;
+            sleep_responsive(
+                &reload_notify,
+                || freeze_reason(&policy_path).is_some(),
+                Duration::from_secs(1),
+            )
+            .await;
             continue;
         };
         note_discovered_repos(&policy_path, &repos);
@@ -8284,23 +8428,31 @@ pub(crate) async fn run_daemon(
                 // Branch repair can push/delete a remote ref and invoke the
                 // same heavy hooks. Keep it off the serial inspection loop,
                 // with one maintenance owner and bounded per-repo retries.
-                if branch_retry_after.get(&repo).is_some_and(|until| now < *until) {
+                if branch_retry_after
+                    .get(&repo)
+                    .is_some_and(|until| now < *until)
+                {
                     continue;
                 }
                 branch_retry_after.insert(repo.clone(), now + Duration::from_secs(300));
                 let repair_repo = repo.clone();
-                provisioning_jobs.insert(repo.clone(), tokio::spawn(
-                    crate::git::push_resources::background_pushes(async move {
+                provisioning_jobs.insert(
+                    repo.clone(),
+                    tokio::spawn(crate::git::push_resources::background_pushes(async move {
                         let result = if both_defaults {
                             crate::git::consolidate_to_main(&repair_repo).await
                         } else {
                             crate::git::rename_master_to_main(&repair_repo).await
                         };
                         if let Err(error) = result {
-                            eprintln!("⚠️ {} default-branch repair failed: {}", repair_repo.display(), error);
+                            eprintln!(
+                                "⚠️ {} default-branch repair failed: {}",
+                                repair_repo.display(),
+                                error
+                            );
                         }
-                    }),
-                ));
+                    })),
+                );
                 continue;
             }
             branch_retry_after.remove(&repo);
@@ -8383,7 +8535,8 @@ pub(crate) async fn run_daemon(
                     let outcome = crate::git::inspect_status(
                         &repo_for_status,
                         Duration::from_secs(STATUS_TASK_TIMEOUT_SECS),
-                    ).await;
+                    )
+                    .await;
                     (repo_for_status, outcome)
                 });
                 // v0.113.85: retain the abort handle so the wedge
@@ -8432,7 +8585,8 @@ pub(crate) async fn run_daemon(
                 }
                 Err(e) => {
                     status_retry_after.insert(repo.clone(), now + STATUS_RETRY_COOLDOWN);
-                    dispatch_holds.insert(repo.clone(), ("status-failed (retry cooldown)".into(), now));
+                    dispatch_holds
+                        .insert(repo.clone(), ("status-failed (retry cooldown)".into(), now));
                     eprintln!("⚠️ {} status_failed (retry in 300s): {}", repo.display(), e);
                     continue;
                 }
@@ -8749,10 +8903,17 @@ pub(crate) async fn run_daemon(
                 }
                 // The pulse sweep covers even repos that never reach here.
                 // Recheck after a long scan, retaining ownership until join.
-                if abort_wedged_classification(&mut classification_pending,
-                    &mut classification_pending_since, &mut classification_abort_handles,
-                    &repo, now) {
-                    eprintln!("⚠️ {} classification recovery requested; waiting for owned join", repo.display());
+                if abort_wedged_classification(
+                    &mut classification_pending,
+                    &mut classification_pending_since,
+                    &mut classification_abort_handles,
+                    &repo,
+                    now,
+                ) {
+                    eprintln!(
+                        "⚠️ {} classification recovery requested; waiting for owned join",
+                        repo.display()
+                    );
                 }
                 if !classification_pending.contains(&repo)
                     && !classification_results.contains_key(&repo)
@@ -8995,7 +9156,9 @@ pub(crate) async fn run_daemon(
                 }
                 (dirty, filtered)
             };
-            if effective_dirty { evidence_eligible.insert(repo.clone()); }
+            if effective_dirty {
+                evidence_eligible.insert(repo.clone());
+            }
 
             // v0.113.42 — stale-dirty pile-up alert. When a watched
             // repo has committable changes whose OLDEST file mtime
@@ -9364,21 +9527,21 @@ pub(crate) async fn run_daemon(
             let sem = sync_semaphore.clone();
             let run_started = sync_recovery.reserve(&repo);
             let handle = tokio::spawn(async move {
-                    if debug_enabled() {
-                        eprintln!(
-                            "scheduler: task_start repo={} unix_ms={}",
-                            repo_for_task.display(),
-                            scheduler_unix_ms()
-                        );
-                    }
-                    // Local-work admission remains bounded. The scoped push
-                    // phase returns this permit while hooks/network run, then
-                    // reacquires it before subsequent local mutation.
-                    let Ok(permit) = sem.clone().acquire_owned().await else {
-                        return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
-                    };
-                    let _ = run_started.set(Instant::now());
-                    crate::git::push_resources::with_local_work(sem, permit, async move {
+                if debug_enabled() {
+                    eprintln!(
+                        "scheduler: task_start repo={} unix_ms={}",
+                        repo_for_task.display(),
+                        scheduler_unix_ms()
+                    );
+                }
+                // Local-work admission remains bounded. The scoped push
+                // phase returns this permit while hooks/network run, then
+                // reacquires it before subsequent local mutation.
+                let Ok(permit) = sem.clone().acquire_owned().await else {
+                    return (entry_rf, Err(anyhow::anyhow!("sync semaphore closed")));
+                };
+                let _ = run_started.set(Instant::now());
+                crate::git::push_resources::with_local_work(sem, permit, async move {
                     let mut rf = entry_rf;
                     let r = sync_repo_with_ahead_since(
                         &repo_for_task,
@@ -9393,8 +9556,9 @@ pub(crate) async fn run_daemon(
                     )
                     .await;
                     (rf, r)
-                    }).await
-                });
+                })
+                .await
+            });
             sync_workers.insert(repo.clone(), handle.abort_handle());
             to_sync.push((repo.clone(), handle));
             continue;
@@ -9455,8 +9619,13 @@ pub(crate) async fn run_daemon(
             // Pending handles are retained below with their in-flight owner.
             while let Some(joined) = next_ready_result(&mut in_flight_tasks).await {
                 let (repo, remote_failures, sync_res) = joined;
-                release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
-                    &mut dispatched_this_cycle, &mut detached_since);
+                release_sync_owner(
+                    &repo,
+                    &mut in_flight,
+                    &mut sync_workers,
+                    &mut dispatched_this_cycle,
+                    &mut detached_since,
+                );
                 sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
@@ -9557,8 +9726,13 @@ pub(crate) async fn run_daemon(
                     // must be applied (R4-SC-02 routes the wedge
                     // abort to PushPaused). Every joined result falls
                     // through to the apply phase below.
-                    release_sync_owner(&repo, &mut in_flight, &mut sync_workers,
-                        &mut dispatched_this_cycle, &mut detached_since);
+                    release_sync_owner(
+                        &repo,
+                        &mut in_flight,
+                        &mut sync_workers,
+                        &mut dispatched_this_cycle,
+                        &mut detached_since,
+                    );
                     sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                     if let Some(entry) = activity.get_mut(&repo) {
                         // CHANGED 2026-07-27 (v0.113.5, audit M4):
@@ -9694,15 +9868,31 @@ pub(crate) async fn run_daemon(
         let persist_now = Instant::now();
         prune_expired_cooldowns(&mut max_fail_cooldowns, persist_now);
         save_dispatch_holds(&dispatch_holds, persist_now);
-        let evidence_probes = status_pending.union(&classification_pending).cloned().collect();
+        let evidence_probes = status_pending
+            .union(&classification_pending)
+            .cloned()
+            .collect();
         let evidence_maintenance = provisioning_jobs.keys().cloned().collect();
-        let retry_maps = [&status_retry_after, &classification_cooldowns,
-            &branch_retry_after, &max_fail_cooldowns, &stage_cooldowns];
-        scheduler_evidence::save(&scheduler_evidence::build(scheduler_evidence::Inputs {
-            activity: &activity, eligible: &evidence_eligible, probes: &evidence_probes,
-            maintenance: &evidence_maintenance, retries: &retry_maps,
-            recovery: &sync_recovery, admitted: &last_dispatch,
-        }, persist_now, scheduler_evidence::epoch()));
+        let retry_maps = [
+            &status_retry_after,
+            &classification_cooldowns,
+            &branch_retry_after,
+            &max_fail_cooldowns,
+            &stage_cooldowns,
+        ];
+        scheduler_evidence::save(&scheduler_evidence::build(
+            scheduler_evidence::Inputs {
+                activity: &activity,
+                eligible: &evidence_eligible,
+                probes: &evidence_probes,
+                maintenance: &evidence_maintenance,
+                retries: &retry_maps,
+                recovery: &sync_recovery,
+                admitted: &last_dispatch,
+            },
+            persist_now,
+            scheduler_evidence::epoch(),
+        ));
 
         // === Sustained-state notifications ===
         // Check for repos that have been in a concerning state for too long.

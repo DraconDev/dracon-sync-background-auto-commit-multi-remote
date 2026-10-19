@@ -1441,7 +1441,8 @@ mod tests {
         );
 
         // Capital-P banner only (no verdict line) still classifies.
-        let banner_only = "git push failed with status exit status: 1: Pre-push: 3 affected workspace(s)";
+        let banner_only =
+            "git push failed with status exit status: 1: Pre-push: 3 affected workspace(s)";
         assert!(classify_push_failure(banner_only).contains("local pre-push hook"));
     }
 
