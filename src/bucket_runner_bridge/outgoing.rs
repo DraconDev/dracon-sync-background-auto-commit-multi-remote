@@ -283,21 +283,25 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
     // driver would expand it. Independently include every tracked filtered
     // path, even if filter-disabled status reports equality.
     let mut status = before.status.clone();
+    let mut tracked_attributes = BTreeMap::<String, (bool, bool)>::new();
     if !index.is_empty() {
         let mut input = Vec::new();
         for path in index.keys() {
             input.extend_from_slice(path.as_bytes());
             input.push(0);
         }
-        let attrs = git(repo, &args(&["check-attr", "-z", "--stdin", "filter"]), Some(input)).await?;
+        let attrs = git(repo, &args(&["check-attr", "-z", "--stdin", "filter", "working-tree-encoding"]), Some(input)).await?;
         let mut fields = attrs.split(|b| *b == 0);
         while let Some(path) = fields.next().filter(|p| !p.is_empty()) {
             let name = fields.next().context("accounting-invalid-attributes")?;
             let value = fields.next().context("accounting-invalid-attributes")?;
-            if name != b"filter" || !index.contains_key(text(path)?) {
+            if !matches!(name, b"filter" | b"working-tree-encoding") || !index.contains_key(text(path)?) {
                 bail!("accounting-invalid-attributes");
             }
-            if !matches!(value, b"unspecified" | b"unset") {
+            let entry = tracked_attributes.entry(text(path)?.to_owned()).or_default();
+            let set = !matches!(value, b"unspecified" | b"unset");
+            if name == b"filter" { entry.0 = set; } else { entry.1 = set; }
+            if set {
                 status.extend_from_slice(b" M ");
                 status.extend_from_slice(path);
                 status.push(0);
@@ -403,19 +407,13 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         if meta.is_dir() {
             continue;
         }
-        let attrs = git(
-            repo,
-            &args(&[
-                "check-attr",
-                "-z",
-                "filter",
-                "working-tree-encoding",
-                "--",
-                path,
-            ]),
-            None,
-        )
-        .await?;
+        let attrs = if let Some((filter, encoding)) = tracked_attributes.get(path) {
+            if *encoding { bail!("accounting-unsupported-encoding"); }
+            let value = if *filter { "reserved" } else { "unset" };
+            format!("{path}\0filter\0{value}\0").into_bytes()
+        } else {
+            git(repo, &args(&["check-attr", "-z", "filter", "working-tree-encoding", "--", path]), None).await?
+        };
         let mut filtered = false;
         let mut fields = attrs.split(|b| *b == 0);
         while let Some(attribute_path) = fields.next().filter(|v| !v.is_empty()) {
