@@ -1,0 +1,3 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+{"at": "2026-10-19T11:12:51.756310+00:00", "oldPid": 1556503, "newPid": 2039261, "installedSha256": "2fc714a1252ed64f3102175a67587c848567629df9b8e099d38d45789744a2cd", "rollback": "/home/dracon/.local/state/dracon-sync/deployments/20261019T111245Z-blocker-fix/dracon-sync.before", "service": "dracon-sync-operator.service", "method": "atomic replace + SIGTERM owned daemon; systemd Restart=always (no service stop)"}
+▶️  Sync resumed (freeze marker removed)
