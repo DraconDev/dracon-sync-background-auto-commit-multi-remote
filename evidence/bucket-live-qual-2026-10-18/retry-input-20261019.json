@@ -1,0 +1,19 @@
+{
+  "createdAt": "2026-10-19T09:05:07Z",
+  "path": "public/qualification-retry-20261019/ovh-retry-81433a363012.png",
+  "recipe": {
+    "width": 512,
+    "height": 512,
+    "rgba": [
+      194,
+      81,
+      56,
+      255
+    ]
+  },
+  "bytes": 2200,
+  "sha256": "e842d3f09e9b6bfb3cc153c55581caf10c1aa3a4aedf593c974dd4afa196fcc4",
+  "manifestBeforeSha256": "6d3ca2a585f1275020d7d41a4bfb13a8897dd1ed4d4a76333b8658c9d479ed7e",
+  "root": "/home/dracon/dracon/bridge-fixture",
+  "failureInjection": "profile storage.endpoint temporarily https://127.0.0.1:9 (dead local port, connection refused); profile backup ~/.dracon/state/bucket-runner/backups/profile-pre-retry-qual-20261019.json sha256 5c4b16733d6cc3d69819b4b90492fc05704ef8d95564e5e66a81fdefe0b52302; no OVH policy/credential/bucket change"
+}
