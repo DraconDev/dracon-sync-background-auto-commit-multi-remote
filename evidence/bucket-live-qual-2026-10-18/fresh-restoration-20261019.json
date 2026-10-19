@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-19T00:48:09.987Z",
+  "root": "/tmp/ovh-fresh-restore-7mum61",
+  "initiallyEmpty": true,
+  "originalCacheUsed": false,
+  "selectedEntry": "public/qualification-20261019/ovh-live-b1c954d94b4b.png",
+  "scope": "new fixture only; in-memory projection of daemon manifest, no manifest file written",
+  "legacyEntriesTested": false,
+  "transport": "production createPrivateS3Transport consumer role",
+  "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/26da6100816f51fb1996625d7e90b18466c99817be9c2457d46c8d31007acb67.png",
+  "downloads": 1,
+  "bytes": 2200,
+  "sha256": "26da6100816f51fb1996625d7e90b18466c99817be9c2457d46c8d31007acb67",
+  "byteIdenticalToSource": true,
+  "outcomes": [
+    {
+      "sourcePath": "public/qualification-20261019/ovh-live-b1c954d94b4b.png",
+      "status": "restored"
+    }
+  ],
+  "retryOutcomes": [
+    {
+      "sourcePath": "public/qualification-20261019/ovh-live-b1c954d94b4b.png",
+      "status": "already-present"
+    }
+  ],
+  "manifestUnchanged": true
+}
