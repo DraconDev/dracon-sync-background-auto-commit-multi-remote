@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-19T00:33:38.071617+00:00",
+  "sdk": "boto3 1.43.93",
+  "role": "consumer",
+  "operation": "GetObject",
+  "bucket": "dracon-lfs",
+  "key": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/215dc3a0b342d3d4855b07d7eb3555e69ce2ef520a4c0779b9b730e218116b9b.png",
+  "endpoint": "https://s3.uk.io.cloud.ovh.net",
+  "http": 200,
+  "lastModified": "2026-10-18T11:15:59+00:00",
+  "etag": "\"053ea85ab05bb8e803558e187be69dd8\"",
+  "bytes": 2200,
+  "sha256": "215dc3a0b342d3d4855b07d7eb3555e69ce2ef520a4c0779b9b730e218116b9b",
+  "byteIdenticalToSource": true,
+  "manifestSha256": "9229a1bf56fbf108617b4bc1ffe3008d995553e0102a0922f3c3e7362e69f466",
+  "destination": "/tmp/ovh-independent-consumer-c7s27sb0/fetched.png"
+}
