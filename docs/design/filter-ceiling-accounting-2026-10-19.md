@@ -20,8 +20,10 @@ ceiling against actual staged blobs before allowing commit.
 - Reserve another full ceiling for the runner-created/updated manifest.
 - Zero/non-JS-safe ceilings, checked-add overflow, unsupported encoding,
   malformed attribute results and snapshot/identity races fail closed.
-  A zero ceiling means "no filtered output may be admitted": accounting
-  refuses the measurement instead of treating filtered paths as free.
+  A zero ceiling drops every non-empty candidate through the same shared
+  size gate the commit path uses (so nothing is reserved and nothing can be
+  published); a filtered candidate that would still be admitted under that
+  ceiling (e.g. an empty source) refuses rather than being treated as free.
 - Snapshots now bind effective attributes and Git config as well as
   HEAD/index/tracking/status. Config bytes are internal and never logged.
 - Literal filesystem paths may contain colon; accounting does not treat

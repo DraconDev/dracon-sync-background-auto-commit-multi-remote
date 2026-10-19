@@ -1,1 +1,3 @@
+$ cargo deny check  # workspace root, 2026-10-19 (final tree)
 advisories ok, bans ok, licenses ok, sources ok
+exit=0
