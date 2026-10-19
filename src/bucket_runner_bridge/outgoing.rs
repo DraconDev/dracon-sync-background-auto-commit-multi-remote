@@ -106,6 +106,8 @@ struct Snapshot {
     index: Vec<u8>,
     tips: Vec<u8>,
     status: Vec<u8>,
+    attributes: Vec<u8>,
+    config: Vec<u8>,
 }
 impl Snapshot {
     fn ensure_unchanged(&self, after: &Self) -> Result<()> {
@@ -116,7 +118,12 @@ impl Snapshot {
     }
 }
 async fn snapshot(repo: &Path, status_cmd: &[String]) -> Result<Snapshot> {
+    let paths = git(repo, &args(&["ls-files", "--cached", "--others", "--exclude-standard", "-z"]), None).await?;
+    let attributes = git(repo, &args(&["check-attr", "-z", "--stdin", "filter", "working-tree-encoding"]), Some(paths)).await?;
     Ok(Snapshot {
+        attributes,
+        // Do not log these bytes: configuration may contain credentials.
+        config: git(repo, &args(&["config", "--null", "--list"]), None).await?,
         head: git(repo, &args(&["rev-parse", "--verify", "HEAD"]), None).await?,
         index: git(repo, &args(&["ls-files", "--stage", "-z"]), None).await?,
         tips: git(
