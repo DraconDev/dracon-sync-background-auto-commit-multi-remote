@@ -431,6 +431,17 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         {
             bail!("accounting-unbounded-filter-ceiling");
         }
+        if filtered {
+            // No plaintext read/hash is needed: any output admitted to the
+            // real commit is bounded by the staged-blob ceiling. Reserving
+            // per path also covers unchanged plaintext with fresh ciphertext.
+            add(&mut total, policy.max_stage_file_bytes)?;
+            files.push((full, identity(&meta)));
+            if files.len() > MAX_ITEMS {
+                bail!("accounting-candidate-limit");
+            }
+            continue;
+        }
         let bytes = if meta.file_type().is_symlink() {
             use std::os::unix::ffi::OsStrExt;
             std::fs::read_link(&full)?.as_os_str().as_bytes().to_vec()
@@ -483,13 +494,7 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
                 blob_sizes.insert(staged.clone(), size);
             }
         }
-        if filtered {
-            // The normal commit path measures ACTUAL index blobs and removes
-            // output above this ceiling, including encryption expansion.
-            // Reserve once per path: nondeterministic clean output cannot be
-            // deduplicated by plaintext OID. Never execute a driver here.
-            add(&mut total, policy.max_stage_file_bytes)?;
-        } else if let std::collections::btree_map::Entry::Vacant(entry) = blob_sizes.entry(object) {
+        if let std::collections::btree_map::Entry::Vacant(entry) = blob_sizes.entry(object) {
             add(&mut total, bytes.len() as u64)?;
             entry.insert(bytes.len() as u64);
         }

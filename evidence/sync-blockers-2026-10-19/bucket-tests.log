@@ -1,1 +1,71 @@
    Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.80s
+     Running unittests src/lib.rs (target/debug/deps/dracon_sync-322cfb94f90bdfca)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 44 tests
+test bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure ... ok
+test bucket_assets::tests::malicious_paths_and_ineligible_manifests_are_refused ... ok
+test bucket_assets::tests::post_upload_capture_tampering_is_refused ... ok
+test bucket_assets::tests::staged_accounting_ceiling_measures_clean_output_not_plaintext ... ok
+test bucket_assets::tests::staged_reference_drift_and_raw_materialization_are_refused ... ok
+test bucket_assets::tests::unconfigured_and_disabled_repos_do_not_invoke_upload ... ok
+test bucket_guard::tests::guard_garbage_output_fails_closed ... ok
+test bucket_guard::tests::guard_ok_passes ... ok
+test bucket_guard::tests::guard_violation_blocks_with_paths ... ok
+test bucket_guard::tests::missing_env_override_fails_closed ... ok
+test bucket_guard::tests::no_guard_script_skips_check ... ok
+test bucket_guard::tests::push_range_none_without_upstream ... ok
+test bucket_guard::tests::push_range_reports_live_violations ... warning: You appear to have cloned an empty repository.
+ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::accounting_failure_never_spawns_publisher_or_writes_manifest ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::candidate_discovery_includes_new_files_with_operator_gates_and_repo_relative_roots ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::disabled_repo_returns_none ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::materialized_manifest_sources_stay_repo_relative_with_non_dot_asset_root ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::missing_profile_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::mocked_end_to_end_returns_prepared_with_materialized_paths ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::non_refused_status_without_commit_eligible_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdin_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::oversized_stdout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::refused_spawn_is_indexed_and_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_fail_closed_on_invalid_data ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::shared_routing_defaults_validate_and_preserve_measured_bytes ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::timeout_is_refused ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unconfigured_repo_does_not_spawn_bundle ... ok
+test bucket_runner_bridge::bucket_runner_bridge_tests::unsafe_config_paths_are_refused ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_ignores_replacements_for_outgoing_deleted_history ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_keeps_lagging_mirror_objects_and_respects_exclusions ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_missing_tip_and_unreadable_git_object_fail_closed ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_guess ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_real_git_deduplicates_history_and_selected_worktree ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_refuses_unsupported_encoding_without_transcoding ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_enforced_output_ceiling_without_executing_filter ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_reserves_tracked_filter_even_when_raw_status_is_clean ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_snapshot_rejects_real_worktree_index_head_and_tip_changes ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_symlink_sizes_link_text_not_referent ... ok
+test bucket_runner_bridge::outgoing::tests::accounting_untracked_toggle_and_read_limit_are_explicit ... ok
+test report::tests::test_row_bucket_counts_warn_concern_counts_once ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 1313 filtered out; finished in 73.08s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-6681aabf82d21914)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/storage_clean.rs (target/debug/deps/storage_clean-5d6514e28006c029)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
