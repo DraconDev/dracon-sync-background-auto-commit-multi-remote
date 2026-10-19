@@ -29,6 +29,7 @@ struct Config {
 pub(crate) struct Prepared {
     manifest_path: PathBuf,
     verified_manifest: Vec<u8>,
+    output_ceiling: Option<u64>,
     pub(crate) materialized_paths: HashSet<PathBuf>,
 }
 
@@ -212,6 +213,7 @@ pub(crate) async fn prepare(
     Ok(Some(Prepared {
         manifest_path: PathBuf::from(config.manifest),
         verified_manifest: bytes,
+        output_ceiling: None,
         materialized_paths,
     }))
 }
@@ -232,8 +234,14 @@ impl Prepared {
         Self {
             manifest_path,
             verified_manifest,
+            output_ceiling: None,
             materialized_paths,
         }
+    }
+
+    pub(crate) fn with_output_ceiling(mut self, ceiling: u64) -> Self {
+        self.output_ceiling = Some(ceiling);
+        self
     }
 
     pub(crate) async fn verify_staged(&self, repo: &Path, timeout_secs: u64) -> Result<()> {
@@ -248,7 +256,17 @@ impl Prepared {
         if !manifest.status.success() || manifest.stdout != self.verified_manifest {
             bail!("staged private manifest differs from upload-verified references");
         }
-        for path in crate::git::staged_paths(repo).await? {
+        let staged_paths = crate::git::staged_paths(repo).await?;
+        if let Some(ceiling) = self.output_ceiling {
+            // Backstop the same staged-blob ceiling used by normal hygiene:
+            // routing reservations must never authorize larger clean output.
+            for size in crate::git::staged_blob_sizes_for(repo, staged_paths.iter().cloned().collect()).await?.values() {
+                if !matches!(size, Some(bytes) if *bytes <= ceiling) {
+                    bail!("staged output exceeds accounting ceiling or cannot be measured");
+                }
+            }
+        }
+        for path in staged_paths {
             if self.materialized_paths.contains(&path) || path.starts_with(".bucket-cache") {
                 bail!("materialized private asset/cache was staged; refusing raw-blob commit");
             }
@@ -362,6 +380,24 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
         );
         git(repo, &["commit", "--no-verify", "-qm", "fixture baseline"]);
         dir
+    }
+
+    #[tokio::test]
+    async fn staged_accounting_ceiling_measures_clean_output_not_plaintext() {
+        let dir = fixture();
+        let repo = dir.path();
+        let prepared = prepare(repo, false, 30).await.unwrap().unwrap()
+            .with_output_ceiling(4096);
+        git(repo, &["add", "--", "manifest.json"]);
+        prepared.verify_staged(repo, 10).await.unwrap();
+        std::fs::write(repo.join(".gitattributes"), "expanded.txt filter=expand\n").unwrap();
+        git(repo, &["config", "filter.expand.clean", "cat; head -c 8192 /dev/zero"]);
+        std::fs::write(repo.join("expanded.txt"), "x").unwrap();
+        // This is ordinary authorized staging, never an accounting probe.
+        git(repo, &["add", "--", "expanded.txt"]);
+        let error = prepared.verify_staged(repo, 10).await.unwrap_err();
+        assert!(error.to_string().contains("accounting ceiling"));
+        assert_eq!(std::fs::read(repo.join("expanded.txt")).unwrap(), b"x");
     }
 
     #[tokio::test]

@@ -2853,6 +2853,20 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     "healthy".to_string()
 }
 
+fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
+    // Classification runs after generic ahead/dirty hints. Do not promise
+    // convergence or suggest forcing sync when the daemon has reported a
+    // guard refusal. Keep existing concrete ownership/history/pack diagnoses.
+    if current == current_health::Current::Blocked
+        && (hint.starts_with("daemon will push after changes settle")
+            || hint.starts_with("daemon handles after changes settle"))
+    {
+        let suffix = hint.find(';').map(|i| &hint[i..]).unwrap_or("");
+        return format!("sync blocked by guard/policy — inspect daemon journal for the refusal; retrying sync-now does not bypass it{suffix}");
+    }
+    hint.to_string()
+}
+
 pub(crate) fn push_large_blob_threshold_bytes(policy: &SyncPolicy) -> u64 {
     policy
         .max_stage_file_bytes
@@ -4828,6 +4842,7 @@ pub(crate) async fn run_repos_report(
             frozen_secs,
         };
         row.health.current = current_health::classify(&row);
+        row.hint = current_blocker_hint(row.health.current, &row.hint);
         row.state_cause = match row.health.current {
             current_health::Current::Converged => StateCause::Idle,
             current_health::Current::Excluded => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Intentional },
@@ -16187,6 +16202,23 @@ mod v011321_tests {
         row.excluded_remotes = vec!["codeberg".into()];
         let out = push_cell_with_markers("✅ OK".to_string(), &row, 10);
         assert_eq!(out, "✅ OK🔑", "{out}");
+    }
+
+    #[test]
+    fn blocked_hints_never_promise_settling_or_force_sync() {
+        use super::current_health::Current;
+        for hint in [
+            "daemon will push after changes settle; pack guard clear",
+            "daemon handles after changes settle; run sync-now --warns to force now",
+        ] {
+            let blocked = current_blocker_hint(Current::Blocked, hint);
+            assert!(blocked.contains("guard/policy"));
+            assert!(!blocked.contains("after changes settle"));
+            assert!(!blocked.contains("force now"));
+            assert_eq!(current_blocker_hint(Current::Working, hint), hint);
+        }
+        let concrete = "ownership blocked: foreign remote";
+        assert_eq!(current_blocker_hint(Current::Blocked, concrete), concrete);
     }
 
     #[test]

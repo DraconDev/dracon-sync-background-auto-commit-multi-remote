@@ -195,7 +195,7 @@ async fn accounting_missing_tip_and_unreadable_git_object_fail_closed() {
 }
 
 #[tokio::test]
-async fn accounting_refuses_unknown_filter_without_executing_it() {
+async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() {
     let td = fixture();
     let repo = td.path();
     let p = policy();
@@ -220,16 +220,32 @@ async fn accounting_refuses_unknown_filter_without_executing_it() {
         ],
     );
     put(repo, "source.png", 500);
-    assert!(measure(repo, &p)
-        .await
-        .unwrap_err()
-        .to_string()
-        .contains("unknown-filter-bound"));
+    assert_eq!(measure(repo, &p).await.unwrap(), p.max_stage_file_bytes);
+    put(repo, "second.png", 500);
+    // Identical plaintext can encrypt differently: reserve per path, not OID.
+    assert_eq!(measure(repo, &p).await.unwrap(), 2 * p.max_stage_file_bytes);
+    let mut unbounded = p.clone();
+    unbounded.max_stage_file_bytes = u64::MAX;
+    assert!(measure(repo, &unbounded).await.unwrap_err().to_string()
+        .contains("unbounded-filter-ceiling"));
     assert!(!repo.join("FILTER_EXECUTED").exists());
     assert_eq!(
         std::fs::metadata(repo.join("source.png")).unwrap().len(),
         500
     );
+}
+
+#[tokio::test]
+async fn accounting_refuses_unsupported_encoding_without_transcoding() {
+    let td = fixture();
+    let repo = td.path();
+    std::fs::write(repo.join(".gitattributes"), "*.txt working-tree-encoding=UTF-16\n").unwrap();
+    run(repo, &["add", "--", ".gitattributes"]);
+    run(repo, &["commit", "-qm", "encoding"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    put(repo, "source.txt", 20);
+    assert!(measure(repo, &policy()).await.unwrap_err().to_string()
+        .contains("unsupported-encoding"));
 }
 
 #[tokio::test]
