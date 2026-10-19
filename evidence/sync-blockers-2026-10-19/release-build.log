@@ -1,3 +1,6 @@
-$ cargo build --release --locked  # workspace root, 2026-10-19
-    Finished `release` profile [optimized] target(s) in 1.28s
+$ cargo build --release --locked  # workspace root, 2026-10-19 (final tree)
+   Compiling dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `release` profile [optimized] target(s) in 2m 22s
 exit=0
