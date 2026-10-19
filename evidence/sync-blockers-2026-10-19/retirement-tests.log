@@ -1,0 +1,28 @@
+bun test v1.3.14 (0d9b296a)
+
+scripts/bucket-strategy-forward-only.test.mjs:
+(pass) pushing a new ref > a new branch is not blocked by history already published elsewhere [4040.98ms]
+(fail) pushing a new ref > an UNPUBLISHED retirement is still refused on a new branch [5367.60ms]
+  ^ this test timed out after 5000ms.
+(pass) pushing a new ref > new-ref exclusion trusts local remote-tracking refs (known limitation) [4604.71ms]
+(pass) forward-only asset protection > a clean tree passes [2264.65ms]
+(pass) forward-only asset protection > deleting a protected published asset is refused [2500.85ms]
+(pass) forward-only asset protection > renaming a protected published asset away is refused [2064.40ms]
+(pass) forward-only asset protection > deleting scratch the inventory does not claim is allowed [1930.28ms]
+(pass) forward-only asset protection > deleting a ref is still refused [1687.80ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be deleted [2997.14ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be renamed away [2030.25ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement exempts only the named path, not its protected siblings [2920.14ms]
+(fail) forward-only asset protection > sanctioned retirement > an exact-file retirement list exempts each named sprite, never live siblings [5605.75ms]
+  ^ this test timed out after 5000ms.
+(pass) forward-only asset protection > sanctioned retirement > a retired directory covers every asset beneath it [4679.60ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement cannot be used to exempt a path outside the repository [2226.10ms]
+(pass) forward-only asset protection > sanctioned retirement > a partial-component glob retires by extension, not by whole directory [2232.30ms]
+(pass) forward-only asset protection > sanctioned retirement > whole-component globs keep their existing semantics [4054.59ms]
+(pass) forward-only asset protection > an inventory is required — the check fails closed without one [1376.26ms]
+(pass) the real inventory must not claim scratch directories > the games record does not claim web/games/tmp [0.80ms]
+
+ 16 pass
+ 2 fail
+ 62 expect() calls
+Ran 18 tests across 1 file. [60.23s]

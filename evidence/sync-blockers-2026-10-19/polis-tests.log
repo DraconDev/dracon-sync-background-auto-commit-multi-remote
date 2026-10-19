@@ -1,0 +1,12 @@
+bun test v1.3.14 (0d9b296a)
+
+src/lib/non-housing-placed-visual-parity-pin.test.ts:
+(pass) non-housing placed-visual parity (2026-10-18 wrong-asset fix) > (a) no V2 override redirects any non-housing kind [0.25ms]
+(pass) non-housing placed-visual parity (2026-10-18 wrong-asset fix) > (b) every placed non-housing visual resolves to an on-disk file [0.28ms]
+(pass) non-housing placed-visual parity (2026-10-18 wrong-asset fix) > (c) placed visuals match the dashboard card family [0.09ms]
+(pass) non-housing placed-visual parity (2026-10-18 wrong-asset fix) > (d) manifest lists every non-housing kind as a curated-v1 self-ref [0.61ms]
+
+ 4 pass
+ 0 fail
+ 77 expect() calls
+Ran 4 tests across 1 file. [52.00ms]
