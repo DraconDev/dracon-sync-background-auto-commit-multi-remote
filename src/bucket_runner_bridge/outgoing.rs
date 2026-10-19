@@ -1,5 +1,7 @@
 //! Read-only, bounded upper bound on newly outgoing raw blob bytes.
 //! No filter execution, object writes, pack creation or network access.
+//! Filter output reserves the per-blob ceiling enforced by normal staging;
+//! it is NOT estimated from plaintext length or a driver-name allowlist.
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -380,10 +382,25 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
             None,
         )
         .await?;
-        for attr in attrs.split(|b| *b == 0).collect::<Vec<_>>().chunks(3) {
-            if attr.len() == 3 && !matches!(attr[2], b"unspecified" | b"unset") {
-                bail!("accounting-unknown-filter-bound");
+        let mut filtered = false;
+        let mut fields = attrs.split(|b| *b == 0);
+        while let Some(attribute_path) = fields.next().filter(|v| !v.is_empty()) {
+            let name = fields.next().context("accounting-invalid-attributes")?;
+            let value = fields.next().context("accounting-invalid-attributes")?;
+            if attribute_path != path.as_bytes() {
+                bail!("accounting-invalid-attributes");
             }
+            if !matches!(value, b"unspecified" | b"unset") {
+                match name {
+                    b"filter" => filtered = true,
+                    _ => bail!("accounting-unsupported-encoding"),
+                }
+            }
+        }
+        if filtered && (policy.max_stage_file_bytes == 0
+            || policy.max_stage_file_bytes > MAX_JS_INTEGER)
+        {
+            bail!("accounting-unbounded-filter-ceiling");
         }
         let bytes = if meta.file_type().is_symlink() {
             use std::os::unix::ffi::OsStrExt;
@@ -437,7 +454,13 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
                 blob_sizes.insert(staged.clone(), size);
             }
         }
-        if let std::collections::btree_map::Entry::Vacant(entry) = blob_sizes.entry(object) {
+        if filtered {
+            // The normal commit path measures ACTUAL index blobs and removes
+            // output above this ceiling, including encryption expansion.
+            // Reserve once per path: nondeterministic clean output cannot be
+            // deduplicated by plaintext OID. Never execute a driver here.
+            add(&mut total, policy.max_stage_file_bytes)?;
+        } else if let std::collections::btree_map::Entry::Vacant(entry) = blob_sizes.entry(object) {
             add(&mut total, bytes.len() as u64)?;
             entry.insert(bytes.len() as u64);
         }
