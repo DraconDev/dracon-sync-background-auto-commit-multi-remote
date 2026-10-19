@@ -279,7 +279,33 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
     }
     let excludes = crate::policy::effective_auto_commit_excludes(policy, &override_);
     let dirs = policy.exclude_dir_names.iter().cloned().collect();
-    let mut records = before.status.split(|b| *b == 0).filter(|v| !v.is_empty());
+    // Raw status can hide a clean-looking plaintext index blob whose clean
+    // driver would expand it. Independently include every tracked filtered
+    // path, even if filter-disabled status reports equality.
+    let mut status = before.status.clone();
+    if !index.is_empty() {
+        let mut input = Vec::new();
+        for path in index.keys() {
+            input.extend_from_slice(path.as_bytes());
+            input.push(0);
+        }
+        let attrs = git(repo, &args(&["check-attr", "-z", "--stdin", "filter"]), Some(input)).await?;
+        let mut fields = attrs.split(|b| *b == 0);
+        while let Some(path) = fields.next().filter(|p| !p.is_empty()) {
+            let name = fields.next().context("accounting-invalid-attributes")?;
+            let value = fields.next().context("accounting-invalid-attributes")?;
+            if name != b"filter" || !index.contains_key(text(path)?) {
+                bail!("accounting-invalid-attributes");
+            }
+            if !matches!(value, b"unspecified" | b"unset") {
+                status.extend_from_slice(b" M ");
+                status.extend_from_slice(path);
+                status.push(0);
+            }
+        }
+    }
+    let mut records = status.split(|b| *b == 0).filter(|v| !v.is_empty());
+    let mut visited = BTreeSet::new();
     let mut files = Vec::new();
     while let Some(record) = records.next() {
         if record.len() < 4 {
@@ -292,6 +318,9 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         }
         if !super::safe_relative(path) {
             bail!("accounting-unsafe-path");
+        }
+        if !visited.insert(path.to_owned()) {
+            continue;
         }
         let relative = PathBuf::from(path);
         let untracked = xy == b"??";

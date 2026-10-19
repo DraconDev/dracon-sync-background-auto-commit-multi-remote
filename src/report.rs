@@ -2861,7 +2861,10 @@ fn current_blocker_hint(current: current_health::Current, hint: &str) -> String 
         && (hint.starts_with("daemon will push after changes settle")
             || hint.starts_with("daemon handles after changes settle"))
     {
-        let suffix = hint.find(';').map(|i| &hint[i..]).unwrap_or("");
+        let suffix: String = hint.split(';').skip(1)
+            .filter(|part| !part.contains("sync-now"))
+            .map(|part| format!(";{part}"))
+            .collect();
         return format!("sync blocked by guard/policy — inspect daemon journal for the refusal; retrying sync-now does not bypass it{suffix}");
     }
     hint.to_string()
