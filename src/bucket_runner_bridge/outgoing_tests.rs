@@ -229,17 +229,36 @@ async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() 
     unbounded.max_stage_file_bytes = u64::MAX;
     assert!(measure(repo, &unbounded).await.unwrap_err().to_string()
         .contains("unbounded-filter-ceiling"));
-    // A zero ceiling admits no filtered output at all; accounting refuses
-    // rather than pretending the filtered path is free.
+    // A zero ceiling drops every non-empty candidate through the SAME shared
+    // size gate the commit path uses, so nothing is reserved and nothing can
+    // be published.
     let mut zero = p.clone();
     zero.max_stage_file_bytes = 0;
-    assert!(measure(repo, &zero).await.unwrap_err().to_string()
-        .contains("unbounded-filter-ceiling"));
+    assert_eq!(measure(repo, &zero).await.unwrap(), 0);
     assert!(!repo.join("FILTER_EXECUTED").exists());
     assert_eq!(
         std::fs::metadata(repo.join("source.png")).unwrap().len(),
         500
     );
+}
+
+#[tokio::test]
+async fn accounting_refuses_zero_ceiling_for_a_filtered_candidate_that_would_be_admitted() {
+    let td = fixture();
+    let repo = td.path();
+    let mut p = policy();
+    p.max_stage_file_bytes = 0;
+    std::fs::write(repo.join(".gitattributes"), "*.png filter=upload\n").unwrap();
+    run(repo, &["add", "--", ".gitattributes"]);
+    run(repo, &["commit", "-qm", "attributes"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    run(repo, &["config", "filter.upload.clean", "touch FILTER_EXECUTED; cat"]);
+    // An empty source passes the size gate, so its filtered output would be
+    // admitted with no measurable bound: refuse instead of assuming it is free.
+    put(repo, "empty.png", 0);
+    assert!(measure(repo, &p).await.unwrap_err().to_string()
+        .contains("unbounded-filter-ceiling"));
+    assert!(!repo.join("FILTER_EXECUTED").exists());
 }
 
 #[tokio::test]
