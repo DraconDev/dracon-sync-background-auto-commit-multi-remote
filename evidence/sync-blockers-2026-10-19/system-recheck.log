@@ -1,0 +1,22 @@
+   Compiling dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.58s
+     Running unittests src/main.rs (target/debug/deps/dracon_system-f9d2cc9c68e546da)
+
+running 1 test
+test tests::storage_cleanup_activity_refuses_live_rust_and_node_processes ... FAILED
+
+failures:
+
+---- tests::storage_cleanup_activity_refuses_live_rust_and_node_processes stdout ----
+
+thread 'tests::storage_cleanup_activity_refuses_live_rust_and_node_processes' (1232805) panicked at dracon-system/src/tests.rs:4326:9:
+node-deps: empty command line for possible package-manager wrapper PID 1029602 (bash)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::storage_cleanup_activity_refuses_live_rust_and_node_processes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 485 filtered out; finished in 0.26s
+
+error: test failed, to rerun pass `-p dracon-system --bin dracon-system`
