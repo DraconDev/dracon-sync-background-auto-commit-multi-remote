@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-19T00:48:04.790449+00:00",
+  "at": "2026-10-19T09:26:20.931370+00:00",
   "sdk": "boto3 1.43.93",
   "role": "consumer",
   "operation": "GetObject",
@@ -12,6 +12,6 @@
   "bytes": 2200,
   "sha256": "26da6100816f51fb1996625d7e90b18466c99817be9c2457d46c8d31007acb67",
   "byteIdenticalToSource": true,
-  "manifestSha256": "6d3ca2a585f1275020d7d41a4bfb13a8897dd1ed4d4a76333b8658c9d479ed7e",
-  "destination": "/tmp/ovh-independent-consumer-b9s0kuzj/fetched.png"
+  "manifestSha256": "1357bbb42df187944fcf8df0753e146b43484866813e14187e873b272f2d5753",
+  "destination": "/tmp/ovh-independent-consumer-dqgpogdz/fetched.png"
 }
