@@ -534,8 +534,13 @@ pub(crate) async fn prepare(
         config.allowed_candidates.clone()
     };
 
-    let projected_bytes = outgoing::measure(repo, policy).await
+    let measured_bytes = outgoing::measure(repo, policy).await
         .context("bucket outgoing-byte accounting refused; no publish")?;
+    // Publication may create/grow a previously clean or absent manifest.
+    // Reserve its enforced output ceiling BEFORE the routing decision.
+    let projected_bytes = measured_bytes.checked_add(policy.max_stage_file_bytes)
+        .filter(|bytes| *bytes <= MAX_JS_INTEGER)
+        .context("accounting-manifest-reserve-overflow")?;
     let request = serde_json::json!({
         "schemaVersion": 1u32,
         "operation": "publish",

@@ -236,6 +236,22 @@ async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() 
 }
 
 #[tokio::test]
+async fn accounting_reserves_tracked_filter_even_when_raw_status_is_clean() {
+    let td = fixture();
+    let repo = td.path();
+    put(repo, "source.txt", 20);
+    std::fs::write(repo.join(".gitattributes"), "source.txt filter=expand\n").unwrap();
+    run(repo, &["add", "--", "source.txt", ".gitattributes"]);
+    run(repo, &["commit", "-qm", "plaintext baseline"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    run(repo, &["config", "filter.expand.clean", "touch FILTER_EXECUTED; cat; head -c 4096 /dev/zero"]);
+    // Same raw bytes as index: only filter-aware inspection would see dirt.
+    put(repo, "source.txt", 20);
+    assert_eq!(measure(repo, &policy()).await.unwrap(), policy().max_stage_file_bytes);
+    assert!(!repo.join("FILTER_EXECUTED").exists());
+}
+
+#[tokio::test]
 async fn accounting_refuses_unsupported_encoding_without_transcoding() {
     let td = fixture();
     let repo = td.path();

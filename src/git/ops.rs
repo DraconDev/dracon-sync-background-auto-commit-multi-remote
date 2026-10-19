@@ -167,6 +167,7 @@ where
     // kill_on_drop kills only the leader, not SSH/filter/helper descendants.
     let mut group_guard = GroupKillGuard(pid);
     let stderr_handle = child.stderr.take();
+    let stdout_handle = child.stdout.take();
     let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<Instant>();
     // Keep capture owned by this future so cancellation cannot detach it.
     let stderr_task = async move {
@@ -222,7 +223,36 @@ where
         }
         stderr_output
     };
-    tokio::pin!(stderr_task);
+    let stderr_task = Box::pin(stderr_task);
+    let capture = async move {
+        let stdout_task = async move {
+            let mut captured = Vec::new();
+            if let Some(mut pipe) = stdout_handle {
+                use tokio::io::AsyncReadExt;
+                let mut chunk = [0u8; 8192];
+                // Hooks often print gate refusals to stdout. Bound the
+                // diagnostic prefix, but always drain to avoid deadlock.
+                loop {
+                    match pipe.read(&mut chunk).await {
+                        Ok(0) => break,
+                        Ok(n) => {
+                            let keep = n.min((64 * 1024usize).saturating_sub(captured.len()));
+                            captured.extend_from_slice(&chunk[..keep]);
+                        }
+                        Err(_) => { captured.extend_from_slice(b"<stdout pipe error>"); break; }
+                    }
+                }
+            }
+            captured
+        };
+        let (mut stderr, stdout) = tokio::join!(stderr_task, stdout_task);
+        if !stdout.is_empty() {
+            stderr.push_str("\n<hook/stdout diagnostics>\n");
+            stderr.push_str(&super::push::redact_credentials_for_log(&String::from_utf8_lossy(&stdout)));
+        }
+        stderr
+    };
+    let mut stderr_task = Box::pin(capture);
     let mut captured_stderr = None;
 
     let started_at = Instant::now();
@@ -333,7 +363,7 @@ fn spawn_git_command(repo: &Path, args: &[&str], op_label: &str) -> Result<tokio
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdout(std::process::Stdio::null())
+        .stdout(if args.contains(&"push") { std::process::Stdio::piped() } else { std::process::Stdio::null() })
         .stderr(std::process::Stdio::piped());
     configure_git_process_group(&mut cmd);
     super::push_resources::configure_child(&mut cmd, args);
@@ -463,7 +493,7 @@ fn spawn_git_command_env(
     cmd.args(args)
         .current_dir(repo)
         .kill_on_drop(true)
-        .stdout(std::process::Stdio::null())
+        .stdout(if args.contains(&"push") { std::process::Stdio::piped() } else { std::process::Stdio::null() })
         .stderr(std::process::Stdio::piped());
     for (k, v) in env {
         cmd.env(k, v);
@@ -749,6 +779,23 @@ pub(crate) fn filter_repo_available_for_tests() -> bool {
 #[cfg(test)]
 mod tests {
     use super::is_git_push_progress_line;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn failed_hook_stdout_is_bounded_drained_and_retained() {
+        let mut command = tokio::process::Command::new("sh");
+        command.args(["-c", "printf 'Pre-push: TEST gate failed\\n'; head -c 100000 /dev/zero; echo fatal >&2; exit 1"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+        super::configure_git_process_group(&mut command);
+        let child = command.spawn().unwrap();
+        let error = super::run_child(child, std::path::Path::new("."), 5, "push-fixture")
+            .await.unwrap_err().to_string();
+        assert!(error.contains("Pre-push: TEST gate failed"));
+        assert!(error.contains("fatal"));
+        assert!(error.len() < 66000);
+    }
 
     #[test]
     fn test_git_push_progress_predicate_detects_pack_progress() {

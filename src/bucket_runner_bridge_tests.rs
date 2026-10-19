@@ -608,7 +608,8 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
     let measured = outgoing::measure(&repo, &policy).await.expect("measured fixture");
     assert!(measured > 0, "real outgoing fixture bytes must reach the runner");
     let expected_budget = serde_json::json!({
-        "projectedBytes": measured,
+        // The runner may grow/create its manifest after accounting.
+        "projectedBytes": measured + policy.max_stage_file_bytes,
         "limitBytes": 2u64 * 1024 * 1024 * 1024,
         "largeBytes": 1024u64,
         "pressureRatio": 0.8_f64,
