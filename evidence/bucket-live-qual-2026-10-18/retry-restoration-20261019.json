@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-19T09:11:36.658Z",
+  "root": "/tmp/ovh-fresh-restore-RvoIOe",
+  "initiallyEmpty": true,
+  "originalCacheUsed": false,
+  "selectedEntry": "public/qualification-retry-20261019/ovh-retry-81433a363012.png",
+  "scope": "new fixture only; in-memory projection of daemon manifest, no manifest file written",
+  "legacyEntriesTested": false,
+  "transport": "production createPrivateS3Transport consumer role",
+  "objectKey": "dracon-platform/f5829561-d50d-4644-8e6e-ad7e293fa1db/e842d3f09e9b6bfb3cc153c55581caf10c1aa3a4aedf593c974dd4afa196fcc4.png",
+  "downloads": 1,
+  "bytes": 2200,
+  "sha256": "e842d3f09e9b6bfb3cc153c55581caf10c1aa3a4aedf593c974dd4afa196fcc4",
+  "byteIdenticalToSource": true,
+  "outcomes": [
+    {
+      "sourcePath": "public/qualification-retry-20261019/ovh-retry-81433a363012.png",
+      "status": "restored"
+    }
+  ],
+  "retryOutcomes": [
+    {
+      "sourcePath": "public/qualification-retry-20261019/ovh-retry-81433a363012.png",
+      "status": "already-present"
+    }
+  ],
+  "manifestUnchanged": true
+}
