@@ -19,13 +19,20 @@
   src/lib/visual-assets.ts and visual-assets-manifest.json route to retained
   Greek originals. All seven originals exist. Nine exact retirements added
   to platform inventory, no broader roots changed; diagnostic staged guard
-  passes for both games (no-size diagnostic is NOT push approval).
+  passes for both games (no-size diagnostic is NOT push approval). The two
+  pre-existing polis entries (screens/olympus-bg-v3.png, bandit.png) were
+  retired on 2026-10-12 (commit 4656f4c32b) and 2026-10-13 (cbd9a28450)
+  and pre-date this goal; only the seven -v2.png and two vocal .mp3 paths
+  are new here.
 - browser-extensions-shared: failure had self-recovered by 11:17:48 local;
   daemon logs subsequent autonomous commits and pushes at 11:22, 11:24,
   11:29. A bounded dry-run with hooks enabled passed tabmon's four gates.
   Original daemon stderr says only 'failed to push some refs'; its stdout
   is discarded, so historical hook-vs-network cause is not yet established.
   Do NOT pretend the current successful dry-run proves the original cause.
+  Durable repair: push stdout is now captured, bounded and credential-
+  redacted, so a future gate refusal is self-explaining (see
+  browser-extensions-push-cause.md).
 
 ## Misleading hints
 

@@ -33,11 +33,12 @@ fn fixture() -> tempfile::TempDir {
     temp
 }
 fn policy() -> SyncPolicy {
-    let mut p = SyncPolicy::default();
-    p.auto_stage_untracked = true;
-    p.max_stage_file_bytes = 1024 * 1024;
-    p.max_stage_batch_files = 1000;
-    p
+    SyncPolicy {
+        auto_stage_untracked: true,
+        max_stage_file_bytes: 1024 * 1024,
+        max_stage_batch_files: 1000,
+        ..SyncPolicy::default()
+    }
 }
 fn put(repo: &Path, path: &str, bytes: usize) {
     std::fs::write(repo.join(path), vec![b'x'; bytes]).unwrap();
@@ -227,6 +228,12 @@ async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() 
     let mut unbounded = p.clone();
     unbounded.max_stage_file_bytes = u64::MAX;
     assert!(measure(repo, &unbounded).await.unwrap_err().to_string()
+        .contains("unbounded-filter-ceiling"));
+    // A zero ceiling admits no filtered output at all; accounting refuses
+    // rather than pretending the filtered path is free.
+    let mut zero = p.clone();
+    zero.max_stage_file_bytes = 0;
+    assert!(measure(repo, &zero).await.unwrap_err().to_string()
         .contains("unbounded-filter-ceiling"));
     assert!(!repo.join("FILTER_EXECUTED").exists());
     assert_eq!(

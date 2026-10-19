@@ -473,10 +473,7 @@ async fn unsafe_config_paths_are_refused() {
     for (label, overrides) in cases {
         write_bucket_runner_config(&repo, &fake_dir, &state_dir, overrides.clone());
         let result = prepare(&repo, false, &policy).await;
-        match result {
-            Ok(_) => panic!("case {label} should have erred, got ok"),
-            Err(_) => {}
-        }
+        assert!(result.is_err(), "case {label} should have erred, got ok");
         let _ = profile_path; // keep variable alive
     }
 }

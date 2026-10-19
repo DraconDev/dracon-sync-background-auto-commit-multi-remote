@@ -1,0 +1,6 @@
+$ cargo clippy --workspace --locked -- -D warnings  # workspace root, 2026-10-19 (contract gate)
+    Checking dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Checking dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Checking dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.18s
+exit=0

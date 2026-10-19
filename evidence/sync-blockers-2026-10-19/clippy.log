@@ -1,2 +1,4 @@
+$ cargo clippy --workspace --locked --all-targets -- -D warnings  # workspace root, 2026-10-19 (all targets)
     Checking dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.52s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 21.54s
+exit=0
