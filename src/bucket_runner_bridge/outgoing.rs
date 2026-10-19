@@ -316,7 +316,12 @@ async fn measure_inner(repo: &Path, policy: &SyncPolicy) -> Result<u64> {
         if xy.contains(&b'R') || xy.contains(&b'C') {
             records.next().context("accounting-rename-source")?;
         }
-        if !super::safe_relative(path) {
+        // These are literal filesystem/Git paths, NOT bucket object keys or
+        // revision expressions. Colons (e.g. SQLite URI-shaped filenames) are
+        // valid here; all Git path arguments are after -- / NUL stdin.
+        if path.is_empty() || path.contains('\0') || Path::new(path).is_absolute()
+            || Path::new(path).components().any(|c| !matches!(c, std::path::Component::Normal(_)))
+        {
             bail!("accounting-unsafe-path");
         }
         if !visited.insert(path.to_owned()) {

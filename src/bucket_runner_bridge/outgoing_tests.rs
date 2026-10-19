@@ -236,6 +236,19 @@ async fn accounting_reserves_enforced_output_ceiling_without_executing_filter() 
 }
 
 #[tokio::test]
+async fn accounting_accepts_literal_colon_paths_without_revision_interpretation() {
+    let td = fixture();
+    let repo = td.path();
+    std::fs::write(repo.join(".gitattributes"), "* filter=expand\n").unwrap();
+    put(repo, "head:0", 20);
+    run(repo, &["add", "--", ".gitattributes", "head:0"]);
+    run(repo, &["commit", "-qm", "literal colon path"]);
+    run(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    // Both tracked paths carry the filter even though raw status is clean.
+    assert_eq!(measure(repo, &policy()).await.unwrap(), 2 * policy().max_stage_file_bytes);
+}
+
+#[tokio::test]
 async fn accounting_reserves_tracked_filter_even_when_raw_status_is_clean() {
     let td = fixture();
     let repo = td.path();
