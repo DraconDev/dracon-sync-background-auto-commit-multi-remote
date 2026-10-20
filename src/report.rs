@@ -14475,7 +14475,12 @@ mod tests {
             "SIZE red tier (github 2 GiB push limit)"
         );
         // USED was dropped in v0.113.13 — the legend must not resurrect it.
-        assert!(!text.contains("USED"), "USED column was dropped");
+        assert!(
+            repos_legend_rows()
+                .iter()
+                .all(|(label, _)| *label != "USED"),
+            "USED column was dropped"
+        );
         // v0.113.15: REM icon semantics explained. v0.113.22: REM
         // shows ACTIVE push remotes only (the v0.113.21 dim-excluded
         // suffix was fleet-wide noise under the quota posture).
@@ -14528,7 +14533,17 @@ mod tests {
             assert!(lines
                 .iter()
                 .all(|line| unicode_width::UnicodeWidthStr::width(line.as_str()) == width));
-            let text = lines.join("\n");
+            let text = lines
+                .iter()
+                .filter_map(|line| {
+                    line.strip_prefix("│ ")?
+                        .split_once(" │ ")?
+                        .1
+                        .strip_suffix(" │")
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+            let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
             for key in [
                 "UNKNOWN",
                 "scheduler",
