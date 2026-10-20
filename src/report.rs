@@ -3944,6 +3944,65 @@ fn warn_filter_retains(row: &RepoReportRow) -> bool {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Classify from evidence current at rendering time; never extend its TTL.
+fn apply_report_scheduler_snapshot(
+    rows: &mut [RepoReportRow],
+    snapshot: Option<&crate::daemon::scheduler_evidence::Snapshot>,
+    now: u64,
+) {
+    let snapshot = snapshot.filter(|snapshot| snapshot.is_fresh(now));
+    for row in rows {
+        row.health.scheduler = snapshot
+            .and_then(|s| s.repos.get(std::path::Path::new(&row.repo)))
+            .cloned();
+        row.health.observed_at = snapshot.map(|s| s.written_at);
+        row.health.mode = snapshot.map(|s| s.mode.clone());
+        row.health.current = current_health::classify(row);
+        row.hint = current_blocker_hint(row.health.current, &row.hint);
+        row.state_cause = match row.health.current {
+            current_health::Current::Converged => StateCause::Idle,
+            current_health::Current::Excluded => match row.state_cause.clone() {
+                cause @ StateCause::Unowned { .. } => cause,
+                _ => StateCause::Intentional,
+            },
+            current_health::Current::Queued
+            | current_health::Current::Unknown
+            | current_health::Current::Paused => StateCause::Dirty,
+            current_health::Current::Working => StateCause::Working,
+            current_health::Current::Retrying => StateCause::Committing,
+            current_health::Current::Stalled => StateCause::Stalled,
+            current_health::Current::Blocked => match row.state_cause.clone() {
+                cause @ StateCause::Unowned { .. } => cause,
+                _ => StateCause::Failed,
+            },
+        };
+        row.state_cause_label = state_cause_label_string(&row.state_cause);
+        if matches!(
+            row.health.current,
+            current_health::Current::Converged
+                | current_health::Current::Excluded
+                | current_health::Current::Queued
+                | current_health::Current::Working
+                | current_health::Current::Retrying
+                | current_health::Current::Paused
+        ) {
+            row.concern = false;
+        }
+        row.active = matches!(
+            row.health.current,
+            current_health::Current::Queued
+                | current_health::Current::Working
+                | current_health::Current::Retrying
+        );
+        row.warn = matches!(
+            row.health.current,
+            current_health::Current::Stalled
+                | current_health::Current::Blocked
+                | current_health::Current::Unknown
+        );
+    }
+}
+
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
@@ -4015,7 +4074,6 @@ pub(crate) async fn run_repos_report(
     // actively syncing vs. whether the user is still editing. The
     // `DAEMON` column closes that gap.
     let daemon_last_actions = build_daemon_last_action_map(policy_path);
-    let scheduler_snapshot = crate::daemon::scheduler_evidence::load();
 
     // CHANGED 2026-07-04 (goal mr5s1530-755tj8): parallelize the per-repo
     // work. Each iteration's main cost is a handful of `git` subprocess
@@ -4029,7 +4087,6 @@ pub(crate) async fn run_repos_report(
     let row_results: Vec<Option<RepoReportRow>> = {
         let recent_push_failures = &recent_push_failures;
         let daemon_last_actions = &daemon_last_actions;
-        let scheduler_snapshot = &scheduler_snapshot;
         let init_status_failures = &init_status_failures;
         let policy = &policy;
         let cache_lookup = std::sync::Arc::clone(&cache_lookup);
@@ -4744,13 +4801,10 @@ pub(crate) async fn run_repos_report(
             pack_too_large.0,
         );
         let health = current_health::Evidence {
-            scheduler: scheduler_snapshot.as_ref().and_then(|s| s.repos.get(&repo)).cloned(),
-            observed_at: scheduler_snapshot.as_ref().map(|s| s.written_at),
-            mode: scheduler_snapshot.as_ref().map(|s| s.mode.clone()),
             last_push: crate::daemon::push_history::load(&repo),
             ..Default::default()
         };
-        let mut row = RepoReportRow {
+        let row = RepoReportRow {
             health,
             repo: repo.display().to_string(),
             state_flags: flags,
@@ -4860,21 +4914,6 @@ pub(crate) async fn run_repos_report(
             pack_too_large: pack_too_large.0,
             frozen_secs,
         };
-        row.health.current = current_health::classify(&row);
-        row.hint = current_blocker_hint(row.health.current, &row.hint);
-        row.state_cause = match row.health.current {
-            current_health::Current::Converged => StateCause::Idle,
-            current_health::Current::Excluded => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Intentional },
-            current_health::Current::Queued | current_health::Current::Unknown | current_health::Current::Paused => StateCause::Dirty,
-            current_health::Current::Working => StateCause::Working,
-            current_health::Current::Retrying => StateCause::Committing,
-            current_health::Current::Stalled => StateCause::Stalled,
-            current_health::Current::Blocked => match row.state_cause { cause @ StateCause::Unowned { .. } => cause, _ => StateCause::Failed },
-        };
-        row.state_cause_label = state_cause_label_string(&row.state_cause);
-        if matches!(row.health.current, current_health::Current::Converged | current_health::Current::Excluded | current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying | current_health::Current::Paused) { row.concern = false; }
-        row.active = matches!(row.health.current, current_health::Current::Queued | current_health::Current::Working | current_health::Current::Retrying);
-        row.warn = matches!(row.health.current, current_health::Current::Stalled | current_health::Current::Blocked | current_health::Current::Unknown);
         Some(row)
             }})
             .buffer_unordered(REPORT_REPO_CONCURRENCY)
@@ -4895,6 +4934,10 @@ pub(crate) async fn run_repos_report(
     let init_or_status_failures: usize =
         init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
     let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
+    // Git/filter probes can outlast the scheduler evidence's 30s freshness
+    // window. Sample after those probes, immediately before classification.
+    let scheduler_snapshot = crate::daemon::scheduler_evidence::load();
+    apply_report_scheduler_snapshot(&mut rows, scheduler_snapshot.as_ref(), timestamp_secs());
 
     match sort {
         "name" => rows.sort_by(|a, b| a.repo.cmp(&b.repo)),
@@ -12118,6 +12161,48 @@ mod tests {
         );
         assert_eq!(split_activity("—"), ("—".to_string(), String::new()));
         assert_eq!(split_activity(""), (String::new(), String::new()));
+    }
+
+    #[test]
+    fn report_scheduler_snapshot_uses_post_probe_evidence_without_extending_ttl() {
+        use crate::daemon::scheduler_evidence::{Phase, RepoEvidence, Snapshot};
+        let mut row = RepoReportRow::for_tests("/tmp/slow-report-repo");
+        row.modified = 1;
+        row.ahead = 0;
+        row.behind = 0;
+        row.pack_too_large = false;
+        row.missing_objects = 0;
+        row.push_status = "OK".into();
+        row.state_cause = StateCause::Dirty;
+        let mut rows = vec![row];
+        // No usable evidence when the report began.
+        apply_report_scheduler_snapshot(&mut rows, None, 100);
+        assert_eq!(rows[0].health.current, current_health::Current::Unknown);
+        // Probing took 40s; a new scheduler observation arrived meanwhile.
+        let mut snapshot = Snapshot {
+            version: 1,
+            written_at: 140,
+            mode: "running".into(),
+            repos: Default::default(),
+        };
+        snapshot.repos.insert(
+            std::path::PathBuf::from("/tmp/slow-report-repo"),
+            RepoEvidence {
+                phase: Some(Phase::Working),
+                ..Default::default()
+            },
+        );
+        apply_report_scheduler_snapshot(&mut rows, Some(&snapshot), 140);
+        assert_eq!(rows[0].health.current, current_health::Current::Working);
+        assert!(rows[0].active);
+        assert!(!rows[0].warn);
+        assert_eq!(rows[0].health.observed_at, Some(140));
+        // Expired observations still cannot establish active work.
+        apply_report_scheduler_snapshot(&mut rows, Some(&snapshot), 171);
+        assert_eq!(rows[0].health.current, current_health::Current::Unknown);
+        assert!(rows[0].warn);
+        assert!(!rows[0].active);
+        assert!(rows[0].health.scheduler.is_none());
     }
 
     #[test]
