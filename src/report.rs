@@ -3412,9 +3412,14 @@ fn print_legend_panel(lines: &[String]) {
         if let Some(row) = line.strip_prefix("│ ") {
             if let Some((label, body)) = row.split_once(" │ ") {
                 if let Some(body) = body.strip_suffix(" │") {
-                    println!("{}{}{}{}{}", colorize("│ ", Color::DarkGrey),
-                        colorize(label, Color::Cyan), colorize(" │ ", Color::DarkGrey),
-                        body, colorize(" │", Color::DarkGrey));
+                    println!(
+                        "{}{}{}{}{}",
+                        colorize("│ ", Color::DarkGrey),
+                        colorize(label, Color::Cyan),
+                        colorize(" │ ", Color::DarkGrey),
+                        body,
+                        colorize(" │", Color::DarkGrey)
+                    );
                     continue;
                 }
             }
@@ -3428,8 +3433,12 @@ fn print_legend_panel(lines: &[String]) {
 fn legend_panel_lines(title: &str, rows: &[(&str, &str)], width: usize) -> Vec<String> {
     let width = width.max(60);
     let prefix = format!("╭─ {title} ");
-    let mut lines = vec![format!("{prefix}{}╮", "─".repeat(width.saturating_sub(
-        unicode_width::UnicodeWidthStr::width(prefix.as_str()) + 1)))];
+    let mut lines = vec![format!(
+        "{prefix}{}╮",
+        "─".repeat(
+            width.saturating_sub(unicode_width::UnicodeWidthStr::width(prefix.as_str()) + 1)
+        )
+    )];
     let text_width = width - LEGEND_LABEL_WIDTH - 7;
     for (label, text) in rows {
         if label.is_empty() && text.is_empty() {
@@ -3439,8 +3448,11 @@ fn legend_panel_lines(title: &str, rows: &[(&str, &str)], width: usize) -> Vec<S
         for (index, body) in wrap_legend_text(text, text_width).lines().enumerate() {
             let label = if index == 0 { *label } else { "" };
             let padding = text_width.saturating_sub(unicode_width::UnicodeWidthStr::width(body));
-            lines.push(format!("│ {label:<label_width$} │ {body}{} │", " ".repeat(padding),
-                label_width = LEGEND_LABEL_WIDTH));
+            lines.push(format!(
+                "│ {label:<label_width$} │ {body}{} │",
+                " ".repeat(padding),
+                label_width = LEGEND_LABEL_WIDTH
+            ));
         }
     }
     lines.push(format!("╰{}╯", "─".repeat(width - 2)));
@@ -3582,7 +3594,11 @@ fn repos_legend_lines() -> Vec<String> {
 /// Print the legend under every repos table, width-gated (v0.113.12).
 fn print_repos_legend_footer() {
     let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
-    print_legend_panel(&legend_panel_lines("READING THIS TABLE", repos_inline_legend_rows(), width));
+    print_legend_panel(&legend_panel_lines(
+        "READING THIS TABLE",
+        repos_inline_legend_rows(),
+        width,
+    ));
 }
 
 /// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
@@ -14501,15 +14517,30 @@ mod tests {
     fn test_inline_legend_explains_unknown_push_and_mirrors_without_overflow() {
         for width in [60, 80, 120, 160, 220] {
             let lines = legend_panel_lines("READING THIS TABLE", repos_inline_legend_rows(), width);
-            assert!(lines.iter().all(|line| unicode_width::UnicodeWidthStr::width(line.as_str()) == width));
+            assert!(lines
+                .iter()
+                .all(|line| unicode_width::UnicodeWidthStr::width(line.as_str()) == width));
             let text = lines.join("\n");
-            for key in ["UNKNOWN", "scheduler", "FAIL", "last recorded", "GitHub", "GitLab", "excluded not shown", "per push", "--deep"] {
+            for key in [
+                "UNKNOWN",
+                "scheduler",
+                "FAIL",
+                "last recorded",
+                "GitHub",
+                "GitLab",
+                "excluded not shown",
+                "per push",
+                "--deep",
+            ] {
                 // Wrapping can separate words but must preserve all explanations.
                 assert!(text.contains(key), "missing {key} at width {width}");
             }
         }
         let full = legend_display_lines(80).join("\n");
-        assert!(full.contains("PAUSED"), "blank-label explanations must not disappear");
+        assert!(
+            full.contains("PAUSED"),
+            "blank-label explanations must not disappear"
+        );
     }
 
     #[test]
