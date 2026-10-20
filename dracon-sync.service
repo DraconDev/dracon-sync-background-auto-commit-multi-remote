@@ -28,7 +28,10 @@ Nice=10
 CPUQuota=100%
 MemoryHigh=768M
 MemoryMax=2G
-TasksMax=96
+# Git filters and pre-push build/test gates share this task budget.
+# Four Vitest workers plus fleet probes exhausted 96 tasks (pthread EAGAIN).
+# Bound workspace concurrency too; retain a ceiling with room for child threads.
+TasksMax=512
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
