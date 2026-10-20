@@ -3401,50 +3401,67 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 /// actually ship in the rich table (the old text referenced removed columns:
 /// MOD, PUSH-TO, "Daemon =").
 fn print_repos_legend() {
-    // CHANGED 2026-08-10 (operator request): replace the heavy
-    // full-width table with a short, aligned glossary. The full-width
-    // rule still separates the legend visually from the repos table,
-    // while each line maps directly to one or more real table columns.
-    // Clamped to >= LEGEND_MIN_WIDTH and <= 1000; long lines wrap using
-    // terminal display width so emoji do not break alignment.
-    let width = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
-        .max(LEGEND_MIN_WIDTH as u16)
-        .min(1000) as usize;
-    for line in legend_display_lines(width) {
-        println!("{line}");
-    }
-    println!();
+    let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
+    print_legend_panel(&legend_display_lines(width));
 }
 
 const LEGEND_LABEL_WIDTH: usize = 11;
 
-/// Format the short glossary for a terminal of `width` display columns.
-/// Kept separate from stdout emission so layout and Unicode-width tests
-/// can exercise the exact lines shown to operators.
-fn legend_display_lines(width: usize) -> Vec<String> {
-    let mut lines = vec![format!(
-        "── legend {}",
-        "─".repeat(width.saturating_sub(10))
-    )];
-    let text_width = width.saturating_sub(LEGEND_LABEL_WIDTH + 2);
-    let continuation_indent = " ".repeat(LEGEND_LABEL_WIDTH + 2);
-    for (label, text) in repos_legend_rows() {
-        if label.is_empty() {
-            lines.push(String::new());
-            continue;
-        }
-        for (index, text_line) in wrap_legend_text(text, text_width).lines().enumerate() {
-            if index == 0 {
-                lines.push(format!(
-                    "{label:<label_width$}  {text_line}",
-                    label_width = LEGEND_LABEL_WIDTH
-                ));
-            } else {
-                lines.push(format!("{continuation_indent}{text_line}"));
+fn print_legend_panel(lines: &[String]) {
+    for line in lines {
+        if let Some(row) = line.strip_prefix("│ ") {
+            if let Some((label, body)) = row.split_once(" │ ") {
+                if let Some(body) = body.strip_suffix(" │") {
+                    println!("{}{}{}{}{}", colorize("│ ", Color::DarkGrey),
+                        colorize(label, Color::Cyan), colorize(" │ ", Color::DarkGrey),
+                        body, colorize(" │", Color::DarkGrey));
+                    continue;
+                }
             }
         }
+        println!("{}", colorize(line, Color::DarkGrey));
     }
+    println!();
+}
+
+/// Render the same bounded panel for the inline key and the full glossary.
+fn legend_panel_lines(title: &str, rows: &[(&str, &str)], width: usize) -> Vec<String> {
+    let width = width.max(60);
+    let prefix = format!("╭─ {title} ");
+    let mut lines = vec![format!("{prefix}{}╮", "─".repeat(width.saturating_sub(
+        unicode_width::UnicodeWidthStr::width(prefix.as_str()) + 1)))];
+    let text_width = width - LEGEND_LABEL_WIDTH - 7;
+    for (label, text) in rows {
+        if label.is_empty() && text.is_empty() {
+            lines.push(format!("├{}┤", "─".repeat(width - 2)));
+            continue;
+        }
+        for (index, body) in wrap_legend_text(text, text_width).lines().enumerate() {
+            let label = if index == 0 { *label } else { "" };
+            let padding = text_width.saturating_sub(unicode_width::UnicodeWidthStr::width(body));
+            lines.push(format!("│ {label:<label_width$} │ {body}{} │", " ".repeat(padding),
+                label_width = LEGEND_LABEL_WIDTH));
+        }
+    }
+    lines.push(format!("╰{}╯", "─".repeat(width - 2)));
     lines
+}
+
+fn legend_display_lines(width: usize) -> Vec<String> {
+    legend_panel_lines("REPOSITORY LEGEND", repos_legend_rows(), width)
+}
+
+fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("STATUS", "✅ clean · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 blocked · 🔴 stalled · ❔ unknown"),
+        ("EVIDENCE", "UNKNOWN = missing/stale scheduler evidence. Open repo details to see the current hold or failure."),
+        ("FILES / A/B", "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · ↑ unpushed commits · ↓ behind upstream · — zero"),
+        ("PUSH", "✅ OK / ❌ FAIL + age = last recorded push attempt; current work may still be queued. — unknown = no recorded attempt."),
+        ("REM / REPO", "🐙 GitHub · 🦊 GitLab · 🗻 Codeberg = active targets; excluded not shown. 🔒 private · > nested repo/submodule."),
+        ("ACTIVITY", "1H / 6H / 24H = commit counts. TOUCHED = latest author. STATUS describes current convergence."),
+        ("GIT SIZE", "Local Git history, own+nested; +? = nested size unmeasured. GitHub's 2 GiB limit is per push, not total repo size."),
+        ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
+    ]
 }
 
 /// Wrap legend prose at word boundaries using terminal display width.
@@ -3564,26 +3581,8 @@ fn repos_legend_lines() -> Vec<String> {
 
 /// Print the legend under every repos table, width-gated (v0.113.12).
 fn print_repos_legend_footer() {
-    let width = terminal_width().unwrap_or(120) as usize;
-    if width < LEGEND_MIN_WIDTH {
-        println!(
-            "{}",
-            colorize(
-                "GIT SIZE: local Git history, not bucket/push bytes; own+nested, +? unknown.",
-                Color::DarkGrey
-            )
-        );
-        return;
-    }
-    for line in [
-        "📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · A/B ↑ahead ↓behind · 1H/6H/24H commits",
-        "PUSH = last result + age · GIT SIZE = local objects/history, own+nested (not bucket or push bytes)",
-        "GitHub limit = 2 GiB per push, NOT total repo size · +? = nested size unmeasured; use --deep",
-        "Detail: dracon-sync repos <name> · Full key: dracon-sync repos --legend",
-    ] {
-        println!("{}", colorize(line, Color::DarkGrey));
-    }
-    println!();
+    let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
+    print_legend_panel(&legend_panel_lines("READING THIS TABLE", repos_inline_legend_rows(), width));
 }
 
 /// ADDED 2026-07-24 (v0.112.40): short-lived TTL on the mtime-keyed
@@ -14487,7 +14486,7 @@ mod tests {
     fn test_legend_glossary_lines_fit_requested_width() {
         for width in [LEGEND_MIN_WIDTH, 160, 220, 1000] {
             let lines = legend_display_lines(width);
-            assert!(lines.iter().any(|line| line.starts_with("STATUS")));
+            assert!(lines.iter().any(|line| line.contains("│ STATUS")));
             for line in lines {
                 let display_width = unicode_width::UnicodeWidthStr::width(line.as_str());
                 assert!(
@@ -14496,6 +14495,21 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_inline_legend_explains_unknown_push_and_mirrors_without_overflow() {
+        for width in [60, 80, 120, 160, 220] {
+            let lines = legend_panel_lines("READING THIS TABLE", repos_inline_legend_rows(), width);
+            assert!(lines.iter().all(|line| unicode_width::UnicodeWidthStr::width(line.as_str()) == width));
+            let text = lines.join("\n");
+            for key in ["UNKNOWN", "scheduler", "FAIL", "last recorded", "GitHub", "GitLab", "excluded not shown", "per push", "--deep"] {
+                // Wrapping can separate words but must preserve all explanations.
+                assert!(text.contains(key), "missing {key} at width {width}");
+            }
+        }
+        let full = legend_display_lines(80).join("\n");
+        assert!(full.contains("PAUSED"), "blank-label explanations must not disappear");
     }
 
     #[test]
