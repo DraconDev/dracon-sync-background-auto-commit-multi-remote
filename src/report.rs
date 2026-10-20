@@ -3511,9 +3511,8 @@ const LEGEND_MIN_WIDTH: usize = 120;
 /// The legend as data (tests assert coverage + display width).
 /// ADDED 2026-07-30 (v0.113.25): single source of legend content as
 /// (label, text) rows; a ("","") row is a group-separating blank.
-/// `repos_legend_lines` formats these for tests/back-compat;
-/// `print_repos_legend` renders them as a comfy-table (operator:
-/// "make the legend table-like").
+/// The inline key and full glossary share a width-aware bordered panel;
+/// `repos_legend_lines` exposes the same layout to coverage tests.
 fn pack_evidence_hint(
     too_large: bool,
     deferred: bool,
