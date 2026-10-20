@@ -3472,6 +3472,7 @@ fn repos_inline_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("REM / REPO", "🐙 GitHub · 🦊 GitLab · 🗻 Codeberg = active targets; excluded not shown. 🔒 private · > nested repo/submodule."),
         ("ACTIVITY", "1H / 6H / 24H = commit counts. TOUCHED = latest author. STATUS describes current convergence."),
         ("GIT SIZE", "Local Git history, own+nested; +? = nested size unmeasured. GitHub's 2 GiB limit is per push, not total repo size."),
+        ("ACTIONS", "❌ FAIL: inspect repo details, fix the cause, then sync-now <path>. UNKNOWN: inspect scheduler evidence."),
         ("DETAILS", "dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks"),
     ]
 }
@@ -3553,7 +3554,7 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
         ("", ""),
         (
             "REPO",
-            "🔒 private (last known) · public/unknown · > submodule · name⚡branch",
+            "🔒 private (last known) · no lock = public/unknown · > nested repo/submodule · name⚡branch",
         ),
         (
             "CHANGES",
@@ -3578,6 +3579,8 @@ fn repos_legend_rows() -> &'static [(&'static str, &'static str)] {
             "local Git objects/history, not worktree, clone download or bucket bytes · own+nested (children also have rows; do not sum twice) · +? unmeasured nested · 🟡 own ≥1 GiB · 🔴 GitHub 2 GiB/push guard",
         ),
         ("TOUCHED", "latest commit author (mailmap identity)"),
+        ("ON FAIL", "Open dracon-sync repos <name> for the cause. Fix the hook/transport error, then sync-now <path>. If retries are exhausted, use repair stuck-unstuck <name> first."),
+        ("ON UNKNOWN", "No fresh scheduler verdict is available. Inspect repo details and daemon health; UNKNOWN does not mean a failed push. Read PUSH independently."),
         ("", ""),
         (
             "hint",
@@ -3591,7 +3594,7 @@ fn repos_legend_lines() -> Vec<String> {
     legend_display_lines(LEGEND_MIN_WIDTH)
 }
 
-/// Print the legend under every repos table, width-gated (v0.113.12).
+/// Print a compact, styled key above the rich repositories table.
 fn print_repos_legend_footer() {
     let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
     print_legend_panel(&legend_panel_lines(
