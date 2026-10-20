@@ -3230,7 +3230,7 @@ pub(crate) enum LayoutTier {
 /// COMMITS + SIZE + TOUCHED columns grew the table from ~120 to
 /// ~165 cols).
 pub(crate) fn choose_layout_tier() -> LayoutTier {
-    let w = terminal_width().unwrap_or(120);
+    let w = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16);
     if w < 165 {
         LayoutTier::Compact
     } else {
@@ -3401,7 +3401,7 @@ fn emit_repo_failure(json: bool, prefix: &str, repo: &Path, error: impl std::fmt
 /// actually ship in the rich table (the old text referenced removed columns:
 /// MOD, PUSH-TO, "Daemon =").
 fn print_repos_legend() {
-    let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
+    let width = usize::from(terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16)).clamp(60, 160);
     print_legend_panel(&legend_display_lines(width));
 }
 
@@ -3505,9 +3505,7 @@ fn wrap_legend_text(value: &str, max_width: usize) -> String {
     lines.join("\n")
 }
 
-/// Narrow terminals get NO legend rather than a brokenly-wrapped one
-/// (the compact table tier prints there); `--legend` remains the
-/// on-demand escape hatch.
+/// Default legend width when terminal dimensions are unavailable.
 const LEGEND_MIN_WIDTH: usize = 120;
 
 /// The legend as data (tests assert coverage + display width).
@@ -3596,7 +3594,7 @@ fn repos_legend_lines() -> Vec<String> {
 
 /// Print a compact, styled key above the rich repositories table.
 fn print_repos_legend_footer() {
-    let width = usize::from(terminal_width().unwrap_or(120)).clamp(60, 160);
+    let width = usize::from(terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16)).clamp(60, 160);
     print_legend_panel(&legend_panel_lines(
         "READING THIS TABLE",
         repos_inline_legend_rows(),
@@ -5049,7 +5047,7 @@ pub(crate) async fn run_repos_report(
         init_or_status_failures,
         filter_note,
     );
-    let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
+    let pad_target = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16) as usize).min(190);
     let pad =
         pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(banner_plain.as_str()) + 1);
     println!("{banner_colored} {}", "─".repeat(pad));
@@ -5183,7 +5181,7 @@ pub(crate) async fn run_repos_report(
 /// actually ends the freeze first.
 fn print_freeze_footer(state: &crate::policy::FreezeState) {
     let line = freeze_notice_text(state);
-    let pad_target = (terminal_width().unwrap_or(120) as usize).min(190);
+    let pad_target = (terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16) as usize).min(190);
     let pad = pad_target.saturating_sub(unicode_width::UnicodeWidthStr::width(line.as_str()) + 1);
     println!();
     println!("{} {}", ansi("1;33", &line), "─".repeat(pad));
@@ -6783,7 +6781,7 @@ fn print_repos_summary(
         indexed.sort_by_key(|(idx, row)| (severity_tier(row), *idx));
     }
 
-    let width = terminal_width().unwrap_or(120) as usize;
+    let width = terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16) as usize;
     // Width budget split:
     //   - # column: 4 chars ("1.")
     //   - STATUS column: 12 chars (the longest is "❌ CONCERN" = 10)
@@ -6961,12 +6959,19 @@ fn print_repos_rich_table(
 ) {
     println!(
         "{}",
-        build_repos_rich_table(rows, full_path, terminal_width().unwrap_or(120))
+        build_repos_rich_table(
+            rows,
+            full_path,
+            terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16)
+        )
     );
     if let Some(line) = rich_hint_link_out(rows) {
         println!(
             "{}",
-            wrap_legend_text(&line, usize::from(terminal_width().unwrap_or(120)))
+            wrap_legend_text(
+                &line,
+                usize::from(terminal_width().unwrap_or(LEGEND_MIN_WIDTH as u16))
+            )
         );
     }
 }
