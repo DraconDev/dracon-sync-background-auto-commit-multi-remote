@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Repository reports read current scheduler evidence after slow Git probes, avoiding stale UNKNOWN results while retaining the 30-second evidence limit.
+- Raise the service task budget from 96 to 512 so Git filters and Node pre-push workers do not exhaust the daemon's shared process/thread ceiling. Nix module defaults and parity checks match.
+
 ### Improved
 
 - Repository legends use bordered, width-aware panels with clear explanations of UNKNOWN, historical push results, active remotes, file counters and per-push GitHub limits. The full key includes actions for failed pushes and missing scheduler evidence.

@@ -17,7 +17,9 @@ loaded host its real WXT regeneration hit the guard's 45-second timeout.
 
 ## Changes
 
-- VidPro now uses two workers, retaining every test and assertion.
+- VidPro now uses one worker, retaining every test and assertion. Two workers
+  were validated first, but parallel forge hooks plus probes still compete
+  for the old 96-task ceiling; one worker leaves more immediate headroom.
 - The real ensure-WXT guard runs in isolated temporary project fixtures with
   a local CLI dependency fixture. Tests check a valid existing config, missing
   and partial configs, correct prepare arguments, propagated preparation failure
@@ -34,6 +36,7 @@ loaded host its real WXT regeneration hit the guard's 45-second timeout.
 ## Validation and deployment status
 
 VidPro: 103 files, 1,227 tests passed with the isolated fixtures and two workers.
+The final single-worker setting is verified by the subsequent full push gates.
 The report regression passes. The service validates under systemd-analyze;
 Nix syntax and shell syntax checks pass. Further workspace/release checks and
 forge verification are recorded below when complete.
@@ -50,3 +53,9 @@ This applies immediately and persists as a systemd property override. It does
 not stop the service. The prepared package/Nix defaults prevent reintroducing
 the low ceiling on future installs. Until the administrator step is confirmed,
 report the live ceiling as 96; do not claim it is deployed.
+
+The full Nix flake check and generated service/watchdog parity check passed.
+The new debug CLI was tested against live scheduler data: the browser repo
+reports `health.current = working`, phase `working`, with a fresh observation,
+while independently retaining the genuinely failed historical push result.
+No stale evidence is relabeled healthy and no push gate was bypassed.
