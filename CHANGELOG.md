@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is the canonical record.
 
 ## [Unreleased]
+
+### Improved
+
+- Repository legends use bordered, width-aware panels with clear explanations of UNKNOWN, historical push results, active remotes, file counters and per-push GitHub limits. The full key includes actions for failed pushes and missing scheduler evidence.
+
 ## [0.113.95] - 2026-10-05
 
 ### Fixed
