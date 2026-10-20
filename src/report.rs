@@ -3943,7 +3943,6 @@ fn warn_filter_retains(row: &RepoReportRow) -> bool {
     row.warn && !row.active && !row.concern
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Classify from evidence current at rendering time; never extend its TTL.
 fn apply_report_scheduler_snapshot(
     rows: &mut [RepoReportRow],
@@ -4003,6 +4002,7 @@ fn apply_report_scheduler_snapshot(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
     filter: RepoFilter,
