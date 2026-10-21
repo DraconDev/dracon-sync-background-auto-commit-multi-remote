@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The SSH hardening only passes the operator's config to ssh when that file exists. `git_ssh_hardening()` always passed `-F $HOME/.dracon/secrets/ssh/config`, and ssh refuses to start when `-F` names a file that is not there ("Can't open user config file ..."), so every SSH push on a machine without the fleet's config store failed with a configuration error and the daemon reported that instead of the real cause. The rest of the hardening (BatchMode, ConnectTimeout, ConnectionAttempts, the keepalives, the SSH_ASKPASS unset) is unchanged.
+- The S3 storage fixture assembles its AWS access key at run time. The key is secret-shaped, so the warden's clean filter encrypted it in the committed blob: the working tree (which the filter decrypts on checkout) had the key and the tests passed locally, while the runner and the Nix sandbox read the committed source, where the credential's length and charset checks rejected the encrypted tag and twelve tests failed.
 - Cancel owned Git/hook children and release the operation lease when one-shot sync commands receive TERM/INT.
 - Serialize daemon and CLI sync operations with a shared Git-directory lease; defer competing operations without counting a push failure.
 - Derive worker watchdog deadlines from configured multi-remote push budgets instead of cancelling permitted long pushes after a fixed 15 minutes.
@@ -29,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The constant-size `chunks_exact(2)` in the storage path decoder is now `as_chunks::<2>()`, which is what clippy 1.99's `chunks_exact_to_as_chunks` asks for (the lint fires on the runner's toolchain, 1.99.1, and not on 1.97).
 - The forge-incident test makes its own change before the second attempt. The worktree used to provide that change by itself, because the warden's auto-harden step rewrote the staged file — on a machine without the warden there was nothing to commit, the attempt never reached the forge, and the shield was never exercised.
+- The tests that drive the Node bucket runner report a skip when no Node runtime is present, instead of failing with a spawn error that names the bundle rather than the missing runtime. A runner with Node — the CI jobs, which install the bucket-runner's locked dependencies — still runs them for real.
+- The GitHub pack-size measurement test uses a fixture repository rather than the checkout it runs in: the CI checks the nested repositories out at a SHA, which leaves them on a detached HEAD, and a detached HEAD has no branch to measure.
+- The rendered-table width assertion measures the text with the ANSI colour codes stripped. comfy-table styles the table when stdout is a terminal — the Nix build's stdout is styled, a piped test run is not — and the escapes occupy no columns on screen, so the same table must measure the same either way.
 - Repository legends use bordered, width-aware panels with clear explanations of UNKNOWN, historical push results, active remotes, file counters and per-push GitHub limits. The full key includes actions for failed pushes and missing scheduler evidence.
 
 ### Deployment
