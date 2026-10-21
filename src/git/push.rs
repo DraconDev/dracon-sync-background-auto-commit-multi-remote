@@ -265,6 +265,71 @@ pub(crate) fn pull_refspec_for_branch(
     }
 }
 
+fn ref_race_is_converged(
+    error: &str,
+    before: &str,
+    after: &str,
+    advertised: &str,
+    branch: &str,
+) -> bool {
+    if !error.contains("cannot lock ref")
+        || !error.contains("but expected")
+        || is_local_hook_rejection(error)
+        || before != after
+        || !super::is_valid_object_id(before)
+    {
+        return false;
+    }
+    let expected = format!("refs/heads/{branch}");
+    let lines: Vec<_> = advertised.lines().collect();
+    lines.len() == 1
+        && lines[0].split_whitespace().collect::<Vec<_>>() == [before, expected.as_str()]
+}
+
+/// A concurrent sender may have published exactly our desired tip after Git's
+/// advertisement. Reconcile only that ref-update race, using fresh remote
+/// evidence and an unchanged local HEAD. Hook/policy errors stay failures.
+pub(crate) async fn converged_after_ref_race(repo: &Path, remote: &str, error: &str) -> bool {
+    if !error.contains("cannot lock ref")
+        || !error.contains("but expected")
+        || is_local_hook_rejection(error)
+    {
+        return false;
+    }
+    let branch = super::branch::current_branch(repo).unwrap_or_else(|| "main".into());
+    if !super::is_safe_branch_name(&branch) || remote.starts_with('-') {
+        return false;
+    }
+    async fn capture(repo: &Path, args: &[&str]) -> Option<String> {
+        let child =
+            super::spawn_git_command_cancellable(repo, args, "ref-race-verification").ok()?;
+        let (status, stdout, _) = tokio::time::timeout(
+            std::time::Duration::from_secs(20),
+            super::run_git_captured_output(child, repo, "ref-race-verification"),
+        )
+        .await
+        .ok()?
+        .ok()?;
+        status
+            .success()
+            .then(|| String::from_utf8_lossy(&stdout).trim().to_string())
+    }
+    let Some(before) = capture(repo, &["rev-parse", "--verify", "HEAD"]).await else {
+        return false;
+    };
+    let ssh = format!("core.sshCommand={}", crate::git::git_ssh_hardening());
+    let target = format!("refs/heads/{branch}");
+    let Some(advertised) =
+        capture(repo, &["-c", &ssh, "ls-remote", "--refs", remote, &target]).await
+    else {
+        return false;
+    };
+    let Some(after) = capture(repo, &["rev-parse", "--verify", "HEAD"]).await else {
+        return false;
+    };
+    ref_race_is_converged(error, &before, &after, &advertised, &branch)
+}
+
 pub(crate) async fn push_with_retries(
     repo: &Path,
     timeout_secs: u64,
@@ -315,6 +380,13 @@ pub(crate) async fn push_with_retries(
             Ok(()) => return Ok(()),
             Err(e) => {
                 let err_msg = e.to_string();
+                if converged_after_ref_race(repo, "origin", &err_msg).await {
+                    eprintln!(
+                        "✅ {} origin already has the requested tip after a concurrent push",
+                        repo.display()
+                    );
+                    return Ok(());
+                }
                 // Server-side policy errors (protected branch, hook declined,
                 // etc.) AND oversized-pack errors cannot be fixed by retries,
                 // pull, or HTTPS fallback. Return immediately so the caller
@@ -767,6 +839,98 @@ pub(crate) async fn force_push_after_rewrite(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ref_update_races_require_exact_fresh_convergence_and_never_hide_hook_failures() {
+        let tip = "a".repeat(40);
+        let other = "b".repeat(40);
+        let race = "cannot lock ref 'refs/heads/main': is at tip but expected previous";
+        let advertised = format!("{tip}\trefs/heads/main\n");
+        assert!(ref_race_is_converged(race, &tip, &tip, &advertised, "main"));
+        assert!(!ref_race_is_converged(
+            race,
+            &tip,
+            &other,
+            &advertised,
+            "main"
+        ));
+        assert!(!ref_race_is_converged(
+            race,
+            &other,
+            &other,
+            &advertised,
+            "main"
+        ));
+        assert!(!ref_race_is_converged(race, &tip, &tip, "", "main"));
+        assert!(!ref_race_is_converged(
+            race,
+            &tip,
+            &tip,
+            &advertised,
+            "other"
+        ));
+        assert!(!ref_race_is_converged(
+            "permission denied",
+            &tip,
+            &tip,
+            &advertised,
+            "main"
+        ));
+        let hook_failure = format!("{race}\n❌ Pre-push: 4-gate FAILED for:");
+        assert!(!ref_race_is_converged(
+            &hook_failure,
+            &tip,
+            &tip,
+            &advertised,
+            "main"
+        ));
+    }
+
+    #[tokio::test]
+    async fn ref_race_verification_reads_the_actual_remote_and_rejects_unpublished_work() {
+        let binary = crate::policy::git_binary();
+        let _git = crate::test_helpers::GitBinRestorer::new(binary.to_str().unwrap());
+        let temp = tempfile::tempdir().unwrap();
+        let repo = temp.path().join("repo");
+        let remote = temp.path().join("remote.git");
+        std::fs::create_dir(&repo).unwrap();
+        let git = |cwd: &Path, args: &[&str]| {
+            let output = std::process::Command::new(&binary)
+                .args([
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "user.name=Fixture",
+                    "-c",
+                    "user.email=fixture@example.invalid",
+                ])
+                .args(args)
+                .current_dir(cwd)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        };
+        git(temp.path(), &["init", "--bare", remote.to_str().unwrap()]);
+        git(&repo, &["init", "-b", "main"]);
+        std::fs::write(repo.join("file"), "first").unwrap();
+        git(&repo, &["add", "--", "file"]);
+        git(&repo, &["commit", "-m", "first"]);
+        git(
+            &repo,
+            &["remote", "add", "origin", remote.to_str().unwrap()],
+        );
+        git(&repo, &["push", "origin", "HEAD:refs/heads/main"]);
+        let race = "cannot lock ref 'refs/heads/main': is at tip but expected previous";
+        assert!(converged_after_ref_race(&repo, "origin", race).await);
+        std::fs::write(repo.join("file"), "second").unwrap();
+        git(&repo, &["add", "--", "file"]);
+        git(&repo, &["commit", "-m", "second"]);
+        assert!(!converged_after_ref_race(&repo, "origin", race).await);
+    }
 
     #[cfg(unix)]
     #[tokio::test]
