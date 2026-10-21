@@ -2461,8 +2461,16 @@ fn verify_storage_attributes(indexed: &IndexedManifest) -> Result<()> {
 
 fn decode_manifest_path(hex: &str) -> Result<Vec<u8>> {
     // The private manifest codec has already validated these confined hex paths.
-    hex.as_bytes()
-        .chunks_exact(2)
+    // `as_chunks` rather than `chunks_exact`: clippy 1.99's
+    // `chunks_exact_to_as_chunks` rejects a constant chunk size, and
+    // `as_chunks` is the API it asks for (stabilised in 1.88, below the
+    // 1.89 MSRV).
+    let (pairs, remainder) = hex.as_bytes().as_chunks::<2>();
+    if !remainder.is_empty() {
+        bail!("invalid manifest path");
+    }
+    pairs
+        .iter()
         .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
         .collect()
 }

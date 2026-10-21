@@ -151,7 +151,15 @@ pub(crate) fn validate_path_hex(hex: &str) -> Result<()> {
         bail!("invalid encoded path");
     }
     let mut bytes = Vec::with_capacity(hex.len() / 2);
-    for pair in hex.as_bytes().chunks_exact(2) {
+    // `as_chunks` rather than `chunks_exact`: clippy 1.99's
+    // `chunks_exact_to_as_chunks` rejects a constant chunk size, and
+    // `as_chunks` is the API it asks for (stabilised in 1.88, below the
+    // 1.89 MSRV).
+    let (pairs, remainder) = hex.as_bytes().as_chunks::<2>();
+    if !remainder.is_empty() {
+        bail!("invalid encoded path");
+    }
+    for pair in pairs {
         if !pair
             .iter()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
