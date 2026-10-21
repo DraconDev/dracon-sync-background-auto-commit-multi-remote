@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Derive worker watchdog deadlines from configured multi-remote push budgets instead of cancelling permitted long pushes after a fixed 15 minutes.
 - Reconcile concurrent ref-update races only when fresh remote evidence proves an unchanged local HEAD is already published; preserve genuine hook and policy failures.
 - Repository reports read current scheduler evidence after slow Git probes, avoiding stale UNKNOWN results while retaining the 30-second evidence limit.
-- Raise the service task budget from 96 to 512 so Git filters and Node pre-push workers do not exhaust the daemon's shared process/thread ceiling. Nix module defaults and parity checks match.
+- Raise the service task budget from 96 to 512 so Git filters and Node pre-push workers do not exhaust the daemon's shared process/thread ceiling. The NixOS operator module now carries 512 as well, and a new parity check compares every source that defines the budget (`scripts/check-task-budget-parity.sh`, with a regression test that tolerates a harmless change and still detects drift). The live root-owned unit still enforces 96 until the operator applies `scripts/30-tasksmax.conf`; that change needs admin credentials and is not claimed as applied.
 
 ### Improved
 
