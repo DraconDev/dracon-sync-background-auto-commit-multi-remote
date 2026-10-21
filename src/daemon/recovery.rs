@@ -150,11 +150,16 @@ mod tests {
 
     #[test]
     fn execution_budget_respects_scaled_multi_remote_commands_and_still_expires() {
-        let mut policy = crate::policy::SyncPolicy::default();
-        policy.auto_push = true;
-        policy.push_op_timeout_secs = 900;
-        policy.repo_sync_timeout_secs = 960;
-        policy.push_retries = 1;
+        // Struct-update syntax rather than field-by-field assignment:
+        // clippy's `field_reassign_with_default` rejects the latter, and the
+        // `..Default::default()` baseline is the same one the daemon uses.
+        let policy = crate::policy::SyncPolicy {
+            auto_push: true,
+            push_op_timeout_secs: 900,
+            repo_sync_timeout_secs: 960,
+            push_retries: 1,
+            ..Default::default()
+        };
         let budget = execution_budget(&policy, 7, true, false);
         assert!(budget > Duration::from_secs(1800));
         assert_eq!(
