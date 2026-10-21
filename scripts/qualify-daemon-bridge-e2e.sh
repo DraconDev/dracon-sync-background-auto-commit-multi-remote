@@ -9,6 +9,9 @@ for binary in cargo node timeout flock git; do
   command -v "$binary" >/dev/null || { echo "Missing prerequisite: $binary" >&2; exit 1; }
 done
 log=$(mktemp /tmp/daemon-bridge-e2e.XXXXXX)
+# `status` is assigned in the trap; declaring it first satisfies the shell
+# check that flags a variable referenced before assignment.
+status=0
 trap 'status=$?; if [[ $status -ne 0 ]]; then tail -60 "$log" >&2; fi; rm -f -- "$log"' EXIT
 # Reuse normal debug artifacts. Installed/release identity is a separate live
 # deployment gate; source harness success must not imply production execution.

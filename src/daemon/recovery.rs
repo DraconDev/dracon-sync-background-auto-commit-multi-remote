@@ -153,7 +153,7 @@ mod tests {
         // Struct-update syntax rather than field-by-field assignment:
         // clippy's `field_reassign_with_default` rejects the latter, and the
         // `..Default::default()` baseline is the same one the daemon uses.
-        let policy = crate::policy::SyncPolicy {
+        let mut policy = crate::policy::SyncPolicy {
             auto_push: true,
             push_op_timeout_secs: 900,
             repo_sync_timeout_secs: 960,

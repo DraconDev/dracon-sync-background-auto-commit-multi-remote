@@ -32,7 +32,7 @@ done
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ROLLBACK="$ROLLBACK_BASE/$STAMP"
 case "$ROLLBACK" in "$HOME/.dracon/"*|"$HOME/Dev/"*) echo 'rollback inside watch root'; exit 2;; esac
-mkdir -p -m 700 "$ROLLBACK"
+mkdir -p "$ROLLBACK" && chmod 700 "$ROLLBACK"
 for f in "$DEST_SYNC" "$DEST_RUNNER" "$PROFILE"; do cp -p -- "$f" "$ROLLBACK/$(basename "$f").rollback"; done
 sha256sum "$DEST_SYNC" "$DEST_RUNNER" "$PROFILE" > "$ROLLBACK/pre-deploy.sha256"
 chmod 400 "$ROLLBACK"/*.rollback "$ROLLBACK/pre-deploy.sha256"

@@ -6,11 +6,11 @@ out="$PWD/dracon-sync/evidence/ui-delay-2026-10-16"
 expected_sync=8f7f45c9a82b41dfb5bf762fa9d3347837a8ffe534eee6c8115c5242e8db2030
 expected_warden=d342d4a1b188dd76769b17b60006af53fdd042f38c7aecbf39d5ff0cc1d13574
 [[ -d "$out" && -f target/release/dracon-sync && -f target/release/dracon-warden ]]
-[[ $(sha256sum target/release/dracon-sync | cut -d' ' -f1) == $expected_sync ]] || { echo 'sync digest mismatch'; exit 2; }
-[[ $(sha256sum target/release/dracon-warden | cut -d' ' -f1) == $expected_warden ]] || { echo 'warden digest mismatch'; exit 2; }
+[[ $(sha256sum target/release/dracon-sync | cut -d' ' -f1) == "$expected_sync" ]] || { echo 'sync digest mismatch'; exit 2; }
+[[ $(sha256sum target/release/dracon-warden | cut -d' ' -f1) == "$expected_warden" ]] || { echo 'warden digest mismatch'; exit 2; }
 # Rollback executables must not enter the daemon-home source repository.
 backup="$HOME/.local/state/dracon/rollback-binaries/ui-delay-20261016-$(date -u +%H%M%S)"
-mkdir -p -m 700 "$backup"
+mkdir -p "$backup" && chmod 700 "$backup"
 printf 'started=%s\nbackup=%s\n' "$(date -u +%FT%TZ)" "$backup"
 for name in dracon-sync dracon-warden; do
     destination="$HOME/.local/bin/$name"
@@ -29,7 +29,7 @@ pid=$(systemctl --user show dracon-sync.service -p MainPID --value)
 # MainPID may be published during systemd's exec transition. Require the
 # tested identity to settle within ten seconds, never assume Active=ready.
 matched=false
-for attempt in {1..100}; do
+for _ in {1..100}; do
     if cmp -s -- target/release/dracon-sync "/proc/$pid/exe"; then matched=true; break; fi
     sleep 0.1
 done

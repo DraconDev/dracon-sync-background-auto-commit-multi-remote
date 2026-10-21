@@ -34,13 +34,15 @@ timeout --signal=TERM --kill-after=10s 120s node --test --test-reporter=tap \
 # script would silently pass. Fail closed.
 tests=$(awk '$1 == "#" && $2 == "tests" { print $3 }' "$log")
 passes=$(awk '$1 == "#" && $2 == "pass" { print $3 }' "$log")
-[[ "$tests" =~ ^[0-9]+$ && "$passes" =~ ^[0-9]+$ ]] &&
+if [[ "$tests" =~ ^[0-9]+$ && "$passes" =~ ^[0-9]+$ ]] &&
   [[ "$tests" -ge 157 && "$passes" -eq "$tests" ]] &&
   grep -Eq '^# fail 0$' "$log" && grep -Eq '^# skipped 0$' "$log" &&
-  grep -Eq '^# cancelled 0$' "$log" && grep -Eq '^# todo 0$' "$log" || {
+  grep -Eq '^# cancelled 0$' "$log" && grep -Eq '^# todo 0$' "$log"; then
+  :
+else
   echo 'Incomplete runner execution (minimum 157, every test passing, no skips); refusing success.' >&2
   exit 1
-}
+fi
 # Required e2e scenarios must have run (every goal verification contract bullet).
 required=(
   'e2e: unregistered eligible asset enrolls, verifies and restores on a fresh consumer'

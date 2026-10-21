@@ -26,7 +26,7 @@
 set -uo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
-cd "$ROOT_DIR"
+cd "$ROOT_DIR" || exit 1
 
 if [[ $(uname -s) != Linux ]]; then
   echo 'Linux-only; refusing a zero-test pass.' >&2
@@ -57,7 +57,7 @@ echo "startedAt=$started_at" | tee -a "$log"
 #    target SHA matches installed SHA.
 [[ -f "$bundle_path" ]] || { echo "Bundle not installed at $bundle_path" >&2; exit 1; }
 [[ -d "$backup_dir" ]] || { echo "Backup dir missing: $backup_dir" >&2; exit 1; }
-backup_count=$(ls -1 "$backup_dir"/runner.bundle.mjs.* 2>/dev/null | wc -l)
+backup_count=$(find "$backup_dir" -maxdepth 1 -name 'runner.bundle.mjs.*' -type f 2>/dev/null | wc -l)
 [[ "$backup_count" -ge 1 ]] || { echo "No bundle rollback copies in $backup_dir" >&2; exit 1; }
 [[ -f "$profile_path" ]] || { echo "Profile missing: $profile_path" >&2; exit 1; }
 [[ -d "$repo" && -f "$repo/bucket-runner.json" ]] || { echo "Bridge-fixture not present at $repo" >&2; exit 1; }
@@ -132,7 +132,7 @@ unrelated_change="live-bridge-unrelated-$(date -u +%Y%m%d%H%M%S)"
 unrelated_log="$evidence_dir/unrelated.log"
 unrelated_status=0
 echo "$unrelated_change" > "$unrelated_repo/test.txt"
-( cd "$unrelated_repo" && git add test.txt 2>/dev/null || true )
+( cd "$unrelated_repo" && git add test.txt 2>/dev/null ) || true
 timeout --signal=TERM --kill-after=30s 120s "$installed_binary" sync-now "$unrelated_repo" > "$unrelated_log" 2>&1 \
   || unrelated_status=$?
 unrelated_finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -228,7 +228,7 @@ summary=$(cat <<EOF
 EOF
 )
 echo "$summary" > "$evidence_dir/live-bridge-deployment-summary.json"
-cat "$evidence_dir/live-bridge-deployment-summary.json" | tee -a "$log"
+tee -a "$log" < "$evidence_dir/live-bridge-deployment-summary.json"
 
 echo
 echo "live bridge deployment qualification passed"
