@@ -59,3 +59,26 @@ The new debug CLI was tested against live scheduler data: the browser repo
 reports `health.current = working`, phase `working`, with a fresh observation,
 while independently retaining the genuinely failed historical push result.
 No stale evidence is relabeled healthy and no push gate was bypassed.
+
+## Completed validation and October 21 follow-up
+
+Workspace tests passed: 2,517 tests, zero failures, 25 operational ignores.
+Workspace Clippy with warnings denied and the locked release build passed.
+The installed CLI backup and manifest are in
+`~/.local/state/dracon/deployments/20261020T212450Z-late-scheduler-evidence/`.
+The running daemon was not restarted.
+
+TabMon also retained a stale `music-2.x` fetch-tool assertion after the
+fetcher moved to music-3.0. The assertion now requires an explicitly versioned
+music model, including legacy plus variants; failures from the Python dry-run
+are propagated, with skipping reserved for a missing Python executable.
+The focused dry-run check and a complete 942-test push gate passed.
+
+The subsequent controlled push did not fully converge: a later TabMon XP-cap
+regression failed on GitLab. Maintenance automatically resumed after its
+15-minute bound; the freeze marker was verified absent on October 21.
+Current code passes all 13 XP tests. The daemon independently started another
+normal guarded push at 01:29 BST; publication must be verified against both
+forge refs before reporting recovery. Current live TasksMax remains 96.
+At 01:33 BST the root filesystem had 135 GiB available (85% used); no cleanup
+or deletion was needed for this follow-up.
