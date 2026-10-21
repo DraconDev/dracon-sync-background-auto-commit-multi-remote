@@ -748,6 +748,36 @@ async fn main() -> Result<()> {
     }));
 
     let cli = Cli::parse();
+    #[cfg(unix)]
+    if matches!(&cli.cmd, Command::Once | Command::SyncNow { .. }) {
+        use tokio::signal::unix::{signal, SignalKind};
+        let mut terminate = signal(SignalKind::terminate())?;
+        let mut interrupt = signal(SignalKind::interrupt())?;
+        return until_sync_cancelled(Box::pin(run_cli(cli)), async move {
+            tokio::select! {
+                _ = terminate.recv() => {},
+                _ = interrupt.recv() => {},
+            }
+        })
+        .await;
+    }
+    run_cli(cli).await
+}
+
+/// Drop owned Git work and leases before reporting an interrupted one-shot
+/// sync. Daemon and maintenance retain their own shutdown/resume handlers.
+#[cfg(unix)]
+async fn until_sync_cancelled<T>(
+    work: impl std::future::Future<Output = Result<T>>,
+    cancel: impl std::future::Future<Output = ()>,
+) -> Result<T> {
+    tokio::select! {
+        result = work => result,
+        _ = cancel => Err(anyhow::anyhow!("sync interrupted; owned operations cancelled")),
+    }
+}
+
+async fn run_cli(cli: Cli) -> Result<()> {
     daemon::VERBOSITY.store(cli.verbose, Ordering::SeqCst);
     if let Command::Storage { cmd } = &cli.cmd {
         return storage::run(cmd).await;
@@ -2305,6 +2335,75 @@ fn cmd_ownership(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn one_shot_cancellation_reaps_owned_children_and_releases_repository_lease() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join(".git")).unwrap();
+        let marker = root.path().join("pids");
+        let fake_git = root.path().join("fake-git");
+        std::fs::write(
+            &fake_git,
+            format!(
+                "#!/bin/sh\nsleep 60 &\nprintf '%s %s' $$ $! > '{}'\nwait\n",
+                marker.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_git, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let _git = crate::test_helpers::GitBinRestorer::new(fake_git.to_str().unwrap());
+        let work = async {
+            let _lease = crate::git::sync_lease::try_acquire(root.path())?.unwrap();
+            let child =
+                crate::git::spawn_git_command_cancellable(root.path(), &["status"], "cancel-test")?;
+            crate::git::run_git_captured_output(child, root.path(), "cancel-test").await?;
+            Ok(())
+        };
+        let cancel = async {
+            tokio::time::timeout(std::time::Duration::from_secs(10), async {
+                loop {
+                    if std::fs::read_to_string(&marker)
+                        .is_ok_and(|s| s.split_whitespace().count() == 2)
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .unwrap();
+        };
+        assert!(super::until_sync_cancelled(Box::pin(work), cancel)
+            .await
+            .is_err());
+        assert!(crate::git::sync_lease::try_acquire(root.path())
+            .unwrap()
+            .is_some());
+        let pids: Vec<u32> = std::fs::read_to_string(&marker)
+            .unwrap()
+            .split_whitespace()
+            .map(|p| p.parse().unwrap())
+            .collect();
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                let alive = pids.iter().any(|p| {
+                    std::fs::read_to_string(format!("/proc/{p}/stat")).is_ok_and(|s| {
+                        !matches!(
+                            s.rsplit_once(')').unwrap().1.split_whitespace().next(),
+                            Some("Z" | "X")
+                        )
+                    })
+                });
+                if !alive {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("both the Git child and hook/helper descendant must terminate");
+    }
     use tempfile::TempDir;
 
     fn temp_policy(repos: Vec<&str>) -> TempDir {

@@ -622,7 +622,13 @@ pub(crate) async fn push_to_named_remote(
         push_to_named_remote_inner(repo, remote_name, timeout_secs, retries, force_when_behind)
             .await;
     if let Err(e) = &result {
-        if super::push::converged_after_ref_race(repo, remote_name, &e.to_string()).await {
+        if Box::pin(super::push::converged_after_ref_race(
+            repo,
+            remote_name,
+            &e.to_string(),
+        ))
+        .await
+        {
             eprintln!(
                 "✅ {} {} already has the requested tip after a concurrent push",
                 repo.display(),

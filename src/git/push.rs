@@ -265,6 +265,22 @@ pub(crate) fn pull_refspec_for_branch(
     }
 }
 
+fn eligible_ref_race(error: &str) -> bool {
+    let lower = error.to_lowercase();
+    // The generic classifier recognizes pre-push banners. A captured success
+    // banner is also common in ref-update races; explicit refusals still win.
+    let gates_passed = lower.contains("4-gate passed for all")
+        && !lower.contains("4-gate failed")
+        && !lower.contains("possible plaintext secrets")
+        && !lower.contains("refusing")
+        && !lower.contains("dracon-warden:")
+        && !lower.contains("hook declined")
+        && !lower.contains("pre-commit");
+    error.contains("cannot lock ref")
+        && error.contains("but expected")
+        && (!is_local_hook_rejection(error) || gates_passed)
+}
+
 fn ref_race_is_converged(
     error: &str,
     before: &str,
@@ -272,12 +288,7 @@ fn ref_race_is_converged(
     advertised: &str,
     branch: &str,
 ) -> bool {
-    if !error.contains("cannot lock ref")
-        || !error.contains("but expected")
-        || is_local_hook_rejection(error)
-        || before != after
-        || !super::is_valid_object_id(before)
-    {
+    if !eligible_ref_race(error) || before != after || !super::is_valid_object_id(before) {
         return false;
     }
     let expected = format!("refs/heads/{branch}");
@@ -290,10 +301,7 @@ fn ref_race_is_converged(
 /// advertisement. Reconcile only that ref-update race, using fresh remote
 /// evidence and an unchanged local HEAD. Hook/policy errors stay failures.
 pub(crate) async fn converged_after_ref_race(repo: &Path, remote: &str, error: &str) -> bool {
-    if !error.contains("cannot lock ref")
-        || !error.contains("but expected")
-        || is_local_hook_rejection(error)
-    {
+    if !eligible_ref_race(error) {
         return false;
     }
     let branch = super::branch::current_branch(repo).unwrap_or_else(|| "main".into());
@@ -380,7 +388,7 @@ pub(crate) async fn push_with_retries(
             Ok(()) => return Ok(()),
             Err(e) => {
                 let err_msg = e.to_string();
-                if converged_after_ref_race(repo, "origin", &err_msg).await {
+                if Box::pin(converged_after_ref_race(repo, "origin", &err_msg)).await {
                     eprintln!(
                         "✅ {} origin already has the requested tip after a concurrent push",
                         repo.display()
@@ -847,6 +855,27 @@ mod tests {
         let race = "cannot lock ref 'refs/heads/main': is at tip but expected previous";
         let advertised = format!("{tip}\trefs/heads/main\n");
         assert!(ref_race_is_converged(race, &tip, &tip, &advertised, "main"));
+        let passed = format!("{race}\n✅ Pre-push: 4-gate passed for all 3 workspace(s).");
+        assert!(ref_race_is_converged(
+            &passed,
+            &tip,
+            &tip,
+            &advertised,
+            "main"
+        ));
+        for failure in [
+            "4-gate FAILED",
+            "Possible plaintext secrets",
+            "dracon-warden: refusing push",
+        ] {
+            assert!(!ref_race_is_converged(
+                &format!("{passed}\n{failure}"),
+                &tip,
+                &tip,
+                &advertised,
+                "main"
+            ));
+        }
         assert!(!ref_race_is_converged(
             race,
             &tip,

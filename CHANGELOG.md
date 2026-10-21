@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cancel owned Git/hook children and release the operation lease when one-shot sync commands receive TERM/INT.
 - Serialize daemon and CLI sync operations with a shared Git-directory lease; defer competing operations without counting a push failure.
 - Derive worker watchdog deadlines from configured multi-remote push budgets instead of cancelling permitted long pushes after a fixed 15 minutes.
 - Reconcile concurrent ref-update races only when fresh remote evidence proves an unchanged local HEAD is already published; preserve genuine hook and policy failures.

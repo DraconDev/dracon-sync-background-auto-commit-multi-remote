@@ -30,7 +30,11 @@ watchdog undercut a scaled 1800-second push timeout.
    Missing/unreachable/divergent remote evidence fails closed. Hook refusals
    never take this path. Reads have bounded timeouts and owned process-group
    cleanup. Both origin and named-mirror paths use the same decision.
-4. The browser pre-push hook uses private per-attempt directories and unique
+4. One-shot sync-now and once handle TERM/INT by cancelling their owned
+   operations before exiting. This releases the repository lease and tears
+   down Git/hook process groups instead of orphaning them. A process-level
+   regression verifies both child cleanup and immediate lease reacquisition.
+5. The browser pre-push hook uses private per-attempt directories and unique
    changed-file lists. Concurrent runs cannot clobber each other's scope or
    diagnostics. A failed gate reports its exact exit status and evidence path;
    all four gates and secret scanning remain enabled. General tmp retention
@@ -64,3 +68,14 @@ The root-owned system service still has TasksMax=96. Package defaults are
 already prepared for 512; applying the live change requires administrator
 authentication. The code changes reduce overlapping work and preserve accurate
 failure evidence; they do not silently claim that root setting was applied.
+
+## Concurrent source edits remain visible
+
+At 03:19 BST the retained attempt `dracon-pre-push.aSixZW` identified a
+real TabMon TYPECHECK refusal: BackupSection.svelte ended mid-input while
+another agent was editing it. The file was complete on subsequent inspection.
+These ownership changes serialize sync operations, not arbitrary editor writes.
+A future gate design should validate a stable pushed-tree snapshot; it must
+account for generated inputs and shared dependencies without increasing disk
+or memory pressure. Until then, gate failures remain failures and must be
+checked against the retained attempt rather than hidden by retries.
