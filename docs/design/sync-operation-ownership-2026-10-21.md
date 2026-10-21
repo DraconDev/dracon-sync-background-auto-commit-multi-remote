@@ -181,6 +181,27 @@ ceiling was catching: the restarted daemon deferred a competing repository
 operation (`sync deferred: another process owns the repository operation`)
 instead of stacking work under the old limit.
 
+### The parity check could not see the applied drop-in
+
+With the drop-in installed, `scripts/check-task-budget-parity.sh` still
+reported `DEPLOYMENT DRIFT: live unit ... enforces TasksMax=96` and kept
+advising a re-install of a drop-in that was already installed. It read the
+base unit file only; a drop-in in `<unit>.d/*.conf` overrides that value, and
+`systemctl show` reports the merged result. The check now resolves the live
+budget the way systemd resolves it — merged unit first, base file plus
+drop-ins as fallback — and reports the kernel's cgroup `pids.max` as well,
+because that is the ceiling the running service is actually held to: a merged
+unit saying 512 is not yet a running service held to 512, since the cgroup
+limit only changes when the service restarts.
+
+One trap worth recording: `systemctl show <name>` for a name that is not a
+live unit does not fail — it falls back to the caller's own scope and reports
+that scope's properties (here `TasksMax=37377`, a PID-derived default). A
+check that trusts that value reads a stranger's number as the unit's budget.
+The check now verifies the reported `Id` matches the unit it asked for before
+using the value. The regression suite gained a fifth case: a live unit whose
+drop-in is already applied must not be reported as drift.
+
 ## Remaining items (not fixed here)
 
 - The fleet-wide performance/swap-thrash follow-ups are tracked in

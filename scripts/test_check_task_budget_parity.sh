@@ -7,7 +7,9 @@
 #      exists for: the Nix module kept 96 while the shipped unit said 512),
 #   3. tolerate a harmless change (a comment, a reordered key, an unrelated
 #      key) without reporting drift, and
-#   4. report live-unit drift as deployment drift, not as a source failure.
+#   4. report live-unit drift as deployment drift, not as a source failure, and
+#   5. NOT report drift for a live unit whose drop-in has already been applied
+#      (the base file still says 96 while the effective ceiling is 512).
 #
 # All fixtures are disposable copies in a temp dir; the live unit is never
 # touched.
@@ -69,4 +71,28 @@ grep -q 'DEPLOYMENT DRIFT' <<<"$out" \
 grep -q 'task budget is consistent' <<<"$out" \
     || { echo "deployment drift must not read as a source failure: $out" >&2; exit 1; }
 
-echo "✓ task budget parity check: drift detected, harmless change tolerated, deployment drift reported"
+# --- 5. an applied drop-in is not drift ----------------------------------
+# The live unit's budget resolves the way systemd resolves it: a drop-in in
+# <unit>.d/ overrides the base unit file. Reading the base file alone
+# reported drift for a drop-in that was already installed, and kept advising
+# a re-install of it.
+mkdir -p "$work/applied/unit.d"
+cat > "$work/applied/unit" <<'EOF'
+[Service]
+TasksMax=96
+EOF
+cat > "$work/applied/unit.d/30-tasksmax.conf" <<'EOF'
+[Service]
+TasksMax=512
+EOF
+out="$(LIVE_UNIT="$work/applied/unit" "$CHECK" 2>&1)" \
+    || { echo "check failed on an applied drop-in:" >&2; echo "$out" >&2; exit 1; }
+if grep -q 'DEPLOYMENT DRIFT' <<<"$out"; then
+    echo "check reported drift for a unit whose drop-in was already applied:" >&2
+    echo "$out" >&2
+    exit 1
+fi
+grep -q 'live unit' <<<"$out" \
+    || { echo "live unit not reported: $out" >&2; exit 1; }
+
+echo "✓ task budget parity check: drift detected, harmless change tolerated, deployment drift reported, applied drop-in not misread as drift"
