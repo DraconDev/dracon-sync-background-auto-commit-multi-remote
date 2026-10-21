@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 #[derive(Default)]
 pub(super) struct SyncRecovery {
     running: HashMap<PathBuf, Arc<OnceLock<Instant>>>,
+    budgets: HashMap<PathBuf, Duration>,
     cancelling: HashSet<PathBuf>,
     failures: HashMap<PathBuf, usize>,
     retry_after: HashMap<PathBuf, Instant>,
@@ -64,6 +65,10 @@ impl SyncRecovery {
         started
     }
 
+    pub(super) fn set_budget(&mut self, repo: &Path, budget: Duration) {
+        self.budgets.insert(repo.to_path_buf(), budget);
+    }
+
     pub(super) fn ready(&self, repo: &Path, now: Instant) -> bool {
         self.retry_after.get(repo).is_none_or(|until| now >= *until)
     }
@@ -76,7 +81,8 @@ impl SyncRecovery {
             .iter()
             .filter_map(|(repo, started)| {
                 let started = started.get()?;
-                if now.saturating_duration_since(*started) >= budget
+                let allowed = self.budgets.get(repo).copied().unwrap_or(budget);
+                if now.saturating_duration_since(*started) >= allowed
                     && self.cancelling.insert(repo.clone())
                 {
                     Some(repo.clone())
@@ -90,6 +96,7 @@ impl SyncRecovery {
     /// Only a joined worker can finish. Errors (including panics/cancellation)
     /// yield capacity with capped backoff; success resets the failure streak.
     pub(super) fn finish(&mut self, repo: &Path, failed: bool, now: Instant) {
+        self.budgets.remove(repo);
         self.running.remove(repo);
         self.cancelling.remove(repo);
         if failed {
@@ -114,9 +121,66 @@ pub(super) fn fair_probe_order(repos: &mut [PathBuf], admitted: &HashMap<PathBuf
     repos.sort_by_key(|repo| admitted.get(repo).copied());
 }
 
+/// A total-operation backstop must not undercut the independently bounded
+/// push commands it supervises. Include one possible new commit, every target,
+/// configured retries and the process runner's progress hard limit. Local-only
+/// work retains the normal short backstop; arithmetic never wraps.
+pub(super) fn execution_budget(
+    policy: &crate::policy::SyncPolicy,
+    ahead: u64,
+    has_origin: bool,
+    commit_only: bool,
+) -> Duration {
+    let local = policy.repo_sync_timeout_secs.max(900);
+    if !policy.auto_push || commit_only {
+        return Duration::from_secs(local);
+    }
+    let targets = (policy.remotes.len() as u64).saturating_add(u64::from(has_origin));
+    let idle =
+        crate::sync::scale_push_timeout(policy.push_op_timeout_secs, ahead.saturating_add(1));
+    let push = crate::git::progress_hard_timeout_secs(idle)
+        .saturating_mul(u64::from(policy.push_retries.max(1)))
+        .saturating_mul(targets);
+    Duration::from_secs(local.saturating_add(push))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn execution_budget_respects_scaled_multi_remote_commands_and_still_expires() {
+        let mut policy = crate::policy::SyncPolicy::default();
+        policy.auto_push = true;
+        policy.push_op_timeout_secs = 900;
+        policy.repo_sync_timeout_secs = 960;
+        policy.push_retries = 1;
+        let budget = execution_budget(&policy, 7, true, false);
+        assert!(budget > Duration::from_secs(1800));
+        assert_eq!(
+            execution_budget(&policy, 7, true, true),
+            Duration::from_secs(960)
+        );
+        let now = Instant::now();
+        let repo = Path::new("long-guarded-push");
+        let mut recovery = SyncRecovery::default();
+        recovery.reserve(repo).set(now).unwrap();
+        recovery.set_budget(repo, budget);
+        assert!(recovery
+            .expired(now + Duration::from_secs(900), Duration::from_secs(900))
+            .is_empty());
+        assert_eq!(
+            recovery.expired(now + budget, Duration::from_secs(900)),
+            vec![repo.to_path_buf()]
+        );
+        recovery.finish(repo, false, now + budget);
+        assert!(!recovery.budgets.contains_key(repo));
+        policy.push_op_timeout_secs = u64::MAX;
+        assert_eq!(
+            execution_budget(&policy, u64::MAX, true, false).as_secs(),
+            u64::MAX
+        );
+    }
 
     #[test]
     fn queued_workers_keep_fifo_and_execution_retries_are_bounded() {

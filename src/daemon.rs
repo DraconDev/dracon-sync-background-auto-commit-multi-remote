@@ -7452,7 +7452,7 @@ pub(crate) async fn run_daemon(
             }
         }
         for repo in sync_recovery.expired(Instant::now(), Duration::from_secs(900)) {
-            eprintln!("⚠️ {} sync task wedged for >15 min — requesting cancellation; retaining ownership until worker joins", repo.display());
+            eprintln!("⚠️ {} sync task exceeded its execution budget — requesting cancellation; retaining ownership until worker joins", repo.display());
             request_worker_cancellation(&sync_workers, &repo);
         }
         let inactivity_delay = Duration::from_secs(policy.inactivity_push_delay_secs.max(1));
@@ -9526,6 +9526,15 @@ pub(crate) async fn run_daemon(
             // no-redispatch invariant in action.
             let sem = sync_semaphore.clone();
             let run_started = sync_recovery.reserve(&repo);
+            sync_recovery.set_budget(
+                &repo,
+                recovery::execution_budget(
+                    &policy_for_task,
+                    status.ahead as u64,
+                    has_origin,
+                    commit_only_for_task,
+                ),
+            );
             let handle = tokio::spawn(async move {
                 if debug_enabled() {
                     eprintln!(
@@ -9823,7 +9832,7 @@ pub(crate) async fn run_daemon(
             let wedged = sync_recovery.expired(Instant::now(), Duration::from_secs(900));
             for repo in wedged {
                 eprintln!(
-                    "⚠️ {} sync task wedged for >15 min — requesting cancellation; retaining ownership until worker joins",
+                    "⚠️ {} sync task exceeded its execution budget — requesting cancellation; retaining ownership until worker joins",
                     repo.display()
                 );
                 request_worker_cancellation(&sync_workers, &repo);

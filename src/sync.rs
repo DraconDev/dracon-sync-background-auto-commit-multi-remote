@@ -5201,9 +5201,19 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // A daemon reservation is process-local. The kernel lease also covers
     // sync-now/once and aliases/linked worktrees sharing these Git refs.
     // Busy is a deferral, never a failed push or a reason to erase a lock.
-    let Some(_operation_lease) = crate::git::sync_lease::try_acquire(repo)? else {
-        eprintln!("⏳ {} sync deferred: another process owns the repository operation", repo.display());
-        return Ok(SyncOutcome::PushPaused);
+    let _operation_lease = if dry_run {
+        None
+    } else {
+        match crate::git::sync_lease::try_acquire(repo)? {
+            Some(lease) => Some(lease),
+            None => {
+                eprintln!(
+                    "⏳ {} sync deferred: another process owns the repository operation",
+                    repo.display()
+                );
+                return Ok(SyncOutcome::PushPaused);
+            }
+        }
     };
 
     if let Some(blocked) = check_conflict_state(repo) {

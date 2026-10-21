@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 /// giving the daemon a deterministic upper bound.
 const PROGRESS_TIMEOUT_MULTIPLIER: u64 = 4;
 
-fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
+pub(crate) fn progress_hard_timeout_secs(idle_timeout_secs: u64) -> u64 {
     idle_timeout_secs.saturating_mul(PROGRESS_TIMEOUT_MULTIPLIER)
 }
 

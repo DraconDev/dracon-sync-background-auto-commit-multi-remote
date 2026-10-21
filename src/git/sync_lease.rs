@@ -13,22 +13,32 @@ pub(crate) fn try_acquire(repo: &Path) -> Result<Option<File>> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
+        options
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
     }
-    let file = options.open(common.join("dracon-sync.operation.lock"))
+    let file = options
+        .open(common.join("dracon-sync.operation.lock"))
         .context("cannot open repository sync lease")?;
-    anyhow::ensure!(file.metadata()?.is_file(), "sync lease must be a regular file");
+    anyhow::ensure!(
+        file.metadata()?.is_file(),
+        "sync lease must be a regular file"
+    );
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
         let metadata = file.metadata()?;
-        anyhow::ensure!(metadata.uid() == unsafe { libc::geteuid() } && metadata.nlink() == 1,
-            "sync lease must be operator-owned and not hard-linked");
+        anyhow::ensure!(
+            metadata.uid() == unsafe { libc::geteuid() } && metadata.nlink() == 1,
+            "sync lease must be operator-owned and not hard-linked"
+        );
     }
     match file.try_lock() {
         Ok(()) => Ok(Some(file)),
         Err(TryLockError::WouldBlock) => Ok(None),
-        Err(TryLockError::Error(error)) => Err(error).context("cannot acquire repository sync lease"),
+        Err(TryLockError::Error(error)) => {
+            Err(error).context("cannot acquire repository sync lease")
+        }
     }
 }
 
@@ -38,9 +48,14 @@ mod tests {
 
     #[test]
     fn child_process_lease_probe() {
-        let Some(repo) = std::env::var_os("DRACON_SYNC_LEASE_TEST_REPO") else { return; };
+        let Some(repo) = std::env::var_os("DRACON_SYNC_LEASE_TEST_REPO") else {
+            return;
+        };
         let acquired = try_acquire(Path::new(&repo)).unwrap().is_some();
-        assert_eq!(acquired, std::env::var("DRACON_SYNC_LEASE_TEST_EXPECT").unwrap() == "free");
+        assert_eq!(
+            acquired,
+            std::env::var("DRACON_SYNC_LEASE_TEST_EXPECT").unwrap() == "free"
+        );
     }
 
     #[test]
@@ -49,10 +64,15 @@ mod tests {
         std::fs::create_dir(repo.path().join(".git")).unwrap();
         let probe = |expected| {
             assert!(std::process::Command::new(std::env::current_exe().unwrap())
-                .args(["--exact", "git::sync_lease::tests::child_process_lease_probe"])
+                .args([
+                    "--exact",
+                    "git::sync_lease::tests::child_process_lease_probe"
+                ])
                 .env("DRACON_SYNC_LEASE_TEST_REPO", repo.path())
                 .env("DRACON_SYNC_LEASE_TEST_EXPECT", expected)
-                .status().unwrap().success());
+                .status()
+                .unwrap()
+                .success());
         };
         let held = try_acquire(repo.path()).unwrap().unwrap();
         assert!(try_acquire(repo.path()).unwrap().is_none());
