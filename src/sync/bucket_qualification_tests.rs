@@ -43,11 +43,7 @@ fn hash(bytes: &[u8]) -> String {
 /// instead of failing for a missing runtime; the GitHub runners have
 /// Node, so the suite runs there.
 fn node_available() -> bool {
-    Command::new("node")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    crate::test_helpers::node_available()
 }
 impl Fixture {
     fn new() -> Self {

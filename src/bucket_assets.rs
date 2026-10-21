@@ -394,10 +394,12 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
 
     #[tokio::test]
     async fn staged_accounting_ceiling_measures_clean_output_not_plaintext() {
-        if !crate::test_helpers::node_available() {{
-            eprintln!("skip: node is not available in this environment");
-            return;
-        }}
+        if !crate::test_helpers::node_available() {
+            {
+                eprintln!("skip: node is not available in this environment");
+                return;
+            }
+        }
         let dir = fixture();
         let repo = dir.path();
         let prepared = prepare(repo, false, 30)
@@ -426,10 +428,12 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
 
     #[tokio::test]
     async fn post_upload_capture_tampering_is_refused() {
-        if !crate::test_helpers::node_available() {{
-            eprintln!("skip: node is not available in this environment");
-            return;
-        }}
+        if !crate::test_helpers::node_available() {
+            {
+                eprintln!("skip: node is not available in this environment");
+                return;
+            }
+        }
         let dir = fixture();
         std::fs::write(dir.path().join(".git/tamper-after-verification"), "tamper").unwrap();
         let error = prepare(dir.path(), false, 30).await.err().unwrap();
@@ -441,10 +445,12 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
 
     #[tokio::test]
     async fn staged_reference_drift_and_raw_materialization_are_refused() {
-        if !crate::test_helpers::node_available() {{
-            eprintln!("skip: node is not available in this environment");
-            return;
-        }}
+        if !crate::test_helpers::node_available() {
+            {
+                eprintln!("skip: node is not available in this environment");
+                return;
+            }
+        }
         let dir = fixture();
         let repo = dir.path();
         let prepared = prepare(repo, false, 30).await.unwrap().unwrap();
@@ -465,10 +471,12 @@ console.log(JSON.stringify({ok:true,manifestSha256}));
 
     #[tokio::test]
     async fn daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure() {
-        if !crate::test_helpers::node_available() {{
-            eprintln!("skip: node is not available in this environment");
-            return;
-        }}
+        if !crate::test_helpers::node_available() {
+            {
+                eprintln!("skip: node is not available in this environment");
+                return;
+            }
+        }
         let dir = fixture();
         let repo = dir.path();
         let policy: crate::policy::SyncPolicy = toml::from_str(

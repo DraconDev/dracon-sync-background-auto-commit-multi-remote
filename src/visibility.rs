@@ -10,7 +10,7 @@ use crate::secrets::{load_secret, sync_secrets_dir};
 /// Strip ANSI escape sequences from a string.
 /// Handles CSI sequences (ESC [ ... m), OSC sequences (ESC ] ... BEL/ST),
 /// and bare ESC sequences.
-fn strip_ansi(s: &str) -> String {
+pub(crate) fn strip_ansi(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {

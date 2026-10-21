@@ -300,8 +300,14 @@ fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
             "wrapped at {width}: {output}"
         );
         for line in output.lines() {
+            // Measure the text, not the escape codes: comfy-table styles the
+            // table with ANSI colours when stdout is a terminal, and the
+            // escapes occupy no columns on screen. The Nix build's stdout
+            // is styled, a piped test run is not, and the width must be the
+            // same either way.
+            let visible = crate::visibility::strip_ansi(line);
             assert_eq!(
-                unicode_width::UnicodeWidthStr::width(line),
+                unicode_width::UnicodeWidthStr::width(visible.as_str()),
                 usize::from(width),
                 "{line}"
             );

@@ -153,6 +153,10 @@ async fn accounting_potential_codeberg_destination_cannot_be_omitted_by_quota_gu
 
 #[tokio::test]
 async fn accounting_actual_git_bytes_drive_inclusive_runner_pressure_boundaries() {
+    if !crate::test_helpers::node_available() {
+        eprintln!("skip: node is not available in this environment");
+        return;
+    }
     let td = fixture();
     let repo = td.path();
     let p = policy();

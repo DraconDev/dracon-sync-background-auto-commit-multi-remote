@@ -257,6 +257,10 @@ async fn publish(repo: &Path, capacity: Arc<Semaphore>) -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn integrated_failure_recovery_harness() {
+    if !crate::test_helpers::node_available() {
+        eprintln!("skip: node is not available in this environment");
+        return;
+    }
     tokio::time::timeout(Duration::from_secs(60), episode())
         .await
         .expect("integrated episode exceeded its wall-clock budget");
