@@ -181,6 +181,19 @@ ceiling was catching: the restarted daemon deferred a competing repository
 operation (`sync deferred: another process owns the repository operation`)
 instead of stacking work under the old limit.
 
+### The parity check is now wired into CI
+
+The check and its suite live in this repository, and a checker whose suite
+never runs is worthless — the fleet learned that with the unit-deployment
+suites (audit M9). The parent repository's CI now runs
+`scripts/test_check_task_budget_parity.sh`; the step skips with a visible
+warning while the pinned nested checkout predates the suite, and the parent's
+repin brought the pin past the commit that carries it, so the suite runs.
+The parent's CI was red for a long time for unrelated reasons (stale nested
+pins, unformatted sources, and the cargo-deny container's toolchain); that
+repair is recorded in the parent repository's
+`docs/design/ci-repair-2026-10-21.md`.
+
 ### The parity check could not see the applied drop-in
 
 With the drop-in installed, `scripts/check-task-budget-parity.sh` still
