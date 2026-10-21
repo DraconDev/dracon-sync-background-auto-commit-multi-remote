@@ -877,16 +877,19 @@ mod github_pack_tests {
 
     #[test]
     fn pushed_branch_size_is_reported_for_small_repo() {
-        let repo = daemon_repo();
-        let repo = repo.as_path();
-        let bytes = pushed_branch_pushable_bytes(repo);
+        // A fixture repository, not the checkout this test happens to run
+        // in: the CI checks the nested repositories out at a SHA, which
+        // leaves them on a detached HEAD, and a detached HEAD has no
+        // branch to measure — the size is unknown (u64::MAX) there.
+        let repo = crate::test_helpers::create_test_repo();
+        let bytes = pushed_branch_pushable_bytes(&repo);
         assert!(
             bytes > 0 && bytes != u64::MAX,
             "pushable bytes should be the repo's own objects, got {bytes}"
         );
         assert!(
             bytes < 2 * 1024 * 1024 * 1024,
-            "daemon main pushable {bytes} must fit github's 2 GiB limit"
+            "fixture pushable {bytes} must fit github's 2 GiB limit"
         );
     }
 
