@@ -567,6 +567,10 @@ async fn unsafe_config_paths_are_refused() {
 
 #[tokio::test]
 async fn refused_spawn_is_indexed_and_refused() {
+        if !crate::test_helpers::node_available() {{
+            eprintln!("skip: node is not available in this environment");
+            return;
+        }}
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
     init_repo(&repo);
@@ -603,6 +607,10 @@ async fn refused_spawn_is_indexed_and_refused() {
 
 #[tokio::test]
 async fn non_refused_status_without_commit_eligible_is_refused() {
+        if !crate::test_helpers::node_available() {{
+            eprintln!("skip: node is not available in this environment");
+            return;
+        }}
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
     init_repo(&repo);
@@ -673,6 +681,10 @@ async fn accounting_failure_never_spawns_publisher_or_writes_manifest() {
 
 #[tokio::test]
 async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
+        if !crate::test_helpers::node_available() {{
+            eprintln!("skip: node is not available in this environment");
+            return;
+        }}
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
     init_repo(&repo);
@@ -766,6 +778,10 @@ async fn mocked_end_to_end_returns_prepared_with_materialized_paths() {
 
 #[tokio::test]
 async fn timeout_is_refused() {
+        if !crate::test_helpers::node_available() {{
+            eprintln!("skip: node is not available in this environment");
+            return;
+        }}
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
     init_repo(&repo);
@@ -843,6 +859,10 @@ async fn oversized_stdin_is_refused() {
 
 #[tokio::test]
 async fn oversized_stdout_is_refused() {
+        if !crate::test_helpers::node_available() {{
+            eprintln!("skip: node is not available in this environment");
+            return;
+        }}
     let tmp = tempfile::tempdir().expect("tempdir");
     let repo = tmp.path().join("repo");
     init_repo(&repo);

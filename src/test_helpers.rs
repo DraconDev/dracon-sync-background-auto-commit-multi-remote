@@ -55,6 +55,23 @@ pub(crate) fn test_git_cmd() -> crate::policy::GitCommand {
     crate::git::git_cmd()
 }
 
+/// Whether a Node runtime is available in this environment.
+///
+/// The bucket-runner qualification fixture drives the real Node runner,
+/// and the bridge spawns `node <bundle>`. A build environment without
+/// Node — the Nix sandbox has no Node in its build inputs — cannot run
+/// them: the spawn fails with a "No such file or directory" that names
+/// the bundle, not the missing runtime. The tests that need it check
+/// this and report the skip; a runner that has Node runs them for real.
+#[allow(dead_code)]
+pub(crate) fn node_available() -> bool {
+    std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 /// Create a git commit command with `--no-verify` to bypass warden hooks.
 ///
 /// Tests that only need to set up git state (not test warden behavior) should use
