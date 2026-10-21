@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The SSH hardening only passes the operator's config to ssh when that file exists. `git_ssh_hardening()` always passed `-F $HOME/.dracon/secrets/ssh/config`, and ssh refuses to start when `-F` names a file that is not there ("Can't open user config file ..."), so every SSH push on a machine without the fleet's config store failed with a configuration error and the daemon reported that instead of the real cause. The rest of the hardening (BatchMode, ConnectTimeout, ConnectionAttempts, the keepalives, the SSH_ASKPASS unset) is unchanged.
 - Cancel owned Git/hook children and release the operation lease when one-shot sync commands receive TERM/INT.
 - Serialize daemon and CLI sync operations with a shared Git-directory lease; defer competing operations without counting a push failure.
 - Derive worker watchdog deadlines from configured multi-remote push budgets instead of cancelling permitted long pushes after a fixed 15 minutes.
@@ -26,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
+- The constant-size `chunks_exact(2)` in the storage path decoder is now `as_chunks::<2>()`, which is what clippy 1.99's `chunks_exact_to_as_chunks` asks for (the lint fires on the runner's toolchain, 1.99.1, and not on 1.97).
+- The forge-incident test makes its own change before the second attempt. The worktree used to provide that change by itself, because the warden's auto-harden step rewrote the staged file — on a machine without the warden there was nothing to commit, the attempt never reached the forge, and the shield was never exercised.
 - Repository legends use bordered, width-aware panels with clear explanations of UNKNOWN, historical push results, active remotes, file counters and per-push GitHub limits. The full key includes actions for failed pushes and missing scheduler evidence.
 
 ### Deployment
