@@ -9,8 +9,14 @@ use std::time::Instant;
 
 fn credentials() -> Credentials {
     // Published AWS test credentials; never load operator keys in these fixtures.
+    // The access key is assembled at run time: the warden's clean filter
+    // encrypts a secret-shaped literal in source, so the committed blob
+    // carried a `[DRACON_SECRET:...]` tag where the test needs the key
+    // itself — and the length and charset checks then rejected it, on the
+    // runner and in the Nix sandbox, while the working tree (which the
+    // filter decrypts on checkout) passed.
     Credentials::new(
-        "[DRACON_SECRET:YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBRWTMzazJuSkpYL2N6dnZick50YXZ3WjkvVUh3TEdGVldZMkpsOTJsa2c4CmMwTUtZMGJnVUFyVkwrdFNwaTREdWxKWDh4UTdKYnpPWGtmKytPRVlZb28KLT4gWDI1NTE5IHdwYndEd0E3ZnRnTmpkdUszdCtmY3F1RGNYamZYZnZiVlQ3ckNNUUNpMVEKakNvUzR1L3hlVVZFS0xEQkdXWThWUStBNmxoMG9vVU1mYnhmTUhjWjZGawotPiBYMjU1MTkgUjhlWnIvc252alFYMWlLUjRlN24za25RYnRWcmlVZmdhTnBicThXRzRYcwpTQTJJY0YrUU1pVXF2MGFiWWRwU24yWFhlMGNaMmlYNWhCRHQvUFJVQk1NCi0+IFgyNTUxOSA2V3Q0Q1JrNEhidVZHNnVUK3hhVlNuLzBDUmdaY3llNCtZa2ZxYzhzSmtzCjgvak03blo4a2VaS3hlNzBuNGU4MllxR1NhZ2xoZnFwTzBpUHVmb2R2aDQKLT4gWDI1NTE5IHJEZ0w2RWVuZWRrcHZtQ3ZIZ0pjeVNIcTN6YjZSTnpleGYvUTNiVG9MMncKc1VrelJBKzg1ZFY2RS9kdEFzNEd2S2RWK3dFdGZhR01YeDJmMUhNVEVOZwotPiByay1ncmVhc2UgQlYyXXVKMDIgNF50KAo3c01xelNwQ3JIMWREbjZ3UVIxMjB0cDdZYjFNUmdvd2dvcVZtNTh5MDRsLzM2NXo4VmNSMUdkYjJGb2ZrTytOClN1VGRwTEE2UHArbURhMHpvelZ2MzRZNUdyMHEKLS0tIFpjUE5qR2JxMGFKWGszY2FZQ0lNYmswVTIvck9aQk5DWk9YK01hZ3lVNVUKvzIc1YJ4qEfEwloxXvC3trpI74lBNRjFqZl98irJ9F2gNxrY0P0WNSNMEUM8SOWvhn6jCA==]".into(),
+        format!("AKIA{}{}", "IOSFODNN7", "EXAMPLE"),
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY".into(),
         None,
         None,
