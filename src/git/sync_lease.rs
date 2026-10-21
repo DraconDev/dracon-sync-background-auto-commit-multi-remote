@@ -18,7 +18,7 @@ pub(crate) fn try_acquire(repo: &Path) -> Result<Option<File>> {
             .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
     }
     let file = options
-        .open(common.join("dracon-sync.operation.lock"))
+        .open(common.join("dracon-sync.operation-lease"))
         .context("cannot open repository sync lease")?;
     anyhow::ensure!(
         file.metadata()?.is_file(),
@@ -79,7 +79,10 @@ mod tests {
         probe("busy");
         drop(held);
         probe("free");
-        assert!(repo.path().join(".git/dracon-sync.operation.lock").exists());
+        assert!(repo
+            .path()
+            .join(".git/dracon-sync.operation-lease")
+            .exists());
     }
 
     #[cfg(unix)]
@@ -96,7 +99,7 @@ mod tests {
         let held = try_acquire(&repo).unwrap().unwrap();
         assert!(try_acquire(&linked).unwrap().is_none());
         drop(held);
-        let lock = repo.join(".git/dracon-sync.operation.lock");
+        let lock = repo.join(".git/dracon-sync.operation-lease");
         std::fs::remove_file(&lock).unwrap();
         std::os::unix::fs::symlink(root.path().join("other"), &lock).unwrap();
         assert!(try_acquire(&repo).is_err());

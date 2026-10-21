@@ -79,3 +79,10 @@ A future gate design should validate a stable pushed-tree snapshot; it must
 account for generated inputs and shared dependencies without increasing disk
 or memory pressure. Until then, gate failures remain failures and must be
 checked against the retained attempt rather than hidden by retries.
+
+The full suite caught an initial lease-name regression: a `.lock` suffix
+triggered the empty-repo mid-clone guard. The lease now uses the persistent
+`dracon-sync.operation-lease` name, distinct from Git transaction locks.
+Standalone daemon bootstrap also acquires ownership; bootstrap within a
+full sync reuses its existing ownership. A read-only Git directory correctly
+fails at ownership acquisition before any bootstrap mutation.

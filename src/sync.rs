@@ -4872,6 +4872,27 @@ pub(crate) async fn bootstrap_empty_repo_commit(
     if !policy.auto_commit {
         return Ok(false);
     }
+    let _lease = if dry_run {
+        None
+    } else {
+        match crate::git::sync_lease::try_acquire(repo)? {
+            Some(lease) => Some(lease),
+            None => return Ok(false),
+        }
+    };
+    bootstrap_empty_repo_commit_owned(repo, policy, excluded_dir_names, dry_run).await
+}
+
+// The full sync path already owns the same kernel lease.
+async fn bootstrap_empty_repo_commit_owned(
+    repo: &Path,
+    policy: &SyncPolicy,
+    excluded_dir_names: &BTreeSet<String>,
+    dry_run: bool,
+) -> Result<bool> {
+    if !policy.auto_commit {
+        return Ok(false);
+    }
 
     // Ownership gate — mirrors the daemon loop's guard so a bootstrap
     // can never auto-commit into someone else's repo.
@@ -5282,7 +5303,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
             );
             return Ok(SyncOutcome::NothingToDo);
         }
-        match bootstrap_empty_repo_commit(repo, policy, excluded_dir_names, dry_run).await {
+        match bootstrap_empty_repo_commit_owned(repo, policy, excluded_dir_names, dry_run).await {
             Ok(true) => {
                 // Fall through: HEAD is now valid, the pipeline below
                 // computes status and pushes the root commit.
@@ -7983,8 +8004,8 @@ trusted_authors = ["test"]
         let err = result.expect_err("bootstrap failure must propagate as Err, not Ok(NothingToDo)");
         let chain = format!("{err:?}");
         assert!(
-            chain.contains("bootstrap"),
-            "error must name the bootstrap step: {chain}"
+            chain.contains("bootstrap") || chain.contains("sync lease"),
+            "error must name the failed bootstrap or prior ownership step: {chain}"
         );
     }
 
