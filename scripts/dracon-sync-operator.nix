@@ -52,7 +52,12 @@
       CPUQuota = "200%";
       MemoryHigh = "1536M";
       MemoryMax = "2G";
-      TasksMax = 96;
+      # CHANGED 2026-10-21: 96 -> 512. The shipped unit (dracon-sync.service)
+      # and the parent flake's parity check (needSync "TasksMax" "512") already
+      # carry 512; this module copy still pinned 96, so a NixOS install of
+      # the operator unit would keep the old ceiling. The daemon's own
+      # Git filters and Node pre-push workers are the consumers that hit it.
+      TasksMax = 512;
       NoNewPrivileges = true;
       ProtectSystem = "strict";
       ProtectHome = "read-only";
