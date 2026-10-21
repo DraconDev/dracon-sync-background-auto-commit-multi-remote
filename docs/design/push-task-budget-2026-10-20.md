@@ -82,3 +82,28 @@ normal guarded push at 01:29 BST; publication must be verified against both
 forge refs before reporting recovery. Current live TasksMax remains 96.
 At 01:33 BST the root filesystem had 135 GiB available (85% used); no cleanup
 or deletion was needed for this follow-up.
+
+## October 21 convergence follow-up
+
+At 02:24, GitHub had advanced but GitLab still pointed at d1cce2ed0f.
+The daemon repeatedly cancelled repository work after 900 seconds even
+though its per-push timeout had scaled to 1800 seconds. The cancellation
+occurred outside the push timeout; increasing only the Git timeout cannot
+fix that watchdog mismatch. A separately launched 600-second CLI repair
+was also repeating checks, so no third push was started during that run.
+
+An automatic-resume maintenance wrapper let the existing daemon GitLab
+attempt finish beyond the outer watchdog deadline. It still failed a real
+gate at 02:32: TabMon's test log ended after two passing files, without a
+suite summary or assertion failure. Clean Web, VidPro and YouTube Filter
+passed. The live service reported pids.events max=8504 (historical aggregate)
+and oom_kill=0; that does not identify the exact cause of this test exit.
+Maintenance resumed normally. No gate failure was relabeled as success.
+
+TabMon now uses one worker, retaining its complete suite and assertions.
+A normal sync-now pass then committed the configuration and started from
+a transient user scope with CPUQuota=200%, outside the system service's
+96-task limit. Its full process lifetime is held by an automatic-resume
+maintenance wrapper, avoiding competing daemon dispatch and preserving
+ordinary hook, staging and push-history behavior. Final forge verification
+must still be recorded after this pass exits.
