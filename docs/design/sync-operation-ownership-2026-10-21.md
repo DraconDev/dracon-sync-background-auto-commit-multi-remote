@@ -159,14 +159,28 @@ task pressure that the 96 ceiling was catching.
 
 ## Remaining items (not fixed here)
 
-- `browser-extensions-shared` still has one unpushed commit. The failure
-  recorded on 2026-10-21 is the external GitLab outage ("Gitaly is not
-  available at this time" / SIGPIPE from `gitlab.com`), not a daemon
-  defect; the remote answers again and the daemon retries on its own. This
-  is deliberately outside the scope of this deployment.
+- The live root-owned unit still enforces `TasksMax=96`; applying
+  `scripts/30-tasksmax.conf` needs the operator's admin credential (see
+  "Task budget — source parity fixed, live limit still pending" above for
+  the exact commands).
 - The fleet-wide performance/swap-thrash follow-ups are tracked in
   `docs/design/performance-swap-thrash-2026-10-21.md` in the parent
   repository and were not touched here.
-- The parent repository's own push was blocked by the warden's secret scan
-  on the session transcript; that fix and its evidence are recorded in the
-  parent repository's design notes.
+
+## Resolved during this session
+
+Recorded here so the list above stays truthful about what is still open.
+
+- The parent repository's own push, blocked by the warden's secret scan on
+  the session transcript, was unblocked: the two quoted secret-shaped
+  literals were elided in place, the two never-published commits were
+  replaced by one commit carrying the elided blob, and both mirrors
+  (github, gitlab) now carry `28c3e1012` with the working tree clean. No
+  published history was rewritten, and no hook, pattern, receipt or
+  exemption was introduced. The evidence is in the parent repository's
+  design note `docs/design/session-transcript-push-unblock-2026-10-21.md`.
+- `browser-extensions-shared` had one unpushed commit while GitLab was
+  unavailable ("Gitaly is not available at this time" / SIGPIPE from
+  `gitlab.com`) — an external outage, not a daemon defect. The remote
+  recovered, the daemon pushed on its own, and the repository is now 0
+  ahead / 0 behind, so it is no longer an open row.

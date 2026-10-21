@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Repository legends use bordered, width-aware panels with clear explanations of UNKNOWN, historical push results, active remotes, file counters and per-push GitHub limits. The full key includes actions for failed pushes and missing scheduler evidence.
 
+### Deployment
+
+- Shipped this `[Unreleased]` work to the live daemon and the CLI on 2026-10-21 — the running daemon still executed the deleted Oct-19 inode and the installed CLI was the Oct-20 build, so neither had the operation lease, ref-race reconciliation, one-shot cancellation or push-budget work.
+- Deployed artifact `sha256 3b9d4fb03835cf08c837b304cdb8f11ed2a3b4eee4e20d39175dbabd9ceb0ef2` (replacing `df7ec12868123cd1b70156def998e19e3ef5af790886c46427a48bd9e39a3564`), daemon PID `2039261` → `2042366`.
+- Method: atomic replace of `~/.local/bin/dracon-sync` (sibling temp file + rename), then a graceful `SIGTERM` to the daemon's main PID, which systemd's `Restart=always` respawned on the new binary. The service was never stopped — `systemctl stop` is banned by the daemon-quiesce policy.
+- Receipt and rollback copy: `~/.local/state/dracon-sync/deployments/20261021T051118Z/` (`dracon-sync.before`, `dracon-sync.after`, `receipt.json`).
+- Live task-budget state after this deployment: the root-owned unit still enforces `TasksMax=96`. The repository sources say 512 and `scripts/30-tasksmax.conf` ships in the repository, but applying it needs the operator's admin credential, so it is not claimed as applied.
+
 ## [0.113.95] - 2026-10-05
 
 ### Fixed
