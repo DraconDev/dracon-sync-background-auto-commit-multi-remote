@@ -1443,13 +1443,24 @@ mod tests {
             "should contain BatchMode=yes, got: {val}"
         );
         assert!(
-            val.contains("-F"),
-            "should contain -F flag for SSH config, got: {val}"
-        );
-        assert!(
             val.contains("ConnectTimeout=10"),
             "should contain ConnectTimeout, got: {val}"
         );
+        // The operator's SSH config is wired in only when the file exists:
+        // ssh refuses to start when -F names a file that is not there, and
+        // the real push failure has to stay visible. The two shapes are
+        // covered by the unit test in `git::config`.
+        let config = format!("{}/.dracon/secrets/ssh/config", home_dir_for_test());
+        let has_config = std::path::Path::new(&config).exists();
+        assert_eq!(
+            val.contains("-F"),
+            has_config,
+            "the -F flag must match the presence of {config}, got: {val}"
+        );
+    }
+    /// The home directory the SSH config would be looked up under.
+    fn home_dir_for_test() -> String {
+        std::env::var("HOME").unwrap_or_else(|_| "/root".to_string())
     }
     #[test]
     fn test_gitlab_https_url_ssh_colon_path() {
