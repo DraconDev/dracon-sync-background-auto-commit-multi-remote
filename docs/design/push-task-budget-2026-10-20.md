@@ -107,3 +107,28 @@ a transient user scope with CPUQuota=200%, outside the system service's
 maintenance wrapper, avoiding competing daemon dispatch and preserving
 ordinary hook, staging and push-history behavior. Final forge verification
 must still be recorded after this pass exits.
+
+## Verified recovery, 02:45–02:46 BST
+
+GitHub main, GitLab main and local HEAD were all independently verified at
+`8829dff91a26b88d658fdda20b31bbd9cfad49da`. The daemon wrote
+`succeeded=true` at epoch 1792547132 (02:45:32 BST). GitLab's actual guarded
+push passed all four workspace gates; TabMon passed all 947 tests with one
+worker. VidPro and YouTube Filter gates also passed; the latter passed 721
+tests. No history rewrite or gate bypass was used.
+
+One worker had already been in flight when controlled maintenance began.
+It delivered the same snapshot, so the controlled origin push received a
+ref-update race: the remote already pointed at the desired 8829dff91a, but
+the older advertisement had expected 0862adc8d9. After both remote refs
+and the daemon's real success record were verified, only the redundant
+controlled recovery scope was stopped. Its process/FD/scope ownership was
+verified first. This avoided an unnecessary second GitLab ref-update race;
+the remaining duplicate hook was not needed for publication. No push-history
+record was edited manually. The maintenance wrapper resumed automatically,
+the freeze marker was verified absent, and the system daemon stayed active.
+
+Other agents continued editing after the verified snapshot; subsequent dirty
+or WORKING rows are normal pending work. The live system-unit task cap is
+still 96: the prepared increase to 512 requires the administrator command
+above, which this session cannot authenticate.
