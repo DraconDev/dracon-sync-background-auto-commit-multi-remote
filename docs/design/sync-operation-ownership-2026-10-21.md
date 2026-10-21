@@ -64,10 +64,12 @@ and hook regression tests. Further hook updates must be installed atomically,
 and the final retry follows drain/verification rather than editing a running
 script. No hook bypass or manually fabricated success observation is allowed.
 
-The root-owned system service still has TasksMax=96. Package defaults are
-already prepared for 512; applying the live change requires administrator
+The root-owned system service had TasksMax=96 while the package defaults were
+already prepared for 512; applying the live change required administrator
 authentication. The code changes reduce overlapping work and preserve accurate
 failure evidence; they do not silently claim that root setting was applied.
+The operator applied the drop-in later the same day — see "Task budget — source
+parity fixed, live limit applied" below.
 
 ## Concurrent source edits remain visible
 
@@ -123,7 +125,7 @@ running daemon is the new code and not a same-version build of the old one.
 The deployment was applied to CLI and daemon together on purpose: the
 operation lease is only cooperative if both sides run the new code.
 
-## Task budget — source parity fixed, live limit still pending
+## Task budget — source parity fixed, live limit applied
 
 `TasksMax` was 512 in the shipped unit (`dracon-sync.service`) and in the
 parent flake's `needSync "TasksMax" "512"` parity check, but the NixOS
@@ -141,8 +143,10 @@ proves the check fails on a drifted source, tolerates a harmless change
 source failure. The ready-to-apply drop-in is
 `scripts/30-tasksmax.conf`.
 
-**The live unit still enforces `TasksMax=96`.** Applying the drop-in needs
-the operator's admin credential, which this run did not have:
+**At the end of that run the live unit still enforced `TasksMax=96`.** Applying
+the drop-in needed the operator's admin credential, which that run did not
+have — both a non-interactive `sudo` and a `pkexec` polkit request were
+attempted and refused ("a password is required" / "Not authorized"):
 
 ```
 sudo install -m 644 scripts/30-tasksmax.conf \
@@ -150,19 +154,35 @@ sudo install -m 644 scripts/30-tasksmax.conf \
 sudo systemctl daemon-reload
 ```
 
-Both a non-interactive `sudo` and a `pkexec` polkit request were attempted
-and refused ("a password is required" / "Not authorized"). The limit takes
-effect for the running service at its next start; the daemon shuts down
-gracefully on SIGTERM and the unit restarts it, so no `systemctl stop` is
-needed. Until then the new operation lease already reduces the concurrent
-task pressure that the 96 ceiling was catching.
+The limit takes effect for the running service at its next start; the daemon
+shuts down gracefully on SIGTERM and the unit restarts it, so no
+`systemctl stop` is needed.
+
+**The operator applied it on 2026-10-21 at 11:07 BST**, and the live service
+now runs under the new ceiling:
+
+| item | value |
+|---|---|
+| drop-in | `/run/systemd/system/dracon-sync-operator.service.d/30-tasksmax.conf` (`root root`, mode 644, installed 11:07) |
+| unit property | `systemctl show dracon-sync-operator.service -p TasksMax` → `512` |
+| kernel enforcement | cgroup `pids.max` = `512` — the limit the daemon is actually held to, not just the declared one |
+| observed load | cgroup `pids.current` = 61 at verification |
+| restart | `SIGTERM` → systemd `Scheduled restart job, restart counter is at 4` (11:07:49) → new PID 3228336 started 11:07:50 |
+
+The restart took the graceful `Restart=always` path; the service was never
+stopped. A `systemctl show -p TasksMax` issued in the same second as that
+restart printed `Failed to get properties: Unknown object
+'/org/freedesktop/systemd1/job/512'` — a benign race in which the property
+query hit the transient restart job object after systemd had already
+collected it. The same command answers `512` once the job settles.
+
+The new operation lease also reduced the concurrent task pressure that the 96
+ceiling was catching: the restarted daemon deferred a competing repository
+operation (`sync deferred: another process owns the repository operation`)
+instead of stacking work under the old limit.
 
 ## Remaining items (not fixed here)
 
-- The live root-owned unit still enforces `TasksMax=96`; applying
-  `scripts/30-tasksmax.conf` needs the operator's admin credential (see
-  "Task budget — source parity fixed, live limit still pending" above for
-  the exact commands).
 - The fleet-wide performance/swap-thrash follow-ups are tracked in
   `docs/design/performance-swap-thrash-2026-10-21.md` in the parent
   repository and were not touched here.
@@ -179,6 +199,13 @@ Recorded here so the list above stays truthful about what is still open.
   published history was rewritten, and no hook, pattern, receipt or
   exemption was introduced. The evidence is in the parent repository's
   design note `docs/design/session-transcript-push-unblock-2026-10-21.md`.
+- The live task budget is no longer pending: the operator applied
+  `scripts/30-tasksmax.conf` to the root-owned unit on 2026-10-21 at 11:07
+  BST, so `TasksMax=512` is now both the unit property and the kernel cgroup
+  `pids.max` for the running service. The source parity fix, the parity check
+  and its regression test were already in place; the sources and the live unit
+  now agree at 512 (see "Task budget — source parity fixed, live limit
+  applied" above).
 - `browser-extensions-shared` had one unpushed commit while GitLab was
   unavailable ("Gitaly is not available at this time" / SIGPIPE from
   `gitlab.com`) — an external outage, not a daemon defect. The remote
