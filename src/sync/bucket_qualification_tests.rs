@@ -36,6 +36,19 @@ fn read(path: impl AsRef<Path>) -> Vec<u8> {
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
+
+/// The qualification fixture drives a real Node runner. A build
+/// environment without Node — the Nix sandbox, which has no Node in its
+/// build inputs — cannot run it. The tests then report the skip and pass
+/// instead of failing for a missing runtime; the GitHub runners have
+/// Node, so the suite runs there.
+fn node_available() -> bool {
+    Command::new("node")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
 impl Fixture {
     fn new() -> Self {
         let temp = tempfile::tempdir().unwrap();
@@ -230,6 +243,10 @@ stage_op_timeout_secs = 30
 
 #[tokio::test]
 async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
+    if !node_available() {
+        eprintln!("skip: node is not available in this environment");
+        return;
+    }
     let f = Fixture::new();
     let before = f.head();
     assert_eq!(f.cycle().await, SyncOutcome::Synced);
@@ -319,6 +336,10 @@ async fn bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore() {
 
 #[tokio::test]
 async fn bucket_qualification_daemon_outage_partial_upload_and_recovery() {
+    if !node_available() {
+        eprintln!("skip: node is not available in this environment");
+        return;
+    }
     for (mode, expected_stored) in [("outage", 0), ("partial", 1)] {
         let f = Fixture::new();
         let head = f.head();
@@ -357,6 +378,10 @@ async fn bucket_qualification_daemon_outage_partial_upload_and_recovery() {
 
 #[tokio::test]
 async fn bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer() {
+    if !node_available() {
+        eprintln!("skip: node is not available in this environment");
+        return;
+    }
     let f = Fixture::new();
     let head = f.head();
     let index = git(&f.repo, &["ls-files", "--stage", "-z"]);
