@@ -9829,6 +9829,13 @@ push_url = "http://127.0.0.1:{}/{}.git"
             &repo_a.to_string_lossy()
         ));
         // Repo A fails again under the incident: shielded, still 1.
+        // A fresh change, so the second attempt has something to push and
+        // actually reaches the forge. The worktree used to provide that
+        // change by itself, because the warden's auto-harden step rewrote
+        // the staged file — on a machine without the warden (a CI runner)
+        // there is nothing to commit, the attempt never pushes, and the
+        // shield is never reached.
+        std::fs::write(repo_a.join("change-again.txt"), "changed again\n").unwrap();
         let out_a2 = sync_repo_with_ahead_since(
             &repo_a,
             &policy_a,
