@@ -1,0 +1,9 @@
+Oct 22 14:26:58 nixos dracon-sync[3228336]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-strategy: git push-to-gitlab timeout in /home/dracon/Dev/dracon-strategy after 900s idle (3600s hard cap)
+Oct 22 14:26:58 nixos dracon-sync[3228336]: ⚠️ push failed for /home/dracon/Dev/dracon-strategy (remotes: gitlab)
+Oct 22 14:27:00 nixos dracon-sync[3228336]: ⚠️ /home/dracon/Dev/dracon-strategy committed but push failed (late) (will retry)
+Oct 22 14:27:00 nixos dracon-sync[3228336]: 🛑 /home/dracon/Dev/dracon-strategy push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck dracon-strategy` or `dracon-sync repair concerns --apply`
+Oct 22 14:27:00 nixos dracon-sync[3228336]: 🔔 sync alert: /home/dracon/Dev/dracon-strategy — Push Stuck (budget exhausted): 5 consecutive push failures — transport/auth failure (network, timeout, or credentials); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+Oct 22 14:27:11 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-strategy committed; push paused (commit-only mode)
+Oct 22 14:27:12 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-strategy committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 14:27:43 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-strategy committed; push paused (commit-only mode)
+Oct 22 14:27:44 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-strategy committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)

@@ -1,0 +1,853 @@
+20:57:34.087333 common-init.c:57             | d0 | main                     | version      |     |           |           |              | 2.51.2
+20:57:34.087355 common-init.c:58             | d0 | main                     | start        |     |  0.000314 |           |              | git -C /home/dracon/Dev/dracon-platform --no-optional-locks -c index.threads=1 -c core.preloadIndex=false status --porcelain=v2 --branch --untracked-files=all
+20:57:34.087476 compat/linux/procinfo.c:170  | d0 | main                     | cmd_ancestry |     |           |           |              | ancestry:[timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:34.087561 repository.c:242             | d0 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform
+20:57:34.087628 git.c:503                    | d0 | main                     | cmd_name     |     |           |           |              | status (status)
+20:57:34.087807 read-cache.c:2357            | d0 | main                     | region_enter | r1  |  0.000767 |           | index        | label:do_read_index .git/index
+20:57:34.090208 cache-tree.c:643             | d0 | main                     | region_enter | r1  |  0.003166 |           | cache_tree   | ..label:read
+20:57:34.091396 cache-tree.c:645             | d0 | main                     | region_leave | r1  |  0.004356 |  0.001190 | cache_tree   | ..label:read
+20:57:34.091473 read-cache.c:2306            | d0 | main                     | data         | r1  |  0.004433 |  0.003666 | index        | ..read/version:2
+20:57:34.091481 read-cache.c:2308            | d0 | main                     | data         | r1  |  0.004442 |  0.003675 | index        | ..read/cache_nr:16708
+20:57:34.091487 read-cache.c:2362            | d0 | main                     | region_leave | r1  |  0.004447 |  0.003680 | index        | label:do_read_index .git/index
+20:57:34.091500 read-cache.c:1514            | d0 | main                     | region_enter |     |  0.004460 |           | index        | label:refresh
+20:57:35.075058 repository.c:242             | d0 | main                     | def_repo     | r2  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/released/come-get-me
+20:57:35.075314 repository.c:242             | d0 | main                     | def_repo     | r3  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls
+20:57:35.100372 repository.c:242             | d0 | main                     | def_repo     | r4  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+20:57:35.100625 repository.c:242             | d0 | main                     | def_repo     | r5  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/darklord
+20:57:35.100846 repository.c:242             | d0 | main                     | def_repo     | r6  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+20:57:35.101071 repository.c:242             | d0 | main                     | def_repo     | r7  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+20:57:35.101299 repository.c:242             | d0 | main                     | def_repo     | r8  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+20:57:35.101498 repository.c:242             | d0 | main                     | def_repo     | r9  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+20:57:35.101654 repository.c:242             | d0 | main                     | def_repo     | r10  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/freeport
+20:57:35.101869 repository.c:242             | d0 | main                     | def_repo     | r11  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hegemon
+20:57:35.102096 repository.c:242             | d0 | main                     | def_repo     | r12  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter
+20:57:35.102329 repository.c:242             | d0 | main                     | def_repo     | r13  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+20:57:35.102548 repository.c:242             | d0 | main                     | def_repo     | r14  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+20:57:35.119340 repository.c:242             | d0 | main                     | def_repo     | r15  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/polis
+20:57:35.119597 repository.c:242             | d0 | main                     | def_repo     | r16  |           |           |              | ..worktree:/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker
+20:57:35.287475 read-cache.c:1596            | d0 | main                     | data         |     |  1.200433 |  1.195973 | index        | ..refresh/sum_lstat:16708
+20:57:35.287503 read-cache.c:1597            | d0 | main                     | data         |     |  1.200462 |  1.196002 | index        | ..refresh/sum_scan:1
+20:57:35.287508 read-cache.c:1598            | d0 | main                     | region_leave |     |  1.200469 |  1.196009 | index        | label:refresh
+20:57:35.287607 wt-status.c:841              | d0 | main                     | region_enter | r1  |  1.200568 |           | status       | label:worktrees
+20:57:35.288095 run-command.c:740            | d0 | main                     | child_start  |     |  1.201053 |           |              | ..[ch0] class:? cd:web/games/released/come-get-me argv:[git status --porcelain=2]
+20:57:35.291006 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.291027 common-init.c:58             | d1 | main                     | start        |     |  0.000332 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.291192 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.291302 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/released/come-get-me
+20:57:35.291371 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.291558 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000869 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-come-get-me/index
+20:57:35.291723 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001035 |           | cache_tree   | ..label:read
+20:57:35.291781 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001092 |  0.000057 | cache_tree   | ..label:read
+20:57:35.291798 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001109 |  0.000240 | index        | ..read/version:2
+20:57:35.291803 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001115 |  0.000246 | index        | ..read/cache_nr:1136
+20:57:35.291809 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001120 |  0.000251 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-come-get-me/index
+20:57:35.291816 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001128 |           | index        | label:refresh
+20:57:35.296428 read-cache.c:1596            | d1 | main                     | data         |     |  0.005736 |  0.004608 | index        | ..refresh/sum_lstat:1136
+20:57:35.296452 read-cache.c:1597            | d1 | main                     | data         |     |  0.005764 |  0.004636 | index        | ..refresh/sum_scan:0
+20:57:35.296458 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.005769 |  0.004641 | index        | label:refresh
+20:57:35.296561 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.005873 |           | status       | label:worktrees
+20:57:35.296602 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.005914 |           | diff         | ..label:setup
+20:57:35.296606 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.005918 |  0.000004 | diff         | ..label:setup
+20:57:35.296610 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.005922 |           | diff         | ..label:write back to queue
+20:57:35.296614 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.005926 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.296623 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.005935 |  0.000062 | status       | label:worktrees
+20:57:35.296627 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.005939 |           | status       | label:index
+20:57:35.298005 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.007316 |           | unpack_trees | ..label:unpack_trees
+20:57:35.298045 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.007357 |           | unpack_trees | ....label:traverse_trees
+20:57:35.298091 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.007403 |  0.000046 | unpack_trees | ....label:traverse_trees
+20:57:35.298102 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.007413 |  0.000097 | unpack_trees | ..label:unpack_trees
+20:57:35.298106 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.007417 |           | diff         | ..label:setup
+20:57:35.298109 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.007421 |  0.000004 | diff         | ..label:setup
+20:57:35.298113 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.007424 |           | diff         | ..label:write back to queue
+20:57:35.298116 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.007427 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.298121 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.007432 |  0.001493 | status       | label:index
+20:57:35.298125 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.007436 |           | status       | label:untracked
+20:57:35.298138 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.007450 |           | dir          | ..label:read_directory
+20:57:35.298172 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.007483 |           | index        | ....label:name-hash-init
+20:57:35.298253 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.007565 |  0.000082 | index        | ....label:name-hash-init
+20:57:35.305579 dir.c:3071                   | d1 | main                     | data         | r1  |  0.014887 |  0.007437 | read_directo | ....path:
+20:57:35.305605 dir.c:3079                   | d1 | main                     | data         | r1  |  0.014916 |  0.007466 | read_directo | ....directories-visited:221
+20:57:35.305617 dir.c:3081                   | d1 | main                     | data         | r1  |  0.014929 |  0.007479 | read_directo | ....paths-visited:1367
+20:57:35.305621 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.014933 |  0.007483 | dir          | ..label:read_directory
+20:57:35.305629 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.014941 |  0.007505 | status       | label:untracked
+20:57:35.305663 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.014975 |  0.014975 | status       | count/changed:0
+20:57:35.305668 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.014979 |  0.014979 | status       | count/untracked:0
+20:57:35.305672 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.014983 |  0.014983 | status       | count/ignored:0
+20:57:35.305676 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.014987 |           | status       | label:print
+20:57:35.305680 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.014992 |  0.000005 | status       | label:print
+20:57:35.305688 git.c:780                    | d1 | main                     | exit         |     |  0.014999 |           |              | code:0
+20:57:35.305694 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.015005 |  0.015005 | traverse_tre | statistics:{"traverse_trees_count":3,"traverse_trees_max_depth":3}
+20:57:35.305699 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.015010 |           |              | code:0
+20:57:35.306210 run-command.c:996            | d0 | main                     | child_exit   |     |  1.219168 |  0.018115 |              | ..[ch0] pid:2339949 code:0
+20:57:35.306340 run-command.c:740            | d0 | main                     | child_start  |     |  1.219299 |           |              | ..[ch1] class:? cd:web/games/released/one-mil-girls argv:[git status --porcelain=2]
+20:57:35.308561 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.308578 common-init.c:58             | d1 | main                     | start        |     |  0.000260 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.308703 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.308807 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls
+20:57:35.308900 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.309060 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000745 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-one-mil-girls/index
+20:57:35.309131 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.000817 |           | cache_tree   | ..label:read
+20:57:35.309163 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.000849 |  0.000032 | cache_tree   | ..label:read
+20:57:35.309175 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.000861 |  0.000116 | index        | ..read/version:2
+20:57:35.309179 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.000866 |  0.000121 | index        | ..read/cache_nr:406
+20:57:35.309184 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.000870 |  0.000125 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-one-mil-girls/index
+20:57:35.309198 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.000884 |           | index        | label:refresh
+20:57:35.310009 read-cache.c:1596            | d1 | main                     | data         |     |  0.001695 |  0.000811 | index        | ..refresh/sum_lstat:406
+20:57:35.310016 read-cache.c:1597            | d1 | main                     | data         |     |  0.001702 |  0.000818 | index        | ..refresh/sum_scan:0
+20:57:35.310019 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.001706 |  0.000822 | index        | label:refresh
+20:57:35.310091 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.001778 |           | status       | label:worktrees
+20:57:35.310113 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.001799 |           | diff         | ..label:setup
+20:57:35.310120 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.001806 |  0.000007 | diff         | ..label:setup
+20:57:35.310124 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.001810 |           | diff         | ..label:write back to queue
+20:57:35.310127 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.001814 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.310137 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.001824 |  0.000046 | status       | label:worktrees
+20:57:35.310141 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.001828 |           | status       | label:index
+20:57:35.310388 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.002074 |           | unpack_trees | ..label:unpack_trees
+20:57:35.310408 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.002094 |           | unpack_trees | ....label:traverse_trees
+20:57:35.310442 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.002129 |  0.000035 | unpack_trees | ....label:traverse_trees
+20:57:35.310449 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.002135 |  0.000061 | unpack_trees | ..label:unpack_trees
+20:57:35.310453 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.002139 |           | diff         | ..label:setup
+20:57:35.310457 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.002143 |  0.000004 | diff         | ..label:setup
+20:57:35.310461 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.002147 |           | diff         | ..label:write back to queue
+20:57:35.310465 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.002151 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.310469 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.002156 |  0.000328 | status       | label:index
+20:57:35.310473 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.002159 |           | status       | label:untracked
+20:57:35.310486 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.002173 |           | dir          | ..label:read_directory
+20:57:35.310513 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.002199 |           | index        | ....label:name-hash-init
+20:57:35.310545 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.002232 |  0.000033 | index        | ....label:name-hash-init
+20:57:35.329470 dir.c:3071                   | d1 | main                     | data         | r1  |  0.021153 |  0.018980 | read_directo | ....path:
+20:57:35.329494 dir.c:3079                   | d1 | main                     | data         | r1  |  0.021180 |  0.019007 | read_directo | ....directories-visited:81
+20:57:35.329506 dir.c:3081                   | d1 | main                     | data         | r1  |  0.021192 |  0.019019 | read_directo | ....paths-visited:493
+20:57:35.329511 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.021197 |  0.019024 | dir          | ..label:read_directory
+20:57:35.329519 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.021205 |  0.019046 | status       | label:untracked
+20:57:35.329552 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.021239 |  0.021239 | status       | count/changed:0
+20:57:35.329557 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.021243 |  0.021243 | status       | count/untracked:0
+20:57:35.329562 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.021248 |  0.021248 | status       | count/ignored:0
+20:57:35.329566 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.021252 |           | status       | label:print
+20:57:35.329570 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.021257 |  0.000005 | status       | label:print
+20:57:35.329578 git.c:780                    | d1 | main                     | exit         |     |  0.021264 |           |              | code:0
+20:57:35.329584 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.021270 |  0.021270 | traverse_tre | statistics:{"traverse_trees_count":3,"traverse_trees_max_depth":3}
+20:57:35.329590 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.021276 |           |              | code:0
+20:57:35.330259 run-command.c:996            | d0 | main                     | child_exit   |     |  1.243216 |  0.023917 |              | ..[ch1] pid:2339957 code:0
+20:57:35.330384 run-command.c:740            | d0 | main                     | child_start  |     |  1.243343 |           |              | ..[ch2] class:? cd:web/games/wip/capture-anime-girls argv:[git status --porcelain=2]
+20:57:35.334373 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.334390 common-init.c:58             | d1 | main                     | start        |     |  0.000279 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.334516 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.334623 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+20:57:35.334697 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.334863 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000752 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls/index
+20:57:35.335176 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001065 |           | cache_tree   | ..label:read
+20:57:35.335228 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001117 |  0.000052 | cache_tree   | ..label:read
+20:57:35.335251 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001139 |  0.000387 | index        | ..read/version:2
+20:57:35.335256 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001145 |  0.000393 | index        | ..read/cache_nr:2438
+20:57:35.335269 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001159 |  0.000407 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-capture-anime-girls/index
+20:57:35.335278 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001168 |           | index        | label:refresh
+20:57:35.343401 read-cache.c:1596            | d1 | main                     | data         |     |  0.009288 |  0.008120 | index        | ..refresh/sum_lstat:2438
+20:57:35.343433 read-cache.c:1597            | d1 | main                     | data         |     |  0.009323 |  0.008155 | index        | ..refresh/sum_scan:2
+20:57:35.343445 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.009334 |  0.008166 | index        | label:refresh
+20:57:35.343547 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.009437 |           | status       | label:worktrees
+20:57:35.343621 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.009510 |           | diff         | ..label:setup
+20:57:35.343625 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.009515 |  0.000005 | diff         | ..label:setup
+20:57:35.343629 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.009519 |           | diff         | ..label:write back to queue
+20:57:35.343633 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.009523 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.343642 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.009532 |  0.000095 | status       | label:worktrees
+20:57:35.343646 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.009536 |           | status       | label:index
+20:57:35.344058 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.009948 |           | unpack_trees | ..label:unpack_trees
+20:57:35.344085 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.009975 |           | unpack_trees | ....label:traverse_trees
+20:57:35.344557 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.010447 |  0.000472 | unpack_trees | ....label:traverse_trees
+20:57:35.344567 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.010457 |  0.000509 | unpack_trees | ..label:unpack_trees
+20:57:35.344571 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.010461 |           | diff         | ..label:setup
+20:57:35.344575 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.010465 |  0.000004 | diff         | ..label:setup
+20:57:35.344579 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.010469 |           | diff         | ..label:write back to queue
+20:57:35.344583 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.010473 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.344588 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.010478 |  0.000942 | status       | label:index
+20:57:35.344592 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.010482 |           | status       | label:untracked
+20:57:35.344604 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.010494 |           | dir          | ..label:read_directory
+20:57:35.344651 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.010541 |           | index        | ....label:name-hash-init
+20:57:35.344753 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.010643 |  0.000102 | index        | ....label:name-hash-init
+20:57:35.349936 dir.c:3071                   | d1 | main                     | data         | r1  |  0.015822 |  0.005328 | read_directo | ....path:
+20:57:35.349969 dir.c:3079                   | d1 | main                     | data         | r1  |  0.015859 |  0.005365 | read_directo | ....directories-visited:207
+20:57:35.349974 dir.c:3081                   | d1 | main                     | data         | r1  |  0.015864 |  0.005370 | read_directo | ....paths-visited:2662
+20:57:35.349978 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.015867 |  0.005373 | dir          | ..label:read_directory
+20:57:35.349986 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.015876 |  0.005394 | status       | label:untracked
+20:57:35.350026 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.015916 |  0.015916 | status       | count/changed:2
+20:57:35.350031 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.015921 |  0.015921 | status       | count/untracked:0
+20:57:35.350035 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.015925 |  0.015925 | status       | count/ignored:0
+20:57:35.350039 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.015929 |           | status       | label:print
+20:57:35.350052 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.015942 |  0.000013 | status       | label:print
+20:57:35.350059 git.c:780                    | d1 | main                     | exit         |     |  0.015949 |           |              | code:0
+20:57:35.350074 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.015964 |  0.015964 | traverse_tre | statistics:{"traverse_trees_count":10,"traverse_trees_max_depth":4}
+20:57:35.350080 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.015969 |           |              | code:0
+20:57:35.352616 run-command.c:996            | d0 | main                     | child_exit   |     |  1.265573 |  0.022230 |              | ..[ch2] pid:2339972 code:0
+20:57:35.352770 run-command.c:740            | d0 | main                     | child_start  |     |  1.265729 |           |              | ..[ch3] class:? cd:web/games/wip/darklord argv:[git status --porcelain=2]
+20:57:35.355596 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.355610 common-init.c:58             | d1 | main                     | start        |     |  0.000272 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.355728 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.355824 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/darklord
+20:57:35.355898 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.356061 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000725 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-darklord/index
+20:57:35.356485 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001149 |           | cache_tree   | ..label:read
+20:57:35.356523 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001187 |  0.000038 | cache_tree   | ..label:read
+20:57:35.356547 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001211 |  0.000486 | index        | ..read/version:2
+20:57:35.356551 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001215 |  0.000490 | index        | ..read/cache_nr:2229
+20:57:35.356563 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001226 |  0.000501 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-darklord/index
+20:57:35.356570 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001234 |           | index        | label:refresh
+20:57:35.362905 read-cache.c:1596            | d1 | main                     | data         |     |  0.007566 |  0.006332 | index        | ..refresh/sum_lstat:2229
+20:57:35.362932 read-cache.c:1597            | d1 | main                     | data         |     |  0.007596 |  0.006362 | index        | ..refresh/sum_scan:0
+20:57:35.362937 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.007601 |  0.006367 | index        | label:refresh
+20:57:35.363045 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.007709 |           | status       | label:worktrees
+20:57:35.363112 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.007776 |           | diff         | ..label:setup
+20:57:35.363119 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.007783 |  0.000007 | diff         | ..label:setup
+20:57:35.363124 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.007787 |           | diff         | ..label:write back to queue
+20:57:35.363128 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.007792 |  0.000005 | diff         | ..label:write back to queue
+20:57:35.363136 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.007800 |  0.000091 | status       | label:worktrees
+20:57:35.363140 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.007804 |           | status       | label:index
+20:57:35.363509 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.008173 |           | unpack_trees | ..label:unpack_trees
+20:57:35.363538 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.008202 |           | unpack_trees | ....label:traverse_trees
+20:57:35.364208 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.008871 |  0.000669 | unpack_trees | ....label:traverse_trees
+20:57:35.364222 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.008886 |  0.000713 | unpack_trees | ..label:unpack_trees
+20:57:35.364226 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.008890 |           | diff         | ..label:setup
+20:57:35.364230 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.008895 |  0.000005 | diff         | ..label:setup
+20:57:35.364235 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.008899 |           | diff         | ..label:write back to queue
+20:57:35.364238 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.008903 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.364244 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.008908 |  0.001104 | status       | label:index
+20:57:35.364248 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.008912 |           | status       | label:untracked
+20:57:35.364260 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.008924 |           | dir          | ..label:read_directory
+20:57:35.364316 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.008980 |           | index        | ....label:name-hash-init
+20:57:35.364434 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.009098 |  0.000118 | index        | ....label:name-hash-init
+20:57:35.368209 dir.c:3071                   | d1 | main                     | data         | r1  |  0.012871 |  0.003947 | read_directo | ....path:
+20:57:35.368231 dir.c:3079                   | d1 | main                     | data         | r1  |  0.012895 |  0.003971 | read_directo | ....directories-visited:144
+20:57:35.368235 dir.c:3081                   | d1 | main                     | data         | r1  |  0.012899 |  0.003975 | read_directo | ....paths-visited:2387
+20:57:35.368238 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.012902 |  0.003978 | dir          | ..label:read_directory
+20:57:35.368245 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.012909 |  0.003997 | status       | label:untracked
+20:57:35.368274 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.012938 |  0.012938 | status       | count/changed:0
+20:57:35.368278 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.012942 |  0.012942 | status       | count/untracked:0
+20:57:35.368281 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.012945 |  0.012945 | status       | count/ignored:0
+20:57:35.368285 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.012949 |           | status       | label:print
+20:57:35.368288 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.012952 |  0.000003 | status       | label:print
+20:57:35.368294 git.c:780                    | d1 | main                     | exit         |     |  0.012958 |           |              | code:0
+20:57:35.368300 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.012963 |  0.012963 | traverse_tre | statistics:{"traverse_trees_count":20,"traverse_trees_max_depth":5}
+20:57:35.368304 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.012967 |           |              | code:0
+20:57:35.369007 run-command.c:996            | d0 | main                     | child_exit   |     |  1.281964 |  0.016235 |              | ..[ch3] pid:2339982 code:0
+20:57:35.369134 run-command.c:740            | d0 | main                     | child_start  |     |  1.282093 |           |              | ..[ch4] class:? cd:web/games/wip/deathrun argv:[git status --porcelain=2]
+20:57:35.371189 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.371202 common-init.c:58             | d1 | main                     | start        |     |  0.000210 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.371339 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.371429 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/deathrun
+20:57:35.371494 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.371662 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000672 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-deathrun/index
+20:57:35.372171 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001180 |           | cache_tree   | ..label:read
+20:57:35.372237 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001248 |  0.000068 | cache_tree   | ..label:read
+20:57:35.372258 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001269 |  0.000597 | index        | ..read/version:2
+20:57:35.372269 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001280 |  0.000608 | index        | ..read/cache_nr:2583
+20:57:35.372274 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001284 |  0.000612 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-deathrun/index
+20:57:35.372283 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001294 |           | index        | label:refresh
+20:57:35.382308 read-cache.c:1596            | d1 | main                     | data         |     |  0.011317 |  0.010023 | index        | ..refresh/sum_lstat:2583
+20:57:35.382331 read-cache.c:1597            | d1 | main                     | data         |     |  0.011342 |  0.010048 | index        | ..refresh/sum_scan:0
+20:57:35.382336 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.011347 |  0.010053 | index        | label:refresh
+20:57:35.382431 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.011441 |           | status       | label:worktrees
+20:57:35.382491 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.011502 |           | diff         | ..label:setup
+20:57:35.382496 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.011507 |  0.000005 | diff         | ..label:setup
+20:57:35.382500 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.011511 |           | diff         | ..label:write back to queue
+20:57:35.382504 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.011515 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.382510 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.011521 |  0.000080 | status       | label:worktrees
+20:57:35.382514 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.011525 |           | status       | label:index
+20:57:35.383773 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.012783 |           | unpack_trees | ..label:unpack_trees
+20:57:35.383819 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.012830 |           | unpack_trees | ....label:traverse_trees
+20:57:35.384164 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.013175 |  0.000345 | unpack_trees | ....label:traverse_trees
+20:57:35.384183 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.013194 |  0.000411 | unpack_trees | ..label:unpack_trees
+20:57:35.384188 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.013199 |           | diff         | ..label:setup
+20:57:35.384192 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.013203 |  0.000004 | diff         | ..label:setup
+20:57:35.384196 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.013207 |           | diff         | ..label:write back to queue
+20:57:35.384200 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.013211 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.384205 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.013216 |  0.001691 | status       | label:index
+20:57:35.384209 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.013220 |           | status       | label:untracked
+20:57:35.384223 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.013234 |           | dir          | ..label:read_directory
+20:57:35.384304 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.013315 |           | index        | ....label:name-hash-init
+20:57:35.384483 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.013494 |  0.000179 | index        | ....label:name-hash-init
+20:57:35.390411 dir.c:3071                   | d1 | main                     | data         | r1  |  0.019416 |  0.006182 | read_directo | ....path:
+20:57:35.390445 dir.c:3079                   | d1 | main                     | data         | r1  |  0.019456 |  0.006222 | read_directo | ....directories-visited:207
+20:57:35.390451 dir.c:3081                   | d1 | main                     | data         | r1  |  0.019462 |  0.006228 | read_directo | ....paths-visited:2533
+20:57:35.390456 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.019466 |  0.006232 | dir          | ..label:read_directory
+20:57:35.390465 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.019476 |  0.006256 | status       | label:untracked
+20:57:35.390511 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.019522 |  0.019522 | status       | count/changed:0
+20:57:35.390516 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.019527 |  0.019527 | status       | count/untracked:0
+20:57:35.390520 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.019531 |  0.019531 | status       | count/ignored:0
+20:57:35.390525 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.019535 |           | status       | label:print
+20:57:35.390530 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.019541 |  0.000006 | status       | label:print
+20:57:35.390538 git.c:780                    | d1 | main                     | exit         |     |  0.019549 |           |              | code:0
+20:57:35.390553 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.019563 |  0.019563 | traverse_tre | statistics:{"traverse_trees_count":20,"traverse_trees_max_depth":5}
+20:57:35.390559 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.019569 |           |              | code:0
+20:57:35.391297 run-command.c:996            | d0 | main                     | child_exit   |     |  1.304253 |  0.022160 |              | ..[ch4] pid:2340004 code:0
+20:57:35.391448 run-command.c:740            | d0 | main                     | child_start  |     |  1.304407 |           |              | ..[ch5] class:? cd:web/games/wip/doomtap argv:[git status --porcelain=2]
+20:57:35.396535 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.396552 common-init.c:58             | d1 | main                     | start        |     |  0.000323 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.396681 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.396761 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+20:57:35.396827 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.397057 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000830 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/index
+20:57:35.397314 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001088 |           | cache_tree   | ..label:read
+20:57:35.397369 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001143 |  0.000055 | cache_tree   | ..label:read
+20:57:35.397392 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001165 |  0.000335 | index        | ..read/version:2
+20:57:35.397396 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001170 |  0.000340 | index        | ..read/cache_nr:2008
+20:57:35.397401 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001174 |  0.000344 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-doomtap/index
+20:57:35.397410 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001184 |           | index        | label:refresh
+20:57:35.401112 read-cache.c:1596            | d1 | main                     | data         |     |  0.004884 |  0.003700 | index        | ..refresh/sum_lstat:2008
+20:57:35.401132 read-cache.c:1597            | d1 | main                     | data         |     |  0.004906 |  0.003722 | index        | ..refresh/sum_scan:0
+20:57:35.401137 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.004910 |  0.003726 | index        | label:refresh
+20:57:35.401231 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.005005 |           | status       | label:worktrees
+20:57:35.401285 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.005059 |           | diff         | ..label:setup
+20:57:35.401290 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.005063 |  0.000004 | diff         | ..label:setup
+20:57:35.401294 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.005068 |           | diff         | ..label:write back to queue
+20:57:35.401298 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.005072 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.401304 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.005078 |  0.000073 | status       | label:worktrees
+20:57:35.401308 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.005082 |           | status       | label:index
+20:57:35.402332 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.006105 |           | unpack_trees | ..label:unpack_trees
+20:57:35.402368 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.006141 |           | unpack_trees | ....label:traverse_trees
+20:57:35.403220 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.006993 |  0.000852 | unpack_trees | ....label:traverse_trees
+20:57:35.403239 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.007013 |  0.000908 | unpack_trees | ..label:unpack_trees
+20:57:35.403244 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.007018 |           | diff         | ..label:setup
+20:57:35.403250 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.007024 |  0.000006 | diff         | ..label:setup
+20:57:35.403254 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.007028 |           | diff         | ..label:write back to queue
+20:57:35.403257 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.007031 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.403262 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.007036 |  0.001954 | status       | label:index
+20:57:35.403266 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.007040 |           | status       | label:untracked
+20:57:35.403280 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.007054 |           | dir          | ..label:read_directory
+20:57:35.403474 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.007248 |           | index        | ....label:name-hash-init
+20:57:35.403587 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.007361 |  0.000113 | index        | ....label:name-hash-init
+20:57:35.407301 dir.c:3071                   | d1 | main                     | data         | r1  |  0.011074 |  0.004020 | read_directo | ....path:
+20:57:35.407324 dir.c:3079                   | d1 | main                     | data         | r1  |  0.011098 |  0.004044 | read_directo | ....directories-visited:205
+20:57:35.407329 dir.c:3081                   | d1 | main                     | data         | r1  |  0.011103 |  0.004049 | read_directo | ....paths-visited:2233
+20:57:35.407333 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.011107 |  0.004053 | dir          | ..label:read_directory
+20:57:35.407340 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.011114 |  0.004074 | status       | label:untracked
+20:57:35.407380 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.011154 |  0.011154 | status       | count/changed:0
+20:57:35.407384 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.011158 |  0.011158 | status       | count/untracked:0
+20:57:35.407387 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.011162 |  0.011162 | status       | count/ignored:0
+20:57:35.407391 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.011165 |           | status       | label:print
+20:57:35.407396 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.011170 |  0.000005 | status       | label:print
+20:57:35.407402 git.c:780                    | d1 | main                     | exit         |     |  0.011176 |           |              | code:0
+20:57:35.407409 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.011182 |  0.011182 | traverse_tre | statistics:{"traverse_trees_count":7,"traverse_trees_max_depth":3}
+20:57:35.407414 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.011187 |           |              | code:0
+20:57:35.407894 run-command.c:996            | d0 | main                     | child_exit   |     |  1.320851 |  0.016444 |              | ..[ch5] pid:2340025 code:0
+20:57:35.408021 run-command.c:740            | d0 | main                     | child_start  |     |  1.320980 |           |              | ..[ch6] class:? cd:web/games/wip/endless-td argv:[git status --porcelain=2]
+20:57:35.410033 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.410044 common-init.c:58             | d1 | main                     | start        |     |  0.000206 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.410169 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.410256 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+20:57:35.410316 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.410459 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000621 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/index
+20:57:35.410638 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.000800 |           | cache_tree   | ..label:read
+20:57:35.410698 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.000861 |  0.000061 | cache_tree   | ..label:read
+20:57:35.410719 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.000881 |  0.000260 | index        | ..read/version:2
+20:57:35.410723 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.000886 |  0.000265 | index        | ..read/cache_nr:1419
+20:57:35.410728 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.000890 |  0.000269 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-endless-td/index
+20:57:35.410734 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.000896 |           | index        | label:refresh
+20:57:35.413277 read-cache.c:1596            | d1 | main                     | data         |     |  0.003438 |  0.002542 | index        | ..refresh/sum_lstat:1419
+20:57:35.413292 read-cache.c:1597            | d1 | main                     | data         |     |  0.003455 |  0.002559 | index        | ..refresh/sum_scan:0
+20:57:35.413296 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.003459 |  0.002563 | index        | label:refresh
+20:57:35.413386 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.003548 |           | status       | label:worktrees
+20:57:35.413434 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.003596 |           | diff         | ..label:setup
+20:57:35.413438 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.003601 |  0.000005 | diff         | ..label:setup
+20:57:35.413442 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.003604 |           | diff         | ..label:write back to queue
+20:57:35.413445 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.003607 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.413451 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.003614 |  0.000066 | status       | label:worktrees
+20:57:35.413458 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.003620 |           | status       | label:index
+20:57:35.413794 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.003956 |           | unpack_trees | ..label:unpack_trees
+20:57:35.413816 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.003979 |           | unpack_trees | ....label:traverse_trees
+20:57:35.413853 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.004015 |  0.000036 | unpack_trees | ....label:traverse_trees
+20:57:35.413863 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.004025 |  0.000069 | unpack_trees | ..label:unpack_trees
+20:57:35.413866 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.004029 |           | diff         | ..label:setup
+20:57:35.413870 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.004032 |  0.000003 | diff         | ..label:setup
+20:57:35.413873 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.004036 |           | diff         | ..label:write back to queue
+20:57:35.413877 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.004039 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.413881 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.004043 |  0.000423 | status       | label:index
+20:57:35.413884 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.004047 |           | status       | label:untracked
+20:57:35.413895 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.004058 |           | dir          | ..label:read_directory
+20:57:35.413994 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.004156 |           | index        | ....label:name-hash-init
+20:57:35.414084 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.004247 |  0.000091 | index        | ....label:name-hash-init
+20:57:35.417383 dir.c:3071                   | d1 | main                     | data         | r1  |  0.007544 |  0.003486 | read_directo | ....path:
+20:57:35.417403 dir.c:3079                   | d1 | main                     | data         | r1  |  0.007566 |  0.003508 | read_directo | ....directories-visited:215
+20:57:35.417408 dir.c:3081                   | d1 | main                     | data         | r1  |  0.007570 |  0.003512 | read_directo | ....paths-visited:1637
+20:57:35.417412 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.007574 |  0.003516 | dir          | ..label:read_directory
+20:57:35.417420 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.007582 |  0.003535 | status       | label:untracked
+20:57:35.417452 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.007614 |  0.007614 | status       | count/changed:0
+20:57:35.417456 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.007618 |  0.007618 | status       | count/untracked:0
+20:57:35.417460 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.007623 |  0.007623 | status       | count/ignored:0
+20:57:35.417464 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.007626 |           | status       | label:print
+20:57:35.417468 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.007631 |  0.000005 | status       | label:print
+20:57:35.417475 git.c:780                    | d1 | main                     | exit         |     |  0.007637 |           |              | code:0
+20:57:35.417481 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.007643 |  0.007643 | traverse_tre | statistics:{"traverse_trees_count":1,"traverse_trees_max_depth":1}
+20:57:35.417486 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.007648 |           |              | code:0
+20:57:35.417960 run-command.c:996            | d0 | main                     | child_exit   |     |  1.330918 |  0.009938 |              | ..[ch6] pid:2340038 code:0
+20:57:35.418083 run-command.c:740            | d0 | main                     | child_start  |     |  1.331042 |           |              | ..[ch7] class:? cd:web/games/wip/football-forever argv:[git status --porcelain=2]
+20:57:35.419896 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.419908 common-init.c:58             | d1 | main                     | start        |     |  0.000215 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.420028 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.420113 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+20:57:35.420471 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.420607 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000914 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-football-forever/index
+20:57:35.421071 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001377 |           | cache_tree   | ..label:read
+20:57:35.421168 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001475 |  0.000098 | cache_tree   | ..label:read
+20:57:35.421187 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001494 |  0.000580 | index        | ..read/version:2
+20:57:35.421191 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001499 |  0.000585 | index        | ..read/cache_nr:2446
+20:57:35.421196 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001503 |  0.000589 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-football-forever/index
+20:57:35.421205 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001512 |           | index        | label:refresh
+20:57:35.433183 read-cache.c:1596            | d1 | main                     | data         |     |  0.013489 |  0.011977 | index        | ..refresh/sum_lstat:2446
+20:57:35.433206 read-cache.c:1597            | d1 | main                     | data         |     |  0.013514 |  0.012002 | index        | ..refresh/sum_scan:0
+20:57:35.433212 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.013519 |  0.012007 | index        | label:refresh
+20:57:35.433305 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.013612 |           | status       | label:worktrees
+20:57:35.433369 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.013677 |           | diff         | ..label:setup
+20:57:35.433373 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.013681 |  0.000004 | diff         | ..label:setup
+20:57:35.433378 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.013685 |           | diff         | ..label:write back to queue
+20:57:35.433381 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.013689 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.433388 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.013696 |  0.000084 | status       | label:worktrees
+20:57:35.433392 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.013700 |           | status       | label:index
+20:57:35.433692 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.014000 |           | unpack_trees | ..label:unpack_trees
+20:57:35.433715 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.014023 |           | unpack_trees | ....label:traverse_trees
+20:57:35.434053 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.014361 |  0.000338 | unpack_trees | ....label:traverse_trees
+20:57:35.434065 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.014373 |  0.000373 | unpack_trees | ..label:unpack_trees
+20:57:35.434069 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.014377 |           | diff         | ..label:setup
+20:57:35.434073 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.014381 |  0.000004 | diff         | ..label:setup
+20:57:35.434077 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.014385 |           | diff         | ..label:write back to queue
+20:57:35.434080 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.014388 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.434085 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.014393 |  0.000693 | status       | label:index
+20:57:35.434089 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.014397 |           | status       | label:untracked
+20:57:35.434108 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.014416 |           | dir          | ..label:read_directory
+20:57:35.434140 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.014448 |           | index        | ....label:name-hash-init
+20:57:35.434320 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.014628 |  0.000180 | index        | ....label:name-hash-init
+20:57:35.442272 dir.c:3071                   | d1 | main                     | data         | r1  |  0.022577 |  0.008161 | read_directo | ....path:
+20:57:35.442298 dir.c:3079                   | d1 | main                     | data         | r1  |  0.022606 |  0.008190 | read_directo | ....directories-visited:198
+20:57:35.442303 dir.c:3081                   | d1 | main                     | data         | r1  |  0.022611 |  0.008195 | read_directo | ....paths-visited:1900
+20:57:35.442308 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.022615 |  0.008199 | dir          | ..label:read_directory
+20:57:35.442316 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.022623 |  0.008226 | status       | label:untracked
+20:57:35.442357 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.022665 |  0.022665 | status       | count/changed:0
+20:57:35.442362 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.022670 |  0.022670 | status       | count/untracked:0
+20:57:35.442366 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.022673 |  0.022673 | status       | count/ignored:0
+20:57:35.442370 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.022677 |           | status       | label:print
+20:57:35.442374 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.022682 |  0.000005 | status       | label:print
+20:57:35.442381 git.c:780                    | d1 | main                     | exit         |     |  0.022688 |           |              | code:0
+20:57:35.442387 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.022695 |  0.022695 | traverse_tre | statistics:{"traverse_trees_count":9,"traverse_trees_max_depth":4}
+20:57:35.442392 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.022699 |           |              | code:0
+20:57:35.442952 run-command.c:996            | d0 | main                     | child_exit   |     |  1.355910 |  0.024868 |              | ..[ch7] pid:2340051 code:0
+20:57:35.443046 run-command.c:740            | d0 | main                     | child_start  |     |  1.356005 |           |              | ..[ch8] class:? cd:web/games/wip/freeport argv:[git status --porcelain=2]
+20:57:35.446712 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.446722 common-init.c:58             | d1 | main                     | start        |     |  0.000184 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.446836 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.446892 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/freeport
+20:57:35.446961 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.447088 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000550 |           | index        | label:do_read_index .git/index
+20:57:35.447196 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.000659 |           | cache_tree   | ..label:read
+20:57:35.447213 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.000676 |  0.000017 | cache_tree   | ..label:read
+20:57:35.447225 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.000688 |  0.000138 | index        | ..read/version:2
+20:57:35.447229 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.000692 |  0.000142 | index        | ..read/cache_nr:638
+20:57:35.447233 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.000696 |  0.000146 | index        | label:do_read_index .git/index
+20:57:35.447239 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.000702 |           | index        | label:refresh
+20:57:35.479589 read-cache.c:1596            | d1 | main                     | data         |     |  0.033050 |  0.032348 | index        | ..refresh/sum_lstat:638
+20:57:35.479610 read-cache.c:1597            | d1 | main                     | data         |     |  0.033073 |  0.032371 | index        | ..refresh/sum_scan:0
+20:57:35.479614 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.033077 |  0.032375 | index        | label:refresh
+20:57:35.479698 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.033161 |           | status       | label:worktrees
+20:57:35.479732 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.033195 |           | diff         | ..label:setup
+20:57:35.479737 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.033200 |  0.000005 | diff         | ..label:setup
+20:57:35.479741 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.033204 |           | diff         | ..label:write back to queue
+20:57:35.479745 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.033208 |  0.000004 | diff         | ..label:write back to queue
+20:57:35.479751 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.033214 |  0.000053 | status       | label:worktrees
+20:57:35.479755 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.033218 |           | status       | label:index
+20:57:35.480026 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.033489 |           | unpack_trees | ..label:unpack_trees
+20:57:35.480051 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.033514 |           | unpack_trees | ....label:traverse_trees
+20:57:35.480164 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.033627 |  0.000113 | unpack_trees | ....label:traverse_trees
+20:57:35.480171 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.033635 |  0.000146 | unpack_trees | ..label:unpack_trees
+20:57:35.480175 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.033638 |           | diff         | ..label:setup
+20:57:35.480179 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.033642 |  0.000004 | diff         | ..label:setup
+20:57:35.480183 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.033646 |           | diff         | ..label:write back to queue
+20:57:35.480186 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.033649 |  0.000003 | diff         | ..label:write back to queue
+20:57:35.480190 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.033653 |  0.000435 | status       | label:index
+20:57:35.480193 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.033657 |           | status       | label:untracked
+20:57:35.480212 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.033675 |           | dir          | ..label:read_directory
+20:57:35.480669 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.034132 |           | index        | ....label:name-hash-init
+20:57:35.480704 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.034167 |  0.000035 | index        | ....label:name-hash-init
+20:57:35.482332 dir.c:3071                   | d1 | main                     | data         | r1  |  0.035794 |  0.002119 | read_directo | ....path:
+20:57:35.482347 dir.c:3079                   | d1 | main                     | data         | r1  |  0.035810 |  0.002135 | read_directo | ....directories-visited:54
+20:57:35.482351 dir.c:3081                   | d1 | main                     | data         | r1  |  0.035814 |  0.002139 | read_directo | ....paths-visited:714
+20:57:35.482355 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.035818 |  0.002143 | dir          | ..label:read_directory
+20:57:35.482361 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.035824 |  0.002167 | status       | label:untracked
+20:57:35.482385 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.035848 |  0.035848 | status       | count/changed:0
+20:57:35.482389 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.035852 |  0.035852 | status       | count/untracked:0
+20:57:35.482392 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.035855 |  0.035855 | status       | count/ignored:0
+20:57:35.482395 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.035858 |           | status       | label:print
+20:57:35.482399 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.035862 |  0.000004 | status       | label:print
+20:57:35.482405 git.c:780                    | d1 | main                     | exit         |     |  0.035868 |           |              | code:0
+20:57:35.482411 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.035874 |  0.035874 | traverse_tre | statistics:{"traverse_trees_count":7,"traverse_trees_max_depth":3}
+20:57:35.482416 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.035878 |           |              | code:0
+20:57:35.482878 run-command.c:996            | d0 | main                     | child_exit   |     |  1.395834 |  0.039829 |              | ..[ch8] pid:2340086 code:0
+20:57:35.483027 run-command.c:740            | d0 | main                     | child_start  |     |  1.395986 |           |              | ..[ch9] class:? cd:web/games/wip/hegemon argv:[git status --porcelain=2]
+20:57:35.485520 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.485533 common-init.c:58             | d1 | main                     | start        |     |  0.000208 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:35.485960 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.486053 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hegemon
+20:57:35.486114 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:35.486891 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.001566 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hegemon/index
+20:57:35.488286 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.002960 |           | cache_tree   | ..label:read
+20:57:35.488338 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.003014 |  0.000054 | cache_tree   | ..label:read
+20:57:35.488359 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.003035 |  0.001469 | index        | ..read/version:2
+20:57:35.488363 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.003039 |  0.001473 | index        | ..read/cache_nr:3224
+20:57:35.488368 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.003044 |  0.001478 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hegemon/index
+20:57:35.488376 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.003052 |           | index        | label:refresh
+20:57:35.508717 run-command.c:740            | d1 | main                     | child_start  |     |  0.023390 |           |              | ..[ch0] class:subprocess argv:['dracon-warden filter-process']
+20:57:35.530385 common-init.c:57             | d2 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.530409 common-init.c:58             | d2 | main                     | start        |     |  0.000223 |           |              | git rev-parse --absolute-git-dir
+20:57:35.530606 compat/linux/procinfo.c:170  | d2 | main                     | cmd_ancestry |     |           |           |              | ancestry:[dracon-warden git git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.530623 git.c:503                    | d2 | main                     | cmd_name     |     |           |           |              | rev-parse (status/status/rev-parse)
+20:57:35.530689 repository.c:242             | d2 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hegemon
+20:57:35.530804 git.c:780                    | d2 | main                     | exit         |     |  0.000621 |           |              | code:0
+20:57:35.530809 trace2/tr2_tgt_perf.c:219    | d2 | main                     | atexit       |     |  0.000626 |           |              | code:0
+20:57:35.542950 common-init.c:57             | d2 | main                     | version      |     |           |           |              | 2.51.2
+20:57:35.542968 common-init.c:58             | d2 | main                     | start        |     |  0.003464 |           |              | git cat-file --batch
+20:57:35.543127 compat/linux/procinfo.c:170  | d2 | main                     | cmd_ancestry |     |           |           |              | ancestry:[dracon-warden git git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:35.547688 repository.c:242             | d2 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hegemon
+20:57:35.547790 git.c:503                    | d2 | main                     | cmd_name     |     |           |           |              | cat-file (status/status/cat-file)
+20:57:35.547963 read-cache.c:2357            | d2 | main                     | region_enter | r1  |  0.008462 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hegemon/index
+20:57:35.556706 cache-tree.c:643             | d2 | main                     | region_enter | r1  |  0.017202 |           | cache_tree   | ..label:read
+20:57:35.560186 cache-tree.c:645             | d2 | main                     | region_leave | r1  |  0.020683 |  0.003481 | cache_tree   | ..label:read
+20:57:35.560238 read-cache.c:2306            | d2 | main                     | data         | r1  |  0.020738 |  0.012276 | index        | ..read/version:2
+20:57:35.560249 read-cache.c:2308            | d2 | main                     | data         | r1  |  0.020749 |  0.012287 | index        | ..read/cache_nr:3224
+20:57:35.560256 read-cache.c:2362            | d2 | main                     | region_leave | r1  |  0.020755 |  0.012293 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hegemon/index
+20:57:37.206773 read-cache.c:1596            | d1 | main                     | data         |     |  1.721447 |  1.718395 | index        | ..refresh/sum_lstat:3224
+20:57:37.206799 read-cache.c:1597            | d1 | main                     | data         |     |  1.721475 |  1.718423 | index        | ..refresh/sum_scan:48
+20:57:37.206805 read-cache.c:1598            | d1 | main                     | region_leave |     |  1.721480 |  1.718428 | index        | label:refresh
+20:57:37.208818 wt-status.c:841              | d1 | main                     | region_enter | r1  |  1.723494 |           | status       | label:worktrees
+20:57:37.209083 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  1.723758 |           | diff         | ..label:setup
+20:57:37.209091 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  1.723767 |  0.000009 | diff         | ..label:setup
+20:57:37.209096 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  1.723772 |           | diff         | ..label:write back to queue
+20:57:37.209102 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  1.723778 |  0.000006 | diff         | ..label:write back to queue
+20:57:37.209122 wt-status.c:843              | d1 | main                     | region_leave | r1  |  1.723798 |  0.000304 | status       | label:worktrees
+20:57:37.209127 wt-status.c:850              | d1 | main                     | region_enter | r1  |  1.723803 |           | status       | label:index
+20:57:37.211436 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  1.726111 |           | unpack_trees | ..label:unpack_trees
+20:57:37.211504 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  1.726180 |           | unpack_trees | ....label:traverse_trees
+20:57:37.211524 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  1.726200 |  0.000020 | unpack_trees | ....label:traverse_trees
+20:57:37.211535 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  1.726211 |  0.000100 | unpack_trees | ..label:unpack_trees
+20:57:37.211540 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  1.726216 |           | diff         | ..label:setup
+20:57:37.211545 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  1.726221 |  0.000005 | diff         | ..label:setup
+20:57:37.211549 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  1.726225 |           | diff         | ..label:write back to queue
+20:57:37.211553 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  1.726229 |  0.000004 | diff         | ..label:write back to queue
+20:57:37.211559 wt-status.c:852              | d1 | main                     | region_leave | r1  |  1.726235 |  0.002432 | status       | label:index
+20:57:37.211563 wt-status.c:855              | d1 | main                     | region_enter | r1  |  1.726239 |           | status       | label:untracked
+20:57:37.211579 dir.c:3103                   | d1 | main                     | region_enter | r1  |  1.726254 |           | dir          | ..label:read_directory
+20:57:37.211619 name-hash.c:597              | d1 | main                     | region_enter | r1  |  1.726295 |           | index        | ....label:name-hash-init
+20:57:37.211775 name-hash.c:618              | d1 | main                     | region_leave | r1  |  1.726451 |  0.000156 | index        | ....label:name-hash-init
+20:57:37.245053 dir.c:3071                   | d1 | main                     | data         | r1  |  1.759726 |  0.033472 | read_directo | ....path:
+20:57:37.245078 dir.c:3079                   | d1 | main                     | data         | r1  |  1.759754 |  0.033500 | read_directo | ....directories-visited:206
+20:57:37.245082 dir.c:3081                   | d1 | main                     | data         | r1  |  1.759758 |  0.033504 | read_directo | ....paths-visited:3292
+20:57:37.245087 dir.c:3126                   | d1 | main                     | region_leave | r1  |  1.759762 |  0.033508 | dir          | ..label:read_directory
+20:57:37.245104 wt-status.c:857              | d1 | main                     | region_leave | r1  |  1.759780 |  0.033541 | status       | label:untracked
+20:57:37.245153 wt-status.c:2569             | d1 | main                     | data         | r1  |  1.759829 |  1.759829 | status       | count/changed:51
+20:57:37.245157 wt-status.c:2570             | d1 | main                     | data         | r1  |  1.759833 |  1.759833 | status       | count/untracked:9
+20:57:37.245161 wt-status.c:2572             | d1 | main                     | data         | r1  |  1.759837 |  1.759837 | status       | count/ignored:0
+20:57:37.245165 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  1.759840 |           | status       | label:print
+20:57:37.245221 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  1.759897 |  0.000057 | status       | label:print
+20:57:37.245228 git.c:780                    | d1 | main                     | exit         |     |  1.759903 |           |              | code:0
+20:57:37.245234 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  1.759909 |  1.759909 | traverse_tre | statistics:{"traverse_trees_count":1,"traverse_trees_max_depth":1}
+20:57:37.249024 run-command.c:996            | d1 | main                     | child_exit   |     |  1.763696 |  1.740306 |              | [ch0] pid:2340145 code:0
+20:57:37.249046 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  1.763721 |           |              | code:0
+20:57:37.251902 run-command.c:996            | d0 | main                     | child_exit   |     |  3.164859 |  1.768873 |              | ..[ch9] pid:2340124 code:0
+20:57:37.252042 run-command.c:740            | d0 | main                     | child_start  |     |  3.165000 |           |              | ..[ch10] class:? cd:web/games/wip/hellhunter argv:[git status --porcelain=2]
+20:57:37.260953 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:37.260971 common-init.c:58             | d1 | main                     | start        |     |  0.006416 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:37.261101 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:37.261200 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter
+20:57:37.261260 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:37.261418 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.006866 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hellhunter/index
+20:57:37.261883 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.007331 |           | cache_tree   | ..label:read
+20:57:37.261956 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.007404 |  0.000073 | cache_tree   | ..label:read
+20:57:37.261983 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.007431 |  0.000565 | index        | ..read/version:2
+20:57:37.261988 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.007437 |  0.000571 | index        | ..read/cache_nr:3346
+20:57:37.261993 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.007441 |  0.000575 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-hellhunter/index
+20:57:37.262000 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.007448 |           | index        | label:refresh
+20:57:37.290675 read-cache.c:1596            | d1 | main                     | data         |     |  0.036122 |  0.028674 | index        | ..refresh/sum_lstat:3346
+20:57:37.290724 read-cache.c:1597            | d1 | main                     | data         |     |  0.036172 |  0.028724 | index        | ..refresh/sum_scan:0
+20:57:37.290729 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.036177 |  0.028729 | index        | label:refresh
+20:57:37.290813 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.036261 |           | status       | label:worktrees
+20:57:37.290889 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.036338 |           | diff         | ..label:setup
+20:57:37.290896 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.036345 |  0.000007 | diff         | ..label:setup
+20:57:37.290901 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.036349 |           | diff         | ..label:write back to queue
+20:57:37.290904 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.036353 |  0.000004 | diff         | ..label:write back to queue
+20:57:37.290911 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.036360 |  0.000099 | status       | label:worktrees
+20:57:37.290915 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.036364 |           | status       | label:index
+20:57:37.291267 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.036716 |           | unpack_trees | ..label:unpack_trees
+20:57:37.291297 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.036745 |           | unpack_trees | ....label:traverse_trees
+20:57:37.309792 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.055238 |  0.018493 | unpack_trees | ....label:traverse_trees
+20:57:37.309831 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.055280 |  0.018564 | unpack_trees | ..label:unpack_trees
+20:57:37.309839 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.055287 |           | diff         | ..label:setup
+20:57:37.309843 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.055292 |  0.000005 | diff         | ..label:setup
+20:57:37.309850 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.055299 |           | diff         | ..label:write back to queue
+20:57:37.309854 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.055303 |  0.000004 | diff         | ..label:write back to queue
+20:57:37.309865 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.055313 |  0.018949 | status       | label:index
+20:57:37.309869 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.055318 |           | status       | label:untracked
+20:57:37.309888 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.055336 |           | dir          | ..label:read_directory
+20:57:37.309966 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.055414 |           | index        | ....label:name-hash-init
+20:57:37.310261 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.055709 |  0.000295 | index        | ....label:name-hash-init
+20:57:37.325646 dir.c:3071                   | d1 | main                     | data         | r1  |  0.071092 |  0.015756 | read_directo | ....path:
+20:57:37.325664 dir.c:3079                   | d1 | main                     | data         | r1  |  0.071112 |  0.015776 | read_directo | ....directories-visited:259
+20:57:37.325668 dir.c:3081                   | d1 | main                     | data         | r1  |  0.071117 |  0.015781 | read_directo | ....paths-visited:3589
+20:57:37.325672 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.071120 |  0.015784 | dir          | ..label:read_directory
+20:57:37.325680 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.071128 |  0.015810 | status       | label:untracked
+20:57:37.325706 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.071154 |  0.071154 | status       | count/changed:0
+20:57:37.325710 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.071158 |  0.071158 | status       | count/untracked:0
+20:57:37.325713 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.071162 |  0.071162 | status       | count/ignored:0
+20:57:37.325717 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.071166 |           | status       | label:print
+20:57:37.325721 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.071169 |  0.000003 | status       | label:print
+20:57:37.325727 git.c:780                    | d1 | main                     | exit         |     |  0.071175 |           |              | code:0
+20:57:37.325733 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.071181 |  0.071181 | traverse_tre | statistics:{"traverse_trees_count":25,"traverse_trees_max_depth":5}
+20:57:37.325737 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.071185 |           |              | code:0
+20:57:37.327924 run-command.c:996            | d0 | main                     | child_exit   |     |  3.240881 |  0.075881 |              | ..[ch10] pid:2342113 code:0
+20:57:37.328053 run-command.c:740            | d0 | main                     | child_start  |     |  3.241012 |           |              | ..[ch11] class:? cd:web/games/wip/junk-runner argv:[git status --porcelain=2]
+20:57:37.330384 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:37.330401 common-init.c:58             | d1 | main                     | start        |     |  0.000227 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:37.330528 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:37.330617 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+20:57:37.330684 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:37.330834 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000662 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/index
+20:57:37.331814 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001643 |           | cache_tree   | ..label:read
+20:57:37.331913 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001743 |  0.000100 | cache_tree   | ..label:read
+20:57:37.331936 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001765 |  0.001103 | index        | ..read/version:2
+20:57:37.331941 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001770 |  0.001108 | index        | ..read/cache_nr:2883
+20:57:37.331945 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001775 |  0.001113 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/index
+20:57:37.331953 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001782 |           | index        | label:refresh
+20:57:37.344770 run-command.c:740            | d1 | main                     | child_start  |     |  0.014597 |           |              | ..[ch0] class:subprocess argv:['dracon-warden filter-process']
+20:57:37.392234 common-init.c:57             | d2 | main                     | version      |     |           |           |              | 2.51.2
+20:57:37.392255 common-init.c:58             | d2 | main                     | start        |     |  0.014590 |           |              | git rev-parse --absolute-git-dir
+20:57:37.392409 compat/linux/procinfo.c:170  | d2 | main                     | cmd_ancestry |     |           |           |              | ancestry:[dracon-warden git git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:37.392425 git.c:503                    | d2 | main                     | cmd_name     |     |           |           |              | rev-parse (status/status/rev-parse)
+20:57:37.392486 repository.c:242             | d2 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+20:57:37.392594 git.c:780                    | d2 | main                     | exit         |     |  0.014932 |           |              | code:0
+20:57:37.392601 trace2/tr2_tgt_perf.c:219    | d2 | main                     | atexit       |     |  0.014938 |           |              | code:0
+20:57:37.401071 common-init.c:57             | d2 | main                     | version      |     |           |           |              | 2.51.2
+20:57:37.401084 common-init.c:58             | d2 | main                     | start        |     |  0.000252 |           |              | git cat-file --batch
+20:57:37.401233 compat/linux/procinfo.c:170  | d2 | main                     | cmd_ancestry |     |           |           |              | ancestry:[dracon-warden git git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:37.401306 repository.c:242             | d2 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+20:57:37.401363 git.c:503                    | d2 | main                     | cmd_name     |     |           |           |              | cat-file (status/status/cat-file)
+20:57:37.401496 read-cache.c:2357            | d2 | main                     | region_enter | r1  |  0.000664 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/index
+20:57:37.401891 cache-tree.c:643             | d2 | main                     | region_enter | r1  |  0.001060 |           | cache_tree   | ..label:read
+20:57:37.401971 cache-tree.c:645             | d2 | main                     | region_leave | r1  |  0.001140 |  0.000080 | cache_tree   | ..label:read
+20:57:37.401995 read-cache.c:2306            | d2 | main                     | data         | r1  |  0.001164 |  0.000500 | index        | ..read/version:2
+20:57:37.402000 read-cache.c:2308            | d2 | main                     | data         | r1  |  0.001169 |  0.000505 | index        | ..read/cache_nr:2883
+20:57:37.402005 read-cache.c:2362            | d2 | main                     | region_leave | r1  |  0.001174 |  0.000510 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-junk-runner/index
+20:57:42.041983 read-cache.c:1596            | d1 | main                     | data         |     |  4.711810 |  4.710028 | index        | ..refresh/sum_lstat:2883
+20:57:42.042100 read-cache.c:1597            | d1 | main                     | data         |     |  4.711930 |  4.710148 | index        | ..refresh/sum_scan:1
+20:57:42.042109 read-cache.c:1598            | d1 | main                     | region_leave |     |  4.711937 |  4.710155 | index        | label:refresh
+20:57:42.042551 wt-status.c:841              | d1 | main                     | region_enter | r1  |  4.712381 |           | status       | label:worktrees
+20:57:42.042621 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  4.712451 |           | diff         | ..label:setup
+20:57:42.042627 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  4.712457 |  0.000006 | diff         | ..label:setup
+20:57:42.042633 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  4.712463 |           | diff         | ..label:write back to queue
+20:57:42.042638 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  4.712467 |  0.000004 | diff         | ..label:write back to queue
+20:57:42.042645 wt-status.c:843              | d1 | main                     | region_leave | r1  |  4.712475 |  0.000094 | status       | label:worktrees
+20:57:42.042649 wt-status.c:850              | d1 | main                     | region_enter | r1  |  4.712479 |           | status       | label:index
+20:57:42.045475 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  4.715304 |           | unpack_trees | ..label:unpack_trees
+20:57:42.045552 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  4.715381 |           | unpack_trees | ....label:traverse_trees
+20:57:42.045573 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  4.715403 |  0.000022 | unpack_trees | ....label:traverse_trees
+20:57:42.045584 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  4.715413 |  0.000109 | unpack_trees | ..label:unpack_trees
+20:57:42.045589 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  4.715419 |           | diff         | ..label:setup
+20:57:42.045594 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  4.715424 |  0.000005 | diff         | ..label:setup
+20:57:42.045599 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  4.715428 |           | diff         | ..label:write back to queue
+20:57:42.045603 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  4.715433 |  0.000005 | diff         | ..label:write back to queue
+20:57:42.045609 wt-status.c:852              | d1 | main                     | region_leave | r1  |  4.715439 |  0.002960 | status       | label:index
+20:57:42.045614 wt-status.c:855              | d1 | main                     | region_enter | r1  |  4.715444 |           | status       | label:untracked
+20:57:42.045628 dir.c:3103                   | d1 | main                     | region_enter | r1  |  4.715458 |           | dir          | ..label:read_directory
+20:57:42.045670 name-hash.c:597              | d1 | main                     | region_enter | r1  |  4.715500 |           | index        | ....label:name-hash-init
+20:57:42.045842 name-hash.c:618              | d1 | main                     | region_leave | r1  |  4.715671 |  0.000171 | index        | ....label:name-hash-init
+20:57:42.068207 dir.c:3071                   | d1 | main                     | data         | r1  |  4.738034 |  0.022576 | read_directo | ....path:
+20:57:42.068233 dir.c:3079                   | d1 | main                     | data         | r1  |  4.738063 |  0.022605 | read_directo | ....directories-visited:296
+20:57:42.068244 dir.c:3081                   | d1 | main                     | data         | r1  |  4.738074 |  0.022616 | read_directo | ....paths-visited:3126
+20:57:42.068249 dir.c:3126                   | d1 | main                     | region_leave | r1  |  4.738078 |  0.022620 | dir          | ..label:read_directory
+20:57:42.068256 wt-status.c:857              | d1 | main                     | region_leave | r1  |  4.738086 |  0.022642 | status       | label:untracked
+20:57:42.068300 wt-status.c:2569             | d1 | main                     | data         | r1  |  4.738130 |  4.738130 | status       | count/changed:0
+20:57:42.068305 wt-status.c:2570             | d1 | main                     | data         | r1  |  4.738134 |  4.738134 | status       | count/untracked:0
+20:57:42.068308 wt-status.c:2572             | d1 | main                     | data         | r1  |  4.738138 |  4.738138 | status       | count/ignored:0
+20:57:42.068312 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  4.738141 |           | status       | label:print
+20:57:42.068316 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  4.738145 |  0.000004 | status       | label:print
+20:57:42.068323 git.c:780                    | d1 | main                     | exit         |     |  4.738152 |           |              | code:0
+20:57:42.068329 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  4.738159 |  4.738159 | traverse_tre | statistics:{"traverse_trees_count":1,"traverse_trees_max_depth":1}
+20:57:42.073506 run-command.c:996            | d1 | main                     | child_exit   |     |  4.743332 |  4.728735 |              | [ch0] pid:2342293 code:0
+20:57:42.073532 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  4.743360 |           |              | code:0
+20:57:42.074067 run-command.c:996            | d0 | main                     | child_exit   |     |  7.987025 |  4.746013 |              | ..[ch11] pid:2342270 code:0
+20:57:42.074189 run-command.c:740            | d0 | main                     | child_start  |     |  7.987148 |           |              | ..[ch12] class:? cd:web/games/wip/neonbreak argv:[git status --porcelain=2]
+20:57:42.078478 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:42.078490 common-init.c:58             | d1 | main                     | start        |     |  0.000222 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:42.078617 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:42.078711 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak
+20:57:42.078776 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:42.078943 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000675 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-neonbreak/index
+20:57:42.079230 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.000963 |           | cache_tree   | ..label:read
+20:57:42.079264 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.000997 |  0.000034 | cache_tree   | ..label:read
+20:57:42.079278 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001011 |  0.000336 | index        | ..read/version:2
+20:57:42.079282 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001015 |  0.000340 | index        | ..read/cache_nr:1297
+20:57:42.079297 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001030 |  0.000355 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-neonbreak/index
+20:57:42.079304 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001037 |           | index        | label:refresh
+20:57:42.083920 read-cache.c:1596            | d1 | main                     | data         |     |  0.005651 |  0.004614 | index        | ..refresh/sum_lstat:1297
+20:57:42.083942 read-cache.c:1597            | d1 | main                     | data         |     |  0.005675 |  0.004638 | index        | ..refresh/sum_scan:0
+20:57:42.083946 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.005679 |  0.004642 | index        | label:refresh
+20:57:42.084073 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.005806 |           | status       | label:worktrees
+20:57:42.084172 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.005905 |           | diff         | ..label:setup
+20:57:42.084177 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.005910 |  0.000005 | diff         | ..label:setup
+20:57:42.084181 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.005914 |           | diff         | ..label:write back to queue
+20:57:42.084185 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.005918 |  0.000004 | diff         | ..label:write back to queue
+20:57:42.084192 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.005925 |  0.000119 | status       | label:worktrees
+20:57:42.084196 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.005929 |           | status       | label:index
+20:57:42.084496 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.006229 |           | unpack_trees | ..label:unpack_trees
+20:57:42.084524 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.006257 |           | unpack_trees | ....label:traverse_trees
+20:57:42.085468 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.007201 |  0.000944 | unpack_trees | ....label:traverse_trees
+20:57:42.085483 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.007216 |  0.000987 | unpack_trees | ..label:unpack_trees
+20:57:42.085488 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.007221 |           | diff         | ..label:setup
+20:57:42.085492 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.007225 |  0.000004 | diff         | ..label:setup
+20:57:42.085496 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.007229 |           | diff         | ..label:write back to queue
+20:57:42.085499 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.007232 |  0.000003 | diff         | ..label:write back to queue
+20:57:42.085503 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.007237 |  0.001308 | status       | label:index
+20:57:42.085507 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.007240 |           | status       | label:untracked
+20:57:42.085519 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.007252 |           | dir          | ..label:read_directory
+20:57:42.085560 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.007293 |           | index        | ....label:name-hash-init
+20:57:42.085647 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.007381 |  0.000088 | index        | ....label:name-hash-init
+20:57:42.094078 dir.c:3071                   | d1 | main                     | data         | r1  |  0.015807 |  0.008555 | read_directo | ....path:
+20:57:42.094104 dir.c:3079                   | d1 | main                     | data         | r1  |  0.015837 |  0.008585 | read_directo | ....directories-visited:98
+20:57:42.094109 dir.c:3081                   | d1 | main                     | data         | r1  |  0.015842 |  0.008590 | read_directo | ....paths-visited:1379
+20:57:42.094114 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.015847 |  0.008595 | dir          | ..label:read_directory
+20:57:42.094121 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.015855 |  0.008615 | status       | label:untracked
+20:57:42.094160 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.015893 |  0.015893 | status       | count/changed:0
+20:57:42.094164 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.015897 |  0.015897 | status       | count/untracked:0
+20:57:42.094168 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.015901 |  0.015901 | status       | count/ignored:0
+20:57:42.094172 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.015905 |           | status       | label:print
+20:57:42.094176 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.015909 |  0.000004 | status       | label:print
+20:57:42.094184 git.c:780                    | d1 | main                     | exit         |     |  0.015916 |           |              | code:0
+20:57:42.094189 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.015922 |  0.015922 | traverse_tre | statistics:{"traverse_trees_count":44,"traverse_trees_max_depth":5}
+20:57:42.094194 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.015926 |           |              | code:0
+20:57:42.097908 run-command.c:996            | d0 | main                     | child_exit   |     |  8.010865 |  0.023717 |              | ..[ch12] pid:2346358 code:0
+20:57:42.098075 run-command.c:740            | d0 | main                     | child_start  |     |  8.011034 |           |              | ..[ch13] class:? cd:web/games/wip/polis argv:[git status --porcelain=2]
+20:57:42.104020 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:42.104042 common-init.c:58             | d1 | main                     | start        |     |  0.000299 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:42.104170 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:42.104269 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/polis
+20:57:42.104339 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:42.104499 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000761 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/index
+20:57:42.104854 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.001115 |           | cache_tree   | ..label:read
+20:57:42.104895 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.001157 |  0.000042 | cache_tree   | ..label:read
+20:57:42.104918 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.001180 |  0.000419 | index        | ..read/version:2
+20:57:42.104930 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.001192 |  0.000431 | index        | ..read/cache_nr:2664
+20:57:42.104934 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.001196 |  0.000435 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-polis/index
+20:57:42.104943 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.001205 |           | index        | label:refresh
+20:57:42.116300 read-cache.c:1596            | d1 | main                     | data         |     |  0.012560 |  0.011355 | index        | ..refresh/sum_lstat:2664
+20:57:42.116325 read-cache.c:1597            | d1 | main                     | data         |     |  0.012587 |  0.011382 | index        | ..refresh/sum_scan:0
+20:57:42.116330 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.012592 |  0.011387 | index        | label:refresh
+20:57:42.118709 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.014970 |           | status       | label:worktrees
+20:57:42.118793 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.015055 |           | diff         | ..label:setup
+20:57:42.118805 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.015068 |  0.000013 | diff         | ..label:setup
+20:57:42.118810 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.015072 |           | diff         | ..label:write back to queue
+20:57:42.118814 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.015076 |  0.000004 | diff         | ..label:write back to queue
+20:57:42.118822 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.015085 |  0.000115 | status       | label:worktrees
+20:57:42.118827 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.015089 |           | status       | label:index
+20:57:42.119255 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.015517 |           | unpack_trees | ..label:unpack_trees
+20:57:42.119296 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.015558 |           | unpack_trees | ....label:traverse_trees
+20:57:42.120506 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.016768 |  0.001210 | unpack_trees | ....label:traverse_trees
+20:57:42.120533 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.016795 |  0.001278 | unpack_trees | ..label:unpack_trees
+20:57:42.120538 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.016800 |           | diff         | ..label:setup
+20:57:42.120542 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.016805 |  0.000005 | diff         | ..label:setup
+20:57:42.120546 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.016809 |           | diff         | ..label:write back to queue
+20:57:42.120550 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.016812 |  0.000003 | diff         | ..label:write back to queue
+20:57:42.120556 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.016818 |  0.001729 | status       | label:index
+20:57:42.120560 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.016822 |           | status       | label:untracked
+20:57:42.120574 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.016836 |           | dir          | ..label:read_directory
+20:57:42.120613 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.016876 |           | index        | ....label:name-hash-init
+20:57:42.120741 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.017004 |  0.000128 | index        | ....label:name-hash-init
+20:57:42.131069 dir.c:3071                   | d1 | main                     | data         | r1  |  0.027327 |  0.010491 | read_directo | ....path:
+20:57:42.131099 dir.c:3079                   | d1 | main                     | data         | r1  |  0.027362 |  0.010526 | read_directo | ....directories-visited:118
+20:57:42.131104 dir.c:3081                   | d1 | main                     | data         | r1  |  0.027367 |  0.010531 | read_directo | ....paths-visited:2860
+20:57:42.131109 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.027371 |  0.010535 | dir          | ..label:read_directory
+20:57:42.131117 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.027379 |  0.010557 | status       | label:untracked
+20:57:42.131149 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.027412 |  0.027412 | status       | count/changed:0
+20:57:42.131153 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.027416 |  0.027416 | status       | count/untracked:0
+20:57:42.131157 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.027419 |  0.027419 | status       | count/ignored:0
+20:57:42.131161 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.027423 |           | status       | label:print
+20:57:42.131165 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.027427 |  0.000004 | status       | label:print
+20:57:42.131172 git.c:780                    | d1 | main                     | exit         |     |  0.027434 |           |              | code:0
+20:57:42.131179 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.027441 |  0.027441 | traverse_tre | statistics:{"traverse_trees_count":29,"traverse_trees_max_depth":5}
+20:57:42.131184 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.027446 |           |              | code:0
+20:57:42.132217 run-command.c:996            | d0 | main                     | child_exit   |     |  8.045175 |  0.034141 |              | ..[ch13] pid:2346370 code:0
+20:57:42.132363 run-command.c:740            | d0 | main                     | child_start  |     |  8.045322 |           |              | ..[ch14] class:? cd:web/games/wip/space-trucker argv:[git status --porcelain=2]
+20:57:42.134359 common-init.c:57             | d1 | main                     | version      |     |           |           |              | 2.51.2
+20:57:42.134375 common-init.c:58             | d1 | main                     | start        |     |  0.000275 |           |              | /nix/store/mgh163i8h0c6xh46wa5hw0rxn62bqvml-git-2.51.2/libexec/git-core/git status --porcelain=2
+20:57:42.134497 compat/linux/procinfo.c:170  | d1 | main                     | cmd_ancestry |     |           |           |              | ancestry:[git timeout bash pi systemd-inhibit zsh 'tmux: server' systemd systemd]
+20:57:42.134594 repository.c:242             | d1 | main                     | def_repo     | r1  |           |           |              | worktree:/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker
+20:57:42.134665 git.c:503                    | d1 | main                     | cmd_name     |     |           |           |              | status (status/status)
+20:57:42.134810 read-cache.c:2357            | d1 | main                     | region_enter | r1  |  0.000713 |           | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-space-trucker/index
+20:57:42.134891 cache-tree.c:643             | d1 | main                     | region_enter | r1  |  0.000795 |           | cache_tree   | ..label:read
+20:57:42.134907 cache-tree.c:645             | d1 | main                     | region_leave | r1  |  0.000811 |  0.000016 | cache_tree   | ..label:read
+20:57:42.134924 read-cache.c:2306            | d1 | main                     | data         | r1  |  0.000827 |  0.000114 | index        | ..read/version:2
+20:57:42.134929 read-cache.c:2308            | d1 | main                     | data         | r1  |  0.000833 |  0.000120 | index        | ..read/cache_nr:157
+20:57:42.134934 read-cache.c:2362            | d1 | main                     | region_leave | r1  |  0.000837 |  0.000124 | index        | label:do_read_index /home/dracon/Dev/dracon-platform/.git/modules/web-games-space-trucker/index
+20:57:42.134941 read-cache.c:1514            | d1 | main                     | region_enter |     |  0.000844 |           | index        | label:refresh
+20:57:42.135232 read-cache.c:1596            | d1 | main                     | data         |     |  0.001136 |  0.000292 | index        | ..refresh/sum_lstat:157
+20:57:42.135236 read-cache.c:1597            | d1 | main                     | data         |     |  0.001140 |  0.000296 | index        | ..refresh/sum_scan:0
+20:57:42.135241 read-cache.c:1598            | d1 | main                     | region_leave |     |  0.001145 |  0.000301 | index        | label:refresh
+20:57:42.135322 wt-status.c:841              | d1 | main                     | region_enter | r1  |  0.001226 |           | status       | label:worktrees
+20:57:42.135345 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.001249 |           | diff         | ..label:setup
+20:57:42.135349 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.001253 |  0.000004 | diff         | ..label:setup
+20:57:42.135353 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.001256 |           | diff         | ..label:write back to queue
+20:57:42.135356 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.001260 |  0.000004 | diff         | ..label:write back to queue
+20:57:42.135363 wt-status.c:843              | d1 | main                     | region_leave | r1  |  0.001267 |  0.000041 | status       | label:worktrees
+20:57:42.135367 wt-status.c:850              | d1 | main                     | region_enter | r1  |  0.001271 |           | status       | label:index
+20:57:42.135616 unpack-trees.c:1905          | d1 | main                     | region_enter | r1  |  0.001519 |           | unpack_trees | ..label:unpack_trees
+20:57:42.135637 unpack-trees.c:2009          | d1 | main                     | region_enter | r1  |  0.001540 |           | unpack_trees | ....label:traverse_trees
+20:57:42.135775 unpack-trees.c:2011          | d1 | main                     | region_leave | r1  |  0.001679 |  0.000139 | unpack_trees | ....label:traverse_trees
+20:57:42.135782 unpack-trees.c:2108          | d1 | main                     | region_leave | r1  |  0.001686 |  0.000167 | unpack_trees | ..label:unpack_trees
+20:57:42.135786 diffcore-rename.c:1407       | d1 | main                     | region_enter | r1  |  0.001690 |           | diff         | ..label:setup
+20:57:42.135790 diffcore-rename.c:1460       | d1 | main                     | region_leave | r1  |  0.001694 |  0.000004 | diff         | ..label:setup
+20:57:42.135794 diffcore-rename.c:1640       | d1 | main                     | region_enter | r1  |  0.001698 |           | diff         | ..label:write back to queue
+20:57:42.135798 diffcore-rename.c:1717       | d1 | main                     | region_leave | r1  |  0.001702 |  0.000004 | diff         | ..label:write back to queue
+20:57:42.135802 wt-status.c:852              | d1 | main                     | region_leave | r1  |  0.001706 |  0.000435 | status       | label:index
+20:57:42.135806 wt-status.c:855              | d1 | main                     | region_enter | r1  |  0.001710 |           | status       | label:untracked
+20:57:42.135821 dir.c:3103                   | d1 | main                     | region_enter | r1  |  0.001725 |           | dir          | ..label:read_directory
+20:57:42.135858 name-hash.c:597              | d1 | main                     | region_enter | r1  |  0.001761 |           | index        | ....label:name-hash-init
+20:57:42.135872 name-hash.c:618              | d1 | main                     | region_leave | r1  |  0.001776 |  0.000015 | index        | ....label:name-hash-init
+20:57:42.136221 dir.c:3071                   | d1 | main                     | data         | r1  |  0.002125 |  0.000400 | read_directo | ....path:
+20:57:42.136227 dir.c:3079                   | d1 | main                     | data         | r1  |  0.002130 |  0.000405 | read_directo | ....directories-visited:20
+20:57:42.136231 dir.c:3081                   | d1 | main                     | data         | r1  |  0.002135 |  0.000410 | read_directo | ....paths-visited:184
+20:57:42.136234 dir.c:3126                   | d1 | main                     | region_leave | r1  |  0.002138 |  0.000413 | dir          | ..label:read_directory
+20:57:42.136241 wt-status.c:857              | d1 | main                     | region_leave | r1  |  0.002145 |  0.000435 | status       | label:untracked
+20:57:42.136265 wt-status.c:2569             | d1 | main                     | data         | r1  |  0.002169 |  0.002169 | status       | count/changed:0
+20:57:42.136270 wt-status.c:2570             | d1 | main                     | data         | r1  |  0.002174 |  0.002174 | status       | count/untracked:0
+20:57:42.136274 wt-status.c:2572             | d1 | main                     | data         | r1  |  0.002178 |  0.002178 | status       | count/ignored:0
+20:57:42.136278 wt-status.c:2574             | d1 | main                     | region_enter | r1  |  0.002181 |           | status       | label:print
+20:57:42.136282 wt-status.c:2595             | d1 | main                     | region_leave | r1  |  0.002186 |  0.000005 | status       | label:print
+20:57:42.136288 git.c:780                    | d1 | main                     | exit         |     |  0.002191 |           |              | code:0
+20:57:42.136294 tree-walk.c:186              | d1 | main                     | data_json    | r1  |  0.002197 |  0.002197 | traverse_tre | statistics:{"traverse_trees_count":9,"traverse_trees_max_depth":4}
+20:57:42.136299 trace2/tr2_tgt_perf.c:219    | d1 | main                     | atexit       |     |  0.002203 |           |              | code:0
+20:57:42.136878 run-command.c:996            | d0 | main                     | child_exit   |     |  8.049835 |  0.004513 |              | ..[ch14] pid:2346386 code:0
+20:57:42.136990 diffcore-rename.c:1407       | d0 | main                     | region_enter | r1  |  8.049951 |           | diff         | ..label:setup
+20:57:42.136996 diffcore-rename.c:1460       | d0 | main                     | region_leave | r1  |  8.049957 |  0.000006 | diff         | ..label:setup
+20:57:42.137001 diffcore-rename.c:1640       | d0 | main                     | region_enter | r1  |  8.049961 |           | diff         | ..label:write back to queue
+20:57:42.137006 diffcore-rename.c:1717       | d0 | main                     | region_leave | r1  |  8.049967 |  0.000006 | diff         | ..label:write back to queue
+20:57:42.137017 wt-status.c:843              | d0 | main                     | region_leave | r1  |  8.049977 |  6.849409 | status       | label:worktrees
+20:57:42.137020 wt-status.c:850              | d0 | main                     | region_enter | r1  |  8.049981 |           | status       | label:index
+20:57:42.145319 unpack-trees.c:1905          | d0 | main                     | region_enter | r1  |  8.058276 |           | unpack_trees | ..label:unpack_trees
+20:57:42.146257 unpack-trees.c:2009          | d0 | main                     | region_enter | r1  |  8.059217 |           | unpack_trees | ....label:traverse_trees
+20:57:42.166841 unpack-trees.c:2011          | d0 | main                     | region_leave | r1  |  8.079799 |  0.020582 | unpack_trees | ....label:traverse_trees
+20:57:42.167033 unpack-trees.c:2108          | d0 | main                     | region_leave | r1  |  8.079994 |  0.021718 | unpack_trees | ..label:unpack_trees
+20:57:42.167048 diffcore-rename.c:1407       | d0 | main                     | region_enter | r1  |  8.080008 |           | diff         | ..label:setup
+20:57:42.167052 diffcore-rename.c:1460       | d0 | main                     | region_leave | r1  |  8.080013 |  0.000005 | diff         | ..label:setup
+20:57:42.167056 diffcore-rename.c:1640       | d0 | main                     | region_enter | r1  |  8.080017 |           | diff         | ..label:write back to queue
+20:57:42.167059 diffcore-rename.c:1717       | d0 | main                     | region_leave | r1  |  8.080020 |  0.000003 | diff         | ..label:write back to queue
+20:57:42.167069 wt-status.c:852              | d0 | main                     | region_leave | r1  |  8.080029 |  0.030048 | status       | label:index
+20:57:42.167073 wt-status.c:855              | d0 | main                     | region_enter | r1  |  8.080034 |           | status       | label:untracked
+20:57:42.167102 dir.c:3103                   | d0 | main                     | region_enter | r1  |  8.080063 |           | dir          | ..label:read_directory
+20:57:42.167154 name-hash.c:597              | d0 | main                     | region_enter | r1  |  8.080114 |           | index        | ....label:name-hash-init
+20:57:42.169119 name-hash.c:618              | d0 | main                     | region_leave | r1  |  8.082078 |  0.001964 | index        | ....label:name-hash-init
+20:57:42.969390 dir.c:3071                   | d0 | main                     | data         | r1  |  8.882347 |  0.802284 | read_directo | ....path:
+20:57:42.969415 dir.c:3079                   | d0 | main                     | data         | r1  |  8.882376 |  0.802313 | read_directo | ....directories-visited:5480
+20:57:42.969421 dir.c:3081                   | d0 | main                     | data         | r1  |  8.882382 |  0.802319 | read_directo | ....paths-visited:24845
+20:57:42.969426 dir.c:3126                   | d0 | main                     | region_leave | r1  |  8.882386 |  0.802323 | dir          | ..label:read_directory
+20:57:42.969451 wt-status.c:857              | d0 | main                     | region_leave | r1  |  8.882412 |  0.802378 | status       | label:untracked
+20:57:42.969496 wt-status.c:2569             | d0 | main                     | data         | r1  |  8.882457 |  8.882457 | status       | count/changed:3
+20:57:42.969501 wt-status.c:2570             | d0 | main                     | data         | r1  |  8.882462 |  8.882462 | status       | count/untracked:3
+20:57:42.969506 wt-status.c:2572             | d0 | main                     | data         | r1  |  8.882467 |  8.882467 | status       | count/ignored:0
+20:57:42.969511 wt-status.c:2574             | d0 | main                     | region_enter | r1  |  8.882471 |           | status       | label:print
+20:57:42.970018 wt-status.c:2595             | d0 | main                     | region_leave | r1  |  8.882979 |  0.000508 | status       | label:print
+20:57:42.970073 git.c:780                    | d0 | main                     | exit         |     |  8.883034 |           |              | code:0
+20:57:42.970083 tree-walk.c:186              | d0 | main                     | data_json    | r1  |  8.883043 |  8.883043 | traverse_tre | statistics:{"traverse_trees_count":26,"traverse_trees_max_depth":7}
+20:57:42.970089 trace2/tr2_tgt_perf.c:219    | d0 | main                     | atexit       |     |  8.883049 |           |              | code:0

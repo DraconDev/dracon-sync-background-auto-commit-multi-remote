@@ -1,0 +1,43 @@
+Oct 22 20:54:48 nixos dracon-sync[3228336]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 20:54:48 nixos dracon-sync[3228336]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis sync deferred: another process owns the repository operation
+Oct 22 20:54:51 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 20:54:53 nixos dracon-sync[3228336]: ⚠️ background push to origin failed for /home/dracon/Dev/browser-extensions-shared: git push failed in /home/dracon/Dev/browser-extensions-shared with status exit status: 1: error: failed to push some refs to 'github.com:DraconDev/browser-extensions-shared.git'
+Oct 22 20:54:53 nixos dracon-sync[3228336]: <hook/stdout diagnostics>
+Oct 22 20:54:53 nixos dracon-sync[3228336]: 🔍 Pre-push: 7 affected workspace(s) — running 4-gate (typecheck, build, test, lint).
+Oct 22 20:54:53 nixos dracon-sync[3228336]: 🧾 Pre-push attempt logs: /tmp/dracon-pre-push.WmDAdy
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/amazon-price-watch TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/amazon-price-watch BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/amazon-price-watch TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/amazon-price-watch LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/auto-form-filler TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/auto-form-filler BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/auto-form-filler TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/auto-form-filler LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/clean-web TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/clean-web BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/clean-web TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/clean-web LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/SamAI TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/SamAI BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/SamAI TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/SamAI LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/tabmon TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/tabmon BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/tabmon TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/tabmon LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/vidpro-extension TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/vidpro-extension BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/vidpro-extension TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/vidpro-extension LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/youtube-filter TYPECHECK
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/youtube-filter BUILD
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/youtube-filter TEST
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   ▸ extensions/standalones/youtube-filter LINT
+Oct 22 20:54:53 nixos dracon-sync[3228336]: ❌ Pre-push: 4-gate FAILED for:
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   - extensions/standalones/SamAI/LINT exited 1 (see /tmp/dracon-pre-push.WmDAdy/extensions_standalones_SamAI-LINT.log)
+Oct 22 20:54:53 nixos dracon-sync[3228336]: Remediation:
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   - Inspect this attempt's logs under /tmp/dracon-pre-push.WmDAdy
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   - Fix the regression locally before retrying
+Oct 22 20:54:53 nixos dracon-sync[3228336]:   - To bypass Phase 2 (EMERGENCY ONLY): DRACON_SKIP_PRE_PUSH_GATES=1 git push
+Oct 22 20:54:53 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/browser-extensions-shared 1 mirror(s) paused (per-remote gate) — healthy remotes still push
+Oct 22 20:54:57 nixos dracon-sync[3228336]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls — Dispatch Starved (>10 min): dirty but undispatched for 1069s — hold: no hold recorded (check journal)

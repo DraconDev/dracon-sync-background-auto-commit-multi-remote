@@ -1,0 +1,10 @@
+# branch.oid 5ee0a3aa7435c42c4a647d2f394a80c75dbbbb31
+# branch.head main
+# branch.upstream origin/main
+# branch.ab +1 -0
+1 .M S.M. 160000 160000 160000 8cebb81bcd4b0639fd84ba1d1648a994102c2ae4 8cebb81bcd4b0639fd84ba1d1648a994102c2ae4 web/games/wip/capture-anime-girls
+1 .M S.MU 160000 160000 160000 ef0105e0e32acd54f722aaf6feae1cf3a9a98225 ef0105e0e32acd54f722aaf6feae1cf3a9a98225 web/games/wip/hegemon
+1 .M N... 100644 100644 100644 dddb53fa4742562a1141f7d8c64aeaf2f057dd82 dddb53fa4742562a1141f7d8c64aeaf2f057dd82 web/games/wip/outpost-eden/scripts/e2e-menu.mjs
+? web/games/wip/aud-vis/
+? web/games/wip/aud2-parent/
+? web/games/wip/outpost-eden/tests/text-scale.test.ts

@@ -1,0 +1,37 @@
+Oct 22 17:33:31 nixos dracon-sync[3228336]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap was stuck (4 consecutive failures), retrying push after 23425s
+Oct 22 17:33:33 nixos dracon-sync[3228336]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap was stuck (4 consecutive failures), retrying push after 23427s
+Oct 22 17:33:34 nixos dracon-sync[3228336]: ⏫ /home/dracon/Dev/dracon-platform scaling push timeout 900s → 3600s (30 commits ahead)
+Oct 22 17:33:34 nixos dracon-sync[3228336]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap was stuck (4 consecutive failures), retrying push after 23428s
+Oct 22 17:33:34 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-platform origin push paused (6 consecutive fails, re-probe in 167s) — healthy mirrors still push
+Oct 22 17:33:34 nixos dracon-sync[3228336]: ⏸️ /home/dracon/Dev/dracon-platform 1 mirror(s) paused (per-remote gate) — healthy remotes still push
+Oct 22 17:33:35 nixos dracon-sync[3228336]: 🔄 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap was stuck (4 consecutive failures), retrying push after 23429s
+Oct 22 17:33:35 nixos dracon-sync[3228336]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 17:33:37 nixos dracon-sync[3228336]: ⚠️ background push to origin failed for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: git push failed in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap with status exit status: 1: {
+Oct 22 17:33:37 nixos dracon-sync[3228336]:   "ok": false,
+Oct 22 17:33:37 nixos dracon-sync[3228336]:   "code": "BUCKET_STRATEGY_INVALID_POLICY",
+Oct 22 17:33:37 nixos dracon-sync[3228336]:   "message": "invalid bucket strategy policy",
+Oct 22 17:33:37 nixos dracon-sync[3228336]:   "details": [
+Oct 22 17:33:37 nixos dracon-sync[3228336]:     "buckets: expected non-empty object"
+Oct 22 17:33:37 nixos dracon-sync[3228336]:   ]
+Oct 22 17:33:37 nixos dracon-sync[3228336]: }
+Oct 22 17:33:37 nixos dracon-sync[3228336]: pre-push: bucket high-water/forward-only guard blocked this push
+Oct 22 17:33:37 nixos dracon-sync[3228336]: error: failed to push some refs to 'github.com:DraconDev/doomtap.git'
+Oct 22 17:33:37 nixos dracon-sync[3228336]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 17:33:37 nixos dracon-sync[3228336]: ⏸️  daemon backstop: 26 unpushed commits pending push >300s, skipping auto-commit for /home/dracon/Dev/browser-extensions-shared
+Oct 22 17:33:37 nixos dracon-sync[3228336]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 22 17:33:38 nixos dracon-sync[3228336]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap: git push-to-gitlab failed in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap with status exit status: 1: {
+Oct 22 17:33:38 nixos dracon-sync[3228336]:   "ok": false,
+Oct 22 17:33:38 nixos dracon-sync[3228336]:   "code": "BUCKET_STRATEGY_INVALID_POLICY",
+Oct 22 17:33:38 nixos dracon-sync[3228336]:   "message": "invalid bucket strategy policy",
+Oct 22 17:33:38 nixos dracon-sync[3228336]:   "details": [
+Oct 22 17:33:38 nixos dracon-sync[3228336]:     "buckets: expected non-empty object"
+Oct 22 17:33:38 nixos dracon-sync[3228336]:   ]
+Oct 22 17:33:38 nixos dracon-sync[3228336]: }
+Oct 22 17:33:38 nixos dracon-sync[3228336]: pre-push: bucket high-water/forward-only guard blocked this push
+Oct 22 17:33:38 nixos dracon-sync[3228336]: error: failed to push some refs to 'gitlab.com:DraconDev/doomtap.git'
+Oct 22 17:33:38 nixos dracon-sync[3228336]: ⚠️ push failed for /home/dracon/Dev/dracon-platform/web/games/wip/doomtap (remotes: gitlab, origin)
+Oct 22 17:33:39 nixos dracon-sync[3228336]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/doomtap committed but push failed (late) (will retry)
+Oct 22 17:33:40 nixos dracon-sync[3228336]: 🛑 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck doomtap` or `dracon-sync repair concerns --apply`
+Oct 22 17:33:40 nixos dracon-sync[3228336]: 🔔 sync alert: /home/dracon/Dev/dracon-platform/web/games/wip/doomtap — Push Stuck (budget exhausted): 5 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+Oct 22 17:33:40 nixos dracon-sync[3228336]: 📝 /home/dracon/Dev/dracon-platform/web/games/wip/doomtap push-stuck cause routed to owning loop ledger
+Oct 22 17:33:41 nixos dracon-sync[3228336]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
