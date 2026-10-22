@@ -8,6 +8,10 @@ use anyhow::{bail, Context, Result};
 use dracon_git::types::RepoStatus;
 use std::{path::Path, time::Duration};
 
+/// Shared by scheduler and reports: a healthy filtered/nested worktree may
+/// exceed a short UI deadline. Keep cancellation and the finite ceiling alike.
+pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(60);
+
 pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<RepoStatus> {
     tokio::time::timeout(budget, async {
         let child = super::spawn_git_command_cancellable(
