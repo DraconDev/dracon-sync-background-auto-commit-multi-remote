@@ -147,6 +147,7 @@ pub(crate) async fn count_ahead_commits(repo: &Path) -> Result<u64> {
             candidates.push(format!("refs/remotes/{}/main", mirror));
         }
     }
+    let mut max_count: Option<u64> = None;
     for candidate in &candidates {
         let exists = crate::policy::std_git_command()
             .args(["rev-parse", "--verify", "-q", candidate])
@@ -178,6 +179,9 @@ pub(crate) async fn count_ahead_commits(repo: &Path) -> Result<u64> {
                 repo.display()
             )
         })?;
+        max_count = Some(max_count.map_or(count, |current| current.max(count)));
+    }
+    if let Some(count) = max_count {
         return Ok(count);
     }
     // No tracking ref anywhere → never pushed from this clone.
