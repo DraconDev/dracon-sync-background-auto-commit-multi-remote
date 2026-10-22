@@ -278,7 +278,7 @@ fn classification_cooldown_elapsed(until: Option<&Instant>, now: Instant) -> boo
 /// Past 2x the result max-age the task is wedged by definition (a
 /// result that old would be stale-dropped on arrival anyway): abort
 /// it, free the slot, re-probe next cycle. Pure helper for test.
-const STATUS_TASK_TIMEOUT_SECS: u64 = 60;
+const STATUS_TASK_TIMEOUT_SECS: u64 = crate::git::STATUS_INSPECTION_BUDGET.as_secs();
 
 fn status_inspection_wedged(spawned_at: Instant, now: Instant) -> bool {
     now.saturating_duration_since(spawned_at) >= Duration::from_secs(STATUS_TASK_TIMEOUT_SECS)
@@ -1031,12 +1031,14 @@ pub(crate) fn apply_outcome(
             return ApplyOutcome::PushPaused;
         }
     }
-    entry.remote_failures = remote_failures;
+    if !matches!(sync_res, Ok(SyncOutcome::OperationDeferred)) {
+        entry.remote_failures = remote_failures;
+        entry.mirror_consecutive_fails = entry.remote_failures.clone();
+    }
     // CHANGED 2026-07-21 (v0.112.31, audit M1/F1.7+F3.9):
     // populate `mirror_consecutive_fails` from the per-remote
     // failure counts (see the main apply phase for the full
     // rationale).
-    entry.mirror_consecutive_fails = entry.remote_failures.clone();
     let late_tag = if is_late { " (late)" } else { "" };
     match sync_res {
         Ok(SyncOutcome::Synced) => {
@@ -1116,6 +1118,12 @@ pub(crate) fn apply_outcome(
                     late_tag
                 );
             }
+            stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
+            ApplyOutcome::BackstopSkipped
+        }
+        Ok(SyncOutcome::OperationDeferred) => {
+            // No work was attempted. Retain failure/blocked evidence and the
+            // activity entry; do not claim a commit or consume a push retry.
             stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
             ApplyOutcome::BackstopSkipped
         }
@@ -2415,6 +2423,24 @@ mod tests {
             false,
         );
         assert_eq!(outcome, ApplyOutcome::BackstopSkipped);
+
+        // Lease contention did not attempt work: preserve prior blockers,
+        // failure count and remote backoff, but avoid an immediate spin.
+        let blocked_since = entry.blocked_since;
+        let failures = entry.failure_count;
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::OperationDeferred),
+            HashMap::new(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::BackstopSkipped);
+        assert_eq!(entry.blocked_since, blocked_since);
+        assert_eq!(entry.failure_count, failures);
+        assert!(stage_cooldowns[&repo] > Instant::now());
 
         // --- PushFailed -> ApplyOutcome::Failure, blocked_since cleared ---
         entry.blocked_since = Some(std::time::Instant::now());
@@ -6859,7 +6885,8 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
             }
             Ok(SyncOutcome::NothingToDo)
             | Ok(SyncOutcome::Blocked)
-            | Ok(SyncOutcome::BackstopSkipped) => {}
+            | Ok(SyncOutcome::BackstopSkipped)
+            | Ok(SyncOutcome::OperationDeferred) => {}
             // ADDED 2026-07-21 (v0.112.33, audit M9/F1.8).
             Ok(SyncOutcome::FilterOnly) => {
                 println!(

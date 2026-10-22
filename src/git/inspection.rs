@@ -280,6 +280,47 @@ mod tests {
         check_hung_filter_recovery(true).await;
     }
 
+    /// A legitimate filter may outlast the old report-only eight-second
+    /// deadline. It must still report real dirt, not fail or fabricate clean.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn shared_budget_accepts_slow_successful_filter() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .current_dir(dir.path())
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        };
+        git(&["init", "--initial-branch=main"]);
+        std::fs::write(dir.path().join(".gitattributes"), "asset filter=slow\n").unwrap();
+        std::fs::write(
+            dir.path().join("filter.sh"),
+            "if test -e slow; then sleep 9; fi\ncat\n",
+        )
+        .unwrap();
+        git(&["config", "filter.slow.clean", "sh filter.sh"]);
+        git(&["config", "filter.slow.required", "true"]);
+        std::fs::write(dir.path().join("asset"), "before\n").unwrap();
+        git(&["add", "asset"]);
+        tokio::time::sleep(Duration::from_millis(1100)).await;
+        std::fs::write(dir.path().join("asset"), "after!\n").unwrap();
+        std::fs::write(dir.path().join("slow"), "").unwrap();
+        let started = std::time::Instant::now();
+        let status = inspect_status(dir.path(), STATUS_INSPECTION_BUDGET)
+            .await
+            .unwrap();
+        assert!(started.elapsed() >= Duration::from_secs(9));
+        assert_eq!(status.modified_files, 1);
+        assert!(!status.is_clean);
+    }
+
     #[tokio::test]
     async fn inspects_real_repository_and_counts_nested_untracked_files() {
         let dir = tempfile::tempdir().unwrap();

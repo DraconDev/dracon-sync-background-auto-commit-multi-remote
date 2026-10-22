@@ -1180,6 +1180,9 @@ async fn run_cli(cli: Cli) -> Result<()> {
                             println!("✅ no sync changes {}", repo.display());
                         }
                     }
+                    Ok(crate::sync::SyncOutcome::OperationDeferred) => {
+                        println!("⏳ sync deferred for {} (another process owns the operation; no work attempted)", repo.display());
+                    }
                     Ok(crate::sync::SyncOutcome::Blocked) => {
                         println!(
                             "⏸️  sync blocked for {} (guard or manual intervention required)",

@@ -13,11 +13,9 @@ use crate::git::gh_cmd;
 mod current_health;
 
 // Concurrency cap for the parallel per-repo work in `run_repos_report`.
-// Most of the per-repo cost is a few `git` subprocess calls (status, log,
-// remote), each ~30ms on local disk. Capping at 16 keeps the CPU and FD
-// pressure reasonable on 26 repos while still reducing wall-clock time
-// from ~1.6s to ~0.5s on a modern multi-core machine.
-const REPORT_REPO_CONCURRENCY: usize = 16;
+// Match status admission in the scheduler: filtered/nested inspections can
+// last seconds, and sixteen concurrent full scans compete with live sync.
+const REPORT_REPO_CONCURRENCY: usize = 4;
 
 // FIXED 2026-10-09 (audit F135): per-repo budget for the scan-bloat
 // `git ls-files --others --directory` walk. That walk reads the whole
@@ -2853,6 +2851,12 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
 }
 
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
+    if current == current_health::Current::Unknown
+        && (hint.starts_with("daemon will push after changes settle")
+            || hint.starts_with("daemon handles after changes settle"))
+    {
+        return "current scheduler evidence unavailable — inspect repo details and daemon journal; convergence is not established".to_string();
+    }
     // Classification runs after generic ahead/dirty hints. Do not promise
     // convergence or suggest forcing sync when the daemon has reported a
     // guard refusal. Keep existing concrete ownership/history/pack diagnoses.
@@ -4002,6 +4006,10 @@ fn apply_report_scheduler_snapshot(
     }
 }
 
+fn report_repo_matches_detail(repo: &Path, detail: Option<&str>) -> bool {
+    detail.is_none_or(|name| repo.file_name().is_some_and(|base| base == name))
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_repos_report(
     policy_path: &Path,
@@ -4026,12 +4034,17 @@ pub(crate) async fn run_repos_report(
     let policy = SyncPolicy::load(policy_path)?;
     let roots = policy.watch_root_paths();
     let excluded_dir_names = excluded_dir_names_set(&policy);
-    let repos = discover_git_repos(
+    let repos: Vec<_> = discover_git_repos(
         &roots,
         &excluded_dir_names,
         &policy.exclude_repos,
         Some(&policy.system_repo),
-    );
+    )
+    .into_iter()
+    // A detail request must not wait on unrelated repositories (or emit their
+    // failures). Preserve all exact-basename matches to detect ambiguity.
+    .filter(|repo| report_repo_matches_detail(repo, repo_detail))
+    .collect();
     // Per-repo `.git` size + GitHub pack-size guard, cached by gitdir mtime
     // so repeat `repos` runs skip the expensive `git count-objects` /
     // `git rev-list` work on multi-GiB .git dirs (the recent slowdown
@@ -4053,15 +4066,6 @@ pub(crate) async fn run_repos_report(
     let freeze_state = crate::policy::freeze_state(policy_path);
     let frozen_secs = freeze_state.as_ref().map(|s| s.age_secs);
     let _rows: Vec<RepoReportRow> = Vec::new();
-    // CHANGED 2026-07-11 (audit AUDIT-3-UTILITIES-2026-07-10.md
-    // CONCERN #6): drop the initial `= 0usize`; the variable is
-    // unconditionally overwritten below at the `.await` join point
-    // (`init_status_failures.load(...)`), so the initial value is
-    // never read. Removing it silences the `unused_assignments`
-    // warning without changing behavior.
-
-    // Read the incident ledger once and build a per-repo map of "did the
-
     // Read the incident ledger once and build a per-repo map of "did the
     // daemon record a push failure in the last 10 minutes?". This lets the
     // report distinguish "has unpushed commits" (normal, daemon is working)
@@ -4078,12 +4082,9 @@ pub(crate) async fn run_repos_report(
     // CHANGED 2026-07-04 (goal mr5s1530-755tj8): parallelize the per-repo
     // work. Each iteration's main cost is a handful of `git` subprocess
     // calls (status, log, remote) that don't depend on other repos. Run them
-    // concurrently with `buffer_unordered(16)` so 26 repos finish in roughly
-    // max(per-repo-work) instead of sum(per-repo-work). Measured: ~1.6s →
-    // ~0.5s on this box. The closure returns the built `RepoReportRow` or
-    // `None` for repos that failed init/status (which are counted by a side
-    // channel via atomic counter).
-    let init_status_failures = std::sync::atomic::AtomicUsize::new(0);
+    // concurrently with bounded admission. The closure returns a built row
+    // or retains the actual inspection error for counts and detail requests.
+    let init_status_failures = std::sync::Mutex::new(Vec::<(PathBuf, String)>::new());
     let row_results: Vec<Option<RepoReportRow>> = {
         let recent_push_failures = &recent_push_failures;
         let daemon_last_actions = &daemon_last_actions;
@@ -4099,10 +4100,10 @@ pub(crate) async fn run_repos_report(
                 // Use the same owned-process inspection as the scheduler.
                 // A timed-out detail/report must cancel Git and its filter
                 // descendants, not leave an uncancellable blocking task behind.
-                let status = match crate::git::inspect_status(&repo, Duration::from_secs(8)).await {
+                let status = match crate::git::inspect_status(&repo, crate::git::STATUS_INSPECTION_BUDGET).await {
                     Ok(status) => status,
                     Err(e) => {
-                        init_status_failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        init_status_failures.lock().unwrap().push((repo.clone(), e.to_string()));
                         emit_repo_failure(json, "status_failed", &repo, &e);
                         return None;
                     }
@@ -4931,8 +4932,18 @@ pub(crate) async fn run_repos_report(
         size_cache.insert(k, v);
     }
     save_repo_size_cache(&cache_path, &size_cache);
-    let init_or_status_failures: usize =
-        init_status_failures.load(std::sync::atomic::Ordering::Relaxed);
+    let inspection_failures = init_status_failures.into_inner().unwrap();
+    let init_or_status_failures = inspection_failures.len();
+    if repo_detail.is_some() && !inspection_failures.is_empty() {
+        anyhow::bail!(
+            "{}",
+            inspection_failures
+                .iter()
+                .map(|(repo, error)| repo_failure_message("status_failed", repo, error))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
     let mut rows: Vec<RepoReportRow> = row_results.into_iter().flatten().collect();
     // Git/filter probes can outlast the scheduler evidence's 30s freshness
     // window. Sample after those probes, immediately before classification.
@@ -5069,7 +5080,7 @@ pub(crate) async fn run_repos_report(
     // the single banner line): one styled rule in the legend-rule
     // language, counts inline, padded with ─ to the table width.
     let banner_plain = format!(
-        "── dracon-sync repos ── 📦 {total} · ✅ {ok_count} clean · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} · ⛔ {init_or_status_failures}{filter_note_plain}",
+        "── dracon-sync repos ── 📦 {total} inspected · ✅ {ok_count} clean · 🔄 {active_count} active · 🟡 {warn_count} · ❌ {concern_count} concerns · ⛔ {init_or_status_failures} inspection failures{filter_note_plain}",
         total = rows.len(),
         filter_note_plain = match filter {
             RepoFilter::All => String::new(),
@@ -5080,7 +5091,7 @@ pub(crate) async fn run_repos_report(
         },
     );
     let banner_colored = format!(
-        "── dracon-sync repos ── 📦 {} · {} clean · {} active · {} · {} · ⛔ {}{}",
+        "── dracon-sync repos ── 📦 {} inspected · {} clean · {} active · {} · {} concerns · ⛔ {} inspection failures{}",
         rows.len(),
         ansi("32", &format!("✅ {ok_count}")),
         ansi("36", &format!("🔄 {active_count}")),
@@ -6438,7 +6449,13 @@ fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
 ///   they surface as ❌ FAIL.
 fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> String {
     use unicode_width::UnicodeWidthStr;
-    let mut out = text;
+    // A two-digit failed-push age is wider than the rich cell. Compact only
+    // the icon separator, retaining both FAIL and the full age (no wrapping).
+    let mut out = if UnicodeWidthStr::width(text.as_str()) > budget {
+        text.replacen("❌ FAIL ", "❌FAIL ", 1)
+    } else {
+        text
+    };
     if row.missing_objects > 0 && UnicodeWidthStr::width(out.as_str()) + 2 <= budget {
         out.push('🩹');
     }
@@ -16444,6 +16461,45 @@ mod v011321_tests {
         }
         let concrete = "ownership blocked: foreign remote";
         assert_eq!(current_blocker_hint(Current::Blocked, concrete), concrete);
+    }
+
+    #[test]
+    fn detail_selection_inspects_only_exact_matches_and_keeps_ambiguity() {
+        let paths = [
+            Path::new("/watch/target"),
+            Path::new("/watch/slow"),
+            Path::new("/other/target"),
+        ];
+        let selected: Vec<_> = paths
+            .iter()
+            .filter(|p| report_repo_matches_detail(p, Some("target")))
+            .collect();
+        assert_eq!(selected, vec![&paths[0], &paths[2]]);
+        assert!(paths.iter().all(|p| report_repo_matches_detail(p, None)));
+        assert!(!report_repo_matches_detail(paths[0], Some("targ")));
+    }
+
+    #[test]
+    fn unknown_hints_do_not_promise_unobserved_convergence() {
+        use super::current_health::Current;
+        let generic = "daemon will push after changes settle; pack guard clear";
+        let unknown = current_blocker_hint(Current::Unknown, generic);
+        assert!(unknown.contains("evidence unavailable"));
+        assert!(!unknown.contains("will push"));
+        let concrete = "push-stuck: hook refused";
+        assert_eq!(current_blocker_hint(Current::Unknown, concrete), concrete);
+    }
+
+    #[test]
+    fn failed_push_age_fits_rich_cell_without_losing_failure_or_age() {
+        use unicode_width::UnicodeWidthStr;
+        let row = base_row();
+        for age in ["9s", "22m", "59m", "23h", "99d"] {
+            let text = push_cell_with_markers(format!("❌ FAIL {age}"), &row, 10);
+            assert!(text.contains("FAIL"));
+            assert!(text.ends_with(age));
+            assert!(text.width() <= 10, "{text}");
+        }
     }
 
     #[test]

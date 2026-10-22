@@ -62,6 +62,8 @@ fn stale_upstream_refresh_allowed(repo: &Path, now: std::time::Instant) -> bool 
 pub(crate) enum SyncOutcome {
     Synced,
     NothingToDo,
+    /// Another process owns this Git directory; no commit or push attempted.
+    OperationDeferred,
     Blocked,
     /// ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): the auto-commit
     /// backstop skipped the commit step (operator is committing
@@ -5249,7 +5251,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
                     "⏳ {} sync deferred: another process owns the repository operation",
                     repo.display()
                 );
-                return Ok(SyncOutcome::PushPaused);
+                return Ok(SyncOutcome::OperationDeferred);
             }
         }
     };
@@ -8023,6 +8025,25 @@ trusted_authors = ["test"]
         assert!(
             chain.contains("bootstrap") || chain.contains("sync lease"),
             "error must name the failed bootstrap or prior ownership step: {chain}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sync_repo_busy_lease_defers_without_committing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        init_empty_repo(&repo);
+        std::fs::write(repo.join("a.txt"), "alpha\n").unwrap();
+        let _lease = crate::git::sync_lease::try_acquire(&repo).unwrap().unwrap();
+        let policy = bootstrap_test_policy("");
+        let outcome = sync_repo(&repo, &policy, &BTreeSet::new(), 0, None, false, None)
+            .await
+            .unwrap();
+        assert_eq!(outcome, SyncOutcome::OperationDeferred);
+        assert_eq!(head_commit_count(&repo), 0);
+        assert_eq!(
+            std::fs::read_to_string(repo.join("a.txt")).unwrap(),
+            "alpha\n"
         );
     }
 
