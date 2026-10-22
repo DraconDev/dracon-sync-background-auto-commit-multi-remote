@@ -123,6 +123,19 @@ pub(crate) enum SyncOutcome {
 /// falling back to `/main` for pre-rename repos). When NO tracking
 /// ref exists anywhere, every commit is unpushed — return the local
 /// total (`count_all_head_commits`).
+///
+/// CHANGED 2026-10-22: the count is now the MAXIMUM across every
+/// existing tracking ref, not the FIRST one found. The caller scales
+/// the push timeout by this number, but a push must succeed against
+/// EVERY remote, so the budget has to cover the FURTHEST-BEHIND
+/// mirror. Returning the first candidate (origin) under-counted a
+/// repo whose gitlab mirror lagged much further: dracon-strategy was
+/// 40 ahead of origin/main but 65 ahead of gitlab/main, so the
+/// scaler sized the timeout for 40 commits while the gitlab push
+/// carried 65 — and the gitlab push was the one that failed
+/// repeatedly. Taking the max is also the conservative direction for
+/// the backstop gate (more unpushed commits = more reason to hold),
+/// and it is a no-op for every repo whose remotes are in step.
 pub(crate) async fn count_ahead_commits(repo: &Path) -> Result<u64> {
     let branch = crate::git::current_branch(repo)
         .filter(|b| b != "HEAD")
