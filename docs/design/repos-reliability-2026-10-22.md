@@ -177,7 +177,7 @@ remote failure state. That coverage gap was corrected: both remote maps and a
 nonzero failure count are now asserted preserved. The implementation itself
 already retained them. Follow-up review covers the checkout-identity guard.
 
-## Final quality gates and deployment
+## Initial qualified rollout
 
 All qualified source files and workspace manifests matched the source-digest
 manifest captured before final verification; no source drift was observed.
@@ -252,7 +252,7 @@ next sample observes a real working owner.
    deciding whether it should become a distinct checkout or an intentional
    alias. Approval must cover the actual content-preserving checkout repair;
    do not delete either directory or silently remove it from coverage.
-2. For dracon-strategy, inspect GitLab transfer/ancestry/payload evidence, then
+2. For dracon-strategy, inspect local-hook and GitLab transfer/ancestry/payload evidence, then
    authorize `dracon-sync repair stuck-unstuck dracon-strategy` only after the
    cause is addressed. The reset command itself does not fix a transport fault.
 3. For browser-extensions-shared, verify the applicable complete four-gate
@@ -263,4 +263,42 @@ next sample observes a real working owner.
 These are recommendations, not permission requests hidden in an implementation
 claim. Remaining repository-state recovery was explicitly excluded from this
 run. None of the unresolved targets is described as converged.
+
+## Current-source requalification and second rollout
+
+Concurrent work added a max-tracking-ref regression and a local-operation-timeout
+classifier while the initial receipts were being assembled. The maximum-count
+production implementation was already present; the added test checks that the
+furthest-behind tracking ref determines the count. The timeout classifier
+identifies the runner's deadline format, distinguishing it from forge-side
+outages and ordinary transport failures, without altering retry accounting.
+
+The classifier's initial wording asserted remote reachability and prescribed
+larger timeouts from only the deadline message. This run corrected that wording
+and its explanation: a local deadline event alone cannot establish whether a
+hook or network transfer stalled. Guidance now asks for hook/transfer progress
+and budget inspection and explicitly leaves remote health unestablished. It
+neither increases budgets nor bypasses hooks. The independent reviewer accepted
+the change and the four additional regression cases.
+
+The **current** source, including those additions and the truthful timeout
+wording, was requalified from a fresh source-digest manifest:
+
+- Full workspace tests: **2,554 passed, zero failed, 25 existing ignores**, exit 0.
+- Release build, Clippy with warnings denied, dependency checks, and formatting
+  checks: exit 0.
+- Current release and installed CLI detail fixtures: both cases pass.
+- Raw current receipts: `workspace-current.log`, `build-current.log`,
+  `clippy-current.log`, `deny-current.log`, `format-current.log`, and
+  `detail-installed-current.log` in the evidence directory. Earlier receipts
+  remain historical; they are not reused to qualify a changed artifact.
+
+The second maintenance deployment at **22:38:37–48 UTC** replaced PID 319430
+with **3170257** through the same atomic-install/owned-SIGTERM/Restart=always
+procedure. The artifact, installed CLI and loaded daemon matched SHA-256
+`f697cb28ec4b7824b6a31c60256925b895316c6bea0fe44b29829bd5f989a3a6`.
+Rollback copies and receipt are at
+`~/.local/state/dracon-sync/deployments/20261022T223836Z-repos-reliability/`.
+The freeze marker was removed normally. No additional repository recovery was
+performed for this requalification or rollout.
 
