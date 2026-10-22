@@ -82,7 +82,11 @@ succeeded at 20:14 UTC; reachability does not establish push eligibility.
 pre-push hook and `web/scripts/bucket-strategy.mjs` in dracon-platform, restore a
 valid nonempty bucket mapping without removing the guard, validate with that
 script's read-only policy checks, then authorize clearing doomtap's exhausted
-retry budget. No bucket policy or retry ledger was changed here.
+retry budget. No bucket policy or retry ledger was changed here. By deployment time doomtap
+had independently recovered: the first post-deployment snapshot shows no
+pending changes/ahead commits and a successful recorded push. That recovery
+is not attributed to this utility patch; final observations below retain its
+current disposition.
 
 ### dracon-strategy: exhausted GitLab idle timeout
 
@@ -117,10 +121,16 @@ the failing gate, not its exact lint rule. At 20:14 UTC origin advertised its
 branch, while the local `gitlab` alias was absent (exit 128). Existing daemon
 remote reconciliation/backoff can remove aliases; this inspection did not add
 one or infer that the forge itself was unavailable.
-**Unapplied recommendation:** in browser-extensions-shared run the SamAI lint
-script defined in its package manifest, fix the actual product regression,
-retain all four gates, and inspect current mirror reconciliation before any
-manual recovery. This utility change does not claim to repair SamAI.
+A subsequent read-only `timeout 180 bun run --cwd
+/home/dracon/Dev/browser-extensions-shared/extensions/standalones/SamAI lint`
+returned zero during post-deployment investigation. The project requires Bun;
+an initial pnpm invocation refused before running lint. Thus SamAI's historical
+lint refusal is proven, but is **not** claimed still reproducible or fixed by
+this change. The full queued multi-workspace four-gate has not been rerun
+manually. **Unapplied recommendation:** retain all four gates, inspect current
+mirror reconciliation and exhausted retry state, then authorize an ordinary
+retry after the applicable product gates pass. This utility change does not
+claim to repair SamAI.
 
 ## Rendering and regression requirements
 
@@ -167,6 +177,45 @@ remote failure state. That coverage gap was corrected: both remote maps and a
 nonzero failure count are now asserted preserved. The implementation itself
 already retained them. Follow-up review covers the checkout-identity guard.
 
-Quality-gate and deployment receipts will be recorded below after actual
-execution. No passing full-suite or deployed-runtime claim is made by this
-checkpoint.
+## Final quality gates and deployment
+
+All qualified source files and workspace manifests matched the source-digest
+manifest captured before final verification; no source drift was observed.
+
+- `timeout 1500 env CARGO_BUILD_JOBS=1 cargo test --workspace --locked`: exit 0;
+  2,550 passed, zero failed, 25 pre-existing ignores across 37 result groups.
+- `timeout 1200 env CARGO_BUILD_JOBS=1 cargo build --release --locked`: exit 0.
+- `timeout 600 env CARGO_BUILD_JOBS=1 cargo clippy --workspace --locked -- -D warnings`: exit 0.
+- `timeout 300 cargo deny check`: exit 0; advisories, bans, licenses, sources OK.
+- `timeout 30 cargo fmt --all -- --check`: exit 0.
+- Release and installed CLI detail fixtures both passed. The installed
+  `repos aud-vis` exits nonzero with the actual worktree mismatch, not absence.
+
+The earlier workspace failure was the preserved label-vocabulary test, corrected
+by replacing icon compaction with content-derived column sizing. A targeted
+standalone inspection run later hit its compilation/file-lock deadline; that
+is not claimed a functional pass. The final full workspace run includes all
+new compatibility/alias/cancellation tests and passes. Full-build wall time was
+substantial under host memory pressure; build concurrency remained one.
+
+Deployment used the sanctioned maintenance wrapper, backed up both the
+installed and separately loaded executable outside daemon-home, atomically
+replaced only dracon-sync, and signalled the owned daemon through a PID file
+descriptor. The system unit's existing `Restart=always` restarted it; there was
+no service stop, unmask, root-unit edit, or privilege escalation. Maintenance
+removed its freeze marker and resumed normal sync.
+
+- Restart: 2026-10-22 20:56:34–45 UTC; PID 3228336 → 319430.
+- Qualified artifact, installed CLI and `/proc/319430/exe` SHA-256:
+  `ad73e71dbc5d6cab141e8e0421bf8f706124e3ee9b6955a9cafc4607246bb80a`.
+- Rollback/receipt directory:
+  `~/.local/state/dracon-sync/deployments/20261022T205632Z-repos-reliability/`.
+- `evidence/repos-reliability-2026-10-22/deployment.log` records actual loaded
+  identity, not merely installation intent. Repeated observation receipts below
+  check that identity and the absence of a freeze marker again.
+
+No manual sync/recovery commands, manual pushes, history rewrites, force pushes,
+repository deletions, checkout repairs, hook bypasses, or coverage reductions
+were used. Normal daemon activity and disposable test-fixture operations are
+not manual recovery. Product lint was inspected without `--fix`.
+
