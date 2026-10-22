@@ -626,6 +626,42 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
         || lower.contains("pre-push:")
 }
 
+/// Check if an error message indicates the DAEMON'S OWN op-timeout kill —
+/// the local process runner gave up waiting for the push and killed the
+/// process group.
+///
+/// The runner's message is (see `run_child_inner` in `git/ops.rs`):
+///
+///     git push-to-gitlab timeout in <repo> after <n>s idle (<m>s hard cap)
+///
+/// ADDED 2026-10-22 (dracon-strategy 19h wedge): this message matched NONE
+/// of the predicates above, so it fell through `classify_push_failure` to the
+/// generic final `else` and was reported as
+///
+///     transport/auth failure (network, timeout, or credentials)
+///
+/// That sent the operator to the network and the credentials when the real
+/// cause was entirely local: the daemon killed the push itself because the
+/// op budget expired. The mirror was reachable the whole time — a raw
+/// `git push --dry-run --no-verify` to the same remote succeeded in 1.5s
+/// while the hooked push burned 15 minutes inside the local pre-push hook.
+/// The same wedge had already burned the 5-failure stuck budget, latching
+/// auto-push off for the repo.
+///
+/// This is a LABEL fix only. It deliberately does NOT change the budget
+/// behaviour: a locally wedged push must still escalate against the stuck
+/// budget (same contract as the op-timeout note in
+/// `is_transient_forge_outage`) — the operator just gets told the truth
+/// instead of being sent to inspect a working network.
+pub(crate) fn is_local_op_timeout(err_msg: &str) -> bool {
+    let lower = err_msg.to_lowercase();
+    // The daemon's own runner format: "<label> timeout in <dir> after <n>s
+    // idle (<m>s hard cap)". `hard cap` is unique to that runner (verified:
+    // the only producer in the tree is `git/ops.rs`), so this cannot collide
+    // with a forge-side "Push operation timed out".
+    lower.contains("hard cap)") && lower.contains(" timeout in ")
+}
+
 /// Check if an error message indicates a rejected push.
 pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
     err_msg.contains("rejected")
@@ -657,6 +693,14 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
     } else if is_push_rejected(err_msg) {
         "history divergence (non-fast-forward: remote has commits not on local; needs operator reconciliation)"
+    } else if is_local_op_timeout(err_msg) {
+        // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
+        // op-timeout kill. Placed AFTER the transient arms so a genuine
+        // forge-side outage still wins, and after the divergence arm so a
+        // non-fast-forward is not relabelled. The cause is LOCAL — the
+        // daemon stopped waiting and killed the push — so the operator must
+        // look at the op budget and the payload size, not at the network.
+        "local operation timeout (daemon killed the push at its op budget — raise push_op_timeout_secs or shrink the payload; the mirror itself was reachable)"
     } else {
         "transport/auth failure (network, timeout, or credentials)"
     }
@@ -1660,6 +1704,47 @@ mod tests {
             "Permission denied (publickey)",
         ] {
             assert!(!is_local_hook_rejection(msg), "wrongly matched: {}", msg);
+        }
+        assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
+    }
+
+    #[test]
+    fn test_local_op_timeout_is_labelled_not_transport_auth() {
+        // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
+        // op-timeout kill used to fall through to the generic
+        // "transport/auth failure" arm, sending the operator to the network
+        // and the credentials while the mirror was reachable the whole time.
+        let msg = "git push-to-gitlab timeout in /home/dracon/Dev/dracon-strategy after 3600s idle (14400s hard cap)";
+        assert!(is_local_op_timeout(msg));
+        let class = classify_push_failure(msg);
+        assert!(
+            class.contains("local operation timeout"),
+            "op-timeout must not be labelled transport/auth; got: {}",
+            class
+        );
+        assert!(!class.contains("transport/auth"));
+    }
+
+    #[test]
+    fn test_local_op_timeout_does_not_capture_forge_side_timeout() {
+        // The forge-side "Push operation timed out" is a transient forge
+        // outage and must keep its own label — the two timeouts are
+        // different classes (one is the daemon giving up locally, the other
+        // is GitLab giving up on its side).
+        let forge = "git push-to-gitlab failed with status exit status: 1: remote: GitLab: Push operation timed out\nerror: failed to push some refs";
+        assert!(!is_local_op_timeout(forge));
+        assert!(classify_push_failure(forge).contains("forge-side outage"));
+    }
+
+    #[test]
+    fn test_local_op_timeout_leaves_transport_alone() {
+        // A genuine transport failure still reports transport/auth.
+        for msg in [
+            "Connection timed out",
+            "ssh: Could not resolve hostname github.com: Name or service not known",
+            "Permission denied (publickey)",
+        ] {
+            assert!(!is_local_op_timeout(msg), "wrongly matched: {}", msg);
         }
         assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
     }

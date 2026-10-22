@@ -12841,6 +12841,72 @@ trusted_authors = ["test"]
         assert_eq!(count, 1, "mirror ref (gitlab/main) used when origin absent");
     }
 
+    #[tokio::test]
+    async fn test_count_ahead_commits_takes_max_across_tracking_refs() {
+        // CHANGED 2026-10-22: the count is the MAXIMUM across every
+        // existing tracking ref, not the first one found. A push must
+        // succeed against EVERY remote, so the timeout budget has to
+        // cover the furthest-behind mirror. dracon-strategy was 40
+        // ahead of origin/main but 65 ahead of gitlab/main, so the
+        // old "first ref wins" behaviour sized the timeout for 40
+        // commits while the gitlab push carried 65 — and gitlab was
+        // the remote that failed repeatedly.
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("test-repo");
+        crate::git::git_cmd()
+            .args(["init", "-q", "-b", "main"])
+            .arg(&repo)
+            .status()
+            .unwrap();
+        for (k, v) in [("user.email", "t@t"), ("user.name", "t")] {
+            crate::git::git_cmd()
+                .args(["-C", &repo.to_string_lossy(), "config", k, v])
+                .status()
+                .unwrap();
+        }
+        for i in 0..5 {
+            crate::git::git_cmd()
+                .args([
+                    "-C",
+                    &repo.to_string_lossy(),
+                    "commit",
+                    "--no-verify",
+                    "--allow-empty",
+                    "-m",
+                    &format!("c{i}"),
+                ])
+                .status()
+                .unwrap();
+        }
+        // origin/main is only 1 behind HEAD; gitlab/main is 4 behind.
+        // The furthest-behind mirror (4) must win.
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "update-ref",
+                "refs/remotes/origin/main",
+                "HEAD~1",
+            ])
+            .status()
+            .unwrap();
+        crate::git::git_cmd()
+            .args([
+                "-C",
+                &repo.to_string_lossy(),
+                "update-ref",
+                "refs/remotes/gitlab/main",
+                "HEAD~4",
+            ])
+            .status()
+            .unwrap();
+        let count = count_ahead_commits(&repo).await.unwrap();
+        assert_eq!(
+            count, 4,
+            "max across tracking refs — the furthest-behind mirror sets the budget"
+        );
+    }
+
     // ============================================================
     // stage_existing_files race-condition tests
     // ============================================================

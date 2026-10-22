@@ -219,3 +219,48 @@ repository deletions, checkout repairs, hook bypasses, or coverage reductions
 were used. Normal daemon activity and disposable test-fixture operations are
 not manual recovery. Product lint was inspected without `--fix`.
 
+## Observed autonomous behavior and remaining recovery
+
+Three fleet snapshots cover **20:57:20–21:03:58 UTC** (6m38s), longer than the
+300-second status retry interval. Each CLI call exited zero in 29–35 seconds;
+each receipt reports active PID 319430, TasksMax=512, the qualified loaded
+SHA-256, and no freeze marker. All snapshots show 36 successfully inspected
+rows and exactly one explicit inspection failure: aud-vis's mismatched
+worktree. No status-timeout event appears in the captured deployment journal.
+This is bounded observation, not a promise that every future inspection or
+remote operation will succeed.
+
+| Target | Actual observation | Disposition |
+|---|---|---|
+| ai-auto-writer | Daemon committed 15 files at 20:57:38 UTC, synced at 21:00:46, and committed 20 subsequent edits at 21:01:56. Final row remains working with one newly ahead commit. | Inspection timeout resolved; real autonomous commit/push progress demonstrated, not perpetual cleanliness. |
+| dracon-platform | Committed seven files at 20:58:00, synced at 21:02:03, then committed thirteen subsequent edits at 21:03:18. | Inspection timeout resolved; autonomous progress demonstrated despite ongoing edits. |
+| aud-vis | Daemon rejected neighboring-worktree resolution at 20:56:56 and again at 21:02:03; retry remains 300s. The CLI names both paths and counts the failure. | Unsafe alias no longer appears healthy or schedules neighbor work. Checkout/content reconciliation remains unapplied and requires approval. |
+| capture-anime-girls | One ahead commit at first snapshot; zero ahead and converged in the final two snapshots, with a fresh successful push observation. | Canonical worktree remains covered; rejecting the alias did not remove its sync coverage. |
+| doomtap | All three snapshots show zero pending/ahead commits and a successful recorded push predating this restart. | Independently recovered during investigation; no doomtap policy or ledger repair was performed here. |
+| dracon-strategy | Ordinary commit-only processing continues, but 51→52 ahead commits remain; final status STALLED and last push still failed. | GitLab timeout/exhausted retry state remains unresolved; no manual reset or push was authorized or used. |
+| browser-extensions-shared | Normal commit-only activity continues; ahead backlog 31→36. No new successful push observation appeared; final status WORKING describes current worker ownership, not successful publication. | Backoff/exhaustion and full-gate recovery remain unverified/unapplied. Historical SamAI lint refusal was subsequently followed by a successful read-only lint run, not by a claimed full-gate/push recovery. |
+
+The one intermediate UNKNOWN observation for newly edited ai-auto-writer is
+retained in raw evidence, not relabelled healthy: its successful prior push
+cannot establish current dispatch during a gap in affirmative scheduler
+phase evidence. Its hint no longer promises unobserved convergence, and the
+next sample observes a real working owner.
+
+### Operator-only follow-up, not executed
+
+1. Compare the aud-vis directory's content against capture-anime-girls before
+   deciding whether it should become a distinct checkout or an intentional
+   alias. Approval must cover the actual content-preserving checkout repair;
+   do not delete either directory or silently remove it from coverage.
+2. For dracon-strategy, inspect GitLab transfer/ancestry/payload evidence, then
+   authorize `dracon-sync repair stuck-unstuck dracon-strategy` only after the
+   cause is addressed. The reset command itself does not fix a transport fault.
+3. For browser-extensions-shared, verify the applicable complete four-gate
+   and current mirror setup before authorizing
+   `dracon-sync repair stuck-unstuck browser-extensions-shared`. Passing SamAI
+   lint alone is not sufficient evidence to waive the other gates.
+
+These are recommendations, not permission requests hidden in an implementation
+claim. Remaining repository-state recovery was explicitly excluded from this
+run. None of the unresolved targets is described as converged.
+

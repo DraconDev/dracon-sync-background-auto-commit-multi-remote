@@ -1,0 +1,101 @@
+Oct 22 21:56:34 nixos dracon-sync[3228336]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:56:34 nixos dracon-sync[3228336]: ⏳ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis sync deferred: another process owns the repository operation
+Oct 22 21:56:34 nixos dracon-sync[3228336]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 21:56:35 nixos dracon-sync[3228336]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 21:56:36 nixos dracon-sync[3228336]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 21:56:37 nixos dracon-sync[3228336]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 21:56:38 nixos dracon-sync[3228336]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 21:56:39 nixos systemd[1]: dracon-sync-operator.service: Deactivated successfully.
+Oct 22 21:56:39 nixos systemd[1]: dracon-sync-operator.service: Consumed 1d 16h 42min 35.404s CPU time, 1.5G memory peak, 557.1M memory swap peak, 2.2T read from disk, 283.2G written to disk, 1.5G incoming IP traffic, 418.5M outgoing IP traffic.
+Oct 22 21:56:44 nixos systemd[1]: dracon-sync-operator.service: Scheduled restart job, restart counter is at 5.
+Oct 22 21:56:44 nixos systemd[1]: Starting Dracon Sync (deterministic sync runtime)...
+Oct 22 21:56:45 nixos systemd[1]: Started Dracon Sync (deterministic sync runtime).
+Oct 22 21:56:45 nixos dracon-sync[319430]: 🔄 dracon-sync daemon started
+Oct 22 21:56:45 nixos dracon-sync[319430]: 📋 startup: 2 repo(s) in the stuck-push ledger: dracon-strategy (5 failures), browser-extensions-shared (1 failures)
+Oct 22 21:56:45 nixos dracon-sync[319430]: 🧹 startup: running cleanup...
+Oct 22 21:56:49 nixos dracon-sync[319430]: 🧹 startup: pruned 80 stale visibility cache entries
+Oct 22 21:56:56 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status task failed: Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 21:56:58 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status_failed (retry in 300s): Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 21:57:03 nixos dracon-sync[319430]: 🔄 trailing-drain: 7 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:57:04 nixos dracon-sync[319430]: 🛡️ /home/dracon/.dracon auto-hardened with warden before staging
+Oct 22 21:57:04 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td auto-hardened with warden before staging
+Oct 22 21:57:04 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 22 21:57:05 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 21:57:06 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-strategy auto-hardened with warden before staging
+Oct 22 21:57:08 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner auto-hardened with warden before staging
+Oct 22 21:57:08 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 22 21:57:11 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy
+Oct 22 21:57:11 nixos dracon-sync[319430]: 🔄 trailing-drain: 5 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:57:12 nixos dracon-sync[319430]: 🚨 ALERT: /home/dracon/Dev/dracon-strategy has 51 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 22 21:57:12 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/dracon-strategy committed; push paused (commit-only mode)
+Oct 22 21:57:13 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/dracon-strategy committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:57:13 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:57:35 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-strategy/ai-auto-writer auto-hardened with warden before staging
+Oct 22 21:57:38 nixos dracon-sync[319430]: 📝 committed 15 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-writer
+Oct 22 21:57:48 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:57:54 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy
+Oct 22 21:57:56 nixos dracon-sync[319430]: 🚨 ALERT: /home/dracon/Dev/dracon-strategy has 52 unpushed commits (threshold: 50). Something may be wrong with push.
+Oct 22 21:57:56 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/dracon-strategy committed; push paused (commit-only mode)
+Oct 22 21:57:56 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/dracon-strategy committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:57:56 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:57:58 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/browser-extensions-shared auto-hardened with warden before staging
+Oct 22 21:57:58 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis held 'status-failed (retry cooldown)' for 60s — still undispatched (starves at 600s)
+Oct 22 21:57:59 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-platform auto-hardened with warden before staging
+Oct 22 21:57:59 nixos dracon-sync[319430]: 📝 committed 2 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 21:57:59 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 22 21:58:00 nixos dracon-sync[319430]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-platform
+Oct 22 21:58:01 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:58:07 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/.dracon
+Oct 22 21:58:16 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:58:18 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 22 21:58:23 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:58:25 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 21:58:25 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 22 21:58:27 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:58:40 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 21:58:50 nixos dracon-sync[319430]: 🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:58:51 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 21:58:51 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 21:58:51 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 22 21:58:53 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:59:01 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:59:02 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 21:59:02 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 22 21:59:02 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 21:59:20 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 22 21:59:23 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:59:24 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-utilities/dracon-sync auto-hardened with warden before staging
+Oct 22 21:59:24 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 22 21:59:29 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 21:59:31 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/junk-runner
+Oct 22 22:00:37 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:00:39 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 22:00:39 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed; push paused (commit-only mode)
+Oct 22 22:00:40 nixos dracon-sync[319430]: ⏸️ /home/dracon/Dev/browser-extensions-shared committed but push paused (late) (Backoff/Exhausted or all remotes paused — will retry when unpaused; no failure recorded)
+Oct 22 22:00:44 nixos dracon-sync[319430]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 610s
+Oct 22 22:00:46 nixos dracon-sync[319430]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 612s
+Oct 22 22:00:46 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-strategy/ai-auto-writer
+Oct 22 22:00:49 nixos dracon-sync[319430]: 🔄 /home/dracon/Dev/browser-extensions-shared was stuck (1 consecutive failures), retrying push after 615s
+Oct 22 22:00:49 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:00:50 nixos dracon-sync[319430]: ⏫ /home/dracon/Dev/browser-extensions-shared scaling push timeout 3600s → 14400s (36 commits ahead)
+Oct 22 22:01:03 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:01:56 nixos dracon-sync[319430]: 📝 committed 20 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-writer
+Oct 22 22:02:03 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-platform
+Oct 22 22:02:03 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/.dracon
+Oct 22 22:02:03 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status task failed: Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 22:02:04 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status_failed (retry in 300s): Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 22:02:10 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:02:20 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:02:23 nixos dracon-sync[319430]: 📝 committed 4 file(s) in /home/dracon/.dracon
+Oct 22 22:02:28 nixos dracon-sync[319430]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/football-forever auto-hardened with warden before staging
+Oct 22 22:02:29 nixos dracon-sync[319430]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform elapsed_ms=5061 outcome=success
+Oct 22 22:02:30 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/football-forever
+Oct 22 22:02:38 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:02:40 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 22:02:43 nixos dracon-sync[319430]: 🔁 synced (late) /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 22 22:02:51 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:02:52 nixos dracon-sync[319430]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 22:02:54 nixos dracon-sync[319430]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 22:02:54 nixos dracon-sync[319430]: 📝 committed 22 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 22 22:03:04 nixos dracon-sync[319430]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis held 'status-failed (retry cooldown)' for 60s — still undispatched (starves at 600s)
+Oct 22 22:03:18 nixos dracon-sync[319430]: 📝 committed 13 file(s) in /home/dracon/Dev/dracon-platform
