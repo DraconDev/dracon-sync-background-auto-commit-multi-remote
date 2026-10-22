@@ -1,0 +1,57 @@
+❌ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis | status_failed: Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+── dracon-sync repos ── 📦 36 inspected · ✅ 24 clean · 🔄 11 active · 🟡 1 · ❌ 0 concerns · ⛔ 1 inspection failures ───────────────────────────────────────────────────────────────────────
+
+╭─ READING THIS TABLE ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ STATUS      │ ✅ clean · 🟡 queued · 🔄 working · ⏳ retrying · 🚫 blocked · 🔴 stalled · ❔ unknown                                                         │
+│ EVIDENCE    │ UNKNOWN = missing/stale scheduler evidence. Open repo details to see the current hold or failure.                                              │
+│ FILES / A/B │ 📝 modified · 📦 staged · 🆕 untracked · 🚫 excluded · ↑ unpushed commits · ↓ behind upstream · — zero                                         │
+│ PUSH        │ ✅ OK / ❌ FAIL + age = last recorded push attempt; current work may still be queued. — unknown = no recorded attempt.                         │
+│ REM / REPO  │ 🐙 GitHub · 🦊 GitLab · 🗻 Codeberg = active targets; excluded not shown. 🔒 private · > nested repo/submodule.                                │
+│ ACTIVITY    │ 1H / 6H / 24H = commit counts. TOUCHED = latest author. STATUS describes current convergence.                                                  │
+│ GIT SIZE    │ Local Git history, own+nested; +? = nested size unmeasured. GitHub's 2 GiB limit is per push, not total repo size.                             │
+│ ACTIONS     │ ❌ FAIL: inspect repo details, fix the cause, then sync-now <path>. UNKNOWN: inspect scheduler evidence.                                       │
+│ DETAILS     │ dracon-sync repos <name> · --legend for the full key · --deep to refresh pack/history checks                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  #   STATUS        REPO                                                                       ACTIVITY          📝    📦    🆕    🚫   A/B       PUSH         REM         1H      6H     24H    GIT SIZE   TOUCHED       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  1   ❔ UNKNOWN    🔒  .dracon                                                                ❔ UNKNOWN         1     —     —     —   —         ✅ OK 30m    🐙🦊         2      81     328     996 MiB   DraconDev     │
+│  2   🔄 WORKING    🔒> endless-td                                                             🔄 WORKING         —     3     —     —   —         ✅ OK 30m    🐙🦊         2      16      16    1.39 GiB   DraconDev     │
+│  3   🔄 WORKING    🔒  browser-extensions-shared                                              🔄 WORKING         —     —     4     —   ↑37       ❌ FAIL 1h   🐙🦊         1      11      15    2.82 GiB   DraconDev     │
+│  4   🔄 WORKING        terhub                                                                 🔄 WORKING         —     —     —     —   ↑2        ✅ OK 1h     🐙🦊         2      26      60    17.9 MiB   DraconDev     │
+│  5   🔄 WORKING    🔒> capture-anime-girls                                                    🔄 WORKING         1     —     —     —   ↑1        ✅ OK 30m    🐙🦊         2      14      39    4.60 GiB   DraconDev     │
+│  6   🔄 WORKING    🔒  dracon-strategy                                                        🔄 WORKING         —     —     —     —   ↑1        ✅ OK 30m    🐙🦊         5      29      83      1.5G+?   DraconDev     │
+│  7   🟡 QUEUED     🔒  ai-auto-video                                                          🟡 QUEUED          —     —     1     —   —         ✅ OK 11s    🐙🦊         3      14      28     928 MiB   DraconDev     │
+│  8   🔄 WORKING    🔒> junk-runner                                                            🔄 WORKING         —     —     —     —   ↑2        ✅ OK 59m    🐙🦊         3      33      59    2.47 GiB   DraconDev     │
+│  9   🔄 WORKING    🔒> deathrun                                                               🔄 WORKING         —     —     —     —   ↑1        ✅ OK 14m    🐙🦊         2       6      13    2.58 GiB   DraconDev     │
+│ 10   🔄 WORKING    🔒  ai-auto-writer                                                         🔄 WORKING       129     —     5     —   —         ✅ OK 30m    🐙🦊         1      29      80    7.03 GiB   DraconDev     │
+│ 11   🔄 WORKING    🔒  dracon-platform                                                        🔄 WORKING         6     —     —     —   —         ✅ OK 29m    🐙🦊         1      36      73    8.0G+25G   DraconDev     │
+│ 12   🔄 WORKING    🔒> doomtap                                                                🔄 WORKING         2     —     —     —   —         ✅ OK 1h     🐙🦊         1      13      39    3.38 GiB   DraconDev     │
+│ 13   ✅ CLEAN          dracon-sync                                                            ⚪ idle            —     —     —     —   —         ✅ OK 14s    🐙🦊         1      11      13    26.5 MiB   DraconDev     │
+│ 14   ✅ CLEAN          pi-plugins                                                             ⚪ idle            —     —     —     —   —         ✅ OK 30m    🐙🦊         1      13      35    69.0 MiB   DraconDev     │
+│ 15   ✅ CLEAN          dracon-utilities                                                       ⚪ idle            —     —     —     —   —         ✅ OK 30m    🐙🦊         0       2      21     108 MiB   DraconDev     │
+│ 16   ✅ CLEAN          pi-goal-list-loop-audit                                                ⚪ idle            —     —     —     —   —         ✅ OK 30m    🐙🦊         0      19      47     216 MiB   DraconDev     │
+│ 17   ✅ CLEAN      🔒> football-forever                                                       ⚪ idle            —     —     —     —   —         ✅ OK 30m    🐙🦊         0      13      28    1.02 GiB   DraconDev     │
+│ 18   ✅ CLEAN          DraconDev                                                              ⚪ idle            —     —     —     —   —         ✅ OK 1h     🐙🦊         0       3       3     1.7 MiB   DraconDev     │
+│ 19   ✅ CLEAN      🔒> polis                                                                  ⚪ idle            —     —     —     —   —         ✅ OK 1h     🐙🦊         0       7       7    1.33 GiB   DraconDev     │
+│ 20   ✅ CLEAN      🔒> hellhunter                                                             ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1    2.68 GiB   -             │
+│ 21   ✅ CLEAN      🔒> neonbreak                                                              ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1    1.66 GiB   DraconDev     │
+│ 22   ✅ CLEAN      🔒> space-trucker                                                          ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1     7.3 MiB   DraconDev     │
+│ 23   ✅ CLEAN      🔒  freeport                                                               ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1     473 MiB   DraconDev     │
+│ 24   ✅ CLEAN      🔒> darklord                                                               ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1    1.13 GiB   DraconDev     │
+│ 25   ✅ CLEAN      🔒> come-get-me                                                            ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1     667 MiB   DraconDev     │
+│ 26   ✅ CLEAN      🔒> one-mil-girls                                                          ⚪ idle            —     —     —     —   —         ✅ OK 3h     🐙🦊         0       1       1     680 MiB   DraconDev     │
+│ 27   ✅ CLEAN          dracon-system                                                          ⚪ idle            —     —     —     —   —         ✅ OK 5h     🐙🦊         0       1      21    47.7 MiB   DraconDev     │
+│ 28   ✅ CLEAN      🔒  db-gateway                                                             ⚪ idle            —     —     —     —   —         ✅ OK 16h    🐙🦊         0       0      19     191 MiB   DraconDev     │
+│ 29   ✅ CLEAN          dracon-warden                                                          ⚪ idle            —     —     —     —   —         ✅ OK 1d     🐙🦊         0       0       0    26.2 MiB   DraconDev     │
+│ 30   ✅ CLEAN      🔒  bridge-fixture                                                         ⚪ idle            —     —     —     —   —         ✅ OK 2d     🐙🦊         0       0       0     436 KiB   DraconDev     │
+│ 31   ✅ CLEAN      🔒  convos                                                                 ⚪ idle            —     —     —     —   —         ✅ OK 2d     🐙🦊         0       0       0    96.2 MiB   DraconDev     │
+│ 32   ✅ CLEAN          mcode-plugins                                                          ⚪ idle            —     —     —     —   —         ✅ OK 2d     🐙🦊         0       0       0     9.8 MiB   DraconDev     │
+│ 33   ✅ CLEAN          pi-agnes-tools                                                         ⚪ idle            —     —     —     —   —         — unknown    🐙🦊         0       0       0     2.7 MiB   DraconDev     │
+│ 34   ✅ CLEAN          pi-use-last-selected-thinking-level                                    ⚪ idle            —     —     —     —   —         — unknown    🐙🦊         0       0       0     160 KiB   DraconDev     │
+│ 35   ✅ CLEAN          pi-codebuddy-sdk                                                       ⚪ idle            —     —     —     —   —         — unknown    🐙🦊         0       0       0     568 KiB   DraconDev     │
+│ 36   ✅ CLEAN      🔒  warden-vid                                                             ⚪ idle            —     —     —     —   —         — unknown    🐙🦊         0       0       0     228 KiB   DraconDev     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+💡 2 repos requiring attention — `dracon-sync repos <n|name>` for full detail .dracon: current scheduler evidence unavailable — inspect repo details and daemon journal; convergence is not established ai-auto-video:
+healthy; GitHub pack guard clear (cached 268624s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep

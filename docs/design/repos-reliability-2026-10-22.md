@@ -278,7 +278,7 @@ larger timeouts from only the deadline message. This run corrected that wording
 and its explanation: a local deadline event alone cannot establish whether a
 hook or network transfer stalled. Guidance now asks for hook/transfer progress
 and budget inspection and explicitly leaves remote health unestablished. It
-neither increases budgets nor bypasses hooks. The independent reviewer accepted
+neither increases budgets nor bypasses hooks. The independent reviewer found no issues in
 the change and the four additional regression cases.
 
 The **current** source, including those additions and the truthful timeout
@@ -301,4 +301,51 @@ Rollback copies and receipt are at
 `~/.local/state/dracon-sync/deployments/20261022T223836Z-repos-reliability/`.
 The freeze marker was removed normally. No additional repository recovery was
 performed for this requalification or rollout.
+
+### Current-artifact observation (supersedes earlier fleet state)
+
+`observation-current/` records three successful fleet calls from **22:39:11 to
+22:45:26 UTC** (6m15s). Calls took 17, 30 and 28 seconds. Every sample reports
+active PID 3170257, TasksMax=512, the current qualified digest, and no freeze.
+All three show 36 inspected rows and exactly one explicit inspection failure,
+the aud-vis checkout mismatch. The daemon rejected that alias again after its
+300-second retry cooldown; no status-timeout event appears in this journal.
+
+Actual current-binary execution includes autonomous commits of six files in
+dracon-strategy (22:39:11), 84 in browser-extensions-shared (22:39:18), two in
+doomtap (22:39:32), seven in dracon-platform (22:40:07), and 100 in ai-auto-writer
+(22:40:12). These establish real post-restart work, not merely installation or
+scheduler labels. No new completed `synced` event for the named targets occurred
+within this second bounded window; their push workers remained running. Earlier
+successful sync events belong to the first artifact and are not attributed to
+the second one. Read-only Git object inspection independently confirmed these
+post-restart commits and their changed-path counts: ai-auto-writer `d056c570`
+(100), platform `89064d1f` (7), browser `a28c8360` (84), strategy `c3eedd2c`
+(6). All remain ancestors of their current branch tips; raw object checks are
+in `observation-current/commit-object-verification.json`. Thus these execution
+claims do not rely solely on journal messages.
+
+Latest dispositions:
+
+- ai-auto-writer and platform remain inspectable and actively processing ongoing
+  edits; each has a newly ahead commit. They are not claimed permanently clean.
+- dracon-strategy's upstream backlog independently fell from 52 to zero before
+  the final two samples, with a successful push observation predating this
+  restart. It is no longer reported STALLED. This window does not independently
+  establish convergence of every mirror. **Do not blindly apply the earlier
+  retry-reset recommendation if current inspection is healthy.**
+- doomtap has one newer ahead commit after an autonomous commit. Its historical
+  bucket refusal had recovered before the first rollout; the new push was still
+  running when observation ended, so latest all-mirror convergence is not claimed.
+- browser-extensions-shared remains 37 ahead with a running push worker and no
+  fresh successful push receipt. Its publication remains unresolved. Its current
+  runtime log uses a 3600-second configured base push timeout, changed outside
+  this run; this work did not edit operator configuration or raise that budget.
+- aud-vis still requires an approved, content-preserving checkout-wiring repair.
+  Neither its directory nor the canonical worktree was removed or excluded.
+
+The remaining useful operator action is to review aud-vis checkout ownership
+and browser's current full-gate/remote progress before approving recovery.
+No manual recovery, state reset, or push was performed here. Source digests were
+checked again after observation and matched the current qualified manifest.
 

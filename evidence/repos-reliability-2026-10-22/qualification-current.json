@@ -1,0 +1,14 @@
+{
+  "source_head": "67908f41c73192dab96278e73ab5505509a2f65d",
+  "source_manifest_matches": true,
+  "workspace_passed_failed_ignored": [
+    2554,
+    0,
+    25
+  ],
+  "result_groups": 37,
+  "artifact_installed_loaded_sha256": "f697cb28ec4b7824b6a31c60256925b895316c6bea0fe44b29829bd5f989a3a6",
+  "current_pid": 3170257,
+  "all_three_runtime_samples_match": true,
+  "named_status_timeout_events": 0
+}

@@ -1,0 +1,185 @@
+diff --git a/src/git/push.rs b/src/git/push.rs
+index 0b923e5..9cb55f2 100644
+--- a/src/git/push.rs
++++ b/src/git/push.rs
+@@ -626,6 +626,40 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
+         || lower.contains("pre-push:")
+ }
+ 
++/// Check if an error message indicates the DAEMON'S OWN op-timeout kill —
++/// the local process runner gave up waiting for the push and killed the
++/// process group.
++///
++/// The runner's message is (see `run_child_inner` in `git/ops.rs`):
++///
++///     git push-to-gitlab timeout in <repo> after <n>s idle (<m>s hard cap)
++///
++/// ADDED 2026-10-22 (dracon-strategy 19h wedge): this message matched NONE
++/// of the predicates above, so it fell through `classify_push_failure` to the
++/// generic final `else` and was reported as
++///
++///     transport/auth failure (network, timeout, or credentials)
++///
++/// The runner's deadline event should be identifiable without implying a
++/// credential failure. It does not alone identify why progress stopped:
++/// local hooks and remote transfers both run under that deadline. Even a
++/// successful separate remote advertisement cannot prove the timed-out
++/// transfer was healthy. Repeated timeouts can exhaust the stuck budget.
++///
++/// This is a LABEL fix only. It deliberately does NOT change the budget
++/// behaviour: a locally wedged push must still escalate against the stuck
++/// budget (same contract as the op-timeout note in
++/// `is_transient_forge_outage`) — the operator just gets told the truth
++/// instead of being sent to inspect a working network.
++pub(crate) fn is_local_op_timeout(err_msg: &str) -> bool {
++    let lower = err_msg.to_lowercase();
++    // The daemon's own runner format: "<label> timeout in <dir> after <n>s
++    // idle (<m>s hard cap)". `hard cap` is unique to that runner (verified:
++    // the only producer in the tree is `git/ops.rs`), so this cannot collide
++    // with a forge-side "Push operation timed out".
++    lower.contains("hard cap)") && lower.contains(" timeout in ")
++}
++
+ /// Check if an error message indicates a rejected push.
+ pub(crate) fn is_push_rejected(err_msg: &str) -> bool {
+     err_msg.contains("rejected")
+@@ -657,6 +691,14 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
+         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
+     } else if is_push_rejected(err_msg) {
+         "history divergence (non-fast-forward: remote has commits not on local; needs operator reconciliation)"
++    } else if is_local_op_timeout(err_msg) {
++        // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
++        // op-timeout kill. Placed AFTER the transient arms so a genuine
++        // forge-side outage still wins, and after the divergence arm so a
++        // non-fast-forward is not relabelled. This identifies the deadline
++        // event, not its root cause: a hook, payload, or remote transfer can
++        // all consume the budget. It cannot establish remote reachability.
++        "local operation timeout (daemon stopped waiting at its deadline — inspect hook/transfer progress and the operation budget; remote health is not established)"
+     } else {
+         "transport/auth failure (network, timeout, or credentials)"
+     }
+@@ -1664,6 +1706,47 @@ mod tests {
+         assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
+     }
+ 
++    #[test]
++    fn test_local_op_timeout_is_labelled_not_transport_auth() {
++        // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
++        // op-timeout kill used to fall through to the generic
++        // "transport/auth failure" arm, sending the operator to the network
++        // and the credentials while the mirror was reachable the whole time.
++        let msg = "git push-to-gitlab timeout in /home/dracon/Dev/dracon-strategy after 3600s idle (14400s hard cap)";
++        assert!(is_local_op_timeout(msg));
++        let class = classify_push_failure(msg);
++        assert!(
++            class.contains("local operation timeout"),
++            "op-timeout must not be labelled transport/auth; got: {}",
++            class
++        );
++        assert!(!class.contains("transport/auth"));
++    }
++
++    #[test]
++    fn test_local_op_timeout_does_not_capture_forge_side_timeout() {
++        // The forge-side "Push operation timed out" is a transient forge
++        // outage and must keep its own label — the two timeouts are
++        // different classes (one is the daemon giving up locally, the other
++        // is GitLab giving up on its side).
++        let forge = "git push-to-gitlab failed with status exit status: 1: remote: GitLab: Push operation timed out\nerror: failed to push some refs";
++        assert!(!is_local_op_timeout(forge));
++        assert!(classify_push_failure(forge).contains("forge-side outage"));
++    }
++
++    #[test]
++    fn test_local_op_timeout_leaves_transport_alone() {
++        // A genuine transport failure still reports transport/auth.
++        for msg in [
++            "Connection timed out",
++            "ssh: Could not resolve hostname github.com: Name or service not known",
++            "Permission denied (publickey)",
++        ] {
++            assert!(!is_local_op_timeout(msg), "wrongly matched: {}", msg);
++        }
++        assert!(classify_push_failure("Connection timed out").contains("transport/auth"));
++    }
++
+     #[test]
+     fn test_is_pack_too_large_recognises_github_gh001() {
+         // github's oversized-pack / large-file rejection.
+diff --git a/src/sync.rs b/src/sync.rs
+index 18b4b0d..83bf947 100644
+--- a/src/sync.rs
++++ b/src/sync.rs
+@@ -12841,6 +12841,72 @@ trusted_authors = ["test"]
+         assert_eq!(count, 1, "mirror ref (gitlab/main) used when origin absent");
+     }
+ 
++    #[tokio::test]
++    async fn test_count_ahead_commits_takes_max_across_tracking_refs() {
++        // CHANGED 2026-10-22: the count is the MAXIMUM across every
++        // existing tracking ref, not the first one found. A push must
++        // succeed against EVERY remote, so the timeout budget has to
++        // cover the furthest-behind mirror. dracon-strategy was 40
++        // ahead of origin/main but 65 ahead of gitlab/main, so the
++        // old "first ref wins" behaviour sized the timeout for 40
++        // commits while the gitlab push carried 65 — and gitlab was
++        // the remote that failed repeatedly.
++        let tmp = tempfile::tempdir().unwrap();
++        let repo = tmp.path().join("test-repo");
++        crate::git::git_cmd()
++            .args(["init", "-q", "-b", "main"])
++            .arg(&repo)
++            .status()
++            .unwrap();
++        for (k, v) in [("user.email", "t@t"), ("user.name", "t")] {
++            crate::git::git_cmd()
++                .args(["-C", &repo.to_string_lossy(), "config", k, v])
++                .status()
++                .unwrap();
++        }
++        for i in 0..5 {
++            crate::git::git_cmd()
++                .args([
++                    "-C",
++                    &repo.to_string_lossy(),
++                    "commit",
++                    "--no-verify",
++                    "--allow-empty",
++                    "-m",
++                    &format!("c{i}"),
++                ])
++                .status()
++                .unwrap();
++        }
++        // origin/main is only 1 behind HEAD; gitlab/main is 4 behind.
++        // The furthest-behind mirror (4) must win.
++        crate::git::git_cmd()
++            .args([
++                "-C",
++                &repo.to_string_lossy(),
++                "update-ref",
++                "refs/remotes/origin/main",
++                "HEAD~1",
++            ])
++            .status()
++            .unwrap();
++        crate::git::git_cmd()
++            .args([
++                "-C",
++                &repo.to_string_lossy(),
++                "update-ref",
++                "refs/remotes/gitlab/main",
++                "HEAD~4",
++            ])
++            .status()
++            .unwrap();
++        let count = count_ahead_commits(&repo).await.unwrap();
++        assert_eq!(
++            count, 4,
++            "max across tracking refs — the furthest-behind mirror sets the budget"
++        );
++    }
++
+     // ============================================================
+     // stage_existing_files race-condition tests
+     // ============================================================

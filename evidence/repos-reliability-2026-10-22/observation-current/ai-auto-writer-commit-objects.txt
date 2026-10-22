@@ -1,0 +1,2 @@
+$ git -C /home/dracon/Dev/dracon-strategy/ai-auto-writer log --since=2026-10-22T22:38:48Z --until=2026-10-22T22:45:26Z --format=%H %cI %s
+d056c570d19efe5f825ce71d00f295eccc67c092 2026-10-22T23:40:12+01:00 100 file(s) in "authors,authors DELTA:+11927/-11927 | EXT:md,json,md" BIN:1 DEL:.cover-candidate-maefn70b/cover-codex.jpg

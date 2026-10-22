@@ -1,0 +1,2626 @@
+{
+  "policy": "/home/dracon/.dracon/utilities/sync/dracon-sync.toml",
+  "filter": "all",
+  "repos": 36,
+  "ok": 25,
+  "active": 10,
+  "warn": 1,
+  "concern": 0,
+  "failures": 1,
+  "rows": [
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+      "state_flags": [
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "67908f41c73192dab96278e73ab5505509a2f65d",
+      "last_author": "DraconDev",
+      "last_when": "2 minutes ago",
+      "last_msg": "1 file(s) in docs/design/repos-reliability-2026-10-22.md DELTA:+40/-2 | EXT:md DOCSONLY:design/repos-reliability-2026-10-22.md",
+      "last_unix": 1792708824,
+      "commits_1h": 2,
+      "commits_6h": 12,
+      "commits_24h": 14,
+      "last_push": "19 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 27845632,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 268793s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708824,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 123,
+          "retry_secs": null,
+          "dirty_secs": 127,
+          "eligible": false,
+          "admitted_secs": 123
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+          "attempted_at": 1792708754,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 29,
+      "staged": 0,
+      "untracked": 5,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "d056c570d19efe5f825ce71d00f295eccc67c092",
+      "last_author": "DraconDev",
+      "last_when": "2 minutes ago",
+      "last_msg": "100 file(s) in \"authors,authors DELTA:+11927/-11927 | EXT:md,json,md\" BIN:1 DEL:.cover-candidate-maefn70b/cover-codex.jpg",
+      "last_unix": 1792708812,
+      "commits_1h": 2,
+      "commits_6h": 30,
+      "commits_24h": 81,
+      "last_push": "27 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 7552947200,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon will push after changes settle; GitHub pack guard clear (cached 268812s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708812,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 179,
+          "retry_secs": null,
+          "dirty_secs": 209,
+          "eligible": false,
+          "admitted_secs": 180
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-writer",
+          "attempted_at": 1792706943,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "89064d1fd7cf29b1bff691c479bff9a12b78c2ba",
+      "last_author": "DraconDev",
+      "last_when": "2 minutes ago",
+      "last_msg": "7 file(s) in web [web/studio/NOTE-2026-10-22-STUDIO-WRITE-BLOCK.md, web/ai-hub/src/lib/data/catalog-stamp.json, web/games/wip/capture-anime-girls] DELTA:+159/-36 | EXT:json,md",
+      "last_unix": 1792708807,
+      "commits_1h": 2,
+      "commits_6h": 35,
+      "commits_24h": 74,
+      "last_push": "32 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 8570303488,
+      "git_modules_bytes": 26512168280,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 268810s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708807,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 196,
+          "retry_secs": null,
+          "dirty_secs": 211,
+          "eligible": false,
+          "admitted_secs": 201
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform",
+          "attempted_at": 1792707001,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 3,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "694eeec218acdef3850239b6fe382df1d7a45053",
+      "last_author": "DraconDev",
+      "last_when": "2 minutes ago",
+      "last_msg": "1 file(s) [guard-mitigations.json] DELTA:+1/-1 | EXT:json",
+      "last_unix": 1792708778,
+      "commits_1h": 3,
+      "commits_6h": 77,
+      "commits_24h": 329,
+      "last_push": "3 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1044081664,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon will push after changes settle; GitHub pack guard clear (cached 268789s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708778,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 170,
+          "retry_secs": null,
+          "dirty_secs": 179,
+          "eligible": false,
+          "admitted_secs": 170
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/.dracon",
+          "attempted_at": 1792708763,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+      "state_flags": [
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "66170aef5a35fac49ff0bc68d3303dbdb041db3f",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "2 file(s) in .pi-glla/audit-loop [.pi-glla/audit-loop/findings.baseline.md, .pi-glla/audit-loop/findings.md] DELTA:+216/-26 | EXT:md DOCSONLY:audit-loop/findings.baseline.md,audit-loop/findings.md",
+      "last_unix": 1792708772,
+      "commits_1h": 2,
+      "commits_6h": 14,
+      "commits_24h": 40,
+      "last_push": "42 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 3630690304,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 268796s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708772,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 187,
+          "retry_secs": null,
+          "dirty_secs": 210,
+          "eligible": false,
+          "admitted_secs": 187
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/doomtap",
+          "attempted_at": 1792702573,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+      "state_flags": [
+        "AHEAD:1",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 1,
+      "behind": 0,
+      "last_hash": "37ab11d9bc813a41fb08bb3b18db54e52f90e4bf",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "3 file(s) in scripts,src [SPEC.md, scripts/_dev/capture-battle-cool-facets.mjs, src/routes/play/+page.svelte] DELTA:+79/-53 | EXT:md,mjs,svelte",
+      "last_unix": 1792708762,
+      "commits_1h": 2,
+      "commits_6h": 16,
+      "commits_24h": 16,
+      "last_push": "33 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "1 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1493716992,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 268796s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708762,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 190,
+          "retry_secs": null,
+          "dirty_secs": 210,
+          "eligible": false,
+          "admitted_secs": 192
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/endless-td",
+          "attempted_at": 1792706953,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/browser-extensions-shared",
+      "state_flags": [
+        "DIRTY",
+        "AHEAD:37",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 5,
+      "staged": 0,
+      "untracked": 4,
+      "excluded_dirty": 0,
+      "ahead": 37,
+      "behind": 0,
+      "last_hash": "a28c8360e71856a1d7c944bf723a07293790554a",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "84 file(s) in extensions/standalones DELTA:+7043/-339 | EXT:ts,md,json TEST:2927 BIN:1",
+      "last_unix": 1792708758,
+      "commits_1h": 1,
+      "commits_6h": 11,
+      "commits_24h": 15,
+      "last_push": "27 hours ago",
+      "push_status": "PENDING",
+      "push_error": "37 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 3023308800,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon will push after changes settle; GitHub pack guard clear (cached 268795s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708758,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 201,
+          "retry_secs": null,
+          "dirty_secs": 211,
+          "eligible": false,
+          "admitted_secs": 201
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/browser-extensions-shared",
+          "attempted_at": 1792705043,
+          "succeeded": false
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/terhub",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "afb1ca98a906e1cdbdf51ad9c146b47897b164f1",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "3 file(s) in src [src/app.rs, src/app/tests.rs, GUIDE.md] DELTA:+126/-3 | EXT:rs,md TEST:54",
+      "last_unix": 1792708757,
+      "commits_1h": 2,
+      "commits_6h": 24,
+      "commits_24h": 60,
+      "last_push": "3 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 18751488,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268794s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792708757,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 192,
+          "retry_secs": null,
+          "dirty_secs": 211,
+          "eligible": false,
+          "admitted_secs": 192
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/terhub",
+          "attempted_at": 1792705129,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 2,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "dd641e1f406e11c4372d95a29a235cc2c8767d13",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "2 file(s) in docs,tests [tests/capture-contract.test.ts, docs/architecture/capture-pipeline.md] DELTA:+60/-6 | EXT:md,ts TEST:37",
+      "last_unix": 1792708754,
+      "commits_1h": 2,
+      "commits_6h": 14,
+      "commits_24h": 38,
+      "last_push": "3 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 4936549376,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708754,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 195,
+          "retry_secs": null,
+          "dirty_secs": 207,
+          "eligible": false,
+          "admitted_secs": 196
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls",
+          "attempted_at": 1792706968,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 2,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "c3eedd2c6c3526493635c5aafcf6c9edad38f188",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "6 file(s) in ai-auto-music,marketing DELTA:+1210/-170 | EXT:md,ics,json NEW:marketing/LINKEDIN_POST_BANK.md,marketing/linkedin-slots.ics,tools/linkedin_posts.py",
+      "last_unix": 1792708751,
+      "commits_1h": 5,
+      "commits_6h": 29,
+      "commits_24h": 83,
+      "last_push": "3 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1657505792,
+      "git_modules_bytes": null,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "daemon handles after changes settle; run sync-now --warns to force now; GitHub pack guard clear (cached 268790s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792708751,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 205,
+          "retry_secs": null,
+          "dirty_secs": 211,
+          "eligible": false,
+          "admitted_secs": 205
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy",
+          "attempted_at": 1792706916,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+      "state_flags": [
+        "DIRTY",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 1,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "256a9687a3e01ab1eccc26a676683004c2fe48cb",
+      "last_author": "DraconDev",
+      "last_when": "3 minutes ago",
+      "last_msg": "1 file(s) in strategy/VIDEO-FORMAT-AND-DEMOS-2026-10-21.md DELTA:+14/-2 | EXT:md DOCSONLY:strategy/VIDEO-FORMAT-AND-DEMOS-2026-10-21.md",
+      "last_unix": 1792708744,
+      "commits_1h": 2,
+      "commits_6h": 14,
+      "commits_24h": 28,
+      "last_push": "3 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 973568000,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": true,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268788s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "dirty",
+      "state_cause_label": "dirty",
+      "daemon_last_action_unix": 1792708744,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "2m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "unknown",
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/ai-auto-video",
+          "attempted_at": 1792708757,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+      "state_flags": [
+        "AHEAD:2",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 2,
+      "behind": 0,
+      "last_hash": "11ecd6bb236feb7e7f672392ee759726fd7b03d7",
+      "last_author": "DraconDev",
+      "last_when": "14 minutes ago",
+      "last_msg": "FIX (the enemy crit rule is ported to the canvas engine: the kernel's 15% crit for x1.75, the crit's +15 stress in strike order, the gameplay rng, pins re-pointed and mutation-proven)",
+      "last_unix": 1792708090,
+      "commits_1h": 3,
+      "commits_6h": 31,
+      "commits_24h": 59,
+      "last_push": "48 minutes ago",
+      "push_status": "PENDING",
+      "push_error": "2 unpushed commits",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 2654395392,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": true,
+      "hint": "run dracon-sync repair concerns --apply (push or rewrite); GitHub pack guard clear (cached 268797s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "working",
+      "state_cause_label": "working",
+      "daemon_last_action_unix": 1792706077,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "47m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "working",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 184,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": 184
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/junk-runner",
+          "attempted_at": 1792705195,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "36a1e181397c24350d7dd361bd905ec4aa45c70d",
+      "last_author": "DraconDev",
+      "last_when": "17 minutes ago",
+      "last_msg": "1 file(s) in docs/asset-provenance-2026-09-27/manifest.json DELTA:+4/-4 | EXT:json",
+      "last_unix": 1792707940,
+      "commits_1h": 1,
+      "commits_6h": 6,
+      "commits_24h": 13,
+      "last_push": "17 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 2768429056,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268795s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792707940,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "16m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 190,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": 192
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
+          "attempted_at": 1792707925,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "a34fa7d41741e2c60ec0e5ec100f4668c31cb90b",
+      "last_author": "DraconDev",
+      "last_when": "33 minutes ago",
+      "last_msg": "1 file(s) [pi-goal-list-loop-audit] DELTA:+1/-1",
+      "last_unix": 1792706932,
+      "commits_1h": 1,
+      "commits_6h": 13,
+      "commits_24h": 35,
+      "last_push": "33 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 72351744,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268789s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792706932,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "33m ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": "working",
+          "execution_secs": 192,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": 192
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/pi-plugins",
+          "attempted_at": 1792706922,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+      "last_author": "DraconDev",
+      "last_when": "63 minutes ago",
+      "last_msg": "1 file(s) [AGENTS.md] DELTA:+19/-2 | EXT:md DOCSONLY:AGENTS.md",
+      "last_unix": 1792705129,
+      "commits_1h": 0,
+      "commits_6h": 2,
+      "commits_24h": 21,
+      "last_push": "63 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 113516544,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268792s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792705129,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities",
+          "attempted_at": 1792706960,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "9b00cb451a6d50b2accec893cc5bb8def6497496",
+      "last_author": "DraconDev",
+      "last_when": "64 minutes ago",
+      "last_msg": "docs: record the goal transaction commit-point correction",
+      "last_unix": 1792705083,
+      "commits_1h": 0,
+      "commits_6h": 19,
+      "commits_24h": 47,
+      "last_push": "64 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 226340864,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268792s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792704942,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+          "attempted_at": 1792706919,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "1498f1349500b1b0ebe9381ac92b2e75ed78c60a",
+      "last_author": "DraconDev",
+      "last_when": "64 minutes ago",
+      "last_msg": "2 file(s) in src [src/lib/sim/player-continuity.ts, SPEC.md] DELTA:+17/-5 | EXT:md,ts",
+      "last_unix": 1792705066,
+      "commits_1h": 0,
+      "commits_6h": 13,
+      "commits_24h": 28,
+      "last_push": "64 minutes ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1095820288,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792705066,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/football-forever",
+          "attempted_at": 1792706937,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "7694af975ddee528b37d1201f92f5440ba102f4e",
+      "last_author": "DraconDev",
+      "last_when": "2 hours ago",
+      "last_msg": "1 file(s) [README.md] DELTA:+3/-0 | EXT:md DOCSONLY:README.md",
+      "last_unix": 1792702508,
+      "commits_1h": 0,
+      "commits_6h": 3,
+      "commits_24h": 3,
+      "last_push": "2 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 1772544,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268789s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792702508,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-strategy/DraconDev",
+          "attempted_at": 1792702668,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "4297623f44fd7f2f69c24316b1771e5e32afc389",
+      "last_author": "DraconDev",
+      "last_when": "2 hours ago",
+      "last_msg": "2 file(s) in .pi-glla,src [.pi-glla/audit-loop/findings.md, src/lib/components/Settings.svelte] DELTA:+56/-9 | EXT:md,svelte",
+      "last_unix": 1792702348,
+      "commits_1h": 0,
+      "commits_6h": 7,
+      "commits_24h": 7,
+      "last_push": "2 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1424471040,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792702348,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/polis",
+          "attempted_at": 1792702742,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "0881c940df47a24a886e10bb899f310ae995e99e",
+      "last_author": "-",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693604,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 2880727040,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "⚠️ path-owned identity/origin warning: ✓ owned (path_owned:untrusted_email); GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693604,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/hellhunter",
+          "attempted_at": 1792694631,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "8d801a03b5643ab99febb1a2c143a444ef7323fa",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693604,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1778188288,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693604,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/neonbreak",
+          "attempted_at": 1792694649,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "00ba2e8733f5e4ab8b11d0f69945dd7f6cf1e3c7",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693603,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 7611392,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268795s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693603,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/space-trucker",
+          "attempted_at": 1792694620,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "541080d832fea5b7527fb389aac1bf2822ced985",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693601,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 495756288,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268799s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693601,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/freeport",
+          "attempted_at": 1792694617,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "265cf188876495d1ef4e92c19563633a84f47237",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693600,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 1210219520,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268798s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693600,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/darklord",
+          "attempted_at": 1792694613,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "ca01589a689908fb74964a9ec68dfe3c3f9780d3",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693599,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 699031552,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268794s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693599,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/released/come-get-me",
+          "attempted_at": 1792694599,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "e0979d91a717177442de0c11ef7235d16e95c300",
+      "last_author": "DraconDev",
+      "last_when": "4 hours ago",
+      "last_msg": "1 file(s) in web/config/bucket-strategy.json DELTA:+6/-4 | EXT:json",
+      "last_unix": 1792693599,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 1,
+      "last_push": "4 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 712770560,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268794s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792693599,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "4h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-platform/web/games/released/one-mil-girls",
+          "attempted_at": 1792694586,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "4be3523140e353ae7196015c79847880482f2245",
+      "last_author": "DraconDev",
+      "last_when": "6 hours ago",
+      "last_msg": "4 file(s) in src [src/tests.rs, src/forgotten_tests.rs, src/forgotten.rs] DELTA:+1/-154 | EXT:rs TEST:135",
+      "last_unix": 1792688403,
+      "commits_1h": 0,
+      "commits_6h": 1,
+      "commits_24h": 21,
+      "last_push": "6 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 50041856,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268793s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792688403,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "5h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-system",
+          "attempted_at": 1792688422,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/db-gateway",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "2dd8acbc6870b7180cdce09dbe8136d4c12da7a0",
+      "last_author": "DraconDev",
+      "last_when": "18 hours ago",
+      "last_msg": "The Rust client's own words say what it does",
+      "last_unix": 1792645084,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 19,
+      "last_push": "18 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 200187904,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268793s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792641841,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "18h ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/db-gateway",
+          "attempted_at": 1792649064,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "2015add60e89d095d8facbae3abbdd298f8d55e4",
+      "last_author": "DraconDev",
+      "last_when": "32 hours ago",
+      "last_msg": "2 file(s) in src [src/index_batch_tests.rs, src/security/src/lib.rs] DELTA:+4/-5 | EXT:rs TEST:5",
+      "last_unix": 1792594135,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "32 hours ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 27460608,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268792s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 1792594135,
+      "daemon_last_action": "sync_commit",
+      "daemon_last_result": "ok",
+      "daemon_last_action_when": "1d ago",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/dracon-utilities/dracon-warden",
+          "attempted_at": 1792594222,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/dracon/bridge-fixture",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "cf0a8c0b24dda654cc5ead731edab12f558f1e97",
+      "last_author": "DraconDev",
+      "last_when": "3 days ago",
+      "last_msg": "Add qualification-20261018 fixture (public/qualification-20261018/ovh-live-2fc91627ddb9.png)",
+      "last_unix": 1792454081,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "3 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 446464,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "⚠️ path-owned identity/origin warning: ✓ owned (path_owned:untrusted_origin); GitHub pack guard clear (cached 268796s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": "inspecting",
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/dracon/bridge-fixture",
+          "attempted_at": 1792454396,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/.dracon/convos",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "12a37fa821393c0cee5180bc39aac62670b3a70f",
+      "last_author": "DraconDev",
+      "last_when": "3 days ago",
+      "last_msg": "1 file(s) [.cargo] DELTA:+0/-1 | DEL:.cargo",
+      "last_unix": 1792451263,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "3 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 100892672,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268788s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/.dracon/convos",
+          "attempted_at": 1792451573,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/mcode-plugins",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "30fb82c38444ef4f311f671e10f274064f765be4",
+      "last_author": "DraconDev",
+      "last_when": "3 days ago",
+      "last_msg": "3 file(s) in .github,mcode-agnes [.github/workflows/test.yml, mcode-agnes/mcp/agnes.mcp.json, README.md] DELTA:+5/-1 | EXT:json,md,yml TEST:3",
+      "last_unix": 1792437715,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "3 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 10231808,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268794s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running",
+        "last_push": {
+          "version": 1,
+          "repo": "/home/dracon/Dev/mcode-plugins",
+          "attempted_at": 1792454420,
+          "succeeded": true
+        }
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-agnes-tools",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "bfc3a2246d8d38f33b86b643640da3f26ee4ea4d",
+      "last_author": "DraconDev",
+      "last_when": "7 days ago",
+      "last_msg": "2 file(s) [.gitattributes, .gitignore] DELTA:+0/-26",
+      "last_unix": 1792074775,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "7 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 2834432,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268791s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running"
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-use-last-selected-thinking-level",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "69604e8b2d6f8fddd33906bd7156be3b228e8c81",
+      "last_author": "DraconDev",
+      "last_when": "7 days ago",
+      "last_msg": "2 file(s) [.gitattributes, .gitignore] DELTA:+84/-32",
+      "last_unix": 1792074772,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "7 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 163840,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268791s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running"
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/pi-plugins/pi-codebuddy-sdk",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "b510604a85287eda7800f9d4712ed222a259e4a9",
+      "last_author": "DraconDev",
+      "last_when": "7 days ago",
+      "last_msg": "2 file(s) [.gitattributes, .gitignore] DELTA:+84/-32",
+      "last_unix": 1792074768,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "7 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [],
+      "codeberg_skip_reason": null,
+      "git_size_bytes": 581632,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268791s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running"
+      }
+    },
+    {
+      "repo": "/home/dracon/Dev/warden-vid",
+      "state_flags": [
+        "OK",
+        "REPORT_CHECKS_DEFERRED"
+      ],
+      "branch": "main",
+      "upstream": "origin/main",
+      "publish_state": "Ok",
+      "modified": 0,
+      "staged": 0,
+      "untracked": 0,
+      "excluded_dirty": 0,
+      "ahead": 0,
+      "behind": 0,
+      "last_hash": "71944891949539edf2fb767e5df4f5dbf5349b3a",
+      "last_author": "DraconDev",
+      "last_when": "7 days ago",
+      "last_msg": "2 file(s) [.gitattributes, .gitignore] DELTA:+84/-32",
+      "last_unix": 1792074752,
+      "commits_1h": 0,
+      "commits_6h": 0,
+      "commits_24h": 0,
+      "last_push": "7 days ago",
+      "push_status": "OK",
+      "push_error": "",
+      "push_to_remotes": [
+        "github",
+        "gitlab"
+      ],
+      "excluded_remotes": [
+        "codeberg"
+      ],
+      "codeberg_skip_reason": "private",
+      "git_size_bytes": 233472,
+      "git_modules_bytes": 0,
+      "token_health": {
+        "codeberg_present": true,
+        "github_present": true,
+        "gitlab_present": true
+      },
+      "concern": false,
+      "warn": false,
+      "active": false,
+      "hint": "healthy; GitHub pack guard clear (cached 268794s ago); 2 GiB/push, not repo size; deep pack/history checks deferred — use repos --deep",
+      "state_cause": "idle",
+      "state_cause_label": "idle",
+      "daemon_last_action_unix": 0,
+      "daemon_last_action": "",
+      "daemon_last_result": "",
+      "daemon_last_action_when": "none",
+      "missing_objects": 0,
+      "pack_too_large": false,
+      "frozen_secs": null,
+      "health": {
+        "current": "converged",
+        "scheduler": {
+          "phase": null,
+          "execution_secs": null,
+          "retry_secs": null,
+          "dirty_secs": null,
+          "eligible": false,
+          "admitted_secs": null
+        },
+        "observed_at": 1792708947,
+        "mode": "running"
+      }
+    }
+  ]
+}

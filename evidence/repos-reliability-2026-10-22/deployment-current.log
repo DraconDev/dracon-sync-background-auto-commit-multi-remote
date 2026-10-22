@@ -1,0 +1,13 @@
+⏸️  Sync paused for maintenance (freeze marker: /home/dracon/.dracon/dracon-sync.freeze)
+{
+  "started_at": "2026-10-22T22:38:37Z",
+  "old_pid": 319430,
+  "expected_sha256": "f697cb28ec4b7824b6a31c60256925b895316c6bea0fe44b29829bd5f989a3a6",
+  "previous_sha256": "ad73e71dbc5d6cab141e8e0421bf8f706124e3ee9b6955a9cafc4607246bb80a",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261022T223836Z-repos-reliability",
+  "method": "maintenance, atomic replacement, SIGTERM, Restart=always",
+  "new_pid": 3170257,
+  "running_sha256": "f697cb28ec4b7824b6a31c60256925b895316c6bea0fe44b29829bd5f989a3a6",
+  "finished_at": "2026-10-22T22:38:48Z"
+}
+▶️  Sync resumed (freeze marker removed)

@@ -1,0 +1,26 @@
+[
+  {
+    "repo": "ai-auto-writer",
+    "commit": "d056c570d19efe5f825ce71d00f295eccc67c092",
+    "changed_paths": 100,
+    "retained_in_current_history": true
+  },
+  {
+    "repo": "dracon-platform",
+    "commit": "89064d1fd7cf29b1bff691c479bff9a12b78c2ba",
+    "changed_paths": 7,
+    "retained_in_current_history": true
+  },
+  {
+    "repo": "browser-extensions-shared",
+    "commit": "a28c8360e71856a1d7c944bf723a07293790554a",
+    "changed_paths": 84,
+    "retained_in_current_history": true
+  },
+  {
+    "repo": "dracon-strategy",
+    "commit": "c3eedd2c6c3526493635c5aafcf6c9edad38f188",
+    "changed_paths": 6,
+    "retained_in_current_history": true
+  }
+]

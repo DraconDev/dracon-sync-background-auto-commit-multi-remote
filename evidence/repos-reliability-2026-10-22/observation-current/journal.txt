@@ -1,0 +1,203 @@
+Oct 22 23:38:37 nixos dracon-sync[319430]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 23:38:38 nixos dracon-sync[319430]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 23:38:39 nixos dracon-sync[319430]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 23:38:40 nixos dracon-sync[319430]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 23:38:41 nixos dracon-sync[319430]: ⏸️ sync daemon paused (marker /home/dracon/.dracon/dracon-sync.freeze)
+Oct 22 23:38:42 nixos systemd[1]: dracon-sync-operator.service: Deactivated successfully.
+Oct 22 23:38:42 nixos systemd[1]: dracon-sync-operator.service: Consumed 2h 12min 4.313s CPU time, 1.5G memory peak, 598.9M memory swap peak, 162.5G read from disk, 25.8G written to disk, 13.6M incoming IP traffic, 78.3M outgoing IP traffic.
+Oct 22 23:38:47 nixos systemd[1]: dracon-sync-operator.service: Scheduled restart job, restart counter is at 6.
+Oct 22 23:38:47 nixos systemd[1]: Starting Dracon Sync (deterministic sync runtime)...
+Oct 22 23:38:47 nixos systemd[1]: Started Dracon Sync (deterministic sync runtime).
+Oct 22 23:38:47 nixos dracon-sync[3170257]: 🔄 dracon-sync daemon started
+Oct 22 23:38:47 nixos dracon-sync[3170257]: 🧹 startup: running cleanup...
+Oct 22 23:38:48 nixos dracon-sync[3170257]: 🧹 startup: pruned 24 stale visibility cache entries
+Oct 22 23:38:54 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status task failed: Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 23:38:56 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status_failed (retry in 300s): Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 23:39:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:02 nixos dracon-sync[3170257]: 🔄 trailing-drain: 4 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:03 nixos dracon-sync[3170257]: 🛡️ /home/dracon/.dracon auto-hardened with warden before staging
+Oct 22 23:39:03 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:03 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-strategy/ai-auto-video auto-hardened with warden before staging
+Oct 22 23:39:04 nixos dracon-sync[3170257]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-video
+Oct 22 23:39:04 nixos dracon-sync[3170257]: 📝 /home/dracon/Dev/dracon-strategy/ai-auto-video has 1 large untracked file(s) > 104857600 bytes - adding to .gitignore
+Oct 22 23:39:04 nixos dracon-sync[3170257]: 📝 committed 5 file(s) in /home/dracon/.dracon
+Oct 22 23:39:05 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-strategy auto-hardened with warden before staging
+Oct 22 23:39:07 nixos dracon-sync[3170257]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-platform/web/games/wip/doomtap elapsed_ms=5720 outcome=success
+Oct 22 23:39:11 nixos dracon-sync[3170257]: 🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:11 nixos dracon-sync[3170257]: 📝 committed 6 file(s) in /home/dracon/Dev/dracon-strategy
+Oct 22 23:39:13 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls auto-hardened with warden before staging
+Oct 22 23:39:13 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/browser-extensions-shared auto-hardened with warden before staging
+Oct 22 23:39:14 nixos dracon-sync[3170257]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls
+Oct 22 23:39:15 nixos dracon-sync[3170257]: 🔄 trailing-drain: 4 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:16 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/terhub auto-hardened with warden before staging
+Oct 22 23:39:17 nixos dracon-sync[3170257]: 📝 committed 3 file(s) in /home/dracon/Dev/terhub
+Oct 22 23:39:18 nixos dracon-sync[3170257]: 📝 committed 84 file(s) in /home/dracon/Dev/browser-extensions-shared
+Oct 22 23:39:19 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/endless-td auto-hardened with warden before staging
+Oct 22 23:39:19 nixos dracon-sync[3170257]: 🔁 synced (late) /home/dracon/Dev/dracon-strategy/ai-auto-video
+Oct 22 23:39:19 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:19 nixos dracon-sync[3170257]: classification: phase=filter-aware-diff repo=/home/dracon/Dev/dracon-strategy/ai-auto-writer elapsed_ms=7878 outcome=success
+Oct 22 23:39:20 nixos dracon-sync[3170257]: ⏫ /home/dracon/Dev/browser-extensions-shared scaling push timeout 3600s → 14400s (37 commits ahead)
+Oct 22 23:39:22 nixos dracon-sync[3170257]: 📝 committed 3 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td
+Oct 22 23:39:23 nixos dracon-sync[3170257]: 🔁 synced (late) /home/dracon/.dracon
+Oct 22 23:39:23 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:26 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-platform/web/games/wip/doomtap auto-hardened with warden before staging
+Oct 22 23:39:27 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:32 nixos dracon-sync[3170257]: 📝 committed 2 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/doomtap
+Oct 22 23:39:33 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:33 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:33 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:34 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:36 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:38 nixos dracon-sync[3170257]: 📝 committed 1 file(s) in /home/dracon/.dracon
+Oct 22 23:39:41 nixos dracon-sync[3170257]: 📦 batching 134 entries into chunks of 100
+Oct 22 23:39:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:45 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:56 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:39:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:39:57 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis held 'status-failed (retry cooldown)' for 60s — still undispatched (starves at 600s)
+Oct 22 23:40:01 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-strategy/ai-auto-writer auto-hardened with warden before staging
+Oct 22 23:40:05 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-platform auto-hardened with warden before staging
+Oct 22 23:40:07 nixos dracon-sync[3170257]: 📝 committed 7 file(s) in /home/dracon/Dev/dracon-platform
+Oct 22 23:40:09 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:09 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:09 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:09 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:12 nixos dracon-sync[3170257]: 📝 committed 100 file(s) in /home/dracon/Dev/dracon-strategy/ai-auto-writer
+Oct 22 23:40:19 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:19 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:19 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:19 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:24 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:24 nixos dracon-sync[3170257]: 🛡️ /home/dracon/Dev/dracon-utilities/dracon-sync auto-hardened with warden before staging
+Oct 22 23:40:24 nixos dracon-sync[3170257]: 📝 committed 1 file(s) in /home/dracon/Dev/dracon-utilities/dracon-sync
+Oct 22 23:40:27 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:27 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:27 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:28 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:38 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:38 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:38 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:38 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:47 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:47 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:47 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:47 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:57 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:57 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:40:57 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:40:58 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:06 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:06 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:06 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:07 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:17 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:17 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:17 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:17 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:26 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:26 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:26 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:26 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:37 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:37 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:37 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:37 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:46 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:46 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:46 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:46 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:41:56 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:41:56 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:05 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:05 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:05 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:06 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:16 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:16 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:16 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:16 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:24 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:24 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:24 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:25 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:36 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:36 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:36 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:36 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:45 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:45 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:55 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:55 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:42:55 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:42:55 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:03 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:03 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:03 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:03 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:14 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:14 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:14 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:14 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:22 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:22 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:22 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:23 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:34 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:34 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:34 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:35 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:43 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:43 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:43 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:44 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:54 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:54 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:54 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:43:54 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:43:58 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status task failed: Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 23:44:01 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis status_failed (retry in 300s): Git metadata resolves to a different worktree: /home/dracon/Dev/dracon-platform/web/games/wip/capture-anime-girls (requested /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis); inspect checkout wiring before recovery
+Oct 22 23:44:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:02 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:13 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:22 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:22 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:22 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:22 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:32 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:32 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:32 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:32 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:41 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:41 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:41 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:41 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:51 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:51 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:44:51 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:44:52 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:02 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:45:02 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:02 nixos dracon-sync[3170257]: ⚠️ /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis held 'status-failed (retry cooldown)' for 61s — still undispatched (starves at 600s)
+Oct 22 23:45:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:13 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:45:13 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:23 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:23 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
+Oct 22 23:45:23 nixos dracon-sync[3170257]: 🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+Oct 22 23:45:23 nixos dracon-sync[3170257]: ℹ️ skip large file /home/dracon/Dev/dracon-strategy/ai-auto-video/pi-session-2026-10-19T19-41-33-250Z_01a155ae-fac1-732c-8aef-5c6c0a1452c2.html (298574588 bytes > 104857600 bytes)
