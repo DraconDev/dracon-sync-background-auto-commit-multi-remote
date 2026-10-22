@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/dracon/Dev/dracon-utilities/dracon-sync/scripts/test-repos-detail.py", line 45, in <module>
+    assert "not found in watch roots" not in output, output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ❌ /tmp/sync-detail-test-2ii2u5c0/watch/unrelated | status_failed: status inspection failed in /tmp/sync-detail-test-2ii2u5c0/watch/unrelated: fixture inspection refusal
+
+❌ /tmp/sync-detail-test-2ii2u5c0/watch/wanted | status_failed: status inspection failed in /tmp/sync-detail-test-2ii2u5c0/watch/wanted: fixture inspection refusal
+
+❌ repo 'wanted' not found in watch roots. Run `dracon-sync repos -s` for the list.
+
