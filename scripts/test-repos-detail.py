@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix="sync-detail-test-") as temporary:
     root = Path(temporary)
     watch = root / "watch"
     watch.mkdir()
-    for name in ["target", "unrelated"]:
+    for name in ["wanted", "unrelated"]:
         subprocess.run([git, "init", "--quiet", str(watch / name)], check=True)
     policy = root / "policy.toml"
     policy.write_text("watch_roots = " + json.dumps([str(watch)]) + "\n")
@@ -36,21 +36,22 @@ with tempfile.TemporaryDirectory(prefix="sync-detail-test-") as temporary:
     env = dict(os.environ, DRACON_SYNC_POLICY=str(policy),
                DRACON_SYNC_GIT_BIN=str(wrapper), FIXTURE_CALLS=str(calls),
                FIXTURE_GIT=git, FIXTURE_REFUSE="yes")
-    result = subprocess.run([binary, "repos", "target"], env=env,
-                            capture_output=True, text=True, timeout=90)
+    command = [binary, "repos", "wanted"]
+    result = subprocess.run(command, env=env, capture_output=True,
+                            text=True, timeout=90)
     output = result.stdout + result.stderr
     assert result.returncode != 0, output
     assert "status_failed" in output and "fixture inspection refusal" in output, output
     assert "not found in watch roots" not in output, output
-    assert calls.read_text().splitlines() == [str(watch / "target")], output
+    assert calls.read_text().splitlines() == [str(watch / "wanted")], output
     print("PASS: known inspection failure propagates; unrelated repo not inspected")
     # Change only the injected failure, not the repository or command.
     env["FIXTURE_REFUSE"] = "no"
     calls.write_text("")
-    result = subprocess.run([binary, "repos", "target"], env=env,
-                            capture_output=True, text=True, timeout=90)
+    result = subprocess.run(command, env=env, capture_output=True,
+                            text=True, timeout=90)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert str(watch / "target") in result.stdout, result.stdout
+    assert str(watch / "wanted") in result.stdout, result.stdout
     assert str(watch / "unrelated") not in result.stdout, result.stdout
-    assert calls.read_text().splitlines() == [str(watch / "target")]
+    assert calls.read_text().splitlines() == [str(watch / "wanted")]
     print("PASS: successful detail unaffected by harmless extra repository")

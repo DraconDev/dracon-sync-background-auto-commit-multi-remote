@@ -6449,13 +6449,7 @@ fn push_cell_with_age(push_text: &str, last_push: &str) -> String {
 ///   they surface as ❌ FAIL.
 fn push_cell_with_markers(text: String, row: &RepoReportRow, budget: usize) -> String {
     use unicode_width::UnicodeWidthStr;
-    // A two-digit failed-push age is wider than the rich cell. Compact only
-    // the icon separator, retaining both FAIL and the full age (no wrapping).
-    let mut out = if UnicodeWidthStr::width(text.as_str()) > budget {
-        text.replacen("❌ FAIL ", "❌FAIL ", 1)
-    } else {
-        text
-    };
+    let mut out = text;
     if row.missing_objects > 0 && UnicodeWidthStr::width(out.as_str()) + 2 <= budget {
         out.push('🩹');
     }
@@ -7056,6 +7050,16 @@ fn build_repos_rich_table(
         .max()
         .unwrap_or(REM_MIN_COL);
 
+    // Preserve the shared PUSH vocabulary and full age, rather than changing
+    // labels or allowing comfy-table to wrap them. Fund extra content from
+    // the flexible repository column, keeping the rich-tier floor unchanged.
+    let push_col = rows
+        .iter()
+        .map(|row| unicode_width::UnicodeWidthStr::width(current_health::push(row).0.as_str()) + 2)
+        .max()
+        .unwrap_or(PUSH_COL)
+        .max(PUSH_COL);
+
     let width = terminal_columns as usize;
     // R3-L39 (2026-10-03): `#` fits row numbers up to 99 (2 digits +
     // padding = 4). At 100+ repos comfy-table WRAPS the index cell
@@ -7088,7 +7092,7 @@ fn build_repos_rich_table(
             + CHG_UT_COL
             + CHG_EXCL_COL
             + AB_COL
-            + PUSH_COL
+            + push_col
             + rem_col
             + C1H_COL
             + C6H_COL
@@ -7096,7 +7100,9 @@ fn build_repos_rich_table(
             + SIZE_COL
             + TOUCHED_COL
             + 17; // 16 columns → 17 border cells
-        width.saturating_sub(fixed_non_repo).max(REPO_COL)
+        width
+            .saturating_sub(fixed_non_repo)
+            .max(REPO_COL.saturating_sub(push_col - PUSH_COL))
     };
     // CHANGED 2026-07-29 (v0.113.17): ACTIVITY narrowed 23 → 16 —
     // it now holds ONLY the state label (`🟢 synced 19m` = 13 max);
@@ -7178,7 +7184,7 @@ fn build_repos_rich_table(
         + CHG_UT_COL
         + CHG_EXCL_COL
         + AB_COL
-        + PUSH_COL
+        + push_col
         + rem_col
         + C1H_COL
         + C6H_COL
@@ -7282,7 +7288,7 @@ fn build_repos_rich_table(
     table
         .column_mut(9)
         .expect("PUSH column")
-        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(PUSH_COL as u16)));
+        .set_constraint(ColumnConstraint::Absolute(Width::Fixed(push_col as u16)));
     table
         .column_mut(10)
         .expect("REM column")
@@ -7426,7 +7432,7 @@ fn build_repos_rich_table(
 
         let (push_text, push_color) = current_health::push(row);
         // v0.113.21: 🩹 broken-history / 🔑 token-missing markers.
-        let push_text = push_cell_with_markers(push_text, row, PUSH_COL.saturating_sub(2));
+        let push_text = push_cell_with_markers(push_text, row, push_col.saturating_sub(2));
         // v0.113.22 (operator): REM cell — active push remotes
         // only. The v0.113.21 dim-excluded suffix put a 🗻 on EVERY
         // row under the codeberg quota posture (fleet-wide
@@ -16493,12 +16499,32 @@ mod v011321_tests {
     #[test]
     fn failed_push_age_fits_rich_cell_without_losing_failure_or_age() {
         use unicode_width::UnicodeWidthStr;
-        let row = base_row();
-        for age in ["9s", "22m", "59m", "23h", "99d"] {
-            let text = push_cell_with_markers(format!("❌ FAIL {age}"), &row, 10);
-            assert!(text.contains("FAIL"));
-            assert!(text.ends_with(age));
-            assert!(text.width() <= 10, "{text}");
+        for (seconds, age) in [
+            (1350, "22m"),
+            (3570, "59m"),
+            (84600, "23h"),
+            (8596800, "99d"),
+        ] {
+            let mut row = base_row();
+            row.health.last_push = Some(crate::daemon::push_history::Observation {
+                version: 1,
+                repo: row.repo.clone(),
+                attempted_at: timestamp_secs() - seconds,
+                succeeded: false,
+            });
+            let table = build_repos_rich_table(&[row], false, 165).to_string();
+            assert!(
+                table
+                    .lines()
+                    .any(|line| line.contains(&format!("❌ FAIL {age}"))),
+                "{table}"
+            );
+            assert!(table.lines().all(|line| line.width() <= 165), "{table}");
+            assert_eq!(
+                table.lines().filter(|line| line.contains('│')).count(),
+                2,
+                "row wrapped: {table}"
+            );
         }
     }
 

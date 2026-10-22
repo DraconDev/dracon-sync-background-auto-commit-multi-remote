@@ -52,7 +52,11 @@ Thus aud-vis is not an independent Git checkout: Git operates on the other
 worktree, and both paths compete for its operation lease. Neither directory was
 removed or excluded. Correcting the checkout wiring requires separate operator
 approval and content-preserving comparison; silently deduplicating it would
-hide possible edits in the alias directory.
+hide possible edits in the alias directory. Inspection now validates Git's
+resolved `--show-toplevel` against the canonical requested directory under the
+same owned deadline. A mismatched checkout fails visibly before scheduling
+neighbor work. Ordinary symlinks to the same worktree remain valid. This does
+not repair the alias or infer what its files ought to contain.
 
 There was also a daemon defect: lease contention returned `PushPaused`, falsely
 logging “committed but push paused”. The distinct `OperationDeferred` result now
@@ -122,13 +126,18 @@ manual recovery. This utility change does not claim to repair SamAI.
 
 The banner labels concerns separately from inspection failures and calls its
 row count “inspected”. A failed-push age with two digits previously exceeded
-the rich PUSH column's ten-cell content area. Compacting the icon separator
-when necessary preserves both FAIL and the full age on one line.
+the rich PUSH column's ten-cell content area. The PUSH column now sizes to the actual rendered labels, funding extra cells
+from the flexible repository column. Both FAIL and the full age stay on one
+line without changing the shared vocabulary or increasing the rich-tier floor.
+An initial icon-spacing change failed an existing history/convergence test;
+the implementation was replaced, not that test weakened.
 
 Regression coverage protects successful filters lasting longer than the old
 UI deadline, existing timeout/owner-abort cleanup, exact detail selection,
 non-promissory UNKNOWN hints, failed-push age width, and lease contention without
-commits or loss of failure memory. Existing filters, hooks and push accounting
+commits or loss of failure memory (including a seeded paused remote and nonzero
+failure count). Checkout-identity regression coverage rejects copied metadata
+while preserving alias edits and accepting a symlink to the same real worktree. Existing filters, hooks and push accounting
 remain enforced. The successful slow-filter fixture and existing hung-filter
 fixture distinguish harmless slowness from real stuck work.
 
@@ -145,6 +154,18 @@ systemctl show dracon-sync-operator.service -p ActiveState -p MainPID -p TasksMa
 journalctl -u dracon-sync-operator.service --since '2026-10-22 14:26:55' --until '2026-10-22 14:27:01'
 git -C /home/dracon/Dev/dracon-platform/web/games/wip/aud-vis rev-parse --git-common-dir --show-toplevel
 ```
+
+The focused CLI fixture `scripts/test-repos-detail.py <binary>` injects a real
+status refusal in a disposable watch tree and requires the actual error, not
+“not found”; its success case tolerates an unrelated extra repository. The old
+installed binary fails this negative control with the misleading absent-repo
+message; the candidate debug binary passes both cases. No live repo is mutated
+by this fixture.
+
+A read-only reviewer found the lease-backoff test initially lacked seeded
+remote failure state. That coverage gap was corrected: both remote maps and a
+nonzero failure count are now asserted preserved. The implementation itself
+already retained them. Follow-up review covers the checkout-identity guard.
 
 Quality-gate and deployment receipts will be recorded below after actual
 execution. No passing full-suite or deployed-runtime claim is made by this

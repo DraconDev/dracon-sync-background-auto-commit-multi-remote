@@ -14,6 +14,30 @@ pub(crate) const STATUS_INSPECTION_BUDGET: Duration = Duration::from_secs(60);
 
 pub(crate) async fn inspect_status(repo: &Path, budget: Duration) -> Result<RepoStatus> {
     tokio::time::timeout(budget, async {
+        // A copied submodule .git file may still name another checkout via
+        // core.worktree. Never inspect or schedule that neighbor as this repo.
+        // Use Git's own resolution (including linked-worktree configuration),
+        // not a second, incomplete configuration parser.
+        let child = super::spawn_git_command_cancellable(
+            repo, &["rev-parse", "--show-toplevel"], "status worktree identity",
+        )?;
+        let (exit, root, stderr) = super::run_git_captured_output(
+            child, repo, "status worktree identity",
+        ).await?;
+        if !exit.success() {
+            bail!("status worktree identity failed in {}: {}", repo.display(), String::from_utf8_lossy(&stderr));
+        }
+        let root = root.strip_suffix(b"\n").unwrap_or(&root);
+        #[cfg(unix)]
+        let root = {
+            use std::os::unix::ffi::OsStrExt;
+            Path::new(std::ffi::OsStr::from_bytes(root))
+        };
+        #[cfg(not(unix))]
+        let root = Path::new(std::str::from_utf8(root)?);
+        if std::fs::canonicalize(root)? != std::fs::canonicalize(repo)? {
+            bail!("Git metadata resolves to a different worktree: {} (requested {}); inspect checkout wiring before recovery", root.display(), repo.display());
+        }
         let child = super::spawn_git_command_cancellable(
             repo,
             &[
@@ -319,6 +343,90 @@ mod tests {
         assert!(started.elapsed() >= Duration::from_secs(9));
         assert_eq!(status.modified_files, 1);
         assert!(!status.is_clean);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn rejects_copied_gitdir_alias_but_accepts_symlink_to_same_worktree() {
+        let dir = tempfile::tempdir().unwrap();
+        let primary = dir.path().join("primary");
+        let alias = dir.path().join("alias");
+        std::fs::create_dir(&alias).unwrap();
+        let init = std::process::Command::new("git")
+            .args(["init", "--quiet"])
+            .arg(&primary)
+            .output()
+            .unwrap();
+        assert!(init.status.success());
+        assert!(std::process::Command::new("git")
+            .arg("-C")
+            .arg(&primary)
+            .args(["config", "core.worktree"])
+            .arg(&primary)
+            .status()
+            .unwrap()
+            .success());
+        std::fs::write(alias.join(".git"), "gitdir: ../primary/.git\n").unwrap();
+        std::fs::write(alias.join("local.txt"), "alias edits\n").unwrap();
+        let error = inspect_status(&alias, STATUS_INSPECTION_BUDGET)
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("different worktree"),
+            "{error:#}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(alias.join("local.txt")).unwrap(),
+            "alias edits\n"
+        );
+        assert!(inspect_status(&primary, STATUS_INSPECTION_BUDGET)
+            .await
+            .is_ok());
+        let link = dir.path().join("link");
+        std::os::unix::fs::symlink(&primary, &link).unwrap();
+        assert!(inspect_status(&link, STATUS_INSPECTION_BUDGET)
+            .await
+            .is_ok());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn identity_accepts_linked_worktree_and_non_utf8_newline_roots() {
+        use std::os::unix::ffi::OsStrExt;
+        let dir = tempfile::tempdir().unwrap();
+        let primary = dir
+            .path()
+            .join(std::ffi::OsStr::from_bytes(b"primary-\xff\n"));
+        let linked = dir
+            .path()
+            .join(std::ffi::OsStr::from_bytes(b"linked-\xfe\n"));
+        let repo = git2::Repository::init(&primary).unwrap();
+        let tree_id = repo.index().unwrap().write_tree().unwrap();
+        let tree = repo.find_tree(tree_id).unwrap();
+        // Synthetic identity belongs only to this disposable fixture object;
+        // no Git configuration or operator repository is modified.
+        let signature = git2::Signature::now("Fixture", "fixture@example.invalid").unwrap();
+        repo.commit(Some("HEAD"), &signature, &signature, "fixture", &tree, &[])
+            .unwrap();
+        let output = std::process::Command::new("git")
+            .arg("-C")
+            .arg(&primary)
+            .args(["worktree", "add", "--detach"])
+            .arg(&linked)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        for path in [&primary, &linked] {
+            let status = inspect_status(path, STATUS_INSPECTION_BUDGET)
+                .await
+                .unwrap();
+            assert!(status.is_clean);
+            assert!(status.last_commit_hash.is_some());
+        }
     }
 
     #[tokio::test]

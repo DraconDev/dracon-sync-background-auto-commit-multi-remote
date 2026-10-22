@@ -2427,7 +2427,19 @@ mod tests {
         // Lease contention did not attempt work: preserve prior blockers,
         // failure count and remote backoff, but avoid an immediate spin.
         let blocked_since = entry.blocked_since;
+        let original_failures = entry.failure_count;
+        entry.failure_count = 4;
         let failures = entry.failure_count;
+        let paused_remote = HashMap::from([(
+            "gitlab".to_string(),
+            RemoteFailInfo {
+                consecutive: MIRROR_PAUSE_CONSECUTIVE,
+                last_error: "fixture transport refusal".into(),
+                last_attempt_unix: timestamp_secs(),
+            },
+        )]);
+        entry.remote_failures = paused_remote.clone();
+        entry.mirror_consecutive_fails = paused_remote.clone();
         let outcome = apply_outcome(
             &repo,
             &Ok(SyncOutcome::OperationDeferred),
@@ -2440,7 +2452,10 @@ mod tests {
         assert_eq!(outcome, ApplyOutcome::BackstopSkipped);
         assert_eq!(entry.blocked_since, blocked_since);
         assert_eq!(entry.failure_count, failures);
+        assert_eq!(entry.remote_failures, paused_remote);
+        assert_eq!(entry.mirror_consecutive_fails, paused_remote);
         assert!(stage_cooldowns[&repo] > Instant::now());
+        entry.failure_count = original_failures;
 
         // --- PushFailed -> ApplyOutcome::Failure, blocked_since cleared ---
         entry.blocked_since = Some(std::time::Instant::now());
