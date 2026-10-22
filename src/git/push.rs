@@ -640,13 +640,11 @@ pub(crate) fn is_local_hook_rejection(err_msg: &str) -> bool {
 ///
 ///     transport/auth failure (network, timeout, or credentials)
 ///
-/// That sent the operator to the network and the credentials when the real
-/// cause was entirely local: the daemon killed the push itself because the
-/// op budget expired. The mirror was reachable the whole time — a raw
-/// `git push --dry-run --no-verify` to the same remote succeeded in 1.5s
-/// while the hooked push burned 15 minutes inside the local pre-push hook.
-/// The same wedge had already burned the 5-failure stuck budget, latching
-/// auto-push off for the repo.
+/// The runner's deadline event should be identifiable without implying a
+/// credential failure. It does not alone identify why progress stopped:
+/// local hooks and remote transfers both run under that deadline. Even a
+/// successful separate remote advertisement cannot prove the timed-out
+/// transfer was healthy. Repeated timeouts can exhaust the stuck budget.
 ///
 /// This is a LABEL fix only. It deliberately does NOT change the budget
 /// behaviour: a locally wedged push must still escalate against the stuck
@@ -697,10 +695,10 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
         // ADDED 2026-10-22 (dracon-strategy 19h wedge): the daemon's own
         // op-timeout kill. Placed AFTER the transient arms so a genuine
         // forge-side outage still wins, and after the divergence arm so a
-        // non-fast-forward is not relabelled. The cause is LOCAL — the
-        // daemon stopped waiting and killed the push — so the operator must
-        // look at the op budget and the payload size, not at the network.
-        "local operation timeout (daemon killed the push at its op budget — raise push_op_timeout_secs or shrink the payload; the mirror itself was reachable)"
+        // non-fast-forward is not relabelled. This identifies the deadline
+        // event, not its root cause: a hook, payload, or remote transfer can
+        // all consume the budget. It cannot establish remote reachability.
+        "local operation timeout (daemon stopped waiting at its deadline — inspect hook/transfer progress and the operation budget; remote health is not established)"
     } else {
         "transport/auth failure (network, timeout, or credentials)"
     }
