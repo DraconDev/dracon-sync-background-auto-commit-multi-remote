@@ -2,7 +2,8 @@
 //!
 //! Local work has its existing semaphore. A push phase temporarily gives its
 //! permit back, so waiting on hook/network work cannot exhaust commit capacity.
-//! Actual push commands have a separate one-command lane and low child priority.
+//! Push commands retain owned cancellation and low child priority, but have no
+//! process-global admission gate. Repository ownership is enforced separately.
 #[cfg(test)]
 #[path = "push_resources_tests.rs"]
 mod tests;
@@ -10,7 +11,7 @@ mod tests;
 use anyhow::{Context, Result};
 use std::cell::RefCell;
 use std::future::Future;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 struct LocalWork {
@@ -75,7 +76,7 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
 }
 
 /// Per-repository coordinator maintenance has no local-work permit to release,
-/// but its push children need the same bounded lane and low priority. Call this
+/// but its push children need the same low priority. Call this
 /// only from an owned background job, never inline on the inspection loop.
 pub(crate) async fn background_pushes<T>(work: impl Future<Output = T>) -> T {
     PUSH_PHASE.scope(true, work).await
@@ -85,35 +86,11 @@ fn isolated_push(args: &[&str]) -> bool {
     args.first() == Some(&"push") && PUSH_PHASE.try_with(|active| *active).unwrap_or(false)
 }
 
-fn push_slots() -> Arc<Semaphore> {
-    static SLOTS: OnceLock<Arc<Semaphore>> = OnceLock::new();
-    SLOTS.get_or_init(|| Arc::new(Semaphore::new(1))).clone()
-}
-
-/// The permit lives outside the owned process runner: cancellation drops the
-/// runner (which kills its process group) before another command gets a slot.
-pub(super) async fn command<T>(args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
-    let permit = if isolated_push(args) {
-        Some(
-            push_slots()
-                .acquire_owned()
-                .await
-                .context("push semaphore closed")?,
-        )
-    } else {
-        None
-    };
-    // Struct fields drop in declaration order, making teardown-before-slot-
-    // release explicit rather than relying on async-local drop ordering.
-    struct OwnedCommand<F: Future> {
-        work: std::pin::Pin<Box<F>>,
-        _permit: Option<OwnedSemaphorePermit>,
-    }
-    let mut owned = OwnedCommand {
-        work: Box::pin(work),
-        _permit: permit,
-    };
-    futures::future::poll_fn(|cx| owned.work.as_mut().poll(cx)).await
+/// Keep the command future in its caller's ownership. Dropping the caller
+/// drops its process runner and kills that runner's owned process group; it
+/// must neither detach publication nor serialize unrelated repositories.
+pub(super) async fn command<T>(_args: &[&str], work: impl Future<Output = Result<T>>) -> Result<T> {
+    work.await
 }
 
 /// Apply only to the child of an enrolled daemon push. Setting our own child
