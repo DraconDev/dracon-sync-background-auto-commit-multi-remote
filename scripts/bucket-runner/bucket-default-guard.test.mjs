@@ -28,7 +28,26 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_DIR = join(HERE, '..');
 const REPO_DIR = join(SCRIPTS_DIR, '..', '..');
 
-/** Every source file in the repository that could carry a (bucket, endpoint) pair. */
+/**
+ * The TEST SUITES, and only those.
+ *
+ * Operator scripts (a dated read-only qualification probe, a deployment
+ * helper) are not test traffic: they run on an operator's explicit
+ * command, read or write what they are pointed at, and are dated so their
+ * run is visible in the history. What must never happen is a *suite*
+ * reaching a live bucket, so the scan is scoped to the suites.
+ */
+function isTestFile(path) {
+  const rel = relative(REPO_DIR, path).split('\\').join('/');
+  if (rel === 'dracon-sync/scripts/bucket-runner/bucket-default-guard.test.mjs') return false; // this file states the rule
+  if (/\.(test|spec)\.(mjs|js|ts|tsx|rs)$/u.test(rel)) return true;
+  if (/(^|\/)test_[^/]+\.py$/u.test(rel)) return true;
+  if (/[^/]+_test\.py$/u.test(rel)) return true;
+  if (/(^|\/)tests?\//u.test(rel)) return true;
+  return false;
+}
+
+/** Every test-suite file in the repository that could carry a (bucket, endpoint) pair. */
 async function candidateFiles() {
   const out = [];
   const skip = new Set(['node_modules', 'target', '.git', 'evidence', '.pi-glla', 'vendor', 'dist']);
@@ -40,6 +59,7 @@ async function candidateFiles() {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) { await walk(full); continue; }
       if (!/\.(mjs|js|ts|rs|py|sh)$/u.test(entry.name)) continue;
+      if (!isTestFile(full)) continue;
       out.push(full);
     }
   }
