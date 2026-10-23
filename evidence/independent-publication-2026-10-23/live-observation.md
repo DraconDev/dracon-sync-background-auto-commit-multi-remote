@@ -109,6 +109,18 @@ green NOW; they do not prove the original 2026-10-22 23:57 volume refusal had
 the same cause, because that attempt's log directory no longer existed. That
 distinction is preserved rather than papered over.
 
-## Aggregate at observation time
+## Fleet convergence during the observation window
 
-    repos 36, ok 32, active 2, warn 2, failures 0
+    first sample:  repos 36, ok 32, active 2, warn 2, failures 0
+    later sample:  repos 36, ok 34, active 1, warn 1, failures 0
+    latest:        repos 36, ok 34, active 1, warn 1, failures 0
+
+The `ok` count rose from 32 to 34 with zero concerns and zero inspection
+failures while the daemon was simply running. A second read-only sample
+(`live-repos-later.json`) shows the two repositories that were mid-publication
+earlier now `converged` with `ahead 0` and `push OK`.
+
+`browser-extensions-shared` continued the same pattern: GitHub's `main` moved
+`b1e44ed` → `05030a8` → `2391c58` while the local branch kept accepting commits
+(2 ahead at the last sample). That is the intended shape: publication advances
+the published history repeatedly and never blocks new work.
