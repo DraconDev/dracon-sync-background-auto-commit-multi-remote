@@ -82,8 +82,14 @@ clear a source pin.
   process ancestry/identity before classifying or terminating anything.
 - Deathrun pre-commit rejects 13 staged files under audit-evidence. Need reconcile
   commit-all staging with meaningful hygiene policy while retaining work on disk.
-- Strategy has exhausted its retry budget after push-hook refusals. The actual
-  refusal must be repaired before targeted retry re-enablement.
+- Strategy exhausted its retry budget after the confirmed OpenAI-pattern false
+  positive described above. The fixture reproduces the refusal before repair.
+  The core scanner already retains a leading word boundary; the hook's ERE
+  transliteration dropped it. The precision correction and canonicalization of
+  consumed delimiters pass 3 targeted hook regressions, 1 scanner-parity test and
+  the full 223-test Warden binary suite. Real text/binary keys remain rejected.
+  See `dracon-warden/docs/design/openai-hook-boundary-2026-10-23.md`. The live
+  global hook remains unchanged; installation and targeted retry are pending.
 - GitLab SSH timeouts occur in several repos. A transient failure is not yet
   evidence of an unfixable external blocker.
 - UNKNOWN scheduler state and generic 'repair --apply (push or rewrite)' hints
@@ -96,6 +102,29 @@ synchronous main before Tokio creates threads. Four pure path-builder tests
 pass (installed directories, inherited precedence/deduplication, absent/relative
 HOME candidates, non-UTF-8 and existing empty entries). No live deployment,
 service configuration, hook installation, repository index or retry-state change
-has occurred in this goal; full qualification and live proof remain pending.
+has occurred for the daemon or global Warden hook; full qualification and live
+proof remain pending.
+
+The browser repository's active pre-push script now delegates its unchanged
+secret phase's output to a shared revision-isolated gate runner. The wrapper
+was prepared separately, checked with `sh -n`, and atomically replaced only
+after 13 candidate tests passed. Its Phase 1 executable lines are byte-identical
+apart from whitespace/comments; this is independently asserted in the retained
+installation receipt. All 13 integration/regression tests also pass through the
+installed source hook, including failed pre-scripts, mutable-live-source edits,
+concurrent generated-output isolation, multiple revisions, export attributes,
+source-symlink escapes, worker controls and owned-group cancellation/cleanup.
+
+The runner exports each requested commit into its own disposable tree with
+independent index/generated outputs and snapshot-local workspace dependencies.
+Actual dependencies require the exact Bun packageManager pin and frozen lock;
+installation uses copyfile rather than writable shared hardlinks. npm script
+lifecycle semantics preserve WXT prebuild/pretypecheck preparation. Per-attempt
+source/toolchain/command/exit manifests and gate logs live under the service's
+writable state directory, not private /tmp. No real daemon attempt has yet used
+this runner, and real dependency provisioning/product qualification remain
+unproven. A SIGKILL before the signal handler can execute may retain an
+unfinished disposable tree; its receipt stays nonterminal, not passed.
+
 Thirty-two baseline gate logs were retained before any service restart, with
 byte-level manifests and an explicit warning that unfinished logs are not passes.
