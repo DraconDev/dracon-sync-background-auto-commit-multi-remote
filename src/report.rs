@@ -3972,6 +3972,9 @@ fn apply_report_scheduler_snapshot(
             | current_health::Current::Unknown
             | current_health::Current::Paused => StateCause::Dirty,
             current_health::Current::Working => StateCause::Working,
+            // Publication is a distinct phase: local work is done, the tip is
+            // not on the remotes yet. Never reported as a successful sync.
+            current_health::Current::Publishing => StateCause::Pushing,
             current_health::Current::Retrying => StateCause::Committing,
             current_health::Current::Stalled => StateCause::Stalled,
             current_health::Current::Blocked => match row.state_cause.clone() {
@@ -3986,6 +3989,7 @@ fn apply_report_scheduler_snapshot(
                 | current_health::Current::Excluded
                 | current_health::Current::Queued
                 | current_health::Current::Working
+                | current_health::Current::Publishing
                 | current_health::Current::Retrying
                 | current_health::Current::Paused
         ) {
@@ -3995,6 +3999,7 @@ fn apply_report_scheduler_snapshot(
             row.health.current,
             current_health::Current::Queued
                 | current_health::Current::Working
+                | current_health::Current::Publishing
                 | current_health::Current::Retrying
         );
         row.warn = matches!(

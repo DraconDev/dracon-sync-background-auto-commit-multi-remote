@@ -21,6 +21,7 @@ pub(crate) struct PublicationPlan {
 }
 
 /// Host-verified github origin check (pure, unit-tested by the sync tests).
+#[cfg(test)]
 pub(super) fn is_github_url(url: &str) -> bool {
     crate::git::canonical_repository_url(url)
         .map(|canonical| canonical.starts_with("github.com/"))
