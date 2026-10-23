@@ -5164,18 +5164,6 @@ async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<boo
     .await?)
 }
 
-/// Run a repository's configured `pre-commit` hook chain from the daemon.
-///
-/// A storage-sealed commit is created through libgit2, which executes no hooks
-/// at all. Silently sealing such a commit while a repository's `pre-commit`
-/// refuses it would be exactly the bypass this daemon must not perform, so the
-/// same hook chain is invoked explicitly before the seal.
-///
-/// `git hook run --ignore-missing` is the correct primitive: it exits 0 when the
-/// repository configures no `pre-commit` (the common case) and propagates the
-/// hook's own failure otherwise. The hook sees the real index through the normal
-/// environment, so a hook that inspects staged content behaves identically to
-/// one that runs during `git commit`.
 /// Whether the commit about to be made will be SEALED through libgit2.
 ///
 /// Deliberately total: if the guard binding cannot be read, this reports
@@ -5187,14 +5175,103 @@ fn storage_guarded(repo: &Path) -> bool {
     crate::storage::has_configured_storage_guard(repo).unwrap_or(false)
 }
 
-async fn run_configured_pre_commit(repo: &Path, timeout_secs: u64) -> Result<()> {
-    run_git_with_timeout(
+/// Run ONE configured hook, tolerating a repository that has none.
+///
+/// `git hook run --ignore-missing` exits 0 when the hook is absent (the common
+/// case) and propagates the hook's own status otherwise, so a refusal reaches
+/// the caller with the hook's stderr attached.
+async fn run_configured_hook(
+    repo: &Path,
+    hook: &str,
+    hook_args: &[&str],
+    timeout_secs: u64,
+) -> Result<()> {
+    let mut args: Vec<&str> = vec!["hook", "run", "--ignore-missing", hook];
+    if !hook_args.is_empty() {
+        // `git hook run <name> [-- <hook-args>]`; the separator is required.
+        args.push("--");
+        args.extend_from_slice(hook_args);
+    }
+    run_git_with_timeout(repo, &args, timeout_secs.max(1), hook).await
+}
+
+/// Invoke the COMPLETE commit-hook lifecycle around a libgit2 seal.
+///
+/// A storage-sealed commit is written by `repository.commit`, which executes no
+/// hooks at all. Invoking only `pre-commit` would still let a refusing
+/// `commit-msg` — or a repository whose policy lives in `post-commit` — be
+/// bypassed, so this reproduces what `git commit` does, in Git's order and with
+/// Git's arguments:
+///
+/// 1. `pre-commit` (no arguments)
+/// 2. `prepare-commit-msg <msgfile> message`
+/// 3. `commit-msg <msgfile>` — may EDIT the message; the edited file is read
+///    back so the seal commits what the hook approved, not the original text
+/// 4. (caller seals the commit)
+/// 5. `post-commit` (no arguments), after a successful commit only
+///
+/// Each hook is a bounded, owned process group: a hanging hook cannot outlive
+/// the pass, and its children are killed with it.
+struct PreparedSealedCommit {
+    /// The message to commit: post-`prepare-commit-msg` / `commit-msg`.
+    message: String,
+    /// The message file Git handed the hooks; kept for `post-commit`.
+    msgfile: std::path::PathBuf,
+}
+
+async fn run_sealed_commit_hooks(
+    repo: &Path,
+    message: &str,
+    timeout_secs: u64,
+) -> Result<PreparedSealedCommit> {
+    let git_dir = git_dir_path(repo)?;
+    let msgfile = git_dir.join("COMMIT_EDITMSG");
+    // Git provides an existing message file to these hooks; `commit-msg`
+    // expects to be able to rewrite it in place.
+    std::fs::write(&msgfile, format!("{message}\n"))
+        .with_context(|| format!("cannot seed {}", msgfile.display()))?;
+    let msgfile_arg = msgfile.to_string_lossy().to_string();
+
+    run_configured_hook(repo, "pre-commit", &[], timeout_secs).await?;
+    run_configured_hook(
         repo,
-        &["hook", "run", "--ignore-missing", "pre-commit"],
-        timeout_secs.max(1),
-        "pre-commit",
+        "prepare-commit-msg",
+        &[&msgfile_arg, "message"],
+        timeout_secs,
     )
-    .await
+    .await?;
+    run_configured_hook(repo, "commit-msg", &[&msgfile_arg], timeout_secs).await?;
+
+    let approved = std::fs::read_to_string(&msgfile)
+        .with_context(|| format!("cannot read {}", msgfile.display()))?;
+    let approved = approved.trim_end_matches('\n').to_owned();
+    Ok(PreparedSealedCommit {
+        // A hook that empties the file must not yield a message-less commit.
+        message: if approved.trim().is_empty() {
+            message.to_owned()
+        } else {
+            approved
+        },
+        msgfile,
+    })
+}
+
+/// Resolve the repository's git directory (`git rev-parse --absolute-git-dir`).
+fn git_dir_path(repo: &Path) -> Result<std::path::PathBuf> {
+    let output = crate::policy::std_git_command()
+        .args(["rev-parse", "--absolute-git-dir"])
+        .current_dir(repo)
+        .output()
+        .context("cannot resolve the repository git directory")?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "git rev-parse --absolute-git-dir failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(std::path::PathBuf::from(
+        String::from_utf8_lossy(&output.stdout).trim(),
+    ))
 }
 
 /// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
