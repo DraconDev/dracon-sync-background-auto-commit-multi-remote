@@ -1,5 +1,9 @@
 # Objection 1: auto commits run the configured hook chain
 
+> Historical repair rounds. The current artifact, final tests and live evidence
+> are mapped in [final-lifecycle-qualification.md](final-lifecycle-qualification.md).
+> Hashes and sample counts below describe earlier deployments, not the latest one.
+
 ## What was wrong
 
 `commit_staged_owned` invoked `git commit --no-verify`, and the regression added
