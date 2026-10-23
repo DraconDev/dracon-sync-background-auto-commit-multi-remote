@@ -58,7 +58,11 @@ remain mandatory. Direct operator Git remains outside the cooperative protocol.
   explicitly, in Git's order and with Git's arguments: `pre-commit`,
   `prepare-commit-msg <msgfile> message`, `commit-msg <msgfile>`, the seal, then
   `post-commit` after a real commit — reading COMMIT_EDITMSG back so a message
-  `commit-msg` rewrote is what gets committed. The ordinary path does not also
+  `commit-msg` rewrote is what gets committed. Empty approved messages abort.
+  The seal creates an immutable commit object without advancing HEAD; bounded
+  native `git update-ref` honors reference-transaction hooks and requires the
+  expected previous tip, while the storage lock remains held. A vanished binding
+  defers rather than re-running hooks through the ordinary path. The ordinary path does not also
   drive it, so no hook runs twice. Hooks are additional policy on top of the
   in-process gates (bucket forward-only guard, immutable-storage transaction,
   exclusion and size policy), which run first and cannot be relaxed by a hook. A
