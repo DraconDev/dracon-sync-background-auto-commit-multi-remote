@@ -68,11 +68,28 @@ def identity():
     return {'pid': pid, 'loaded_sha256': digest(f'/proc/{pid}/exe')}
 
 
+def required_remotes(initial):
+    # repos --json lists mirror targets, not the primary origin. In this
+    # initial fleet origin is an operator GitHub/GitLab destination too.
+    return list(dict.fromkeys(['origin', *initial['push_to_remotes']]))
+
+
+def advertised_tip(code, output, branch):
+    if code or not output.strip():
+        return None
+    fields = output.split()
+    if (len(fields) != 2 or fields[1] != f'refs/heads/{branch}'
+            or len(fields[0]) not in (40, 64)
+            or any(c not in '0123456789abcdef' for c in fields[0])):
+        raise RuntimeError('malformed advertised branch ref')
+    return fields[0]
+
+
 def observe(initial):
     repo = initial['repo']
     row = {'repo': repo, 'started_at': time.time(),
            'initial_head': initial['baseline_head'],
-           'initial_intended_remotes': initial['push_to_remotes'],
+           'initial_intended_remotes': required_remotes(initial),
            'initial_excluded_remotes': initial['excluded_remotes'], 'remotes': {}}
     try:
         head = text(repo, 'rev-parse', 'HEAD')
@@ -81,8 +98,7 @@ def observe(initial):
                    head_metadata=text(repo, 'show', '-s', '--format=%H%n%P%n%ct%n%an%n%ae', head).splitlines())
         for remote in text(repo, 'remote').splitlines():
             code, output, error = git(repo, 'ls-remote', remote, f'refs/heads/{branch}')
-            fields = output.split()
-            tip = fields[0] if code == 0 and fields else None
+            tip = advertised_tip(code, output, branch)
             kind = None
             if tip:
                 cat_code, cat_output, _ = git(repo, 'cat-file', '-t', tip)
@@ -90,7 +106,7 @@ def observe(initial):
                     kind = cat_output.strip()
             row['remotes'][remote] = {
                 'url_without_credentials': safe_url(text(repo, 'remote', 'get-url', remote)),
-                'intended_at_initial_baseline': remote in initial['push_to_remotes'],
+                'intended_at_initial_baseline': remote in required_remotes(initial),
                 'query_succeeded': code == 0, 'query_exit': code,
                 'query_error_sha256': hashlib.sha256(error).hexdigest() if code else None,
                 'branch_ref': tip, 'object_type': kind,
