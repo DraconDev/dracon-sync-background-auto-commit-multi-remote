@@ -21,9 +21,26 @@ $ (scan for `no-verify` outside #[cfg(test)] modules)
 src/sync.rs:5108  /// `--no-verify`. The in-process gates ...   <- prose only
 ```
 
-Remaining `--no-verify` hits are fixture setup in `#[cfg(test)]` modules
-(`test_helpers`, `report` fixtures, per-test `git commit` seeding) and one
-historical prose mention. No production commit suppresses a hook.
+Every remaining `--no-verify` hit is inside a `#[cfg(test)]` module, plus prose.
+`test_helpers` (which carried the one compiled-in `--no-verify` primitive) is
+now itself `#[cfg(test)]`-gated in `main.rs`, and the RELEASE BINARY contains
+zero `--no-verify` literals (verified with `grep -c` on
+`target/release/dracon-sync`), so no production commit path suppresses a hook.
+
+The first version of this document claimed the scan covered "every
+non-`cfg(test)` line" when `test_helpers.rs` was in fact compiled — that claim
+was wrong and is corrected here.
+
+### Storage-sealed commits invoke the same chain
+
+A storage-guarded commit is sealed through libgit2 (`storage/mod.rs`
+`repository.commit`), which executes NO hooks. That was a second bypass on a
+production auto-commit path, found by the fresh-context reviewer after the CLI
+fix. Both dispatch sites (steady state and empty-repo bootstrap) now call
+`run_configured_pre_commit` — `git hook run --ignore-missing pre-commit` —
+before sealing. `--ignore-missing` is deliberate: a repository with no
+`pre-commit` must not have every auto commit fail. A refusal aborts the pass
+with the index and worktree intact.
 
 Failure semantics are deliberate: a refusing hook makes `run_git_with_timeout`
 return `Err` carrying the hook's own stderr. The sync caller maps that to
@@ -38,6 +55,11 @@ the commit, so hooks are additional policy, never a replacement for them.
 
 `src/sync/owned_commit_tests.rs`:
 
+* `a_refusing_hook_also_blocks_a_storage_sealed_commit` — the seal path
+  consults the chain (refusal propagates with its message) and an accepting hook
+  is a no-op that does not itself commit.
+* `a_repository_without_commit_hooks_still_commits` — no configured hook is not
+  an error, so hookless repositories keep auto-committing.
 * `owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits` —
   an accepting `pre-commit` must be seen to RUN (marker file created), HEAD must
   advance, the staged snapshot must be committed, and the operator's unstaged
@@ -162,7 +184,9 @@ holding their own operation+publication leases, `ok: true`,
 ## The hook assertions are not vacuous
 
 The same archive harness was pointed at the PRE-FIX binary still on disk
-(`d1b36d0f596195737f98…`, the artifact installed before the hook fix). It FAILS,
+(`d1b36d0f596195737f98…` — an intermediate pre-fix build, NOT the immediately
+previous install, which the deployment receipt records as `35ee77d6…`; both are
+version 0.113.95). It FAILS,
 with the assertion that matters:
 
 ```
