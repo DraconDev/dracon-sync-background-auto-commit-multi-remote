@@ -238,6 +238,9 @@ ENVIRONMENTAL resource failure, not a product defect.
 
 ### 2. Shutdown cleanup — real bug found and fixed
 
+Full write-up: `shutdown-verification.md`. Summary below.
+
+
 The auditor was right. The shutdown drain counted
 `detached_syncs.len() + sync_workers.len()` as "outstanding", but a detached
 join entry IS a live `sync_workers` entry, so the same task was counted twice.
@@ -367,7 +370,13 @@ or foreign-lock cleanup. Any helper must inherit configured identity unchanged.
   with every P1 addressed or explicitly justified; the original pre-push gates
   for ALL 20 standalone workspaces; and the final qualified artifact installed
   with its loaded digest verified.
-* Verified after the review fixes: `cargo test --workspace --locked` 2571 passed
+* Post-audit verification: `cargo test --workspace --locked` **2573 passed**
+  (the two new shutdown regressions) / 0 failed; Clippy `-D warnings` clean;
+  `cargo build --release --locked` ok; `cargo deny check` ok; isolated receipt
+  green with `shutdown_unclean_lines: []` and zero orphans; installed artifact
+  `35ee77d6…` verified from `/proc/3685181/exe`; a disposable second daemon on
+  the installed binary exited 1s after SIGTERM with no unjoined-work line.
+* Earlier verification round: `cargo test --workspace --locked` 2571 passed
   / 0 failed / 0 `FAILED` lines; `cargo clippy --workspace --locked
   --all-targets -- -D warnings` clean; `cargo build --release --locked` ok;
   `cargo deny check` advisories/bans/licenses/sources ok; the isolated receipt
