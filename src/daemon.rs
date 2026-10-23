@@ -1789,6 +1789,79 @@ pub(crate) fn stuck_decision(
 // `SyncPolicy::push_max_retries`). The duplicate here was dead code.
 #[cfg(test)]
 mod tests {
+    /// Shutdown must finish promptly once the owned workers have stopped.
+    /// Regression: counting the detached registry AND the worker map as
+    /// "outstanding" double-counted the same tasks, so a stopped fleet always
+    /// reported a task that "did not join" and burned the whole budget.
+    #[tokio::test]
+    async fn shutdown_drain_settles_when_owned_workers_have_stopped() {
+        let mut workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
+        let mut joins: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
+        let mut in_flight: HashSet<PathBuf> = HashSet::new();
+        let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
+        for name in ["a", "b"] {
+            let repo = PathBuf::from(name);
+            in_flight.insert(repo.clone());
+            let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+            drop(tx); // worker already finished
+            let handle = tokio::spawn(async move {
+                let _ = rx.await;
+                (HashMap::new(), Ok(SyncOutcome::NothingToDo))
+            });
+            workers.insert(repo.clone(), handle.abort_handle());
+            joins.push(tagged_sync_join(repo, handle));
+        }
+        let started = Instant::now();
+        let unjoined = drain_owned_workers(
+            &mut workers,
+            &mut joins,
+            &mut in_flight,
+            &mut detached_since,
+            Instant::now() + Duration::from_secs(10),
+        )
+        .await;
+        assert_eq!(unjoined, 0, "a stopped fleet must report a clean drain");
+        assert!(workers.is_empty(), "joined workers must be released");
+        assert!(
+            in_flight.is_empty(),
+            "ownership must be released after join"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "clean shutdown must not wait out the whole budget"
+        );
+    }
+
+    /// A worker whose join future is gone can never report again; the drain
+    /// must stop immediately instead of sleeping out the deadline.
+    #[tokio::test]
+    async fn shutdown_drain_does_not_burn_the_budget_without_join_results() {
+        let mut workers: HashMap<PathBuf, tokio::task::AbortHandle> = HashMap::new();
+        let mut joins: FuturesUnordered<SyncTrioJoin> = FuturesUnordered::new();
+        let mut in_flight: HashSet<PathBuf> = HashSet::new();
+        let mut detached_since: HashMap<PathBuf, Instant> = HashMap::new();
+        let handle = tokio::spawn(async { std::future::pending::<()>().await });
+        workers.insert(PathBuf::from("wedged"), handle.abort_handle());
+        let started = Instant::now();
+        let unjoined = drain_owned_workers(
+            &mut workers,
+            &mut joins,
+            &mut in_flight,
+            &mut detached_since,
+            Instant::now() + Duration::from_secs(30),
+        )
+        .await;
+        assert_eq!(
+            unjoined, 1,
+            "an unjoinable worker is reported, not swallowed"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "no pending join result means there is nothing to wait for"
+        );
+        handle.abort();
+    }
+
     use super::*;
     use crate::policy::{AuthType, RemoteConfig};
 
