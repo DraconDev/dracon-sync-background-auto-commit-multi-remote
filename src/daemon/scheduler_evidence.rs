@@ -461,13 +461,28 @@ mod tests {
             ),
             "cleared publication must not keep reporting a running push"
         );
-        // Abandoned stamps expire instead of describing later work forever.
+        // A REAL long upload must keep reporting PUSHING: pre-push gates take
+        // minutes, and dropping the stamp would make a blocked multi-minute
+        // push render as QUEUED/STALLED instead of publishing.
         worker_publishing(&repo, true);
-        let later = now + std::time::Duration::from_secs(600);
-        let row = stamp_phase(later);
+        let during_long_gate = now + std::time::Duration::from_secs(600);
+        let row = stamp_phase(during_long_gate).expect("long upload stamp must persist");
+        assert_eq!(row.publication_phase, Some(Phase::Pushing));
+        assert_eq!(row.publication_secs, Some(600));
+        // Beyond the publication window the stamp IS abandoned (the upload has
+        // its own deadline; this is the backstop for a leaked stamp).
+        let abandoned = now + std::time::Duration::from_secs(4000);
         assert!(
-            row.is_none_or(|row| row.publication_phase.is_none()),
-            "an unobserved stamp must not claim current execution"
+            stamp_phase(abandoned).is_none_or(|row| row.publication_phase.is_none()),
+            "a leaked publication stamp must not claim current execution forever"
+        );
+        // Local-work stamps still expire quickly: a stuck commit is real news.
+        worker_publishing(&repo, false);
+        worker_committing(&repo);
+        let stale_local = now + std::time::Duration::from_secs(300);
+        assert!(
+            stamp_phase(stale_local).is_none_or(|row| row.phase.is_none()),
+            "a stale local commit stamp must not claim current execution"
         );
         worker_phases().lock().unwrap().remove(&repo);
     }
