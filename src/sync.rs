@@ -289,7 +289,10 @@ impl SyncOutcome {
 
 struct SyncContext<'a> {
     operation_lease: Option<std::fs::File>,
-    publication_lease: Option<std::fs::File>,
+    /// Holds publication ownership for the worker's whole lifetime. It has no
+    /// reader by design: the guard exists so no other process or alias can
+    /// start a second publisher while this worker's upload/hooks are running.
+    _publication_lease: Option<std::fs::File>,
     repo: &'a Path,
     policy: &'a SyncPolicy,
     excluded_dir_names: &'a BTreeSet<String>,
@@ -2364,12 +2367,17 @@ async fn run_publication_actor<'a>(
     // publisher per common directory across processes and worktrees.
     drop(ctx.operation_lease.take());
 
-    let mut publication = Box::pin(upload_publication(
+    // `push_phase` yields the bounded local-work permit for exactly the life
+    // of the upload: hooks/network no longer consume commit capacity, and the
+    // refresh passes below re-admit through `local_phase`. The scheduler's
+    // per-repository reservation is unchanged — this worker still owns the
+    // repository's publication, it just stops holding local mutation.
+    let mut publication = Box::pin(crate::git::push_resources::push_phase(upload_publication(
         ctx.repo,
         ctx.policy,
         &mut plan,
         ctx.commit_only,
-    ));
+    )));
     let mut refresh: Option<RefreshFuture<'_>> = None;
     let mut refreshes = 0usize;
     let ok_report = loop {
@@ -2484,7 +2492,7 @@ pub(crate) async fn upload_publication(
     plan: &mut publication::PublicationPlan,
     commit_only: bool,
 ) -> Result<PushReport> {
-    if commit_only || !policy.auto_push {
+    if commit_only {
         return Ok(PushReport::AllPaused);
     }
     if commit_only {
@@ -5174,7 +5182,7 @@ async fn sync_repo_local_with_ownership(
         }
         let ctx = SyncContext {
             operation_lease: None,
-            publication_lease: None,
+            _publication_lease: None,
             repo,
             policy,
             excluded_dir_names,
@@ -5216,7 +5224,7 @@ async fn sync_repo_local_with_ownership(
     if let Some(blocked) = check_conflict_state(repo) {
         let ctx = SyncContext {
             operation_lease: None,
-            publication_lease: None,
+            _publication_lease: None,
             repo,
             policy,
             excluded_dir_names,
@@ -5403,7 +5411,7 @@ async fn sync_repo_local_with_ownership(
 
     let mut ctx = SyncContext {
         operation_lease: _operation_lease,
-        publication_lease,
+        _publication_lease: publication_lease,
         repo,
         policy,
         excluded_dir_names,
@@ -6186,7 +6194,7 @@ mod tests {
         let origin_url = "git@github.com:DraconDev/ultratap.git";
         let origin = Some(origin_url);
         let distinct_github = Some("https://github.com/DraconDev/doomtap.git");
-        assert!(is_github_repository_url(origin_url));
+        assert!(publication::is_github_url(origin_url));
         assert!(!github_mirror_matches_origin(origin, distinct_github));
     }
 
@@ -12561,7 +12569,7 @@ trusted_authors = ["test"]
         // post-pull retry spends slot 2. Pre-SC-13 the post-loop sweep
         // provided the retry outside the budget; with retries=1 the
         // pull now happens but the retry defers to the next cycle.
-        let result = push_with_retries(&repo, 30, 2, "test").await;
+        let result = crate::git::push_with_retries(&repo, 30, 2, "test").await;
         assert!(
             result.is_ok(),
             "push_with_retries should auto-pull + succeed: {:?}",

@@ -20,6 +20,13 @@ pub(crate) struct PublicationPlan {
     pub(crate) remote_failures: HashMap<String, crate::daemon::RemoteFailInfo>,
 }
 
+/// Host-verified github origin check (pure, unit-tested by the sync tests).
+pub(super) fn is_github_url(url: &str) -> bool {
+    crate::git::canonical_repository_url(url)
+        .map(|canonical| canonical.starts_with("github.com/"))
+        .unwrap_or(false)
+}
+
 /// Plan a round: pin the tip, measure the pushable pack, exclude destinations
 /// that must not receive it, and prepare mirror configuration. Preparation
 /// touches `.git/config`, so callers must hold local mutation ownership.

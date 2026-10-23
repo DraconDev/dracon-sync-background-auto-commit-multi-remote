@@ -107,7 +107,10 @@ exit 0
                     push_op_timeout_secs: 10,
                     ..SyncPolicy::default()
                 };
-                push_background(&repo, &policy, true, None).await
+                let mut plan = super::publication::plan_publication(&repo, &policy, true, None, 1)
+                    .await
+                    .unwrap();
+                upload_publication(&repo, &policy, &mut plan, false).await
             })
             .await
         })))
