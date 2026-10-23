@@ -206,6 +206,51 @@ that publication ("publication owned by another worker ... this pass did not
 push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
 gitlab SIGPIPE recorded as a per-remote failure rather than success.
 
+## Auditor round 2: both objections accepted and fixed
+
+### 1. `--no-verify` on auto commits — bypass removed
+
+The auditor was right, and git history shows the bypass was introduced INSIDE
+this goal: `3287891` created `commit_staged_owned` with a plain `git commit`, and
+`abbb85f` (04:42) added `--no-verify` AND rewrote the regression to assert that
+the hook must not run. `commit_staged_owned` now runs plain `git commit`; no
+production commit path suppresses a hook (verified by scanning every non-test
+line in `src/`; remaining hits are `#[cfg(test)]` fixture setup and one
+historical prose mention).
+
+New regressions, proven non-vacuous by re-adding the bypass (both then FAIL):
+`owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits` (the
+hook must RUN, HEAD advances, staged snapshot committed, unstaged edit intact)
+and `a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work` (hook
+message reaches the caller, HEAD does not advance, change stays staged, worktree
+edit preserved).
+
+Enabling hooks immediately caught a fixture that had depended on the bypass:
+`bucket_assets::tests::daemon_commits_verified_reference_…` failed with the
+ambient warden hook's refusal. Fixed by isolating the FIXTURE (local empty
+`core.hooksPath`), never by weakening the daemon.
+
+### 2. Ref advancement under the FINAL binary
+
+New `scripts/live-ref-observe.py` (archived with its output under `refs/`)
+records local HEAD, each remote's advertised ref (`ls-remote`) and that ref's
+object type (`cat-file -t`), plus the LOADED `/proc/<MainPID>/exe` digest, so
+each sample is tied to a revision. Every command is a read.
+
+12 samples, all on `9eb4965d54dd…` (the installed final binary): **33 distinct
+remote-ref advancements, all real commit objects**, across `.dracon`,
+`dracon-platform` and `browser-extensions-shared`, while `dracon-utilities` stayed
+converged. Mirrors visibly lag then catch up per remote. The isolated receipt
+also grew a third repository with a REFUSING `pre-commit`: hook runs, refusal is
+logged, HEAD stays at baseline, nothing is published, work preserved.
+
+Recorded honestly: `browser-extensions-shared` still carries a genuine backlog
+because its OWN `pre-push` policy refuses the push; the daemon classifies that
+as a policy refusal, repairing it is out of scope, and it is reported as gated
+rather than converged.
+
+Full write-up: `hook-and-ref-evidence.md`.
+
 ## Auditor round 1: both objections accepted and fixed
 
 ### 1. Volume TEST refusal — root cause established (was "no root cause")

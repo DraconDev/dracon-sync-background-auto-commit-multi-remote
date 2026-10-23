@@ -80,38 +80,91 @@ The harness also hashes the LOADED executable of the running daemon
 (`/proc/<MainPID>/exe`), so every sample is tied to a specific revision rather
 than to installation metadata.
 
-## Result
+## Result — FINAL installed revision
 
-12 samples over ~6 minutes, all recording
-`/proc/3685181/exe = 35ee77d64ee76c5df9ad861df25ca4ca937dfd9426d45174d3930bfb21050ffa`
-— the final qualified binary. **30 distinct remote-ref advancements**, every one
-a real commit object:
+12 samples over ~6 minutes, every one recording the loaded executable of the
+running daemon:
 
 ```
-.dracon               gitlab/origin/github  fb1f3171bd -> 041286daac -> a02b80a044
-                                            -> 62259530d0 -> 90ccb33d49 -> c6ead7f72a
-                                            -> a09753ecb6 -> 458660ba7f -> 3c7f972a0a
-                                            -> 8b05d36321 -> 242132324b     (all type=commit)
-browser-extensions-shared github/origin     8ec71cc086 -> 81f3c5a123 -> e85ab60414
-browser-extensions-shared gitlab            d2a43e7fa3 -> 81f3c5a123
-dracon-platform          origin/github/gitlab  ca80c4c478 -> a27b498be1
+/proc/{1375344}/exe = 9eb4965d54dd0b9b61ada489d375c12766bb09a21fcc3c4c44ba197d6b66b5ed
+release artifact     = 9eb4965d54dd0b9b61ada489d375c12766bb09a21fcc3c4c44ba197d6b66b5ed
 ```
 
-Verified properties, computed from the archived JSON rather than asserted:
+That is the revision installed at 09:15:15Z after the hook fix (the receipt also
+records the replaced `35ee77d6…` binary and the backup path). **33 distinct
+remote-ref advancements**, every one resolving to `object_type == "commit"`:
 
-* every recorded remote tip resolves to `object_type == "commit"` (0 exceptions);
-* the sampled remote refs for `dracon-platform`, `.dracon` and
-  `dracon-utilities` equal local HEAD, i.e. the daemon actually converged them;
-* `browser-extensions-shared` shows the honest lag this objective cares about:
-  its MIRROR (`gitlab`) trailed at `d2a43e7fa3` while `origin` had already
-  reached `81f3c5a123`, then caught up — a per-remote advance, not a false
-  "everything synced".
+```
+.dracon                   origin/gitlab/github  f975ed8731 -> 9681f44942
+                          -> f416f8dbe6 -> 596c711652/87caf91881 -> 15f752fdc9
+                          -> 2f5f4a1a7f/7b7fa2be4f -> aaf4981a78 -> 009df31d7c
+                          -> a4311b51fb                                  (commit)
+browser-extensions-shared origin/github         e2830b3a4b -> 390a045d23 -> a3d99fb282
+browser-extensions-shared gitlab                2b887bf554 -> 390a045d23 -> a3d99fb282
+dracon-platform           origin/github/gitlab  31c481b9f7 -> 5f3aab1e41
+dracon-platform           origin                5f3aab1e41 -> 4d4c86f075
+```
 
-Mirror-order effects are visible too: `.dracon`'s `github` leg updated one
-sample after `origin`/`gitlab`, which is what independent per-remote publication
-looks like from outside.
+Computed from the archived JSON (`refs/live-ref-samples-final.json`), not
+asserted:
 
-Basis for the "real autonomous progress" clause: these commits were produced by
-the daemon from live repository edits (`.dracon` advanced 11 times in 6 minutes
-of normal fleet activity). No commit, push or repair was performed by hand for
-this record.
+* all 12 samples report the same loaded digest `9eb4965d54dd` — the final
+  binary, not an earlier one;
+* every recorded remote tip is a real commit object (0 exceptions);
+* `dracon-utilities` stayed converged throughout while the active repositories
+  advanced, i.e. one repository's publication never blocked another's;
+* `.dracon`, `dracon-platform` and `browser-extensions-shared` each advanced
+  under the SAME revision that the live daemon was running, several
+  independently within the same sampling window;
+* mirrors lag and then catch up (visible per-remote `!` marks that later become
+  `=`), which is per-remote publication rather than a single global slot.
+
+Honest limits, stated rather than smoothed over:
+
+* `browser-extensions-shared` still has a real, pre-existing backlog: its
+  `gitlab` mirror repeatedly trails `origin`, and its log shows the genuine
+  cause — the repository's own `pre-push` policy refusing the push
+  ("asset-guard / size budget / secret scan / history guard"), which the daemon
+  correctly classifies as a POLICY refusal rather than a network failure. That
+  gate is product policy, and repairing it is out of scope here (no hook bypass
+  is permitted), so this repository is reported as a gated backlog rather than
+  as converged.
+* These samples show ref advancement and object types. They do not claim every
+  fleet repository is converged.
+
+Basis for the "real autonomous progress" clause: the commits above were produced
+by the daemon from live repository edits. No commit, push, repair, hook bypass
+or state change was performed by hand for this record; every command in the
+harness is a read (`rev-parse`, `remote get-url`, `ls-remote`, `cat-file`,
+`sha256sum`).
+
+## The receipt now proves hook behaviour on the installed binary
+
+`isolated/receipt.json` (harness archived beside it) grew a third repository
+whose `pre-commit` REFUSES, and asserts:
+
+| assertion | result |
+|---|---|
+| accepting hook RUNS on B's daemon commit | `b_precommit_hook_ran: true` |
+| refusing hook RUNS on C | `c_precommit_hook_ran: true` |
+| refusal reaches the log | `c_commit_hook_refusal_reported: true` |
+| HEAD did not advance | `c_head` == probe baseline `332a480d0b` |
+| nothing was published | `c_remote_refs: ""` |
+| the operator's work survived | `c_work_preserved: true` |
+
+The daemon's own log contains the hook's message twice (`warden: synthetic
+refusal`), so the refusal is reported rather than swallowed. A/B assertions are
+unchanged and still green: A blocked, B published, A took a second real commit,
+A converged on its newest tip (`a_remote_tip == a_newest_tip`), both repositories
+holding their own operation+publication leases, `ok: true`,
+`shutdown_unclean_lines: []`, no orphans.
+
+## Side effect found and fixed by the real hooks
+
+Turning hooks on immediately exposed a fixture that had been relying on the
+bypass: `bucket_assets::tests::daemon_commits_verified_reference_not_raw_bytes_and_recovers_from_failure`
+failed with the ambient warden hook's own message
+("Warden filter missing from .gitattributes"). That is the hook working. The fix
+is fixture isolation, not daemon behaviour: the fixture sets a LOCAL
+`core.hooksPath` to an empty directory, the same way any out-of-warden-scope
+repository does — the daemon still runs whatever hooks the repo configures.
