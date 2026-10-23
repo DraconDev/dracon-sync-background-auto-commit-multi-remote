@@ -380,10 +380,34 @@ async fn the_ordinary_commit_path_runs_each_hook_exactly_once() {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
-    // The fixture repository has no storage guard, so this is the ordinary path.
-    commit_staged_owned(&fixture.repo, "ordinary commit", 10)
-        .await
-        .unwrap();
+    // Exercise the real dispatcher, not just its native-commit helper: a
+    // duplicated prelude above the helper must be caught by these counts too.
+    assert!(!crate::storage::has_configured_storage_guard(&fixture.repo).unwrap());
+    let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
+    let policy = SyncPolicy {
+        auto_commit: true,
+        auto_push: false,
+        auto_pull: false,
+        auto_bump_versions: false,
+        standard_files_auto: false,
+        build_artifact_cleanup: false,
+        sync_metadata: false,
+        sync_visibility: false,
+        remotes: vec![],
+        ..toml::from_str::<SyncPolicy>("").unwrap()
+    };
+    sync_repo(
+        &fixture.repo,
+        &policy,
+        &BTreeSet::new(),
+        0,
+        None,
+        false,
+        None,
+    )
+    .await
+    .unwrap();
+    assert_ne!(git(&fixture.repo, &["rev-parse", "HEAD"]).await, before);
     let recorded = std::fs::read_to_string(&log).unwrap_or_default();
     let names: Vec<&str> = recorded.lines().filter(|l| !l.is_empty()).collect();
     for hook in [
