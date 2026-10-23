@@ -437,9 +437,22 @@ def main():
             or "owned sync task" in line
         ]
         receipt["shutdown_unclean_lines"] = unclean
-        leftover = subprocess.run(
-            ["pgrep", "-f", f"{root}/"], capture_output=True, text=True
-        ).stdout.split()
+        # Relative hook commands (e.g. sleep) need not name the fixture in
+        # argv. Inspect cwd as well, without signalling any observed process.
+        leftover = []
+        root_bytes = os.fsencode(str(root) + os.sep)
+        for process in Path("/proc").iterdir():
+            if not process.name.isdigit():
+                continue
+            try:
+                if process.stat().st_uid != os.getuid():
+                    continue
+                cwd = (process / "cwd").resolve(strict=True)
+                command = (process / "cmdline").read_bytes()
+                if cwd == root or root in cwd.parents or root_bytes in command:
+                    leftover.append(process.name)
+            except (OSError, RuntimeError):
+                continue
         receipt["orphan_pids_after_shutdown"] = leftover
         if unclean or leftover:
             receipt["ok"] = False
