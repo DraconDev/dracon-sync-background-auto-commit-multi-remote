@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/api-debugger
+
+
+ Test Files  20 passed (20)
+      Tests  969 passed (969)
+   Start at  06:39:04
+   Duration  2.11s (transform 9.01s, setup 650ms, import 9.85s, tests 539ms, environment 8.83s)
+

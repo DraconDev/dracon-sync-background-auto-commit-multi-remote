@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/amazon-price-watch
+
+
+ Test Files  16 passed (16)
+      Tests  107 passed (107)
+   Start at  06:38:55
+   Duration  3.88s (transform 3.60s, setup 0ms, import 4.94s, tests 344ms, environment 34.87s)
+

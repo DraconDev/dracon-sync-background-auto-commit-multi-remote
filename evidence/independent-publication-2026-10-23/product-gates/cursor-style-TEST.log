@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/cursor-style
+
+
+ Test Files  3 passed (3)
+      Tests  54 passed (54)
+   Start at  06:39:32
+   Duration  766ms (transform 378ms, setup 0ms, import 474ms, tests 29ms, environment 0ms)
+

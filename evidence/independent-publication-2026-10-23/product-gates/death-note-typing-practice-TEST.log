@@ -1,0 +1,31 @@
+
+ RUN  v2.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/death-note-typing-practice
+
+ ✓ lib/game/engine.test.ts (33 tests) 8ms
+ ✓ lib/game/integration.test.ts (6 tests) 4ms
+ ✓ lib/game/char-stats.test.ts (22 tests) 10ms
+ ✓ lib/game/timer-word.test.ts (21 tests) 10ms
+ ✓ lib/game/asteroids.test.ts (46 tests) 9ms
+ ✓ lib/utils.test.ts (55 tests) 9ms
+ ✓ lib/game/targets.test.ts (27 tests) 20ms
+ ✓ lib/game/achievements.test.ts (13 tests) 13ms
+ ✓ lib/game/themes.test.ts (41 tests) 23ms
+ ✓ lib/game/stats.test.ts (7 tests) 6ms
+ ✓ lib/settings.test.ts (3 tests) 2ms
+ ✓ lib/background.test.ts (3 tests) 73ms
+ ✓ lib/migration.test.ts (7 tests) 4ms
+ ✓ lib/sound.test.ts (20 tests) 19ms
+ ✓ lib/game/dictionary.test.ts (4 tests) 6ms
+ ✓ lib/game/word-lists.test.ts (55 tests) 29ms
+ ✓ lib/game/bugfixes.test.ts (7 tests) 12ms
+ ✓ lib/game/pause-overlay.test.ts (8 tests) 35ms
+ ✓ lib/game/practice-component.test.ts (11 tests) 79ms
+ ✓ lib/game/game-component.test.ts (10 tests) 141ms
+ ✓ lib/game/menu-component.test.ts (6 tests) 74ms
+ ✓ test/sharedSvelteLibrary.test.ts (1 test) 20ms
+
+ Test Files  22 passed (22)
+      Tests  406 passed (406)
+   Start at  06:39:51
+   Duration  7.58s (transform 19.26s, setup 2.27s, collect 45.13s, tests 606ms, environment 6.89s, prepare 8.37s)
+

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/custom-history
+
+
+ Test Files  4 passed (4)
+      Tests  95 passed (95)
+   Start at  06:39:36
+   Duration  2.07s (transform 3.15s, setup 2.49s, import 733ms, tests 22ms, environment 3.47s)
+

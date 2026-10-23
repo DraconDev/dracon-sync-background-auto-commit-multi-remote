@@ -1,0 +1,14 @@
+
+ RUN  v3.2.6 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/cinematic-pages-cooler-presentations
+
+ ✓ tests/domConstruction.test.ts (5 tests) 6ms
+ ✓ tests/contentInvariants.test.ts (13 tests) 9ms
+ ✓ utils/storage.test.ts (2 tests) 4ms
+ ✓ tests/reviewAsk.test.ts (7 tests) 6ms
+ ✓ types/types.test.ts (12 tests) 9ms
+
+ Test Files  5 passed (5)
+      Tests  39 passed (39)
+   Start at  06:39:24
+   Duration  2.13s (transform 283ms, setup 0ms, collect 4.74s, tests 35ms, environment 866ms, prepare 3.22s)
+

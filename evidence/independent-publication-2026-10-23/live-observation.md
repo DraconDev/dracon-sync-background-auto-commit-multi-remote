@@ -93,6 +93,10 @@ ORIGINAL package scripts with the hook's PATH resolution
 | vidpro-extension | exit 0 | 1308 passed |
 | volume-and-video-pro | no `lint` script (hook skips it); typecheck exit 0, build exit 0 | 202 passed; 178 passed on the frozen initial source |
 
+All 20 standalone workspaces were also run: every one exits 0 on its `test`
+script and on `typecheck`/`compile` (three have no `lint` script, which the hook
+skips). Passed-test totals range from 35 to 1308 per workspace.
+
 Retained logs are in `product-gates/`. No assertion was relaxed, no test was
 skipped or deleted, and no gate was bypassed: the earlier findings were
 historical attempt snapshots, and the specific reported defects no longer
