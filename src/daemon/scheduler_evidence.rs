@@ -34,6 +34,13 @@ struct WorkerStamp {
     touched: Option<Instant>,
 }
 
+/// Local-work stamps expire quickly: a `Committing` stamp nobody refreshed is
+/// stale evidence. Publication stamps stay valid much longer because a real
+/// pre-push gate legitimately runs for minutes; the upload's own deadline is
+/// the bound, not this window.
+const WORKER_STAMP_FRESH_SECS: u64 = 120;
+const PUBLICATION_STAMP_FRESH_SECS: u64 = 3600;
+
 static WORKER_PHASES: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<PathBuf, WorkerStamp>>,
 > = std::sync::OnceLock::new();
@@ -181,12 +188,21 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
         })
         .unwrap_or_default();
     for (path, stamp) in stamps {
-        // A stamp older than the freshness window describes a worker we can no
-        // longer observe; drop it rather than let it speak for new work.
-        if stamp
-            .touched
-            .is_some_and(|at| now.saturating_duration_since(at).as_secs() <= 120)
-        {
+        // An executing publication is NOT abandoned merely because it is slow:
+        // real pre-push gates routinely take minutes, and the round holds its
+        // publication lease for exactly that long. Its own operation deadline
+        // (and the worker's execution budget) bound it, so the stamp stays
+        // valid while the upload is genuinely running. Local-work stamps keep
+        // the short window: a stuck `Commit` is a real problem worth expiring.
+        let live = match stamp.publishing_since {
+            Some(_) => stamp.touched.is_some_and(|at| {
+                now.saturating_duration_since(at).as_secs() <= PUBLICATION_STAMP_FRESH_SECS
+            }),
+            None => stamp.touched.is_some_and(|at| {
+                now.saturating_duration_since(at).as_secs() <= WORKER_STAMP_FRESH_SECS
+            }),
+        };
+        if live {
             let row = repos.entry(path).or_default();
             // Real command execution outranks the reservation-derived
             // `Working`, and publication is reported independently of local
