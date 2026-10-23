@@ -5259,7 +5259,15 @@ async fn run_configured_hook(
         args.push("--");
         args.extend_from_slice(hook_args);
     }
-    run_git_with_timeout(repo, &args, timeout_secs.max(1), hook).await
+    // Git sets GIT_EDITOR=: for commit hooks when no editor is launched (-m).
+    crate::git::run_git_with_timeout_env(
+        repo,
+        &args,
+        timeout_secs.max(1),
+        hook,
+        &[("GIT_EDITOR", ":")],
+    )
+    .await
 }
 
 /// Invoke the COMPLETE commit-hook lifecycle around a libgit2 seal.
