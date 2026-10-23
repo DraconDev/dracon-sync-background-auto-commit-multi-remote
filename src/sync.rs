@@ -2626,7 +2626,8 @@ pub(crate) async fn upload_publication(
     // an interrupted round must never look like "no remotes remember anything",
     // which would wipe another remote's pause/backoff memory in the apply phase.
     let mut mirror_map = Some(map);
-    let aggregated = aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut());
+    let aggregated =
+        aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut());
     plan.remote_failures = mirror_map.unwrap_or_default();
     let mirrors_ok = aggregated?;
     if !attempted {
@@ -4790,6 +4791,21 @@ async fn stage_commit_and_push(
         }
     }
 
+    if ctx.local_work_deferred {
+        // Local ownership could not be reacquired after the upload. Skipping
+        // BOTH the release pipeline and here keeps this round from writing
+        // metadata/tags without the mutation rights it failed to obtain. The
+        // next dispatch rediscovers the work.
+        eprintln!(
+            "⏳ {} post-publication local work deferred (no local ownership)",
+            repo.display()
+        );
+        return if push_failed {
+            Ok(Some(SyncOutcome::PushFailed))
+        } else {
+            Ok(None)
+        };
+    }
     run_release_pipeline_if_bumped(repo, policy, version_bumped).await;
 
     if push_failed {
@@ -5892,7 +5908,9 @@ async fn sync_repo_local_with_ownership(
         // for 40+ minutes on 2026-08-09.
     }
 
-    maybe_sync_visibility_and_metadata(&ctx);
+    if !ctx.local_work_deferred {
+        maybe_sync_visibility_and_metadata(&ctx);
+    }
 
     // CHANGED 2026-07-21 (v0.112.31, audit H3/F1.3): a failed push
     // surfaces as `PushFailed` so the daemon's apply phase counts it
@@ -5905,7 +5923,9 @@ async fn sync_repo_local_with_ownership(
     }
     let push_report = handle_ahead_push(&mut ctx, &svc).await?;
 
-    maybe_sync_visibility_and_metadata(&ctx);
+    if !ctx.local_work_deferred {
+        maybe_sync_visibility_and_metadata(&ctx);
+    }
     match push_report {
         // v0.113.69: nothing attempted, nothing failed — retain
         // activity, record nothing.
