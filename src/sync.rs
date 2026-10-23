@@ -5199,7 +5199,15 @@ async fn bootstrap_empty_repo_commit_owned(
                 }
                 return Ok(true);
             }
-            Ok(false) => {}
+            Ok(false) => {
+                // Hooks have already run. A binding that disappears mid-pass
+                // must defer rather than run the same hooks again via Git.
+                eprintln!(
+                    "⚠️ {} storage guard vanished before the root commit; staged/worktree content retained",
+                    repo.display()
+                );
+                return Ok(false);
+            }
             Err(error) => {
                 eprintln!(
                     "⚠️ {} storage guard blocked root commit; staged/worktree content retained: {}",
@@ -5328,8 +5336,8 @@ async fn run_sealed_commit_hooks(
     let approved = approved.trim_end_matches('\n').to_owned();
     // Git ABORTS on an empty commit message ("Aborting commit due to empty
     // commit message"). Silently restoring the original text here would let a
-    // hook refuse by truncation and be bypassed; the only refusals that must
-    // work are exit-status ones, but a truncated message is a refusal too.
+    // hook refuse by truncation and be bypassed. Both exit-status refusals and
+    // empty approved messages must prevent publication.
     if approved.trim().is_empty() {
         return Err(anyhow::anyhow!(
             "commit-msg left the commit message empty (git aborts in this case)"
