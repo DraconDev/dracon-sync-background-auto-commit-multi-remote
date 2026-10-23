@@ -444,9 +444,53 @@ fn spawn_git_command_cancellable_io(
 /// full pipes; stdout is capped in memory to keep classification bounded
 /// (a repo whose diff exceeds the cap surfaces the cap, not a hang).
 pub(crate) async fn run_git_captured_output(
-    mut child: tokio::process::Child,
+    child: tokio::process::Child,
     workdir: &Path,
     op_label: &str,
+) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>, Vec<u8>)> {
+    run_captured_output(child, workdir, &format!("git {op_label}")).await
+}
+
+/// Capture a workflow command in an owned process group with a finite deadline.
+/// Input and both bounded output streams are driven together; neither a blocked
+/// stdin write nor a helper retaining stderr can escape timeout/cancellation.
+/// Preserve caller cwd/env, and return raw bytes without echoing SDK diagnostics.
+pub(crate) async fn run_command_captured_output(
+    mut command: TokioCommand,
+    timeout_secs: u64,
+    label: &str,
+    input: Option<&[u8]>,
+) -> Result<std::process::Output> {
+    use tokio::io::AsyncWriteExt;
+    let workdir = command.as_std().get_current_dir().unwrap_or(Path::new(".")).to_path_buf();
+    command.kill_on_drop(true)
+        .stdin(if input.is_some() { std::process::Stdio::piped() } else { std::process::Stdio::null() })
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    configure_git_process_group(&mut command);
+    let run = async {
+        let mut child = command.spawn().with_context(|| format!("failed to spawn {label}"))?;
+        let stdin = child.stdin.take();
+        let capture = run_captured_output(child, &workdir, label);
+        let write = async {
+            if let Some(input) = input {
+                let mut stdin = stdin.context("workflow stdin not captured")?;
+                stdin.write_all(input).await.context("workflow stdin write failed")?;
+                stdin.shutdown().await.context("workflow stdin close failed")?;
+            }
+            Ok::<(), anyhow::Error>(())
+        };
+        let ((status, stdout, stderr), ()) = tokio::try_join!(capture, write)?;
+        Ok(std::process::Output { status, stdout, stderr })
+    };
+    tokio::time::timeout(Duration::from_secs(timeout_secs.max(1)), run)
+        .await.with_context(|| format!("{label} timed out after {}s", timeout_secs.max(1)))?
+}
+
+async fn run_captured_output(
+    mut child: tokio::process::Child,
+    workdir: &Path,
+    label: &str,
 ) -> anyhow::Result<(std::process::ExitStatus, Vec<u8>, Vec<u8>)> {
     // Cancellation cannot await a grace period. Send SIGKILL directly to
     // the owned group; no shell-outs, sleeps or detached capture tasks.
@@ -454,7 +498,6 @@ pub(crate) async fn run_git_captured_output(
     // reused before a cancellation signal. Disarm immediately after wait.
     let mut group_guard = GroupKillGuard(child.id());
     const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
-    let label = format!("git {}", op_label);
     let stdout_pipe = child
         .stdout
         .take()
