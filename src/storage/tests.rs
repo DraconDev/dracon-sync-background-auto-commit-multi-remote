@@ -931,7 +931,10 @@ trusted_authors = ["DraconDev"]
     );
     // Exact argument vectors: extra/missing arguments must fail, while the
     // fixture's absolute temporary path is derived rather than pinned.
-    let msgfile = git2::Repository::open(repo).unwrap().path().join("COMMIT_EDITMSG");
+    let msgfile = git2::Repository::open(repo)
+        .unwrap()
+        .path()
+        .join("COMMIT_EDITMSG");
     assert_eq!(
         log.lines().map(str::to_owned).collect::<Vec<_>>(),
         vec![
