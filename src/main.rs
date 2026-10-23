@@ -20,6 +20,7 @@ mod print;
 mod release;
 mod report;
 mod role;
+mod runtime_env;
 mod secrets;
 mod standard_files;
 mod storage;
@@ -735,8 +736,14 @@ fn handle_visibility_flip(
     Ok(())
 }
 
+fn main() -> Result<()> {
+    // Complete process-wide environment setup before Tokio creates threads.
+    runtime_env::initialize()?;
+    async_main()
+}
+
 #[tokio::main(flavor = "multi_thread")]
-async fn main() -> Result<()> {
+async fn async_main() -> Result<()> {
     // If output is piped (e.g. `dracon-sync repos | head`), stdout can become a broken pipe.
     // Rust's default printing panics on write errors; convert that specific panic into a clean exit.
     let default_panic_hook = std::panic::take_hook();
