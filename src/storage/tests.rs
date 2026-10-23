@@ -1042,7 +1042,13 @@ async fn sealed_commit_rejects_a_message_emptied_by_commit_msg() {
     use std::os::unix::fs::PermissionsExt;
     let dir = guarded_fixture().await;
     let repo = dir.path();
-    setup_guard(repo, &"a".repeat(64), &repo.join(".git/metadata"), Path::new("assets.manifest")).unwrap();
+    setup_guard(
+        repo,
+        &"a".repeat(64),
+        &repo.join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
     assert!(has_configured_storage_guard(repo).unwrap());
     let hooks = repo.join(".git/empty-message-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
@@ -1051,18 +1057,25 @@ async fn sealed_commit_rejects_a_message_emptied_by_commit_msg() {
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
     git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
     std::fs::write(repo.join("README.md"), "retained work\n").unwrap();
-    let policy: crate::policy::SyncPolicy = toml::from_str(r#"
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
 auto_commit = true
 auto_push = false
 auto_pull = false
 trusted_emails = ["dracsharp@gmail.com"]
 trusted_authors = ["DraconDev"]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let error = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
-        .await.expect_err("an empty approved message must abort the seal");
+        .await
+        .expect_err("an empty approved message must abort the seal");
     assert!(format!("{error:#}").contains("message empty"));
     assert!(git2::Repository::open(repo).unwrap().head().is_err());
-    assert_eq!(std::fs::read(repo.join("README.md")).unwrap(), b"retained work\n");
+    assert_eq!(
+        std::fs::read(repo.join("README.md")).unwrap(),
+        b"retained work\n"
+    );
 }
 
 #[cfg(unix)]

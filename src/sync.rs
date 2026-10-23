@@ -4609,8 +4609,6 @@ async fn stage_commit_and_push(
         // bypassed. The ordinary `git commit` path runs the same lifecycle
         // itself — driving it there too would execute every hook twice per
         // commit — so this is gated on the seal actually happening.
-        let mut sealed_hooks: Option<PreparedSealedCommit> = None;
-        let mut commit_message = msg.clone();
         let guarded = match storage_guarded(repo) {
             Ok(guarded) => guarded,
             Err(error) => {
@@ -4624,67 +4622,45 @@ async fn stage_commit_and_push(
             }
         };
         if guarded {
-            match run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await {
-                Ok(prepared) => {
-                    commit_message = prepared.message.clone();
-                    sealed_hooks = Some(prepared);
-                }
-                Err(error) => {
-                    eprintln!(
-                        "⚠️ {} configured commit hook refused the auto commit; staged/worktree content retained: {error:#}",
-                        repo.display()
-                    );
-                    return Err(error);
-                }
-            }
-        }
-        let storage_commit = {
-            let sealed_message = commit_message.clone();
+            let prepared =
+                run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await?;
             let repo_path = repo.to_path_buf();
-            Ok::<_, anyhow::Error>(
-                tokio::task::spawn_blocking(move || {
-                    crate::storage::commit_configured_storage(&repo_path, &sealed_message)
-                })
-                .await?,
-            )?
-        };
-        match storage_commit {
-            Ok(true) => {
-                // `post-commit` runs only after a real commit, exactly like Git.
-                if sealed_hooks.is_some() {
+            let storage_commit = tokio::task::spawn_blocking(move || {
+                crate::storage::commit_configured_storage(&repo_path, &prepared.message)
+            })
+            .await?;
+            match storage_commit {
+                Ok(true) => {
+                    // Git ignores post-commit's exit status: the commit already
+                    // exists. Report the failure without undoing the commit.
                     if let Err(error) =
                         run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
                             .await
                     {
-                        // The commit already exists; Git also reports post-commit
-                        // problems without undoing it. Surface, never claim clean.
                         eprintln!(
                             "⚠️ {} post-commit hook failed after the sealed commit: {error:#}",
                             repo.display()
                         );
                     }
                 }
-            }
-            Ok(false) => {
-                // The guard binding disappeared between the check and the seal
-                // (concurrent config mutation). The commit hooks ALREADY ran for
-                // this staged content and message, so falling through to
-                // `commit_staged_owned` would run the whole lifecycle a second
-                // time for one logical commit. Treat it as blocked instead: the
-                // content stays staged and the next pass re-evaluates cleanly.
-                if sealed_hooks.is_some() {
+                Ok(false) => {
+                    // A binding that disappears mid-pass must defer, not drive
+                    // the hooks twice by falling back to an ordinary commit.
                     eprintln!(
-                        "⚠️ {} storage guard vanished mid-pass; staged/worktree content retained without re-running commit hooks",
+                        "⚠️ {} storage guard vanished mid-pass; staged/worktree content retained",
                         repo.display()
                     );
                     return Ok(Some(SyncOutcome::Blocked));
                 }
-                commit_staged_owned(repo, &commit_message, policy.stage_op_timeout_secs).await?
+                Err(error) => {
+                    eprintln!("⚠️ {} storage commit guard blocked auto-commit; staged/worktree content retained: {}", repo.display(), error);
+                    return Ok(Some(SyncOutcome::Blocked));
+                }
             }
-            Err(error) => {
-                eprintln!("⚠️ {} storage commit guard blocked auto-commit; staged/worktree content retained: {}", repo.display(), error);
-                return Ok(Some(SyncOutcome::Blocked));
-            }
+        } else {
+            // Never attempt a libgit2 seal after selecting the native lifecycle:
+            // a newly appearing binding must not seal without running hooks.
+            commit_staged_owned(repo, &msg, policy.stage_op_timeout_secs).await?;
         }
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
