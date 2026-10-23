@@ -69,7 +69,7 @@ impl Fixture {
     fn pushed_refs(&self) -> Vec<String> {
         let out = std::process::Command::new(crate::policy::git_binary())
             .args(["for-each-ref", "--format=%(refname)"])
-            .current_dir(&self.root.path().join("remote.git"))
+            .current_dir(self.root.path().join("remote.git"))
             .output()
             .unwrap();
         String::from_utf8_lossy(&out.stdout)

@@ -91,7 +91,7 @@ pub(super) async fn plan_publication(
     if github_mirror_is_origin && !exclude.iter().any(|e| e == "github") {
         exclude.push("github".to_string());
     }
-    let mut planned_failures = remote_failures.as_deref().cloned().unwrap_or_default();
+    let mut planned_failures = remote_failures.cloned().unwrap_or_default();
     if too_big_for_github {
         if !exclude.iter().any(|e| e == "github") {
             exclude.push("github".to_string());

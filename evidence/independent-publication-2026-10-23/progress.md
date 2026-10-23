@@ -112,53 +112,96 @@ Read-only scout reports: `/tmp/sync-convergence-research.task-{1,2}.md`.
 * aud-vis different-worktree metadata refusal is a real separate checkout
   blocker. Rewiring it and resetting live retry/state ledgers are NOT authorized.
 
-## Next implementation slice — actual actor, not another architecture interview
+## Integration landed and verified (still not deployed)
 
-The chosen durable design is a STRUCTURED PER-REPOSITORY ACTOR inside the
-existing supervised worker, not a second global publication task registry.
-One owner/failure map, independently polled local and publication futures,
-canonical kernel leases, and no detached publication tasks. See the design
-file `docs/design/independent-publication-2026-10-23.md` and recorded judgments.
+The structured per-repository actor is implemented and exercised end to end:
 
-1. Route both post-commit and ahead-only publication through an actor boundary
-   receiving mutable SyncContext. Capture immutable object+branch and pack/
-   destination guards under local ownership. Use the pinned transport APIs
-   for EVERY origin/mirror retry/fallback. Keep each repository's actual
-   publication commands serialized; different repos remain unconstrained.
-2. ONLY AFTER upload is mutation-free, take/drop ctx.operation_lease and yield
-   local capacity via push_phase. DO NOT release the lease around today's
-   unchanged push_background_inner: it can still pull or edit configuration.
-   Mirror setup must run under a short re-acquired local lease/admission,
-   separately from actual upload; no push slot/global limiter.
-3. Concurrently poll publication and a local refresh loop. Each refresh uses
-   local_phase and the private sync_repo_local_with_ownership commit-only
-   path (boxed-return boundary if necessary to avoid recursive async types).
-   It must revalidate current policy/ownership and preserve staging/content
-   gates. Its remote-failures argument is None; only publication owns counters.
-   Honor settling/cooldowns rather than hot-looping filter-only diffs.
-4. Use a stop signal + structured join: completed upload stops NEW refresh
-   admission but lets a current local commit finish. Do not cancel a commit
-   merely because upload finished. Restore context/local mutation ownership
-   before post-publication mutation. Keep guard drop order child work BEFORE
-   publication lease. All work remains under finite existing actor budget,
-   never reset by progress/follow-up; bounded rounds then pending rediscovery
-   avoid an unbounded internal drain loop.
-5. Recheck actual latest HEAD under local ownership after a round, coalesce
-   newer work into bounded follow-up, and preserve pending/backlog evidence
-   when only an older tip reached remotes. Startup/periodic inspection remains
-   durable rediscovery, including another process's commits. Preserve all-paused,
-   degraded, real failure, incident shielding and cancellation accounting.
-6. Version/release/tag/Nix/default-branch/janitor paths need the same ownership
-   protocol. Capture exact version/tip obligations before concurrent changes;
-   do not release tags against whatever HEAD happens to be later. Do not lose
-   configured release behavior or weaken immutable storage guards.
-7. Add independently observed local/publication phases to fresh scheduler
-   evidence and report consumers (command-start, waiting, committing, pushing,
-   cancelling, blocked), not generic Working as proof. Historical PUSH remains
-   separate. Preserve stale/future-clock fail-closed behavior.
-8. Explicit daemon shutdown must cancel AND join owned workers/maintenance
-   before clearing stopped evidence; current daemon tail lacks that join.
-   Keep reload ownership identity and original finite watchdog semantics.
+* `run_publication_actor` plans a round under local ownership, drops the
+  operation lease, and runs the upload inside `push_phase` + `publish_phase`.
+  While that upload is blocked it re-admits bounded local passes through
+  `local_phase`, each taking its own short operation lease, then reacquires
+  local ownership before post-publication bookkeeping. Guard drop order keeps
+  child work before publication-lease release.
+* `publication.rs` pins the exact object+branch, applies the pack/privacy/pause
+  exclusions, prepares mirror configuration as LOCAL work, and owns the
+  per-remote failure map. Upload performs no pull/merge/config/checkout
+  mutation and every origin/mirror retry and HTTPS fallback names the same
+  pinned object.
+* The global push semaphore is gone. Different repositories' push commands
+  enter concurrently; the only remaining limits are the existing local
+  semaphore, per-repository publication ownership, operation deadlines and
+  owned process groups.
+* A caller that cannot obtain publication ownership commits through the
+  commit-only path and reports `PublicationPending` — never success, never a
+  transport failure, never a failure-counter reset.
+* `git commit --no-verify` in an owned, bounded process is used for auto
+  commits, preserving the daemon's long-standing commit-hook policy (in-process
+  bucket/storage/exclusion/size gates; pre-push hooks still run).
+* Truthful phases: `Committing` and `Pushing` stamps are set only at real
+  operation boundaries, expire if abandoned, and `Current::Publishing`
+  renders `PUBLISHING` instead of WORKING or CLEAN.
+* Shutdown now requests cancellation for owned workers and JOINS them within
+  the trailing-drain budget. If they do not join, it keeps the in-flight and
+  scheduler evidence rather than claiming a clean stop.
+
+### Passing bounded checks (receipts under `evidence/independent-publication-2026-10-23/`)
+
+* `daemon-suite.txt`: `cargo test -p dracon-sync --bin dracon-sync --locked -j 1`
+  — **1389 passed, 0 failed, 3 ignored** (255s), undisturbed run with no other
+  cargo process touching the test binary.
+* `git-suite.txt`: the whole `git::` subtree — 324 passed, 0 failed.
+* `isolation-suite.txt`: the three pre-existing hook-isolation regressions now
+  drive the production actor boundary (capacity, nice 19, rejection,
+  cancellation) — 3 passed.
+* New `sync/publication_actor_tests.rs` (2 tests, part of the 1389):
+  * A's publication blocked in a real pre-push hook, B commits AND publishes
+    concurrently, a SECOND real commit lands in A while A's upload is still
+    blocked, releasing the hook publishes A's pinned tip, and bounded
+    follow-up rounds converge A's bare remote on A's newest tip.
+  * A held publication owner still lets a new edit commit and reports
+    `PublicationPending` with no competing push.
+* New `sync/owned_commit_tests.rs` (3 tests): daemon commit-hook policy pinned,
+  publication-pending accounting conserved, and cancelled/expired publication
+  kills the owned Git+hook+helper process group with nothing published.
+* `scheduler_evidence` 4 tests including stamp expiry; `current_health` 4
+  tests including the new PUBLISHING row.
+
+### Regressions I caused and fixed at the root
+
+1. The split first mutated a CLONED failure map in the plan, so a failed push
+   could never reach the caller. Replaced by an owned plan map that the
+   round hands back explicitly.
+2. Routing auto-commits through plain `git commit` made daemon commits execute
+   `.git/hooks/pre-commit`, failing a bucket fixture on warden config. Restored
+   `--no-verify` (documented policy) and pinned it with a regression.
+3. Five later failures (`sync_lease`, `storage`) were self-inflicted test
+   interference: I ran a second `cargo test` while the long suite was still
+   running, which relinked the binary and broke `current_exe()` mid-run. They
+   pass in isolation and in the undisturbed full run above; never run cargo
+   concurrently against one target dir.
+
+## Remaining implementation slices
+
+1. Release identity: `get_bump_info` still does unbounded `spawn_blocking` Git
+   reads, and `run_release_pipeline_if_bumped` runs AFTER publication. Under
+   concurrent local commits, that can tag whatever HEAD is at that moment
+   rather than the version that was actually committed. Capture the exact
+   version/commit obligation under local ownership and give the read a bounded
+   owned call; do not let a version bump be released against a newer tree.
+   Tag/Nix/janitor/default-branch paths already run inside `push_phase` and the
+   operation lease, but they must be re-audited once publication is genuinely
+   concurrent (they mutate local state).
+2. CLI/one-shot parity: `sync-now`/`once` already go through the same
+   `sync_repo_with_ahead_since`, so they inherit publication admission and the
+   honest pending report, but there is no daemon-side rediscovery loop for a
+   CLI owner that exits between rounds. Confirm the next daemon pulse picks up
+   an unpublished tip committed by a CLI process (it should: dispatch is driven
+   by actual ahead/dirty state, not by a queued request).
+3. Reload identity: verify SIGHUP does not drop the publication lease or the
+   per-repo failure memory while a worker is running.
+4. Qualification: workspace tests, release build, `-D warnings` Clippy,
+   `cargo deny`, then a safe install/restart and the isolated installed-binary
+   receipt plus live autonomous observations.
 
 ## Known local mutation lifecycle gap to resolve before qualification
 

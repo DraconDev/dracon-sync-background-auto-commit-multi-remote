@@ -325,3 +325,33 @@ async fn secondary_owner_commits_and_reports_pending_publication() {
     drop(owner);
     let _ = local;
 }
+
+/// Durable rediscovery: an unpublished tip created by ANOTHER process (a
+/// one-shot CLI owner that has already exited) must be picked up by the next
+/// dispatch. Publication is not a queued in-memory request that dies with its
+/// creator — the actual repository state is the request.
+#[tokio::test]
+async fn unpublished_tip_from_another_process_is_rediscovered() {
+    let fixture = Fixture::new("rediscover", false);
+    let local = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+    let baseline = git(&fixture.repo, &["rev-parse", "HEAD"]);
+    // An external process commits and exits without ever publishing. Its
+    // publication lease is released with it.
+    std::fs::write(fixture.repo.join("data"), "external process edit\n").unwrap();
+    git(&fixture.repo, &["add", "--", "data"]);
+    git(
+        &fixture.repo,
+        &["commit", "--quiet", "-m", "external commit"],
+    );
+    let external_tip = git(&fixture.repo, &["rev-parse", "HEAD"]);
+    assert_ne!(external_tip, baseline);
+    assert_eq!(fixture.remote_tip(), "");
+    // The daemon has no queued request for it; only inspection of real state.
+    let outcome = fixture.sync(&local).join(90).await;
+    fixture.publication_released(30).await;
+    assert_eq!(
+        fixture.remote_tip(),
+        external_tip,
+        "an unpublished tip from another process must be rediscovered and published ({outcome:?})"
+    );
+}
