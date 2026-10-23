@@ -4626,11 +4626,13 @@ async fn stage_commit_and_push(
                 run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await?;
             let repo_path = repo.to_path_buf();
             let storage_commit = tokio::task::spawn_blocking(move || {
-                crate::storage::commit_configured_storage(&repo_path, &prepared.message)
+                crate::storage::prepare_configured_storage_commit(&repo_path, &prepared.message)
             })
             .await?;
             match storage_commit {
-                Ok(true) => {
+                Ok(Some(prepared)) => {
+                    advance_sealed_commit(repo, &prepared, policy.stage_op_timeout_secs).await?;
+                    drop(prepared);
                     // Git ignores post-commit's exit status: the commit already
                     // exists. Report the failure without undoing the commit.
                     if let Err(error) =
@@ -4643,7 +4645,7 @@ async fn stage_commit_and_push(
                         );
                     }
                 }
-                Ok(false) => {
+                Ok(None) => {
                     // A binding that disappears mid-pass must defer, not drive
                     // the hooks twice by falling back to an ordinary commit.
                     eprintln!(
@@ -5158,11 +5160,13 @@ async fn bootstrap_empty_repo_commit_owned(
         let sealed_message = commit_message.clone();
         let repo_path = repo.to_path_buf();
         let sealed = tokio::task::spawn_blocking(move || {
-            crate::storage::commit_configured_storage(&repo_path, &sealed_message)
+            crate::storage::prepare_configured_storage_commit(&repo_path, &sealed_message)
         })
         .await?;
         match sealed {
-            Ok(true) => {
+            Ok(Some(prepared)) => {
+                advance_sealed_commit(repo, &prepared, policy.stage_op_timeout_secs).await?;
+                drop(prepared);
                 // `post-commit` runs only after a real commit, exactly like Git.
                 if let Err(error) =
                     run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
@@ -5175,7 +5179,7 @@ async fn bootstrap_empty_repo_commit_owned(
                 }
                 return Ok(true);
             }
-            Ok(false) => {
+            Ok(None) => {
                 // Hooks have already run. A binding that disappears mid-pass
                 // must defer rather than run the same hooks again via Git.
                 eprintln!(
@@ -5228,6 +5232,29 @@ async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> R
         &["commit", "-m", message],
         timeout_secs.max(1),
         "commit-staged",
+    )
+    .await
+}
+
+/// Publish only the verified immutable object, with native Git's ref hooks and
+/// an expected-old-tip check. A concurrent HEAD advance must never be lost.
+async fn advance_sealed_commit(
+    repo: &Path,
+    prepared: &crate::storage::PreparedStorageCommit,
+    timeout_secs: u64,
+) -> Result<()> {
+    run_git_with_timeout(
+        repo,
+        &[
+            "update-ref",
+            "-m",
+            "commit: storage-verified auto commit",
+            "HEAD",
+            &prepared.commit_id,
+            &prepared.previous_id,
+        ],
+        timeout_secs.max(1),
+        "sealed-commit-ref",
     )
     .await
 }

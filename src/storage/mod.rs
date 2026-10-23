@@ -2730,11 +2730,36 @@ pub(crate) fn has_configured_storage_guard(repo: &Path) -> Result<bool> {
 /// Returns false only for a repository without storage markers. No fallback
 /// bypasses validation; callers retain the ordinary path solely for that case.
 pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bool> {
+    Ok(prepare_storage_commit_inner(repo, message, true)?.is_some())
+}
+
+/// A verified commit object awaiting an owned, compare-and-swap ref update.
+/// Keep the storage lock until Git has accepted/rejected that update.
+pub(crate) struct PreparedStorageCommit {
+    pub commit_id: String,
+    pub previous_id: String,
+    _lock: dracon_sync::storage_core::index::CommitLock,
+}
+
+/// Prepare immutable content without updating HEAD through libgit2. The daemon
+/// updates it through native Git so reference-transaction hooks are honored.
+pub(crate) fn prepare_configured_storage_commit(
+    repo: &Path,
+    message: &str,
+) -> Result<Option<PreparedStorageCommit>> {
+    prepare_storage_commit_inner(repo, message, false)
+}
+
+fn prepare_storage_commit_inner(
+    repo: &Path,
+    message: &str,
+    update_head: bool,
+) -> Result<Option<PreparedStorageCommit>> {
     let Some(binding) = configured_guard(repo, false)? else {
-        return Ok(false);
+        return Ok(None);
     };
     let repository = git2::Repository::open(repo)?;
-    let _lock =
+    let lock =
         dracon_sync::storage_core::index::CommitLock::acquire(&repository, &binding.repo_id)?;
     let mut indexed = indexed_manifest_at(
         repo,
@@ -2753,15 +2778,19 @@ pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bo
         Err(error) => return Err(error).context("cannot determine guarded commit parent"),
     };
     let parents: Vec<_> = parent.iter().collect();
-    repository.commit(
-        Some("HEAD"),
+    let commit_id = repository.commit(
+        update_head.then_some("HEAD"),
         &signature,
         &signature,
         message,
         &tree,
         &parents,
     )?;
-    Ok(true)
+    Ok(Some(PreparedStorageCommit {
+        commit_id: commit_id.to_string(),
+        previous_id: parent.map_or_else(|| git2::Oid::zero().to_string(), |p| p.id().to_string()),
+        _lock: lock,
+    }))
 }
 
 fn setup_guard(
