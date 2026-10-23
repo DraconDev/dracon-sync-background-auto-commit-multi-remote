@@ -1,29 +1,29 @@
 {
-  "binary": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
+  "binary": "/home/dracon/.local/bin/dracon-sync",
   "binary_version": "dracon-sync 0.113.95",
   "binary_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
-  "fixture_root": "/tmp/sync-ref-native-qualified/fixture",
+  "fixture_root": "/tmp/sync-ref-native-installed/fixture",
   "real_service_untouched": true,
   "baseline_heads": {
-    "a": "b26d799c6e91d5f32ebb17fc76291ab821aefb5c",
-    "b": "5ee2a8f3e00b8306203150234795b7edfe566f0e",
-    "c": "8ad3ecc8e0318a877d29242c75d6394ccf29809a"
+    "a": "f48b2b77e389be7cd355d840d12512fa96fd2805",
+    "b": "3ea351b8b9875f197010809f4ef7dfb8e2eec735",
+    "c": "8f1ffd17a27d0ae3c32e153a4e7a4b78b543b5ee"
   },
   "isolation": {
-    "policy": "/tmp/sync-ref-native-qualified/fixture/home/.dracon/dracon-sync.toml",
-    "state_dir": "/tmp/sync-ref-native-qualified/fixture/state",
-    "watch_root": "/tmp/sync-ref-native-qualified/fixture/watch",
-    "home": "/tmp/sync-ref-native-qualified/fixture/home",
+    "policy": "/tmp/sync-ref-native-installed/fixture/home/.dracon/dracon-sync.toml",
+    "state_dir": "/tmp/sync-ref-native-installed/fixture/state",
+    "watch_root": "/tmp/sync-ref-native-installed/fixture/watch",
+    "home": "/tmp/sync-ref-native-installed/fixture/home",
     "remotes": "filesystem bare repositories only"
   },
-  "a_pinned_during_block": "f738d7415e5d0f590da4c47c8355527776221470",
+  "a_pinned_during_block": "6eb1312f350b03cad034824d493f1d032d03bab7",
   "a_remote_before_release": "",
-  "b_tip": "47daf6a75642a2b159ef4bd8023bcf8509066665",
-  "b_remote_tip": "47daf6a75642a2b159ef4bd8023bcf8509066665",
+  "b_tip": "5748de32f2746809ab049502fee3baed4304dca9",
+  "b_remote_tip": "5748de32f2746809ab049502fee3baed4304dca9",
   "a_still_blocked_while_b_published": true,
-  "a_second_commit": "56827cd52ead5c079017e114d15e49f2598ad689",
-  "a_newest_tip": "ebbf0b8341a28ea7e6de20b85d50cc7c528fe001",
-  "a_remote_tip": "ebbf0b8341a28ea7e6de20b85d50cc7c528fe001",
+  "a_second_commit": "a284cd0dca62c228d6ed0d2248e7bf05a361bff5",
+  "a_newest_tip": "d329e97588a9096213360722ed2aae74cc1b8a48",
+  "a_remote_tip": "d329e97588a9096213360722ed2aae74cc1b8a48",
   "a_published_object": "commit",
   "b_precommit_hook_ran": true,
   "b_lifecycle_hooks": [
@@ -32,12 +32,15 @@
     "post-commit",
     "prepare-commit-msg",
     "commit-msg",
+    "post-commit",
+    "prepare-commit-msg",
+    "commit-msg",
     "post-commit"
   ],
-  "b_lifecycle_cycles": 2,
+  "b_lifecycle_cycles": 3,
   "c_commit_hook_refusal_reported": true,
   "c_precommit_hook_ran": true,
-  "c_head": "8ad3ecc8e0318a877d29242c75d6394ccf29809a",
+  "c_head": "8f1ffd17a27d0ae3c32e153a4e7a4b78b543b5ee",
   "c_remote_refs": "",
   "c_work_preserved": true,
   "a_owning_leases": [
@@ -51,7 +54,7 @@
   "concurrent_publication_observed": true,
   "ok": true,
   "shutdown": "joined after SIGTERM",
-  "daemon_log_tail": "\ud83d\udd04 dracon-sync daemon started\n\ud83e\uddf9 startup: running cleanup...\n\ud83d\udd27 /tmp/sync-ref-native-qualified/fixture/watch/repo-c configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-ref-native-qualified/fixture/watch/repo-b configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-ref-native-qualified/fixture/watch/repo-a configured publish upstream for main on origin\n\ud83d\udd04 trailing-drain: 3 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-qualified/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-qualified/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-qualified/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found\n\ud83d\udcdd committed 6 file(s) in /tmp/sync-ref-native-qualified/fixture/watch/repo-a\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-ref-native-qualified/fixture/watch/repo-b\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-qualified/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-qualified/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-ref-native-qualified/fixture/watch/repo-a\n\u23f3 /tmp/sync-ref-native-qualified/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-qualified/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-qualified/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-qualified/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-qualified/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 3 file(s) in /tmp/sync-ref-native-qualified/fixture/watch/repo-b\n\ud83d\udcdd committed 2 file(s) in /tmp/sync-ref-native-qualified/fixture/watch/repo-a\nbranch 'main' set up to track 'origin/main'.\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-qualified/fixture/watch/repo-a\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-qualified/fixture/watch/repo-b\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-qualified/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-qualified/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n",
+  "daemon_log_tail": "\ud83d\udd04 dracon-sync daemon started\n\ud83e\uddf9 startup: running cleanup...\n\ud83d\udd27 /tmp/sync-ref-native-installed/fixture/watch/repo-c configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-ref-native-installed/fixture/watch/repo-b configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-ref-native-installed/fixture/watch/repo-a configured publish upstream for main on origin\n\ud83d\udd04 trailing-drain: 3 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-installed/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-installed/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-ref-native-installed/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-b\n\ud83d\udcdd committed 6 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-installed/fixture/watch/repo-b\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\u23f3 /tmp/sync-ref-native-installed/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 3 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-installed/fixture/watch/repo-b\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 2 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\ud83d\udcdd committed 1 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\u23f3 /tmp/sync-ref-native-installed/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\nbranch 'main' set up to track 'origin/main'.\n\u26a0\ufe0f sync failed (late) for /tmp/sync-ref-native-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-ref-native-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-installed/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 1 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-ref-native-installed/fixture/watch/repo-b\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 1 file(s) in /tmp/sync-ref-native-installed/fixture/watch/repo-a\nbranch 'main' set up to track 'origin/main'.\n",
   "shutdown_unclean_lines": [],
   "orphan_pids_after_shutdown": []
 }

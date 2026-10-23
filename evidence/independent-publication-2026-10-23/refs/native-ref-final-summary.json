@@ -1,0 +1,164 @@
+{
+  "samples": 10,
+  "loaded_digests": [
+    "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883"
+  ],
+  "advancements": [
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "cf315babb147610479dfdc981a6a25afad16e61d",
+      "after": "458753ec3325d1750b906f84b0349f7192a00084",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "cf315babb147610479dfdc981a6a25afad16e61d",
+      "after": "458753ec3325d1750b906f84b0349f7192a00084",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "github",
+      "before": "cf315babb147610479dfdc981a6a25afad16e61d",
+      "after": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "458753ec3325d1750b906f84b0349f7192a00084",
+      "after": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "458753ec3325d1750b906f84b0349f7192a00084",
+      "after": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "after": "9d2f61cdc8c1330d93450014463b98074f347924",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "after": "9d2f61cdc8c1330d93450014463b98074f347924",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "github",
+      "before": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+      "after": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "9d2f61cdc8c1330d93450014463b98074f347924",
+      "after": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "9d2f61cdc8c1330d93450014463b98074f347924",
+      "after": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "github",
+      "before": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "after": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "after": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "2d28df61f962f2416625a0a6a41936362e9dce62",
+      "after": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "after": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "after": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "github",
+      "before": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+      "after": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+      "after": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+      "after": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+      "after": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+      "after": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "gitlab",
+      "before": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+      "after": "1e92de2adc0c0af56d40fea00b95430d912be1ec",
+      "type": "commit"
+    },
+    {
+      "repo": "/home/dracon/.dracon",
+      "remote": "origin",
+      "before": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+      "after": "646b585b4ae7394ec5d97b24e42e6c6ceae3c4fb",
+      "type": "commit"
+    }
+  ],
+  "non_commit_tips": [],
+  "query_errors": []
+}

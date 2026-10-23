@@ -1,1316 +1,1683 @@
 [
- {
-  "label": "final",
-  "observed_at": 1792760887,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "85a3b7eb8b3a3e45c2f417eab9bc1c8f3a94cb59",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792760920,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "3e00229b03d376a626fe567274f64f3e0ae5c978",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792760954,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "19f1df4d0925d0d18f1febabfd9c32d9bb73e189",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792760987,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "ddee5db686ec5383086710c26d538b9a90bf1ad5",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "2f589ced862edfc36bf4bd2493fba278ceefc5b8",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "086d84cee83694c9ed81eb6250f0e7ab1c07c545",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "2f589ced862edfc36bf4bd2493fba278ceefc5b8",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761019,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "2f4adf8b099ed9a193a71e69764ca45a46b5db7b",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "895e1a9ba3ebc978f129f565b72e94a92d03b378",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "895e1a9ba3ebc978f129f565b72e94a92d03b378",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "895e1a9ba3ebc978f129f565b72e94a92d03b378",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "895e1a9ba3ebc978f129f565b72e94a92d03b378",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761052,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "d45e947fe2997dd00bfcab2904a92a8c30e0bd33",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "5f6d0c1a2f287079e800bcf58aee1030160adf9b",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "895e1a9ba3ebc978f129f565b72e94a92d03b378",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "5f6d0c1a2f287079e800bcf58aee1030160adf9b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761084,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "6497369614be9a78a02b63fae238c22c158f52c4",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "5f6d0c1a2f287079e800bcf58aee1030160adf9b",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "5f6d0c1a2f287079e800bcf58aee1030160adf9b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "5f6d0c1a2f287079e800bcf58aee1030160adf9b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761116,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "961b4d80c81d44e2e5ed4fd89fe6b8c68e3b8601",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "2066efb55ad74eb893681f3e8375bc36f4029232",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "2066efb55ad74eb893681f3e8375bc36f4029232",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "2066efb55ad74eb893681f3e8375bc36f4029232",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "2066efb55ad74eb893681f3e8375bc36f4029232",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761149,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "2cc1e7b3e5da3558e6b24ed207e78add8ef01123",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "4aed42d3c2f186c91d64d85167a031e6ccd20b36",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "4aed42d3c2f186c91d64d85167a031e6ccd20b36",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "4aed42d3c2f186c91d64d85167a031e6ccd20b36",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761181,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "488304aa4e051a7bc24fc0468649653532c074f9",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "b071cf7494be90ea3d0d45c2c7ff8c4a93151019",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "b071cf7494be90ea3d0d45c2c7ff8c4a93151019",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "b071cf7494be90ea3d0d45c2c7ff8c4a93151019",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "b071cf7494be90ea3d0d45c2c7ff8c4a93151019",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761215,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "e0d9173314aefe4328183192e62328a64c524914",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "5055faf4a4937af92f9193b132629131825f2131",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "5055faf4a4937af92f9193b132629131825f2131",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "f069fdeca32980b6538a96c2a5c28e1ae66a2856",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- },
- {
-  "label": "final",
-  "observed_at": 1792761253,
-  "daemon_pid": "3935918",
-  "loaded_exe_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
-  "repos": [
-   {
-    "repo": "/home/dracon/Dev/browser-extensions-shared",
-    "branch": "main",
-    "head": "a8c452509d0cc76250e700ebe8d6c32301eb9764",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "85bdc6bff762306d7b7e9a326b48688857b4d343",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/browser-extensions-shared.git",
-      "branch_ref": "1614f96cb2faad3e369fe540f8001347a7d3507b",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-platform",
-    "branch": "main",
-    "head": "a8ac59146677e2ea37471b241e8c05f6eaecaa96",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-platform.git",
-      "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/.dracon",
-    "branch": "main",
-    "head": "b80c9f21f39a772daf4c4ba01a0c2015e60816ff",
-    "remotes": {
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-home.git",
-      "branch_ref": "f069fdeca32980b6538a96c2a5c28e1ae66a2856",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": false
-     },
-     "origin": {
-      "url": "git@github.com:DraconDev/dracon-home.git",
-      "branch_ref": "b80c9f21f39a772daf4c4ba01a0c2015e60816ff",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   },
-   {
-    "repo": "/home/dracon/Dev/dracon-utilities",
-    "branch": "main",
-    "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-    "remotes": {
-     "github": {
-      "url": "git@github.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "gitlab": {
-      "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     },
-     "origin": {
-      "url": "https://github.com/DraconDev/dracon-utilities",
-      "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
-      "remote_tip_is_real_commit_object": true,
-      "object_type": "commit",
-      "in_sync_with_local_head": true
-     }
-    }
-   }
-  ]
- }
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766627,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "4e3b1920d158a0184441e266bc9b7e2b3af2f4de",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "cf315babb147610479dfdc981a6a25afad16e61d",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "cf315babb147610479dfdc981a6a25afad16e61d",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "cf315babb147610479dfdc981a6a25afad16e61d",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "cf315babb147610479dfdc981a6a25afad16e61d",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766666,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "2e52aa88dd70906c26c3cab17f1f3f988ab4b2d8",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "458753ec3325d1750b906f84b0349f7192a00084",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "458753ec3325d1750b906f84b0349f7192a00084",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "458753ec3325d1750b906f84b0349f7192a00084",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766703,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "2e52aa88dd70906c26c3cab17f1f3f988ab4b2d8",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "a817dd93de7d2d8beafcaf2d4b12b11588f4c2ff",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766741,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "820516fe17eda2b0579d8939d09e9567acca3232",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "9d2f61cdc8c1330d93450014463b98074f347924",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "9d2f61cdc8c1330d93450014463b98074f347924",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "9d2f61cdc8c1330d93450014463b98074f347924",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766779,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "820516fe17eda2b0579d8939d09e9567acca3232",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "2d28df61f962f2416625a0a6a41936362e9dce62",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "2d28df61f962f2416625a0a6a41936362e9dce62",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "2d28df61f962f2416625a0a6a41936362e9dce62",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "2d28df61f962f2416625a0a6a41936362e9dce62",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766818,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "4e7c9ca0b9f511da0f7dddc662be9eee3fc3619e",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "820516fe17eda2b0579d8939d09e9567acca3232",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "12a0a3ccf9272a91e524ad01cf36b482ea4851a6",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766855,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "bb4bb7622fceb348987ef260990bcbf19bd013af",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "820516fe17eda2b0579d8939d09e9567acca3232",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "ce920ec600573080bc75c6e5f0c7a1a1e5d73d51",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766892,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "bb4bb7622fceb348987ef260990bcbf19bd013af",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "366358a8078bca45cf7c50495d78765a9ce1ffe5",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "f1644f63d2e6f58681d7c450e7384a42f6e41e26",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766929,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "bb4bb7622fceb348987ef260990bcbf19bd013af",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "366358a8078bca45cf7c50495d78765a9ce1ffe5",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "a1087d54c68f2a2f8f9a6254537f8b9b62c5da54",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "label": "native-ref-final",
+    "observed_at": 1792766966,
+    "daemon_pid": "2507147",
+    "loaded_exe_sha256": "481e3740cf26281ba6b48e3494d903065821a2728d8b4466d5d69b512383a883",
+    "repos": [
+      {
+        "repo": "/home/dracon/Dev/browser-extensions-shared",
+        "branch": "main",
+        "head": "bb4bb7622fceb348987ef260990bcbf19bd013af",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/browser-extensions-shared.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-platform",
+        "branch": "main",
+        "head": "366358a8078bca45cf7c50495d78765a9ce1ffe5",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-platform.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "44d276a9a502f437237e824e607e2510897e5ebf",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/.dracon",
+        "branch": "main",
+        "head": "646b585b4ae7394ec5d97b24e42e6c6ceae3c4fb",
+        "remotes": {
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "1e92de2adc0c0af56d40fea00b95430d912be1ec",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": false
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-home.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "646b585b4ae7394ec5d97b24e42e6c6ceae3c4fb",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities",
+        "branch": "main",
+        "head": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-utilities.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "https://github.com/DraconDev/dracon-utilities",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "c1c55cf374290b592e564bcfd2f10701ed04c817",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      },
+      {
+        "repo": "/home/dracon/Dev/dracon-utilities/dracon-sync",
+        "branch": "main",
+        "head": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+        "remotes": {
+          "github": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "gitlab": {
+            "url": "git@gitlab.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          },
+          "origin": {
+            "url": "git@github.com:DraconDev/dracon-sync-background-auto-commit-multi-remote.git",
+            "query_succeeded": true,
+            "query_error": "",
+            "branch_ref": "463ff3c0e6ce9e22a84deb51f9b949f6eaa21e8b",
+            "remote_tip_is_real_commit_object": true,
+            "object_type": "commit",
+            "in_sync_with_local_head": true
+          }
+        }
+      }
+    ]
+  }
 ]
