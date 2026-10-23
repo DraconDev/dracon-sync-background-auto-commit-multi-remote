@@ -1,0 +1,24 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 19s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 1 test
+test report::current_health::tests::exhausted_publication_budget_is_not_hidden_by_local_commit_activity ... FAILED
+
+failures:
+
+---- report::current_health::tests::exhausted_publication_budget_is_not_hidden_by_local_commit_activity stdout ----
+
+thread 'report::current_health::tests::exhausted_publication_budget_is_not_hidden_by_local_commit_activity' (1086117) panicked at dracon-sync/src/current_health_tests.rs:296:9:
+assertion `left == right` failed: phase=Some(Working)
+  left: Working
+ right: Stalled
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    report::current_health::tests::exhausted_publication_budget_is_not_hidden_by_local_commit_activity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1408 filtered out; finished in 0.19s
+
+error: test failed, to rerun pass `-p dracon-sync --bin dracon-sync`

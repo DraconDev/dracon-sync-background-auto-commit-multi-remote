@@ -1,0 +1,5 @@
+{
+  "beforeSha256": "a47a0abe84b3019608253f93d76ca31bd9399e23e0517987ec454a1ff7d2c16e",
+  "afterSha256": "48840b52df0eb33bc090d360478b7a2b3293330f51e1c03e689d61d04b1ef4d7",
+  "operation": "atomic wrapper replacement; helper tests passed 7/7; no processes signalled"
+}

@@ -1,0 +1,13 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 37s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 5 tests
+test report::current_health::tests::behind_counts_do_not_prove_a_pull_blocker ... ok
+test report::current_health::tests::current_convergence_freeze_block_and_missing_history_are_explicit ... ok
+test report::current_health::tests::current_convergence_output_table_is_independent_of_push_history_and_commit_age ... ok
+test report::current_health::tests::exhausted_publication_budget_is_not_hidden_by_local_commit_activity ... ok
+test report::current_health::tests::rich_rendered_states_keep_complete_activity_and_single_line_rows ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1404 filtered out; finished in 0.08s
+
