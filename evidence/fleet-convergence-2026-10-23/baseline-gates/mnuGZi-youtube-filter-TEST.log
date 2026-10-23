@@ -1,0 +1,1274 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter[39m
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mmounts on the FILTER tab (the first section is the default view), with the sidebar and the master switch
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mAI tab renders the key, model, taste profile, and test connection
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mStorage tab renders clear exceptions and re-judge AI cache
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mtabs expose the APG wiring: aria-controls/tabindex on tabs, role=tabpanel + aria-labelledby on panels
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/sections.test.ts [2m([22m[2m61 tests[22m[2m)[22m[33m 2142[2mms[22m[39m
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe nav is a VERTICAL tablist inside the sidebar (not a <nav> landmark of its own)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mArrowDown/ArrowUp move selection AND focus along the vertical nav (wrapping)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mLeft/Right still move the selection (they are the horizontal aliases)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mPageDown/PageUp jump by a chunk (L3, 2026-10-16)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mrefetches the "Last AI run" status when a background batch writes it (no reload)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mrenders an actionable hint under an error status (no bare "ERROR" without explanation)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2msurfaces a storage failure from the action rows instead of an unhandled rejection
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mflushes the pending debounced save on pagehide (close right after the last keystroke)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2msurfaces a rejected settings save with a Retry affordance instead of staying silent
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mpersists a textarea edit once the 400ms debounce fires (no pagehide needed)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2man immediate commit is NOT clobbered 400ms later by a pending debounced save
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/cards.test.ts [2m([22m[2m73 tests[22m[2m)[22m[33m 777[2mms[22m[39m
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe only pending debounced timer is cancelled by an immediate commit (bug is caught even when the switch would re-render first)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mshows Key-failed UI when the connection test reports failure or throws
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mL98: an EMPTY model must not turn a valid key into a spurious "Key failed"
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mL139: the Test button trims a pasted model before the provider call
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mL105: a stale "Key works" must be cleared when the key changes
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mClear forgets learned exceptions and Re-judge discards cached AI verdicts
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mgates the AI enable checkbox on a usable key + taste profile
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mAI tab carries the key-fetching links so first-time users never hunt for the site
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mclearing the taste profile also coerces ai.enabled to false in storage
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mclearing the taste profile also coerces ai.enabled to false in storage
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/engine.test.ts [2m([22m[2m28 tests[22m[2m)[22m[33m 1811[2mms[22m[39m
+     [33m[2m✓[22m[39m hides a card whose live badge only renders after the card [33m 351[2mms[22m[39m
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mnever asks the user to rate the extension
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mpersists blocked video IDs, reducing pasted links to their ID
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2msuggests rules from cached AI verdicts and adds one with one tap
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe nav switches between every dashboard panel
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe nav lists the sections in order: Filter, Rules, Overview, Blocklist, AI, Storage, Guide
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe active section is marked with the brand red ALONE - no box, no bar, no rounding
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe SIDEBAR carries the brand, the AI chip and the master switch (there is no top bar)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe content column is FULL WIDTH and the settings are ONE vertical list
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mEVERY panel fills the content column - no panel keeps a width cap
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe sidebar collapses to an ICON RAIL on a narrow window, and keeps every name
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe sidebar is EXPANDED on a wide window
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mrenders the header and three steps when the AI layer is not yet set up
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mmarks step 2 as Needed when the AI is unusable (no key, no profile)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mmarks step 2 as Done when the AI is fully set up
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mfilter toggles persist immediately and render every toggle, sidebar group included
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mprimary CTA routes to the AI tab when the AI is not set up
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mprimary CTA routes to youtube.com when the AI is already set up
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2moverview shows the Last AI run status inside its own panel
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mstep 1 action opens the dashboard at the Rules tab (where the rules are fine-tuned)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mstep 2 action opens the dashboard at the AI tab (deep-link for the key + profile flow)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mthe sidebar shows the AI status as a chip, not as a second copy of the Overview line
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mstep 3 action opens youtube.com in a new tab
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mclose button calls window.close (audit LOW 2026-10-17)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mexposes a Google AI Studio key link so first-time users can fetch one without leaving the page
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mimports a rules file from the Blocklist panel into the live lists
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mWelcome page[2m > [22m[2mnames only the filters that are actually ON by default
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page carries the never-paywall pledge[2m > [22m[2mshows the pledge, dated
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page carries the never-paywall pledge[2m > [22m[2moffers the donation link and the support inbox
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page carries the never-paywall pledge[2m > [22m[2msays donations unlock nothing
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page presets[2m > [22m[2moffers the three presets BEFORE the guide, so the setup is the first question
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2mannounces a failed import through the same role=status banner
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page presets[2m > [22m[2mapplies a preset and saves it - the choice is real, not a preview
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/welcome.test.tsx[2m > [22m[2mthe welcome page presets[2m > [22m[2mnever touches the user own lists or the AI
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/welcome.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 1708[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the header and three steps when the AI layer is not yet set up [33m 331[2mms[22m[39m
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2moverview jump buttons navigate to their sections
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2moverview jump buttons navigate to their sections
+[22m[39mAn update to App inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) tabs[2m > [22m[2moverview jump buttons navigate to their sections
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2mevery registered group has a heading with that id, in its own section
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2mthe sidebar lists the ACTIVE section’s groups, directly under it
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2mpicking a group moves focus to its heading and puts the group in the URL
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2ma group deep link opens the section AND the group
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2mswitching sections drops the group, so the fragment never points nowhere
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard hierarchy: the group list, the sidebar and the headings[2m > [22m[2mthe OLD ?tab=declutter link still opens the renamed section
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mopens the AI tab when the URL carries ?tab=ai (deep-link target)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mopens the Storage tab when the URL carries ?tab=storage
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mfalls back to the FILTER tab on an unknown ?tab= value
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mreads the #hash fallback when no query param is present
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mkeeps the URL in sync when the user switches tabs
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mclears a stale #hash from the entry URL once the query param is set
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mdashboard deep link (?tab= / #hash)[2m > [22m[2mdrops the hash even when both ?tab= and #hash were present at mount
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2moptions page (dashboard) [tab] cache/exception fetch: stale-response guard[2m > [22m[2mdrops an in-flight fetch that resolves AFTER the user switched tabs
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe Rules tab has a Show-why toggle bound to settings.mode
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2mthe master switch flips the enabled flag and persists it
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2mthe master switch's accessible name states the ACTION, not a static state
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2mthe master switch is reachable from every tab, not only the Overview
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/use-synced-settings.test.ts[2m > [22m[2mcross-surface settings sync (audit MED)[2m > [22m[2ma settings write made by ANOTHER surface is adopted, not shadowed
+[22m[39mAn update to Probe inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/use-synced-settings.test.ts[2m > [22m[2mcross-surface settings sync (audit MED)[2m > [22m[2man adopted echo does not revert a local edit that is still pending
+[22m[39mAn update to Probe inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2mno focusable checkbox sits inside an aria-hidden subtree
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2monly the DECORATIVE track/knob are aria-hidden, never a control
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard is the only surface[2m > [22m[2mevery switch a user needs is reachable, and each one persists its flip
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard Guide tab[2m > [22m[2mrenders the shared guide, with the same steps the welcome page shows
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard Guide tab[2m > [22m[2mthe guide links to the Google AI Studio key page
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard Guide tab[2m > [22m[2mthe guide's action switches to the tab it names (the dashboard is already open)
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe dashboard Guide tab[2m > [22m[2mthe guide marks the AI step Done once the AI layer is usable
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe Focus group (2026-10-22 competitor enrichment)[2m > [22m[2mrenders one switch per focus behaviour, all off by default
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe Focus group (2026-10-22 competitor enrichment)[2m > [22m[2mpersists a focus switch immediately, like every other switch
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe Focus group (2026-10-22 competitor enrichment)[2m > [22m[2msays in the card that these are free - the never-paywall stance is on the surface
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe Overview support card (the never-paywall pledge)[2m > [22m[2mshows the pledge, dated, and carries NO donation link
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe sidebar support links (Donate + Support)[2m > [22m[2mputs Donate and Support at the bottom-left of the sidebar, on every section
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe preset picker (the Filter section)[2m > [22m[2msits FIRST in the Filter section, before the switches it snaps
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe preset picker (the Filter section)[2m > [22m[2moffers the three presets and the way back to the defaults
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/use-synced-settings.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 2367[2mms[22m[39m
+     [33m[2m✓[22m[39m an adopted echo does not revert a local edit that is still pending [33m 543[2mms[22m[39m
+     [33m[2m✓[22m[39m writes a debounced commit only after the window, and an immediate one cancels it [33m 1071[2mms[22m[39m
+     [33m[2m✓[22m[39m END-TO-END: the remote apiKey survives the pending debounced local save [33m 582[2mms[22m[39m
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe preset picker (the Filter section)[2m > [22m[2mapplying a preset snaps the switches below it and says what changed
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe preset picker (the Filter section)[2m > [22m[2mnever touches the user own lists, the navigation switches or the AI
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | tests/options.test.tsx[2m > [22m[2mthe preset picker (the Filter section)[2m > [22m[2mthe reset puts the switches back to the shipped defaults
+[22m[39mAn update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/options.test.tsx [2m([22m[2m77 tests[22m[2m)[22m[33m 23221[2mms[22m[39m
+     [33m[2m✓[22m[39m mounts on the FILTER tab (the first section is the default view), with the sidebar and the master switch [33m 445[2mms[22m[39m
+     [33m[2m✓[22m[39m ArrowDown/ArrowUp move selection AND focus along the vertical nav (wrapping) [33m 328[2mms[22m[39m
+     [33m[2m✓[22m[39m PageDown/PageUp jump by a chunk (L3, 2026-10-16) [33m 467[2mms[22m[39m
+     [33m[2m✓[22m[39m refetches the "Last AI run" status when a background batch writes it (no reload) [33m 690[2mms[22m[39m
+     [33m[2m✓[22m[39m flushes the pending debounced save on React unmount [33m 389[2mms[22m[39m
+     [33m[2m✓[22m[39m surfaces a rejected settings save with a Retry affordance instead of staying silent [33m 440[2mms[22m[39m
+     [33m[2m✓[22m[39m persists a textarea edit once the 400ms debounce fires (no pagehide needed) [33m 868[2mms[22m[39m
+     [33m[2m✓[22m[39m an immediate commit is NOT clobbered 400ms later by a pending debounced save [33m 1109[2mms[22m[39m
+     [33m[2m✓[22m[39m the only pending debounced timer is cancelled by an immediate commit (bug is caught even when the switch would re-render first) [33m 1615[2mms[22m[39m
+     [33m[2m✓[22m[39m gates the AI enable checkbox on a usable key + taste profile [33m 662[2mms[22m[39m
+     [33m[2m✓[22m[39m AI tab carries the key-fetching links so first-time users never hunt for the site [33m 449[2mms[22m[39m
+     [33m[2m✓[22m[39m clearing the taste profile also coerces ai.enabled to false in storage [33m 678[2mms[22m[39m
+     [33m[2m✓[22m[39m never asks the user to rate the extension [33m 408[2mms[22m[39m
+     [33m[2m✓[22m[39m persists blocked video IDs, reducing pasted links to their ID [33m 949[2mms[22m[39m
+     [33m[2m✓[22m[39m suggests rules from cached AI verdicts and adds one with one tap [33m 343[2mms[22m[39m
+     [33m[2m✓[22m[39m the nav switches between every dashboard panel [33m 543[2mms[22m[39m
+     [33m[2m✓[22m[39m EVERY panel fills the content column - no panel keeps a width cap [33m 314[2mms[22m[39m
+     [33m[2m✓[22m[39m filter toggles persist immediately and render every toggle, sidebar group included [33m 391[2mms[22m[39m
+     [33m[2m✓[22m[39m announces a failed import through the same role=status banner [33m 493[2mms[22m[39m
+     [33m[2m✓[22m[39m overview jump buttons navigate to their sections [33m 354[2mms[22m[39m
+     [33m[2m✓[22m[39m every registered group has a heading with that id, in its own section [33m 350[2mms[22m[39m
+     [33m[2m✓[22m[39m drops an in-flight fetch that resolves AFTER the user switched tabs [33m 694[2mms[22m[39m
+   [33m[2m✓[22m[39m the Rules tab has a Show-why toggle bound to settings.mode [33m 463[2mms[22m[39m
+     [33m[2m✓[22m[39m the master switch flips the enabled flag and persists it [33m 398[2mms[22m[39m
+     [33m[2m✓[22m[39m the master switch is reachable from every tab, not only the Overview [33m 537[2mms[22m[39m
+     [33m[2m✓[22m[39m applying a preset snaps the switches below it and says what changed [33m 397[2mms[22m[39m
+     [33m[2m✓[22m[39m the reset puts the switches back to the shipped defaults [33m 304[2mms[22m[39m
+ [32m✓[39m tests/hide.test.ts [2m([22m[2m37 tests[22m[2m)[22m[33m 521[2mms[22m[39m
+ [32m✓[39m tests/watch-guard-controller.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 605[2mms[22m[39m
+ [32m✓[39m tests/content-entrypoint.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 484[2mms[22m[39m
+ [32m✓[39m tests/privacy-storage.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 189[2mms[22m[39m
+ [32m✓[39m tests/sidebar.test.ts [2m([22m[2m43 tests[22m[2m)[22m[33m 877[2mms[22m[39m
+ [32m✓[39m tests/ai-coherence.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/live/integrity.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/watch-guard.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 610[2mms[22m[39m
+ [32m✓[39m tests/channel-nav.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 284[2mms[22m[39m
+ [32m✓[39m tests/cdp-driver-cleanup.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/quick-block.test.ts [2m([22m[2m37 tests[22m[2m)[22m[32m 210[2mms[22m[39m
+ [32m✓[39m tests/dashboard-tabs.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/tokens-theme.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m tests/suggestions.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/rules.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32m✓[39m tests/support.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m tests/storage-sync.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m tests/types-lifecycle.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/blocklist.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m tests/yt-relay-poll.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+ [32m✓[39m tests/presets.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 115[2mms[22m[39m
+ [32m✓[39m tests/playback.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m tests/background-main.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+ [32m✓[39m tests/resolve-channel.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m tests/verify-marks.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/focus.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 217[2mms[22m[39m
+ [32m✓[39m tests/page-relay.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m tests/error-boundary-reexport.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/settings.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 292[2mms[22m[39m
+ [32m✓[39m tests/grid-recovery.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+ [32m✓[39m tests/relay-roundtrip.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m tests/classifier.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32m✓[39m tests/enrich.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+ [32m✓[39m tests/dashboard-groups.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m tests/use-save-settings.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/store-assets.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+[90mstdout[2m | tests/background.test.ts
+[22m[39m[Background] Service worker started
+
+ [32m✓[39m tests/background.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 159[2mms[22m[39m
+ [32m✓[39m lib/open-rules.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/release.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/surfaces.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/sw-settings-cache.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+ [32m✓[39m tests/privacy.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/spec.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m tests/live/redirect-target.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/manifest-host-coverage.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/readme.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/action-dashboard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m tests/setup.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m54 passed[39m[22m[90m (54)[39m
+[2m      Tests [22m [1m[32m925 passed[39m[22m[90m (925)[39m
+[2m   Start at [22m 16:52:12
+[2m   Duration [22m 96.02s[2m (transform 14.33s, setup 2.53s, import 19.99s, tests 38.51s, environment 89.35s)[22m
+

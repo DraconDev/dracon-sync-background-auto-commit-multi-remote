@@ -1,0 +1,658 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension[39m
+
+ [31m❯[39m test/collaborationChannel.test.ts [2m([22m[2m14 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 175[2mms[22m[39m
+     [32m✓[39m is measured against the first channel the byline names[32m 81[2mms[22m[39m
+     [32m✓[39m is measured against a channel the same page links[32m 5[2mms[22m[39m
+     [32m✓[39m is left alone when nothing on the page names its channel[32m 2[2mms[22m[39m
+     [32m✓[39m keeps the byline's own name for the line to be written against[32m 1[2mms[22m[39m
+     [32m✓[39m reads a byline that names one channel as that channel[32m 3[2mms[22m[39m
+     [32m✓[39m is measured against the channel the same feed links[32m 5[2mms[22m[39m
+     [32m✓[39m is left alone when the feed knows no such channel[32m 3[2mms[22m[39m
+     [32m✓[39m is not measured against a channel the TITLE mentions[32m 5[2mms[22m[39m
+     [32m✓[39m keeps the collaboration's own row on the channel's own page[32m 46[2mms[22m[39m
+[31m     [31m×[31m is measured against the first channel the byline names[39m[32m 13[2mms[22m[39m
+[31m     [31m×[31m names the channel, not the byline, for the line to be written against[39m[32m 4[2mms[22m[39m
+     [32m✓[39m takes the first name[32m 0[2mms[22m[39m
+     [32m✓[39m leaves a name with no separator alone[32m 0[2mms[22m[39m
+     [32m✓[39m is only ever a FALLBACK: the whole name is tried first[32m 3[2mms[22m[39m
+ [31m❯[39m test/pageRows.test.ts [2m([22m[2m9 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 173[2mms[22m[39m
+     [32m✓[39m does not read the extension's own line back as the row's view count[32m 88[2mms[22m[39m
+     [32m✓[39m collects one identity-scoped snapshot and skips extension-owned roots[32m 12[2mms[22m[39m
+     [32m✓[39m reads only the channel's own videos grid, in the real channel-tab shape[32m 45[2mms[22m[39m
+     [32m✓[39m collects nothing from a channel Home tab, where #primary holds shelves and live rows[32m 7[2mms[22m[39m
+     [32m✓[39m rejects another channel's row even inside the videos grid[32m 2[2mms[22m[39m
+     [32m✓[39m keeps a row when neither the page nor the row states a channel[32m 2[2mms[22m[39m
+     [32m✓[39m compares channel identity by handle and by name[32m 0[2mms[22m[39m
+     [32m✓[39m does not treat an off-site link as a current YouTube row[32m 5[2mms[22m[39m
+[31m     [31m×[31m keeps both copies of a video that the page shows twice[39m[32m 9[2mms[22m[39m
+16:21:30 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+16:21:30 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+ [32m✓[39m test/studioFiller.test.ts [2m([22m[2m137 tests[22m[2m)[22m[33m 3815[2mms[22m[39m
+     [33m[2m✓[22m[39m reports missing (not hangs) when only dead shells exist [33m 355[2mms[22m[39m
+     [33m[2m✓[22m[39m reports partial commits with the failed tags named [33m 503[2mms[22m[39m
+     [33m[2m✓[22m[39m applyCategory resolves AI-first with the stored default as fallback [33m 460[2mms[22m[39m
+ [32m✓[39m test/components.test.ts [2m([22m[2m64 tests[22m[2m)[22m[33m 4170[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps every accepted library variable across remount (no silent 10-cap drop) [33m 633[2mms[22m[39m
+[90mstdout[2m | test/aiScoring.test.ts[2m > [22m[2mscoreTitlesWithBYOK[2m > [22m[2mfails soft to an empty list on network errors and unparsable prose
+[22m[39m[vidpro:ai] AI Studio retry attempt 1/2 after 1000ms
+
+[90mstderr[2m | test/aiScoring.test.ts[2m > [22m[2mscoreTitlesWithBYOK[2m > [22m[2mfails soft to an empty list on network errors and unparsable prose
+[22m[39m[vidpro:ai] scoreTitlesWithBYOK failed: TypeError: Cannot read properties of undefined (reading 'content')
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:962:65
+    at Module.scoreTitlesWithBYOK [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:959:7[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:123:13
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstdout[2m | test/aiScoring.test.ts[2m > [22m[2mscoreTitlesWithBYOK[2m > [22m[2mignores a cached empty array and refetches a valid score roll
+[22m[39m[vidpro:ai] AI cache entry failed score parsing — refetching
+
+[90mstdout[2m | test/aiScoring.test.ts[2m > [22m[2mscoreSetupWithBYOK[2m > [22m[2mreturns null setup on partial verdicts, arrays, and failures
+[22m[39m[vidpro:ai] AI Studio retry attempt 1/2 after 1000ms
+
+[90mstderr[2m | test/aiScoring.test.ts[2m > [22m[2mscoreSetupWithBYOK[2m > [22m[2mreturns null setup on partial verdicts, arrays, and failures
+[22m[39m[vidpro:ai] scoreSetupWithBYOK failed: TypeError: Cannot read properties of undefined (reading 'content')
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:1048:64
+    at Module.scoreSetupWithBYOK [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:1045:7[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:176:13
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstdout[2m | test/aiScoring.test.ts[2m > [22m[2mscoreSetupWithBYOK[2m > [22m[2mignores a cached empty object and refetches a complete setup verdict
+[22m[39m[vidpro:ai] AI cache entry failed setup-score parsing — refetching
+
+[90mstderr[2m | test/aiScoring.test.ts[2m > [22m[2mscoring prompt house style[2m > [22m[2mgrades titles under long-term trust, current as baseline not curve
+[22m[39m[vidpro:ai] scoreTitlesWithBYOK failed: TypeError: Cannot read properties of undefined (reading 'content')
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:962:65
+    at Module.scoreTitlesWithBYOK [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:959:7[90m)[39m
+    at sentPrompt [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:499:5[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:507:20
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | test/aiScoring.test.ts[2m > [22m[2mscoring prompt house style[2m > [22m[2mtreats typo-look tags as deliberate capture, not errors
+[22m[39m[vidpro:ai] scoreSetupWithBYOK failed: TypeError: Cannot read properties of undefined (reading 'content')
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:1048:64
+    at Module.scoreSetupWithBYOK [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/byokClient.ts:1045:7[90m)[39m
+    at sentPrompt [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:499:5[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiScoring.test.ts:513:20
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+ [32m✓[39m test/aiScoring.test.ts [2m([22m[2m28 tests[22m[2m)[22m[33m 2206[2mms[22m[39m
+     [33m[2m✓[22m[39m fails soft to an empty list on network errors and unparsable prose [33m 1018[2mms[22m[39m
+     [33m[2m✓[22m[39m returns null setup on partial verdicts, arrays, and failures [33m 1008[2mms[22m[39m
+ [32m✓[39m test/repaintScheduler.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 3278[2mms[22m[39m
+     [33m[2m✓[22m[39m observes the document when no root is passed — the shape production uses [33m 415[2mms[22m[39m
+     [33m[2m✓[22m[39m coalesces a burst of mutations into one repaint on the trailing edge [33m 353[2mms[22m[39m
+     [33m[2m✓[22m[39m ignores mutations inside its own nodes so a rewrite cannot self-loop [33m 352[2mms[22m[39m
+     [33m[2m✓[22m[39m still repaints when a batch mixes our own node with real page activity [33m 352[2mms[22m[39m
+     [33m[2m✓[22m[39m re-paints on the poll backstop when no mutation is observable [33m 501[2mms[22m[39m
+     [33m[2m✓[22m[39m reports a pending debounce so a caller can await the next paint [33m 350[2mms[22m[39m
+     [33m[2m✓[22m[39m schedules a repaint when the host removes one of our nodes [33m 403[2mms[22m[39m
+     [33m[2m✓[22m[39m still ignores a batch that only rewrites inside our own node [33m 404[2mms[22m[39m
+ [32m✓[39m test/byokClient-coverage.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 1212[2mms[22m[39m
+       [33m[2m✓[22m[39m retries on 429 with retry-after header hint [33m 1008[2mms[22m[39m
+ [32m✓[39m test/studioSources.test.ts [2m([22m[2m37 tests[22m[2m)[22m[33m 1905[2mms[22m[39m
+     [33m[2m✓[22m[39m runs the full trigger → dialog → Done flow [33m 460[2mms[22m[39m
+     [33m[2m✓[22m[39m imports from the latest video (first option) [33m 307[2mms[22m[39m
+     [33m[2m✓[22m[39m picks a saved layout by name, reports a missing one [33m 611[2mms[22m[39m
+     [33m[2m✓[22m[39m refuses applied:true when the save click lands nowhere [33m 302[2mms[22m[39m
+ [32m✓[39m test/ensureWxtGuard.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 679[2mms[22m[39m
+ [32m✓[39m test/UnifiedSidebar.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 636[2mms[22m[39m
+ [32m✓[39m test/studioLiveRegressions.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 960[2mms[22m[39m
+ [32m✓[39m test/channelFetch.test.ts [2m([22m[2m63 tests[22m[2m)[22m[33m 359[2mms[22m[39m
+ [32m✓[39m test/settingsPersist.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 865[2mms[22m[39m
+ [32m✓[39m test/channelCardSummary.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 352[2mms[22m[39m
+ [32m✓[39m test/channelContext.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32m✓[39m test/SettingsTabRetry.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 538[2mms[22m[39m
+     [33m[2m✓[22m[39m retry recovers the null-settings state without a dashboard reload [33m 535[2mms[22m[39m
+ [32m✓[39m test/dashboardTabs.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 500[2mms[22m[39m
+ [32m✓[39m test/additional-coverage.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 344[2mms[22m[39m
+ [32m✓[39m test/remaining-components.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m test/settingsProfileHandoff.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 193[2mms[22m[39m
+ [32m✓[39m test/channelReader.test.ts [2m([22m[2m61 tests[22m[2m)[22m[33m 318[2mms[22m[39m
+ [32m✓[39m test/popup.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 207[2mms[22m[39m
+ [32m✓[39m test/ProfileSettings.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 421[2mms[22m[39m
+ [32m✓[39m test/quickSetupUndoGate.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 250[2mms[22m[39m
+ [32m✓[39m test/watchReader.test.ts [2m([22m[2m37 tests[22m[2m)[22m[32m 273[2mms[22m[39m
+ [32m✓[39m test/welcome.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 261[2mms[22m[39m
+ [32m✓[39m test/modelPicker.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 184[2mms[22m[39m
+ [32m✓[39m test/studioChecklist.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 204[2mms[22m[39m
+ [32m✓[39m test/realYoutubeRows.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 386[2mms[22m[39m
+ [32m✓[39m test/watchSubscriberSelector.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 46[2mms[22m[39m
+ [32m✓[39m test/SettingsNav.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 167[2mms[22m[39m
+[90mstderr[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mdoes not serve a cached overlong single-field title that the validator rejects
+[22m[39m[vidpro:ai] Ignoring optimization cache entry for the wrong field
+
+[90mstdout[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mrecovers on a fresh provider call after two invalid attempts (full-metadata)
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT'[39m,
+  description: [32m'd'[39m,
+  tags: [32m't'[39m
+}
+
+[90mstdout[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mrecovers on a fresh provider call after two invalid attempts (full-metadata)
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'[39m,
+  description: [32m'd'[39m,
+  tags: [32m't'[39m
+}
+
+[90mstdout[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mrecovers on a fresh provider call after two invalid attempts (full-metadata)
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Short Valid Title'[39m, description: [32m'd'[39m, tags: [32m't'[39m }
+
+[90mstderr[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mrefetches a cached overlong full-metadata title
+[22m[39m[vidpro:ai] Ignoring optimization cache entry with an invalid JSON shape
+
+[90mstdout[2m | test/titleCacheGate.test.ts[2m > [22m[2maudit 2026-09-17: semantic title validation at the cache boundary[2m > [22m[2mrefetches cached refusal prose
+[22m[39m[vidpro:ai] AI cache entry failed title cleaning — refetching
+
+ [32m✓[39m test/titleCacheGate.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m test/buildStampDom.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+ [32m✓[39m test/byokClient-extended.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32m✓[39m test/firefoxCompatibility.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+       [33m[2m✓[22m[39m does not use Chrome-only MV3 APIs in production code [33m 334[2mms[22m[39m
+ [32m✓[39m test/SetupBanner.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32m✓[39m test/manifestHostPermissions.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+[90mstderr[2m | test/byokClient.test.ts[2m > [22m[2mbyokClient (Google AI Studio only)[2m > [22m[2moptimizeVideoWithBYOK[2m > [22m[2mreturns error when chatWithProvider fails
+[22m[39m[vidpro:ai] optimizeVideoWithBYOK failed: Error: 401 Unauthorized
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/byokClient.test.ts:242:50
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | test/byokClient.test.ts[2m > [22m[2mbyokClient (Google AI Studio only)[2m > [22m[2mcache behavior[2m > [22m[2mrefetches instead of serving an invalid cached optimization object
+[22m[39m[vidpro:ai] Ignoring optimization cache entry with an invalid JSON shape
+
+[90mstdout[2m | test/byokClient.test.ts[2m > [22m[2maudit 2026-09-11: single-field caching, tone cap, untrusted-data directive[2m > [22m[2mcaches usable single-field responses so repeat clicks hit
+[22m[39m[vidpro:ai] AI cache hit for optimization
+
+[90mstderr[2m | test/byokClient.test.ts[2m > [22m[2maudit 2026-09-11: single-field caching, tone cap, untrusted-data directive[2m > [22m[2mnever serves a cached sibling field for a single-field request
+[22m[39m[vidpro:ai] Ignoring optimization cache entry for the wrong field
+
+ [32m✓[39m test/byokClient.test.ts [2m([22m[2m43 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould parse valid JSON response
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m, [32m'tag3'[39m ]
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould parse JSON from markdown code blocks
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'Code Block Title'[39m,
+  description: [32m'Code block description'[39m,
+  tags: [32m'code, block, tags'[39m
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould extract JSON object from surrounding text
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'Embedded Title'[39m,
+  description: [32m'Embedded desc'[39m,
+  tags: [32m'embedded, tags'[39m
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mrejects overlong titles rather than silently truncating
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'[39m,
+  description: [32m'desc'[39m,
+  tags: [32m'tags'[39m
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould truncate tags over 500 chars
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'Title'[39m,
+  description: [32m'desc'[39m,
+  tags: [32m'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT'[39m
+}
+
+[90mstderr[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould truncate tags over 500 chars
+[22m[39m[vidpro:ai] AI tags exceed 500 chars, truncating
+
+[90mstderr[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould throw on invalid JSON
+[22m[39m[vidpro:ai] Failed to parse AI response: SyntaxError: Unexpected token 'o', "not json at all" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parseJsonResponse [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/ai/optimizer.ts:26:19[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/aiOptimizer.test.ts:66:18
+    at Proxy.assertThrows (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:2798:5)
+    at Proxy.methodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1700:25)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1216:12)
+    at Proxy.overwritingMethodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1750:33)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1552:16)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1700:25)
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould throw when title is missing
+[22m[39m[vidpro:ai] Parsed AI response: { description: [32m'desc'[39m, tags: [32m'tags'[39m }
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould throw when description is missing
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Title'[39m, tags: [32m'tags'[39m }
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould throw when tags is missing
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Title'[39m, description: [32m'desc'[39m }
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse[2m > [22m[2mshould throw when response is not an object
+[22m[39m[vidpro:ai] Parsed AI response: just a string
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mpackTags[2m > [22m[2mkeeps every whole tag through the full-response path
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'T'[39m,
+  description: [32m'D'[39m,
+  tags: [32m'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'[39m
+}
+
+[90mstderr[2m | test/aiOptimizer.test.ts[2m > [22m[2mpackTags[2m > [22m[2mkeeps every whole tag through the full-response path
+[22m[39m[vidpro:ai] AI tags exceed 500 chars, truncating
+
+[90mstderr[2m | test/aiOptimizer.test.ts[2m > [22m[2mgenerated title validation and bounded repair[2m > [22m[2mdoes not retry unrelated parse failures
+[22m[39m[vidpro:ai] Failed to parse AI response: SyntaxError: Unexpected token 'o', "not json" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parseJsonResponse [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/ai/optimizer.ts:26:19[90m)[39m
+    at parseWithTitleRetry [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/ai/optimizer.ts:120:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse categoryId (closed list)[2m > [22m[2mpasses through a real suggested category
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [32m'10'[39m
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse categoryId (closed list)[2m > [22m[2mdrops hallucinated or mistyped IDs — the default fallback applies
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [32m'99'[39m
+}
+[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [32m'music'[39m
+}
+[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [32m''[39m
+}
+[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [33m10[39m
+}
+[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ],
+  categoryId: [1mnull[22m
+}
+
+[90mstdout[2m | test/aiOptimizer.test.ts[2m > [22m[2mparseJsonResponse categoryId (closed list)[2m > [22m[2mstays absent when the model omits it (older caches, subset calls)
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'My Video Title'[39m,
+  description: [32m'My video description'[39m,
+  tags: [ [32m'tag1'[39m, [32m'tag2'[39m ]
+}
+
+ [32m✓[39m test/aiOptimizer.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32m✓[39m test/errorBoundary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 170[2mms[22m[39m
+ [32m✓[39m test/channelViews.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 100[2mms[22m[39m
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.getSettings[2m > [22m[2mshould return default settings merged with empty apiKey
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.getSettings[2m > [22m[2mshould return default settings merged with empty apiKey
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.getSettings[2m > [22m[2mshould return active profile settings
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.getSettings[2m > [22m[2mshould return active profile settings
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update profile settings only
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update profile settings only
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update API key separately in local storage
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update API key separately in local storage
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update both settings and apiKey in one call
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.updateSettings[2m > [22m[2mshould update both settings and apiKey in one call
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mshould create a new profile with default settings
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mshould create a new profile with default settings
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mshould create multiple profiles
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mshould create multiple profiles
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mserializes concurrent profile creations without losing either profile
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.createProfile[2m > [22m[2mserializes concurrent profile creations without losing either profile
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould delete a profile and switch active if needed
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould delete a profile and switch active if needed
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould throw when trying to delete the last profile
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould throw when trying to delete the last profile
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould not change active profile if deleting non-active
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.deleteProfile[2m > [22m[2mshould not change active profile if deleting non-active
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mserializes a switch before an update targeted at the new profile
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mserializes a switch before an update targeted at the new profile
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mshould switch active profile
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mshould switch active profile
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mshould throw for non-existent profile
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2msettingsStore.setActiveProfile[2m > [22m[2mshould throw for non-existent profile
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mshould migrate apiKey from the old sync store to the BYOK store
+[22m[39m[vidpro:store] API key migrated to the BYOK store
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mshould migrate apiKey from the old sync store to the BYOK store
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mshould migrate apiKey from the old sync store to the BYOK store
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mpreserves an existing device-local key over a legacy sync key
+[22m[39m[vidpro:store] API key migrated to the BYOK store
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mpreserves an existing device-local key over a legacy sync key
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mpreserves an existing device-local key over a legacy sync key
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mshould not fail migration when no old apiKey exists
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mstore[2m > [22m[2mAPI key migration[2m > [22m[2mshould not fail migration when no old apiKey exists
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstderr[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mretries a failed migration on the next storage operation
+[22m[39m[vidpro:store] Failed to migrate profiles to local: Error: local storage unavailable
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/store.test.ts:327:39
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+    at file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+runner@4.1.9/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mretries a failed migration on the next storage operation
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mretries a failed migration on the next storage operation
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mv1 migration never overwrites a local profile list it did not read
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mv1 migration never overwrites a local profile list it did not read
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mfills new automation keys without overwriting existing values
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mfills new automation keys without overwriting existing values
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mmoves a profile still on the old default category, and leaves a chosen one alone
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mmoves a profile still on the old default category, and leaves a chosen one alone
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mnever moves a profile whose category the user chose, even on the old default's value
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2mnever moves a profile whose category the user chose, even on the old default's value
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2muses local profiles instead of stale sync profiles after migration
+[22m[39m[vidpro:store] Profiles migrated to local storage (v1 → v2)
+
+[90mstdout[2m | test/store.test.ts[2m > [22m[2mv2 → v4 settings-defaults migration[2m > [22m[2muses local profiles instead of stale sync profiles after migration
+[22m[39m[vidpro:store] Settings defaults filled (v2 → v4)
+
+ [32m✓[39m test/store.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+ [32m✓[39m test/trackedChannels.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m test/backgroundStartup.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32m✓[39m test/watchCardReach.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m test/homeTabCardSourcing.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m test/videoBadges.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m test/channelInsights.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m test/imageSiteTabs.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32m✓[39m test/channelHeaderRail.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 52[2mms[22m[39m
+ [32m✓[39m test/i18n.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m test/studioTranscript.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m test/backgroundSenderGate.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [32m✓[39m test/version-extended.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m test/store-extended.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 94[2mms[22m[39m
+ [32m✓[39m test/imageSites.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m test/timing-extended.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+ [32m✓[39m test/timeout.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32m✓[39m test/channelStatsBar.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+16:22:53 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+ [32m✓[39m test/ToastItem.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+ [32m✓[39m test/installState.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32m✓[39m test/categories.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m test/releaseMetadata.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 61[2mms[22m[39m
+ [32m✓[39m test/App.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m test/useToasts.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 61[2mms[22m[39m
+ [32m✓[39m test/setupScoreTagScope.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 94[2mms[22m[39m
+ [32m✓[39m test/studioNoListInjection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/aiCache-extended.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m test/studioScanResets.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m test/parseVideoId.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m test/byokAdapter-extended.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m test/constants.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/realFeedRows.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+ [32m✓[39m test/primaryChannel.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 112[2mms[22m[39m
+ [32m✓[39m test/insightSettings.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m test/privacy.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+ [32m✓[39m test/logger.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m test/parseVideoId-extended.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m test/draftChecklist.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+ [32m✓[39m test/timing.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m test/optimizeHandler.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 160[2mms[22m[39m
+ [32m✓[39m test/pageMetrics.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 184[2mms[22m[39m
+ [32m✓[39m test/quickTemplateFills.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m test/studioConnection.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+ [32m✓[39m test/backgroundHandlers-extended.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32m✓[39m test/docsIndex.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mparses valid JSON response
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, description: [32m'Desc'[39m, tags: [32m'tag1,tag2'[39m }
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mparses response without code block
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, description: [32m'Desc'[39m, tags: [32m'tag1'[39m }
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mhandles tags as array
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, description: [32m'Desc'[39m, tags: [ [32m'tag1'[39m, [32m'tag2'[39m ] }
+
+[90mstderr[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mthrows on invalid JSON
+[22m[39m[vidpro:ai] Failed to parse AI response: SyntaxError: Unexpected token 'o', "not valid json" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parseJsonResponse [90m(/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mutils/ai/optimizer.ts:26:19[90m)[39m
+    at [90m/home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension/[39mtest/ai/optimizer-extended.test.ts:30:20
+    at Proxy.assertThrows (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:2798:5)
+    at Proxy.methodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1700:25)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1216:12)
+    at Proxy.overwritingMethodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1750:33)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1552:16)
+    at Proxy.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/@vitest+expect@4.1.9/node_modules/[4m@vitest/expect[24m/dist/index.js:1156:15)
+    at Proxy.methodWrapper (file:///home/dracon/Dev/browser-extensions-shared/node_modules/[4m.bun[24m/chai@6.2.2/node_modules/[4mchai[24m/index.js:1700:25)
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mthrows on missing title
+[22m[39m[vidpro:ai] Parsed AI response: { description: [32m'Desc'[39m, tags: [32m'tag1'[39m }
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mthrows on missing description
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, tags: [32m'tag1'[39m }
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mthrows on missing tags
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, description: [32m'Desc'[39m }
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mrejects titles above MAX_TITLE_LENGTH without publishing a fragment
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'[39m,
+  description: [32m'Desc'[39m,
+  tags: [32m'tag1'[39m
+}
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mtruncates tags to MAX_TAG_LENGTH
+[22m[39m[vidpro:ai] Parsed AI response: {
+  title: [32m'Test'[39m,
+  description: [32m'Desc'[39m,
+  tags: [32m'tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,tag,'[39m
+}
+
+[90mstderr[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mtruncates tags to MAX_TAG_LENGTH
+[22m[39m[vidpro:ai] AI tags exceed 500 chars, truncating
+
+[90mstdout[2m | test/ai/optimizer-extended.test.ts[2m > [22m[2mAI Optimizer Extended Tests[2m > [22m[2mparseJsonResponse[2m > [22m[2mextracts JSON from mixed text
+[22m[39m[vidpro:ai] Parsed AI response: { title: [32m'Test'[39m, description: [32m'Desc'[39m, tags: [32m'tag1'[39m }
+
+ [32m✓[39m test/ai/optimizer-extended.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m test/settingsSection-extended.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/sharedHash-extended.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/runtimeDetect-extended.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/injectedStyles.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m test/errors-extended.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m test/sharedHash.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m test/byokAdapter.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m test/rateLimiter.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/messages-extended.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m test/aiCache.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [32m✓[39m test/studioQuickGuards.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 159[2mms[22m[39m
+ [32m✓[39m test/result-coverage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m test/logger-extended.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32m✓[39m test/referenceReads.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 95[2mms[22m[39m
+ [32m✓[39m test/errors.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m test/i18n-extended.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m test/dashboardStore.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 100[2mms[22m[39m
+ [32m✓[39m test/buildStamp.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m test/rateLimiter-extended.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32m✓[39m test/settingsDataRequirements.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m test/result-extended.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m test/urlParams.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+ [32m✓[39m test/videoOwners.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m test/runtimeDetect-coverage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32m✓[39m test/constants-extended.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/collaborationChannel.test.ts[2m > [22ma feed row whose channels are in its avatar stack[2m > [22mis measured against the first channel the byline names
+[31m[1mAssertionError[22m: expected null to be '/channel/UCgUbWS9EE4TUQ-8UChOJWKg' // Object.is equality[39m
+
+[32m- Expected:[39m
+"/channel/UCgUbWS9EE4TUQ-8UChOJWKg"
+
+[31m+ Received:[39m
+null
+
+[36m [2m❯[22m test/collaborationChannel.test.ts:[2m489:33[22m[39m
+    [90m487|[39m     [35mconst[39m rows [33m=[39m [34mcollectVisibleVideoRows[39m(doc)[33m;[39m
+    [90m488|[39m     [34mexpect[39m(rows)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m489|[39m     expect(rows[0].channelHref).toBe("/channel/UCgUbWS9EE4TUQ-8UChOJWK…
+    [90m   |[39m                                 [31m^[39m
+    [90m490|[39m   })[33m;[39m
+    [90m491|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/collaborationChannel.test.ts[2m > [22ma feed row whose channels are in its avatar stack[2m > [22mnames the channel, not the byline, for the line to be written against
+[31m[1mAssertionError[22m: expected undefined to be '/channel/UCgUbWS9EE4TUQ-8UChOJWKg' // Object.is equality[39m
+
+[32m- Expected:[39m
+"/channel/UCgUbWS9EE4TUQ-8UChOJWKg"
+
+[31m+ Received:[39m
+undefined
+
+[36m [2m❯[22m test/collaborationChannel.test.ts:[2m502:28[22m[39m
+    [90m500|[39m       [32m"Sonic-wave and Project Purple"[39m
+    [90m501|[39m     )[33m;[39m
+    [90m502|[39m     [34mexpect[39m(resolved[33m?.[39mpath)[33m.[39m[34mtoBe[39m([32m"/channel/UCgUbWS9EE4TUQ-8UChOJWKg"[39m)[33m;[39m
+    [90m   |[39m                            [31m^[39m
+    [90m503|[39m     [34mexpect[39m(resolved[33m?.[39mname)[33m.[39m[34mtoBe[39m([32m"Sonic-wave"[39m)[33m;[39m
+    [90m504|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pageRows.test.ts[2m > [22mshared visible row collector[2m > [22mkeeps both copies of a video that the page shows twice
+[31m[1mAssertionError[22m: expected [ { …(9) } ] to have a length of 2 but got 1[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 1[39m
+
+[36m [2m❯[22m test/pageRows.test.ts:[2m264:18[22m[39m
+    [90m262|[39m     )[33m;[39m
+    [90m263|[39m     [35mconst[39m rows [33m=[39m [34mcollectVisibleVideoRows[39m(doc)[33m;[39m
+    [90m264|[39m     [34mexpect[39m(rows)[33m.[39m[34mtoHaveLength[39m([34m2[39m)[33m;[39m
+    [90m   |[39m                  [31m^[39m
+    [90m265|[39m     expect(rows.map((row) => row.videoId)).toEqual(["dupeVideo01", "du…
+    [90m266|[39m     // Both copies name the same channel, so both are measured against…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m110 passed[39m[22m[90m (112)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m1318 passed[39m[22m[90m (1321)[39m
+[2m   Start at [22m 16:21:20
+[2m   Duration [22m 170.45s[2m (transform 14.46s, setup 129.50s, import 21.26s, tests 30.99s, environment 108.60s)[22m
+
+
+Gate exited with status 1

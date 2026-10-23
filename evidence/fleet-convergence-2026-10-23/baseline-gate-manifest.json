@@ -1,0 +1,258 @@
+[
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.yzfZgq/extensions_standalones_youtube-filter-TYPECHECK.log",
+    "artifact": "baseline-gates/yzfZgq-youtube-filter-TYPECHECK.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.513178+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.yzfZgq/extensions_standalones_youtube-filter-BUILD.log",
+    "artifact": "baseline-gates/yzfZgq-youtube-filter-BUILD.log",
+    "bytes": 1853,
+    "sha256": "f6d3e791b85a7a3e53b967ed1b36b50f8a3d338d1b62ff9855ccdee9bf767636",
+    "captured_at": "2026-10-23T15:55:28.515185+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.yzfZgq/extensions_standalones_youtube-filter-TEST.log",
+    "artifact": "baseline-gates/yzfZgq-youtube-filter-TEST.log",
+    "bytes": 68116,
+    "sha256": "21bcaa17e8fa5aaa56eabc418b432fb9c535a61f61c1f1511e44a1e39e0016b7",
+    "captured_at": "2026-10-23T15:55:28.523215+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.yzfZgq/extensions_standalones_youtube-filter-LINT.log",
+    "artifact": "baseline-gates/yzfZgq-youtube-filter-LINT.log",
+    "bytes": 483,
+    "sha256": "1fcaf21e03cc4b6cf4cb8c9b5d504a9883333dabc398467a45fa8e24ec484dbd",
+    "captured_at": "2026-10-23T15:55:28.527124+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-TYPECHECK.log",
+    "artifact": "baseline-gates/eCMZe8-youtube-filter-TYPECHECK.log",
+    "bytes": 1327,
+    "sha256": "990a2693e650ec3cf188ea618d9f255d43b9c788d2a20873120d6b77e4211ebb",
+    "captured_at": "2026-10-23T15:55:28.552903+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-BUILD.log",
+    "artifact": "baseline-gates/eCMZe8-youtube-filter-BUILD.log",
+    "bytes": 1852,
+    "sha256": "35246fb614ae6e862f994744c79b03073dd2068fbf1f07b8751a386a4039f36e",
+    "captured_at": "2026-10-23T15:55:28.554481+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-TEST.log",
+    "artifact": "baseline-gates/eCMZe8-youtube-filter-TEST.log",
+    "bytes": 64822,
+    "sha256": "b366d0301e4a1c54df35c05438e4809e13396e46d6925d37c560b280ce868560",
+    "captured_at": "2026-10-23T15:55:28.556805+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-LINT.log",
+    "artifact": "baseline-gates/eCMZe8-youtube-filter-LINT.log",
+    "bytes": 483,
+    "sha256": "63e890c1311a93eb8e2b47fe898df391f79f2f218f9ffbcb771ffe8d91e49a34",
+    "captured_at": "2026-10-23T15:55:28.559338+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-TYPECHECK.log",
+    "artifact": "baseline-gates/CMa6e1-vidpro-extension-TYPECHECK.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.571786+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-BUILD.log",
+    "artifact": "baseline-gates/CMa6e1-vidpro-extension-BUILD.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.572108+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-TEST.log",
+    "artifact": "baseline-gates/CMa6e1-vidpro-extension-TEST.log",
+    "bytes": 57484,
+    "sha256": "779fa842279ea930d3295c01a52afdff52751eb24bf9b83d68f7a660309aa41b",
+    "captured_at": "2026-10-23T15:55:28.579231+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-LINT.log",
+    "artifact": "baseline-gates/CMa6e1-vidpro-extension-LINT.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.579383+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_youtube-filter-TYPECHECK.log",
+    "artifact": "baseline-gates/CMa6e1-youtube-filter-TYPECHECK.log",
+    "bytes": 1327,
+    "sha256": "990a2693e650ec3cf188ea618d9f255d43b9c788d2a20873120d6b77e4211ebb",
+    "captured_at": "2026-10-23T15:55:28.587088+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_youtube-filter-BUILD.log",
+    "artifact": "baseline-gates/CMa6e1-youtube-filter-BUILD.log",
+    "bytes": 1851,
+    "sha256": "58ad05fb6d31ccfcd1618326fed57a6ca7e8829f8e4844361b87882f36b1bc23",
+    "captured_at": "2026-10-23T15:55:28.591555+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_youtube-filter-TEST.log",
+    "artifact": "baseline-gates/CMa6e1-youtube-filter-TEST.log",
+    "bytes": 62972,
+    "sha256": "e96b21efc9a2c21b8a2c1eefb89b5347fddfc415dfa53543f50644889fe3eb74",
+    "captured_at": "2026-10-23T15:55:28.597546+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.CMa6e1/extensions_standalones_youtube-filter-LINT.log",
+    "artifact": "baseline-gates/CMa6e1-youtube-filter-LINT.log",
+    "bytes": 483,
+    "sha256": "d916f96c0234acab19ab41f3f3df4c433d26916cc608770f88fe36df28275eb1",
+    "captured_at": "2026-10-23T15:55:28.598354+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_vidpro-extension-TYPECHECK.log",
+    "artifact": "baseline-gates/UYlXi9-vidpro-extension-TYPECHECK.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.600885+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_vidpro-extension-BUILD.log",
+    "artifact": "baseline-gates/UYlXi9-vidpro-extension-BUILD.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.603833+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_vidpro-extension-TEST.log",
+    "artifact": "baseline-gates/UYlXi9-vidpro-extension-TEST.log",
+    "bytes": 54354,
+    "sha256": "a0080e146e8c0978b32260c68bf4eb92f5571efb49153ee6bed606d92e022e4e",
+    "captured_at": "2026-10-23T15:55:28.617759+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_vidpro-extension-LINT.log",
+    "artifact": "baseline-gates/UYlXi9-vidpro-extension-LINT.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.617917+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_youtube-filter-TYPECHECK.log",
+    "artifact": "baseline-gates/UYlXi9-youtube-filter-TYPECHECK.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.618010+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_youtube-filter-BUILD.log",
+    "artifact": "baseline-gates/UYlXi9-youtube-filter-BUILD.log",
+    "bytes": 1851,
+    "sha256": "a6375b1066ee40221251fcf5ae51e1a0047f1039e863350f7bb92024047e3594",
+    "captured_at": "2026-10-23T15:55:28.619921+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_youtube-filter-TEST.log",
+    "artifact": "baseline-gates/UYlXi9-youtube-filter-TEST.log",
+    "bytes": 63211,
+    "sha256": "0211045b38862e9ac8e8a3c95e6f87067be409fb153e52acbe8cde10c1c260ab",
+    "captured_at": "2026-10-23T15:55:28.628218+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.UYlXi9/extensions_standalones_youtube-filter-LINT.log",
+    "artifact": "baseline-gates/UYlXi9-youtube-filter-LINT.log",
+    "bytes": 482,
+    "sha256": "619bac29df4f9a7b2a17354042b19463dba7150784ffa8a2652349bfbe25cf2d",
+    "captured_at": "2026-10-23T15:55:28.629020+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_vidpro-extension-TYPECHECK.log",
+    "artifact": "baseline-gates/mnuGZi-vidpro-extension-TYPECHECK.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.629482+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_vidpro-extension-BUILD.log",
+    "artifact": "baseline-gates/mnuGZi-vidpro-extension-BUILD.log",
+    "bytes": 132,
+    "sha256": "62ab220ba10d5eefeebe7630a2a1e6a8661d13cd6f4f7545745b69b09ff8a370",
+    "captured_at": "2026-10-23T15:55:28.633396+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_vidpro-extension-TEST.log",
+    "artifact": "baseline-gates/mnuGZi-vidpro-extension-TEST.log",
+    "bytes": 54058,
+    "sha256": "cfd7453bb95c4780b69d309ed08a65b9383bdce27b0a6f9dfd490bb379b1151c",
+    "captured_at": "2026-10-23T15:55:28.638196+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_vidpro-extension-LINT.log",
+    "artifact": "baseline-gates/mnuGZi-vidpro-extension-LINT.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.638324+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_youtube-filter-TYPECHECK.log",
+    "artifact": "baseline-gates/mnuGZi-youtube-filter-TYPECHECK.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "captured_at": "2026-10-23T15:55:28.638408+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_youtube-filter-BUILD.log",
+    "artifact": "baseline-gates/mnuGZi-youtube-filter-BUILD.log",
+    "bytes": 1851,
+    "sha256": "40a12c308a3479dd47d4d96df34f9bd3cec82a90842c82efcb6ae7acd0071142",
+    "captured_at": "2026-10-23T15:55:28.640972+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_youtube-filter-TEST.log",
+    "artifact": "baseline-gates/mnuGZi-youtube-filter-TEST.log",
+    "bytes": 63869,
+    "sha256": "81b4a66e5c7db5e1385cfc3a1e202d1b9881a0e16b76b22b509bf6905ba521d3",
+    "captured_at": "2026-10-23T15:55:28.644802+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  },
+  {
+    "service_path": "/proc/2507147/root/tmp/dracon-pre-push.mnuGZi/extensions_standalones_youtube-filter-LINT.log",
+    "artifact": "baseline-gates/mnuGZi-youtube-filter-LINT.log",
+    "bytes": 482,
+    "sha256": "e4c1edeba9f39a8de2abdaa280aa9701c9e3b089831c51962c0ccc8bf5cd696b",
+    "captured_at": "2026-10-23T15:55:28.650906+00:00",
+    "warning": "snapshot of log bytes; may be in progress; no inferred exit status"
+  }
+]

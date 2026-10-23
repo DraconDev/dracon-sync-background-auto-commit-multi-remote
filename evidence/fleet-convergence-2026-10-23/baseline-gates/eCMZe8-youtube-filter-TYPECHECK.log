@@ -1,0 +1,6 @@
+tests/presets.test.ts(163,24): error TS2345: Argument of type 'string' is not assignable to parameter of type '"hideShortsShelf" | "hideShortsShelfSection" | "hideWatchSidebar" | "hideShortsInSearch" | "hideShortsFeed" | "hideHomeFeed" | "hideRecommended" | "hideProfilePhotos" | ... 22 more ... | "hideChannelShortsShelf"'.
+tests/presets.test.ts(164,24): error TS2345: Argument of type 'string' is not assignable to parameter of type '"hideShortsShelf" | "hideShortsShelfSection" | "hideWatchSidebar" | "hideShortsInSearch" | "hideShortsFeed" | "hideHomeFeed" | "hideRecommended" | "hideProfilePhotos" | ... 22 more ... | "hideChannelShortsShelf"'.
+tests/presets.test.ts(169,24): error TS2345: Argument of type 'string' is not assignable to parameter of type '"hideShortsShelf" | "hideShortsShelfSection" | "hideWatchSidebar" | "hideShortsInSearch" | "hideShortsFeed" | "hideHomeFeed" | "hideRecommended" | "hideProfilePhotos" | ... 22 more ... | "hideChannelShortsShelf"'.
+tests/presets.test.ts(170,23): error TS2345: Argument of type 'string' is not assignable to parameter of type '"hideShortsShelf" | "hideShortsShelfSection" | "hideWatchSidebar" | "hideShortsInSearch" | "hideShortsFeed" | "hideHomeFeed" | "hideRecommended" | "hideProfilePhotos" | ... 22 more ... | "hideChannelShortsShelf"'.
+
+Gate exited with status 2

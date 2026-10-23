@@ -1,0 +1,3 @@
+utils/embeddedPageData.ts(324,41): error TS2339: Property 'rendererContext' does not exist on type '{}'.
+
+Gate exited with status 2

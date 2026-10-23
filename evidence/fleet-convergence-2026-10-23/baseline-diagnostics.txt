@@ -1,0 +1,100 @@
+2026-10-23T15:22:13+01:00 nixos dracon-sync[3935918]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T15:26:06+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:26:06+01:00 nixos dracon-sync[3935918]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:26:06+01:00 nixos dracon-sync[3935918]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:26:29+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:26:29+01:00 nixos dracon-sync[3935918]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:26:47+01:00 nixos dracon-sync[3935918]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T15:26:47+01:00 nixos dracon-sync[3935918]:   - extensions/standalones/volume-and-video-pro/TEST exited 1 (see /tmp/dracon-pre-push.S84OOz/extensions_standalones_volume-and-video-pro-TEST.log)
+2026-10-23T15:28:54+01:00 nixos dracon-sync[3935918]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T15:32:16+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:32:16+01:00 nixos dracon-sync[3935918]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:32:16+01:00 nixos dracon-sync[3935918]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:32:23+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:32:23+01:00 nixos dracon-sync[3935918]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:34:38+01:00 nixos dracon-sync[3935918]: 🛑 /home/dracon/Dev/dracon-strategy push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck dracon-strategy` or `dracon-sync repair concerns --apply`
+2026-10-23T15:34:38+01:00 nixos dracon-sync[3935918]: 🔔 sync alert: /home/dracon/Dev/dracon-strategy — Push Stuck (budget exhausted): 5 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+2026-10-23T15:35:52+01:00 nixos dracon-sync[3935918]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T15:38:01+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:38:01+01:00 nixos dracon-sync[3935918]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:38:01+01:00 nixos dracon-sync[3935918]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:38:01+01:00 nixos dracon-sync[3935918]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:38:01+01:00 nixos dracon-sync[3935918]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:40:48+01:00 nixos dracon-sync[3935918]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T15:40:48+01:00 nixos dracon-sync[3935918]:   - extensions/standalones/tabmon/TEST exited 1 (see /tmp/dracon-pre-push.MZMsFj/extensions_standalones_tabmon-TEST.log)
+2026-10-23T15:40:48+01:00 nixos dracon-sync[3935918]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T15:40:48+01:00 nixos dracon-sync[3935918]:   - extensions/standalones/tabmon/TEST exited 1 (see /tmp/dracon-pre-push.NFPOUS/extensions_standalones_tabmon-TEST.log)
+2026-10-23T15:42:40+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:42:40+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:42:40+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:42:40+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:42:40+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:43:04+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:43:04+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:43:05+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:43:05+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:43:05+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:43:33+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:43:33+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:43:37+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:43:37+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:43:37+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:43:56+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:43:56+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:44:05+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:44:05+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:44:05+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:44:24+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:44:24+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:44:37+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:44:37+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:44:37+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:45:04+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T15:45:04+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T15:45:20+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T15:45:20+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T15:45:20+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T15:49:52+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/pi-plugins: git commit-staged failed in /home/dracon/Dev/pi-plugins with status exit status: 128: fatal: Unable to create '/home/dracon/Dev/pi-plugins/.git/index.lock': File exists.
+2026-10-23T15:54:00+01:00 nixos dracon-sync[2507147]: 🛑 /home/dracon/Dev/dracon-platform push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck dracon-platform` or `dracon-sync repair concerns --apply`
+2026-10-23T15:54:00+01:00 nixos dracon-sync[2507147]: 🔔 sync alert: /home/dracon/Dev/dracon-platform — Push Stuck (budget exhausted): 5 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+2026-10-23T15:56:29+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform: git commit-staged timeout in /home/dracon/Dev/dracon-platform after 60s idle (240s hard cap)
+2026-10-23T15:56:29+01:00 nixos dracon-sync[2507147]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T15:56:29+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/youtube-filter/TEST exited 1 (see /tmp/dracon-pre-push.yzfZgq/extensions_standalones_youtube-filter-TEST.log)
+2026-10-23T16:00:09+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T16:00:09+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T16:00:24+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T16:00:24+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T16:00:24+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T16:03:24+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T16:04:39+01:00 nixos dracon-sync[2507147]: 🛑 /home/dracon/Dev/dracon-strategy push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck dracon-strategy` or `dracon-sync repair concerns --apply`
+2026-10-23T16:04:39+01:00 nixos dracon-sync[2507147]: 🔔 sync alert: /home/dracon/Dev/dracon-strategy — Push Stuck (budget exhausted): 5 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+2026-10-23T16:07:48+01:00 nixos dracon-sync[2507147]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T16:07:48+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/youtube-filter/TYPECHECK exited 2 (see /tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-TYPECHECK.log)
+2026-10-23T16:07:48+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/youtube-filter/TEST exited 1 (see /tmp/dracon-pre-push.eCMZe8/extensions_standalones_youtube-filter-TEST.log)
+2026-10-23T16:15:12+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T16:15:12+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T16:15:41+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/polis: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/polis with status exit status: 1: ORPHAN bun test/verify-release processes detected:
+2026-10-23T16:15:41+01:00 nixos dracon-sync[2507147]: pre-commit: REQ-03 watchdog blocked this commit
+2026-10-23T16:15:41+01:00 nixos dracon-sync[2507147]: .githooks/pre-commit: line 24: bun: command not found
+2026-10-23T16:17:08+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T16:23:26+01:00 nixos dracon-sync[2507147]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-platform/web/games/wip/endless-td: git push-to-gitlab failed in /home/dracon/Dev/dracon-platform/web/games/wip/endless-td with status exit status: 128: Connection to 172.65.251.78 port 22 timed out
+2026-10-23T16:25:59+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T16:26:09+01:00 nixos dracon-sync[2507147]: ⚠️ push to gitlab failed for /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit: git push-to-gitlab failed in /home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit with status exit status: 128: Connection timed out during banner exchange
+2026-10-23T16:26:09+01:00 nixos dracon-sync[2507147]: Connection to 172.65.251.78 port 22 timed out
+2026-10-23T16:28:27+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform local commit during publication failed (publication unaffected): git commit-staged timeout in /home/dracon/Dev/dracon-platform after 60s idle (240s hard cap)
+2026-10-23T16:28:43+01:00 nixos dracon-sync[2507147]: ⚠️ push to gitlab failed for /home/dracon/Dev/dracon-strategy/ai-auto-writer: git push-to-gitlab failed in /home/dracon/Dev/dracon-strategy/ai-auto-writer with status exit status: 128: Connection to 172.65.251.78 port 22 timed out
+2026-10-23T16:29:39+01:00 nixos dracon-sync[2507147]: ❌ Pre-push: 4-gate FAILED for:
+2026-10-23T16:29:39+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/vidpro-extension/TYPECHECK exited 2 (see /tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-TYPECHECK.log)
+2026-10-23T16:29:39+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/vidpro-extension/BUILD exited 2 (see /tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-BUILD.log)
+2026-10-23T16:29:39+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/vidpro-extension/TEST exited 1 (see /tmp/dracon-pre-push.CMa6e1/extensions_standalones_vidpro-extension-TEST.log)
+2026-10-23T16:29:39+01:00 nixos dracon-sync[2507147]:   - extensions/standalones/youtube-filter/TYPECHECK exited 2 (see /tmp/dracon-pre-push.CMa6e1/extensions_standalones_youtube-filter-TYPECHECK.log)
+2026-10-23T16:30:22+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T16:30:22+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T16:30:37+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform final local commit during publication failed: git commit-staged timeout in /home/dracon/Dev/dracon-platform after 60s idle (240s hard cap)
+2026-10-23T16:34:20+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T16:34:43+01:00 nixos dracon-sync[2507147]: 🛑 /home/dracon/Dev/dracon-strategy push stuck (5 consecutive failures ≥ budget 5) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck dracon-strategy` or `dracon-sync repair concerns --apply`
+2026-10-23T16:34:43+01:00 nixos dracon-sync[2507147]: 🔔 sync alert: /home/dracon/Dev/dracon-strategy — Push Stuck (budget exhausted): 5 consecutive push failures — local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network); auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing
+2026-10-23T16:41:38+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
+2026-10-23T16:45:23+01:00 nixos dracon-sync[2507147]: ⚠️ sync failed (late) for /home/dracon/Dev/dracon-platform/web/games/wip/deathrun: git commit-staged failed in /home/dracon/Dev/dracon-platform/web/games/wip/deathrun with status exit status: 1: {
+2026-10-23T16:45:23+01:00 nixos dracon-sync[2507147]: pre-commit: 13 machine-local file(s) blocked.
+2026-10-23T16:48:52+01:00 nixos dracon-sync[2507147]: ⚠️ /home/dracon/Dev/dracon-platform private bucket preparation refused; no commit: private bucket workflow timed out; no commit permitted: deadline has elapsed
