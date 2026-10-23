@@ -2789,7 +2789,10 @@ fn prepare_storage_commit_inner(
     )?;
     Ok(Some(PreparedStorageCommit {
         commit_id: commit_id.to_string(),
-        previous_id: parent.map_or_else(|| "0".repeat(commit_id.to_string().len()), |p| p.id().to_string()),
+        previous_id: parent.map_or_else(
+            || "0".repeat(commit_id.to_string().len()),
+            |p| p.id().to_string(),
+        ),
         _lock: lock,
     }))
 }
