@@ -287,10 +287,17 @@ def main():
         # exactly once each.
         b_hooks = (b / "hooklog").read_text().split() if (b / "hooklog").exists() else []
         receipt["b_lifecycle_hooks"] = b_hooks
-        for expected_hook in ("prepare-commit-msg", "commit-msg", "post-commit"):
-            if b_hooks.count(expected_hook) != 1:
+        # B makes ONE OR MORE daemon commits, and every commit must run the
+        # full cycle in Git's order exactly once. So the log must be a whole
+        # number of complete cycles, never a partial or misordered one.
+        cycle = ["prepare-commit-msg", "commit-msg", "post-commit"]
+        receipt["b_lifecycle_cycles"] = len(b_hooks) // len(cycle)
+        if not b_hooks or len(b_hooks) % len(cycle) != 0:
+            raise AssertionError(f"incomplete commit-hook cycle on B: {b_hooks}")
+        for index in range(0, len(b_hooks), len(cycle)):
+            if b_hooks[index : index + len(cycle)] != cycle:
                 raise AssertionError(
-                    f"{expected_hook} must run exactly once on B's commit, got {b_hooks}"
+                    f"commit hooks out of Git order on B: {b_hooks}"
                 )
         # A refusing hook must block the commit: C stays at its baseline,
         # nothing is published, the work is preserved, and the refusal is
