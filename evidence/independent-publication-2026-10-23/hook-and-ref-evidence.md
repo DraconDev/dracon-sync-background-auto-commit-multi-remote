@@ -104,61 +104,54 @@ than to installation metadata.
 
 ## Result — FINAL installed revision
 
-12 samples over ~6 minutes, every one recording the loaded executable of the
-running daemon:
+The final artifact after the storage-seal fix is
+`7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372`, installed
+at 10:32:50Z (previous `9eb4965d…` backed up). 12 read-only samples, every one
+recording the same loaded executable:
 
 ```
-/proc/{1375344}/exe = 9eb4965d54dd0b9b61ada489d375c12766bb09a21fcc3c4c44ba197d6b66b5ed
-release artifact     = 9eb4965d54dd0b9b61ada489d375c12766bb09a21fcc3c4c44ba197d6b66b5ed
+/proc/4041356/exe = 7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372
+release artifact  = 7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372
 ```
 
-That is the revision installed at 09:15:15Z after the hook fix (the receipt also
-records the replaced `35ee77d6…` binary and the backup path). **33 distinct
-remote-ref advancements**, every one resolving to `object_type == "commit"`:
+**19 distinct remote-ref advancements**, every one resolving to
+`object_type == "commit"`:
 
 ```
-.dracon                   origin/gitlab/github  f975ed8731 -> 9681f44942
-                          -> f416f8dbe6 -> 596c711652/87caf91881 -> 15f752fdc9
-                          -> 2f5f4a1a7f/7b7fa2be4f -> aaf4981a78 -> 009df31d7c
-                          -> a4311b51fb                                  (commit)
-browser-extensions-shared origin/github         e2830b3a4b -> 390a045d23 -> a3d99fb282
-browser-extensions-shared gitlab                2b887bf554 -> 390a045d23 -> a3d99fb282
-dracon-platform           origin/github/gitlab  31c481b9f7 -> 5f3aab1e41
-dracon-platform           origin                5f3aab1e41 -> 4d4c86f075
+.dracon  origin/gitlab  49857e2c63 -> 78c79df61d -> 13a0cab7b7 -> dfb25e1b9c
+                        -> c2aa908d0f -> 0310db181e -> 54c39b72b7 -> 8bdb304122
+                        -> af3bddac69                                (type=commit)
+.dracon  github         follows one sample behind origin/gitlab each round
 ```
 
-Computed from the archived JSON (`refs/live-ref-samples-final.json`), not
-asserted:
+Computed from `refs/live-ref-samples-final.json`, not asserted:
 
-* all 12 samples report the same loaded digest `9eb4965d54dd` — the final
-  binary, not an earlier one;
+* all 12 samples report the same loaded digest `7e0ea08a60cc` and PID 4041356 —
+  the final binary, not an earlier one;
 * every recorded remote tip is a real commit object (0 exceptions);
-* `dracon-utilities` stayed converged throughout while the active repositories
-  advanced, i.e. one repository's publication never blocked another's;
-* `.dracon`, `dracon-platform` and `browser-extensions-shared` each advanced
-  under the SAME revision that the live daemon was running, several
-  independently within the same sampling window;
-* mirrors lag and then catch up (visible per-remote `!` marks that later become
-  `=`), which is per-remote publication rather than a single global slot.
+* `dracon-utilities` stayed converged the whole window while `.dracon` advanced
+  9 times, i.e. one repository's publication never blocked another's;
+* per-remote ordering is visible: `github` lags `origin`/`gitlab` by one sample
+  and then catches up — independent per-mirror publication rather than one
+  global slot;
+* `browser-extensions-shared` and `dracon-platform` show `!` (local ahead of the
+  sampled remote) throughout, meaning they had unpushed work during this window
+  and were NOT converged at these instants.
 
 Honest limits, stated rather than smoothed over:
 
-* `browser-extensions-shared` still has a real, pre-existing backlog: its
-  `gitlab` mirror repeatedly trails `origin`, and its log shows the genuine
-  cause — the repository's own `pre-push` policy refusing the push
-  ("asset-guard / size budget / secret scan / history guard"), which the daemon
-  correctly classifies as a POLICY refusal rather than a network failure. That
-  gate is product policy, and repairing it is out of scope here (no hook bypass
-  is permitted), so this repository is reported as a gated backlog rather than
-  as converged.
-* These samples show ref advancement and object types. They do not claim every
-  fleet repository is converged.
+* `browser-extensions-shared` carries a real, pre-existing backlog: its own
+  `pre-push` refuses the push ("asset-guard / size budget / secret scan /
+  history guard"), which the daemon correctly classifies as POLICY rather than a
+  network failure. Repairing that product policy is out of scope and no hook
+  bypass is permitted, so it is reported as a gated backlog, not as converged.
+* These samples prove ref advancement and object types for the listed
+  repositories. They do not claim every fleet repository converged.
 
-Basis for the "real autonomous progress" clause: the commits above were produced
-by the daemon from live repository edits. No commit, push, repair, hook bypass
-or state change was performed by hand for this record; every command in the
-harness is a read (`rev-parse`, `remote get-url`, `ls-remote`, `cat-file`,
-`sha256sum`).
+Basis for "real autonomous progress": the commits above came from the daemon
+acting on live repository edits. No commit, push, repair, hook bypass or state
+change was performed by hand; every harness command is a read (`rev-parse`,
+`remote get-url`, `ls-remote`, `cat-file`, `sha256sum`).
 
 ## The receipt now proves hook behaviour on the installed binary
 
