@@ -1,0 +1,12 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 47s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 4 tests
+test runtime_env::tests::absent_installations_do_not_change_path ... ok
+test runtime_env::tests::preserves_non_utf8_and_existing_empty_path_entries ... ok
+test runtime_env::tests::relative_home_cannot_add_cwd_dependent_executables ... ok
+test runtime_env::tests::retains_operator_precedence_and_adds_installed_toolchains ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1404 filtered out; finished in 3.45s
+
