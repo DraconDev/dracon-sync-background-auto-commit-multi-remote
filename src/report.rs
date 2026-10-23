@@ -2850,6 +2850,20 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
     "healthy".to_string()
 }
 
+/// The caller supplies an already-redacted error; never echo stored credentials.
+/// Re-enabling one retry budget is not the broad concerns repair/push/rewrite path.
+fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) -> String {
+    let summary = if redacted_error.is_empty() {
+        "publication budget exhausted".to_owned()
+    } else if redacted_error.chars().count() > 60 {
+        format!("{}...", redacted_error.chars().take(57).collect::<String>())
+    } else {
+        redacted_error.to_owned()
+    };
+    let target = repo.to_string_lossy().replace('\'', "'\\''");
+    format!("🛑 push-stuck ({failures} failures): {summary} — fix the recorded cause first; then dracon-sync repair stuck-unstuck '{target}'")
+}
+
 fn current_blocker_hint(current: current_health::Current, hint: &str) -> String {
     if current == current_health::Current::Unknown
         && (hint.starts_with("daemon will push after changes settle")
@@ -4572,24 +4586,11 @@ pub(crate) async fn run_repos_report(
             let info = stuck_info.as_ref().unwrap();
             // R4-SR-11: use the construction-time redacted copy —
             // never `info.last_error` directly (credential echo).
-            let last_error = stuck_last_error_redacted.as_deref().unwrap_or("");
-            let error_summary = if last_error.is_empty() {
-                format!("{} consecutive push failures", info.consecutive_failures)
-            } else {
-                // Trim long error messages so the HINT column
-                // doesn't blow up the table width.
-                let trimmed = if last_error.chars().count() > 60 {
-                    let truncated: String = last_error.chars().take(57).collect();
-                    format!("{}...", truncated)
-                } else {
-                    last_error.to_string()
-                };
-                format!(
-                    "🛑 push-stuck ({} failures): {} — run dracon-sync repair concerns --apply",
-                    info.consecutive_failures, trimmed
-                )
-            };
-            error_summary
+            push_stuck_hint(
+                &repo,
+                info.consecutive_failures,
+                stuck_last_error_redacted.as_deref().unwrap_or(""),
+            )
         } else {
             repo_hint(&flags, warn, concern)
         };
@@ -10921,6 +10922,19 @@ mod tests {
         // has_origin=false, has_any_remote=false → still a concern,
         // so not a WARN.
         assert!(!repo_is_warn(&status, false, false, false));
+    }
+
+    #[test]
+    fn exhausted_push_hint_requires_cause_repair_before_a_targeted_retry() {
+        for error in ["", "local pre-push hook refused", &"🙂".repeat(100)] {
+            let hint = push_stuck_hint(Path::new("/fixture/repo' name"), 5, error);
+            assert!(hint.contains("fix the recorded cause first; then"));
+            assert!(hint.contains("dracon-sync repair stuck-unstuck '/fixture/repo'\\'' name'"));
+            assert!(!hint.contains("concerns --apply"));
+            assert!(!hint.contains("rewrite"));
+            assert!(!hint.contains("sync-now"));
+            assert!(hint.chars().count() < 300);
+        }
     }
 
     #[test]
