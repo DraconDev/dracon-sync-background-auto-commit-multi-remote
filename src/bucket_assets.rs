@@ -6,7 +6,6 @@ use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
-use std::time::Duration;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -108,14 +107,12 @@ fn parse_materialized(bytes: &[u8], asset_root: &str) -> Result<HashSet<PathBuf>
 }
 
 async fn output(
-    mut command: tokio::process::Command,
+    command: tokio::process::Command,
     timeout_secs: u64,
 ) -> Result<std::process::Output> {
-    command.kill_on_drop(true);
-    tokio::time::timeout(Duration::from_secs(timeout_secs.max(1)), command.output())
+    crate::git::run_command_captured_output(command, timeout_secs, "private bucket workflow", None)
         .await
-        .context("private bucket workflow timed out; no commit permitted")?
-        .context("private bucket workflow process failed")
+        .context("private bucket workflow failed; no commit permitted")
 }
 
 /// Candidate locations, in order. A TRACKED root config keeps the pilot

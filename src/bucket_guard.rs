@@ -171,13 +171,9 @@ async fn run_guard(
     ] {
         cmd.env_remove(var);
     }
-    tokio::time::timeout(
-        std::time::Duration::from_secs(timeout_secs.max(1)),
-        cmd.output(),
-    )
-    .await
-    .with_context(|| format!("bucket guard timed out after {timeout_secs}s: {guard_display}"))?
-    .with_context(|| format!("bucket guard failed to spawn: {guard_display}"))
+    crate::git::run_command_captured_output(cmd, timeout_secs, "bucket guard", None)
+        .await
+        .with_context(|| format!("bucket guard failed: {guard_display}"))
 }
 
 /// Run the staged forward-only check for `repo`.
