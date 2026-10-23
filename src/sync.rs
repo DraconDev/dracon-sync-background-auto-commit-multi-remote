@@ -4611,7 +4611,19 @@ async fn stage_commit_and_push(
         // commit — so this is gated on the seal actually happening.
         let mut sealed_hooks: Option<PreparedSealedCommit> = None;
         let mut commit_message = msg.clone();
-        if storage_guarded(repo) {
+        let guarded = match storage_guarded(repo) {
+            Ok(guarded) => guarded,
+            Err(error) => {
+                // Unresolvable guard binding: the seal would refuse this, so
+                // block it here rather than committing raw bytes via `git`.
+                eprintln!(
+                    "⚠️ {} storage guard binding is not usable; staged/worktree content retained: {error:#}",
+                    repo.display()
+                );
+                return Ok(Some(SyncOutcome::Blocked));
+            }
+        };
+        if guarded {
             match run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await {
                 Ok(prepared) => {
                     commit_message = prepared.message.clone();
@@ -5131,7 +5143,17 @@ async fn bootstrap_empty_repo_commit_owned(
     // sealed through libgit2, drive the FULL commit-hook lifecycle explicitly
     // (a seal runs no hooks). The `git commit` path runs it itself.
     let mut commit_message = msg.clone();
-    if storage_guarded(repo) {
+    let guarded = match storage_guarded(repo) {
+        Ok(guarded) => guarded,
+        Err(error) => {
+            eprintln!(
+                "⚠️ {} storage guard binding is not usable; staged/worktree content retained: {error:#}",
+                repo.display()
+            );
+            return Ok(false);
+        }
+    };
+    if guarded {
         let prepared = match run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await
         {
             Ok(prepared) => prepared,
@@ -5215,13 +5237,12 @@ async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> R
 
 /// Whether the commit about to be made will be SEALED through libgit2.
 ///
-/// Deliberately total: if the guard binding cannot be read, this reports
-/// `false` and the seal attempt itself surfaces the real error (an unbound or
-/// inconsistent binding never commits, so no hook can be bypassed either way).
-/// Turning that into a hard error here would change the established
-/// `Blocked` outcome for those repositories.
-fn storage_guarded(repo: &Path) -> bool {
-    crate::storage::has_configured_storage_guard(repo).unwrap_or(false)
+/// The error case is NOT flattened to `false`: a repository whose storage
+/// attributes are committed/staged without a resolvable guard binding must be
+/// BLOCKED (the seal is what refuses it), not silently downgraded to a plain
+/// `git commit` that would commit the raw bytes the guard exists to stop.
+fn storage_guarded(repo: &Path) -> Result<bool> {
+    crate::storage::has_configured_storage_guard(repo)
 }
 
 /// Run ONE configured hook, tolerating a repository that has none.
