@@ -9715,7 +9715,7 @@ pub(crate) async fn run_daemon(
                     &mut detached_since,
                 );
                 crate::daemon::scheduler_evidence::worker_idle(&repo);
-            sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
+                sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
@@ -9823,7 +9823,7 @@ pub(crate) async fn run_daemon(
                         &mut detached_since,
                     );
                     crate::daemon::scheduler_evidence::worker_idle(&repo);
-            sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
+                    sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                     if let Some(entry) = activity.get_mut(&repo) {
                         // CHANGED 2026-07-27 (v0.113.5, audit M4):
                         // route the trailing-drain match through
@@ -10328,7 +10328,46 @@ pub(crate) async fn run_daemon(
         )
         .await;
     }
-    // === Daemon shutdown: clean up the in-flight state file ===
+    // === Daemon shutdown: stop admission, cancel AND join owned work ===
+    // Cancellation is a request. Clearing the in-flight/stopped evidence before
+    // the owned workers actually exit would claim a clean stop while a push
+    // hook or a local commit mutation is still running, and would let a
+    // restarted daemon race the predecessor's hooks. Join with a bounded
+    // deadline; escalation stays inside each worker's owned process group.
+    for repo in in_flight.clone() {
+        request_worker_cancellation(&sync_workers, &repo);
+    }
+    for repo in sync_workers.keys() {
+        scheduler_evidence::worker_not_committing(repo);
+        scheduler_evidence::worker_publishing(repo, false);
+    }
+    let drain_secs = SyncPolicy::load(&policy_path)
+        .map(|policy| policy.trailing_drain_deadline_secs)
+        .unwrap_or(120)
+        .max(5);
+    let deadline = Instant::now() + Duration::from_secs(drain_secs);
+    let mut outstanding = detached_syncs.len() + sync_workers.len();
+    while outstanding > 0 && Instant::now() < deadline {
+        if let Some((repo, _, _)) = next_ready_result(&mut detached_syncs).await {
+            release_sync_owner(
+                &repo,
+                &mut in_flight,
+                &mut sync_workers,
+                &mut HashSet::new(),
+                &mut detached_since,
+            );
+            scheduler_evidence::worker_idle(&repo);
+            outstanding = outstanding.saturating_sub(1);
+        } else {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+    if outstanding > 0 {
+        eprintln!(
+            "⚠️ shutdown: {outstanding} owned sync task(s) did not join within {drain_secs}s — leaving their evidence in place rather than claiming a clean stop"
+        );
+        return Ok(());
+    }
     // Removing the file signals to `repos` that the daemon is no
     // running, so no rows can be "actively being processed".
     save_in_flight(&HashSet::new());
