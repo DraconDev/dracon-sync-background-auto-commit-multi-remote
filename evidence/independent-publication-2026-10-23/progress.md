@@ -311,11 +311,23 @@ or foreign-lock cleanup. Any helper must inherit configured identity unchanged.
   installed-binary receipt, a verified install with the loaded-revision digest,
   and live autonomous observation of truthful phases, commits behind a real
   slow publication, and verified remote advancement.
-* Still outstanding: one fresh-context reviewer rehearsal of the contract; the
-  remaining original product pre-push gates for workspaces other than the ones
-  already exercised (volume's original TEST command and clean-web's original
-  TEST command both pass on their initial source); and an explicit
-  written record of anything left out.
+* Also done: the fresh-context reviewer rehearsal (`reviewer-report.md`, NO P0)
+  with every P1 addressed or explicitly justified; the original pre-push gates
+  for ALL 20 standalone workspaces; and the final qualified artifact installed
+  with its loaded digest verified.
+* Verified after the review fixes: `cargo test --workspace --locked` 2571 passed
+  / 0 failed / 0 `FAILED` lines; `cargo clippy --workspace --locked
+  --all-targets -- -D warnings` clean; `cargo build --release --locked` ok;
+  `cargo deny check` advisories/bans/licenses/sources ok; the isolated receipt
+  re-run green against the final artifact; targeted suites (publication actor,
+  owned commit, push resources, sync lease, scheduler evidence) all green.
+* Deliberately NOT done, with reasons rather than omission: no per-repo or
+  per-forge push cap was added (the objective forbids substituting another
+  global serialization point for the removed one — the trade-off is documented
+  above); the release/tag pipeline was not resurrected (`version_bumped` is
+  hardcoded false and that predates this work); no live manual push, no state
+  repair, no history rewrite, no force push, no hook bypass, no coverage
+  reduction, and no aud-vis checkout rewiring (explicitly out of scope).
 
 ### The earlier delegated research is dead, not pending
 
