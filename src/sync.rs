@@ -4602,6 +4602,16 @@ async fn stage_commit_and_push(
             );
             return Ok(Some(SyncOutcome::Blocked));
         }
+        // The configured commit hook chain gates every auto commit, including
+        // the storage-sealed one below (libgit2 seals without running hooks).
+        // A refusal fails the pass with the index and worktree intact.
+        if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
+            eprintln!(
+                "⚠️ {} configured pre-commit hook refused the auto commit; staged/worktree content retained: {error:#}",
+                repo.display()
+            );
+            return Err(error);
+        }
         let storage_commit = storage_guarded_commit(repo, &msg).await?;
         match storage_commit {
             Ok(true) => {}
@@ -5077,6 +5087,15 @@ async fn bootstrap_empty_repo_commit_owned(
     }
 
     let msg = format!("auto: initial commit ({} files)", staged.len());
+    // Same guarantee as the steady-state path: the configured hook chain gates
+    // the root commit too, including when a storage guard seals it.
+    if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
+        eprintln!(
+            "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
+            repo.display()
+        );
+        return Err(error);
+    }
     match storage_guarded_commit(repo, &msg).await? {
         Ok(true) => return Ok(true),
         Ok(false) => {}
@@ -5134,6 +5153,28 @@ async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<boo
         crate::storage::commit_configured_storage(&repo, &message)
     })
     .await?)
+}
+
+/// Run a repository's configured `pre-commit` hook chain from the daemon.
+///
+/// A storage-sealed commit is created through libgit2, which executes no hooks
+/// at all. Silently sealing such a commit while a repository's `pre-commit`
+/// refuses it would be exactly the bypass this daemon must not perform, so the
+/// same hook chain is invoked explicitly before the seal.
+///
+/// `git hook run --ignore-missing` is the correct primitive: it exits 0 when the
+/// repository configures no `pre-commit` (the common case) and propagates the
+/// hook's own failure otherwise. The hook sees the real index through the normal
+/// environment, so a hook that inspects staged content behaves identically to
+/// one that runs during `git commit`.
+async fn run_configured_pre_commit(repo: &Path, timeout_secs: u64) -> Result<()> {
+    run_git_with_timeout(
+        repo,
+        &["hook", "run", "--ignore-missing", "pre-commit"],
+        timeout_secs.max(1),
+        "pre-commit",
+    )
+    .await
 }
 
 /// ADDED 2026-07-27 (v0.113.5, audit M2): decide whether the
