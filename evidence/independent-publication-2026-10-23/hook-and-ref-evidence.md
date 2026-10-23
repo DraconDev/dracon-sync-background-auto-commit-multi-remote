@@ -60,9 +60,9 @@ A storage-guarded commit is sealed through libgit2 (`storage/mod.rs`
 `repository.commit`), which executes NO hooks. That was a second bypass on a
 production auto-commit path, found by the fresh-context reviewer after the CLI
 fix. Both dispatch sites (steady state and empty-repo bootstrap) now call
-`run_configured_pre_commit` — `git hook run --ignore-missing pre-commit` —
-before sealing. `--ignore-missing` is deliberate: a repository with no
-`pre-commit` must not have every auto commit fail. A refusal aborts the pass
+`run_sealed_commit_hooks`, which drives the pre-commit, prepare-commit-msg,
+and commit-msg hooks before sealing; post-commit is invoked after a successful
+seal. `--ignore-missing` is deliberate: absent hooks must not fail commits. A refusal aborts the pass
 with the index and worktree intact.
 
 Failure semantics are deliberate: a refusing hook makes `run_git_with_timeout`
@@ -76,7 +76,7 @@ the commit, so hooks are additional policy, never a replacement for them.
 
 ## Regressions (and proof they are not vacuous)
 
-`src/sync/owned_commit_tests.rs`:
+`src/storage/tests.rs` (real storage-bound dispatch):
 
 * `a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order` — asserts
   the ORDER (`pre-commit`, `prepare-commit-msg`, `commit-msg`, `post-commit`),
@@ -86,11 +86,15 @@ the commit, so hooks are additional policy, never a replacement for them.
 * `a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit` — a refusing
   `commit-msg` blocks the seal, its refusal reaches the caller, no root commit
   is created and the work survives.
-* `the_ordinary_commit_path_runs_each_hook_exactly_once` — all four hooks fire
-  once per commit on the non-sealed path, so nothing is duplicated.
-* `a_refusing_hook_also_blocks_a_storage_sealed_commit` — the seal path
-  consults the chain (refusal propagates with its message) and an accepting hook
-  is a no-op that does not itself commit.
+* `sealed_commit_rejects_a_message_emptied_by_commit_msg` — truncating the
+  approved message aborts without creating a commit, just as Git does.
+
+`src/sync/owned_commit_tests.rs`:
+
+* `the_ordinary_commit_path_runs_each_hook_exactly_once` — drives `sync_repo`,
+  not merely its commit helper; all four hooks fire once on the ordinary path.
+* `configured_hook_runner_propagates_refusal_without_mutating_head` — tests
+  the hook primitive only, not the storage dispatch.
 * `a_repository_without_commit_hooks_still_commits` — no configured hook is not
   an error, so hookless repositories keep auto-committing.
 * `owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits` —
