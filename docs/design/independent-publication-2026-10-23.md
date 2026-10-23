@@ -52,6 +52,15 @@ remain mandatory. Direct operator Git remains outside the cooperative protocol.
   gets the same staging/content gates and local concurrency budget even while
   that repository's publisher waits/runs/retries. The old moving-HEAD backstop
   must not suppress these commits under pinned-tip publication.
+
+  COMMIT HOOKS RUN. The daemon invokes plain `git commit`; it never passes
+  `--no-verify` on a production commit path. A repository's configured
+  `pre-commit` is additional policy on top of the in-process gates (bucket
+  forward-only guard, immutable-storage transaction, exclusion and size
+  policy), which run first and cannot be relaxed by a hook. A refusal makes the
+  pass FAIL — the index and worktree stay intact, nothing is published, the
+  failure stays in the evidence and the next pass retries — so a hook can delay
+  a commit but never lose an edit or be reported as committed.
 * No global push-count admission exists. Per-product hook resource controls,
   daemon push-child nice 19, finite deadlines and owned process groups remain.
   Increased concurrent hook memory/task pressure is a real trade-off, not an
@@ -168,3 +177,11 @@ not authorized. Do not label those rows healthy.
 4. Safe qualified installation/restart, installed-binary isolated execution,
    actual loaded revision, and autonomous live commits plus remote advancement.
    No manual live push or repository-state repair is a substitute.
+
+Status of this list: (1) and (2) are implemented and covered by the isolated
+receipt plus the actor/lease/repair suites; (3) is covered by the workspace,
+Clippy, release and deny gates plus the per-workspace product gates; (4) is
+covered by `evidence/independent-publication-2026-10-23/hook-and-ref-evidence.md`
+— 12 read-only samples on the FINAL installed digest recorded 33 remote-ref
+advancements, every one a real commit object, and the receipt additionally proves
+an accepting commit hook RUNS while a refusing one blocks and preserves work.
