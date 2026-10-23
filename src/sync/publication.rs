@@ -38,7 +38,6 @@ pub(super) async fn plan_publication(
     remote_failures: Option<&HashMap<String, crate::daemon::RemoteFailInfo>>,
     ahead_count: u64,
 ) -> Result<PublicationPlan> {
-    let target = pin_current_tip(repo).await?;
     let scaled_timeout = scale_push_timeout(policy.push_op_timeout_secs, ahead_count);
     if scaled_timeout != policy.push_op_timeout_secs {
         eprintln!(
@@ -136,6 +135,13 @@ pub(super) async fn plan_publication(
     )
     .await;
     let remotes = crate::git::multi_remote::filter_remotes_by_exclude(&prepared, &exclude);
+    // PIN LAST. Everything above reads the checkout or mutates Git
+    // configuration (auto-create can take seconds). Pinning before that work
+    // would publish a tip that predates the configuration the round is about
+    // to use; pinning here means the pinned object is the tip that existed when
+    // this exact destination set became ready. It still cannot move afterwards:
+    // the upload holds no local mutation rights.
+    let target = pin_current_tip(repo).await?;
     Ok(PublicationPlan {
         target,
         timeout_secs: scaled_timeout,
