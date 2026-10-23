@@ -3,6 +3,12 @@
 Read-only observations. No manual push, no state repair, no history rewrite, no
 hook bypass, no coverage reduction. The daemon did all of this on its own.
 
+"All hooks" is literal: auto commits run the repository's configured commit hook
+chain (`commit_staged_owned` invokes plain `git commit`, no `--no-verify`), and
+publication runs `pre-push`. See `shutdown-verification.md`'s sibling
+`hook-and-ref-evidence.md` for the regressions proving a refusing pre-commit
+blocks an auto commit and that the final binary advanced real remote refs.
+
 ## Loaded revision
 
 * Unit: `dracon-sync-operator.service` (system, `Restart=always`). The legacy

@@ -35,7 +35,7 @@ After the global gate, the only remaining push bounds are: the local semaphore (
 **Verified non-issues**
 - `tokio::select!` (`sync.rs:2397-2440`): no starvation/deadlock — the publication branch is always enabled, the in-flight refresh is never cancelled (awaited at `:2443-2455`), and the `else` arm is unreachable while an upload is pending. Cancellation of the whole worker drops the upload future (killing the push child via `kill_on_drop` + process group) before `ctx` releases the publication lease — verified by read order, not by test.
 - `local_phase` nesting is safe: nested admission reuses the existing permit (`push_resources.rs:86-90`), pinned by `push_resources_tests.rs:58-90`.
-- Daemon commit-hook policy preserved: `commit_staged_owned` uses `git commit --no-verify` in a bounded owned call (`sync.rs:5079-5087`), with in-process bucket/storage/exclusion/size gates still ahead of it (`:4556-4600`); witnessed failing-fixture regression noted in progress.md.
+- Daemon commit hooks are NOT suppressed: `commit_staged_owned` runs plain `git commit` in a bounded owned call, with the in-process bucket/storage/exclusion/size gates still ahead of it. Two regressions prove the hook RUNS (marker file) and that a refusing hook blocks the commit while HEAD, the index and the unstaged edit survive. (Superseded the earlier `--no-verify` note; the auditor rightly rejected that bypass.)
 - Evidence receipts check out as far as they go: `workspace-suite.txt` has no `FAILED`/`error[` lines (1390 + 551 + 220 … all `test result: ok`), and `installed-receipt.json` hashes the *loaded* `/proc/<pid>/exe`, not just metadata.
 
 Merge verdict: **OK with notes**
