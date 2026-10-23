@@ -1,0 +1,14 @@
+{
+  "unit": "dracon-sync-operator.service",
+  "method": "atomic replace + SIGTERM via pidfd; unit Restart=always reloads",
+  "label": "independent-publication-2026-10-23-verify",
+  "started_at": "20261023T051734Z",
+  "old_pid": 2026371,
+  "previous_sha256": "7aaaea0314e605c5f289e514f3d5ff002e7b923071e1df7143e33bca03cb9113",
+  "expected_sha256": "7aaaea0314e605c5f289e514f3d5ff002e7b923071e1df7143e33bca03cb9113",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T051734Z-independent-publication-2026-10-23-verify",
+  "new_pid": 2034403,
+  "running_sha256": "7aaaea0314e605c5f289e514f3d5ff002e7b923071e1df7143e33bca03cb9113",
+  "finished_at": "2026-10-23T05:17:40Z",
+  "loaded_revision": "verified from /proc/<new-pid>/exe"
+}

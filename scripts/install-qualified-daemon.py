@@ -49,6 +49,23 @@ def digest(path):
     return sha.hexdigest()
 
 
+def loaded_digest(pid, attempts=25):
+    """SHA-256 of a running process's executable.
+
+    `/proc/<pid>/exe` can fail transiently while a freshly started process is
+    still being set up (or during the moment the old one is reaped), so retry
+    briefly instead of mistaking a race for a failed deployment.
+    """
+    last = None
+    for _ in range(attempts):
+        try:
+            return digest(Path("/proc", str(pid), "exe"))
+        except (FileNotFoundError, PermissionError, ProcessLookupError) as error:
+            last = error
+            time.sleep(0.4)
+    raise RuntimeError(f"cannot read /proc/{pid}/exe: {last}")
+
+
 def main_pid():
     out = subprocess.run(
         ["systemctl", "show", UNIT, "-p", "MainPID", "--value"],
@@ -108,7 +125,7 @@ def main():
             new = main_pid()
             if new > 0 and new != old:
                 try:
-                    if digest(Path("/proc", str(new), "exe")) == EXPECTED:
+                    if loaded_digest(new) == EXPECTED:
                         receipt.update(
                             new_pid=new,
                             running_sha256=EXPECTED,
