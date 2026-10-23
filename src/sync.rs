@@ -2455,8 +2455,9 @@ async fn run_publication_actor<'a>(
     if let Some(sink) = ctx.remote_failures.as_deref_mut() {
         *sink = round_failures;
     }
-    // After any `Pushing` evidence, say what is actually true locally.
-    crate::daemon::scheduler_evidence::worker_committing(ctx.repo);
+    // The upload is over: stop claiming local commit execution. A follow-up
+    // pass re-stamps `Committing` when it actually starts one.
+    crate::daemon::scheduler_evidence::worker_not_committing(ctx.repo);
     // Reacquire local mutation ownership for post-publication work. Bounded:
     // refusing to block an upload round forever behind another writer.
     ctx.operation_lease = acquire_local_lease(ctx.repo, ctx.policy).await;
