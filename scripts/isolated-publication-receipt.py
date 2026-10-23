@@ -160,7 +160,7 @@ def main():
         git(root, "init", "--bare", "--quiet", str(bare))
         git(repo, "init", "--quiet", "-b", "main")
         git(repo, "remote", "add", "origin", str(bare))
-        hooks = repo / "hooks"
+        hooks = repo / ".git" / "qualification-hooks"
         hooks.mkdir()
         git(repo, "config", "core.hooksPath", str(hooks))
         if block_push:
@@ -168,8 +168,8 @@ def main():
             # Git runs hooks with the repository root as cwd, so these markers
             # are repo-relative (NOT ../ , which would land in the watch root).
             hook.write_text(
-                "#!/bin/sh\nset -eu\ntouch hook-entered\n"
-                "while [ ! -e hook-release ]; do sleep 0.02; done\n"
+                "#!/bin/sh\nset -eu\ntouch .git/receipt/hook-entered\n"
+                "while [ ! -e .git/receipt/hook-release ]; do sleep 0.02; done\n"
                 "exit 0\n"
             )
             hook.chmod(0o755)
@@ -227,6 +227,10 @@ def main():
     for name, repo in (("a", a), ("b", b), ("c", c)):
         BASELINE_HEAD[name] = git(repo, "rev-parse", "HEAD")
 
+    # Seed the actual A work and C refusal before startup; setup/trace files
+    # live in Git metadata and must not manufacture extra eligible commits.
+    (a / "a-first.txt").write_text("A first publishable commit\n")
+    (c / "c-work.txt").write_text("C work blocked by its commit hook\n")
     log_path = OUT / "daemon.log"
     log = log_path.open("w")
     daemon = subprocess.Popen(
@@ -254,33 +258,29 @@ def main():
     }
     try:
         # ---- 1. A's publication blocks in a real pre-push hook -------------
-        (a / "a-first.txt").write_text("A first publishable commit\n")
-        wait_for(lambda: (a / "hook-entered").exists(), 120, "A's pre-push hook")
+        wait_for(lambda: (a / ".git/receipt/hook-entered").exists(), 120, "A's pre-push hook")
         a_pinned = git(a, "rev-parse", "HEAD")
         receipt["a_pinned_during_block"] = a_pinned
+        if git(a, "show", f"{a_pinned}:a-first.txt") != "A first publishable commit":
+            raise AssertionError("A's pinned tip did not include its eligible work")
         receipt["a_remote_before_release"] = git(
             a_bare, "for-each-ref", "--format=%(refname)"
         )
 
         # ---- 2. B commits and publishes while A stays blocked -------------
         (b / "b-work.txt").write_text("B concurrent work\n")
-        wait_for(
-            lambda: git(b_bare, "for-each-ref", "--format=%(refname)").strip() != "",
-            180,
-            "B's publication while A is blocked",
-        )
-        # Converge B fully: a pinned round publishes its pin, and B keeps
-        # accepting edits, so the next round publishes the newest tip.
-        for _ in range(20):
-            if ref_or_empty(b_bare, "refs/heads/main") == git(b, "rev-parse", "HEAD"):
-                break
-            time.sleep(2)
-        b_tip = git(b, "rev-parse", "HEAD")
+        def b_published_work():
+            tip = git(b, "rev-parse", "HEAD")
+            if ref_or_empty(b_bare, "refs/heads/main") != tip:
+                return None
+            content = git(b_bare, "show", "refs/heads/main:b-work.txt", check=False)
+            return tip if content == "B concurrent work" else None
+        b_tip = wait_for(b_published_work, 180, "B's eligible work published while A is blocked")
         b_published = ref_or_empty(b_bare, "refs/heads/main")
         receipt["b_tip"] = b_tip
         receipt["b_remote_tip"] = b_published
-        receipt["a_still_blocked_while_b_published"] = (a / "hook-entered").exists() and not (
-            a / "hook-release"
+        receipt["a_still_blocked_while_b_published"] = (a / ".git/receipt/hook-entered").exists() and not (
+            a / ".git/receipt/hook-release"
         ).exists()
         if b_published != b_tip:
             raise AssertionError(f"B did not converge: {b_published} != {b_tip}")
@@ -300,7 +300,7 @@ def main():
             raise AssertionError("A's remote received refs while its hook was blocked")
 
         # ---- 4. Release: pinned round completes, newest tip converges -----
-        (a / "hook-release").write_text("release\n")
+        (a / ".git/receipt/hook-release").write_text("release\n")
         deadline = time.monotonic() + 240
         while time.monotonic() < deadline:
             if ref_or_empty(a_bare, "refs/heads/main") == git(a, "rev-parse", "HEAD"):
