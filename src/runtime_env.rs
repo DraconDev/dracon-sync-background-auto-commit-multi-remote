@@ -45,14 +45,23 @@ mod tests {
         for relative in [".bun/bin", ".npm-global/bin", ".local/bin"] {
             std::fs::create_dir_all(home.path().join(relative)).unwrap();
         }
-        let inherited = vec![PathBuf::from("/operator/bin"), home.path().join(".local/bin")];
+        let inherited = vec![
+            PathBuf::from("/operator/bin"),
+            home.path().join(".local/bin"),
+        ];
         let current = std::env::join_paths(&inherited).unwrap();
         let result = extended_path(&current, home.path()).unwrap();
         let paths: Vec<_> = std::env::split_paths(&result).collect();
         assert!(paths.starts_with(&inherited));
         assert!(paths.contains(&home.path().join(".bun/bin")));
         assert!(paths.contains(&home.path().join(".npm-global/bin")));
-        assert_eq!(paths.iter().filter(|p| **p == home.path().join(".local/bin")).count(), 1);
+        assert_eq!(
+            paths
+                .iter()
+                .filter(|p| **p == home.path().join(".local/bin"))
+                .count(),
+            1
+        );
         assert!(!paths.contains(&home.path().join(".cargo/bin")));
         // Repeated initialization must not keep growing the search path.
         assert_eq!(extended_path(&result, home.path()).unwrap(), result);
