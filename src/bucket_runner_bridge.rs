@@ -408,8 +408,13 @@ async fn run_version(bundle: &Path) -> Result<()> {
     cmd.arg(bundle).arg("--version");
     strip_git_env(&mut cmd);
     let output = crate::git::run_command_captured_output(
-        cmd, MIN_BUNDLE_TIMEOUT_SECS, "bundle --version", None,
-    ).await.context("bundle --version failed")?;
+        cmd,
+        MIN_BUNDLE_TIMEOUT_SECS,
+        "bundle --version",
+        None,
+    )
+    .await
+    .context("bundle --version failed")?;
     if !output.status.success() {
         bail!("bundle --version refused");
     }
@@ -435,9 +440,10 @@ async fn spawn_bundle(
     let mut cmd = Command::new("node");
     cmd.arg(bundle);
     strip_git_env(&mut cmd);
-    let output = crate::git::run_command_captured_output(
-        cmd, timeout_secs, "bucket bundle", Some(request),
-    ).await.context("bundle execution failed")?;
+    let output =
+        crate::git::run_command_captured_output(cmd, timeout_secs, "bucket bundle", Some(request))
+            .await
+            .context("bundle execution failed")?;
     if output.stdout.len() > MAX_IO_BYTES {
         bail!("bundle stdout exceeded 2 MiB");
     }

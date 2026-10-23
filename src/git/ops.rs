@@ -462,29 +462,51 @@ pub(crate) async fn run_command_captured_output(
     input: Option<&[u8]>,
 ) -> Result<std::process::Output> {
     use tokio::io::AsyncWriteExt;
-    let workdir = command.as_std().get_current_dir().unwrap_or(Path::new(".")).to_path_buf();
-    command.kill_on_drop(true)
-        .stdin(if input.is_some() { std::process::Stdio::piped() } else { std::process::Stdio::null() })
+    let workdir = command
+        .as_std()
+        .get_current_dir()
+        .unwrap_or(Path::new("."))
+        .to_path_buf();
+    command
+        .kill_on_drop(true)
+        .stdin(if input.is_some() {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     configure_git_process_group(&mut command);
     let run = async {
-        let mut child = command.spawn().with_context(|| format!("failed to spawn {label}"))?;
+        let mut child = command
+            .spawn()
+            .with_context(|| format!("failed to spawn {label}"))?;
         let stdin = child.stdin.take();
         let capture = run_captured_output(child, &workdir, label);
         let write = async {
             if let Some(input) = input {
                 let mut stdin = stdin.context("workflow stdin not captured")?;
-                stdin.write_all(input).await.context("workflow stdin write failed")?;
-                stdin.shutdown().await.context("workflow stdin close failed")?;
+                stdin
+                    .write_all(input)
+                    .await
+                    .context("workflow stdin write failed")?;
+                stdin
+                    .shutdown()
+                    .await
+                    .context("workflow stdin close failed")?;
             }
             Ok::<(), anyhow::Error>(())
         };
         let ((status, stdout, stderr), ()) = tokio::try_join!(capture, write)?;
-        Ok(std::process::Output { status, stdout, stderr })
+        Ok(std::process::Output {
+            status,
+            stdout,
+            stderr,
+        })
     };
     tokio::time::timeout(Duration::from_secs(timeout_secs.max(1)), run)
-        .await.with_context(|| format!("{label} timed out after {}s", timeout_secs.max(1)))?
+        .await
+        .with_context(|| format!("{label} timed out after {}s", timeout_secs.max(1)))?
 }
 
 async fn run_captured_output(
@@ -853,11 +875,20 @@ mod tests {
     #[tokio::test]
     async fn owned_workflow_capture_drives_input_and_both_outputs_together() {
         let mut command = tokio::process::Command::new("sh");
-        command.args(["-c", "head -c 131072 /dev/zero; head -c 131072 /dev/zero >&2; cat; exit 23"]);
+        command.args([
+            "-c",
+            "head -c 131072 /dev/zero; head -c 131072 /dev/zero >&2; cat; exit 23",
+        ]);
         let input = vec![b'x'; 1024 * 1024];
-        let output = super::run_command_captured_output(command, 10, "workflow-io-fixture", Some(&input))
-            .await.unwrap();
-        assert_eq!(output.status.code(), Some(23), "nonzero exit must not be discarded");
+        let output =
+            super::run_command_captured_output(command, 10, "workflow-io-fixture", Some(&input))
+                .await
+                .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(23),
+            "nonzero exit must not be discarded"
+        );
         assert_eq!(output.stderr, vec![0; 131072]);
         assert_eq!(&output.stdout[..131072], vec![0; 131072]);
         assert_eq!(&output.stdout[131072..], input);
@@ -870,14 +901,22 @@ mod tests {
         for cancel in [false, true] {
             let temp = tempfile::tempdir().unwrap();
             let mut command = tokio::process::Command::new("sh");
-            command.args(["-c", "sleep 30 & echo $! > helper.pid; wait"])
+            command
+                .args(["-c", "sleep 30 & echo $! > helper.pid; wait"])
                 .current_dir(temp.path());
             // This unrelated fixture child must survive the owned group's exit.
-            let mut sentinel = tokio::process::Command::new("sleep").arg("30")
-                .kill_on_drop(true).spawn().unwrap();
+            let mut sentinel = tokio::process::Command::new("sleep")
+                .arg("30")
+                .kill_on_drop(true)
+                .spawn()
+                .unwrap();
             let input = vec![b'x'; 1024 * 1024];
             let mut run = Box::pin(super::run_command_captured_output(
-                command, if cancel { 30 } else { 2 }, "workflow-blocked-stdin", Some(&input)));
+                command,
+                if cancel { 30 } else { 2 },
+                "workflow-blocked-stdin",
+                Some(&input),
+            ));
             let marker = temp.path().join("helper.pid");
             tokio::select! {
                 result = &mut run => panic!("fixture exited before blocking: {result:?}"),
@@ -885,12 +924,23 @@ mod tests {
                     while !marker.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
                 }) => ready.unwrap(),
             }
-            let pid: u32 = std::fs::read_to_string(marker).unwrap().trim().parse().unwrap();
+            let pid: u32 = std::fs::read_to_string(marker)
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap();
             let identity = || {
-                std::fs::read_to_string(format!("/proc/{pid}/stat")).ok().map(|text| {
-                    let fields: Vec<_> = text.rsplit_once(") ").unwrap().1.split_whitespace().collect();
-                    (fields[0].to_owned(), fields[19].to_owned())
-                })
+                std::fs::read_to_string(format!("/proc/{pid}/stat"))
+                    .ok()
+                    .map(|text| {
+                        let fields: Vec<_> = text
+                            .rsplit_once(") ")
+                            .unwrap()
+                            .1
+                            .split_whitespace()
+                            .collect();
+                        (fields[0].to_owned(), fields[19].to_owned())
+                    })
             };
             let before = identity().unwrap();
             if cancel {
@@ -900,11 +950,18 @@ mod tests {
             }
             tokio::time::timeout(Duration::from_secs(3), async {
                 loop {
-                    if identity().is_none_or(|(state, start)| state == "Z" || start != before.1) { break; }
+                    if identity().is_none_or(|(state, start)| state == "Z" || start != before.1) {
+                        break;
+                    }
                     tokio::time::sleep(Duration::from_millis(10)).await;
                 }
-            }).await.expect("workflow child escaped its owned group after cancellation");
-            assert!(sentinel.try_wait().unwrap().is_none(), "unrelated active workload was killed");
+            })
+            .await
+            .expect("workflow child escaped its owned group after cancellation");
+            assert!(
+                sentinel.try_wait().unwrap().is_none(),
+                "unrelated active workload was killed"
+            );
             sentinel.kill().await.unwrap();
             sentinel.wait().await.unwrap();
         }
