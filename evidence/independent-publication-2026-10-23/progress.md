@@ -206,6 +206,48 @@ that publication ("publication owned by another worker ... this pass did not
 push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
 gitlab SIGPIPE recorded as a per-remote failure rather than success.
 
+## Reviewer round 3: a second hook bypass found and fixed
+
+The fresh-context reviewer verified both named objections were addressed but
+found a P1 I had missed, and was right:
+
+**`commit_configured_storage` seals a storage-guarded commit through libgit2
+(`repository.commit`), which executes NO hooks.** So a bound repository could
+still commit behind a refusing `pre-commit`, and my "no production commit
+suppresses a hook" claim was overbroad.
+
+Fixed by invoking the configured chain explicitly (`git hook run --ignore-missing
+pre-commit`) at BOTH seal dispatch sites — steady state and empty-repo bootstrap
+— gated on `has_configured_storage_guard` so the ordinary `git commit` path does
+not run every hook twice per commit (measured ~70 ms per extra invocation).
+`--ignore-missing` is deliberate: hookless repositories must keep auto-committing.
+
+New regression `a_refusing_hook_blocks_a_storage_sealed_commit` drives the real
+dispatch, and is proven non-vacuous: with the dispatch call removed it fails
+("a refusing pre-commit must fail the sealed commit: true" — the seal landed).
+
+Reviewer P2s also fixed: `mod test_helpers` is now `#[cfg(test)]`-gated (the
+release binary now contains ZERO `--no-verify` literals, verified by `grep -c`
+on the artifact), the stale `--no-verify` claim in `bucket_guard.rs` is
+corrected, and the non-vacuity binary is described accurately (`d1b36d0f…` is an
+intermediate pre-fix build, not the immediately previous install `35ee77d6…`).
+
+Enabling hooks on the seal path also surfaced a second fixture that had relied
+on the bypass (`storage::tests` bound the guard executable to the test harness,
+which does not implement warden's CLI); isolated at the fixture, not the daemon.
+
+Final state: workspace **2577 passed / 0 failed**, clippy clean, release built
+(`7e0ea08a…`), deny clean, receipt green on that binary with every hook
+assertion, installed and verified from `/proc/4041356/exe`, and 12 read-only
+samples on THAT revision recorded **19 remote-ref advancements, all real commit
+objects**.
+
+Also diagnosed honestly: `browser-extensions-shared` stays PENDING because
+`youtube-filter/TEST` pins the literal source text of `generate_store_assets.py`
+and another agent edited that file mid-run (11:43/11:44). Passes 899/899 on
+settled files. Live-edit race, not a daemon defect; not bypassed, not claimed
+converged (`browser-extensions-shared-gate-diagnosis.md`).
+
 ## Auditor round 2: both objections accepted and fixed
 
 ### 1. `--no-verify` on auto commits — bypass removed
