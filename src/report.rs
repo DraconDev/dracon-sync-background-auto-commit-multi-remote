@@ -2852,7 +2852,7 @@ pub(crate) fn repo_hint(flags: &[String], warn: bool, concern: bool) -> String {
 
 /// The caller supplies an already-redacted error; never echo stored credentials.
 /// Re-enabling one retry budget is not the broad concerns repair/push/rewrite path.
-fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) -> String {
+pub(crate) fn push_stuck_hint(repo: &Path, failures: u32, redacted_error: &str) -> String {
     let summary = if redacted_error.is_empty() {
         "publication budget exhausted".to_owned()
     } else if redacted_error.chars().count() > 60 {

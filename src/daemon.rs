@@ -1700,8 +1700,8 @@ pub(crate) enum StuckDecision {
     /// every cycle.
     Retry,
     /// `consecutive_failures >= push_max_retries` — stop auto-pushing
-    /// until the operator intervenes (`dracon-sync repair stuck-unstuck` /
-    /// `dracon-sync repair concerns`).
+    /// until the cause is repaired and its targeted retry budget is reset
+    /// (`dracon-sync repair stuck-unstuck <repo>`).
     /// This is the enforcement the pre-fix code never had
     /// (`push_max_retries` was report-display-only).
     Exhausted,
@@ -8444,18 +8444,20 @@ pub(crate) async fn run_daemon(
                             &notify_key,
                             Duration::from_secs(1800),
                         ) {
-                            eprintln!(
-                                "🛑 {} push stuck ({} consecutive failures ≥ budget {}) — auto-push paused; fix the cause, then run `dracon-sync repair stuck-unstuck {}` or `dracon-sync repair concerns --apply`",
-                                repo.display(),
-                                info.consecutive_failures,
-                                policy.push_max_retries,
-                                repo.file_name().unwrap_or_default().to_string_lossy(),
-                            );
                             let cause = if info.last_error.is_empty() {
                                 "failure cause unavailable"
                             } else {
                                 crate::git::classify_push_failure(&info.last_error)
                             };
+                            let repair_hint = crate::report::push_stuck_hint(
+                                &repo,
+                                info.consecutive_failures,
+                                cause,
+                            );
+                            eprintln!(
+                                "{repair_hint}; auto-push paused (retry budget {})",
+                                policy.push_max_retries,
+                            );
                             // v0.113.73 forge-degraded: same coalescing
                             // as the retry alert above (incident alert
                             // covers incident-attributed exhaustion).
@@ -8470,10 +8472,7 @@ pub(crate) async fn run_daemon(
                                 crate::report::record_sync_alert(
                                     &repo,
                                     "Push Stuck (budget exhausted)",
-                                    &format!(
-                                        "{} consecutive push failures — {}; auto-push paused; run `dracon-sync repair stuck-unstuck` after fixing",
-                                        info.consecutive_failures, cause
-                                    ),
+                                    &format!("{repair_hint}; auto-push paused"),
                                 );
                                 // v0.113.84: desktop moved to the cycle-end
                                 // summary; the log record above preserves
