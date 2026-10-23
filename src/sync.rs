@@ -15,6 +15,10 @@ mod owned_commit_tests;
 mod publication;
 
 #[cfg(all(test, target_os = "linux"))]
+#[path = "sync/publication_actor_tests.rs"]
+mod publication_actor_tests;
+
+#[cfg(all(test, target_os = "linux"))]
 #[path = "sync/bucket_qualification_tests.rs"]
 mod bucket_qualification_tests;
 

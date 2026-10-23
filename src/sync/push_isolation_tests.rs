@@ -110,7 +110,13 @@ exit 0
                 let mut plan = super::publication::plan_publication(&repo, &policy, true, None, 1)
                     .await
                     .unwrap();
-                upload_publication(&repo, &policy, &mut plan, false).await
+                // Production actor boundary: the upload runs inside the push
+                // phase, so local-work capacity is yielded and enrolled push
+                // children receive daemon nice 19.
+                crate::git::push_resources::push_phase(upload_publication(
+                    &repo, &policy, &mut plan, false,
+                ))
+                .await
             })
             .await
         })))
