@@ -549,7 +549,9 @@ async fn read_captured_pipe(
 ) -> anyhow::Result<Vec<u8>> {
     use tokio::io::AsyncReadExt;
     let mut bytes = Vec::new();
-    let mut chunk = [0u8; 8192];
+    // This reader is embedded twice in capture and transitively in the sync
+    // state machine. Keep its scratch space off the executor/test stack.
+    let mut chunk = vec![0u8; 8192];
     loop {
         let n = pipe.read(&mut chunk).await?;
         if n == 0 {
