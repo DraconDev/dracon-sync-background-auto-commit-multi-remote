@@ -355,6 +355,19 @@ mod tests {
         // the local filter marks it as already hardened so the daemon skips
         // that external write entirely.
         git(repo, &["config", "filter.dracon.clean", "cat"]);
+        // The daemon now runs the configured commit hook chain, so the ambient
+        // global warden pre-commit hook applies here. Neutralize it LOCALLY, the
+        // same way any repo out of warden's scope does: this fixture exercises
+        // the daemon's staging/commit path, not warden's policy, and its
+        // synthetic `.gitattributes` is deliberately not warden-hardened.
+        // An explicit empty hooks path is used (not /dev/null) so `git` reports
+        // "no hook" rather than "cannot run hook".
+        let empty_hooks = repo.join(".git/empty-hooks");
+        std::fs::create_dir_all(&empty_hooks).unwrap();
+        git(
+            repo,
+            &["config", "core.hooksPath", empty_hooks.to_str().unwrap()],
+        );
         std::fs::create_dir(repo.join(".dracon")).unwrap();
         std::fs::create_dir(repo.join("static")).unwrap();
         std::fs::write(repo.join("static/a.png"), "old tracked baseline").unwrap();
