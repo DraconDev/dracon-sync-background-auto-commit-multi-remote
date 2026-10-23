@@ -4639,7 +4639,7 @@ async fn stage_commit_and_push(
         match storage_commit {
             Ok(true) => {
                 // `post-commit` runs only after a real commit, exactly like Git.
-                if let Some(prepared) = sealed_hooks.as_ref() {
+                if sealed_hooks.is_some() {
                     if let Err(error) =
                         run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
                             .await
@@ -4651,7 +4651,6 @@ async fn stage_commit_and_push(
                             repo.display()
                         );
                     }
-                    let _ = prepared;
                 }
             }
             Ok(false) => {
@@ -5214,15 +5213,6 @@ async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> R
     .await
 }
 
-async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<bool>> {
-    let repo = repo.to_path_buf();
-    let message = message.to_owned();
-    Ok(tokio::task::spawn_blocking(move || {
-        crate::storage::commit_configured_storage(&repo, &message)
-    })
-    .await?)
-}
-
 /// Whether the commit about to be made will be SEALED through libgit2.
 ///
 /// Deliberately total: if the guard binding cannot be read, this reports
@@ -5274,8 +5264,6 @@ async fn run_configured_hook(
 struct PreparedSealedCommit {
     /// The message to commit: post-`prepare-commit-msg` / `commit-msg`.
     message: String,
-    /// The message file Git handed the hooks; kept for `post-commit`.
-    msgfile: std::path::PathBuf,
 }
 
 async fn run_sealed_commit_hooks(
@@ -5311,7 +5299,6 @@ async fn run_sealed_commit_hooks(
         } else {
             approved
         },
-        msgfile,
     })
 }
 
