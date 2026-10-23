@@ -62,7 +62,18 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     if row.frozen_secs.is_some() || row.health.mode.as_deref() == Some("paused") {
         return Current::Paused;
     }
-    if let Some(phase) = row.health.scheduler.as_ref().and_then(|e| e.phase) {
+    let phase = row.health.scheduler.as_ref().and_then(|e| e.phase);
+    // Local work can continue after the publication budget is exhausted. An
+    // active committer/queue is not evidence that this backlog can be pushed.
+    // Preserve an actual in-flight publication or an explicit current blocker;
+    // otherwise expose the exhausted budget while retaining scheduler details.
+    if row.ahead > 0
+        && row.push_status == "PUSH_STUCK"
+        && !matches!(phase, Some(Phase::Pushing | Phase::Blocked))
+    {
+        return Current::Stalled;
+    }
+    if let Some(phase) = phase {
         match phase {
             Phase::Pushing => return Current::Publishing,
             Phase::Committing => return Current::Working,
@@ -73,11 +84,6 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
             Phase::Cancelling | Phase::Retrying => return Current::Retrying,
             Phase::Blocked => return Current::Blocked,
         }
-    }
-    // Only PUSH_STUCK is produced by explicit exhausted-budget evidence.
-    // Legacy STUCK/FAIL can mean a single recent failure with retries left.
-    if row.ahead > 0 && row.push_status == "PUSH_STUCK" {
-        return Current::Stalled;
     }
     if row.push_status == "INTENTIONAL" {
         return Current::Excluded;
