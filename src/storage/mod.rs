@@ -2729,6 +2729,7 @@ pub(crate) fn has_configured_storage_guard(repo: &Path) -> Result<bool> {
 /// Commit the verified immutable tree under an owned Git index lock.
 /// Returns false only for a repository without storage markers. No fallback
 /// bypasses validation; callers retain the ordinary path solely for that case.
+#[cfg(test)]
 pub(crate) fn commit_configured_storage(repo: &Path, message: &str) -> Result<bool> {
     Ok(prepare_storage_commit_inner(repo, message, true)?.is_some())
 }
@@ -2788,7 +2789,7 @@ fn prepare_storage_commit_inner(
     )?;
     Ok(Some(PreparedStorageCommit {
         commit_id: commit_id.to_string(),
-        previous_id: parent.map_or_else(|| git2::Oid::zero().to_string(), |p| p.id().to_string()),
+        previous_id: parent.map_or_else(|| "0".repeat(commit_id.to_string().len()), |p| p.id().to_string()),
         _lock: lock,
     }))
 }
