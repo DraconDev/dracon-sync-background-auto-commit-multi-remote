@@ -1,0 +1,28 @@
+✔ already enrolled uploads do not remeasure history but still verify remote bytes (1428.838377ms)
+✔ unchanged enrolled reference still refuses a source edit during remote verification (1467.920439ms)
+✔ pressure-independent routing cannot enroll an unmeasured new candidate (31.932573ms)
+✔ hybrid routing preserves small eligible files until pressure and routes large ones (0.326557ms)
+✔ private schema preserves legacy public validation and rejects mismatched keys (0.327088ms)
+✔ multi-asset per-asset templates publish, stay valid and restore (245.285412ms)
+✔ paths reject traversal and symlink ancestors (5.68287ms)
+✔ publish read-back precedes publication, restore verifies size/hash in independent cache (58.895973ms)
+✔ corrupt remote object or wrong size refuses reference publication even with good cache (40.81773ms)
+✔ interrupted download retries and removes partial temp files (104.024122ms)
+✔ concurrent publication lock fails closed and failed upload preserves reference (378.359934ms)
+✔ SIGKILL during publication releases exclusion and next upload recovers (2002.822485ms)
+✔ interrupted upload retries and concurrent restore is byte-safe (144.70916ms)
+✔ restore refuses to overwrite operator edits and retains matching inode (45.481626ms)
+✔ file created during a restore download is not replaced (2.928168ms)
+✔ two consumers can restore the same missing destination without replacing it (45.529496ms)
+✔ source edit during upload refuses publication without discarding edit (41.760679ms)
+✔ unchanged references do not rewrite and prior objects are retained on update (121.042605ms)
+✔ operational workflow restores cache-first offline and keeps opt-in disabled (45.167943ms)
+✔ credential loading rejects broad ambient fallback, insecure modes and symlinks (95.81389ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6396.210136

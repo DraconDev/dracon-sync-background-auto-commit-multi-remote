@@ -1,0 +1,34 @@
+✖ already enrolled uploads do not remeasure history but still verify remote bytes (6152.884496ms)
+✖ pressure-independent routing cannot enroll an unmeasured new candidate (6058.369542ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12399.17161
+
+✖ failing tests:
+
+test at web/scripts/bucket-asset-transfer.test.mjs:36:1
+✖ already enrolled uploads do not remeasure history but still verify remote bytes (6152.884496ms)
+  Error [BucketStrategyError]: policy not found: /tmp/private-bucket-test-YcI6BQ/project/web/config/bucket-strategy.json
+      at fail (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-strategy-core.mjs:90:55)
+      at loadPolicy (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-strategy-core.mjs:261:26)
+      at routingBudget (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-private-workflow.mjs:28:22)
+      at runWorkflow (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-private-workflow.mjs:57:103)
+      at async TestContext.<anonymous> (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-asset-transfer.test.mjs:51:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    code: 'BUCKET_STRATEGY_POLICY_MISSING',
+    details: []
+  }
+
+test at web/scripts/bucket-asset-transfer.test.mjs:60:1
+✖ pressure-independent routing cannot enroll an unmeasured new candidate (6058.369542ms)
+  Error: Invalid or unmeasurable routing budget
+      at shouldRoute (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-asset-transfer.mjs:63:11)
+      at TestContext.<anonymous> (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-asset-transfer.test.mjs:63:16)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7)

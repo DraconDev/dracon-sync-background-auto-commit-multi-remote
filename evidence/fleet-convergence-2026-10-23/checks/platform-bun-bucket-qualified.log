@@ -1,0 +1,205 @@
+bun test v1.3.3 (274e01c7)
+
+web/scripts/bucket-strategy-forward-only.test.mjs:
+(pass) pushing a new ref > a new branch is not blocked by history already published elsewhere [2055.03ms]
+(pass) pushing a new ref > an UNPUBLISHED retirement is still refused on a new branch [2391.04ms]
+(pass) pushing a new ref > new-ref exclusion trusts local remote-tracking refs (known limitation) [829.01ms]
+(pass) forward-only asset protection > a clean tree passes [82.00ms]
+(pass) forward-only asset protection > deleting a protected published asset is refused [102.00ms]
+(pass) forward-only asset protection > renaming a protected published asset away is refused [455.01ms]
+(pass) forward-only asset protection > deleting scratch the inventory does not claim is allowed [1213.02ms]
+(pass) forward-only asset protection > deleting a ref is still refused [67.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be deleted [72.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired asset can be renamed away [76.00ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement exempts only the named path, not its protected siblings [275.00ms]
+(pass) forward-only asset protection > sanctioned retirement > an exact-file retirement list exempts each named sprite, never live siblings [148.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a retired directory covers every asset beneath it [67.00ms]
+(pass) forward-only asset protection > sanctioned retirement > retirement cannot be used to exempt a path outside the repository [68.00ms]
+(pass) forward-only asset protection > sanctioned retirement > a partial-component glob retires by extension, not by whole directory [49.00ms]
+(pass) forward-only asset protection > sanctioned retirement > whole-component globs keep their existing semantics [56.00ms]
+(pass) forward-only asset protection > an inventory is required — the check fails closed without one [61.00ms]
+(pass) the real inventory must not claim scratch directories > the games record does not claim web/games/tmp
+
+web/scripts/bucket-strategy-hooks.test.mjs:
+(pass) nested bucket hook installer > uses stable shared dispatch for fresh nested repositories and checks it idempotently [257.00ms]
+(pass) nested bucket hook installer > stable shared dispatch preserves the global Warden chain [233.00ms]
+(pass) nested bucket hook installer > parent pre-commit removes Git hook overrides before the offline guard [48.00ms]
+(pass) nested bucket hook installer > shared pre-commit removes Git hook overrides before the offline guard [39.00ms]
+(pass) nested bucket hook installer > parent pre-push removes Git hook overrides before the offline guard [45.00ms]
+(pass) nested bucket hook installer > shared pre-push removes Git hook overrides before the offline guard [40.00ms]
+(pass) nested bucket hook installer > parent hooks preserve Warden ordering, chaining, failure propagation, and exact push-stream replay [207.00ms]
+(pass) nested bucket hook installer > preserves a custom local hook and refuses to overwrite a conflicting preserved copy [210.00ms]
+(pass) nested bucket hook installer > refuses a broken symlink custom hook instead of silently switching policy [127.00ms]
+(pass) nested bucket hook installer > does not switch policy when the second hook fails preservation [138.00ms]
+
+web/scripts/bucket-strategy-manifest.test.mjs:
+(pass) explicit manifest boundary > accepts a public regenerable entry and emits a stable plan [36.00ms]
+(pass) explicit manifest boundary > binds a repository manifest to the inventory record [31.00ms]
+(pass) explicit manifest boundary > rejects an undeclared eligible binary and missing source [60.00ms]
+(pass) truncated content-addressed keys > resolves a truncated token to the leading digest characters [6.00ms]
+(pass) truncated content-addressed keys > accepts a full-width token in the same layout [6.00ms]
+(pass) truncated content-addressed keys > rejects tokens too narrow to discriminate content [11.00ms]
+(pass) truncated content-addressed keys > rejects a template whose filename does not end with the content token [10.00ms]
+(pass) truncated content-addressed keys > fails closed when two manifest entries claim one object key [6.00ms]
+
+web/scripts/bucket-strategy-sizing.test.mjs:
+(pass) strict Git sizing metadata > parses canonical cat-file records and rejects malformed or missing records [1.00ms]
+(pass) strict Git sizing metadata > treats a gitlink commit id as an external zero-size reference
+(pass) strict Git sizing metadata > rev-list parsing rejects blank, padded, unterminated, and mixed-ID records
+(pass) strict Git sizing metadata > uses checked arithmetic and exposes each sizing component [1.00ms]
+(pass) strict Git sizing metadata > gate basis follows stored bytes, not the uncompressed object sum
+(pass) reachable object measurement fixtures > measures loose and packed representations without changing the object graph [160.00ms]
+(pass) reachable object measurement fixtures > closes recursively over packed delta bases [4488.07ms]
+(pass) reachable object measurement fixtures > a compressible repository passes a budget sized on its stored pack [471.01ms]
+(pass) reachable object measurement fixtures > supports SHA-256 repositories [95.00ms]
+(pass) reachable object measurement fixtures > measures a linked worktree through the common object database [119.00ms]
+(pass) reachable object measurement fixtures > rejects shallow, grafted, and replacement-ref histories before measurement [330.01ms]
+(pass) reachable object measurement fixtures > rejects repository-discovery and temporary object-database environment overrides [85.00ms]
+(pass) reachable object measurement fixtures > preserves a legitimate alternate index for staged-tree measurement [96.00ms]
+(pass) reachable object measurement fixtures > resolves nested alternates without contacting a remote [179.00ms]
+(pass) reachable object measurement fixtures > includes staged tree data and a bounded prospective commit reserve [102.00ms]
+(pass) reachable object measurement fixtures > fails closed for a genuinely missing promised blob without lazy fetch [8810.14ms]
+(pass) measurement never invokes git pack-objects [307.00ms]
+
+web/scripts/bucket-strategy.test.mjs:
+(pass) policy and manifest validation > policy normalizes limits and requires fail-closed guard [3.00ms]
+(pass) policy and manifest validation > safe paths reject absolute, traversal, NUL, and Windows drive forms
+(pass) policy and manifest validation > manifest accepts only explicit public regenerable entries [1.00ms]
+(pass) policy and manifest validation > promotion excludes opaque binaries while inventory still classifies them [1.00ms]
+(pass) policy and manifest validation > manifest rejects duplicate ids and logical paths
+(pass) policy and manifest validation > manifest requires source and logical extensions to match
+(pass) deterministic offline promotion > plan is sorted, content-addressed, and leaves the source unchanged [11.00ms]
+(pass) deterministic offline promotion > missing and modified source files fail closed [6.00ms]
+(pass) provider ceiling and pushable measurement > lowest configured provider limit governs, including GitHub [432.01ms]
+(pass) provider ceiling and pushable measurement > unknown provider and no remote fail closed [85.00ms]
+(pass) provider ceiling and pushable measurement > pushable branch measures objects, not .git directory size [149.00ms]
+(pass) provider ceiling and pushable measurement > staged bytes are included and exact high-water blocks [181.00ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > guard keeps the inner budget while resolving the shared outer inventory [207.00ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > policy resolves innermost while the platform resolves outermost [49.00ms]
+(pass) nested budget policy with shared outer inventory (2026-10-02) > empty ref stream is an explicit no-op, not a fail-closed wedge [134.00ms]
+
+web/scripts/bucket-asset-filter-e2e.test.mjs:
+(pass) bucket diversion end-to-end (file transport) > git add stages a pointer, commit stores the pointer, checkout restores bytes [551.01ms]
+(pass) bucket diversion end-to-end (file transport) > re-adding identical bytes reuses the stored object (idempotent) [472.01ms]
+(pass) bucket diversion end-to-end (file transport) > pointer commit pushes clean to a local remote (no binary in history) [1231.02ms]
+(pass) bucket diversion end-to-end (file transport) > legacy committed binaries still check out (smudge passthrough) [563.01ms]
+
+web/scripts/bucket-asset-filter.test.mjs:
+(pass) clean when diversion is off > passes bytes through byte-identically (unset flag) [65.00ms]
+(pass) clean when diversion is off > passes bytes through byte-identically (empty flag) [69.00ms]
+(pass) clean when diversion is off > passes bytes through byte-identically (zero flag) [75.00ms]
+(pass) clean when diversion is off > passes bytes through byte-identically (truthy-but-not-1 flag) [79.00ms]
+bucket-asset-filter: fatal: bucket-asset-filter: diversion requested but no usable transport (expected DRACON_BUCKET_TRANSPORT='file:<dir>' or 's3', got ''); refusing to stage raw bytes
+(pass) clean when diversion is requested > fails closed instead of passing bytes through (no transport) [89.00ms]
+(pass) smudge when diversion is off > passes bytes through byte-identically (unset flag) [68.00ms]
+(pass) smudge when diversion is off > passes bytes through byte-identically (empty flag) [87.00ms]
+(pass) smudge when diversion is off > passes bytes through byte-identically (zero flag) [91.00ms]
+(pass) smudge when diversion is off > passes bytes through byte-identically (truthy-but-not-1 flag) [54.00ms]
+(pass) smudge when diversion is requested > legacy non-pointer bytes still pass through (pre-diversion history) [71.00ms]
+bucket-asset-filter: fatal: bucket-asset-filter: diversion requested but no usable transport (expected DRACON_BUCKET_TRANSPORT='file:<dir>' or 's3', got ''); refusing to stage raw bytes
+(pass) smudge when diversion is requested > unresolvable pointer fails closed (no transport) [99.00ms]
+bucket-asset-filter: expected 'clean' or 'smudge', got 'frobnicate
+(pass) usage > unknown subcommand exits 2 [46.00ms]
+
+web/scripts/bucket-promote-games.test.mjs:
+(pass) the pinned identity > accepts a canonical games key
+(pass) the pinned identity > accepts a prerelease version
+(pass) the pinned identity > refuses any other namespace
+(pass) the pinned identity > refuses traversal, encoding and absolute keys
+(pass) the pinned identity > refuses a non-semver version segment [2.00ms]
+(pass) plan validation > accepts a well-formed single-version plan
+(pass) plan validation > refuses a plan for another bucket (the music namespace)
+(pass) plan validation > refuses liveOperations=true
+(pass) plan validation > refuses an empty plan rather than reporting empty success [1.00ms]
+(pass) plan validation > refuses a plan spanning two game versions
+(pass) plan validation > refuses an action other than promote
+(pass) plan validation > refuses a duplicate key
+(pass) plan validation > planIdentity names the single slug and version [1.00ms]
+(pass) the write-once rule > an absent object is uploaded
+(pass) the write-once rule > identical bytes are skipped, not re-uploaded
+(pass) the write-once rule > DIFFERENT bytes at the same key are a conflict, never an overwrite
+(pass) the write-once rule > there is no replace verdict at all
+(pass) the write-once rule > a multipart ETag is incomparable and therefore a conflict
+(pass) the write-once rule > an empty ETag is not treated as identical
+(pass) local source verification > a matching file verifies and yields its md5
+(pass) local source verification > a file whose bytes changed after planning is refused
+(pass) local source verification > a sourcePath escaping the build root is refused
+(pass) local source verification > a symlinked source is refused
+(pass) promoteEntry wiring > uploads with a content type and cache policy derived from the KEY [2.00ms]
+(pass) promoteEntry wiring > a live entry point is no-cache, never immutable
+(pass) promoteEntry wiring > an identical object is skipped and its ACL repaired when private [1.00ms]
+(pass) promoteEntry wiring > different bytes on a live version upload NOTHING [2.00ms]
+(pass) selection > an empty selection is refused, not reported as success
+(pass) selection > a limit slices the plan for a staged rollout
+
+web/scripts/bucket-promote.test.mjs:
+(pass) plan gate > accepts a sound plan and returns its entries [28.00ms]
+(pass) plan gate > refuses a plan that does not declare itself offline and deterministic [1.00ms]
+(pass) plan gate > refuses a foreign bucket or namespace [3.00ms]
+(pass) plan gate > refuses any key outside the plan namespace
+(pass) plan gate > refuses non-promote actions and non-canonical keys [1.00ms]
+(pass) plan gate > refuses duplicate keys so one plan cannot write a key twice
+(pass) source gate > accepts a contained regular file whose digest reproduces the key [2.00ms]
+(pass) source gate > refuses a sourcePath that escapes the source root [2.00ms]
+(pass) source gate > refuses a symbolic link source
+(pass) source gate > refuses bytes that no longer match the plan digest [2.00ms]
+(pass) source gate > refuses a key that is not the digest-derived key for these bytes
+(pass) source gate > refuses an entry that still contains an unresolved template
+(pass) argument gate > accepts the bare mode flags and the key=value options
+(pass) argument gate > accepts every read and mutation mode as a bare flag
+(pass) argument gate > rejects unknown options instead of ignoring them
+(pass) existing-object comparison (blocker 1) > treats a matching ETag as the identical body
+(pass) existing-object comparison (blocker 1) > reports a same-length different body as a conflict, not "already there"
+(pass) existing-object comparison (blocker 1) > refuses to reason about an ETag that is not a bare MD5
+(pass) namespace pin (scope leak) > refuses a plan whose namespace is not the pinned music prefix
+(pass) promotion decision (mutation wiring) > uploads only when the key is genuinely absent
+(pass) promotion decision (mutation wiring) > skips only on a proven-identical body
+(pass) promotion decision (mutation wiring) > conflicts on every other pre-existing body, whatever its length
+(pass) phase 1 retains no bodies (P0, at the call site) > returns only the per-entry md5, never a Buffer or a file handle [4.00ms]
+(pass) empty selection > refuses to report an empty promotion as success
+(pass) apply wiring (P0/P1 at the call site) > uploads when the key is absent, then confirms the stored ETag [2.00ms]
+(pass) apply wiring (P0/P1 at the call site) > never PUTs over a non-identical body, whatever its length [1.00ms]
+(pass) apply wiring (P0/P1 at the call site) > skips only after a live HEAD proves the body identical
+(pass) apply wiring (P0/P1 at the call site) > a stale resume-log hit never suppresses the HEAD or the PUT [1.00ms]
+(pass) apply wiring (P0/P1 at the call site) > reports a conflict when the stored ETag is not ours after the PUT [3.00ms]
+(pass) verify wiring (round-4 P0) > reads the md5 from the wrapper, not from the plan entry
+(pass) verify wiring (round-4 P0) > counts a present, identical object as verified [2.00ms]
+(pass) verify wiring (round-4 P0) > a present object with different bytes is a failure, not a pass
+(pass) verify wiring (round-4 P0) > an absent object is missing, and never a failure [1.00ms]
+(pass) verifyAll wiring (the round-4 P0, at the call site) > a fully published plan verifies clean instead of reporting all-conflict [1.00ms]
+etag conflict music/covers/wrong.jpg: bucket=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa plan=ffffffffffffffffffffffffffffffff
+(pass) verifyAll wiring (the round-4 P0, at the call site) > mixes verified, missing and failed without conflating them
+(pass) public-read ACL (live-found defect) > uploads with public-read so the CDN can fetch it unauthenticated
+(pass) public-read ACL (live-found defect) > repairs a private object whose bytes are already correct [1.00ms]
+(pass) public-read ACL (live-found defect) > leaves an already-public identical object as a plain skip
+
+web/scripts/bucket-game-budgets.test.mjs:
+(pass) budgetFor — the growth-budget rule > applies the 28% growth rate above the floor
+(pass) budgetFor — the growth-budget rule > falls back to the 512 MiB floor on a small repository
+(pass) budgetFor — the growth-budget rule > every budget is strictly above its measurement
+(pass) budgetFor — the growth-budget rule > rounds up to a whole MiB so the budget is reproducible
+(pass) policyCommitState — can this repository actually commit its budget? > reports "ignored" when .gitignore excludes the whole web/ directory [495.01ms]
+(pass) policyCommitState — can this repository actually commit its budget? > reports "addable" when the policy path is re-included [183.00ms]
+(pass) policyCommitState — can this repository actually commit its budget? > the re-inclusion does not re-open the stray-PNG hazard it was added for [11.00ms]
+(pass) policyCommitState — can this repository actually commit its budget? > reports "tracked" once the file is committed [52.00ms]
+(pass) policyCommitState — can this repository actually commit its budget? > does not confuse a NEGATION match with an ignore (check-ignore would) [11.00ms]
+(pass) buildPolicy — the artifact that gets committed > passes validatePolicy shape
+(pass) buildPolicy — the artifact that gets committed > records the same budget for every configured provider
+(pass) buildPolicy — the artifact that gets committed > source text states the measurement, the rule and the recoverability consequence
+(pass) buildPolicy — the artifact that gets committed > never emits the literal "undefined" (a dropped optional arg shipped this)
+(pass) buildPolicy — the artifact that gets committed > carries the platform policy's games namespace value verbatim, so object keys are untouched [6.00ms]
+
+web/scripts/bucket-sizes.test.mjs:
+(pass) manifest counts unique keys, never duplicate references [1.00ms]
+(pass) missing/conflicting bytes and unresolved templates are unknown
+(pass) templates resolve digest and extension before deduplication
+(pass) invalid bytes do not count as zero-sized objects
+(pass) stored total includes working and unassigned; deepest namespace avoids double counting
+(pass) incomplete, wrong-bucket, future, invalid or duplicate inventory fails closed [1.00ms]
+(pass) namespace mismatches and unsafe manifest paths fail closed [6.00ms]
+(pass) empty listing is measured zero, absence remains unknown [4.00ms]
+
+ 173 pass
+ 0 fail
+ 496 expect() calls
+Ran 173 tests across 11 files. [30.91s]

@@ -1,0 +1,10 @@
+{
+  "observed_at": 1792786482.8845162,
+  "binary": "/home/dracon/.local/bin/dracon-warden",
+  "previous_sha256": "738626711fc9344351db82b472fa9c41def7149042d9ec0a57fb5c75cc53623f",
+  "installed_sha256": "1e42b6f47b441459a3b1ec4733f29cb3f3f1cb14f3f027fab1ae3dcbe465527f",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T211442Z-warden-qualified-ren97ohk",
+  "global_hooks_match_qualified_renderer": true,
+  "global_hook_files_changed_by_this_install": false,
+  "security_policy_settings_changed": false
+}

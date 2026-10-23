@@ -1,0 +1,29 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+🔧 /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c configured publish upstream for main on origin
+🔧 /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-b configured publish upstream for main on origin
+🔧 /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a configured publish upstream for main on origin
+⚠️ warden auto-harden failed for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found
+🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ warden auto-harden failed for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found
+⚠️ sync failed (late) for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal
+📝 committed 1 file(s) in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a
+🔄 trailing-drain: 2 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ warden auto-harden failed for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found
+⚠️ sync failed (late) for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ sync failed (late) for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ sync failed (late) for /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c: git commit-staged failed in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal
+📝 committed 1 file(s) in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-b
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-b
+📝 committed 1 file(s) in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a
+⏳ /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-a
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+📝 committed 1 file(s) in /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/fleet-qualified-isolated-installed/fixture/watch/repo-c

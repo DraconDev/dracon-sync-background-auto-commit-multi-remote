@@ -1,0 +1,25 @@
+✖ unchanged enrolled reference still refuses a source edit during remote verification (507.425196ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 588.391696
+
+✖ failing tests:
+
+test at web/scripts/bucket-asset-transfer.test.mjs:60:1
+✖ unchanged enrolled reference still refuses a source edit during remote verification (507.425196ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///home/dracon/Dev/dracon-platform/web/scripts/bucket-asset-transfer.test.mjs:69:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /mismatch/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

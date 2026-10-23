@@ -1,0 +1,22 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling tokio v1.53.3
+   Compiling tokio-util v0.7.19
+   Compiling tokio-native-tls v0.3.1
+   Compiling tower v0.5.3
+   Compiling tokio-rustls v0.26.5
+   Compiling dracon-git v94.7.2
+   Compiling tower-http v0.6.11
+   Compiling h2 v0.4.19
+   Compiling hyper v1.11.1
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+   Compiling hyper-util v0.1.20
+   Compiling hyper-tls v0.6.0
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+   Compiling dracon-system-lib v94.2.7
+   Compiling dracon-system v0.112.45 (/home/dracon/Dev/dracon-utilities/dracon-system)
+    Finished `release` profile [optimized] target(s) in 3m 01s
