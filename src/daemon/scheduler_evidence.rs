@@ -14,6 +14,66 @@ pub(crate) enum Phase {
     Inspecting,
     Retrying,
     Blocked,
+    /// A local commit pass is running in this repository.
+    Committing,
+    /// An immutable-tip publication command is actually executing. Never set
+    /// by reservation or by local ownership alone.
+    Pushing,
+}
+
+/// Live worker stamps, set only at real operation boundaries. Observational:
+/// nothing here influences admission, ownership or deadlines.
+static WORKER_PHASES: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<PathBuf, (Phase, Option<Phase>, Instant)>>,
+> = std::sync::OnceLock::new();
+
+fn worker_phases(
+) -> &'static std::sync::Mutex<std::collections::HashMap<PathBuf, (Phase, Option<Phase>, Instant)>>
+{
+    WORKER_PHASES.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+/// Record that this repository's worker entered a local commit pass.
+pub(crate) fn worker_committing(repo: &Path) {
+    let mut map = worker_phases().lock().expect("worker phase map poisoned");
+    let entry = map
+        .entry(repo.to_path_buf())
+        .or_insert((Phase::Committing, None, Instant::now()));
+    entry.0 = Phase::Committing;
+    entry.2 = Instant::now();
+}
+
+/// Record that publication stopped running; local state is unchanged.
+pub(crate) fn worker_publishing(repo: &Path, active: bool) {
+    let mut map = worker_phases().lock().expect("worker phase map poisoned");
+    let entry = map
+        .entry(repo.to_path_buf())
+        .or_insert((Phase::Working, None, Instant::now()));
+    entry.1 = active.then_some(Phase::Pushing);
+    entry.2 = Instant::now();
+}
+
+/// Mark publication as executing for exactly the duration of the upload, then
+/// demote back to local work. A dropped/cancelled upload clears the stamp via
+/// the guard, so the report can never keep claiming "pushing" afterwards.
+pub(crate) async fn publish_phase<T>(repo: &Path, work: impl std::future::Future<Output = T>) -> T {
+    struct Stamp(PathBuf);
+    impl Drop for Stamp {
+        fn drop(&mut self) {
+            worker_publishing(&self.0, false);
+        }
+    }
+    worker_publishing(repo, true);
+    let _stamp = Stamp(repo.to_path_buf());
+    work.await
+}
+
+/// Clear a finished worker's stamps so a stale phase cannot describe new work.
+pub(crate) fn worker_idle(repo: &Path) {
+    worker_phases()
+        .lock()
+        .expect("worker phase map poisoned")
+        .remove(repo);
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -27,6 +87,12 @@ pub(crate) struct RepoEvidence {
     pub eligible: bool,
     /// Admission is not progress; kept separate from execution age.
     pub admitted_secs: Option<u64>,
+    /// Publication command currently executing (independently of local work).
+    #[serde(default)]
+    pub publication_phase: Option<Phase>,
+    /// Age of the oldest continuously running publication command.
+    #[serde(default)]
+    pub publication_secs: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -83,6 +149,27 @@ pub(super) fn build(inputs: Inputs<'_>, now: Instant, written_at: u64) -> Snapsh
                 let row = repos.entry(path.clone()).or_default();
                 let wait = until.duration_since(now).as_secs().max(1);
                 row.retry_secs = Some(row.retry_secs.unwrap_or(0).max(wait));
+            }
+        }
+    }
+    let stamps = worker_phases()
+        .lock()
+        .map(|map| {
+            map.iter()
+                .map(|(path, stamp)| (path.clone(), *stamp))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    for (path, (local, publication, at)) in stamps {
+        let row = repos.entry(path).or_default();
+        // Worker stamps describe real operation starts. They outrank the
+        // generic reservation-derived `Working`, but never invent a phase for
+        // a repo the daemon is not actually running.
+        if now.saturating_duration_since(at).as_secs() <= 120 {
+            row.publication_phase = publication;
+            row.publication_secs = publication.map(|_| now.saturating_duration_since(at).as_secs());
+            if local == Phase::Committing {
+                row.phase = Some(Phase::Committing);
             }
         }
     }

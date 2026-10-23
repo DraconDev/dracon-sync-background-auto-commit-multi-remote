@@ -16,6 +16,9 @@ pub(super) enum Current {
     Excluded,
     Queued,
     Working,
+    /// Local commits are landing while publication is still pending. This is
+    /// progress, but explicitly NOT converged/successful updating.
+    Publishing,
     Retrying,
     Stalled,
     Blocked,
@@ -61,6 +64,8 @@ pub(super) fn classify(row: &RepoReportRow) -> Current {
     }
     if let Some(phase) = row.health.scheduler.as_ref().and_then(|e| e.phase) {
         match phase {
+            Phase::Pushing => return Current::Publishing,
+            Phase::Committing => return Current::Working,
             Phase::Working => return Current::Working,
             // A pending probe has no execution stamp. Its reservation is
             // useful evidence, but cannot establish actively running work.
@@ -99,6 +104,8 @@ pub(super) fn status(row: &RepoReportRow) -> (&'static str, Color) {
         Current::Excluded => ("🚫 EXCLUDED", Color::DarkGrey),
         Current::Queued => ("🟡 QUEUED", Color::Cyan),
         Current::Working => ("🔄 WORKING", Color::Cyan),
+        // Named separately from WORKING: the tip is not on the remotes yet.
+        Current::Publishing => ("📤 PUBLISHING", Color::Cyan),
         Current::Retrying => ("⏳ RETRYING", Color::Yellow),
         Current::Stalled => ("🔴 STALLED", Color::Red),
         Current::Blocked => ("🚫 BLOCKED", Color::Red),

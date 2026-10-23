@@ -7506,6 +7506,7 @@ pub(crate) async fn run_daemon(
                 &mut HashSet::new(),
                 &mut detached_since,
             );
+            crate::daemon::scheduler_evidence::worker_idle(&repo);
             sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
             if let Some(entry) = activity.get_mut(&repo) {
                 match apply_outcome(
@@ -9713,7 +9714,8 @@ pub(crate) async fn run_daemon(
                     &mut dispatched_this_cycle,
                     &mut detached_since,
                 );
-                sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
+                crate::daemon::scheduler_evidence::worker_idle(&repo);
+            sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                 let Some(entry) = activity.get_mut(&repo) else {
                     continue;
                 };
@@ -9820,7 +9822,8 @@ pub(crate) async fn run_daemon(
                         &mut dispatched_this_cycle,
                         &mut detached_since,
                     );
-                    sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
+                    crate::daemon::scheduler_evidence::worker_idle(&repo);
+            sync_recovery.finish(&repo, sync_res.is_err(), Instant::now());
                     if let Some(entry) = activity.get_mut(&repo) {
                         // CHANGED 2026-07-27 (v0.113.5, audit M4):
                         // route the trailing-drain match through

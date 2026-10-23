@@ -2331,6 +2331,7 @@ fn refresh_round<'a>(
         // local_phase re-admits bounded local work while the enclosing upload
         // has yielded its permit. The commit pass acquires its OWN operation
         // lease, so it cannot race the publication owner's post-round work.
+        crate::daemon::scheduler_evidence::worker_committing(repo);
         crate::git::push_resources::local_phase(sync_repo_local_with_ownership(
             repo,
             policy,
@@ -2376,12 +2377,15 @@ async fn run_publication_actor<'a>(
     // refresh passes below re-admit through `local_phase`. The scheduler's
     // per-repository reservation is unchanged — this worker still owns the
     // repository's publication, it just stops holding local mutation.
-    let mut publication = Box::pin(crate::git::push_resources::push_phase(upload_publication(
-        ctx.repo,
-        ctx.policy,
-        &mut plan,
-        ctx.commit_only,
-    )));
+    // `push_phase` yields bounded local-work capacity for exactly the life of
+    // the upload, and `publish_phase` stamps the real command execution so the
+    // report distinguishes "pushing" from "committed successfully".
+    let mut publication = Box::pin(crate::git::push_resources::push_phase(
+        crate::daemon::scheduler_evidence::publish_phase(
+            ctx.repo,
+            upload_publication(ctx.repo, ctx.policy, &mut plan, ctx.commit_only),
+        ),
+    ));
     let mut refresh: Option<RefreshFuture<'_>> = None;
     let mut refreshes = 0usize;
     let ok_report = loop {
@@ -2451,6 +2455,8 @@ async fn run_publication_actor<'a>(
     if let Some(sink) = ctx.remote_failures.as_deref_mut() {
         *sink = round_failures;
     }
+    // After any `Pushing` evidence, say what is actually true locally.
+    crate::daemon::scheduler_evidence::worker_committing(ctx.repo);
     // Reacquire local mutation ownership for post-publication work. Bounded:
     // refusing to block an upload round forever behind another writer.
     ctx.operation_lease = acquire_local_lease(ctx.repo, ctx.policy).await;
