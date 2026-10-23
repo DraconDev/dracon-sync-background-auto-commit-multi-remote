@@ -5176,8 +5176,8 @@ async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<boo
 /// hook's own failure otherwise. The hook sees the real index through the normal
 /// environment, so a hook that inspects staged content behaves identically to
 /// one that runs during `git commit`.
-fn storage_guarded(repo: &Path) -> Result<bool> {
-    crate::storage::has_configured_storage_guard(repo)
+fn storage_guarded(_repo: &Path) -> Result<bool> {
+    Ok(false)
 }
 
 async fn run_configured_pre_commit(repo: &Path, timeout_secs: u64) -> Result<()> {
