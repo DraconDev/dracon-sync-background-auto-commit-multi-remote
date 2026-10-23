@@ -60,6 +60,19 @@ pub(crate) fn worker_not_committing(repo: &Path) {
     update_stamp(repo, |stamp| stamp.committing = false);
 }
 
+/// Record whether a publication command is currently executing. The async
+/// `publish_phase` below is the production path; this is also used by tests to
+/// state the boundary explicitly.
+pub(crate) fn worker_publishing(repo: &Path, active: bool) {
+    update_stamp(repo, |stamp| {
+        if active {
+            stamp.publishing_since.get_or_insert_with(Instant::now);
+        } else {
+            stamp.publishing_since = None;
+        }
+    });
+}
+
 /// Mark publication as executing for exactly the duration of the upload. The
 /// guard clears the stamp on every exit path (completion, error, cancellation,
 /// panic unwind), so the report can never keep claiming "pushing" afterwards.
@@ -384,5 +397,62 @@ mod tests {
         let mut sorted = keys.clone();
         sorted.sort();
         assert_eq!(keys, sorted);
+    }
+
+    #[test]
+    fn phase_stamps_report_real_execution_and_expire_when_abandoned() {
+        let repo = PathBuf::from("stamped");
+        let now = Instant::now();
+        worker_phases()
+            .lock()
+            .unwrap()
+            .insert(repo.clone(), WorkerStamp::default());
+        worker_committing(&repo);
+        let stamp_phase = |at: Instant| {
+            let snapshot = build(
+                Inputs {
+                    activity: &HashMap::new(),
+                    eligible: &HashSet::new(),
+                    probes: &HashSet::new(),
+                    maintenance: &HashSet::new(),
+                    retries: &[],
+                    recovery: &SyncRecovery::default(),
+                    admitted: &HashMap::new(),
+                },
+                at,
+                100,
+            );
+            snapshot.repos.get(&repo).cloned()
+        };
+        // A local commit pass is reported as committing, not as generic work.
+        let row = stamp_phase(now).expect("stamp must appear");
+        assert_eq!(row.phase, Some(Phase::Committing));
+        assert_eq!(row.publication_phase, None);
+        // Publication is a separate observation: local work stops, the upload
+        // is what is executing, and it is timed from its own start.
+        worker_not_committing(&repo);
+        worker_publishing(&repo, true);
+        let row = stamp_phase(now).expect("publication stamp must appear");
+        assert_eq!(row.phase, Some(Phase::Pushing));
+        assert_eq!(row.publication_phase, Some(Phase::Pushing));
+        assert_eq!(row.publication_secs, Some(0));
+        // Clearing publication must not leave a stale "pushing" claim behind.
+        worker_publishing(&repo, false);
+        let row = stamp_phase(now);
+        assert!(
+            row.is_none_or(
+                |row| row.publication_phase.is_none() && row.phase != Some(Phase::Pushing)
+            ),
+            "cleared publication must not keep reporting a running push"
+        );
+        // Abandoned stamps expire instead of describing later work forever.
+        worker_publishing(&repo, true);
+        let later = now + std::time::Duration::from_secs(600);
+        let row = stamp_phase(later);
+        assert!(
+            row.is_none_or(|row| row.publication_phase.is_none()),
+            "an unobserved stamp must not claim current execution"
+        );
+        worker_phases().lock().unwrap().remove(&repo);
     }
 }
