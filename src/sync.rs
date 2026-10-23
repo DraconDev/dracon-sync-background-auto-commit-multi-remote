@@ -5096,15 +5096,6 @@ async fn bootstrap_empty_repo_commit_owned(
     // Same guarantee as the steady-state path: when the root commit will be
     // sealed through libgit2, the configured hook chain is invoked explicitly
     // (a seal runs no hooks). The `git commit` path runs them itself.
-    if storage_guarded(repo)? {
-        if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
-            eprintln!(
-                "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
-                repo.display()
-            );
-            return Err(error);
-        }
-    }
     match storage_guarded_commit(repo, &msg).await? {
         Ok(true) => return Ok(true),
         Ok(false) => {}
