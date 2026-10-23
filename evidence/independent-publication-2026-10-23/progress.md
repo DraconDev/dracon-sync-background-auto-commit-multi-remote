@@ -206,6 +206,60 @@ that publication ("publication owned by another worker ... this pass did not
 push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
 gitlab SIGPIPE recorded as a per-remote failure rather than success.
 
+## Auditor round 4: the lifecycle, not just pre-commit
+
+The auditor was right again, and precisely: I ran only `pre-commit` on the
+sealed path. Git's commit lifecycle is four hooks, and a repository can put its
+policy in any of them.
+
+Measured on a probe repository rather than assumed:
+
+```
+pre-commit argv=[]
+prepare-commit-msg argv=[.git/COMMIT_EDITMSG message]
+commit-msg argv=[.git/COMMIT_EDITMSG]
+post-commit argv=[]
+```
+
+`commit-msg` may also REWRITE the message, and Git commits the rewritten text —
+verified by a hook that `sed`-edits the subject.
+
+`run_sealed_commit_hooks` now reproduces the whole sequence around the libgit2
+seal: pre-commit, prepare-commit-msg <msgfile> message, commit-msg <msgfile>,
+the seal, then post-commit only after a real commit — reading COMMIT_EDITMSG
+back so the seal commits what commit-msg approved. Each hook is a bounded owned
+process group. The ordinary `git commit` path drives none of it itself, so no
+hook fires twice.
+
+Regressions, each proven to bite by reverting the stage it protects:
+* `a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order` — asserts
+  ORDER, ARGUMENTS, and that the seal commits the message commit-msg rewrote.
+  Reverted to pre-commit-only: `hooks must run in Git's order, got:
+  pre-commit argv=[]`. Post-commit disabled: same failure.
+* `a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit` — reverted to
+  pre-commit-only: `a refusing commit-msg must fail the sealed commit: true`
+  (the seal landed).
+* `the_ordinary_commit_path_runs_each_hook_exactly_once` — all four fire once on
+  the non-sealed path.
+
+The receipt also now asserts a WHOLE number of complete lifecycle cycles in Git
+order (`b_lifecycle_cycles: 2`, since B makes two commits). Its first version
+asserted exactly-one and correctly failed — that was my assertion being wrong,
+not the code. Also recorded honestly: the receipt's fixtures are not
+storage-guarded, so it proves the ORDINARY path; the sealed path is covered by
+the unit regressions.
+
+One real regression this exposed and fixed: `storage_guarded` had been flattened
+with `unwrap_or(false)`, which silently downgraded an unresolvable guard binding
+to a plain `git commit` — committing exactly the raw bytes the guard exists to
+stop. `storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes`
+caught it; the error is now propagated as `Blocked`.
+
+Final state: workspace **2580 passed / 0 failed**, clippy clean, release built
+(`15054b66…`), receipt green on that binary, installed and verified from
+`/proc/3935918/exe`, and 12 read-only samples on that revision recorded **18
+remote-ref advancements, all real commit objects**.
+
 ## Reviewer round 3: a second hook bypass found and fixed
 
 The fresh-context reviewer verified both named objections were addressed but
