@@ -144,11 +144,28 @@ The structured per-repository actor is implemented and exercised end to end:
   the trailing-drain budget. If they do not join, it keeps the in-flight and
   scheduler evidence rather than claiming a clean stop.
 
+### Lifecycle hardening after the first full run
+
+* Refresh passes BACK OFF when a pass finds nothing to commit (750ms after a
+  real commit, 3s when idle). Without that, a multi-minute blocked hook could
+  drive dozens of full classification passes over an unchanged tree.
+* Commit-only reporting now distinguishes "another worker owns publication"
+  from a deliberate pause; the journal no longer says `commit-only mode` for a
+  pass that simply lost the publication race.
+* Shutdown requests cancellation for owned workers, joins them within the
+  trailing-drain budget, and keeps evidence when they do not join.
+
 ### Passing bounded checks (receipts under `evidence/independent-publication-2026-10-23/`)
 
 * `daemon-suite.txt`: `cargo test -p dracon-sync --bin dracon-sync --locked -j 1`
-  — **1389 passed, 0 failed, 3 ignored** (255s), undisturbed run with no other
-  cargo process touching the test binary.
+  — 1389 passed, 0 failed, 3 ignored, undisturbed.
+* `workspace-suite.txt`: `cargo test --workspace --locked` —
+  **2571 passed, 0 failed, 25 ignored** (dracon-sync + warden + system +
+  security), no `FAILED` lines.
+* `cargo clippy --workspace --locked --all-targets -- -D warnings` — clean.
+* `cargo build --release --locked` — succeeded (1m41s).
+* `cargo deny check` — advisories/bans/licenses/sources all ok.
+* `isolated/receipt.json` — INSTALLED-BINARY receipt (see below).
 * `git-suite.txt`: the whole `git::` subtree — 324 passed, 0 failed.
 * `isolation-suite.txt`: the three pre-existing hook-isolation regressions now
   drive the production actor boundary (capacity, nice 19, rejection,
