@@ -869,28 +869,27 @@ async fn a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order() {
     let hooks = repo.join(".git/lifecycle-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     // Every hook appends its own name plus argv so the test can assert ORDER
-    // and ARGUMENTS, not merely that something ran.
-    for (name, body) in [
-        (
-            "pre-commit",
-            "#!/bin/sh\nprintf 'pre-commit argv=[%s]\\n' \"$*\" >> ../hooklog\n",
-        ),
-        (
-            "prepare-commit-msg",
-            "#!/bin/sh\nprintf 'prepare-commit-msg argv=[%s]\\n' \"$*\" >> ../hooklog\n",
-        ),
+    // and ARGUMENTS, not merely that something ran. Git runs hooks with the
+    // WORKTREE ROOT as cwd, so the log path is absolute and argv is recorded
+    // verbatim.
+    let log_path = repo.join("hooklog");
+    let log_path = log_path.to_string_lossy().to_string();
+    for (name, extra) in [
+        ("pre-commit", ""),
+        ("prepare-commit-msg", ""),
         (
             "commit-msg",
             // Rewrites the message: the seal must commit the REWRITTEN text.
-            "#!/bin/sh\nprintf 'commit-msg argv=[%s]\\n' \"$*\" >> ../hooklog\n             sed -i 's/auto: initial commit/approved by hook/' \"$1\"\n",
+            "sed -i 's/auto: initial commit/approved by hook/' \"$1\"\n",
         ),
-        (
-            "post-commit",
-            "#!/bin/sh\nprintf 'post-commit argv=[%s]\\n' \"$*\" >> ../hooklog\n",
-        ),
+        ("post-commit", ""),
     ] {
         let path = hooks.join(name);
-        std::fs::write(&path, body).unwrap();
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\nprintf '{name} argv=[%s]\\n' \"$*\" >> '{log_path}'\n{extra}"),
+        )
+        .unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
     git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
@@ -914,7 +913,7 @@ trusted_authors = ["DraconDev"]
         "the sealed root commit must be created when every hook accepts"
     );
 
-    let log = std::fs::read_to_string(repo.join("hooklog")).unwrap();
+    let log = std::fs::read_to_string(&log_path).unwrap_or_default();
     let order: Vec<&str> = log
         .lines()
         .filter_map(|line| line.split_whitespace().next())
