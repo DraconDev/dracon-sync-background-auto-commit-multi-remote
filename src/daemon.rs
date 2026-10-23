@@ -1121,6 +1121,12 @@ pub(crate) fn apply_outcome(
             stage_cooldowns.insert(repo.to_path_buf(), Instant::now() + Duration::from_secs(60));
             ApplyOutcome::BackstopSkipped
         }
+        Ok(SyncOutcome::PublicationPending) => {
+            // A successful local pass is not evidence of publication. Keep
+            // the activity, failure budget, blocked age and stuck ledger.
+            eprintln!("⏳ {} publication pending{} (another publication owner; no transport failure recorded)", repo.display(), late_tag);
+            ApplyOutcome::PushPaused
+        }
         Ok(SyncOutcome::OperationDeferred) => {
             // No work was attempted. Retain failure/blocked evidence and the
             // activity entry; do not claim a commit or consume a push retry.
@@ -2455,6 +2461,30 @@ mod tests {
         assert_eq!(entry.remote_failures, paused_remote);
         assert_eq!(entry.mirror_consecutive_fails, paused_remote);
         assert!(stage_cooldowns[&repo] > Instant::now());
+
+        // Publication owned elsewhere is not success, failure, or evidence
+        // that an earlier blocker/backlog disappeared after a local pass.
+        let cooldowns_before = stage_cooldowns.clone();
+        let stuck_before = serde_json::to_value(&stuck_push_repos).unwrap();
+        let outcome = apply_outcome(
+            &repo,
+            &Ok(SyncOutcome::PublicationPending),
+            paused_remote.clone(),
+            &mut entry,
+            &mut stage_cooldowns,
+            &mut stuck_push_repos,
+            false,
+        );
+        assert_eq!(outcome, ApplyOutcome::PushPaused);
+        assert_eq!(entry.blocked_since, blocked_since);
+        assert_eq!(entry.failure_count, failures);
+        assert_eq!(entry.remote_failures, paused_remote);
+        assert_eq!(entry.mirror_consecutive_fails, paused_remote);
+        assert_eq!(stage_cooldowns, cooldowns_before);
+        assert_eq!(
+            serde_json::to_value(&stuck_push_repos).unwrap(),
+            stuck_before
+        );
         entry.failure_count = original_failures;
 
         // --- PushFailed -> ApplyOutcome::Failure, blocked_since cleared ---
@@ -6897,6 +6927,12 @@ pub(crate) async fn run_once(policy_path: &Path) -> Result<()> {
             Ok(SyncOutcome::PushPaused) => {
                 changed += 1;
                 eprintln!("⏸️ {} committed but push paused", repo.display());
+            }
+            Ok(SyncOutcome::PublicationPending) => {
+                eprintln!(
+                    "⏳ {} local pass finished; publication remains owned by another process",
+                    repo.display()
+                );
             }
             Ok(SyncOutcome::NothingToDo)
             | Ok(SyncOutcome::Blocked)

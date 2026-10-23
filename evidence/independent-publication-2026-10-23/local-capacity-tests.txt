@@ -1,0 +1,12 @@
+   Compiling dracon-sync v0.113.95 (/home/dracon/Dev/dracon-utilities/dracon-sync)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 45s
+     Running unittests src/main.rs (target/debug/deps/dracon_sync-30480736cd90bce9)
+
+running 4 tests
+test git::push_resources::tests::cancelled_local_refresh_drops_work_before_releasing_its_capacity ... ok
+test git::push_resources::tests::local_refresh_is_bounded_and_leaves_publication_yielded ... ok
+test git::push_resources::tests::push_commands_overlap_and_cancellation_drops_only_owned_work ... ok
+test git::push_resources::tests::push_phase_restores_local_capacity_on_error_and_nested_mirror_work ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1382 filtered out; finished in 0.03s
+

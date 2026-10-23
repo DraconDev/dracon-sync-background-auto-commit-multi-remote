@@ -8,6 +8,10 @@ use std::time::Duration;
 mod push_isolation_tests;
 
 #[cfg(all(test, target_os = "linux"))]
+#[path = "sync/owned_commit_tests.rs"]
+mod owned_commit_tests;
+
+#[cfg(all(test, target_os = "linux"))]
 #[path = "sync/bucket_qualification_tests.rs"]
 mod bucket_qualification_tests;
 
@@ -64,6 +68,9 @@ pub(crate) enum SyncOutcome {
     NothingToDo,
     /// Another process owns this Git directory; no commit or push attempted.
     OperationDeferred,
+    /// Local work may have progressed, but another owner is publishing. This
+    /// is neither successful publication nor a failed transport attempt.
+    PublicationPending,
     Blocked,
     /// ADDED 2026-07-26 (v0.113.2, audit SYNC-H2): the auto-commit
     /// backstop skipped the commit step (operator is committing
@@ -279,6 +286,8 @@ impl SyncOutcome {
 }
 
 struct SyncContext<'a> {
+    operation_lease: Option<std::fs::File>,
+    publication_lease: Option<std::fs::File>,
     repo: &'a Path,
     policy: &'a SyncPolicy,
     excluded_dir_names: &'a BTreeSet<String>,
@@ -467,7 +476,8 @@ async fn get_bump_info(repo: &Path) -> Option<(String, String, String)> {
 }
 
 fn maybe_sync_visibility_and_metadata(ctx: &SyncContext<'_>) {
-    if ctx.dry_run || (!ctx.policy.sync_visibility && !ctx.policy.sync_metadata) {
+    if ctx.dry_run || ctx.commit_only || (!ctx.policy.sync_visibility && !ctx.policy.sync_metadata)
+    {
         return;
     }
     // CHANGED 2026-07-21 (v0.112.33, audit M26 follow-up): prefer
@@ -4667,8 +4677,8 @@ async fn stage_commit_and_push(
         }
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
-            // commit→push gate (ordinary commits use the owned CLI runner,
-            // invisible to a CLI wrapper). Debug-gated: no fleet overhead.
+            // commit→push gate, including sealed storage commits that do
+            // not spawn Git. Debug-gated: no fleet overhead.
             eprintln!(
                 "scheduler: commit_done repo={} unix_ms={}",
                 repo.display(),
@@ -4712,9 +4722,10 @@ async fn stage_commit_and_push(
         }
     }
 
-    prune_other_default_branch(repo).await;
-
-    post_commit_pull(svc, repo, policy).await;
+    if !ctx.commit_only {
+        prune_other_default_branch(repo).await;
+        post_commit_pull(svc, repo, policy).await;
+    }
 
     let alert_status = svc.get_status().await?;
     if alert_status.ahead > policy.alert_unpushed_threshold {
@@ -5211,6 +5222,55 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // v0.113.69 commit-despite-paused-push: commit without pushing.
     commit_only: bool,
 ) -> Result<SyncOutcome> {
+    // Publication admission is nonblocking and precedes local ownership. A
+    // busy publisher must not prevent this caller from committing new edits.
+    let is_repo = GitService::new(repo)?.is_git_repo().await?;
+    let publication_lease = if dry_run || commit_only || !is_repo {
+        None
+    } else {
+        crate::git::sync_lease::try_acquire_publication(repo)?
+    };
+    let publication_busy = !dry_run && !commit_only && is_repo && publication_lease.is_none();
+    let result = sync_repo_local_with_ownership(
+        repo,
+        policy,
+        excluded_dir_names,
+        idle_seconds,
+        remote_failures,
+        dry_run,
+        policy_path,
+        ahead_since,
+        commit_only || publication_busy,
+        publication_lease,
+    )
+    .await;
+    if publication_busy
+        && matches!(
+            result,
+            Ok(SyncOutcome::Synced
+                | SyncOutcome::NothingToDo
+                | SyncOutcome::FilterOnly
+                | SyncOutcome::PushPaused
+                | SyncOutcome::BackstopSkipped)
+        )
+    {
+        return Ok(SyncOutcome::PublicationPending);
+    }
+    result
+}
+
+async fn sync_repo_local_with_ownership(
+    repo: &Path,
+    policy: &SyncPolicy,
+    excluded_dir_names: &BTreeSet<String>,
+    idle_seconds: u64,
+    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
+    dry_run: bool,
+    policy_path: Option<&Path>,
+    ahead_since: Option<std::time::Instant>,
+    commit_only: bool,
+    publication_lease: Option<std::fs::File>,
+) -> Result<SyncOutcome> {
     let preparation_start = std::time::Instant::now();
     let preparation_phase = |phase: &str| {
         if debug_enabled() {
@@ -5228,6 +5288,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
             eprintln!("🐛 {} is not recognized as git repo", repo.display());
         }
         let ctx = SyncContext {
+            operation_lease: None,
+            publication_lease: None,
             repo,
             policy,
             excluded_dir_names,
@@ -5242,7 +5304,9 @@ pub(crate) async fn sync_repo_with_ahead_since(
             backstop_active: false,
             commit_only: false,
         };
-        maybe_sync_visibility_and_metadata(&ctx);
+        if !commit_only {
+            maybe_sync_visibility_and_metadata(&ctx);
+        }
         return Ok(SyncOutcome::NothingToDo);
     }
 
@@ -5266,6 +5330,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
 
     if let Some(blocked) = check_conflict_state(repo) {
         let ctx = SyncContext {
+            operation_lease: None,
+            publication_lease: None,
             repo,
             policy,
             excluded_dir_names,
@@ -5280,7 +5346,9 @@ pub(crate) async fn sync_repo_with_ahead_since(
             backstop_active: false,
             commit_only: false,
         };
-        maybe_sync_visibility_and_metadata(&ctx);
+        if !commit_only {
+            maybe_sync_visibility_and_metadata(&ctx);
+        }
         return Ok(blocked);
     }
 
@@ -5295,7 +5363,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // `check_conflict_state` — v0.113.0 gc'd repos mid-merge/
     // rebase/cherry-pick even though the sync itself correctly
     // blocked two statements later.
-    if !dry_run {
+    if !dry_run && !commit_only {
         crate::git::maybe_auto_gc(repo, policy.auto_gc_garbage_threshold_bytes).await;
         // ADDED 2026-07-29 (v0.113.10): opt-in janitor for stale
         // daemon-created branches + orphaned remote-tracking refs.
@@ -5354,7 +5422,11 @@ pub(crate) async fn sync_repo_with_ahead_since(
     }
 
     preparation_phase("before_origin");
-    let has_origin = ensure_origin_remote(repo, policy);
+    let has_origin = if commit_only {
+        crate::git::multi_remote::get_remote_url(repo, "origin").is_some()
+    } else {
+        ensure_origin_remote(repo, policy)
+    };
     let has_upstream = has_tracking_upstream(repo);
     preparation_phase("before_status");
     let initial_status = svc.get_status().await?;
@@ -5427,13 +5499,14 @@ pub(crate) async fn sync_repo_with_ahead_since(
     // (`ahead_since`) for at least
     // `auto_commit_backstop_min_age_secs`. We check it here so the
     // SyncContext has the flag for the auto_commit block below.
-    let backstop_active = is_backstop_active(
-        ahead_since,
-        std::time::Instant::now(),
-        initial_ahead.min(usize::MAX as u64) as usize,
-        policy.auto_commit_backstop_threshold,
-        policy.auto_commit_backstop_min_age_secs,
-    );
+    let backstop_active = !commit_only
+        && is_backstop_active(
+            ahead_since,
+            std::time::Instant::now(),
+            initial_ahead.min(usize::MAX as u64) as usize,
+            policy.auto_commit_backstop_threshold,
+            policy.auto_commit_backstop_min_age_secs,
+        );
     if backstop_active {
         eprintln!(
             "⏸️  daemon backstop: {} unpushed commits pending push >{}s, skipping auto-commit for {}",
@@ -5444,6 +5517,8 @@ pub(crate) async fn sync_repo_with_ahead_since(
     }
 
     let mut ctx = SyncContext {
+        operation_lease: _operation_lease,
+        publication_lease,
         repo,
         policy,
         excluded_dir_names,
@@ -5505,7 +5580,9 @@ pub(crate) async fn sync_repo_with_ahead_since(
     }
 
     preparation_phase("before_pull");
-    auto_pull_merge(&svc, &ctx, &initial_status).await?;
+    if !commit_only {
+        auto_pull_merge(&svc, &ctx, &initial_status).await?;
+    }
     preparation_phase("before_clean");
     clean_staged_paths(&ctx).await?;
     // Explicit checkout opt-in only. Upload/read-back must precede computing
