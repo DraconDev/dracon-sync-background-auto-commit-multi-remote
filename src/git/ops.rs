@@ -871,6 +871,13 @@ pub(crate) fn filter_repo_available_for_tests() -> bool {
 mod tests {
     use super::is_git_push_progress_line;
 
+    #[test]
+    fn captured_pipe_future_does_not_embed_its_io_buffer() {
+        let reader = super::read_captured_pipe(tokio::io::empty(), 1024);
+        let size = std::mem::size_of_val(&reader);
+        assert!(size < 2048, "capture future embeds a large buffer: {size} bytes");
+    }
+
     #[cfg(unix)]
     #[tokio::test]
     async fn owned_workflow_capture_drives_input_and_both_outputs_together() {
