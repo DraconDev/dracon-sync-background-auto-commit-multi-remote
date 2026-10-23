@@ -152,6 +152,58 @@ async fn a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work() {
 
 #[cfg(unix)]
 #[tokio::test]
+async fn a_refusing_hook_also_blocks_a_storage_sealed_commit() {
+    // libgit2 seals storage-guarded commits and runs NO hooks. Without the
+    // explicit hook invocation, a bound repository could commit behind a
+    // refusing pre-commit — the same bypass in a different code path. This
+    // pins the dispatch guarantee: the hook chain is consulted before the seal.
+    let fixture = Fixture::new().await;
+    fixture.hook("#!/bin/sh\necho 'warden: sealed commit refused' >&2\nexit 1\n");
+    let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
+
+    // Direct proof that the primitive the daemon calls on the seal path
+    // observes the refusal.
+    let error = run_configured_pre_commit(&fixture.repo, 10)
+        .await
+        .expect_err("the configured pre-commit must be consulted before a sealed commit");
+    assert!(
+        format!("{error:#}").contains("warden: sealed commit refused"),
+        "the hook's refusal must reach the caller: {error:#}"
+    );
+
+    // And an accepting hook is a no-op rather than an error (the common case:
+    // most repositories configure no pre-commit at all).
+    fixture.hook("#!/bin/sh\ntouch ../precommit-ran\nexit 0\n");
+    run_configured_pre_commit(&fixture.repo, 10)
+        .await
+        .expect("an accepting hook must not fail the seal path");
+    assert!(fixture.root.path().join("precommit-ran").exists());
+    assert_eq!(
+        git(&fixture.repo, &["rev-parse", "HEAD"]).await,
+        before,
+        "consulting the hook must not itself commit"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_repository_without_commit_hooks_still_commits() {
+    // `--ignore-missing` matters: the daemon must not fail every auto commit in
+    // the (majority) repositories that configure no pre-commit hook.
+    let fixture = Fixture::new().await;
+    std::fs::remove_file(fixture.hooks.join("pre-commit")).ok();
+    run_configured_pre_commit(&fixture.repo, 10)
+        .await
+        .expect("a missing pre-commit hook must be ignored, not fatal");
+    let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
+    commit_staged_owned(&fixture.repo, "commit with no hooks configured", 10)
+        .await
+        .unwrap();
+    assert_ne!(git(&fixture.repo, &["rev-parse", "HEAD"]).await, before);
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset() {
     let fixture = Fixture::new().await;
     let bare = fixture.root.path().join("remote.git");
