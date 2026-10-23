@@ -1,0 +1,4 @@
+LINT-FAIL extensions/standalones/volume-and-video-pro
+TEST-FAIL extensions/standalones/auto-form-filler
+TEST-FAIL extensions/standalones/SamAI
+GATE-DONE extensions/standalones/volume-and-video-pro extensions/standalones/auto-form-filler extensions/standalones/SamAI extensions/standalones/vidpro-extension

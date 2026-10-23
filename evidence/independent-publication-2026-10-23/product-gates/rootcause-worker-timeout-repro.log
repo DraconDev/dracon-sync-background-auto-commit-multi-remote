@@ -1,0 +1,187 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler
+
+node:events:487
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: write EPIPE
+    at ChildProcess.target._send (node:internal/child_process:900:20)
+    at ChildProcess.target.send (node:internal/child_process:775:19)
+    at ForksPoolWorker.send (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3081:13)
+    at PoolRunner.postMessage (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:2862:63)
+    at PoolRunner.start (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:2911:9)
+    at Pool.schedule (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3465:5)
+Emitted 'error' event at:
+    at ChildProcess.emitWorkerError (file:///home/dracon/Dev/browser-extensions-shared/node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3011:22)
+    at ChildProcess.emit (node:events:509:28)
+    at node:internal/child_process:904:39
+    at processTicksAndRejections (node:internal/process/task_queues:85:11) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.18.0
+bin/node]
+
+  #  /nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node[2803738]: std::unique_ptr<long unsigned int> node::WorkerThreadsTaskRunner::DelayedTaskScheduler::Start() at ../../src/node_platform.cc:109
+  #  Assertion failed: (0) == (uv_thread_create(t.get(), start_thread, this))
+
+----- Native stack trace -----
+
+ 1: 0x5b30b2f5f5f3 node::Assert(node::AssertionInfo const&) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 2: 0x5b30b300dbdc node::WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(int, node::PlatformDebugLogLevel) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 3: 0x5b30b300e9e1 node::NodePlatform::NodePlatform(int, v8::TracingController*, v8::PageAllocator*) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 4: 0x5b30b2efbb1b node::V8Platform::Initialize(int) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 5: 0x5b30b2ef8a92  [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 6: 0x5b30b2ef997f node::Start(int, char**) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 7: 0x7a520742a4d8  [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 8: 0x7a520742a59b __libc_start_main [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 9: 0x5b30b2dfa145 _start [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+node[2803718]: pthread_create: Resource temporarily unavailable
+
+  #  /nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node[2803786]: std::unique_ptr<long unsigned int> node::WorkerThreadsTaskRunner::DelayedTaskScheduler::Start() at ../../src/node_platform.cc:109
+  #  Assertion failed: (0) == (uv_thread_create(t.get(), start_thread, this))
+
+----- Native stack trace -----
+
+ 1: 0x578cb455f5f3 node::Assert(node::AssertionInfo const&) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 2: 0x578cb460dbdc node::WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(int, node::PlatformDebugLogLevel) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 3: 0x578cb460e9e1 node::NodePlatform::NodePlatform(int, v8::TracingController*, v8::PageAllocator*) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 4: 0x578cb44fbb1b node::V8Platform::Initialize(int) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 5: 0x578cb44f8a92  [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 6: 0x578cb44f997f node::Start(int, char**) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 7: 0x73738302a4d8  [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 8: 0x73738302a59b __libc_start_main [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 9: 0x578cb43fa145 _start [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+
+  #  /nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node[2803776]: std::unique_ptr<long unsigned int> node::WorkerThreadsTaskRunner::DelayedTaskScheduler::Start() at ../../src/node_platform.cc:109
+  #  Assertion failed: (0) == (uv_thread_create(t.get(), start_thread, this))
+
+----- Native stack trace -----
+
+ 1: 0x653b8815f5f3 node::Assert(node::AssertionInfo const&) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 2: 0x653b8820dbdc node::WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(int, node::PlatformDebugLogLevel) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 3: 0x653b8820e9e1 node::NodePlatform::NodePlatform(int, v8::TracingController*, v8::PageAllocator*) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 4: 0x653b880fbb1b node::V8Platform::Initialize(int) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 5: 0x653b880f8a92  [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 6: 0x653b880f997f node::Start(int, char**) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 7: 0x72eb00a2a4d8  [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 8: 0x72eb00a2a59b __libc_start_main [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 9: 0x653b87ffa145 _start [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+node[2803700]: pthread_create: Resource temporarily unavailable
+
+  #  /nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node[2803749]: std::unique_ptr<long unsigned int> node::WorkerThreadsTaskRunner::DelayedTaskScheduler::Start() at ../../src/node_platform.cc:109
+  #  Assertion failed: (0) == (uv_thread_create(t.get(), start_thread, this))
+
+----- Native stack trace -----
+
+ 1: 0x59c8b675f5f3 node::Assert(node::AssertionInfo const&) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 2: 0x59c8b680dbdc node::WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(int, node::PlatformDebugLogLevel) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 3: 0x59c8b680e9e1 node::NodePlatform::NodePlatform(int, v8::TracingController*, v8::PageAllocator*) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 4: 0x59c8b66fbb1b node::V8Platform::Initialize(int) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 5: 0x59c8b66f8a92  [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 6: 0x59c8b66f997f node::Start(int, char**) [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+ 7: 0x7c76dda2a4d8  [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 8: 0x7c76dda2a59b __libc_start_main [/nix/store/7nbi22pcc92y2fqbkyp7h3srvvklmckb-glibc-2.40-224/lib/libc.so.6]
+ 9: 0x59c8b65fa145 _start [/nix/store/3f4w5y9w0m06wxrym612gxv3v2kar0wv-nodejs-24.18.0/bin/node]
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 6 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Failed to start forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/background.test.ts.
+ ❯ ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3465:94
+ ❯ Pool.schedule ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3465:5
+
+Caused by: Error: [vitest-pool-runner]: Timeout waiting for worker to respond
+ ❯ Timeout.<anonymous> ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3041:58
+ ❯ listOnTimeout node:internal/timers:605:17
+ ❯ processTimers node:internal/timers:541:7
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3459:21
+ ❯ EventEmitter.emit node:events:509:28
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3025:22
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3023:33
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3459:21
+ ❯ EventEmitter.emit node:events:509:28
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3025:22
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3023:33
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3459:21
+ ❯ EventEmitter.emit node:events:509:28
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3025:22
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3023:33
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3459:21
+ ❯ EventEmitter.emit node:events:509:28
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3025:22
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3023:33
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3459:21
+ ❯ EventEmitter.emit node:events:509:28
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3025:22
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../../node_modules/.bun/vitest@4.1.9+3baff91e1b883475/node_modules/vitest/dist/chunks/cli-api.24X8XwN1.js:3023:33
+ ❯ ChildProcess.emit node:events:509:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:295:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  72 passed | 2 skipped (74)
+      Tests  1133 passed | 4 skipped (1137)
+     Errors  6 errors
+   Start at  08:57:50
+   Duration  60.23s (transform 13.67s, setup 5.43s, import 15.60s, tests 21.85s, environment 90.91s)
+
+[vitest-pool]: Timeout terminating forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/apiRetry.test.ts.
+[vitest-pool]: Timeout terminating forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/siteProactive.test.ts.
+[vitest-pool]: Timeout terminating forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/contentHandler.test.ts.
+[vitest-pool]: Timeout terminating forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/detectCaptcha.test.ts.
+[vitest-pool]: Timeout terminating forks worker for test files /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler/tests/semanticMatching.test.ts.
