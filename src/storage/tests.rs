@@ -466,6 +466,20 @@ async fn guarded_fixture() -> tempfile::TempDir {
     git_fixture_command(repo, &["config", "dracon.storageRepoId", &id]);
     git_fixture_command(repo, &["config", "user.name", "DraconDev"]);
     git_fixture_command(repo, &["config", "user.email", "dracsharp@gmail.com"]);
+    // The daemon runs the configured commit hook chain, so the ambient global
+    // warden pre-commit applies. This fixture binds `storageSyncExecutable` to
+    // `current_exe()` — the test harness, which does not implement warden's
+    // `storage verify-configured-index --repo` CLI — so the global hook would
+    // fail for a reason unrelated to what this fixture tests. Isolate hooks
+    // locally (an empty dir, the same way any out-of-scope repo does), exactly
+    // as the bucket_assets fixture does; the in-process storage guard under
+    // test is unaffected and still cannot be bypassed.
+    let empty_hooks = repo.join(".git/empty-hooks");
+    std::fs::create_dir_all(&empty_hooks).unwrap();
+    git_fixture_command(
+        repo,
+        &["config", "core.hooksPath", empty_hooks.to_str().unwrap()],
+    );
     let payload = Fingerprint::new("b".repeat(64), 42).unwrap();
     let manifest = Manifest::new(
         id.clone(),
