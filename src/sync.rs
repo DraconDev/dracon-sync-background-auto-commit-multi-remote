@@ -328,6 +328,9 @@ struct SyncContext<'a> {
     /// `SyncOutcome::PushPaused` (no failure recorded, stuck ledger
     /// untouched) instead of attempting network I/O.
     commit_only: bool,
+    /// The upload finished but local ownership could not be reacquired, so
+    /// post-publication LOCAL bookkeeping must be skipped this round.
+    local_work_deferred: bool,
     /// True when commit-only exists because ANOTHER process/worker owns this
     /// repository's publication, not because the operator/policy paused pushes.
     /// Purely for honest reporting and never for accounting.
@@ -2472,8 +2475,16 @@ async fn run_publication_actor<'a>(
     // pass re-stamps `Committing` when it actually starts one.
     crate::daemon::scheduler_evidence::worker_not_committing(ctx.repo);
     // Reacquire local mutation ownership for post-publication work. Bounded:
-    // refusing to block an upload round forever behind another writer.
+    // refusing to block an upload round forever behind another writer. If it
+    // cannot be reacquired, the caller MUST NOT continue into local mutation —
+    // that would defeat the ownership it could not obtain.
     ctx.operation_lease = acquire_local_lease(ctx.repo, ctx.policy).await;
+    if ctx.operation_lease.is_none() {
+        // No local rights: skip post-publication local bookkeeping this round.
+        // The published result is still real and is reported as such; the
+        // deferred local work is discovered again by the next dispatch.
+        ctx.local_work_deferred = true;
+    }
     ok_report
 }
 
@@ -2611,10 +2622,13 @@ pub(crate) async fn upload_publication(
     // origin repo would be reported as AllPaused = zero attempts = no failure).
     let attempted =
         (plan.has_origin && !origin_paused) || !mirror_results.is_empty() || origin_failed;
+    // Restore the round's failure memory BEFORE propagating an interruption:
+    // an interrupted round must never look like "no remotes remember anything",
+    // which would wipe another remote's pause/backoff memory in the apply phase.
     let mut mirror_map = Some(map);
-    let mirrors_ok =
-        aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut())?;
+    let aggregated = aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut());
     plan.remote_failures = mirror_map.unwrap_or_default();
+    let mirrors_ok = aggregated?;
     if !attempted {
         return Ok(PushReport::AllPaused);
     }
@@ -5238,6 +5252,7 @@ async fn sync_repo_local_with_ownership(
             backstop_active: false,
             commit_only: false,
             publication_owned_elsewhere: false,
+            local_work_deferred: false,
         };
         if !commit_only {
             maybe_sync_visibility_and_metadata(&ctx);
@@ -5281,6 +5296,7 @@ async fn sync_repo_local_with_ownership(
             backstop_active: false,
             commit_only: false,
             publication_owned_elsewhere: false,
+            local_work_deferred: false,
         };
         if !commit_only {
             maybe_sync_visibility_and_metadata(&ctx);
@@ -5469,6 +5485,7 @@ async fn sync_repo_local_with_ownership(
         backstop_active,
         commit_only,
         publication_owned_elsewhere,
+        local_work_deferred: false,
     };
 
     let copied_standard_files = if policy.standard_files_auto {
