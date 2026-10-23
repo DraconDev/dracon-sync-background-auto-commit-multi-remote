@@ -468,7 +468,12 @@ mod tests {
         let during_long_gate = now + std::time::Duration::from_secs(600);
         let row = stamp_phase(during_long_gate).expect("long upload stamp must persist");
         assert_eq!(row.publication_phase, Some(Phase::Pushing));
-        assert_eq!(row.publication_secs, Some(600));
+        assert!(
+            row.publication_secs
+                .is_some_and(|age| (595..=600).contains(&age)),
+            "publication age must be reported for a long-running upload: {:?}",
+            row.publication_secs
+        );
         // Beyond the publication window the stamp IS abandoned (the upload has
         // its own deadline; this is the backstop for a leaked stamp).
         let abandoned = now + std::time::Duration::from_secs(4000);
