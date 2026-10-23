@@ -137,19 +137,6 @@ def main():
         hooks = repo / "hooks"
         hooks.mkdir()
         git(repo, "config", "core.hooksPath", str(hooks))
-        # A configured COMMIT hook (not just a push hook). The daemon must run
-        # the repository's commit hook chain: suppressing it with --no-verify
-        # would commit behind a policy gate the repository asked for.
-        pre_commit = hooks / "pre-commit"
-        pre_commit.write_text(
-            "#!/bin/sh\ntouch precommit-ran\n"
-            + (
-                "echo 'warden: synthetic refusal' >&2\nexit 1\n"
-                if commit_hook_exit
-                else "exit 0\n"
-            )
-        )
-        pre_commit.chmod(0o755)
         if block_push:
             hook = hooks / "pre-push"
             # Git runs hooks with the repository root as cwd, so these markers
@@ -163,7 +150,23 @@ def main():
         (repo / "data.txt").write_text(f"{name} baseline\n")
         git(repo, "add", "--", "data.txt")
         # Inherits the configured identity from the real global gitconfig.
+        # This fixture's OWN setup commit is made before any commit hook is
+        # installed, so a refusing hook cannot prevent the baseline itself
+        # (only the daemon's later commits are subject to it).
         git(repo, "commit", "--quiet", "-m", f"{name} baseline")
+        # A configured COMMIT hook (not just a push hook). The daemon must run
+        # the repository's commit hook chain: suppressing it with --no-verify
+        # would commit behind a policy gate the repository asked for.
+        pre_commit = hooks / "pre-commit"
+        pre_commit.write_text(
+            "#!/bin/sh\ntouch precommit-ran\n"
+            + (
+                "echo 'warden: synthetic refusal' >&2\nexit 1\n"
+                if commit_hook_exit
+                else "exit 0\n"
+            )
+        )
+        pre_commit.chmod(0o755)
         return repo, bare
 
     a, a_bare = make_repo("repo-a", True)
@@ -171,8 +174,12 @@ def main():
     # C's COMMIT hook refuses. The daemon must NOT bypass it: C must stay
     # uncommitted and unpublished, and the refusal must appear in its log.
     c, c_bare = make_repo("repo-c", False, commit_hook_exit=1)
+    for name, repo in (("a", a), ("b", b), ("c", c)):
+        BASELINE_HEAD[name] = git(repo, "rev-parse", "HEAD")
 
-    log = (OUT / "daemon.log").open("w")
+    log_path = OUT / "daemon.log"
+    BASELINE_HEAD: dict[str, str] = {}
+    log = log_path.open("w")
     daemon = subprocess.Popen(
         [str(BINARY), "daemon"],
         env={**os.environ, **env},
@@ -187,6 +194,7 @@ def main():
         "binary_sha256": run(["sha256sum", str(BINARY)]).stdout.split()[0],
         "fixture_root": str(root),
         "real_service_untouched": True,
+        "baseline_heads": dict(BASELINE_HEAD),
         "isolation": {
             "policy": str(policy_path),
             "state_dir": str(state),
@@ -281,7 +289,7 @@ def main():
             raise AssertionError("the daemon suppressed C's refusing pre-commit hook")
         if not receipt["c_commit_hook_refusal_reported"]:
             raise AssertionError("C's pre-commit refusal was not reported")
-        if receipt["c_head"] != receipt["c_baseline_head"]:
+        if receipt["c_head"] != BASELINE_HEAD["c"]:
             raise AssertionError("a refused commit still advanced C's HEAD")
         if receipt["c_remote_refs"]:
             raise AssertionError("a refused commit was still published")
