@@ -775,7 +775,7 @@ fn included_driver_settings_require_an_explicit_guard_binding() {
 /// libgit2 seals a guarded tree and executes no hooks, so without an explicit
 /// invocation the seal would commit behind a policy gate the repository
 /// configured. This drives the real dispatch (`bootstrap_empty_repo_commit`),
-/// not the hook primitive, so deleting the dispatch call fails here.
+/// not the hook primitive, so removing the dispatch call fails here.
 #[cfg(unix)]
 #[tokio::test]
 async fn a_refusing_hook_blocks_a_storage_sealed_bootstrap_commit() {
@@ -789,40 +789,8 @@ async fn a_refusing_hook_blocks_a_storage_sealed_bootstrap_commit() {
         Path::new("assets.manifest"),
     )
     .unwrap();
-    // Install a refusing pre-commit in a LOCAL hooks dir (the guarded fixture's
-    // own setup has already completed, so this only affects later commits).
-    let hooks = repo.join(".git/refusing-hooks");
-    std::fs::create_dir_all(&hooks).unwrap();
-    let hook = hooks.join("pre-commit");
-    std::fs::write(
-        &hook,
-        "#!/bin/sh\necho 'warden: sealed bootstrap refused' >&2\nexit 1\n",
-    )
-    .unwrap();
-    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
-    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
-
-    // The fixture repo already has a status; a bootstrap needs an empty repo,
-    // so drive the steady-state dispatch instead through the same guard.
-    std::fs::write(repo.join("asset.bin"), b"unverified raw bytes").unwrap();
-    git_fixture_command(repo, &["add", "--", "asset.bin"]);
-    let head_or_none = || {
-        let out = crate::test_helpers::test_git_cmd()
-            .current_dir(repo)
-            .args([
-                "-c",
-                "core.hooksPath=/dev/null",
-                "rev-parse",
-                "--verify",
-                "HEAD",
-            ])
-            .output()
-            .unwrap();
-        out.status
-            .success()
-            .then(|| String::from_utf8_lossy(&out.stdout).trim().to_owned())
-    };
-    let before = head_or_none();
+    // The guarded fixture is an unborn repo with a verified staged pair, so
+    // bootstrap is the dispatch that would seal it.
     let policy: crate::policy::SyncPolicy = toml::from_str(
         r#"
 auto_commit = true
@@ -834,22 +802,48 @@ trusted_authors = ["DraconDev"]
 "#,
     )
     .unwrap();
-    let result =
-        crate::sync::sync_repo(repo, &policy, &Default::default(), 0, None, false, None).await;
-    assert!(
-        result.is_err(),
-        "a refusing pre-commit must fail the pass, not seal the commit: {result:?}"
-    );
-    let after = head_or_none();
-    assert_eq!(after, before, "a refused commit must not advance HEAD");
-    assert!(
-        after.is_none(),
-        "the fixture starts unborn; nothing was sealed"
-    );
-    // The work is preserved, so the next pass can retry once the hook allows it.
+    // Baseline: with no refusing hook the bootstrap seals the root commit.
     assert_eq!(
-        std::fs::read(repo.join("asset.bin")).unwrap(),
-        b"unverified raw bytes"
+        crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+            .await
+            .unwrap(),
+        true,
+        "the guarded fixture must bootstrap when no hook refuses"
+    );
+    let sealed = git_fixture_command(repo, &["rev-parse", "HEAD"]);
+    assert!(!sealed.is_empty());
+
+    // Now stage ordinary work and install a REFUSING hook (after the guarded
+    // setup, so only the daemon's commit is gated).
+    std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
+    let hooks = repo.join(".git/refusing-hooks");
+    std::fs::create_dir_all(&hooks).unwrap();
+    let hook = hooks.join("pre-commit");
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\necho 'warden: sealed bootstrap refused' >&2\nexit 1\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+
+    let result =
+        crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false).await;
+    let error = result.expect_err("a refusing pre-commit must fail the bootstrap");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("sealed bootstrap refused"),
+        "the hook's refusal must reach the caller: {message}"
+    );
+    assert_eq!(
+        git_fixture_command(repo, &["rev-parse", "HEAD"]),
+        sealed,
+        "a refused commit must not advance HEAD"
+    );
+    assert_eq!(
+        std::fs::read(repo.join("README.md")).unwrap(),
+        b"bootstrap fixture\n",
+        "the operator's work must survive the refusal"
     );
 }
 
