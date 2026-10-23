@@ -4639,7 +4639,7 @@ async fn stage_commit_and_push(
         match storage_commit {
             Ok(true) => {
                 // `post-commit` runs only after a real commit, exactly like Git.
-                if false {
+                if false && sealed_hooks.is_some() {
                     if let Err(error) =
                         run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
                             .await
