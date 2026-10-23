@@ -1,0 +1,17 @@
+{
+  "capturedAt": 1792780886.5045345,
+  "candidates": [
+    {
+      "pid": 793872,
+      "uid": 1000,
+      "ageSeconds": 204,
+      "parentPid": 793639,
+      "parentComm": "MainThread",
+      "processGroup": 793872,
+      "session": 793872,
+      "cwd": "/home/dracon/Dev/pi-plugins/pi-goal-list-loop-audit",
+      "matchedOldWatchdog": true,
+      "arguments": "redacted"
+    }
+  ]
+}
