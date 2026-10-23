@@ -1,0 +1,17 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/volume-and-video-pro
+
+Warning: A vi.mock("@dracon/extension-core/reviewAsk") call in "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/lib/review-ask") call in "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/src/settings-manager") call in "/home/dracon/Dev/browser-extensions-shared/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+06:37:44 [vite-plugin-svelte] components/InfoTooltip.svelte:9:0 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+
+ Test Files  14 passed (14)
+      Tests  202 passed (202)
+   Start at  06:37:42
+   Duration  8.12s (transform 1.51s, setup 0ms, import 2.32s, tests 2.98s, environment 8.67s)
+

@@ -1,0 +1,34 @@
+
+WXT 0.20.27
+ℹ Building chrome-mv3 for production with Vite 7.3.6
+- Preparing...
+06:38:15 [vite-plugin-svelte] components/InfoTooltip.svelte:9:0 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+ 7: </script>
+ 8: 
+ 9: <span
+         ^
+10:   class="relative inline-flex items-center justify-center ml-1 cursor-help group"
+11:   onmouseenter={() => (showTooltip = true)}
+[1G✔ Built extension in 3.668 s
+  ├─ .output/chrome-mv3/manifest.json                                 869 B   
+  ├─ .output/chrome-mv3/popup.html                                    853 B   
+  ├─ .output/chrome-mv3/welcome.html                                  1.29 kB 
+  ├─ .output/chrome-mv3/background.js                                 12.74 kB
+  ├─ .output/chrome-mv3/chunks/_virtual_wxt-html-plugins-DPbbfBKe.js  779 B   
+  ├─ .output/chrome-mv3/chunks/popup-BBLVT9UO.js                      63.84 kB
+  ├─ .output/chrome-mv3/chunks/welcome-BvSqNY93.js                    351 B   
+  ├─ .output/chrome-mv3/content-scripts/content.js                    28.58 kB
+  ├─ .output/chrome-mv3/assets/popup-CDGgBWIg.css                     34.24 kB
+  ├─ .output/chrome-mv3/assets/welcome-CfroHDBr.css                   950 B   
+  ├─ .output/chrome-mv3/_locales/de/messages.json                     322 B   
+  ├─ .output/chrome-mv3/_locales/en/messages.json                     251 B   
+  ├─ .output/chrome-mv3/_locales/es/messages.json                     296 B   
+  ├─ .output/chrome-mv3/_locales/pt_BR/messages.json                  295 B   
+  ├─ .output/chrome-mv3/icon/128.png                                  16.07 kB
+  ├─ .output/chrome-mv3/icon/16.png                                   3.04 kB 
+  ├─ .output/chrome-mv3/icon/32.png                                   4.14 kB 
+  ├─ .output/chrome-mv3/icon/48.png                                   5.62 kB 
+  └─ .output/chrome-mv3/icon/96.png                                   11.57 kB
+Σ Total size: 186.09 kB                                             
+✔ Finished in 5.125 s

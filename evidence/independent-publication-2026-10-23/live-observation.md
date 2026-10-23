@@ -91,7 +91,7 @@ ORIGINAL package scripts with the hook's PATH resolution
 | SamAI | exit 0 | 953 passed |
 | tabmon | exit 0 | 987 passed |
 | vidpro-extension | exit 0 | 1308 passed |
-| volume-and-video-pro | (not yet) | 178 passed, initial source, original command |
+| volume-and-video-pro | no `lint` script (hook skips it); typecheck exit 0, build exit 0 | 202 passed; 178 passed on the frozen initial source |
 
 Retained logs are in `product-gates/`. No assertion was relaxed, no test was
 skipped or deleted, and no gate was bypassed: the earlier findings were
