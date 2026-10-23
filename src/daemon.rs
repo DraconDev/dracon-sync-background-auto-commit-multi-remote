@@ -10345,27 +10345,47 @@ pub(crate) async fn run_daemon(
         .map(|policy| policy.trailing_drain_deadline_secs)
         .unwrap_or(120)
         .max(5);
+    // Cancellation killed every owned worker's future; joining it is what
+    // proves its process groups are gone. `sync_workers` is the authoritative
+    // set of owned tasks, and `detached_syncs` supplies their join results.
+    // Counting BOTH as "outstanding" double-counted the same tasks: a detached
+    // entry is also a live `sync_workers` entry, so the counter could never
+    // reach zero and shutdown burned the entire budget on a fleet that had
+    // already stopped.
     let deadline = Instant::now() + Duration::from_secs(drain_secs);
-    let mut outstanding = detached_syncs.len() + sync_workers.len();
-    while outstanding > 0 && Instant::now() < deadline {
-        if let Some((repo, _, _)) = next_ready_result(&mut detached_syncs).await {
-            release_sync_owner(
-                &repo,
-                &mut in_flight,
-                &mut sync_workers,
-                &mut HashSet::new(),
-                &mut detached_since,
-            );
-            scheduler_evidence::worker_idle(&repo);
-            outstanding = outstanding.saturating_sub(1);
-        } else {
-            tokio::time::sleep(Duration::from_millis(50)).await;
+    while !sync_workers.is_empty() && Instant::now() < deadline {
+        match tokio::time::timeout(Duration::from_millis(250), detached_syncs.next()).await {
+            Ok(Some((repo, _, _))) => {
+                release_sync_owner(
+                    &repo,
+                    &mut in_flight,
+                    &mut sync_workers,
+                    &mut HashSet::new(),
+                    &mut detached_since,
+                );
+                scheduler_evidence::worker_idle(&repo);
+            }
+            // No join result is pending. Either the last workers have already
+            // been released (nothing to do), or their join futures were
+            // dropped with the cycle that owned them and can never report
+            // again — in which case waiting out the budget proves nothing.
+            Ok(None) => break,
+            Err(_) => {}
         }
     }
-    if outstanding > 0 {
-        eprintln!(
-            "⚠️ shutdown: {outstanding} owned sync task(s) did not join within {drain_secs}s — leaving their evidence in place rather than claiming a clean stop"
-        );
+    if !sync_workers.is_empty() {
+        let leftover = sync_workers.len();
+        // An aborted worker whose join future is gone cannot be joined here.
+        // Report it instead of silently claiming a clean stop.
+        if detached_syncs.is_empty() {
+            eprintln!(
+                "⚠️ shutdown: {leftover} owned sync task(s) have no pending join result — their cancellation was requested, evidence left in place"
+            );
+        } else {
+            eprintln!(
+                "⚠️ shutdown: {leftover} owned sync task(s) did not join within {drain_secs}s — leaving their evidence in place rather than claiming a clean stop"
+            );
+        }
         return Ok(());
     }
     // Removing the file signals to `repos` that the daemon is no
