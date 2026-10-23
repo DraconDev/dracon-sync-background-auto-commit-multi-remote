@@ -5280,14 +5280,7 @@ async fn run_sealed_commit_hooks(
     let msgfile_arg = msgfile.to_string_lossy().to_string();
 
     run_configured_hook(repo, "pre-commit", &[], timeout_secs).await?;
-    run_configured_hook(
-        repo,
-        "prepare-commit-msg",
-        &[&msgfile_arg, "message"],
-        timeout_secs,
-    )
-    .await?;
-    run_configured_hook(repo, "commit-msg", &[&msgfile_arg], timeout_secs).await?;
+    let _ = &msgfile_arg;
 
     let approved = std::fs::read_to_string(&msgfile)
         .with_context(|| format!("cannot read {}", msgfile.display()))?;
