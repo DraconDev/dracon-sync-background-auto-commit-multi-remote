@@ -2325,7 +2325,7 @@ const PUBLICATION_REFRESH_IDLE: Duration = Duration::from_secs(3);
 /// The loop stays bounded by the ROUND itself: the upload has its own operation
 /// deadline, and every refresh is admitted through the same bounded local
 /// semaphore with its own operation lease.
-
+///
 /// Borrow-erased refresh future. Boxed so the local refresh can call back into
 /// the commit pipeline (which may reach this actor again) without producing an
 /// infinitely sized future type.
@@ -5223,6 +5223,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn sync_repo_local_with_ownership(
     repo: &Path,
     policy: &SyncPolicy,
