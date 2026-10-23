@@ -206,6 +206,53 @@ that publication ("publication owned by another worker ... this pass did not
 push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
 gitlab SIGPIPE recorded as a per-remote failure rather than success.
 
+## Review rehearsal findings and fixes
+
+A fresh-context reviewer read the integrated diff (NO P0, verdict "OK with
+notes") and raised six P1s. Each was checked against source and handled:
+
+1. **Fixed — refresh count cap (was P1).** `PUBLICATION_MAX_REFRESH_ROUNDS = 32`
+   meant a 15-minute pre-push hook re-froze commits after ~24-96s, i.e. the
+   original symptom returned for the remainder of a long round. The count cap
+   is gone: the loop is bounded by the ROUND (upload operation deadline +
+   worker budget), and each pass is admitted through the same bounded local
+   semaphore with its own lease.
+2. **Fixed — interrupted mirror round wiped pause memory (was P1).** The `?` on
+   `aggregate_push_results` propagated before `plan.remote_failures` was
+   restored, so a cancelled mirror round handed the apply phase an EMPTY map and
+   erased other remotes' backoff memory (the R4-SC-02 shape). The map is now
+   restored BEFORE the error propagates.
+3. **Fixed — post-upload lease reacquisition was ignored (was P1).**
+   `acquire_local_lease` returning `None` was assigned and then the caller went
+   on to run the release pipeline and metadata writes WITHOUT local ownership.
+   It now sets `local_work_deferred`, which skips that local tail and says so.
+4. **Fixed — PUBLISHING vanished after 120s (was P1).** The single stamp expired
+   after 120s, so a multi-minute hook fell back to WORKING/QUEUED/STALLED —
+   exactly the states the change exists to stop misreporting. Publication stamps
+   now stay valid for the upload's duration (bounded by its own deadline); local
+   commit stamps keep the short window, since a stuck commit is real news.
+   The test I had written for the old behaviour was corrected to the right
+   intent (long upload keeps PUBLISHING; a leaked stamp still expires).
+5. **Fixed — repair paths could publish concurrently (was P1).** With the global
+   gate gone, `repair concerns --apply` could upload the same repo as a daemon
+   round. `handle_ahead` (which also contains both force-push sites) now needs
+   the publication lease, taken non-blockingly; a busy publisher is reported and
+   skipped, never waited out.
+6. **Stated, not capped (was P1).** After removing the global push count, the
+   only push bounds are the per-repo publication lease, operation deadlines,
+   nice 19, owned process groups and `TasksMax`. A fleet-wide forge stall can
+   therefore reach roughly (repos x remotes) upload processes. The operator's
+   objective explicitly forbids replacing the removed cap with another global
+   serialization point, so this is a stated capacity decision, not a hidden
+   limit; per-product hook controls and the local semaphore still bound the
+   committing side.
+7. **Confirmed, not a regression (was P2).** `version_bumped` is hardcoded
+   `false`, so the release/tag path is unreachable today. That predates this
+   work; the "release identity" slice is therefore moot rather than pending, and
+   this change deliberately did not resurrect a dead feature under a
+   concurrency-sensitive rewrite.
+8. **Fixed (was P2).** Duplicated `if commit_only` guard removed.
+
 ## Remaining implementation slices
 
 1. Release identity: `get_bump_info` still does unbounded `spawn_blocking` Git
