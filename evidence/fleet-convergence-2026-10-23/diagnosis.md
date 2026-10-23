@@ -10,6 +10,17 @@ re-enablement after repairing causes are authorized. No manual recovery pushes,
 history rewriting, force pushes, checkout deletion/rewiring or secret/trust/
 ownership policy changes. The daemon remains responsible for commits/pushes.
 
+Explicit subsequent authorization: after demonstrating that the public GOV.UK
+asset name `govuk-icon-mask-<64-hex-digest>.svg` trips the OpenAI substring
+matcher in unpublished history, the operator selected **Precision repair**:
+correct this confirmed detector false positive with regressions preserving real
+credential detection, including binary scans. No filename exemptions, allowlists,
+hook bypasses or history rewrites are authorized. Inspection additionally shows
+the core scanner already has an OpenAI word boundary while the generated-hook
+ERE transliteration dropped it; align those paths rather than inventing a
+repository-specific exception. This is the only authorized security-scope
+extension; trust/ownership policies remain untouched.
+
 Every initially affected repository must publish an observed tip autonomously;
 active work is not proof of convergence. Only evidenced external blockers may
 remain. This report is ongoing investigation, not a completion claim.
@@ -80,6 +91,11 @@ clear a source pin.
 
 ## Research boundaries
 
-Only read-only live inspection and evidence-file writes have occurred so far.
-No service configuration, executable, hook, repository index or retry state has
-been changed in this goal. Source edits and qualification are still pending.
+The environment correction is implemented in `src/runtime_env.rs`, called by
+synchronous main before Tokio creates threads. Four pure path-builder tests
+pass (installed directories, inherited precedence/deduplication, absent/relative
+HOME candidates, non-UTF-8 and existing empty entries). No live deployment,
+service configuration, hook installation, repository index or retry-state change
+has occurred in this goal; full qualification and live proof remain pending.
+Thirty-two baseline gate logs were retained before any service restart, with
+byte-level manifests and an explicit warning that unfinished logs are not passes.
