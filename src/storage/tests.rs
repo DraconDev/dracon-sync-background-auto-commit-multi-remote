@@ -806,7 +806,23 @@ async fn a_refusing_hook_blocks_a_storage_sealed_bootstrap_commit() {
     // so drive the steady-state dispatch instead through the same guard.
     std::fs::write(repo.join("asset.bin"), b"unverified raw bytes").unwrap();
     git_fixture_command(repo, &["add", "--", "asset.bin"]);
-    let before = git_fixture_command(repo, &["rev-parse", "HEAD"]);
+    let head_or_none = || {
+        let out = crate::test_helpers::test_git_cmd()
+            .current_dir(repo)
+            .args([
+                "-c",
+                "core.hooksPath=/dev/null",
+                "rev-parse",
+                "--verify",
+                "HEAD",
+            ])
+            .output()
+            .unwrap();
+        out.status
+            .success()
+            .then(|| String::from_utf8_lossy(&out.stdout).trim().to_owned())
+    };
+    let before = head_or_none();
     let policy: crate::policy::SyncPolicy = toml::from_str(
         r#"
 auto_commit = true
@@ -824,8 +840,12 @@ trusted_authors = ["DraconDev"]
         result.is_err(),
         "a refusing pre-commit must fail the pass, not seal the commit: {result:?}"
     );
-    let after = git_fixture_command(repo, &["rev-parse", "HEAD"]);
+    let after = head_or_none();
     assert_eq!(after, before, "a refused commit must not advance HEAD");
+    assert!(
+        after.is_none(),
+        "the fixture starts unborn; nothing was sealed"
+    );
     // The work is preserved, so the next pass can retry once the hook allows it.
     assert_eq!(
         std::fs::read(repo.join("asset.bin")).unwrap(),
