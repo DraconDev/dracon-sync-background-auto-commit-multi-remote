@@ -26,9 +26,6 @@ use serde::Deserialize;
 use std::collections::HashSet;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
-use std::process::Stdio;
-use std::time::Duration;
-use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::bucket_assets::Prepared;
@@ -410,13 +407,9 @@ async fn run_version(bundle: &Path) -> Result<()> {
     let mut cmd = Command::new("node");
     cmd.arg(bundle).arg("--version");
     strip_git_env(&mut cmd);
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let output = tokio::time::timeout(Duration::from_secs(MIN_BUNDLE_TIMEOUT_SECS), cmd.output())
-        .await
-        .context("bundle --version timed out")?
-        .context("bundle --version spawn failed")?;
+    let output = crate::git::run_command_captured_output(
+        cmd, MIN_BUNDLE_TIMEOUT_SECS, "bundle --version", None,
+    ).await.context("bundle --version failed")?;
     if !output.status.success() {
         bail!("bundle --version refused");
     }
@@ -442,23 +435,9 @@ async fn spawn_bundle(
     let mut cmd = Command::new("node");
     cmd.arg(bundle);
     strip_git_env(&mut cmd);
-    cmd.stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = cmd
-        .spawn()
-        .with_context(|| format!("bundle spawn failed: {}", bundle.display()))?;
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(request)
-            .await
-            .context("bundle stdin write failed")?;
-        // stdin dropped here → EOF for the bundle's read loop
-    }
-    let output = tokio::time::timeout(Duration::from_secs(timeout_secs), child.wait_with_output())
-        .await
-        .context("bundle timed out")?
-        .context("bundle wait failed")?;
+    let output = crate::git::run_command_captured_output(
+        cmd, timeout_secs, "bucket bundle", Some(request),
+    ).await.context("bundle execution failed")?;
     if output.stdout.len() > MAX_IO_BYTES {
         bail!("bundle stdout exceeded 2 MiB");
     }
