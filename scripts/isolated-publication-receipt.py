@@ -248,7 +248,7 @@ def main():
             common = Path(
                 git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
             )
-            return sorted(p.name for p in common.glob("dracon-sync*.lease"))
+            return sorted(p.name for p in common.glob("dracon-sync*lease"))
 
         receipt["a_owning_leases"] = leases(a)
         receipt["b_owning_leases"] = leases(b)
