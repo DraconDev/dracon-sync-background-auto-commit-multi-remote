@@ -140,11 +140,15 @@ Computed from `refs/live-ref-samples-final.json`, not asserted:
 
 Honest limits, stated rather than smoothed over:
 
-* `browser-extensions-shared` carries a real, pre-existing backlog: its own
-  `pre-push` refuses the push ("asset-guard / size budget / secret scan /
-  history guard"), which the daemon correctly classifies as POLICY rather than a
-  network failure. Repairing that product policy is out of scope and no hook
-  bypass is permitted, so it is reported as a gated backlog, not as converged.
+* `browser-extensions-shared` carries a real, pre-existing backlog, and the
+  cause is now identified rather than guessed: its own `pre-push` refuses
+  because `youtube-filter/TEST` fails, and that test pins the literal source
+  text of `generate_store_assets.py` while another agent was actively editing
+  that file (commits at 11:43/11:44 during the 11:43:02 run). Re-run on settled
+  files it passes (899/899, typecheck 0). A live-edit race, not a daemon defect;
+  repairing another agent's in-flight asset work is out of scope and no hook
+  bypass is permitted, so it is reported as a genuinely gated backlog.
+  Details: `browser-extensions-shared-gate-diagnosis.md`.
 * These samples prove ref advancement and object types for the listed
   repositories. They do not claim every fleet repository converged.
 
