@@ -43,6 +43,11 @@ impl Fixture {
         // Inherit the configured operator identity: fixtures must never
         // manufacture an author or override the repository identity.
         git(&repo, &["remote", "add", "origin", bare.to_str().unwrap()]);
+        // Real watched repositories track their published branch; without
+        // this, ahead/behind is undefined and the push gate cannot be
+        // exercised. Identity is inherited, never overridden here.
+        git(&repo, &["config", "branch.main.remote", "origin"]);
+        git(&repo, &["config", "branch.main.merge", "refs/heads/main"]);
         let hooks = repo.join("hooks");
         std::fs::create_dir(&hooks).unwrap();
         git(
@@ -119,6 +124,24 @@ impl Fixture {
             .await
         })))
     }
+
+    /// Wait until this fixture's publication lease is free again, i.e. the
+    /// previous round has fully torn down (a dropped task releases it).
+    async fn publication_released(&self, within: u64) {
+        tokio::time::timeout(Duration::from_secs(within), async {
+            loop {
+                let acquired = crate::git::sync_lease::try_acquire_publication(&self.repo)
+                    .unwrap()
+                    .is_some();
+                if acquired {
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("publication ownership was never released");
+    }
 }
 
 struct SyncGuard(Option<tokio::task::JoinHandle<SyncOutcome>>);
@@ -164,6 +187,7 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     // B must be able to commit and publish while A's hook is still parked.
     std::fs::write(b.repo.join("data"), "B concurrent commit\n").unwrap();
     let b_outcome = b.sync(&local).join(60).await;
+    b.publication_released(30).await;
     let b_tip = git(&b.repo, &["rev-parse", "HEAD"]);
     assert_ne!(b_tip, b_baseline, "B must commit during A's blocked push");
     assert_eq!(
@@ -172,10 +196,11 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
         "B must publish its newest tip while A is blocked (outcome {b_outcome:?})"
     );
 
-    // A SECOND real commit in A while the first upload is still blocked. The
-    // production refresh path must commit it WITHOUT waiting for release.
+    // A SECOND real commit in A while the FIRST upload is still blocked. No
+    // further dispatch happens: the only thing that can commit here is the
+    // running worker's own local refresh, which is exactly what the contract
+    // requires (the scheduler's in-flight reservation would skip a redispatch).
     std::fs::write(a.repo.join("second"), "A second commit during push\n").unwrap();
-    let mut refresh = a.sync(&local);
     let a_second = tokio::time::timeout(Duration::from_secs(60), async {
         loop {
             if let Ok(text) = std::process::Command::new(crate::policy::git_binary())
@@ -196,37 +221,30 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     assert_ne!(a_second, a_pinned);
     assert!(
         a.remote_tip().is_empty(),
-        "remote received A before hook release"
+        "the remote must not receive A before its hook is released"
     );
 
-    // Release the blocked hook: the pinned round completes; A's newest tip is
-    // published by the following round (fresh dispatch in production, the
-    // second sync pass here), never by silently retargeting the pinned one.
+    // Release the blocked hook: the PINNED round completes and publishes its
+    // pinned tip — not silently retargeted at newer HEAD.
     a.released();
     let first_outcome = first.join(90).await;
     assert!(matches!(
         first_outcome,
         SyncOutcome::Synced | SyncOutcome::PushFailed | SyncOutcome::PushPaused
     ));
-    let refresh_outcome = refresh.join(90).await;
     assert_eq!(
         a.remote_tip(),
         a_pinned,
-        "the released round publishes its pinned tip"
+        "the released round publishes its own pinned tip"
     );
+    // A follow-up round then publishes the newest tip.
     let final_outcome = a.sync(&local).join(90).await;
     let newest = git(&a.repo, &["rev-parse", "HEAD"]);
-    eprintln!(
-        "DIAG pinned={a_pinned} second={a_second} newest={newest} remote={} log={}",
-        a.remote_tip(),
-        git(&a.repo, &["log", "--format=%H %s", "-4"])
-    );
     assert_eq!(newest, a_second);
     assert_eq!(
         a.remote_tip(),
         newest,
-        "follow-up publication must advance the remote to A's newest tip \
-         (refresh {refresh_outcome:?}, final {final_outcome:?})"
+        "follow-up publication must advance the remote to A's newest tip ({final_outcome:?})"
     );
 }
 
