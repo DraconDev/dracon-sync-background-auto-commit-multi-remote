@@ -127,7 +127,9 @@ def main():
         )
     )
 
-    def make_repo(name, block_push):
+    BASELINE_HEAD: dict[str, str] = {}
+
+    def make_repo(name, block_push, commit_hook_exit=0):
         repo = watch / name
         bare = root / f"{name}.git"
         repo.mkdir()
@@ -150,13 +152,35 @@ def main():
         (repo / "data.txt").write_text(f"{name} baseline\n")
         git(repo, "add", "--", "data.txt")
         # Inherits the configured identity from the real global gitconfig.
+        # This fixture's OWN setup commit is made before any commit hook is
+        # installed, so a refusing hook cannot prevent the baseline itself
+        # (only the daemon's later commits are subject to it).
         git(repo, "commit", "--quiet", "-m", f"{name} baseline")
+        # A configured COMMIT hook (not just a push hook). The daemon must run
+        # the repository's commit hook chain: suppressing it with --no-verify
+        # would commit behind a policy gate the repository asked for.
+        pre_commit = hooks / "pre-commit"
+        pre_commit.write_text(
+            "#!/bin/sh\ntouch precommit-ran\n"
+            + (
+                "echo 'warden: synthetic refusal' >&2\nexit 1\n"
+                if commit_hook_exit
+                else "exit 0\n"
+            )
+        )
+        pre_commit.chmod(0o755)
         return repo, bare
 
     a, a_bare = make_repo("repo-a", True)
     b, b_bare = make_repo("repo-b", False)
+    # C's COMMIT hook refuses. The daemon must NOT bypass it: C must stay
+    # uncommitted and unpublished, and the refusal must appear in its log.
+    c, c_bare = make_repo("repo-c", False, commit_hook_exit=1)
+    for name, repo in (("a", a), ("b", b), ("c", c)):
+        BASELINE_HEAD[name] = git(repo, "rev-parse", "HEAD")
 
-    log = (OUT / "daemon.log").open("w")
+    log_path = OUT / "daemon.log"
+    log = log_path.open("w")
     daemon = subprocess.Popen(
         [str(BINARY), "daemon"],
         env={**os.environ, **env},
@@ -171,6 +195,7 @@ def main():
         "binary_sha256": run(["sha256sum", str(BINARY)]).stdout.split()[0],
         "fixture_root": str(root),
         "real_service_untouched": True,
+        "baseline_heads": dict(BASELINE_HEAD),
         "isolation": {
             "policy": str(policy_path),
             "state_dir": str(state),
@@ -240,6 +265,38 @@ def main():
         if a_published != a_tip:
             raise AssertionError(f"A did not converge on its newest tip: {a_published} != {a_tip}")
         receipt["a_published_object"] = git(a_bare, "cat-file", "-t", a_published)
+        # ---- 4b. The configured COMMIT hook chain really runs -------------
+        # An accepting hook must be seen to RUN on the daemon's own commit.
+        receipt["b_precommit_hook_ran"] = (b / "precommit-ran").exists()
+        if not receipt["b_precommit_hook_ran"]:
+            raise AssertionError("the daemon suppressed B's configured pre-commit hook")
+        # A refusing hook must block the commit: C stays at its baseline,
+        # nothing is published, the work is preserved, and the refusal is
+        # reported rather than swallowed as success.
+        (c / "c-work.txt").write_text("C work blocked by its commit hook\n")
+        refusal_seen = wait_for(
+            lambda: "synthetic refusal" in log_path.read_text()
+            and (c / "c-work.txt").exists()
+            or None,
+            180,
+            "C's refusing pre-commit hook to be reported",
+        )
+        receipt["c_commit_hook_refusal_reported"] = bool(refusal_seen)
+        receipt["c_precommit_hook_ran"] = (c / "precommit-ran").exists()
+        receipt["c_head"] = git(c, "rev-parse", "HEAD")
+        receipt["c_remote_refs"] = git(c_bare, "for-each-ref", "--format=%(refname)").strip()
+        receipt["c_work_preserved"] = (c / "c-work.txt").exists()
+        if not receipt["c_precommit_hook_ran"]:
+            raise AssertionError("the daemon suppressed C's refusing pre-commit hook")
+        if not receipt["c_commit_hook_refusal_reported"]:
+            raise AssertionError("C's pre-commit refusal was not reported")
+        if receipt["c_head"] != BASELINE_HEAD["c"]:
+            raise AssertionError("a refused commit still advanced C's HEAD")
+        if receipt["c_remote_refs"]:
+            raise AssertionError("a refused commit was still published")
+        if not receipt["c_work_preserved"]:
+            raise AssertionError("a refused commit discarded the operator's work")
+
         # Ownership evidence: each repository has BOTH kernel-backed lease files
         # at its real common directory. The locks are released at quiescence but
         # the files persist by design (never unlinked), so presence proves the
