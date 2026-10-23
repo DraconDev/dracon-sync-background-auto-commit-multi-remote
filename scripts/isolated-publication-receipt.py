@@ -127,6 +127,8 @@ def main():
         )
     )
 
+    BASELINE_HEAD: dict[str, str] = {}
+
     def make_repo(name, block_push, commit_hook_exit=0):
         repo = watch / name
         bare = root / f"{name}.git"
@@ -178,7 +180,6 @@ def main():
         BASELINE_HEAD[name] = git(repo, "rev-parse", "HEAD")
 
     log_path = OUT / "daemon.log"
-    BASELINE_HEAD: dict[str, str] = {}
     log = log_path.open("w")
     daemon = subprocess.Popen(
         [str(BINARY), "daemon"],
