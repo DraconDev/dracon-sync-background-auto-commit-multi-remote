@@ -4666,6 +4666,19 @@ async fn stage_commit_and_push(
                 }
             }
             Ok(false) => {
+                // The guard binding disappeared between the check and the seal
+                // (concurrent config mutation). The commit hooks ALREADY ran for
+                // this staged content and message, so falling through to
+                // `commit_staged_owned` would run the whole lifecycle a second
+                // time for one logical commit. Treat it as blocked instead: the
+                // content stays staged and the next pass re-evaluates cleanly.
+                if sealed_hooks.is_some() {
+                    eprintln!(
+                        "⚠️ {} storage guard vanished mid-pass; staged/worktree content retained without re-running commit hooks",
+                        repo.display()
+                    );
+                    return Ok(Some(SyncOutcome::Blocked));
+                }
                 commit_staged_owned(repo, &commit_message, policy.stage_op_timeout_secs).await?
             }
             Err(error) => {
@@ -5313,14 +5326,16 @@ async fn run_sealed_commit_hooks(
     let approved = std::fs::read_to_string(&msgfile)
         .with_context(|| format!("cannot read {}", msgfile.display()))?;
     let approved = approved.trim_end_matches('\n').to_owned();
-    Ok(PreparedSealedCommit {
-        // A hook that empties the file must not yield a message-less commit.
-        message: if approved.trim().is_empty() {
-            message.to_owned()
-        } else {
-            approved
-        },
-    })
+    // Git ABORTS on an empty commit message ("Aborting commit due to empty
+    // commit message"). Silently restoring the original text here would let a
+    // hook refuse by truncation and be bypassed; the only refusals that must
+    // work are exit-status ones, but a truncated message is a refusal too.
+    if approved.trim().is_empty() {
+        return Err(anyhow::anyhow!(
+            "commit-msg left the commit message empty (git aborts in this case)"
+        ));
+    }
+    Ok(PreparedSealedCommit { message: approved })
 }
 
 /// Resolve the repository's git directory (`git rev-parse --absolute-git-dir`).
