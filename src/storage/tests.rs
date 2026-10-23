@@ -976,9 +976,14 @@ async fn a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit() {
     let hooks = repo.join(".git/commit-msg-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     let hook = hooks.join("commit-msg");
+    // Git runs hooks with the WORKTREE ROOT as cwd.
+    let marker = repo.join("commit-msg-ran");
     std::fs::write(
         &hook,
-        "#!/bin/sh\ntouch ../commit-msg-ran\necho 'warden: commit-msg refused' >&2\nexit 1\n",
+        format!(
+            "#!/bin/sh\ntouch '{}'\necho 'warden: commit-msg refused' >&2\nexit 1\n",
+            marker.to_string_lossy()
+        ),
     )
     .unwrap();
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -1005,7 +1010,7 @@ trusted_authors = ["DraconDev"]
         "the commit-msg refusal must reach the caller: {message}"
     );
     assert!(
-        repo.join("commit-msg-ran").exists(),
+        marker.exists(),
         "commit-msg must actually have been invoked"
     );
     // Nothing was sealed, and the judgeable work survives for the next pass.
