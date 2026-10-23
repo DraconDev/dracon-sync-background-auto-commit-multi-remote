@@ -151,51 +151,48 @@ than to installation metadata.
 
 ## Result — FINAL installed revision
 
-The final artifact after the storage-seal fix is
-`7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372`, installed
-at 10:32:50Z (previous `9eb4965d…` backed up). 12 read-only samples, every one
-recording the same loaded executable:
+The final artifact after the full-lifecycle fix is
+`15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952`, installed at
+13:07:53Z (previous `7e0ea08a…` backed up). 12 read-only samples, every one
+recording the same loaded executable and PID:
 
 ```
-/proc/4041356/exe = 7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372
-release artifact  = 7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372
+/proc/3935918/exe = 15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952
+release artifact  = 15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952
 ```
 
-**19 distinct remote-ref advancements**, every one resolving to
+**18 distinct remote-ref advancements**, every one resolving to
 `object_type == "commit"`:
 
 ```
-.dracon  origin/gitlab  49857e2c63 -> 78c79df61d -> 13a0cab7b7 -> dfb25e1b9c
-                        -> c2aa908d0f -> 0310db181e -> 54c39b72b7 -> 8bdb304122
-                        -> af3bddac69                                (type=commit)
+.dracon  origin/gitlab  086d84cee8 -> 2f589ced86 -> 895e1a9ba3 -> 5f6d0c1a2f
+                        -> 2066efb55a -> 4aed42d3c2 -> b071cf7494
+                        -> 5055faf4a4 -> f069fdeca3 -> b80c9f21f3     (commit)
 .dracon  github         follows one sample behind origin/gitlab each round
 ```
 
 Computed from `refs/live-ref-samples-final.json`, not asserted:
 
-* all 12 samples report the same loaded digest `7e0ea08a60cc` and PID 4041356 —
-  the final binary, not an earlier one;
+* all 12 samples report the same loaded digest `15054b66fdf6` and PID 3935918 —
+  the final binary;
 * every recorded remote tip is a real commit object (0 exceptions);
 * `dracon-utilities` stayed converged the whole window while `.dracon` advanced
   9 times, i.e. one repository's publication never blocked another's;
-* per-remote ordering is visible: `github` lags `origin`/`gitlab` by one sample
-  and then catches up — independent per-mirror publication rather than one
-  global slot;
-* `browser-extensions-shared` and `dracon-platform` show `!` (local ahead of the
-  sampled remote) throughout, meaning they had unpushed work during this window
-  and were NOT converged at these instants.
+* per-mirror ordering is visible: `github` lags `origin`/`gitlab` by one sample
+  then catches up — independent per-mirror publication, not one global slot.
 
 Honest limits, stated rather than smoothed over:
 
 * `browser-extensions-shared` carries a real, pre-existing backlog, and the
-  cause is now identified rather than guessed: its own `pre-push` refuses
-  because `youtube-filter/TEST` fails, and that test pins the literal source
-  text of `generate_store_assets.py` while another agent was actively editing
-  that file (commits at 11:43/11:44 during the 11:43:02 run). Re-run on settled
-  files it passes (899/899, typecheck 0). A live-edit race, not a daemon defect;
-  repairing another agent's in-flight asset work is out of scope and no hook
-  bypass is permitted, so it is reported as a genuinely gated backlog.
+  cause is identified rather than guessed: its own `pre-push` refuses because
+  `youtube-filter/TEST` pins the literal source text of
+  `generate_store_assets.py` while another agent was editing that file
+  (commits at 11:43/11:44 during an 11:43:02 run). Re-run on settled files it
+  passes (899/899, typecheck 0). A live-edit race, not a daemon defect; a
+  genuinely gated backlog, not converged.
   Details: `browser-extensions-shared-gate-diagnosis.md`.
+* `dracon-platform` shows local-ahead (`!`) throughout this window, i.e. it had
+  unpushed work at those instants and was NOT converged.
 * These samples prove ref advancement and object types for the listed
   repositories. They do not claim every fleet repository converged.
 
