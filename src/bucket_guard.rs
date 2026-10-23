@@ -3,8 +3,11 @@
 //! Background (goal 20261009193116-1ess3v, 2026-10-09): the platform
 //! `.githooks/pre-commit` bucket guard runs the staged forward-only check
 //! (`BUCKET_STRATEGY_GUARD_FORWARD_ONLY`) for human commits, but daemon
-//! auto-commits go through libgit2 (`dracon-git` `GitService::commit`),
-//! which never executes hooks — the CLI fallback even passes `--no-verify`.
+//! auto-commits are sealed through libgit2 (`dracon-git` `GitService::commit`),
+//! which never executes hooks. The CLI path runs the configured hook chain
+//! (`git commit`, no `--no-verify`) and the daemon invokes the same chain
+//! explicitly before a sealed commit, but this in-process check remains the
+//! guarantee that survives a repository with no hook installed at all.
 //! That is how hellhunter `f5d55b5` (27 deleted protected assets) and
 //! deathrun `30352ba` (4 deleted webp backdrops) were committed silently and
 //! only detonated at push time, wedging both repos 20+ commits deep.

@@ -25,6 +25,7 @@ mod standard_files;
 mod storage;
 mod stuck_route;
 mod sync;
+#[cfg(test)]
 mod test_helpers;
 mod vanished;
 mod visibility;
