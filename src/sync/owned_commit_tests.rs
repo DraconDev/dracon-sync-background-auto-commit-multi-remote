@@ -355,3 +355,47 @@ async fn cancelled_or_timed_out_publication_kills_owned_hook_descendants() {
         assert_eq!(fixture.pushed_refs(), Vec::<String>::new());
     }
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn the_ordinary_commit_path_runs_each_hook_exactly_once() {
+    // The seal path drives the lifecycle by hand; the ordinary `git commit`
+    // path must NOT also drive it, or every hook would run twice per commit
+    // (twice the cost, and `post-commit` firing twice for one commit).
+    let fixture = Fixture::new().await;
+    let log = fixture.root.path().join("hooklog");
+    let log_arg = log.to_string_lossy().to_string();
+    for (name, extra) in [
+        ("pre-commit", ""),
+        ("prepare-commit-msg", ""),
+        ("commit-msg", ""),
+        ("post-commit", ""),
+    ] {
+        let path = fixture.hooks.join(name);
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\nprintf '{name}\\n' >> '{log_arg}'\n{extra}"),
+        )
+        .unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    // The fixture repository has no storage guard, so this is the ordinary path.
+    commit_staged_owned(&fixture.repo, "ordinary commit", 10)
+        .await
+        .unwrap();
+    let recorded = std::fs::read_to_string(&log).unwrap_or_default();
+    let names: Vec<&str> = recorded.lines().filter(|l| !l.is_empty()).collect();
+    for hook in [
+        "pre-commit",
+        "prepare-commit-msg",
+        "commit-msg",
+        "post-commit",
+    ] {
+        assert_eq!(
+            names.iter().filter(|n| **n == hook).count(),
+            1,
+            "{hook} must run exactly once per commit (git runs it), got: {names:?}"
+        );
+    }
+}
