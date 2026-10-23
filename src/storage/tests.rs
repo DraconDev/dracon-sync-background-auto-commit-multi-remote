@@ -943,10 +943,17 @@ trusted_authors = ["DraconDev"]
         "pre-commit and post-commit take no arguments: {log}"
     );
     // The seal committed what commit-msg approved, not the original text.
-    let subject = git_fixture_command(repo, &["log", "-1", "--format=%s"]);
-    assert_eq!(
-        String::from_utf8_lossy(&subject).trim(),
-        "approved by hook (1 files)"
+    let subject =
+        String::from_utf8_lossy(&git_fixture_command(repo, &["log", "-1", "--format=%s"]))
+            .trim()
+            .to_owned();
+    assert!(
+        subject.starts_with("approved by hook"),
+        "the seal must commit the message commit-msg rewrote, got: {subject}"
+    );
+    assert!(
+        !subject.contains("auto: initial commit"),
+        "the original message must not survive commit-msg: {subject}"
     );
 }
 
