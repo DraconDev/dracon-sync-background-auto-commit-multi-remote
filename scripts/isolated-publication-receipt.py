@@ -74,8 +74,12 @@ def main():
     for path in (home, state, watch, home / ".dracon"):
         path.mkdir(parents=True, exist_ok=True)
 
+    policy_path = home / ".dracon" / "dracon-sync.toml"
     env = {
         "HOME": str(home),
+        # Without this the daemon resolves the OPERATOR's real policy: the
+        # fixture must never inherit the live watch roots.
+        "DRACON_SYNC_POLICY": str(policy_path),
         "PATH": os.environ["PATH"],
         "XDG_RUNTIME_DIR": os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"),
         "DRACON_SYNC_STATE_DIR": str(state),
@@ -85,7 +89,6 @@ def main():
     }
     # A fixture-private ssh config path keeps `git_ssh_hardening` from reading
     # the operator's credentials store; no ssh transport is used at all.
-    policy_path = home / ".dracon" / "dracon-sync.toml"
     policy_path.write_text(
         "\n".join(
             [
