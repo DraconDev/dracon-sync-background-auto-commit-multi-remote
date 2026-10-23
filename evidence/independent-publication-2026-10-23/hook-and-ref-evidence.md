@@ -204,6 +204,18 @@ acting on live repository edits. No commit, push, repair, hook bypass or state
 change was performed by hand; every harness command is a read (`rev-parse`,
 `remote get-url`, `ls-remote`, `cat-file`, `sha256sum`).
 
+## What the receipt does and does not cover
+
+The archived receipt's fixtures are NOT storage-guarded, so their commits take
+the ordinary `git commit` path. Its lifecycle assertions therefore prove the
+ORDINARY path runs `prepare-commit-msg`/`commit-msg`/`post-commit` in Git's
+order for every daemon commit (`b_lifecycle_cycles: 2` — B made two commits, and
+each produced one complete cycle). They do NOT exercise the sealed path; that
+one is covered by the unit regressions above, which drive
+`bootstrap_empty_repo_commit` on a genuinely guarded fixture. Both binaries in
+this goal pass the receipt, which is consistent: the receipt's own scope never
+included the seal.
+
 ## The receipt now proves hook behaviour on the installed binary
 
 `isolated/receipt.json` (harness archived beside it) grew a third repository

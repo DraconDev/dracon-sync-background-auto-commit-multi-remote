@@ -1,34 +1,43 @@
 {
   "binary": "/home/dracon/Dev/dracon-utilities/target/release/dracon-sync",
   "binary_version": "dracon-sync 0.113.95",
-  "binary_sha256": "7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372",
-  "fixture_root": "/tmp/sync-convergence-20261023/receipt-final3/fixture",
+  "binary_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
+  "fixture_root": "/tmp/sync-convergence-20261023/receipt-lifecycle2/fixture",
   "real_service_untouched": true,
   "baseline_heads": {
-    "a": "951509540cd7337e46892e05ddfb4ad654acc9ff",
-    "b": "c68de45cf64830d5abea691b31ac96d2380a6255",
-    "c": "ac5076827a40bba7885859f9b92b63e834074742"
+    "a": "89f18e01097bdf1642e59a36666fcb6a18cb4197",
+    "b": "f2de0a46fbc3348d63a3c20aa92189d909e60231",
+    "c": "80e8189b253637be37ef0a57a2db87ba3828a5c3"
   },
   "isolation": {
-    "policy": "/tmp/sync-convergence-20261023/receipt-final3/fixture/home/.dracon/dracon-sync.toml",
-    "state_dir": "/tmp/sync-convergence-20261023/receipt-final3/fixture/state",
-    "watch_root": "/tmp/sync-convergence-20261023/receipt-final3/fixture/watch",
-    "home": "/tmp/sync-convergence-20261023/receipt-final3/fixture/home",
+    "policy": "/tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/home/.dracon/dracon-sync.toml",
+    "state_dir": "/tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/state",
+    "watch_root": "/tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch",
+    "home": "/tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/home",
     "remotes": "filesystem bare repositories only"
   },
-  "a_pinned_during_block": "782e66edb888f4928f332211d662a87b7a88b942",
+  "a_pinned_during_block": "a8c085a30e8001cc5e5a1547cb5c6a0b7dfdbe32",
   "a_remote_before_release": "",
-  "b_tip": "be9591b1117cabe6897b0e87fd18cbecac7da834",
-  "b_remote_tip": "be9591b1117cabe6897b0e87fd18cbecac7da834",
+  "b_tip": "e7dd1b91387eb9502c3e2dc8a72077c937147f7d",
+  "b_remote_tip": "e7dd1b91387eb9502c3e2dc8a72077c937147f7d",
   "a_still_blocked_while_b_published": true,
-  "a_second_commit": "6e89fc9a8f399813616d3dbabe8518c75c9e95d5",
-  "a_newest_tip": "24bd4e9cee80f65efeb9c81703238e54af09ec33",
-  "a_remote_tip": "24bd4e9cee80f65efeb9c81703238e54af09ec33",
+  "a_second_commit": "1d028eb024772a13d32d19d638f8a7eb6f28c1df",
+  "a_newest_tip": "a4f58a3c36abf3d4dda5114c1c11cb1f20fa8d2e",
+  "a_remote_tip": "a4f58a3c36abf3d4dda5114c1c11cb1f20fa8d2e",
   "a_published_object": "commit",
   "b_precommit_hook_ran": true,
+  "b_lifecycle_hooks": [
+    "prepare-commit-msg",
+    "commit-msg",
+    "post-commit",
+    "prepare-commit-msg",
+    "commit-msg",
+    "post-commit"
+  ],
+  "b_lifecycle_cycles": 2,
   "c_commit_hook_refusal_reported": true,
   "c_precommit_hook_ran": true,
-  "c_head": "ac5076827a40bba7885859f9b92b63e834074742",
+  "c_head": "80e8189b253637be37ef0a57a2db87ba3828a5c3",
   "c_remote_refs": "",
   "c_work_preserved": true,
   "a_owning_leases": [
@@ -42,7 +51,7 @@
   "concurrent_publication_observed": true,
   "ok": true,
   "shutdown": "joined after SIGTERM",
-  "daemon_log_tail": "\ud83d\udd04 dracon-sync daemon started\n\ud83e\uddf9 startup: running cleanup...\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a configured publish upstream for main on origin\n\ud83d\udd04 trailing-drain: 3 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found\n\ud83d\udcdd committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b\n\ud83d\udcdd committed 3 file(s) in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b\n\u26a0\ufe0f sync failed (late) for /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udcdd committed 3 file(s) in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a\n\u23f3 /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 2 file(s) in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-b\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-final3/fixture/watch/repo-a\n",
+  "daemon_log_tail": "\ud83d\udd04 dracon-sync daemon started\n\ud83e\uddf9 startup: running cleanup...\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b configured publish upstream for main on origin\n\ud83d\udd27 /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a configured publish upstream for main on origin\n\ud83d\udd04 trailing-drain: 3 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found\n\u26a0\ufe0f warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b\n\ud83d\udcdd committed 6 file(s) in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a\n\u26a0\ufe0f sync failed (late) for /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b\n\ud83d\udcdd committed 4 file(s) in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a\n\u23f3 /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\u26a0\ufe0f sync failed (late) for /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c: git commit-staged failed in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-c with status exit status: 1: warden: synthetic refusal\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 3 file(s) in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-b\n\ud83d\udd04 trailing-drain: 1 task(s) still running \u2014 deferred to detached registry (repos stay in-flight until tasks finish)\n\ud83d\udcdd committed 2 file(s) in /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a\nbranch 'main' set up to track 'origin/main'.\n\ud83d\udd01 synced (late) /tmp/sync-convergence-20261023/receipt-lifecycle2/fixture/watch/repo-a\n",
   "shutdown_unclean_lines": [],
   "orphan_pids_after_shutdown": []
 }

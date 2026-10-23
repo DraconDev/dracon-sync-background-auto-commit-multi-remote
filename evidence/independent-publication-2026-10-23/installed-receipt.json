@@ -1,14 +1,14 @@
 {
   "unit": "dracon-sync-operator.service",
   "method": "atomic replace + SIGTERM via pidfd; unit Restart=always reloads",
-  "label": "sealed-hooks-final",
-  "started_at": "20261023T103250Z",
-  "old_pid": 1375344,
-  "previous_sha256": "9eb4965d54dd0b9b61ada489d375c12766bb09a21fcc3c4c44ba197d6b66b5ed",
-  "expected_sha256": "7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372",
-  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T103250Z-sealed-hooks-final",
-  "new_pid": 4041356,
-  "running_sha256": "7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372",
-  "finished_at": "2026-10-23T10:32:57Z",
+  "label": "lifecycle-final",
+  "started_at": "20261023T130753Z",
+  "old_pid": 4041356,
+  "previous_sha256": "7e0ea08a60cc3419f3846e8dab503f2fea44fc680b99dfc67492ad4b7341d372",
+  "expected_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T130753Z-lifecycle-final",
+  "new_pid": 3935918,
+  "running_sha256": "15054b66fdf6905c727195b7da99e2b7cfb7698260e2f9c94c275f9b28e94952",
+  "finished_at": "2026-10-23T13:08:02Z",
   "loaded_revision": "verified from /proc/<new-pid>/exe"
 }
