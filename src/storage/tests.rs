@@ -1038,6 +1038,58 @@ trusted_authors = ["DraconDev"]
     );
 }
 
+/// Native Git must consult ref-transaction policy before advancing the sealed
+/// object. A rejected ref transaction must not run post-commit or advance HEAD.
+#[cfg(unix)]
+#[tokio::test]
+async fn sealed_commit_honors_a_refusing_reference_transaction_hook() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    setup_guard(
+        repo,
+        &"a".repeat(64),
+        &repo.join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
+    assert!(has_configured_storage_guard(repo).unwrap());
+    let hooks = repo.join(".git/reference-hooks");
+    std::fs::create_dir_all(&hooks).unwrap();
+    for (name, body) in [
+        ("reference-transaction", "#!/bin/sh\necho \"$1\" >> .git/ref-hook-states\ncat > .git/ref-hook-input\nif [ \"$1\" = prepared ]; then echo 'ref policy refused' >&2; exit 1; fi\n"),
+        ("post-commit", "#!/bin/sh\ntouch .git/post-hook-ran\n"),
+    ] {
+        let hook = hooks.join(name);
+        std::fs::write(&hook, body).unwrap();
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+    std::fs::write(repo.join("README.md"), "retained work\n").unwrap();
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+    )
+    .unwrap();
+    let error = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+        .await
+        .expect_err("reference policy must be able to reject the update");
+    assert!(format!("{error:#}").contains("ref policy refused"));
+    let states = std::fs::read_to_string(repo.join(".git/ref-hook-states")).unwrap();
+    assert!(states.lines().any(|line| line == "prepared"));
+    assert!(git2::Repository::open(repo).unwrap().head().is_err());
+    assert!(!repo.join(".git/post-hook-ran").exists());
+    assert_eq!(
+        std::fs::read(repo.join("README.md")).unwrap(),
+        b"retained work\n"
+    );
+}
+
 /// Git rejects an empty approved message even if commit-msg exits zero.
 #[cfg(unix)]
 #[tokio::test]
