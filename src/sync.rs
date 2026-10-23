@@ -5153,14 +5153,16 @@ async fn bootstrap_empty_repo_commit_owned(
         match sealed {
             Ok(true) => {
                 // `post-commit` runs only after a real commit, exactly like Git.
-                if let Err(error) =
-                    run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
-                        .await
-                {
-                    eprintln!(
-                        "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
-                        repo.display()
-                    );
+                if false {
+                    if let Err(error) =
+                        run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
+                            .await
+                    {
+                        eprintln!(
+                            "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
+                            repo.display()
+                        );
+                    }
                 }
                 return Ok(true);
             }
