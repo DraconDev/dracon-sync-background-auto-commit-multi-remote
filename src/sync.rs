@@ -4608,7 +4608,7 @@ async fn stage_commit_and_push(
         // `git commit` path runs hooks itself — pre-running it there would
         // execute every hook twice per commit — so this is gated on the seal
         // actually happening.
-        if storage_guarded(repo)? {
+        if storage_guarded(repo) {
             if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await
             {
                 eprintln!(
@@ -5096,7 +5096,7 @@ async fn bootstrap_empty_repo_commit_owned(
     // Same guarantee as the steady-state path: when the root commit will be
     // sealed through libgit2, the configured hook chain is invoked explicitly
     // (a seal runs no hooks). The `git commit` path runs them itself.
-    if storage_guarded(repo)? {
+    if storage_guarded(repo) {
         if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
             eprintln!(
                 "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
@@ -5176,8 +5176,15 @@ async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<boo
 /// hook's own failure otherwise. The hook sees the real index through the normal
 /// environment, so a hook that inspects staged content behaves identically to
 /// one that runs during `git commit`.
-fn storage_guarded(repo: &Path) -> Result<bool> {
-    crate::storage::has_configured_storage_guard(repo)
+/// Whether the commit about to be made will be SEALED through libgit2.
+///
+/// Deliberately total: if the guard binding cannot be read, this reports
+/// `false` and the seal attempt itself surfaces the real error (an unbound or
+/// inconsistent binding never commits, so no hook can be bypassed either way).
+/// Turning that into a hard error here would change the established
+/// `Blocked` outcome for those repositories.
+fn storage_guarded(repo: &Path) -> bool {
+    crate::storage::has_configured_storage_guard(repo).unwrap_or(false)
 }
 
 async fn run_configured_pre_commit(repo: &Path, timeout_secs: u64) -> Result<()> {
