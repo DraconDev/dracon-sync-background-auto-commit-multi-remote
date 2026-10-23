@@ -276,12 +276,45 @@ def main():
             daemon.kill()
             daemon.wait()
             receipt["shutdown"] = "killed after 180s"
+            receipt["ok"] = False
+            receipt["shutdown_error"] = "daemon did not exit on SIGTERM within 180s"
         else:
             receipt["shutdown"] = "joined after SIGTERM"
         log.close()
-        receipt["daemon_log_tail"] = (OUT / "daemon.log").read_text()[-4000:]
+        log_text = (OUT / "daemon.log").read_text()
+        receipt["daemon_log_tail"] = log_text[-4000:]
+        # Shutdown cleanliness is its own assertion. Exiting is NOT proof that
+        # owned workers and their descendants were reaped: the daemon reports
+        # incomplete joins in its log, so a passing receipt must read that log.
+        unclean = [
+            line
+            for line in log_text.splitlines()
+            if "did not join" in line
+            or "have no pending join result" in line
+            or "owned sync task" in line
+        ]
+        receipt["shutdown_unclean_lines"] = unclean
+        leftover = subprocess.run(
+            ["pgrep", "-f", f"{root}/"], capture_output=True, text=True
+        ).stdout.split()
+        receipt["orphan_pids_after_shutdown"] = leftover
+        if unclean or leftover:
+            receipt["ok"] = False
+            receipt["shutdown_error"] = (
+                "owned work was not cleaned up: "
+                f"{unclean or 'none reported'} / orphan pids {leftover or 'none'}"
+            )
         (OUT / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    print(json.dumps({k: v for k, v in receipt.items() if k != "daemon_log_tail"}, indent=2))
+    print(
+        json.dumps(
+            {
+                k: v
+                for k, v in receipt.items()
+                if k not in ("daemon_log_tail", "shutdown_unclean_lines")
+            },
+            indent=2,
+        )
+    )
     sys.exit(0 if receipt.get("ok") else 1)
 
 

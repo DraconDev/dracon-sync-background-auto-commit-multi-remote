@@ -1,14 +1,14 @@
 {
   "unit": "dracon-sync-operator.service",
   "method": "atomic replace + SIGTERM via pidfd; unit Restart=always reloads",
-  "label": "independent-publication-2026-10-23-final",
-  "started_at": "20261023T062908Z",
-  "old_pid": 2034403,
-  "previous_sha256": "7aaaea0314e605c5f289e514f3d5ff002e7b923071e1df7143e33bca03cb9113",
-  "expected_sha256": "d1b36d0f596195737f98b4c9e9dbe89f7320381741ed73a929caf586122de39d",
-  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T062908Z-independent-publication-2026-10-23-final",
-  "new_pid": 149685,
-  "running_sha256": "d1b36d0f596195737f98b4c9e9dbe89f7320381741ed73a929caf586122de39d",
-  "finished_at": "2026-10-23T06:31:14Z",
+  "label": "independent-publication-final2",
+  "started_at": "20261023T082106Z",
+  "old_pid": 149685,
+  "previous_sha256": "d1b36d0f596195737f98b4c9e9dbe89f7320381741ed73a929caf586122de39d",
+  "expected_sha256": "35ee77d64ee76c5df9ad861df25ca4ca937dfd9426d45174d3930bfb21050ffa",
+  "backup": "/home/dracon/.local/state/dracon-sync/deployments/20261023T082106Z-independent-publication-final2",
+  "new_pid": 3685181,
+  "running_sha256": "35ee77d64ee76c5df9ad861df25ca4ca937dfd9426d45174d3930bfb21050ffa",
+  "finished_at": "2026-10-23T08:23:13Z",
   "loaded_revision": "verified from /proc/<new-pid>/exe"
 }
