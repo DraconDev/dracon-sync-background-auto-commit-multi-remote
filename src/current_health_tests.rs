@@ -30,6 +30,32 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
             "WORKING",
         ),
         (
+            // Publication is distinct from success: the tip is not on the
+            // remotes yet, so the label must never read CLEAN/WORKING.
+            "publishing",
+            false,
+            3,
+            Some(Phase::Pushing),
+            Some(5000),
+            None,
+            0,
+            "PENDING",
+            Current::Publishing,
+            "PUBLISHING",
+        ),
+        (
+            "committing",
+            true,
+            1,
+            Some(Phase::Committing),
+            Some(5000),
+            None,
+            0,
+            "PENDING",
+            Current::Working,
+            "WORKING",
+        ),
+        (
             "checking",
             true,
             0,

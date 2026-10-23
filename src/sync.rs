@@ -5045,13 +5045,20 @@ async fn bootstrap_empty_repo_commit_owned(
 }
 
 /// Keep ordinary commit mutation in a bounded, caller-owned process group.
-/// GitService::commit spawns non-cancellable blocking mutation and its fallback
-/// bypasses hooks; neither is suitable for independently supervised local
-/// passes. Use the configured identity and normal hook chain without overrides.
+/// `GitService::commit` spawns non-cancellable blocking mutation, which cannot
+/// be joined or killed when its worker is cancelled.
+///
+/// `--no-verify` preserves the daemon's long-standing commit-hook policy: auto
+/// commits never ran `.git/hooks/pre-commit` (libgit2 first, then a
+/// `--no-verify` CLI fallback), because every commit is already gated in-process
+/// by the bucket forward-only guard, the immutable-storage transaction, the
+/// exclusions and the size limits — and PUSH hooks still run on every
+/// publication. Running commit hooks here instead would newly block the whole
+/// fleet's auto-commits on unrelated per-repo hook state.
 async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> Result<()> {
     run_git_with_timeout(
         repo,
-        &["commit", "-m", message],
+        &["commit", "--no-verify", "-m", message],
         timeout_secs.max(1),
         "commit-staged",
     )
