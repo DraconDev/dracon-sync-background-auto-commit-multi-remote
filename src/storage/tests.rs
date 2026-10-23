@@ -928,19 +928,17 @@ trusted_authors = ["DraconDev"]
         ],
         "hooks must run in Git's order, got: {log}"
     );
-    // Git passes the message file to prepare-commit-msg (plus the source
-    // reason) and to commit-msg (alone).
-    assert!(
-        log.contains("prepare-commit-msg argv=[") && log.contains("message]"),
-        "prepare-commit-msg must receive <msgfile> message: {log}"
-    );
-    assert!(
-        log.contains("commit-msg argv=[") && log.contains("COMMIT_EDITMSG"),
-        "commit-msg must receive the commit message file: {log}"
-    );
-    assert!(
-        log.contains("pre-commit argv=[]") && log.contains("post-commit argv=[]"),
-        "pre-commit and post-commit take no arguments: {log}"
+    // Exact argument vectors: extra/missing arguments must fail, while the
+    // fixture's absolute temporary path is derived rather than pinned.
+    let msgfile = git2::Repository::open(repo).unwrap().path().join("COMMIT_EDITMSG");
+    assert_eq!(
+        log.lines().map(str::to_owned).collect::<Vec<_>>(),
+        vec![
+            "pre-commit argv=[]".to_owned(),
+            format!("prepare-commit-msg argv=[{} message]", msgfile.display()),
+            format!("commit-msg argv=[{}]", msgfile.display()),
+            "post-commit argv=[]".to_owned(),
+        ]
     );
     // The seal committed what commit-msg approved, not the original text.
     let subject =
