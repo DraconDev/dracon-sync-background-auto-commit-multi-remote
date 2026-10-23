@@ -269,6 +269,42 @@ fn current_convergence_output_table_is_independent_of_push_history_and_commit_ag
 }
 
 #[test]
+fn exhausted_publication_budget_is_not_hidden_by_local_commit_activity() {
+    use crate::daemon::scheduler_evidence::Snapshot;
+    for phase in [None, Some(Phase::Working), Some(Phase::Committing), Some(Phase::Queued),
+        Some(Phase::Inspecting), Some(Phase::Retrying), Some(Phase::Pushing), Some(Phase::Blocked)] {
+        let mut row = RepoReportRow::for_tests("/fixture/continuously-edited");
+        row.modified = 1;
+        row.ahead = 694;
+        row.push_status = "PUSH_STUCK".into();
+        let snapshot = Snapshot {
+            version: 1,
+            written_at: 100,
+            mode: "running".into(),
+            repos: [(std::path::PathBuf::from(&row.repo), RepoEvidence {
+                phase, eligible: false, ..Default::default()
+            })].into(),
+        };
+        let mut rows = [row];
+        super::super::apply_report_scheduler_snapshot(&mut rows, Some(&snapshot), 100);
+        let row = &rows[0];
+        let expected = match phase {
+            Some(Phase::Pushing) => Current::Publishing,
+            Some(Phase::Blocked) => Current::Blocked,
+            _ => Current::Stalled,
+        };
+        assert_eq!(row.health.current, expected, "phase={phase:?}");
+        assert_eq!(row.active, expected == Current::Publishing);
+        assert_eq!(row.warn, expected != Current::Publishing);
+        assert_eq!(row.health.scheduler.as_ref().unwrap().phase, phase,
+            "retain the separate actor evidence rather than hiding local work");
+        let output = serde_json::to_value(row).unwrap();
+        assert_eq!(output["warn"], expected != Current::Publishing);
+        assert_eq!(output["health"]["current"], serde_json::to_value(expected).unwrap());
+    }
+}
+
+#[test]
 fn rich_rendered_states_keep_complete_activity_and_single_line_rows() {
     let states = [
         Current::Converged,
