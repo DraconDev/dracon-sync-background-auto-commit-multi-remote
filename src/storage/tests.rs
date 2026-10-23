@@ -846,6 +846,184 @@ trusted_authors = ["DraconDev"]
     );
 }
 
+/// The FULL commit-hook lifecycle must run around a storage seal.
+///
+/// libgit2 seals a guarded tree and executes no hooks. Running only
+/// `pre-commit` would still let a refusing `commit-msg` be bypassed, and would
+/// never fire `prepare-commit-msg`/`post-commit`. This drives the real dispatch
+/// and asserts Git's order, Git's arguments, and the seal honouring a message
+/// that `commit-msg` rewrote.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    setup_guard(
+        repo,
+        &"a".repeat(64),
+        &repo.join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
+    let hooks = repo.join(".git/lifecycle-hooks");
+    std::fs::create_dir_all(&hooks).unwrap();
+    // Every hook appends its own name plus argv so the test can assert ORDER
+    // and ARGUMENTS, not merely that something ran.
+    for (name, body) in [
+        (
+            "pre-commit",
+            "#!/bin/sh\nprintf 'pre-commit argv=[%s]\\n' \"$*\" >> ../hooklog\n",
+        ),
+        (
+            "prepare-commit-msg",
+            "#!/bin/sh\nprintf 'prepare-commit-msg argv=[%s]\\n' \"$*\" >> ../hooklog\n",
+        ),
+        (
+            "commit-msg",
+            // Rewrites the message: the seal must commit the REWRITTEN text.
+            "#!/bin/sh\nprintf 'commit-msg argv=[%s]\\n' \"$*\" >> ../hooklog\n             sed -i 's/auto: initial commit/approved by hook/' \"$1\"\n",
+        ),
+        (
+            "post-commit",
+            "#!/bin/sh\nprintf 'post-commit argv=[%s]\\n' \"$*\" >> ../hooklog\n",
+        ),
+    ] {
+        let path = hooks.join(name);
+        std::fs::write(&path, body).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+    std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
+
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+    )
+    .unwrap();
+    assert!(
+        crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+            .await
+            .unwrap(),
+        "the sealed root commit must be created when every hook accepts"
+    );
+
+    let log = std::fs::read_to_string(repo.join("hooklog")).unwrap();
+    let order: Vec<&str> = log
+        .lines()
+        .filter_map(|line| line.split_whitespace().next())
+        .collect();
+    assert_eq!(
+        order,
+        vec![
+            "pre-commit",
+            "prepare-commit-msg",
+            "commit-msg",
+            "post-commit"
+        ],
+        "hooks must run in Git's order, got: {log}"
+    );
+    // Git passes the message file to prepare-commit-msg (plus the source
+    // reason) and to commit-msg (alone).
+    assert!(
+        log.contains("prepare-commit-msg argv=[") && log.contains("message]"),
+        "prepare-commit-msg must receive <msgfile> message: {log}"
+    );
+    assert!(
+        log.contains("commit-msg argv=[") && log.contains("COMMIT_EDITMSG"),
+        "commit-msg must receive the commit message file: {log}"
+    );
+    assert!(
+        log.contains("pre-commit argv=[]") && log.contains("post-commit argv=[]"),
+        "pre-commit and post-commit take no arguments: {log}"
+    );
+    // The seal committed what commit-msg approved, not the original text.
+    let subject = git_fixture_command(repo, &["log", "-1", "--format=%s"]);
+    assert_eq!(
+        String::from_utf8_lossy(&subject).trim(),
+        "approved by hook (1 files)"
+    );
+}
+
+/// A refusing `commit-msg` must block a storage-sealed commit.
+///
+/// This is the gap the auditor named: `pre-commit` alone is not the lifecycle.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = guarded_fixture().await;
+    let repo = dir.path();
+    setup_guard(
+        repo,
+        &"a".repeat(64),
+        &repo.join(".git/metadata"),
+        Path::new("assets.manifest"),
+    )
+    .unwrap();
+    let hooks = repo.join(".git/commit-msg-hooks");
+    std::fs::create_dir_all(&hooks).unwrap();
+    let hook = hooks.join("commit-msg");
+    std::fs::write(
+        &hook,
+        "#!/bin/sh\ntouch ../commit-msg-ran\necho 'warden: commit-msg refused' >&2\nexit 1\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+    std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
+
+    let policy: crate::policy::SyncPolicy = toml::from_str(
+        r#"
+auto_commit = true
+auto_push = false
+auto_pull = false
+auto_bump_versions = false
+trusted_emails = ["dracsharp@gmail.com"]
+trusted_authors = ["DraconDev"]
+"#,
+    )
+    .unwrap();
+    let error = crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false)
+        .await
+        .expect_err("a refusing commit-msg must fail the sealed commit");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("commit-msg") && message.contains("warden: commit-msg refused"),
+        "the commit-msg refusal must reach the caller: {message}"
+    );
+    assert!(
+        repo.join("commit-msg-ran").exists(),
+        "commit-msg must actually have been invoked"
+    );
+    // Nothing was sealed, and the judgeable work survives for the next pass.
+    let head = crate::test_helpers::test_git_cmd()
+        .current_dir(repo)
+        .args([
+            "-c",
+            "core.hooksPath=/dev/null",
+            "rev-parse",
+            "--verify",
+            "HEAD",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        !head.status.success(),
+        "a refused sealed commit must not create a root commit"
+    );
+    assert_eq!(
+        std::fs::read(repo.join("README.md")).unwrap(),
+        b"bootstrap fixture\n"
+    );
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn storage_bootstrap_cannot_bypass_guard_with_no_verify() {
