@@ -4621,10 +4621,10 @@ async fn stage_commit_and_push(
         println!("  message: {}", msg.lines().next().unwrap_or("(empty)"));
     } else {
         // ADDED 2026-10-09 (goal 20261009193116-1ess3v): forward-only
-        // bucket guard on the daemon commit path. Daemon commits run
-        // through libgit2 (`GitService::commit`), which never executes
-        // hooks — the CLI fallback even passes `--no-verify` — so the
-        // `.githooks/pre-commit` guard cannot fire here. That is how
+        // bucket guard on the daemon commit path. Keep this explicit
+        // check even though ordinary commits now execute hooks: guarded
+        // storage commits seal a verified immutable tree directly, and
+        // repos may have a different configured hook chain. That is how
         // hellhunter `f5d55b5` (27 deleted protected assets) and deathrun
         // `30352ba` (4 deleted webp) were committed silently and only
         // detonated at push time. Run the same staged check the hook
@@ -4659,7 +4659,7 @@ async fn stage_commit_and_push(
         let storage_commit = storage_guarded_commit(repo, &msg).await?;
         match storage_commit {
             Ok(true) => {}
-            Ok(false) => svc.commit(&msg).await?,
+            Ok(false) => commit_staged_owned(repo, &msg, policy.stage_op_timeout_secs).await?,
             Err(error) => {
                 eprintln!("⚠️ {} storage commit guard blocked auto-commit; staged/worktree content retained: {}", repo.display(), error);
                 return Ok(Some(SyncOutcome::Blocked));
@@ -4667,7 +4667,7 @@ async fn stage_commit_and_push(
         }
         if crate::policy::debug_enabled() {
             // Exact commit-completion timestamp for the fairness probe's
-            // commit→push gate (GitService::commit is in-process libgit2,
+            // commit→push gate (ordinary commits use the owned CLI runner,
             // invisible to a CLI wrapper). Debug-gated: no fleet overhead.
             eprintln!(
                 "scheduler: commit_done repo={} unix_ms={}",
@@ -5121,19 +5121,27 @@ async fn bootstrap_empty_repo_commit_owned(
             return Ok(false);
         }
     }
-    run_git_with_timeout(
-        repo,
-        &["commit", "--no-verify", "-m", &msg],
-        policy.stage_op_timeout_secs,
-        "bootstrap-root-commit",
-    )
-    .await?;
+    commit_staged_owned(repo, &msg, policy.stage_op_timeout_secs).await?;
     eprintln!(
         "🌱 {} created root commit ({} files, empty repo bootstrap)",
         repo.display(),
         staged.len()
     );
     Ok(true)
+}
+
+/// Keep ordinary commit mutation in a bounded, caller-owned process group.
+/// GitService::commit spawns non-cancellable blocking mutation and its fallback
+/// bypasses hooks; neither is suitable for independently supervised local
+/// passes. Use the configured identity and normal hook chain without overrides.
+async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> Result<()> {
+    run_git_with_timeout(
+        repo,
+        &["commit", "-m", message],
+        timeout_secs.max(1),
+        "commit-staged",
+    )
+    .await
 }
 
 async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<bool>> {
