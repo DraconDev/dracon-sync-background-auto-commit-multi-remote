@@ -105,11 +105,19 @@ startup and made the TEST gate exit 1 while every assertion would have passed.
   the identical cgroup limits. That is strong convergent evidence, not a
   recovered log, and it is recorded as such.
 
-## Why this goal's own change matters here
+## Relationship to this goal's change
 
-The same 2 GiB cgroup previously serialized pushes, so at most one 4-gate pool
-ran at a time. The new architecture deliberately allows concurrent
-cross-repository publication — which is exactly the condition the worker
-ceiling exists for. That is why the ceiling must stay in place, and why the
-fleet's real-world behaviour (verified live) is two concurrent gate runs, the
-case the cap is dimensioned for.
+This is worth stating precisely, because it is easy to get backwards. Even
+before this change, `push_background_inner` pushed `origin` and then all mirror
+remotes, and `push_to_all_remotes` has used `join_all` since the mirror feature
+existed — so **two concurrent pushes from ONE repository already produced two
+concurrent 4-gate runs.** The removed global semaphore serialized push
+*commands*, not the two mirror legs of a single round.
+
+So the resource failure was reachable before this work, and the ceiling is the
+right repair regardless of it. What this change does add is that pushes from
+*different* repositories can now overlap over time, which can keep two gate
+pools alive for longer. The ceiling bounds each pool; the daemon's per-product
+resource controls and the local semaphore bound the committing side. The
+2 GiB cgroup was not enlarged and no global serialization point was
+reintroduced.
