@@ -31,6 +31,29 @@ The first version of this document claimed the scan covered "every
 non-`cfg(test)` line" when `test_helpers.rs` was in fact compiled — that claim
 was wrong and is corrected here.
 
+### Storage-sealed commits drive the COMPLETE commit lifecycle
+
+The auditor was right that running only `pre-commit` is not Git's contract. A
+`git commit` executes four hooks, and a repository can legitimately put its
+policy in any of them:
+
+```
+pre-commit argv=[]
+prepare-commit-msg argv=[.git/COMMIT_EDITMSG message]
+commit-msg argv=[.git/COMMIT_EDITMSG]
+post-commit argv=[]
+```
+
+(measured with a probe repository, not assumed). `commit-msg` may also REWRITE
+the message, and Git commits the rewritten text.
+
+`run_sealed_commit_hooks` now reproduces that sequence around the libgit2 seal —
+`pre-commit`, `prepare-commit-msg <msgfile> message`, `commit-msg <msgfile>`,
+the seal, then `post-commit` only after a real commit — reading `COMMIT_EDITMSG`
+back so the seal commits what `commit-msg` approved. Each hook is a bounded
+owned process group. The ordinary `git commit` path runs none of this itself, so
+no hook fires twice.
+
 ### Storage-sealed commits invoke the same chain
 
 A storage-guarded commit is sealed through libgit2 (`storage/mod.rs`
@@ -55,6 +78,16 @@ the commit, so hooks are additional policy, never a replacement for them.
 
 `src/sync/owned_commit_tests.rs`:
 
+* `a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order` — asserts
+  the ORDER (`pre-commit`, `prepare-commit-msg`, `commit-msg`, `post-commit`),
+  the ARGUMENTS (`prepare-commit-msg` receives `<msgfile> message`;
+  `commit-msg` receives the message file; the other two receive nothing), and
+  that the seal commits the message `commit-msg` rewrote.
+* `a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit` — a refusing
+  `commit-msg` blocks the seal, its refusal reaches the caller, no root commit
+  is created and the work survives.
+* `the_ordinary_commit_path_runs_each_hook_exactly_once` — all four hooks fire
+  once per commit on the non-sealed path, so nothing is duplicated.
 * `a_refusing_hook_also_blocks_a_storage_sealed_commit` — the seal path
   consults the chain (refusal propagates with its message) and an accepting hook
   is a no-op that does not itself commit.
@@ -69,7 +102,21 @@ the commit, so hooks are additional policy, never a replacement for them.
   must not advance, the change must still be staged, and the unstaged edit must
   survive.
 
-Re-introducing the bypass proves both tests bite:
+Each lifecycle stage is proven to bite, by reverting it and watching the
+regression fail:
+
+```
+pre-commit only (old behaviour):
+  a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order FAILED
+    hooks must run in Git's order, got: pre-commit argv=[]
+  a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit FAILED
+    a refusing commit-msg must fail the sealed commit: true
+post-commit not invoked:
+  a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order FAILED
+    hooks must run in Git's order
+```
+
+Re-introducing the `--no-verify` bypass proves the CLI tests bite:
 
 ```
 test ...owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits FAILED
