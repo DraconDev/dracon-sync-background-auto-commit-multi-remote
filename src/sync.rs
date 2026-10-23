@@ -4639,7 +4639,7 @@ async fn stage_commit_and_push(
         match storage_commit {
             Ok(true) => {
                 // `post-commit` runs only after a real commit, exactly like Git.
-                if false && sealed_hooks.is_some() {
+                if sealed_hooks.is_some() {
                     if let Err(error) =
                         run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
                             .await
@@ -5153,16 +5153,14 @@ async fn bootstrap_empty_repo_commit_owned(
         match sealed {
             Ok(true) => {
                 // `post-commit` runs only after a real commit, exactly like Git.
-                if false {
-                    if let Err(error) =
-                        run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
-                            .await
-                    {
-                        eprintln!(
-                            "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
-                            repo.display()
-                        );
-                    }
+                if let Err(error) =
+                    run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
+                        .await
+                {
+                    eprintln!(
+                        "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
+                        repo.display()
+                    );
                 }
                 return Ok(true);
             }
