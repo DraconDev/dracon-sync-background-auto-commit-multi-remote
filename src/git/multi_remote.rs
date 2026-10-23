@@ -964,6 +964,19 @@ pub(crate) async fn push_to_all_remotes(
     timeout_secs: u64,
     retries: u32,
 ) -> Vec<(String, Result<()>)> {
+    push_to_all_remotes_for_target(repo, remotes, timeout_secs, retries, None).await
+}
+
+/// Pinned variant used by an owned publication round: every mirror, retry and
+/// fallback names the same immutable object, and rejection cannot reconcile by
+/// mutating a checkout that no longer owns local mutation rights.
+pub(crate) async fn push_to_all_remotes_for_target(
+    repo: &Path,
+    remotes: &[RemoteConfig],
+    timeout_secs: u64,
+    retries: u32,
+    target: Option<&super::PublicationTarget>,
+) -> Vec<(String, Result<()>)> {
     let mut sorted = remotes.to_vec();
     sorted.sort_by_key(|r| r.priority);
 
@@ -972,12 +985,13 @@ pub(crate) async fn push_to_all_remotes(
     // callers can rely on the configured priority ordering.
     use futures::FutureExt;
     futures::future::join_all(sorted.iter().map(|remote| async move {
-        let result = std::panic::AssertUnwindSafe(push_to_named_remote(
+        let result = std::panic::AssertUnwindSafe(push_to_named_remote_for_target(
             repo,
             &remote.name,
             timeout_secs,
             retries,
             remote.force_push_when_behind,
+            target,
         ))
         .catch_unwind()
         .await
