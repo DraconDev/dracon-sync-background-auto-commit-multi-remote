@@ -11,6 +11,9 @@ mod push_isolation_tests;
 #[path = "sync/owned_commit_tests.rs"]
 mod owned_commit_tests;
 
+#[path = "sync/publication.rs"]
+mod publication;
+
 #[cfg(all(test, target_os = "linux"))]
 #[path = "sync/bucket_qualification_tests.rs"]
 mod bucket_qualification_tests;
@@ -27,12 +30,11 @@ use crate::exclude::{
     can_restore_entry, handle_large_untracked, is_large_untracked, remove_tracked_excluded_paths,
     should_stage_entry,
 };
-use crate::git::multi_remote::push_mirror_remotes;
 use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress, prune_other_default_branch, push_with_retries,
+    is_repo_ready, is_revert_in_progress, prune_other_default_branch,
     restore_paths, run_git_capture_output, run_git_with_timeout, staged_blob_sizes_for,
     unstage_excluded_paths, unstage_oversized_paths, untracked_entries,
 };
@@ -2308,109 +2310,32 @@ async fn push_background(
     has_origin: bool,
     remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
 ) -> Result<PushReport> {
-    crate::git::push_resources::push_phase(push_background_inner(
-        repo,
-        policy,
-        has_origin,
-        remote_failures,
-    ))
+    crate::git::push_resources::push_phase(async {
+        let ahead_count = count_ahead_commits(repo).await.unwrap_or(0);
+        let mut plan =
+            publication::plan_publication(repo, policy, has_origin, remote_failures, ahead_count)
+                .await?;
+        upload_publication(repo, policy, &mut plan, false).await
+    })
     .await
 }
 
-async fn push_background_inner(
-    repo: &std::path::Path,
+/// Upload one immutable plan. Upload performs no checkout or configuration
+/// mutation: mirror preparation happens before this boundary, and rejection
+/// reconciliation is deliberately absent for a pinned target.
+pub(crate) async fn upload_publication(
+    repo: &Path,
     policy: &SyncPolicy,
-    has_origin: bool,
-    mut remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
+    plan: &mut publication::PublicationPlan,
+    commit_only: bool,
 ) -> Result<PushReport> {
-    // Scale the push idle timeout with the local ahead count. A 60s
-    // timeout is fine for a small push, but a 28-commit push with
-    // binary test artifacts can sit in the negotiate phase for >60s
-    // before emitting any progress. Without scaling, the first attempt
-    // times out, the daemon burns its 3-attempt retry budget, falls
-    // through to the 4-remote HTTPS fallback chain, and the operator
-    // sees "pushing 4m" — a stall that the new ACTIVITY column will
-    // surface, but that we should prevent. CORRECTED 2026-08-10 (audit
-    // LOW): the cap is now base-relative (`max(600, base × 6)`), so at
-    // the live 900s config the timeout is never truncated below the
-    // configured value (the old fixed 600s cap silently overrode the
-    // operator's 900s to 600s for EVERY push) and the 4×/6× tiers stay
-    // observable; a runaway push is still bounded at base × 6.
-    let ahead_count = count_ahead_commits(repo).await.unwrap_or(0);
-    let scaled_timeout = scale_push_timeout(policy.push_op_timeout_secs, ahead_count);
-    if scaled_timeout != policy.push_op_timeout_secs {
-        eprintln!(
-            "⏫ {} scaling push timeout {}s → {}s ({} commits ahead)",
-            repo.display(),
-            policy.push_op_timeout_secs,
-            scaled_timeout,
-            ahead_count
-        );
+    if commit_only || !policy.auto_push {
+        return Ok(PushReport::AllPaused);
     }
-    // ── Proactive oversized-pack guard (github 2 GiB limit) ──────────────
-    // github rejects packs > 2 GiB. Retrying is vain: git still re-packs the
-    // history (slow, and it saturates the daemon's push semaphore) only for
-    // github to reject it again. The relevant size is the pack we would
-    // actually send for the pushed branch — NOT the whole `.git` (which can
-    // be huge for unrelated reasons, e.g. dracon-platform's 332 tags). So we
-    // measure the pushable branch via `github_pack_too_large`. gitlab/codeberg
-    // have no such limit and keep working. Self-healing: once the pushed
-    // branch shrinks below 2 GiB the push resumes automatically.
-    // R4-SC-04: async wrapper — the measurement runs on the
-    // blocking pool, never inline on this tokio worker.
-    let (too_big_for_github, pushable_size) =
-        crate::git::github_pack_too_large_async(repo, None).await;
-    // Whether github was already flagged, so we notify once per regression
-    // rather than spamming the journal every cycle.
-    let github_already_flagged = remote_failures
-        .as_ref()
-        .map(|rf| rf.get("github").map(|f| f.consecutive > 0).unwrap_or(false))
-        .unwrap_or(false);
-
-    // Detect whether `origin` is hosted on GitHub for the pack-limit guard,
-    // and separately whether it is the SAME repository as the named
-    // `github` mirror. Host-only comparison is wrong: doomtap had
-    // `origin = github.com/DraconDev/ultratap` while its named mirror was
-    // `github.com/DraconDev/doomtap`; treating both as the same remote
-    // silently skipped the real GitHub mirror.
-    //
-    // FIXED 2026-08-17 (v0.113.52): compare transport-neutral canonical
-    // repository URLs before excluding the named mirror. SSH/HTTPS forms,
-    // credentials, casing, and a trailing `.git` are normalized by the
-    // helper, while distinct repositories on the same forge remain distinct.
-    let origin_url = if has_origin {
-        crate::git::multi_remote::get_remote_url(repo, "origin")
-    } else {
-        None
-    };
-    let origin_is_github = origin_url
-        .as_deref()
-        .map(is_github_repository_url)
-        .unwrap_or(false);
-    let github_mirror_url = crate::git::multi_remote::get_remote_url(repo, "github");
-    let github_mirror_is_origin =
-        github_mirror_matches_origin(origin_url.as_deref(), github_mirror_url.as_deref());
-
-    // Push to origin (if the repo has one — mirror-only repos like .dracon
-    // skip this and go straight to mirror remotes).
-    // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): an origin push
-    // failure no longer SHORT-CIRCUITS the mirror pushes below — the
-    // pre-fix early `return Ok(false)` meant one broken forge
-    // (deleted github repo, auth hiccup) silently orphaned the repo
-    // on every OTHER forge for the cycle. The failure is now
-    // recorded in `remote_failures` and the aggregate is returned at
-    // the end.
-    let mut origin_failed = false;
-    // v0.113.69 per-remote pause scope: sick remotes back off
-    // independently (15 min) while healthy remotes push every cycle.
-    // `attempted` distinguishes "tried and failed" (PushFailed +
-    // stuck-ledger write) from "paused, nothing attempted" (PushPaused).
     let now_unix = crate::policy::timestamp_secs();
-    // v0.113.73 forge-degraded: load declared incidents once per push
-    // (one small JSON read; pushes are rare) and stretch the re-probe
-    // for remotes hosted on incident forges (15 min -> 60 min).
     let incident_hosts = crate::forge::forge_incident_hosts();
-    let origin_host = origin_url
+    let origin_host = plan
+        .origin_url
         .as_deref()
         .and_then(crate::forge::forge_host_of_url);
     let repo_name = repo
@@ -2432,276 +2357,102 @@ async fn push_background_inner(
             mirror_host(name)
         }
     };
-    let paused: std::collections::HashSet<String> =
-        paused_remote_names_incident(remote_failures.as_deref(), now_unix, &|name| {
+    let paused: HashSet<String> =
+        paused_remote_names_incident(plan.remote_failures.as_ref(), now_unix, &|name| {
             remote_host(name).is_some_and(|h| incident_hosts.contains(&h))
         })
         .into_iter()
         .collect();
-    let mut attempted = false;
-    if has_origin {
-        // Skip origin if it points at github and the pack is too big for
-        // github's 2 GiB limit (defensive; most repos' origin is codeberg).
-        if paused.contains("origin") {
-            let consecutive = remote_failures
-                .as_ref()
-                .and_then(|rf| rf.get("origin"))
-                .map(|f| f.consecutive)
-                .unwrap_or(0);
-            let last = remote_failures
-                .as_ref()
-                .and_then(|rf| rf.get("origin"))
-                .map(|f| f.last_attempt_unix)
-                .unwrap_or(0);
-            // v0.113.73: stretched re-probe while the origin's host is
-            // under a declared incident (matches the gate window).
-            let origin_incident = origin_host
-                .as_deref()
-                .is_some_and(|h| incident_hosts.contains(h));
-            let window = if origin_incident {
-                crate::forge::FORGE_INCIDENT_REPROBE_SECS
-            } else {
-                crate::daemon::MIRROR_PAUSE_REPROBE_SECS
-            };
-            eprintln!(
-                "⏸️ {} origin push paused ({} consecutive fails, re-probe in {}s) — healthy mirrors still push",
-                repo.display(),
-                consecutive,
-                window.saturating_sub(now_unix.saturating_sub(last)),
-            );
-        } else if too_big_for_github && origin_is_github {
-            if !github_already_flagged {
-                log_warn!(
-                    "🚫 skipping origin (github) push for {}: pushable branch is {:.2} GiB (exceeds github's 2 GiB pack limit)",
-                    repo.display(),
-                    pushable_size as f64 / (1024.0 * 1024.0 * 1024.0)
-                );
-            }
-        } else {
-            attempted = true;
-            match push_with_retries(repo, scaled_timeout, policy.push_retries, "push").await {
-                Ok(()) => {
-                    if let Some(rf) = remote_failures.as_deref_mut() {
-                        rf.remove("origin");
-                    }
-                }
-                Err(e) => {
-                    // Preserve interrupted-attempt identity through the caller.
-                    if crate::daemon::push_error_is_cancellation(&e) {
-                        if debug_enabled() {
-                            eprintln!(
-                                "⏭️ {} origin push task cancelled — not recorded as a failure",
-                                repo.display()
-                            );
-                        }
-                        return Err(e);
-                    }
-                    eprintln!(
-                        "⚠️ background push to origin failed for {}: {}",
-                        repo.display(),
-                        e
-                    );
-                    if let Some(rf) = remote_failures.as_deref_mut() {
-                        let fail = rf.entry("origin".to_string()).or_default();
-                        fail.consecutive += 1;
-                        fail.last_error = e.to_string();
-                        fail.last_attempt_unix = crate::policy::timestamp_secs();
-                    }
-                    origin_failed = true;
-                }
-            }
-        }
-    }
-
-    // Push to mirror remotes
-    if !policy.remotes.is_empty() {
-        let private = true;
-        // CHANGED 2026-06-23 (goal mqqsyzyd-qkvna5): honor
-        // per-repo `exclude_remotes` so a repo can opt out of a
-        // specific mirror (e.g. gitlab for a repo over the free-tier
-        // storage quota) without affecting other repos.
-        let repo_override = crate::policy::load_repo_override(repo);
-        let mut combined_exclude: Vec<String> = repo_override.exclude_remotes.clone();
-        // CONDITIONAL codeberg exclusion: when the global
-        // `codeberg_public_only` policy is on (default true) AND the
-        // per-repo override doesn't disable it (`Some(false)`), AND the
-        // cached repo visibility says private (or is unknown, which is
-        // the safe default), skip the codeberg remote. This keeps
-        // codeberg's 85 GiB global quota available for public-repo
-        // marketing mirrors only. ADDED 2026-07-17 (goal
-        // `codeberg-public-only`); see
-        // `docs/design/codeberg-public-only-policy-2026-07-17.md`.
-        let codeberg_public_only_effective = repo_override
-            .codeberg_public_only
-            .unwrap_or(policy.codeberg_public_only);
-        if codeberg_public_only_effective {
-            let cached_priv = cached_repo_visibility(repo, policy.sync_visibility_interval_hours);
-            // Skip codeberg when:
-            //   (a) cached visibility says private, OR
-            //   (b) cache is empty (legacy or never-visibility-synced) —
-            //       safe default until cache refreshes.
-            // Don't skip when:
-            //   (c) cached visibility says public.
-            let skip_codeberg = match cached_priv {
-                Some(true) => true,   // (a) explicitly private
-                Some(false) => false, // (c) explicitly public
-                None => true,         // (b) unknown — safe default
-            };
-            if skip_codeberg && !combined_exclude.iter().any(|e| e == "codeberg") {
-                combined_exclude.push("codeberg".to_string());
-                if crate::policy::debug_enabled() {
-                    eprintln!(
-                        "🐛 codeberg gate: skipping codeberg push for {} \
-                         (public_only policy + visibility cache says {:?})",
-                        repo.display(),
-                        cached_priv.map(|p| if p { "private" } else { "public" })
-                    );
-                }
-            }
-        }
-        // CONDITIONAL github exclusion from the mirror path. When
-        // `origin` IS github, github is already pushed by the
-        // `push_with_retries` block above; routing it through
-        // `push_mirror_remotes` would re-trigger `auto_create_all_remotes`
-        // (`gh repo create`), which historically stalled against an
-        // already-existing repo and blocked the gitlab/codeberg pushes
-        // that follow in the same call. (The stall was later mitigated
-        // by `remote_repo_exists` — 2026-06-20 — but the exclusion
-        // remains to avoid the redundant work.) When `origin` is NOT
-        // github (e.g. the 10 nested game submodules of `dracon-platform`
-        // where `.gitmodules` lists codeberg first and git picked that
-        // as `origin`), github MUST be pushed via the mirror path or it
-        // never reaches the forge — which is exactly the push-to-all
-        // violation the 2026-07-09 audit (goal fb8ddd6b) surfaced. The
-        // 2 GiB pack limit is still enforced by the `too_big_for_github`
-        // skip above regardless of which path pushes github.
-        if github_mirror_is_origin && !combined_exclude.iter().any(|e| e == "github") {
-            combined_exclude.push("github".to_string());
-        }
-        if too_big_for_github {
-            // ACTUALLY exclude github from the mirror push. The log message
-            // below says "skipping github push", but unless we add it to
-            // `combined_exclude` the `push_mirror_remotes` call below still
-            // routes github through `auto_create_all_remotes` +
-            // `push_to_all_remotes`, spawning a `git push github` that github
-            // rejects (2 GiB pack limit). That hangs uploading the oversized
-            // pack and leaks an orphaned git process the daemon re-dispatches
-            // every cycle (see 2026-07-09 sync-stall audit). This is the
-            // mirror-path counterpart of the origin-github skip above, which
-            // does actually skip (it omits the `push_with_retries` call).
-            if !combined_exclude.iter().any(|e| e == "github") {
-                combined_exclude.push("github".to_string());
-            }
-            // Record the skip so the one-time notification doesn't re-fire
-            // every cycle, and so the repo shows as intentionally-skipped.
-            if let Some(rf) = remote_failures.as_deref_mut() {
-                let fail = rf.entry("github".to_string()).or_default();
-                fail.consecutive += 1;
-                if fail.last_error.is_empty() {
-                    fail.last_error =
-                        "skipped: pushable branch exceeds github's 2 GiB pack limit".to_string();
-                }
-                // Synthetic guard entry, not a real attempt: leave
-                // last_attempt_unix at 0 so the per-remote pause gate
-                // treats it as always-due (the 2 GiB exclusion above
-                // governs these, not the pause gate).
-            }
-            if !github_already_flagged {
-                log_warn!(
-                    "🚫 skipping github push for {}: pushable branch is {:.2} GiB (exceeds github's 2 GiB pack limit). Needs history rewrite / OVH migration; will resume once shrunk below 2 GiB.",
-                    repo.display(),
-                    pushable_size as f64 / (1024.0 * 1024.0 * 1024.0)
-                );
-                if let Some(url) = &policy.webhook_url {
-                    notify_webhook_failure(
-                        url,
-                        repo,
-                        "github",
-                        "PACK_TOO_LARGE: pushable branch exceeds github's 2 GiB pack limit; skipping push. Rewrite history (git filter-repo) or move assets to OVH bucket.",
-                    );
-                }
-            }
-        }
-        // v0.113.69 per-remote pause scope: paused mirrors join the
-        // exclude list for THIS cycle only (local vec, never persisted).
-        // Their `consecutive`/`last_attempt_unix` stay frozen so the
-        // 15-min re-probe fires; successes on healthy mirrors still
-        // clear only their own entries via `aggregate_push_results`.
-        let mut paused_mirror_count = 0usize;
-        for name in &paused {
-            // Only CONFIGURED mirrors count (stale entries for
-            // decommissioned remotes linger in the map but are not
-            // pushed anyway — skipping them is not a degradation).
-            let configured = policy.remotes.iter().any(|r| &r.name == name);
-            if configured && name != "origin" && !combined_exclude.iter().any(|e| e == name) {
-                if debug_enabled() {
-                    eprintln!(
-                        "🐛 {} mirror '{}' paused (per-remote gate), skipping this cycle",
-                        repo.display(),
-                        name
-                    );
-                }
-                combined_exclude.push(name.clone());
-                paused_mirror_count += 1;
-            }
-        }
-        if paused_mirror_count > 0 {
-            eprintln!(
-                "⏸️ {} {} mirror(s) paused (per-remote gate) — healthy remotes still push",
-                repo.display(),
-                paused_mirror_count,
-            );
-        }
-        let push_results = push_mirror_remotes(
+    let origin_paused = plan.has_origin && paused.contains("origin");
+    let mut map = plan.remote_failures.take().unwrap_or_default();
+    let mut origin_failed = false;
+    if plan.has_origin && !origin_paused {
+        match crate::git::push_with_retries_for_target(
             repo,
-            &policy.remotes,
-            scaled_timeout,
+            plan.timeout_secs,
             policy.push_retries,
-            private,
-            &combined_exclude,
-            repo_override.auto_create_on_codeberg,
-            policy.sync_visibility_interval_hours,
+            "push",
+            plan.target.as_ref(),
         )
-        .await;
-        if !push_results.is_empty() {
-            attempted = true;
+        .await
+        {
+            Ok(()) => {
+                map.remove("origin");
+            }
+            Err(e) => {
+                if crate::daemon::push_error_is_cancellation(&e) {
+                    plan.remote_failures = Some(map);
+                    return Err(e);
+                }
+                eprintln!(
+                    "⚠️ background push to origin failed for {}: {}",
+                    repo.display(),
+                    e
+                );
+                let fail = map.entry("origin".to_string()).or_default();
+                fail.consecutive += 1;
+                fail.last_error = e.to_string();
+                fail.last_attempt_unix = crate::policy::timestamp_secs();
+                origin_failed = true;
+            }
         }
-        // v0.113.73: reborrow (not move) — the forge-hit observation
-        // below needs shared access to the updated map.
-        let ok = aggregate_push_results(
-            repo,
-            push_results,
-            origin_failed,
-            remote_failures.as_deref_mut(),
-        )?;
-        // AllPaused only when a CONFIGURED remote was pause-skipped:
-        // stale entries for decommissioned remotes must not veto the
-        // legacy path (they linger until overwritten, never cleared).
-        let paused_configured = (has_origin && paused.contains("origin"))
-            || policy.remotes.iter().any(|r| paused.contains(&r.name));
-        // v0.113.72 degraded: a CONFIGURED remote was pause-skipped AND
-        // at least one leg was attempted. Progress on healthy remotes
-        // must read as neither full success (that clears pause memory)
-        // nor failure.
-        let degraded = paused_configured
-            && (paused_mirror_count > 0 || (has_origin && paused.contains("origin")));
-        if !attempted && paused_configured {
-            return Ok(PushReport::AllPaused);
-        }
-        // v0.113.73: observe this round's transient hits BEFORE
-        // returning (AllPaused attempted nothing — nothing to observe).
-        observe_round_transient_hits(repo, remote_failures.as_deref(), now_unix, &remote_host);
-        return Ok(PushReport::Attempted { ok, degraded });
     }
-    // CHANGED 2026-07-21 (v0.112.33, audit M5/F1.11): aggregate —
-    // false when origin failed (mirrors may still have succeeded).
-    if !attempted && has_origin && paused.contains("origin") {
+    // Paused mirrors are excluded for THIS round only; their counters stay
+    // frozen so the re-probe window still applies.
+    let mut mirror_paused = 0usize;
+    let mut configured = plan.remotes.clone();
+    for name in &paused {
+        if name != "origin" && configured.iter().any(|r| &r.name == name) {
+            mirror_paused += 1;
+        }
+    }
+    configured.retain(|r| !paused.contains(&r.name));
+    let mirror_results = crate::git::multi_remote::push_to_all_remotes_for_target(
+        repo,
+        &configured,
+        plan.timeout_secs,
+        policy.push_retries,
+        plan.target.as_ref(),
+    )
+    .await;
+    let attempted = plan.has_origin && !origin_paused || !mirror_results.is_empty();
+    let mut interrupted = None;
+    let mut mirror_failed = false;
+    for (name, result) in mirror_results {
+        match result {
+            Ok(()) => {
+                map.remove(&name);
+            }
+            Err(e) => {
+                if crate::daemon::push_error_is_cancellation(&e) {
+                    interrupted = Some(e);
+                    continue;
+                }
+                mirror_failed = true;
+                let fail = map.entry(name.clone()).or_default();
+                fail.consecutive += 1;
+                fail.last_error = e.to_string();
+                fail.last_attempt_unix = crate::policy::timestamp_secs();
+                eprintln!(
+                    "⚠️ background push to {} failed for {}: {}",
+                    name,
+                    repo.display(),
+                    e
+                );
+            }
+        }
+    }
+    plan.remote_failures = Some(map);
+    if let Some(e) = interrupted {
+        return Err(e);
+    }
+    if !attempted {
         return Ok(PushReport::AllPaused);
     }
-    observe_round_transient_hits(repo, remote_failures.as_deref(), now_unix, &remote_host);
+    observe_round_transient_hits(repo, plan.remote_failures.as_ref(), now_unix, &remote_host);
     Ok(PushReport::Attempted {
-        ok: !origin_failed,
-        degraded: false,
+        ok: !origin_failed && !mirror_failed,
+        degraded: origin_paused || mirror_paused > 0,
     })
 }
 
