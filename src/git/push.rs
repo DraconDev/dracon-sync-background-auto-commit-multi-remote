@@ -300,11 +300,18 @@ fn ref_race_is_converged(
 /// A concurrent sender may have published exactly our desired tip after Git's
 /// advertisement. Reconcile only that ref-update race, using fresh remote
 /// evidence and an unchanged local HEAD. Hook/policy errors stay failures.
-pub(crate) async fn converged_after_ref_race(repo: &Path, remote: &str, error: &str) -> bool {
+pub(crate) async fn converged_after_ref_race_for_target(
+    repo: &Path,
+    remote: &str,
+    error: &str,
+    target: Option<&PublicationTarget>,
+) -> bool {
     if !eligible_ref_race(error) {
         return false;
     }
-    let branch = super::branch::current_branch(repo).unwrap_or_else(|| "main".into());
+    let branch = target
+        .map(|target| target.branch().to_owned())
+        .unwrap_or_else(|| super::branch::current_branch(repo).unwrap_or_else(|| "main".into()));
     if !super::is_safe_branch_name(&branch) || remote.starts_with('-') {
         return false;
     }
@@ -322,20 +329,69 @@ pub(crate) async fn converged_after_ref_race(repo: &Path, remote: &str, error: &
             .success()
             .then(|| String::from_utf8_lossy(&stdout).trim().to_string())
     }
-    let Some(before) = capture(repo, &["rev-parse", "--verify", "HEAD"]).await else {
-        return false;
+    let before = match target {
+        Some(target) => target.object_id().to_owned(),
+        None => match capture(repo, &["rev-parse", "--verify", "HEAD"]).await {
+            Some(head) => head,
+            None => return false,
+        },
     };
     let ssh = format!("core.sshCommand={}", crate::git::git_ssh_hardening());
-    let target = format!("refs/heads/{branch}");
-    let Some(advertised) =
-        capture(repo, &["-c", &ssh, "ls-remote", "--refs", remote, &target]).await
+    let remote_ref = format!("refs/heads/{branch}");
+    let Some(advertised) = capture(
+        repo,
+        &["-c", &ssh, "ls-remote", "--refs", remote, &remote_ref],
+    )
+    .await
     else {
         return false;
     };
-    let Some(after) = capture(repo, &["rev-parse", "--verify", "HEAD"]).await else {
-        return false;
+    let after = match target {
+        Some(target) => target.object_id().to_owned(),
+        None => match capture(repo, &["rev-parse", "--verify", "HEAD"]).await {
+            Some(head) => head,
+            None => return false,
+        },
     };
     ref_race_is_converged(error, &before, &after, &advertised, &branch)
+}
+
+/// A validated immutable source and destination branch for one publication
+/// round. It deliberately cannot represent moving HEAD or a force refspec.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PublicationTarget {
+    object_id: String,
+    branch: String,
+}
+
+impl PublicationTarget {
+    pub(crate) fn new(object_id: &str, branch: &str) -> Result<Self> {
+        anyhow::ensure!(
+            super::is_valid_object_id(object_id) && object_id.bytes().any(|byte| byte != b'0'),
+            "invalid or null publication object ID"
+        );
+        anyhow::ensure!(
+            super::is_safe_branch_name(branch)
+                && git2::Reference::is_valid_name(&format!("refs/heads/{branch}")),
+            "unsafe publication branch"
+        );
+        Ok(Self {
+            object_id: object_id.to_ascii_lowercase(),
+            branch: branch.to_owned(),
+        })
+    }
+
+    pub(crate) fn object_id(&self) -> &str {
+        &self.object_id
+    }
+
+    pub(crate) fn branch(&self) -> &str {
+        &self.branch
+    }
+
+    pub(crate) fn refspec(&self) -> String {
+        format!("{}:refs/heads/{}", self.object_id, self.branch)
+    }
 }
 
 pub(crate) async fn push_with_retries(
@@ -343,6 +399,18 @@ pub(crate) async fn push_with_retries(
     timeout_secs: u64,
     retries: u32,
     op_label: &str,
+) -> Result<()> {
+    push_with_retries_for_target(repo, timeout_secs, retries, op_label, None).await
+}
+
+/// A pinned round never reconciles by mutating the checkout. A rejection is
+/// returned to its owner for separately leased local reconciliation.
+pub(crate) async fn push_with_retries_for_target(
+    repo: &Path,
+    timeout_secs: u64,
+    retries: u32,
+    op_label: &str,
+    target: Option<&PublicationTarget>,
 ) -> Result<()> {
     let budget = retries.max(1);
     let ssh_hardening = crate::git::git_ssh_hardening();
@@ -360,18 +428,21 @@ pub(crate) async fn push_with_retries(
         // fully-qualified `HEAD:refs/heads/<branch>` form when a branch
         // is known. Bare `HEAD` fails with the same refspec error on a
         // detached worktree.
-        let ssh_refspec = match crate::git::branch::current_branch(repo) {
-            Some(branch) if super::is_safe_branch_name(&branch) => {
-                format!("HEAD:refs/heads/{branch}")
-            }
-            Some(branch) => {
-                return Err(anyhow::anyhow!(
-                    "unsafe current branch '{}' in {}",
-                    branch,
-                    repo.display()
-                ));
-            }
-            None => "HEAD:refs/heads/main".to_string(),
+        let ssh_refspec = match target {
+            Some(target) => target.refspec(),
+            None => match crate::git::branch::current_branch(repo) {
+                Some(branch) if super::is_safe_branch_name(&branch) => {
+                    format!("HEAD:refs/heads/{branch}")
+                }
+                Some(branch) => {
+                    return Err(anyhow::anyhow!(
+                        "unsafe current branch '{}' in {}",
+                        branch,
+                        repo.display()
+                    ));
+                }
+                None => "HEAD:refs/heads/main".to_string(),
+            },
         };
         match super::run_git_with_timeout_env_progress(
             repo,
@@ -388,7 +459,11 @@ pub(crate) async fn push_with_retries(
             Ok(()) => return Ok(()),
             Err(e) => {
                 let err_msg = e.to_string();
-                if Box::pin(converged_after_ref_race(repo, "origin", &err_msg)).await {
+                if Box::pin(converged_after_ref_race_for_target(
+                    repo, "origin", &err_msg, target,
+                ))
+                .await
+                {
                     eprintln!(
                         "✅ {} origin already has the requested tip after a concurrent push",
                         repo.display()
@@ -416,6 +491,9 @@ pub(crate) async fn push_with_retries(
                     || is_pack_too_large(&err_msg)
                     || is_local_hook_rejection(&err_msg)
                 {
+                    return Err(e);
+                }
+                if target.is_some() && is_push_rejected(&err_msg) {
                     return Err(e);
                 }
                 last_err = Some(e);
@@ -514,8 +592,11 @@ pub(crate) async fn push_with_retries(
                         || super::gitlab_https_url(&origin).is_some()
                         || super::codeberg_https_url(&origin).is_some()
                     {
-                        let branch =
-                            super::current_branch(repo).unwrap_or_else(|| "main".to_string());
+                        let branch = target
+                            .map(|target| target.branch().to_owned())
+                            .unwrap_or_else(|| {
+                                super::current_branch(repo).unwrap_or_else(|| "main".to_string())
+                            });
                         if !super::is_safe_branch_name(&branch) {
                             return Err(anyhow::anyhow!(
                                 "unsafe current branch '{}' in {}",
@@ -524,7 +605,9 @@ pub(crate) async fn push_with_retries(
                             ));
                         }
                         spent += 1;
-                        let refspec = format!("HEAD:refs/heads/{branch}");
+                        let refspec = target
+                            .map(PublicationTarget::refspec)
+                            .unwrap_or_else(|| format!("HEAD:refs/heads/{branch}"));
                         match push_https_fallback(repo, &origin, &refspec, timeout_secs, op_label)
                             .await
                         {
@@ -887,6 +970,10 @@ pub(crate) async fn force_push_after_rewrite(
 }
 
 #[cfg(test)]
+#[path = "push_publication_tests.rs"]
+mod publication_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -996,11 +1083,11 @@ mod tests {
         );
         git(&repo, &["push", "origin", "HEAD:refs/heads/main"]);
         let race = "cannot lock ref 'refs/heads/main': is at tip but expected previous";
-        assert!(converged_after_ref_race(&repo, "origin", race).await);
+        assert!(converged_after_ref_race_for_target(&repo, "origin", race, None).await);
         std::fs::write(repo.join("file"), "second").unwrap();
         git(&repo, &["add", "--", "file"]);
         git(&repo, &["commit", "-m", "second"]);
-        assert!(!converged_after_ref_race(&repo, "origin", race).await);
+        assert!(!converged_after_ref_race_for_target(&repo, "origin", race, None).await);
     }
 
     #[cfg(unix)]

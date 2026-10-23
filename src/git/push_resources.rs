@@ -75,6 +75,30 @@ pub(crate) async fn push_phase<T>(work: impl Future<Output = Result<T>>) -> Resu
     result
 }
 
+/// Admit a fresh local pass while the enclosing actor has yielded its local
+/// permit for publication. The nested scope owns only this pass's permit;
+/// finishing it must leave the enclosing publication scope yielded. Nested
+/// local helpers reuse admission rather than deadlocking a one-permit budget.
+/// This is capacity ownership only: the pass must also acquire its repository
+/// mutation lease before touching local state.
+pub(crate) async fn local_phase<T>(work: impl Future<Output = Result<T>>) -> Result<T> {
+    let admission =
+        LOCAL_WORK.try_with(|local| (local.semaphore.clone(), local.permit.borrow().is_some()));
+    let Ok((semaphore, admitted)) = admission else {
+        // Interactive/one-shot work is not enrolled in daemon admission.
+        return work.await;
+    };
+    if admitted {
+        return work.await;
+    }
+    let permit = semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .context("local-work semaphore closed")?;
+    with_local_work(semaphore, permit, work).await
+}
+
 /// Per-repository coordinator maintenance has no local-work permit to release,
 /// but its push children need the same low priority. Call this
 /// only from an owned background job, never inline on the inspection loop.

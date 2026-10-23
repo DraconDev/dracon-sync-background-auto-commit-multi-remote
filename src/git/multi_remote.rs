@@ -351,6 +351,29 @@ pub(crate) async fn push_mirror_remotes(
     codeberg_override: Option<bool>,
     interval_hours: u64,
 ) -> Vec<(String, Result<()>)> {
+    let filtered = prepare_mirror_remotes(
+        repo,
+        remotes,
+        private,
+        exclude,
+        codeberg_override,
+        interval_hours,
+    )
+    .await;
+    push_to_all_remotes(repo, &filtered, timeout_secs, retries).await
+}
+
+/// Configure eligible mirrors before upload. This phase mutates repository
+/// configuration and therefore requires local mutation ownership; a publisher
+/// must not call it concurrently with a local pass.
+pub(crate) async fn prepare_mirror_remotes(
+    repo: &Path,
+    remotes: &[RemoteConfig],
+    private: bool,
+    exclude: &[String],
+    codeberg_override: Option<bool>,
+    interval_hours: u64,
+) -> Vec<RemoteConfig> {
     let repo_name = repo
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
@@ -432,7 +455,7 @@ pub(crate) async fn push_mirror_remotes(
         );
     }
 
-    push_to_all_remotes(repo, &filtered, timeout_secs, retries).await
+    filtered
 }
 
 /// Auto-create the forge-side repos for an existing local repo that
@@ -618,14 +641,40 @@ pub(crate) async fn push_to_named_remote(
     retries: u32,
     force_when_behind: bool,
 ) -> Result<()> {
-    let result =
-        push_to_named_remote_inner(repo, remote_name, timeout_secs, retries, force_when_behind)
-            .await;
+    push_to_named_remote_for_target(
+        repo,
+        remote_name,
+        timeout_secs,
+        retries,
+        force_when_behind,
+        None,
+    )
+    .await
+}
+
+pub(crate) async fn push_to_named_remote_for_target(
+    repo: &Path,
+    remote_name: &str,
+    timeout_secs: u64,
+    retries: u32,
+    force_when_behind: bool,
+    target: Option<&super::PublicationTarget>,
+) -> Result<()> {
+    let result = push_to_named_remote_inner(
+        repo,
+        remote_name,
+        timeout_secs,
+        retries,
+        force_when_behind,
+        target,
+    )
+    .await;
     if let Err(e) = &result {
-        if Box::pin(super::push::converged_after_ref_race(
+        if Box::pin(super::push::converged_after_ref_race_for_target(
             repo,
             remote_name,
             &e.to_string(),
+            target,
         ))
         .await
         {
@@ -655,10 +704,15 @@ async fn push_to_named_remote_inner(
     timeout_secs: u64,
     retries: u32,
     force_when_behind: bool,
+    target: Option<&super::PublicationTarget>,
 ) -> Result<()> {
-    let branch = current_branch(repo)
-        .filter(|b| b != "HEAD")
-        .unwrap_or_else(|| "main".to_string());
+    let branch = target
+        .map(|target| target.branch().to_owned())
+        .unwrap_or_else(|| {
+            current_branch(repo)
+                .filter(|b| b != "HEAD")
+                .unwrap_or_else(|| "main".to_string())
+        });
     if !is_safe_branch_name(&branch) {
         return Err(anyhow::anyhow!(
             "unsafe current branch '{}' in {}",
@@ -666,7 +720,9 @@ async fn push_to_named_remote_inner(
             repo.display()
         ));
     }
-    let refspec = format!("HEAD:refs/heads/{}", branch);
+    let refspec = target
+        .map(super::PublicationTarget::refspec)
+        .unwrap_or_else(|| format!("HEAD:refs/heads/{}", branch));
     let ssh_hardening = git_ssh_hardening();
 
     let attempt_ssh = run_git_with_timeout_env_progress(
@@ -699,6 +755,7 @@ async fn push_to_named_remote_inner(
     if is_permanent_push_rejection(&ssh_msg)
         || is_pack_too_large(&ssh_msg)
         || is_local_hook_rejection(&ssh_msg)
+        || (target.is_some() && is_push_rejected(&ssh_msg))
     {
         return Err(ssh_err);
     }
@@ -784,6 +841,11 @@ async fn push_to_named_remote_inner(
                     || is_pack_too_large(&err_str)
                     || is_local_hook_rejection(&err_str)
                 {
+                    return Err(e);
+                }
+                if target.is_some() && is_rejected {
+                    // A pinned upload owns no checkout mutation/reconciliation
+                    // rights. Return the rejection for a separately leased pass.
                     return Err(e);
                 }
                 if is_rejected && force_when_behind {

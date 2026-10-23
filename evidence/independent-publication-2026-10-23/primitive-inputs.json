@@ -1,0 +1,8 @@
+{
+  "dracon-sync/src/git/push.rs": "c59450dc6e6f06277757893166a8cf181e3c0ea8575274a4f8c1c0fccc528873",
+  "dracon-sync/src/git/push_resources.rs": "ed555115a5f98b1aff027c69d051c67887e5b67cfffc623d36eb8401cafa9d80",
+  "dracon-sync/src/git/push_resources_tests.rs": "54a8658060da39ae4a2fb1622a60ce56eb998df5d9ce27a46f625ab564ba0cc3",
+  "dracon-sync/src/git/push_publication_tests.rs": "9e505ad308828122823f3a457a106041097a731069ac9edf0f83890a568cd40c",
+  "dracon-sync/src/git/sync_lease.rs": "7bd69e64e542602726adecc9added4e5dde7ba3f1109bbf30b082490baf9063d",
+  "dracon-sync/src/git/multi_remote.rs": "29cfe1446ee1690ea52b29bf15a1e012488f2c7207715be6e6fb2d50560b9e6e"
+}
