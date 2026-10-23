@@ -4602,15 +4602,21 @@ async fn stage_commit_and_push(
             );
             return Ok(Some(SyncOutcome::Blocked));
         }
-        // The configured commit hook chain gates every auto commit, including
-        // the storage-sealed one below (libgit2 seals without running hooks).
-        // A refusal fails the pass with the index and worktree intact.
-        if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
-            eprintln!(
-                "⚠️ {} configured pre-commit hook refused the auto commit; staged/worktree content retained: {error:#}",
-                repo.display()
-            );
-            return Err(error);
+        // A storage-guarded commit is sealed through libgit2, which runs no
+        // hooks at all, so the configured chain must be invoked explicitly
+        // there or the seal would bypass a refusing `pre-commit`. The ordinary
+        // `git commit` path runs hooks itself — pre-running it there would
+        // execute every hook twice per commit — so this is gated on the seal
+        // actually happening.
+        if storage_guarded(repo)? {
+            if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await
+            {
+                eprintln!(
+                    "⚠️ {} configured pre-commit hook refused the auto commit; staged/worktree content retained: {error:#}",
+                    repo.display()
+                );
+                return Err(error);
+            }
         }
         let storage_commit = storage_guarded_commit(repo, &msg).await?;
         match storage_commit {
@@ -5087,14 +5093,17 @@ async fn bootstrap_empty_repo_commit_owned(
     }
 
     let msg = format!("auto: initial commit ({} files)", staged.len());
-    // Same guarantee as the steady-state path: the configured hook chain gates
-    // the root commit too, including when a storage guard seals it.
-    if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
-        eprintln!(
-            "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
-            repo.display()
-        );
-        return Err(error);
+    // Same guarantee as the steady-state path: when the root commit will be
+    // sealed through libgit2, the configured hook chain is invoked explicitly
+    // (a seal runs no hooks). The `git commit` path runs them itself.
+    if storage_guarded(repo)? {
+        if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
+            eprintln!(
+                "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
+                repo.display()
+            );
+            return Err(error);
+        }
     }
     match storage_guarded_commit(repo, &msg).await? {
         Ok(true) => return Ok(true),
@@ -5167,6 +5176,10 @@ async fn storage_guarded_commit(repo: &Path, message: &str) -> Result<Result<boo
 /// hook's own failure otherwise. The hook sees the real index through the normal
 /// environment, so a hook that inspects staged content behaves identically to
 /// one that runs during `git commit`.
+fn storage_guarded(repo: &Path) -> Result<bool> {
+    crate::storage::has_configured_storage_guard(repo)
+}
+
 async fn run_configured_pre_commit(repo: &Path, timeout_secs: u64) -> Result<()> {
     run_git_with_timeout(
         repo,

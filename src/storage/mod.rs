@@ -2715,6 +2715,17 @@ pub(crate) fn verify_configured_index(repo: &Path, honor_git_index: bool) -> Res
     Ok(true)
 }
 
+/// Whether this repository has a bound storage guard, i.e. whether a commit
+/// will be sealed through libgit2 instead of `git commit`.
+///
+/// Callers need this to decide where the configured hook chain must run: a
+/// sealed commit executes no hooks, so the daemon must invoke them explicitly
+/// there. The ordinary `git commit` path already runs them itself, and
+/// pre-running it there would execute every `pre-commit` hook twice per commit.
+pub(crate) fn has_configured_storage_guard(repo: &Path) -> Result<bool> {
+    Ok(configured_guard(repo, false)?.is_some())
+}
+
 /// Commit the verified immutable tree under an owned Git index lock.
 /// Returns false only for a repository without storage markers. No fallback
 /// bypasses validation; callers retain the ordinary path solely for that case.
