@@ -4844,7 +4844,8 @@ async fn stage_commit_and_push(
 ///    `auto_stage_untracked`).
 /// 5. `git add -A -- <explicit paths>` via `stage_existing_files`
 ///    (never bare `git add .`).
-/// 6. `git commit --no-verify -m "auto: initial commit (N files)"`.
+/// 6. `git commit -m "auto: initial commit (N files)"` — the configured
+///    hook chain runs and can refuse the root commit.
 ///
 /// Returns Ok(true) when a root commit was created, Ok(false) when
 /// there was nothing policy-compliant to commit (caller should treat
@@ -5101,17 +5102,25 @@ async fn bootstrap_empty_repo_commit_owned(
 /// `GitService::commit` spawns non-cancellable blocking mutation, which cannot
 /// be joined or killed when its worker is cancelled.
 ///
-/// `--no-verify` preserves the daemon's long-standing commit-hook policy: auto
-/// commits never ran `.git/hooks/pre-commit` (libgit2 first, then a
-/// `--no-verify` CLI fallback), because every commit is already gated in-process
-/// by the bucket forward-only guard, the immutable-storage transaction, the
-/// exclusions and the size limits — and PUSH hooks still run on every
-/// publication. Running commit hooks here instead would newly block the whole
-/// fleet's auto-commits on unrelated per-repo hook state.
+/// The configured commit hook chain runs. The daemon does not suppress hooks:
+/// a repository whose `pre-commit` refuses a change must not have that change
+/// committed behind the hook's back, so `git commit` is invoked WITHOUT
+/// `--no-verify`. The in-process gates (bucket forward-only guard, immutable
+/// storage transaction, exclusion and size policy) run BEFORE this and cannot
+/// be relaxed by a hook, so the hook is additional policy, never a replacement.
+///
+/// A hook rejection surfaces as an `Err` here. Callers treat that as a failed
+/// pass (`ApplyOutcome::Failure`), never as success: the index and worktree are
+/// left intact, nothing is published, the failure stays in the evidence, and
+/// the next pass retries — so a per-repo hook can only delay a commit, never
+/// lose the edit or be reported as committed.
+///
+/// The `staged_op` process group is cancelled and killed on timeout, which also
+/// bounds hook execution: a hanging hook cannot outlive the pass.
 async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> Result<()> {
     run_git_with_timeout(
         repo,
-        &["commit", "--no-verify", "-m", message],
+        &["commit", "-m", message],
         timeout_secs.max(1),
         "commit-staged",
     )

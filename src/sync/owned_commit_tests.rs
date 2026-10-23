@@ -88,21 +88,21 @@ impl Fixture {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn owned_commit_keeps_the_daemons_commit_hook_policy_and_worktree_edits() {
-    // The daemon deliberately does NOT run `.git/hooks/pre-commit` on auto
-    // commits: each commit is already gated in-process (bucket forward-only
-    // guard, immutable-storage transaction, exclusions, size limits) and PUSH
-    // hooks still run on every publication. A per-repo commit hook must
-    // therefore neither block an auto commit nor be reported as having run.
+async fn owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits() {
+    // The daemon must not suppress a repository's configured commit hooks: a
+    // `pre-commit` that accepts must be seen to RUN, and a hook that refuses
+    // must actually refuse the commit. Suppressing them with `--no-verify`
+    // would commit behind a policy gate the repository asked for, which is the
+    // bypass this regression now forbids.
     let fixture = Fixture::new().await;
-    fixture.hook("#!/bin/sh\ntouch ../precommit-ran\nexit 1\n");
+    fixture.hook("#!/bin/sh\ntouch ../precommit-ran\nexit 0\n");
     let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
     commit_staged_owned(&fixture.repo, "daemon auto commit", 10)
         .await
         .unwrap();
     assert!(
-        !fixture.root.path().join("precommit-ran").exists(),
-        "auto commits must not execute commit hooks"
+        fixture.root.path().join("precommit-ran").exists(),
+        "the configured pre-commit hook must run on an auto commit"
     );
     assert_ne!(git(&fixture.repo, &["rev-parse", "HEAD"]).await, before);
     // The commit captures the staged snapshot; the unstaged edit is neither
@@ -110,6 +110,39 @@ async fn owned_commit_keeps_the_daemons_commit_hook_policy_and_worktree_edits() 
     assert_eq!(
         git(&fixture.repo, &["show", "HEAD:file"]).await,
         "staged content"
+    );
+    assert_eq!(
+        std::fs::read_to_string(fixture.repo.join("file")).unwrap(),
+        "unstaged content"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work() {
+    // A refusing hook must win: no commit, no lost edit, and the failure is
+    // reported to the caller instead of being swallowed as success.
+    let fixture = Fixture::new().await;
+    fixture.hook("#!/bin/sh\necho 'warden: staged secret refused' >&2\nexit 1\n");
+    let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
+    let error = commit_staged_owned(&fixture.repo, "daemon auto commit", 10)
+        .await
+        .expect_err("a refusing pre-commit hook must fail the commit");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("warden: staged secret refused"),
+        "the hook's own refusal must reach the caller, got: {message}"
+    );
+    assert_eq!(
+        git(&fixture.repo, &["rev-parse", "HEAD"]).await,
+        before,
+        "a refused commit must not advance HEAD"
+    );
+    // Nothing was lost: the staged change is still staged and the worktree
+    // still holds the operator's unstaged edit.
+    assert_eq!(
+        git(&fixture.repo, &["diff", "--cached", "--name-only"]).await,
+        "file"
     );
     assert_eq!(
         std::fs::read_to_string(fixture.repo.join("file")).unwrap(),
