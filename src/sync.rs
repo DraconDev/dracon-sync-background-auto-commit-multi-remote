@@ -2519,9 +2519,6 @@ pub(crate) async fn upload_publication(
     if commit_only {
         return Ok(PushReport::AllPaused);
     }
-    if commit_only {
-        return Ok(PushReport::AllPaused);
-    }
     let Some(target) = plan.target.as_ref() else {
         // Nothing publishable (unborn HEAD): zero attempts, zero failures.
         return Ok(PushReport::AllPaused);
@@ -2609,7 +2606,11 @@ pub(crate) async fn upload_publication(
         Some(target),
     )
     .await;
-    let attempted = plan.has_origin && !origin_paused || !mirror_results.is_empty();
+    // "Attempted" must mean a real attempt happened. An origin that failed
+    // counts even though no mirror result exists (otherwise a failing single-
+    // origin repo would be reported as AllPaused = zero attempts = no failure).
+    let attempted =
+        (plan.has_origin && !origin_paused) || !mirror_results.is_empty() || origin_failed;
     let mut mirror_map = Some(map);
     let mirrors_ok =
         aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut())?;
