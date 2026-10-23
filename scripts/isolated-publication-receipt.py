@@ -50,6 +50,12 @@ def git(cwd, *args, env=None, check=True):
     return run(["git", *args], cwd=cwd, env=env, check=check).stdout.strip()
 
 
+def ref_or_empty(repo, ref):
+    """Read a ref that legitimately may not exist yet (never-created branch)."""
+    result = run(["git", "rev-parse", ref], cwd=repo, check=False)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
 def wait_for(predicate, timeout, what):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -112,7 +118,7 @@ def main():
                 "pulse_interval_secs = 1",
                 "inactivity_push_delay_secs = 1",
                 "min_commit_interval_secs = 0",
-                "push_op_timeout_secs = 30",
+                "push_op_timeout_secs = 300",
                 "push_retries = 0",
                 "sem_max_concurrent_sync = 8",
                 "alert_unpushed_threshold = 100",
@@ -133,9 +139,11 @@ def main():
         git(repo, "config", "core.hooksPath", str(hooks))
         if block_push:
             hook = hooks / "pre-push"
+            # Git runs hooks with the repository root as cwd, so these markers
+            # are repo-relative (NOT ../ , which would land in the watch root).
             hook.write_text(
-                "#!/bin/sh\nset -eu\ntouch ../hook-entered\n"
-                "while [ ! -e ../hook-release ]; do sleep 0.02; done\n"
+                "#!/bin/sh\nset -eu\ntouch hook-entered\n"
+                "while [ ! -e hook-release ]; do sleep 0.02; done\n"
                 "exit 0\n"
             )
             hook.chmod(0o755)
@@ -177,7 +185,9 @@ def main():
         wait_for(lambda: (a / "hook-entered").exists(), 120, "A's pre-push hook")
         a_pinned = git(a, "rev-parse", "HEAD")
         receipt["a_pinned_during_block"] = a_pinned
-        receipt["a_remote_before_release"] = git(a_bare, "for-each-ref", "--format=%(refname)")
+        receipt["a_remote_before_release"] = git(
+            a_bare, "for-each-ref", "--format=%(refname)"
+        )
 
         # ---- 2. B commits and publishes while A stays blocked -------------
         (b / "b-work.txt").write_text("B concurrent work\n")
@@ -189,11 +199,11 @@ def main():
         # Converge B fully: a pinned round publishes its pin, and B keeps
         # accepting edits, so the next round publishes the newest tip.
         for _ in range(20):
-            if git(b_bare, "rev-parse", "refs/heads/main") == git(b, "rev-parse", "HEAD"):
+            if ref_or_empty(b_bare, "refs/heads/main") == git(b, "rev-parse", "HEAD"):
                 break
             time.sleep(2)
         b_tip = git(b, "rev-parse", "HEAD")
-        b_published = git(b_bare, "rev-parse", "refs/heads/main")
+        b_published = ref_or_empty(b_bare, "refs/heads/main")
         receipt["b_tip"] = b_tip
         receipt["b_remote_tip"] = b_published
         receipt["a_still_blocked_while_b_published"] = (a / "hook-entered").exists() and not (
@@ -220,11 +230,11 @@ def main():
         (a / "hook-release").write_text("release\n")
         deadline = time.monotonic() + 240
         while time.monotonic() < deadline:
-            if git(a_bare, "rev-parse", "refs/heads/main") == git(a, "rev-parse", "HEAD"):
+            if ref_or_empty(a_bare, "refs/heads/main") == git(a, "rev-parse", "HEAD"):
                 break
             time.sleep(2)
         a_tip = git(a, "rev-parse", "HEAD")
-        a_published = git(a_bare, "rev-parse", "refs/heads/main")
+        a_published = ref_or_empty(a_bare, "refs/heads/main")
         receipt["a_newest_tip"] = a_tip
         receipt["a_remote_tip"] = a_published
         if a_published != a_tip:
