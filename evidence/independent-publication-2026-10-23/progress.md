@@ -197,6 +197,15 @@ The structured per-repository actor is implemented and exercised end to end:
    pass in isolation and in the undisturbed full run above; never run cargo
    concurrently against one target dir.
 
+## Live observation
+
+`live-observation.md` + `live-repos.json` record the installed daemon's own
+autonomous behaviour: the loaded executable digest taken from `/proc/<pid>/exe`,
+`PUBLISHING` reported while a 4-gate pre-push ran, commits continuing behind
+that publication ("publication owned by another worker ... this pass did not
+push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
+gitlab SIGPIPE recorded as a per-remote failure rather than success.
+
 ## Remaining implementation slices
 
 1. Release identity: `get_bump_info` still does unbounded `spawn_blocking` Git
@@ -220,7 +229,7 @@ The structured per-repository actor is implemented and exercised end to end:
    `cargo deny`, then a safe install/restart and the isolated installed-binary
    receipt plus live autonomous observations.
 
-## Known local mutation lifecycle gap to resolve before qualification
+## Known local mutation lifecycle gap (unchanged by this work)
 
 `storage_guarded_commit` still invokes `storage::commit_configured_storage`
 through spawn_blocking. Dropping that await does NOT stop mutation. The guarded
@@ -246,13 +255,24 @@ or foreign-lock cleanup. Any helper must inherit configured identity unchanged.
 
 ## Outstanding work/verification
 
-Task 1 is marked complete; task 2 in progress; tasks 3/4 pending. No completion
-claim. No deployment, installed receipt, actual loaded revision or new autonomous
-live convergence observation yet. Full workspace/release build/Clippy/deny still
-required, as is one fresh-context reviewer rehearsal after integration.
+* Task 1 complete; task 2 (implementation + regression coverage) is essentially
+  complete pending the remaining review; task 3 (baseline product gates) and
+  task 4 (workspace gates + deploy + isolated/live convergence) have most of
+  their evidence recorded — see the receipts in this directory.
+* Done and recorded: workspace suite (2571 passed / 0 failed), release build,
+  `-D warnings` Clippy over `--all-targets`, `cargo deny check`, the isolated
+  installed-binary receipt, a verified install with the loaded-revision digest,
+  and live autonomous observation of truthful phases, commits behind a real
+  slow publication, and verified remote advancement.
+* Still outstanding: one fresh-context reviewer rehearsal of the contract; the
+  remaining original product pre-push gates for workspaces other than the ones
+  already exercised (volume's original TEST command and clean-web's original
+  TEST command both pass on their initial source); and an explicit
+  written record of anything left out.
 
-A new read-only scout is researching exact installed-daemon fixture CLI/state/
-transport isolation: run `40cce4e0-aeef-4287-9cd6-685d9a8cd97c`, output bound to
-`/tmp/sync-convergence-installed-harness.md`. Native completion will notify;
-do not poll or wait for that child. It has no source edit or execution authority.
-The previous two research children are finished and their reports were read.
+### The earlier delegated research is dead, not pending
+
+The third scout (`40cce4e0-aeef-4287-9cd6-685d9a8cd97c`) failed with a provider
+usage limit and produced no report. Do not wait for it. Its scope (an isolated
+installed-daemon harness) was completed inline and is now
+`scripts/isolated-publication-receipt.py` with a passing receipt.
