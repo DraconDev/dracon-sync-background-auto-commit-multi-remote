@@ -5129,30 +5129,54 @@ async fn bootstrap_empty_repo_commit_owned(
 
     let msg = format!("auto: initial commit ({} files)", staged.len());
     // Same guarantee as the steady-state path: when the root commit will be
-    // sealed through libgit2, the configured hook chain is invoked explicitly
-    // (a seal runs no hooks). The `git commit` path runs them itself.
+    // sealed through libgit2, drive the FULL commit-hook lifecycle explicitly
+    // (a seal runs no hooks). The `git commit` path runs it itself.
+    let mut commit_message = msg.clone();
     if storage_guarded(repo) {
-        if let Err(error) = run_configured_pre_commit(repo, policy.stage_op_timeout_secs).await {
-            eprintln!(
-                "⚠️ {} configured pre-commit hook refused the root commit; staged/worktree content retained: {error:#}",
-                repo.display()
-            );
-            return Err(error);
+        let prepared = match run_sealed_commit_hooks(repo, &msg, policy.stage_op_timeout_secs).await
+        {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                eprintln!(
+                    "⚠️ {} configured commit hook refused the root commit; staged/worktree content retained: {error:#}",
+                    repo.display()
+                );
+                return Err(error);
+            }
+        };
+        commit_message = prepared.message;
+        let sealed_message = commit_message.clone();
+        let repo_path = repo.to_path_buf();
+        let sealed = tokio::task::spawn_blocking(move || {
+            crate::storage::commit_configured_storage(&repo_path, &sealed_message)
+        })
+        .await?;
+        match sealed {
+            Ok(true) => {
+                // `post-commit` runs only after a real commit, exactly like Git.
+                if let Err(error) =
+                    run_configured_hook(repo, "post-commit", &[], policy.stage_op_timeout_secs)
+                        .await
+                {
+                    eprintln!(
+                        "⚠️ {} post-commit hook failed after the sealed root commit: {error:#}",
+                        repo.display()
+                    );
+                }
+                return Ok(true);
+            }
+            Ok(false) => {}
+            Err(error) => {
+                eprintln!(
+                    "⚠️ {} storage guard blocked root commit; staged/worktree content retained: {}",
+                    repo.display(),
+                    error
+                );
+                return Ok(false);
+            }
         }
     }
-    match storage_guarded_commit(repo, &msg).await? {
-        Ok(true) => return Ok(true),
-        Ok(false) => {}
-        Err(error) => {
-            eprintln!(
-                "⚠️ {} storage guard blocked root commit; staged/worktree content retained: {}",
-                repo.display(),
-                error
-            );
-            return Ok(false);
-        }
-    }
-    commit_staged_owned(repo, &msg, policy.stage_op_timeout_secs).await?;
+    commit_staged_owned(repo, &commit_message, policy.stage_op_timeout_secs).await?;
     eprintln!(
         "🌱 {} created root commit ({} files, empty repo bootstrap)",
         repo.display(),
