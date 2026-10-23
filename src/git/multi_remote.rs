@@ -634,6 +634,7 @@ pub(crate) fn remove_stale_remotes(
 /// re-confirms existence with one `ls-remote`. The error itself is
 /// returned unchanged, so the loud push-failure operator signal is
 /// preserved (exactly one failure precedes the self-heal).
+#[cfg(test)]
 pub(crate) async fn push_to_named_remote(
     repo: &Path,
     remote_name: &str,

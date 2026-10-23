@@ -34,9 +34,9 @@ use crate::git::origin_url;
 use crate::git::{
     cli_diff_entries, git_name_status_entries, has_origin_remote, has_tracking_upstream,
     is_bisect_in_progress, is_cherry_pick_in_progress, is_merge_in_progress, is_rebase_in_progress,
-    is_repo_ready, is_revert_in_progress, prune_other_default_branch,
-    restore_paths, run_git_capture_output, run_git_with_timeout, staged_blob_sizes_for,
-    unstage_excluded_paths, unstage_oversized_paths, untracked_entries,
+    is_repo_ready, is_revert_in_progress, prune_other_default_branch, restore_paths,
+    run_git_capture_output, run_git_with_timeout, staged_blob_sizes_for, unstage_excluded_paths,
+    unstage_oversized_paths, untracked_entries,
 };
 use crate::policy::{debug_enabled, load_repo_override, SyncPolicy};
 use crate::visibility::{
@@ -2111,12 +2111,6 @@ async fn run_release_pipeline_if_bumped(repo: &Path, policy: &SyncPolicy, versio
     }
 }
 
-fn is_github_repository_url(url: &str) -> bool {
-    crate::git::canonical_repository_url(url)
-        .map(|canonical| canonical.starts_with("github.com/"))
-        .unwrap_or(false)
-}
-
 fn github_mirror_matches_origin(origin_url: Option<&str>, github_url: Option<&str>) -> bool {
     match (origin_url, github_url) {
         (Some(origin), Some(github)) => crate::git::same_repository_url(origin, github),
@@ -2304,20 +2298,181 @@ pub(crate) fn paused_remote_names_incident(
 /// only path that should update `remote_failures`; the previous design had
 /// a separate `push_with_blob_check` function that did this but was never
 /// called from the live code path.
-async fn push_background(
-    repo: &std::path::Path,
-    policy: &SyncPolicy,
-    has_origin: bool,
-    remote_failures: Option<&mut HashMap<String, crate::daemon::RemoteFailInfo>>,
-) -> Result<PushReport> {
-    crate::git::push_resources::push_phase(async {
-        let ahead_count = count_ahead_commits(repo).await.unwrap_or(0);
-        let mut plan =
-            publication::plan_publication(repo, policy, has_origin, remote_failures, ahead_count)
-                .await?;
-        upload_publication(repo, policy, &mut plan, false).await
+/// Longest settle delay between local refresh admissions during one upload.
+/// A refresh is attempted only while publication is genuinely still pending,
+/// so a fast push costs nothing; a slow hook gets fresh commits flowing.
+const PUBLICATION_REFRESH_SETTLE: Duration = Duration::from_millis(750);
+/// Upper bound on local refreshes attached to one publication round. Keeps a
+/// long hook from turning the round into an unbounded internal drain loop;
+/// remaining work is rediscovered by the next scheduler dispatch.
+const PUBLICATION_MAX_REFRESH_ROUNDS: usize = 32;
+
+/// Borrow-erased refresh future. Boxed so the local refresh can call back into
+/// the commit pipeline (which may reach this actor again) without producing an
+/// infinitely sized future type.
+type RefreshFuture<'a> = futures::future::BoxFuture<'a, Result<SyncOutcome>>;
+
+fn refresh_round<'a>(
+    repo: &'a Path,
+    policy: &'a SyncPolicy,
+    excluded_dir_names: &'a BTreeSet<String>,
+    idle_seconds: u64,
+    policy_path: Option<&'a Path>,
+    ahead_since: Option<std::time::Instant>,
+) -> RefreshFuture<'a> {
+    Box::pin(async move {
+        // local_phase re-admits bounded local work while the enclosing upload
+        // has yielded its permit. The commit pass acquires its OWN operation
+        // lease, so it cannot race the publication owner's post-round work.
+        crate::git::push_resources::local_phase(sync_repo_local_with_ownership(
+            repo,
+            policy,
+            excluded_dir_names,
+            idle_seconds,
+            None,
+            false,
+            policy_path,
+            ahead_since,
+            true,
+            None,
+        ))
+        .await
     })
-    .await
+}
+
+/// Drop local mutation ownership for the duration of a network/hook-bound
+/// upload, and let fresh local commits proceed in the SAME repository while
+/// that upload is still blocked. Only the upload runs concurrently: mirror
+/// preparation, pull/merge recovery and post-publication bookkeeping stay on
+/// the strictly local side, before or after this boundary.
+async fn run_publication_actor<'a>(
+    ctx: &mut SyncContext<'a>,
+    has_origin: bool,
+    ahead_count: u64,
+) -> Result<PushReport> {
+    // Everything below that reads the checkout happens under local ownership.
+    let mut plan = publication::plan_publication(
+        ctx.repo,
+        ctx.policy,
+        has_origin,
+        ctx.remote_failures.as_deref(),
+        ahead_count,
+    )
+    .await?;
+    // Release local mutation ownership BEFORE awaiting the upload. The
+    // publication lease (held for the whole worker) still guarantees one
+    // publisher per common directory across processes and worktrees.
+    drop(ctx.operation_lease.take());
+
+    let mut publication = Box::pin(upload_publication(
+        ctx.repo,
+        ctx.policy,
+        &mut plan,
+        ctx.commit_only,
+    ));
+    let mut refresh: Option<RefreshFuture<'_>> = None;
+    let mut refreshes = 0usize;
+    let ok_report = loop {
+        tokio::select! {
+            report = &mut publication => break report,
+            result = async { refresh.as_mut().expect("guarded by is_some").await }, if refresh.is_some() => {
+                match result {
+                    Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
+                        eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", ctx.repo.display());
+                    }
+                    Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => {}
+                    // A refresh must never erase publication evidence, and a
+                    // local failure is the next round's problem: the current
+                    // upload still owns its own result accounting.
+                    Ok(other) => {
+                        if crate::policy::debug_enabled() {
+                            eprintln!("🐛 {} refresh pass ended as {:?} during publication", ctx.repo.display(), other);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", ctx.repo.display());
+                    }
+                }
+                refresh = None;
+            }
+            () = tokio::time::sleep(PUBLICATION_REFRESH_SETTLE), if refresh.is_none() && refreshes < PUBLICATION_MAX_REFRESH_ROUNDS => {
+                refresh = Some(refresh_round(
+                    ctx.repo,
+                    ctx.policy,
+                    ctx.excluded_dir_names,
+                    ctx.idle_seconds,
+                    ctx.policy_path,
+                    None,
+                ));
+                refreshes += 1;
+            }
+            else => break Err(anyhow::anyhow!("publication actor lost all progress branches")),
+        }
+    };
+    // Release the publication future's borrow of the plan before reading the
+    // round's failure memory back out.
+    drop(publication);
+    // Any still-running refresh is deliberately NOT cancelled: dropping a
+    // commit future mid-operation would abandon index mutation. Let it finish.
+    if let Some(pending) = refresh.take() {
+        match pending.await {
+            Ok(outcome) => {
+                if debug_enabled() {
+                    eprintln!(
+                        "🐛 {} final refresh pass: {:?}",
+                        ctx.repo.display(),
+                        outcome
+                    );
+                }
+            }
+            Err(error) => {
+                eprintln!(
+                    "⚠️ {} final local commit during publication failed: {error:#}",
+                    ctx.repo.display()
+                );
+            }
+        }
+    }
+    // Hand the publication's remote-failure memory back to the caller. Only
+    // this owner writes those counters; local refreshes above passed `None`.
+    let round_failures = plan.remote_failures.clone();
+    if let Some(sink) = ctx.remote_failures.as_deref_mut() {
+        *sink = round_failures;
+    }
+    // Reacquire local mutation ownership for post-publication work. Bounded:
+    // refusing to block an upload round forever behind another writer.
+    ctx.operation_lease = acquire_local_lease(ctx.repo, ctx.policy).await;
+    ok_report
+}
+
+/// Bounded reacquisition of local mutation ownership after an upload. Returns
+/// `None` (with a journal line) rather than blocking the worker indefinitely;
+/// the next cycle then performs the deferred local bookkeeping.
+async fn acquire_local_lease(repo: &Path, policy: &SyncPolicy) -> Option<std::fs::File> {
+    let deadline =
+        std::time::Instant::now() + Duration::from_secs(policy.stage_op_timeout_secs.clamp(5, 60));
+    loop {
+        match crate::git::sync_lease::try_acquire(repo) {
+            Ok(Some(lease)) => return Some(lease),
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    eprintln!(
+                        "⏳ {} post-publication local work deferred: another process owns repository mutation",
+                        repo.display()
+                    );
+                    return None;
+                }
+                tokio::time::sleep(Duration::from_millis(250)).await;
+            }
+            Err(error) => {
+                eprintln!(
+                    "⚠️ {} cannot reacquire local ownership: {error:#}",
+                    repo.display()
+                );
+                return None;
+            }
+        }
+    }
 }
 
 /// Upload one immutable plan. Upload performs no checkout or configuration
@@ -2332,6 +2487,13 @@ pub(crate) async fn upload_publication(
     if commit_only || !policy.auto_push {
         return Ok(PushReport::AllPaused);
     }
+    if commit_only {
+        return Ok(PushReport::AllPaused);
+    }
+    let Some(target) = plan.target.as_ref() else {
+        // Nothing publishable (unborn HEAD): zero attempts, zero failures.
+        return Ok(PushReport::AllPaused);
+    };
     let now_unix = crate::policy::timestamp_secs();
     let incident_hosts = crate::forge::forge_incident_hosts();
     let origin_host = plan
@@ -2358,13 +2520,13 @@ pub(crate) async fn upload_publication(
         }
     };
     let paused: HashSet<String> =
-        paused_remote_names_incident(plan.remote_failures.as_ref(), now_unix, &|name| {
+        paused_remote_names_incident(Some(&plan.remote_failures), now_unix, &|name| {
             remote_host(name).is_some_and(|h| incident_hosts.contains(&h))
         })
         .into_iter()
         .collect();
     let origin_paused = plan.has_origin && paused.contains("origin");
-    let mut map = plan.remote_failures.take().unwrap_or_default();
+    let mut map = std::mem::take(&mut plan.remote_failures);
     let mut origin_failed = false;
     if plan.has_origin && !origin_paused {
         match crate::git::push_with_retries_for_target(
@@ -2372,7 +2534,7 @@ pub(crate) async fn upload_publication(
             plan.timeout_secs,
             policy.push_retries,
             "push",
-            plan.target.as_ref(),
+            Some(target),
         )
         .await
         {
@@ -2381,7 +2543,7 @@ pub(crate) async fn upload_publication(
             }
             Err(e) => {
                 if crate::daemon::push_error_is_cancellation(&e) {
-                    plan.remote_failures = Some(map);
+                    plan.remote_failures = map;
                     return Err(e);
                 }
                 eprintln!(
@@ -2412,46 +2574,20 @@ pub(crate) async fn upload_publication(
         &configured,
         plan.timeout_secs,
         policy.push_retries,
-        plan.target.as_ref(),
+        Some(target),
     )
     .await;
     let attempted = plan.has_origin && !origin_paused || !mirror_results.is_empty();
-    let mut interrupted = None;
-    let mut mirror_failed = false;
-    for (name, result) in mirror_results {
-        match result {
-            Ok(()) => {
-                map.remove(&name);
-            }
-            Err(e) => {
-                if crate::daemon::push_error_is_cancellation(&e) {
-                    interrupted = Some(e);
-                    continue;
-                }
-                mirror_failed = true;
-                let fail = map.entry(name.clone()).or_default();
-                fail.consecutive += 1;
-                fail.last_error = e.to_string();
-                fail.last_attempt_unix = crate::policy::timestamp_secs();
-                eprintln!(
-                    "⚠️ background push to {} failed for {}: {}",
-                    name,
-                    repo.display(),
-                    e
-                );
-            }
-        }
-    }
-    plan.remote_failures = Some(map);
-    if let Some(e) = interrupted {
-        return Err(e);
-    }
+    let mut mirror_map = Some(map);
+    let mirrors_ok =
+        aggregate_push_results(repo, mirror_results, origin_failed, mirror_map.as_mut())?;
+    plan.remote_failures = mirror_map.unwrap_or_default();
     if !attempted {
         return Ok(PushReport::AllPaused);
     }
-    observe_round_transient_hits(repo, plan.remote_failures.as_ref(), now_unix, &remote_host);
+    observe_round_transient_hits(repo, Some(&plan.remote_failures), now_unix, &remote_host);
     Ok(PushReport::Attempted {
-        ok: !origin_failed && !mirror_failed,
+        ok: mirrors_ok,
         degraded: origin_paused || mirror_paused > 0,
     })
 }
@@ -4506,12 +4642,10 @@ async fn stage_commit_and_push(
     }
     let mut push_failed = false;
     if policy.auto_push && (has_origin || !policy.remotes.is_empty()) {
-        // Push synchronously so mirror failures can be tracked in
-        // `ctx.remote_failures` (the caller passes a `&mut HashMap`).
-        // The `tokio::spawn` fire-and-forget pattern was removed because
-        // it bypassed the failure-tracking needed by callers like
-        // `test_sync_repo_mirror_push_failure_second`.
-        match push_background(repo, policy, has_origin, ctx.remote_failures.as_deref_mut()).await {
+        // Owned publication: the round is pinned, the checkout is released,
+        // and fresh edits keep committing while hooks/network run.
+        let ahead = count_ahead_commits(repo).await.unwrap_or(0);
+        match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
                 ok: true,
                 degraded: false,
@@ -5877,18 +6011,11 @@ async fn handle_ahead_push(ctx: &mut SyncContext<'_>, svc: &GitService) -> Resul
     // `ahead > 0 || upstream_ref_missing`.
     let should_push = ahead > 0 || upstream_ref_missing;
     if ctx.policy.auto_push && should_push && (ctx.has_origin || !ctx.policy.remotes.is_empty()) {
-        // Push synchronously so mirror failures are tracked in
-        // `ctx.remote_failures`. Previously this used `tokio::spawn`
-        // (fire-and-forget), which made the failure tracking unreachable
-        // for callers like the test `test_sync_repo_mirror_push_failure_second`.
-        match push_background(
-            ctx.repo,
-            ctx.policy,
-            ctx.has_origin,
-            ctx.remote_failures.as_deref_mut(),
-        )
-        .await
-        {
+        // Owned publication (see `run_publication_actor`): one pinned round
+        // whose upload overlaps fresh local commits in this repository.
+        let ahead = count_ahead_commits(ctx.repo).await.unwrap_or(0);
+        let has_origin = ctx.has_origin;
+        match run_publication_actor(&mut *ctx, has_origin, ahead).await {
             Ok(PushReport::Attempted {
                 ok: true,
                 degraded: false,
