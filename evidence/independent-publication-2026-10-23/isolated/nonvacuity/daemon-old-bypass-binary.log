@@ -1,0 +1,28 @@
+🔄 dracon-sync daemon started
+🧹 startup: running cleanup...
+🔧 /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-c configured publish upstream for main on origin
+🔧 /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b configured publish upstream for main on origin
+🔧 /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a configured publish upstream for main on origin
+🔄 trailing-drain: 3 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+⚠️ warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-c (staging proceeds unhardened): Error: policy not found
+⚠️ warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a (staging proceeds unhardened): Error: policy not found
+⚠️ warden auto-harden failed for /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b (staging proceeds unhardened): Error: policy not found
+📝 committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-c
+📝 committed 3 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a
+📝 committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b
+branch 'main' set up to track 'origin/main'.
+branch 'main' set up to track 'origin/main'.
+📝 committed 2 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a
+⏳ /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a committed; publication owned by another worker (this pass did not push)
+🔁 synced (late) /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b
+🔁 synced (late) /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-c
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+📝 committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-a
+🔄 trailing-drain: 1 task(s) still running — deferred to detached registry (repos stay in-flight until tasks finish)
+📝 committed 1 file(s) in /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b
+branch 'main' set up to track 'origin/main'.
+🔁 synced (late) /tmp/sync-convergence-20261023/receipt-hooks-nonvacious/fixture/watch/repo-b

@@ -244,6 +244,13 @@ converged. Mirrors visibly lag then catch up per remote. The isolated receipt
 also grew a third repository with a REFUSING `pre-commit`: hook runs, refusal is
 logged, HEAD stays at baseline, nothing is published, work preserved.
 
+The receipt's hook assertions are proven non-vacuous: run against the still-on-disk
+PRE-FIX binary (`d1b36d0f…`) it FAILS with "the daemon suppressed B's configured
+pre-commit hook" and `b_precommit_hook_ran: false` (`isolated/nonvacuity/`), while
+the fixed binary passes. Also note enabling hooks caught a test fixture that had
+depended on the bypass (`bucket_assets`); fixed by isolating the fixture, not the
+daemon.
+
 Recorded honestly: `browser-extensions-shared` still carries a genuine backlog
 because its OWN `pre-push` policy refuses the push; the daemon classifies that
 as a policy refusal, repairing it is out of scope, and it is reported as gated

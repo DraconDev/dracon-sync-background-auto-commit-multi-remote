@@ -159,6 +159,22 @@ A converged on its newest tip (`a_remote_tip == a_newest_tip`), both repositorie
 holding their own operation+publication leases, `ok: true`,
 `shutdown_unclean_lines: []`, no orphans.
 
+## The hook assertions are not vacuous
+
+The same archive harness was pointed at the PRE-FIX binary still on disk
+(`d1b36d0f596195737f98…`, the artifact installed before the hook fix). It FAILS,
+with the assertion that matters:
+
+```
+AssertionError: the daemon suppressed B's configured pre-commit hook
+b_precommit_hook_ran = False
+```
+
+So the receipt distinguishes a daemon that bypasses commit hooks from one that
+runs them: `ok: false` on the bypassing revision, `ok: true` on the fixed one,
+with the C-refusal assertions never even reached on the old binary. Receipt and
+daemon log archived under `isolated/nonvacuity/`.
+
 ## Side effect found and fixed by the real hooks
 
 Turning hooks on immediately exposed a fixture that had been relying on the
