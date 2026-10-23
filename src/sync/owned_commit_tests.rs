@@ -163,7 +163,7 @@ async fn a_refusing_hook_also_blocks_a_storage_sealed_commit() {
 
     // Direct proof that the primitive the daemon calls on the seal path
     // observes the refusal.
-    let error = run_configured_pre_commit(&fixture.repo, 10)
+    let error = run_configured_hook(&fixture.repo, "pre-commit", &[], 10)
         .await
         .expect_err("the configured pre-commit must be consulted before a sealed commit");
     assert!(
@@ -174,7 +174,7 @@ async fn a_refusing_hook_also_blocks_a_storage_sealed_commit() {
     // And an accepting hook is a no-op rather than an error (the common case:
     // most repositories configure no pre-commit at all).
     fixture.hook("#!/bin/sh\ntouch ../precommit-ran\nexit 0\n");
-    run_configured_pre_commit(&fixture.repo, 10)
+    run_configured_hook(&fixture.repo, "pre-commit", &[], 10)
         .await
         .expect("an accepting hook must not fail the seal path");
     assert!(fixture.root.path().join("precommit-ran").exists());
@@ -192,7 +192,7 @@ async fn a_repository_without_commit_hooks_still_commits() {
     // the (majority) repositories that configure no pre-commit hook.
     let fixture = Fixture::new().await;
     std::fs::remove_file(fixture.hooks.join("pre-commit")).ok();
-    run_configured_pre_commit(&fixture.repo, 10)
+    run_configured_hook(&fixture.repo, "pre-commit", &[], 10)
         .await
         .expect("a missing pre-commit hook must be ignored, not fatal");
     let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;
