@@ -1,5 +1,11 @@
 # Fleet convergence — investigation in progress
 
+Current deployment, qualification receipts and remaining failures are recorded
+in [qualification-checkpoint.md](qualification-checkpoint.md). The baseline and
+"pending" statements below describe the earlier investigation stage; they are
+not a claim that the newly qualified executables remain undeployed. Fleet-wide
+convergence is still unproven.
+
 ## Scope and authorization
 
 Confirmed goal: diagnose and repair systemic daemon/environment/hook integration
