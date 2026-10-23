@@ -206,6 +206,58 @@ that publication ("publication owned by another worker ... this pass did not
 push"), verified GitHub ref advancement from `b1e44ed` to `05030a8`, and a real
 gitlab SIGPIPE recorded as a per-remote failure rather than success.
 
+## Auditor round 1: both objections accepted and fixed
+
+### 1. Volume TEST refusal — root cause established (was "no root cause")
+
+New document: `volume-test-refusal-root-cause.md`. Summary: the refusal was an
+ENVIRONMENTAL resource failure, not a product defect.
+
+* The gate log shows TYPECHECK and BUILD starting, TEST starting and exiting 1,
+  and LINT never starting — the gate died inside the TEST script, not on a
+  completed assertion sweep.
+* The repository's own commits name the incident and the mechanism:
+  `0989f9f456` (2026-10-23 02:08, volume `vitest.config.ts`, adds
+  `maxWorkers: 2`) and `4ed99f4815` (02:23, pre-push hook, adds
+  `VITEST_MAX_WORKERS`). Both postdate the 23:57:55 refusal, and the frozen
+  source of that commit has zero `maxWorkers` — i.e. the cap is the repair and
+  its absence was the cause.
+* Reproduced with numbers: one uncapped suite inside the daemon's real cgroup
+  limits (`MemoryHigh=1536M`, `MemoryMax=2G`) peaks at 1.50 GiB (79% of the
+  hard limit) with 1448 `memory.high` throttle events; three concurrent full
+  4-gate runs reproduce `[vitest-pool-runner]: Timeout waiting for worker to
+  respond` plus `write EPIPE`, and the same runs with `VITEST_MAX_WORKERS=2`
+  no longer fail TEST.
+* Honest limit recorded: the original per-suite log is gone, so the conclusion
+  rests on convergent evidence (gate position, two independent commits naming
+  the incident, and a reproduction with identical error text under identical
+  cgroup limits), not a recovered log.
+* Corrected an earlier wrong implication of mine: `join_all` mirror legs meant
+  two concurrent gate pools were ALREADY possible before this change, so the
+  ceiling is the right repair independently of it.
+
+### 2. Shutdown cleanup — real bug found and fixed
+
+The auditor was right. The shutdown drain counted
+`detached_syncs.len() + sync_workers.len()` as "outstanding", but a detached
+join entry IS a live `sync_workers` entry, so the same task was counted twice.
+Both joins decremented once each, leaving a non-zero counter forever: the
+daemon always reported "1 owned sync task(s) did not join" and burned the full
+120s budget on a fleet that had already stopped.
+
+* Extracted `drain_owned_workers()` which watches `sync_workers` (the
+  authoritative set) and pulls join results from `detached_syncs`. A stopped
+  fleet now reports a clean drain immediately; an unjoinable worker is still
+  reported rather than swallowed.
+* Two new regressions: `shutdown_drain_settles_when_owned_workers_have_stopped`
+  (clean drain, prompt, releases ownership) and
+  `shutdown_drain_does_not_burn_the_budget_without_join_results` (no pending
+  join ⇒ no waiting). The old arithmetic provably fails the first one.
+* The isolated receipt now ASSERTS shutdown cleanliness instead of trusting the
+  exit status: it fails on any "did not join"/"owned sync task" line, checks
+  for orphan processes under the fixture root, and fails if SIGTERM did not
+  stop the daemon. Re-run result: `ok: true`, no unclean lines, zero orphans.
+
 ## Review rehearsal findings and fixes
 
 A fresh-context reviewer read the integrated diff (NO P0, verdict "OK with
