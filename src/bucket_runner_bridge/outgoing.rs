@@ -4,6 +4,7 @@
 //! it is NOT estimated from plaintext length or a driver-name allowlist.
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(test)]
