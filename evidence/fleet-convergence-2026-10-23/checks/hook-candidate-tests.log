@@ -1,0 +1,21 @@
+✔ concurrent failures retain separate evidence and the exact gate exit code (3270.383707ms)
+✔ successful gates remain required and pass normally (2397.543977ms)
+✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (1328.306423ms)
+✔ the gate caps the vitest worker fan-out (4547.05978ms)
+✔ the worker cap can be overridden (5733.808386ms)
+✔ the worker cap can be disabled (2901.087405ms)
+✔ uses the pushed source and package scripts, not newer live edits (3517.440143ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (6664.774882ms)
+✔ pre-script failure cannot be replaced by a successful script body (4725.075958ms)
+✔ export attributes cannot omit or rewrite the sources being validated (4696.548524ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (2937.159617ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (958.881999ms)
+✔ owned group cancellation stops gates and cleans only disposable sources (2474.066247ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26243.689489

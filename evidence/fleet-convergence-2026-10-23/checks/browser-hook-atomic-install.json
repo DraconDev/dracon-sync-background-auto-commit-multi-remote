@@ -1,0 +1,7 @@
+{
+  "beforeSha256": "a9a555efae41d77b99d5968b98f3de400067b86eac474c6c6a42972558ece6ef",
+  "afterSha256": "192dff356ea894d44b1f48e58495a8920a29bdcc4d7b433197ccbc4e1a398a72",
+  "phase1ExecutableLinesIdentical": true,
+  "operation": "atomic replacement; running readers retain original inode",
+  "candidateTests": "13 passed; zero failed or skipped; /tmp/fleet-hook-candidate-tests.log"
+}
