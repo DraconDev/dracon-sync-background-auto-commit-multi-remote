@@ -169,6 +169,19 @@ def main():
             )
         )
         pre_commit.chmod(0o755)
+        # The FULL commit lifecycle, each hook recording its own name:
+        # `pre-commit` alone is not Git's contract.
+        hook_log = repo / "hooklog"
+        for hook_name, body in (
+            ("prepare-commit-msg", ""),
+            ("commit-msg", ""),
+            ("post-commit", ""),
+        ):
+            path = hooks / hook_name
+            path.write_text(
+                f"#!/bin/sh\nprintf '{hook_name}\\n' >> '{hook_log}'\n{body}"
+            )
+            path.chmod(0o755)
         return repo, bare
 
     a, a_bare = make_repo("repo-a", True)
@@ -270,6 +283,15 @@ def main():
         receipt["b_precommit_hook_ran"] = (b / "precommit-ran").exists()
         if not receipt["b_precommit_hook_ran"]:
             raise AssertionError("the daemon suppressed B's configured pre-commit hook")
+        # Every lifecycle hook that Git runs must have run for B's commit,
+        # exactly once each.
+        b_hooks = (b / "hooklog").read_text().split() if (b / "hooklog").exists() else []
+        receipt["b_lifecycle_hooks"] = b_hooks
+        for expected_hook in ("prepare-commit-msg", "commit-msg", "post-commit"):
+            if b_hooks.count(expected_hook) != 1:
+                raise AssertionError(
+                    f"{expected_hook} must run exactly once on B's commit, got {b_hooks}"
+                )
         # A refusing hook must block the commit: C stays at its baseline,
         # nothing is published, the work is preserved, and the refusal is
         # reported rather than swallowed as success.
