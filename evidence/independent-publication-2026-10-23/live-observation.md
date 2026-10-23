@@ -120,7 +120,14 @@ failures while the daemon was simply running. A second read-only sample
 (`live-repos-later.json`) shows the two repositories that were mid-publication
 earlier now `converged` with `ahead 0` and `push OK`.
 
-`browser-extensions-shared` continued the same pattern: GitHub's `main` moved
-`b1e44ed` → `05030a8` → `2391c58` while the local branch kept accepting commits
-(2 ahead at the last sample). That is the intended shape: publication advances
-the published history repeatedly and never blocks new work.
+`browser-extensions-shared` continued the same pattern: its tracked forge's
+`main` moved `b1e44ed` → `05030a8` → `1632eed` while the local branch kept
+accepting commits. Both of this repository's destinations advanced separately
+over the same window — `origin` reached `1632eed9d7db5dcda51bd92790dd818cf7a15bf6`
+and the `gitlab` mirror reached `d33f893d774acae5f431c94889ced431739df295`, with
+local `HEAD` at `9579ac5a762175bc47805a34826d079d352b82bd`.
+
+That is exactly the intended shape and the thing the old design could not do:
+publication advances every destination repeatedly, mirror legs progress
+independently of each other, and none of it blocks new commits. Local staying
+ahead is not a failure — the next round publishes the newest pinned tip.
