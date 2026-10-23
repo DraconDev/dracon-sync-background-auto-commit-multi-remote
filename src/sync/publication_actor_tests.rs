@@ -216,6 +216,11 @@ async fn blocked_publication_does_not_stall_cross_repo_or_same_repo_commits() {
     );
     let final_outcome = a.sync(&local).join(90).await;
     let newest = git(&a.repo, &["rev-parse", "HEAD"]);
+    eprintln!(
+        "DIAG pinned={a_pinned} second={a_second} newest={newest} remote={} log={}",
+        a.remote_tip(),
+        git(&a.repo, &["log", "--format=%H %s", "-4"])
+    );
     assert_eq!(newest, a_second);
     assert_eq!(
         a.remote_tip(),
