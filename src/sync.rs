@@ -328,6 +328,10 @@ struct SyncContext<'a> {
     /// `SyncOutcome::PushPaused` (no failure recorded, stuck ledger
     /// untouched) instead of attempting network I/O.
     commit_only: bool,
+    /// True when commit-only exists because ANOTHER process/worker owns this
+    /// repository's publication, not because the operator/policy paused pushes.
+    /// Purely for honest reporting and never for accounting.
+    publication_owned_elsewhere: bool,
 }
 
 fn notify_webhook_failure(webhook_url: &str, repo: &Path, remote: &str, error: &str) {
@@ -2341,6 +2345,7 @@ fn refresh_round<'a>(
             false,
             policy_path,
             ahead_since,
+            true,
             true,
             None,
         ))
@@ -4653,10 +4658,17 @@ async fn stage_commit_and_push(
     // v0.113.69 commit-only: the commit above already landed; skip
     // the push attempt entirely (PushPaused, not PushFailed).
     if ctx.commit_only {
-        eprintln!(
-            "⏸️ {} committed; push paused (commit-only mode)",
-            repo.display()
-        );
+        if ctx.publication_owned_elsewhere {
+            eprintln!(
+                "⏳ {} committed; publication owned by another worker (this pass did not push)",
+                repo.display()
+            );
+        } else {
+            eprintln!(
+                "⏸️ {} committed; push paused (commit-only mode)",
+                repo.display()
+            );
+        }
         return Ok(Some(SyncOutcome::PushPaused));
     }
     let mut push_failed = false;
@@ -5152,6 +5164,7 @@ pub(crate) async fn sync_repo_with_ahead_since(
         policy_path,
         ahead_since,
         commit_only || publication_busy,
+        publication_busy,
         publication_lease,
     )
     .await;
@@ -5180,6 +5193,7 @@ async fn sync_repo_local_with_ownership(
     policy_path: Option<&Path>,
     ahead_since: Option<std::time::Instant>,
     commit_only: bool,
+    publication_owned_elsewhere: bool,
     publication_lease: Option<std::fs::File>,
 ) -> Result<SyncOutcome> {
     let preparation_start = std::time::Instant::now();
@@ -5214,6 +5228,7 @@ async fn sync_repo_local_with_ownership(
             remote_failures: None,
             backstop_active: false,
             commit_only: false,
+            publication_owned_elsewhere: false,
         };
         if !commit_only {
             maybe_sync_visibility_and_metadata(&ctx);
@@ -5256,6 +5271,7 @@ async fn sync_repo_local_with_ownership(
             remote_failures: None,
             backstop_active: false,
             commit_only: false,
+            publication_owned_elsewhere: false,
         };
         if !commit_only {
             maybe_sync_visibility_and_metadata(&ctx);
@@ -5443,6 +5459,7 @@ async fn sync_repo_local_with_ownership(
         remote_failures,
         backstop_active,
         commit_only,
+        publication_owned_elsewhere,
     };
 
     let copied_standard_files = if policy.standard_files_auto {
