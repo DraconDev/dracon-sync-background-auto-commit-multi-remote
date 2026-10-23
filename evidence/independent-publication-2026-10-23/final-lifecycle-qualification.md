@@ -94,11 +94,12 @@ real-dispatch Rust tests above, not falsely attributed to that receipt.
 
 ## Autonomous live observation on the loaded final revision
 
-`refs/live-ref-samples-final.json` contains 10 read-only samples on PID 2507147,
+`refs/live-ref-samples-final.json` contains 11 read-only samples on PID 2507147,
 all with the same final loaded digest. `refs/native-ref-final-summary.json`
-derives 22 per-remote ref changes, zero non-commit tips and zero failed ref
-queries. The active .dracon repository advances on origin/gitlab/github while
-other sampled repositories continue independently. Every advertised nonempty
+derives 27 per-remote ref changes, zero non-commit tips and zero failed ref
+queries. Both .dracon and dracon-sync advance on the daemon's own commits;
+dracon-sync's final advertised tips equal its actual local HEAD across
+origin/github/gitlab, while other sampled repositories remain independent. Every advertised nonempty
 tip is checked with git cat-file -t. Query failures are recorded explicitly,
 not treated as empty/successful refs.
 
