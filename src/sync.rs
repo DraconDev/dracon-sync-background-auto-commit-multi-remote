@@ -2309,10 +2309,12 @@ pub(crate) fn paused_remote_names_incident(
 /// only path that should update `remote_failures`; the previous design had
 /// a separate `push_with_blob_check` function that did this but was never
 /// called from the live code path.
-/// Longest settle delay between local refresh admissions during one upload.
-/// A refresh is attempted only while publication is genuinely still pending,
-/// so a fast push costs nothing; a slow hook gets fresh commits flowing.
-const PUBLICATION_REFRESH_SETTLE: Duration = Duration::from_millis(750);
+/// Delay before the next local refresh pass while an upload is still running.
+/// Short after a commit actually landed (the operator is actively editing);
+/// longer after a pass found nothing to do, so a slow hook does not turn into
+/// a hot loop of full classification passes over an unchanged tree.
+const PUBLICATION_REFRESH_ACTIVE: Duration = Duration::from_millis(750);
+const PUBLICATION_REFRESH_IDLE: Duration = Duration::from_secs(3);
 /// Upper bound on local refreshes attached to one publication round. Keeps a
 /// long hook from turning the round into an unbounded internal drain loop;
 /// remaining work is rediscovered by the next scheduler dispatch.
@@ -2393,30 +2395,36 @@ async fn run_publication_actor<'a>(
     ));
     let mut refresh: Option<RefreshFuture<'_>> = None;
     let mut refreshes = 0usize;
+    let mut refresh_delay = PUBLICATION_REFRESH_ACTIVE;
     let ok_report = loop {
         tokio::select! {
             report = &mut publication => break report,
             result = async { refresh.as_mut().expect("guarded by is_some").await }, if refresh.is_some() => {
                 match result {
                     Ok(SyncOutcome::Synced) | Ok(SyncOutcome::PublicationPending) => {
+                        refresh_delay = PUBLICATION_REFRESH_ACTIVE;
                         eprintln!("🆕 {} committed a newer tip while its earlier publication was still running", ctx.repo.display());
                     }
-                    Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => {}
+                    Ok(SyncOutcome::NothingToDo) | Ok(SyncOutcome::FilterOnly) => {
+                        refresh_delay = PUBLICATION_REFRESH_IDLE;
+                    }
                     // A refresh must never erase publication evidence, and a
                     // local failure is the next round's problem: the current
                     // upload still owns its own result accounting.
                     Ok(other) => {
+                        refresh_delay = PUBLICATION_REFRESH_IDLE;
                         if crate::policy::debug_enabled() {
                             eprintln!("🐛 {} refresh pass ended as {:?} during publication", ctx.repo.display(), other);
                         }
                     }
                     Err(error) => {
+                        refresh_delay = PUBLICATION_REFRESH_IDLE;
                         eprintln!("⚠️ {} local commit during publication failed (publication unaffected): {error:#}", ctx.repo.display());
                     }
                 }
                 refresh = None;
             }
-            () = tokio::time::sleep(PUBLICATION_REFRESH_SETTLE), if refresh.is_none() && refreshes < PUBLICATION_MAX_REFRESH_ROUNDS => {
+            () = tokio::time::sleep(refresh_delay), if refresh.is_none() && refreshes < PUBLICATION_MAX_REFRESH_ROUNDS => {
                 refresh = Some(refresh_round(
                     ctx.repo,
                     ctx.policy,
