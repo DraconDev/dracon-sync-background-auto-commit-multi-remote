@@ -240,14 +240,30 @@ def main():
         if a_published != a_tip:
             raise AssertionError(f"A did not converge on its newest tip: {a_published} != {a_tip}")
         receipt["a_published_object"] = git(a_bare, "cat-file", "-t", a_published)
-        receipt["owning_leases"] = sorted(
-            p.name for p in (a / ".git").glob("dracon-sync*.lease")
+        # Ownership evidence: each repository has BOTH kernel-backed lease files
+        # at its real common directory. The locks are released at quiescence but
+        # the files persist by design (never unlinked), so presence proves the
+        # protocol bound them to THIS common dir and not a global slot.
+        def leases(repo):
+            common = Path(
+                git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+            )
+            return sorted(p.name for p in common.glob("dracon-sync*.lease"))
+
+        receipt["a_owning_leases"] = leases(a)
+        receipt["b_owning_leases"] = leases(b)
+        expected = ["dracon-sync.operation-lease", "dracon-sync.publication-lease"]
+        if receipt["a_owning_leases"] != expected or receipt["b_owning_leases"] != expected:
+            raise AssertionError(
+                f"per-repository ownership missing: {receipt['a_owning_leases']} "
+                f"{receipt['b_owning_leases']}"
+            )
+        # No global push-count gate: both repositories published while the
+        # other's work was in flight (A blocked, B completed). Record the
+        # evidence rather than asserting an internal counter.
+        receipt["concurrent_publication_observed"] = bool(
+            receipt["a_still_blocked_while_b_published"]
         )
-        receipt["b_owning_leases"] = sorted(
-            p.name for p in (b / ".git").glob("dracon-sync*.lease")
-        )
-        if len(receipt["owning_leases"]) != 2 or len(receipt["b_owning_leases"]) != 2:
-            raise AssertionError("per-repository publication/local ownership is missing")
         receipt["ok"] = True
     except Exception as error:  # noqa: BLE001 - receipt must record the failure
         receipt["ok"] = False
