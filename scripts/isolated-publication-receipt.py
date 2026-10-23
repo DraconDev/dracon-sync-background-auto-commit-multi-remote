@@ -127,6 +127,30 @@ def main():
         )
     )
 
+    # Model the real service's missing toolchain directories. Only this
+    # fixture HOME gets private tool entries; never mutate operator tools.
+    tools = {name: shutil.which(name) for name in ("bun", "pnpm")}
+    if not all(tools.values()):
+        raise RuntimeError("bun and pnpm are required for environment qualification")
+    fixture_tools = {}
+    for name, relative in (("bun", ".bun/bin"), ("pnpm", ".npm-global/bin")):
+        directory = home / relative
+        directory.mkdir(parents=True, exist_ok=True)
+        target = directory / name
+        if name == "bun":
+            shutil.copy2(tools[name], target)
+        else:
+            target.symlink_to(tools[name])
+        fixture_tools[name] = str(target)
+    env["PATH"] = os.pathsep.join(
+        entry for entry in os.environ["PATH"].split(os.pathsep)
+        if not any(shutil.which(name, path=entry) for name in tools)
+    )
+    if any(shutil.which(name, path=env["PATH"]) for name in tools):
+        raise AssertionError("fixture unexpectedly inherits hook toolchains")
+    if not shutil.which("git", path=env["PATH"]) or not shutil.which("node", path=env["PATH"]):
+        raise RuntimeError("service-like PATH must retain Git and Node")
+
     BASELINE_HEAD: dict[str, str] = {}
 
     def make_repo(name, block_push, commit_hook_exit=0):
@@ -159,19 +183,30 @@ def main():
         # A configured COMMIT hook (not just a push hook). The daemon must run
         # the repository's commit hook chain: suppressing it with --no-verify
         # would commit behind a policy gate the repository asked for.
+        trace = repo / ".git" / "receipt"
+        trace.mkdir()
         pre_commit = hooks / "pre-commit"
+        environment_check = (
+            "command -v bun > .git/receipt/bun-path\n"
+            "command -v pnpm > .git/receipt/pnpm-path\n"
+            "bun --version > .git/receipt/bun-version\n"
+            "pnpm --version > .git/receipt/pnpm-version\n"
+            if name == "repo-b" else ""
+        )
         pre_commit.write_text(
-            "#!/bin/sh\ntouch precommit-ran\n"
+            "#!/bin/sh\nset -eu\ntouch .git/receipt/precommit-ran\n"
+            + environment_check
             + (
-                "echo 'warden: synthetic refusal' >&2\nexit 1\n"
-                if commit_hook_exit
-                else "exit 0\n"
+                "if [ ! -e .git/receipt/hook-fixed ]; then\n"
+                "  echo 'warden: synthetic refusal' >&2\n  exit 1\nfi\n"
+                if commit_hook_exit else ""
             )
+            + "exit 0\n"
         )
         pre_commit.chmod(0o755)
         # The FULL commit lifecycle, each hook recording its own name:
         # `pre-commit` alone is not Git's contract.
-        hook_log = repo / "hooklog"
+        hook_log = trace / "hooklog"
         for hook_name, body in (
             ("prepare-commit-msg", ""),
             ("commit-msg", ""),
@@ -280,12 +315,21 @@ def main():
         receipt["a_published_object"] = git(a_bare, "cat-file", "-t", a_published)
         # ---- 4b. The configured COMMIT hook chain really runs -------------
         # An accepting hook must be seen to RUN on the daemon's own commit.
-        receipt["b_precommit_hook_ran"] = (b / "precommit-ran").exists()
+        receipt["b_precommit_hook_ran"] = (b / ".git/receipt/precommit-ran").exists()
         if not receipt["b_precommit_hook_ran"]:
             raise AssertionError("the daemon suppressed B's configured pre-commit hook")
         # Every lifecycle hook that Git runs must have run for B's commit,
         # exactly once each.
-        b_hooks = (b / "hooklog").read_text().split() if (b / "hooklog").exists() else []
+        b_log = b / ".git/receipt/hooklog"
+        b_hooks = b_log.read_text().split() if b_log.exists() else []
+        receipt["service_environment"] = {}
+        for name, expected_path in fixture_tools.items():
+            observed = (b / f".git/receipt/{name}-path").read_text().strip()
+            version = (b / f".git/receipt/{name}-version").read_text().strip()
+            if observed != expected_path or not version:
+                raise AssertionError(f"{name} was not resolved and executed from fixture HOME")
+            receipt["service_environment"][name] = {"path": observed, "version": version}
+        receipt["inherited_path_lacked_toolchains"] = True
         receipt["b_lifecycle_hooks"] = b_hooks
         # B makes ONE OR MORE daemon commits, and every commit must run the
         # full cycle in Git's order exactly once. So the log must be a whole
@@ -311,7 +355,7 @@ def main():
             "C's refusing pre-commit hook to be reported",
         )
         receipt["c_commit_hook_refusal_reported"] = bool(refusal_seen)
-        receipt["c_precommit_hook_ran"] = (c / "precommit-ran").exists()
+        receipt["c_precommit_hook_ran"] = (c / ".git/receipt/precommit-ran").exists()
         receipt["c_head"] = git(c, "rev-parse", "HEAD")
         receipt["c_remote_refs"] = git(c_bare, "for-each-ref", "--format=%(refname)").strip()
         receipt["c_work_preserved"] = (c / "c-work.txt").exists()
@@ -325,6 +369,19 @@ def main():
             raise AssertionError("a refused commit was still published")
         if not receipt["c_work_preserved"]:
             raise AssertionError("a refused commit discarded the operator's work")
+
+        # Repair the fixture's cause, not its retry ledger or hook dispatch.
+        # The same installed hook now accepts its explicit test condition.
+        (c / ".git/receipt/hook-fixed").write_text("cause repaired\n")
+        (c / "c-work.txt").write_text("C eligible work after cause repair\n")
+        def c_recovered():
+            tip = git(c, "rev-parse", "HEAD")
+            remote = ref_or_empty(c_bare, "refs/heads/main")
+            return tip if tip != BASELINE_HEAD["c"] and remote == tip else None
+        receipt["c_recovered_tip"] = wait_for(c_recovered, 180, "C's autonomous retry publication")
+        receipt["c_recovered_object"] = git(c_bare, "cat-file", "-t", receipt["c_recovered_tip"])
+        if receipt["c_recovered_object"] != "commit":
+            raise AssertionError("C's recovered remote tip is not a commit")
 
         # Ownership evidence: each repository has BOTH kernel-backed lease files
         # at its real common directory. The locks are released at quiescence but
