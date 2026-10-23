@@ -5120,7 +5120,7 @@ async fn bootstrap_empty_repo_commit_owned(
 async fn commit_staged_owned(repo: &Path, message: &str, timeout_secs: u64) -> Result<()> {
     run_git_with_timeout(
         repo,
-        &["commit", "--no-verify", "-m", message],
+        &["commit", "-m", message],
         timeout_secs.max(1),
         "commit-staged",
     )
