@@ -851,6 +851,67 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
+    async fn owned_workflow_capture_drives_input_and_both_outputs_together() {
+        let mut command = tokio::process::Command::new("sh");
+        command.args(["-c", "head -c 131072 /dev/zero; head -c 131072 /dev/zero >&2; cat; exit 23"]);
+        let input = vec![b'x'; 1024 * 1024];
+        let output = super::run_command_captured_output(command, 10, "workflow-io-fixture", Some(&input))
+            .await.unwrap();
+        assert_eq!(output.status.code(), Some(23), "nonzero exit must not be discarded");
+        assert_eq!(output.stderr, vec![0; 131072]);
+        assert_eq!(&output.stdout[..131072], vec![0; 131072]);
+        assert_eq!(&output.stdout[131072..], input);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn owned_workflow_deadline_and_cancellation_kill_only_the_owned_family() {
+        use std::time::Duration;
+        for cancel in [false, true] {
+            let temp = tempfile::tempdir().unwrap();
+            let mut command = tokio::process::Command::new("sh");
+            command.args(["-c", "sleep 30 & echo $! > helper.pid; wait"])
+                .current_dir(temp.path());
+            // This unrelated fixture child must survive the owned group's exit.
+            let mut sentinel = tokio::process::Command::new("sleep").arg("30")
+                .kill_on_drop(true).spawn().unwrap();
+            let input = vec![b'x'; 1024 * 1024];
+            let mut run = Box::pin(super::run_command_captured_output(
+                command, if cancel { 30 } else { 2 }, "workflow-blocked-stdin", Some(&input)));
+            let marker = temp.path().join("helper.pid");
+            tokio::select! {
+                result = &mut run => panic!("fixture exited before blocking: {result:?}"),
+                ready = tokio::time::timeout(Duration::from_secs(5), async {
+                    while !marker.exists() { tokio::time::sleep(Duration::from_millis(10)).await; }
+                }) => ready.unwrap(),
+            }
+            let pid: u32 = std::fs::read_to_string(marker).unwrap().trim().parse().unwrap();
+            let identity = || {
+                std::fs::read_to_string(format!("/proc/{pid}/stat")).ok().map(|text| {
+                    let fields: Vec<_> = text.rsplit_once(") ").unwrap().1.split_whitespace().collect();
+                    (fields[0].to_owned(), fields[19].to_owned())
+                })
+            };
+            let before = identity().unwrap();
+            if cancel {
+                drop(run);
+            } else {
+                assert!(run.await.unwrap_err().to_string().contains("timed out"));
+            }
+            tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    if identity().is_none_or(|(state, start)| state == "Z" || start != before.1) { break; }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            }).await.expect("workflow child escaped its owned group after cancellation");
+            assert!(sentinel.try_wait().unwrap().is_none(), "unrelated active workload was killed");
+            sentinel.kill().await.unwrap();
+            sentinel.wait().await.unwrap();
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
     async fn failed_hook_stdout_is_bounded_drained_and_retained() {
         let mut command = tokio::process::Command::new("sh");
         command.args(["-c", "printf 'Pre-push: TEST gate failed\\n'; head -c 100000 /dev/zero; echo fatal >&2; exit 1"])
