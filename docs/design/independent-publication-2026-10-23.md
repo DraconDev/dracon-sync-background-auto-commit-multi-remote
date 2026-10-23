@@ -53,14 +53,18 @@ remain mandatory. Direct operator Git remains outside the cooperative protocol.
   that repository's publisher waits/runs/retries. The old moving-HEAD backstop
   must not suppress these commits under pinned-tip publication.
 
-  COMMIT HOOKS RUN. The daemon invokes plain `git commit`; it never passes
-  `--no-verify` on a production commit path. A repository's configured
-  `pre-commit` is additional policy on top of the in-process gates (bucket
-  forward-only guard, immutable-storage transaction, exclusion and size
-  policy), which run first and cannot be relaxed by a hook. A refusal makes the
-  pass FAIL — the index and worktree stay intact, nothing is published, the
-  failure stays in the evidence and the next pass retries — so a hook can delay
-  a commit but never lose an edit or be reported as committed.
+  COMMIT HOOKS RUN, the whole lifecycle. The daemon invokes plain `git commit`
+  (never `--no-verify`) and libgit2 storage seals drive the SAME lifecycle
+  explicitly, in Git's order and with Git's arguments: `pre-commit`,
+  `prepare-commit-msg <msgfile> message`, `commit-msg <msgfile>`, the seal, then
+  `post-commit` after a real commit — reading COMMIT_EDITMSG back so a message
+  `commit-msg` rewrote is what gets committed. The ordinary path does not also
+  drive it, so no hook runs twice. Hooks are additional policy on top of the
+  in-process gates (bucket forward-only guard, immutable-storage transaction,
+  exclusion and size policy), which run first and cannot be relaxed by a hook. A
+  refusal makes the pass FAIL — the index and worktree stay intact, nothing is
+  published, the failure stays in the evidence and the next pass retries — so a
+  hook can delay a commit but never lose an edit or be reported as committed.
 * No global push-count admission exists. Per-product hook resource controls,
   daemon push-child nice 19, finite deadlines and owned process groups remain.
   Increased concurrent hook memory/task pressure is a real trade-off, not an
