@@ -2318,10 +2318,13 @@ pub(crate) fn paused_remote_names_incident(
 /// a hot loop of full classification passes over an unchanged tree.
 const PUBLICATION_REFRESH_ACTIVE: Duration = Duration::from_millis(750);
 const PUBLICATION_REFRESH_IDLE: Duration = Duration::from_secs(3);
-/// Upper bound on local refreshes attached to one publication round. Keeps a
-/// long hook from turning the round into an unbounded internal drain loop;
-/// remaining work is rediscovered by the next scheduler dispatch.
-const PUBLICATION_MAX_REFRESH_ROUNDS: usize = 32;
+/// Local refresh passes are NOT capped by a count. The daemon cannot
+/// redispatch this repository while the round is in flight, so a fixed count
+/// would silently re-freeze commits for the remainder of a long hook (the
+/// exact symptom this design removes; hooks of 15 minutes are documented).
+/// The loop stays bounded by the ROUND itself: the upload has its own operation
+/// deadline, and every refresh is admitted through the same bounded local
+/// semaphore with its own operation lease.
 
 /// Borrow-erased refresh future. Boxed so the local refresh can call back into
 /// the commit pipeline (which may reach this actor again) without producing an
@@ -2397,7 +2400,6 @@ async fn run_publication_actor<'a>(
         ),
     ));
     let mut refresh: Option<RefreshFuture<'_>> = None;
-    let mut refreshes = 0usize;
     let mut refresh_delay = PUBLICATION_REFRESH_ACTIVE;
     let ok_report = loop {
         tokio::select! {
@@ -2427,7 +2429,7 @@ async fn run_publication_actor<'a>(
                 }
                 refresh = None;
             }
-            () = tokio::time::sleep(refresh_delay), if refresh.is_none() && refreshes < PUBLICATION_MAX_REFRESH_ROUNDS => {
+            () = tokio::time::sleep(refresh_delay), if refresh.is_none() => {
                 refresh = Some(refresh_round(
                     ctx.repo,
                     ctx.policy,
@@ -2436,7 +2438,6 @@ async fn run_publication_actor<'a>(
                     ctx.policy_path,
                     None,
                 ));
-                refreshes += 1;
             }
             else => break Err(anyhow::anyhow!("publication actor lost all progress branches")),
         }
