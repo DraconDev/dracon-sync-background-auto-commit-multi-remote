@@ -831,6 +831,7 @@ trusted_authors = ["DraconDev"]
     .unwrap();
     std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
     git_fixture_command(repo, &["config", "core.hooksPath", hooks.to_str().unwrap()]);
+    std::fs::write(repo.join("README.md"), "bootstrap fixture\n").unwrap();
 
     let result =
         crate::sync::bootstrap_empty_repo_commit(repo, &policy, &BTreeSet::new(), false).await;
