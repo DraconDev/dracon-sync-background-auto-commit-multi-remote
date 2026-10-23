@@ -31,14 +31,9 @@ def run(args, cwd=None):
 
 def git_out(repo, *args):
     result = run(["git", *args], cwd=repo)
-    return result.stdout.strip() if result.status_code_ok() else f"<error: {result.stderr.strip()[:200]}>"
-
-
-def status_code_ok(self):  # pragma: no cover - helper attached below
-    return self.returncode == 0
-
-
-subprocess.CompletedProcess.status_code_ok = status_code_ok
+    if result.returncode != 0:
+        return f"<error: {result.stderr.strip()[:200]}>"
+    return result.stdout.strip()
 
 
 def observe(repo):
