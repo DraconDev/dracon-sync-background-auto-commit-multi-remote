@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/SamAI
+
+
+ Test Files  108 passed (108)
+      Tests  953 passed (953)
+   Start at  06:36:06
+   Duration  37.47s (transform 48.11s, setup 122.84s, import 79.34s, tests 93.45s, environment 144.16s)
+

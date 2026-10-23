@@ -1,0 +1,21 @@
+
+ RUN  v4.1.9 /tmp/sync-convergence-20261023/product-baseline/extensions/standalones/volume-and-video-pro
+
+Warning: A vi.mock("@dracon/extension-core/reviewAsk") call in "/tmp/sync-convergence-20261023/product-baseline/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/lib/review-ask") call in "/tmp/sync-convergence-20261023/product-baseline/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.hoisted() call in "/tmp/sync-convergence-20261023/product-baseline/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+Warning: A vi.mock("@/src/settings-manager") call in "/tmp/sync-convergence-20261023/product-baseline/extensions/standalones/volume-and-video-pro/tests/popup-surface.test.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+01:08:20 [vite-plugin-svelte] components/InfoTooltip.svelte:9:0 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+01:08:20 [vite-plugin-svelte] components/InfoTooltip.svelte:9:0 `<span>` with a mouseenter or mouseleave handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+
+ Test Files  14 passed (14)
+      Tests  178 passed (178)
+   Start at  01:08:11
+   Duration  11.81s (transform 16.29s, setup 0ms, import 24.01s, tests 4.92s, environment 63.31s)
+

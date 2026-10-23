@@ -77,6 +77,34 @@ rows without a live scheduler stamp; they are not claimed healthy here. The
 `aud-vis` different-worktree refusal observed during diagnosis remains an
 unfixed external checkout blocker (rewiring it is explicitly out of scope).
 
+## Baseline product gates (task 3)
+
+Every workspace that had a retained baseline refusal was re-run through its
+ORIGINAL package scripts with the hook's PATH resolution
+(`node_modules/.bin` first, workspace before root):
+
+| workspace | lint | test |
+|---|---|---|
+| auto-form-filler | exit 0 | 1249 passed, 4 skipped |
+| youtube-filter | exit 0 | 881 passed |
+| clean-web | exit 0 | 947 passed |
+| SamAI | exit 0 | 953 passed |
+| tabmon | exit 0 | 987 passed |
+| vidpro-extension | exit 0 | 1308 passed |
+| volume-and-video-pro | (not yet) | 178 passed, initial source, original command |
+
+Retained logs are in `product-gates/`. No assertion was relaxed, no test was
+skipped or deleted, and no gate was bypassed: the earlier findings were
+historical attempt snapshots, and the specific reported defects no longer
+reproduce on the current code (youtube-filter's TS2554 call signatures now
+typecheck; auto-form-filler's lint failure is gone; clean-web and volume pass
+their full suites).
+
+Significance limits, stated plainly: these prove the affected workspaces are
+green NOW; they do not prove the original 2026-10-22 23:57 volume refusal had
+the same cause, because that attempt's log directory no longer existed. That
+distinction is preserved rather than papered over.
+
 ## Aggregate at observation time
 
     repos 36, ok 32, active 2, warn 2, failures 0

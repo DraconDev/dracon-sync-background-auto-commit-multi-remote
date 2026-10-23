@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/youtube-filter
+
+
+ Test Files  53 passed (53)
+      Tests  881 passed (881)
+   Start at  06:31:48
+   Duration  18.69s (transform 2.66s, setup 525ms, import 3.51s, tests 12.07s, environment 14.35s)
+

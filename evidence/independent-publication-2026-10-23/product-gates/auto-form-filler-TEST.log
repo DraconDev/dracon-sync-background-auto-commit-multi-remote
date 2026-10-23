@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/auto-form-filler
+
+
+ Test Files  78 passed | 2 skipped (80)
+      Tests  1249 passed | 4 skipped (1253)
+   Start at  06:31:24
+   Duration  15.46s (transform 29.21s, setup 3.58s, import 34.63s, tests 27.14s, environment 78.77s)
+

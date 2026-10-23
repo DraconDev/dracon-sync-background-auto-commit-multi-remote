@@ -1,0 +1,13 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/tabmon
+
+06:34:57 [vite-plugin-svelte] entrypoints/shared/SettingsLayout.svelte:165:4 Elements with the 'tablist' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+06:35:08 [vite-plugin-svelte] /home/dracon/Dev/browser-extensions-shared/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  66 passed (66)
+      Tests  987 passed (987)
+   Start at  06:34:32
+   Duration  88.25s (transform 6.00s, setup 683ms, import 11.10s, tests 48.74s, environment 18.05s)
+

@@ -1,0 +1,15 @@
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/standalones/vidpro-extension
+
+06:32:50 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+06:32:50 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+06:33:23 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  111 passed (111)
+      Tests  1308 passed (1308)
+   Start at  06:32:36
+   Duration  97.41s (transform 15.44s, setup 24.01s, import 16.64s, tests 19.76s, environment 24.04s)
+
