@@ -22,6 +22,7 @@ REPOS = [
     "/home/dracon/Dev/dracon-platform",
     "/home/dracon/.dracon",
     "/home/dracon/Dev/dracon-utilities",
+    "/home/dracon/Dev/dracon-utilities/dracon-sync",
 ]
 
 
@@ -56,6 +57,8 @@ def observe(repo):
                 exists = kind == "commit"
         record["remotes"][remote] = {
             "url": url,
+            "query_succeeded": ls.returncode == 0,
+            "query_error": ls.stderr.strip()[:500] if ls.returncode else "",
             "branch_ref": ref,
             "remote_tip_is_real_commit_object": exists,
             "object_type": kind,
