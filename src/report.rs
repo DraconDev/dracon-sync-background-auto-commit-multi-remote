@@ -9084,8 +9084,33 @@ pub(crate) async fn run_repair_concerns(
             }
         }
 
+        // Publication ownership: `repair concerns --apply` must not upload the
+        // same repository concurrently with a daemon round (or another repair).
+        // The global push gate is gone, so this is now the real exclusion.
+        // Nonblocking: a busy publisher is reported, never waited out.
+        let repair_publication = if apply && status.ahead > 0 {
+            match crate::git::sync_lease::try_acquire_publication(&repo) {
+                Ok(Some(lease)) => Some(lease),
+                Ok(None) => {
+                    eprintln!(
+                        "⏳ {} publication owned by another process; skipping repair push",
+                        repo.display()
+                    );
+                    None
+                }
+                Err(error) => {
+                    eprintln!(
+                        "⚠️ {} cannot claim publication ownership: {error:#}",
+                        repo.display()
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        };
         #[allow(clippy::collapsible_if)]
-        if status.ahead > 0 && state.has_upstream {
+        if status.ahead > 0 && state.has_upstream && (repair_publication.is_some() || !apply) {
             if handle_ahead(
                 &mut state,
                 &repo,
