@@ -152,11 +152,9 @@ async fn a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work() {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn a_refusing_hook_also_blocks_a_storage_sealed_commit() {
-    // libgit2 seals storage-guarded commits and runs NO hooks. Without the
-    // explicit hook invocation, a bound repository could commit behind a
-    // refusing pre-commit — the same bypass in a different code path. This
-    // pins the dispatch guarantee: the hook chain is consulted before the seal.
+async fn configured_hook_runner_propagates_refusal_without_mutating_head() {
+    // Primitive-level coverage only: the actual storage-seal dispatcher is
+    // exercised in storage::tests with a bound storage fixture.
     let fixture = Fixture::new().await;
     fixture.hook("#!/bin/sh\necho 'warden: sealed commit refused' >&2\nexit 1\n");
     let before = git(&fixture.repo, &["rev-parse", "HEAD"]).await;

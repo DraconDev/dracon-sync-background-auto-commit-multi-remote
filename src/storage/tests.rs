@@ -866,6 +866,7 @@ async fn a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order() {
         Path::new("assets.manifest"),
     )
     .unwrap();
+    assert!(has_configured_storage_guard(repo).unwrap());
     let hooks = repo.join(".git/lifecycle-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     // Every hook appends its own name plus argv so the test can assert ORDER
@@ -971,6 +972,7 @@ async fn a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit() {
         Path::new("assets.manifest"),
     )
     .unwrap();
+    assert!(has_configured_storage_guard(repo).unwrap());
     let hooks = repo.join(".git/commit-msg-hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     let hook = hooks.join("commit-msg");
