@@ -1,0 +1,176 @@
+diff --git a/scripts/git-hooks/run-push-gates.mjs b/scripts/git-hooks/run-push-gates.mjs
+index 20f15f308e..556cf843a1 100644
+--- a/scripts/git-hooks/run-push-gates.mjs
++++ b/scripts/git-hooks/run-push-gates.mjs
+@@ -83,6 +83,39 @@ function checkLinks(tree, directory = tree) {
+     } else if (stat.isDirectory()) checkLinks(tree, path);
+   }
+ }
++async function provisioningLease(record, log) {
++  // Mirrors may transfer independently, but simultaneous full workspace
++  // installs can exhaust the service's shared task budget even with bounded
++  // native pools. Serialize only this repository's preparation, not its
++  // product gates, commits, transfers, or other repositories.
++  const common = git(original, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
++  const scope = hash(common);
++  const fd = openSync(join(root, `provision-${scope}.lock`),
++    constants.O_RDWR | constants.O_CREAT | constants.O_NOFOLLOW, 0o600);
++  let output;
++  try {
++    const stat = fstatSync(fd);
++    if (!stat.isFile() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0 ||
++        (process.geteuid && stat.uid !== process.geteuid())) throw Error('unsafe provisioning lease file');
++    record.provisioning = { scope, status: 'waiting', waitBudgetSecs: 300, started: new Date().toISOString() };
++    receipt();
++    output = openSync(log, 'a', 0o600);
++    const code = await new Promise((done, reject) => {
++      // fd3 shares the parent's open-file description; the acquired OS lease
++      // remains held after flock exits, until our finally closes fd.
++      const child = spawn('flock', ['--exclusive', '--wait', '300', '--conflict-exit-code', '75', '3'],
++        { env, stdio: ['ignore', output, output, fd] });
++      child.once('error', reject); child.once('close', code => done(code ?? 128));
++    });
++    if (code) throw Error(`snapshot provisioning capacity wait expired or failed (exit ${code}); no dependency/product pass claimed`);
++    record.provisioning.status = 'owned'; record.provisioning.acquired = new Date().toISOString(); receipt();
++    return fd;
++  } catch (error) {
++    closeSync(fd);
++    if (record.provisioning) { record.provisioning.status = 'failed'; receipt(); }
++    throw error;
++  } finally { if (output !== undefined) closeSync(output); }
++}
+ async function command(program, args, cwd, log, extra = {}) {
+   const fd = openSync(log, 'a', 0o600);
+   try {
+@@ -271,6 +304,8 @@ try {
+           const tool = record.toolchain.bun;
+           const installArgs = ['install', '--frozen-lockfile', '--backend=copyfile',
+             '--concurrent-scripts=1', '--network-concurrency=8'];
++          const preparation = await provisioningLease(record, log);
++          try {
+           record.dependencyBuild = [];
+           const base = await command(tool, [...installArgs, '--ignore-scripts'], tree, log);
+           if (base) throw Error(`snapshot dependency installation exited ${base}; see ${log}\n${excerpt(log)}`);
+@@ -286,6 +321,10 @@ try {
+           const code = await command(tool, installArgs, tree, log);
+           if (code) throw Error(`snapshot dependency installation exited ${code}; see ${log}\n${excerpt(log)}`);
+           checkLinks(tree);
++          } finally {
++            closeSync(preparation);
++            record.provisioning.status = 'released'; record.provisioning.finished = new Date().toISOString(); receipt();
++          }
+         }
+         for (const { dir, pkg } of work) {
+           const scripts = pkg.scripts || {};
+diff --git a/scripts/git-hooks/run-push-gates.test.mjs b/scripts/git-hooks/run-push-gates.test.mjs
+index 711e25b793..6d5b5f6c94 100644
+--- a/scripts/git-hooks/run-push-gates.test.mjs
++++ b/scripts/git-hooks/run-push-gates.test.mjs
+@@ -125,8 +125,8 @@ test('source symlinks cannot route gates back into the mutable live checkout', a
+   } finally { rmSync(repo.root, { recursive: true, force: true }); }
+ });
+ 
+-test('owned group cancellation stops gates and cleans only disposable sources', { skip: process.platform !== 'linux', timeout: 30000 }, async () => {
+-  const repo = fixture({ test: 'node wait.mjs' });
++for (const phase of ['test', 'postinstall']) test(`owned group cancellation stops ${phase === 'test' ? 'gates' : 'provisioning'} and cleans only disposable sources`, { skip: process.platform !== 'linux', timeout: 90000 }, async () => {
++  const repo = fixture({ [phase]: 'node wait.mjs' });
+   let child;
+   try {
+     // Use the already installed version so this cleanup check needs no
+@@ -135,7 +135,7 @@ test('owned group cancellation stops gates and cleans only disposable sources',
+     repo.put('package.json', JSON.stringify({ packageManager: `bun@${version}`, workspaces: ['packages/*', 'extensions/standalones/*'] }));
+     repo.put('packages/runtime/package.json', JSON.stringify({ name: '@fixture/runtime', version: '1.0.0' }));
+     repo.put(`${ws}/package.json`, JSON.stringify({ name: 'fixture-cancel', version: '1.0.0',
+-      dependencies: { '@fixture/runtime': 'workspace:*' }, scripts: { test: 'node wait.mjs' } }));
++      dependencies: { '@fixture/runtime': 'workspace:*' }, scripts: { [phase]: 'node wait.mjs' } }));
+     execFileSync('bun', ['install', '--ignore-scripts'], { cwd: repo.root, stdio: 'ignore' });
+     repo.put(`${ws}/wait.mjs`, `import {writeFileSync} from 'node:fs';
+ writeFileSync(process.env.PID_FILE,String(process.pid));setInterval(()=>{},1000);`);
+@@ -148,8 +148,20 @@ writeFileSync(process.env.PID_FILE,String(process.pid));setInterval(()=>{},1000)
+     child.stdout.on('data', d => { output += d; }); child.stderr.on('data', d => { output += d; });
+     const closed = new Promise(resolve => child.once('close', resolve));
+     child.stdin.end(`refs/heads/main ${repo.sha} refs/heads/main ${'0'.repeat(40)}\n`);
+-    const deadline = Date.now() + 15000;
++    // Cold verified toolchain copies/install are setup, not the cancellation
++    // deadline. Once signalled, both variants retain the strict 10s join bound.
++    const deadline = Date.now() + 30000;
+     while (!existsSync(marker) && Date.now() < deadline) await new Promise(r => setTimeout(r, 25));
++    if (!existsSync(marker)) {
++      const directory = output.match(/Pre-push attempt logs: ([^\n]+)/)?.[1];
++      if (directory) {
++        const snapshot = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
++        output += '\n' + JSON.stringify(snapshot);
++        for (const revision of snapshot.revisions) {
++          if (revision.installLog && existsSync(revision.installLog)) output += '\n' + readFileSync(revision.installLog, 'utf8').slice(-3000);
++        }
++      }
++    }
+     assert.ok(existsSync(marker), output);
+     const pid = Number(readFileSync(marker, 'utf8'));
+     const identity = () => {
+@@ -161,8 +173,14 @@ writeFileSync(process.env.PID_FILE,String(process.pid));setInterval(()=>{},1000)
+     const directory = output.match(/Pre-push attempt logs: ([^\n]+)/)?.[1];
+     const running = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
+     assert.ok(existsSync(running.revisions[0].toolchain.bun), 'owned toolchain must actually exist before cancellation');
++    assert.equal(running.revisions[0].provisioning.status, phase === 'postinstall' ? 'owned' : 'released');
+     process.kill(-child.pid, 'SIGTERM');
+-    await closed;
++    let cleanupTimer;
++    try {
++      await Promise.race([closed, new Promise((_, reject) => {
++        cleanupTimer = setTimeout(() => reject(new Error('owned group did not stop within 10 seconds')), 10000);
++      })]);
++    } finally { clearTimeout(cleanupTimer); }
+     const after = identity();
+     assert.ok(!after || after.start !== before.start || after.state === 'Z', 'gate process must not keep running');
+     const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
+@@ -170,6 +188,13 @@ writeFileSync(process.env.PID_FILE,String(process.pid));setInterval(()=>{},1000)
+     assert.equal(existsSync(join(directory, 'toolchains')), false, 'cancelled owned binaries must be cleaned');
+     assert.equal(existsSync(manifest.revisions[0].executionRoot), false);
+     assert.equal(readFileSync(join(repo.root, ws, 'source.txt'), 'utf8'), 'pinned');
++    if (phase === 'postinstall') {
++      repo.put(`${ws}/package.json`, JSON.stringify({ name: 'fixture-cancel', version: '1.0.0',
++        dependencies: { '@fixture/runtime': 'workspace:*' }, scripts: { test: 'node check.mjs' } }));
++      repo.sha = repo.commit();
++      const retry = await run(repo);
++      assert.equal(retry.code, 0, 'cancelled owner must release its OS preparation lease: ' + retry.output);
++    }
+   } finally {
+     if (child && child.exitCode === null && child.signalCode === null) process.kill(-child.pid, 'SIGKILL');
+     rmSync(repo.root, { recursive: true, force: true });
+@@ -246,6 +271,35 @@ assert.equal(readFileSync('dist-ready.txt','utf8'),'ok');console.log('dependent
+   } finally { rmSync(repo.root, { recursive: true, force: true }); }
+ });
+ 
++test('same-repository preparation is exclusive but product gates still overlap', { timeout: 60000 }, async () => {
++  const repo = fixture();
++  try {
++    repo.put('package.json', JSON.stringify({ packageManager: 'bun@1.3.14', workspaces: ['packages/*', 'extensions/standalones/*'] }));
++    repo.put('packages/runtime/package.json', JSON.stringify({ name: '@fixture/runtime', version: '1.0.0' }));
++    repo.put(`${ws}/package.json`, JSON.stringify({ name: 'fixture-preparation', version: '1.0.0',
++      dependencies: { '@fixture/runtime': 'workspace:*' }, scripts: { postinstall: 'node prepare.mjs', test: 'node overlap.mjs' } }));
++    repo.put(`${ws}/prepare.mjs`, `import {openSync,closeSync,unlinkSync} from 'node:fs';
++import {setTimeout} from 'node:timers/promises';
++const fd=openSync(process.env.ACTIVE_PREPARATION,'wx');
++await setTimeout(250);closeSync(fd);unlinkSync(process.env.ACTIVE_PREPARATION);`);
++    repo.put(`${ws}/overlap.mjs`, `import {appendFileSync,readFileSync} from 'node:fs';
++import assert from 'node:assert/strict';import {setTimeout} from 'node:timers/promises';
++appendFileSync(process.env.GATE_ARRIVALS,'arrived\\n');const deadline=Date.now()+8000;
++while(readFileSync(process.env.GATE_ARRIVALS,'utf8').trim().split('\\n').length<2&&Date.now()<deadline)await setTimeout(20);
++assert.equal(readFileSync(process.env.GATE_ARRIVALS,'utf8').trim().split('\\n').length,2,'product gates must not hold the preparation lease');`);
++    execFileSync('bun', ['install', '--ignore-scripts'], { cwd: repo.root, stdio: 'ignore' });
++    repo.sha = repo.commit();
++    const extra = { ACTIVE_PREPARATION: join(repo.root, 'attempts', 'active-preparation'),
++      GATE_ARRIVALS: join(repo.root, 'attempts', 'gate-arrivals') };
++    const results = await Promise.all([run(repo, undefined, extra), run(repo, undefined, extra)]);
++    for (const result of results) {
++      assert.equal(result.code, 0, result.output);
++      assert.equal(result.manifest.revisions[0].provisioning.status, 'released');
++    }
++    assert.equal(results[0].manifest.revisions[0].provisioning.scope, results[1].manifest.revisions[0].provisioning.scope);
++  } finally { rmSync(repo.root, { recursive: true, force: true }); }
++});
++
+ for (const stricter of [false, true]) test(`native pool budgets ${stricter ? 'preserve stricter caller limits' : 'bound lifecycle, library and gate workers'}`, async () => {
+   const repo = fixture();
+   const limits = { TOKIO_WORKER_THREADS: 2, RAYON_NUM_THREADS: 2, ROLLDOWN_WORKER_THREADS: 2,

@@ -1,0 +1,47 @@
+✔ canonical root lock is eligible without admitting workspace locks or dependencies (195.367733ms)
+✔ managed hygiene refresh cannot silently exclude the canonical lock again (159.71915ms)
+✔ concurrent failures retain separate evidence and the exact gate exit code (6229.120353ms)
+✔ successful gates remain required and pass normally (2893.875234ms)
+✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (5696.260081ms)
+✔ the gate caps the vitest worker fan-out (5904.115492ms)
+✔ the worker cap can be overridden (2329.265471ms)
+✔ the worker cap can be disabled (3500.744489ms)
+✔ uses the pushed source and package scripts, not newer live edits (5847.299905ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (4864.641226ms)
+✔ pre-script failure cannot be replaced by a successful script body (3989.567403ms)
+✔ export attributes cannot omit or rewrite the sources being validated (3381.823298ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (6669.232768ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (1932.253981ms)
+✔ owned group cancellation stops gates and cleans only disposable sources (15677.519482ms)
+✖ owned group cancellation stops provisioning and cleans only disposable sources (15724.265288ms)
+✔ nested Bun scripts use the exact selected pin rather than inherited Bun (55893.924721ms)
+✔ library workspaces are built before a dependent lifecycle script resolves them (31261.456361ms)
+✔ same-repository preparation is exclusive but product gates still overlap (32217.506748ms)
+✔ native pool budgets bound lifecycle, library and gate workers (24327.246013ms)
+✔ native pool budgets preserve stricter caller limits (31842.362337ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 20
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 234449.166257
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:128:46
+✖ owned group cancellation stops provisioning and cleans only disposable sources (15724.265288ms)
+  AssertionError [ERR_ASSERTION]: 🧾 Pre-push attempt logs: /tmp/pinned-gate-fixture-JbfN3Z/attempts/dracon-pre-push.dQL51d
+  🔍 Pre-push: 2 affected workspace(s) at aa12357ade9487a19615d617272541e6afdb4d87 — running 4-gate.
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:153:12)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

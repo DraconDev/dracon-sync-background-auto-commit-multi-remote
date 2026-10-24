@@ -1,0 +1,39 @@
+✔ canonical root lock is eligible without admitting workspace locks or dependencies (184.367511ms)
+✔ managed hygiene refresh cannot silently exclude the canonical lock again (126.948959ms)
+✔ concurrent failures retain separate evidence and the exact gate exit code (4461.028341ms)
+✔ successful gates remain required and pass normally (1983.921622ms)
+✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (1790.158534ms)
+✔ the gate caps the vitest worker fan-out (5308.768156ms)
+✔ the worker cap can be overridden (2906.374019ms)
+✔ the worker cap can be disabled (3781.240506ms)
+✔ uses the pushed source and package scripts, not newer live edits (4262.775363ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (5973.609086ms)
+✔ pre-script failure cannot be replaced by a successful script body (2874.616294ms)
+✔ export attributes cannot omit or rewrite the sources being validated (3082.829796ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (4550.459397ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (1110.662956ms)
+✔ owned group cancellation stops gates and cleans only disposable sources (11011.812161ms)
+✔ owned group cancellation stops provisioning and cleans only disposable sources (26367.465447ms)
+✔ nested Bun scripts use the exact selected pin rather than inherited Bun (33045.246742ms)
+✔ library workspaces are built before a dependent lifecycle script resolves them (30262.191123ms)
+✔ same-repository preparation is exclusive but product gates still overlap (50156.319683ms)
+✔ native pool budgets bound lifecycle, library and gate workers (44432.264112ms)
+
+Interrupted while running:
+
+⚠ scripts/git-hooks/run-push-gates.test.mjs (scripts/git-hooks/run-push-gates.test.mjs:1:1)
+✖ scripts/git-hooks/run-push-gates.test.mjs (239863.694659ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 239892.472434
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:1:1
+✖ scripts/git-hooks/run-push-gates.test.mjs (239863.694659ms)
+  'Promise resolution is still pending but the event loop has already resolved'

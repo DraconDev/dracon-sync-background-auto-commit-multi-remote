@@ -1,0 +1,6 @@
+
+> gemini-toolkit@0.4.0 typecheck
+> tsc --noEmit
+
+tests/chain-runner.test.ts(67,24): error TS2339: Property 'innerText' does not exist on type 'Element'.
+tests/chain-runner.test.ts(87,22): error TS2339: Property 'innerText' does not exist on type 'Element'.

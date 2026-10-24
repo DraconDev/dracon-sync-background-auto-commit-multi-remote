@@ -1,0 +1,13 @@
+
+> gemini-toolkit@0.4.0 test
+> vitest run --passWithNoTests tests/chain-runner.test.ts --maxWorkers=2
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/extensions/collections/toolkit/gemini-toolkit
+
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  12:34:15
+   Duration  5.41s (transform 615ms, setup 154ms, import 595ms, tests 271ms, environment 1.88s)
+

@@ -1,0 +1,27 @@
+✖ owned group cancellation stops provisioning and cleans only disposable sources (31287.571829ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32290.203356
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:128:46
+✖ owned group cancellation stops provisioning and cleans only disposable sources (31287.571829ms)
+  AssertionError [ERR_ASSERTION]: 🧾 Pre-push attempt logs: /tmp/pinned-gate-fixture-huYBlz/attempts/dracon-pre-push.zUXNVi
+  🔍 Pre-push: 2 affected workspace(s) at a37f273e4f83393f4c1668680d58c934677525e2 — running 4-gate.
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:153:12)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
