@@ -221,3 +221,4 @@
    Compiling tracing-core v0.1.36
    Compiling tracing-attributes v0.1.31
    Compiling tracing v0.1.44
+   Compiling proc-macro-crate v3.5.0
