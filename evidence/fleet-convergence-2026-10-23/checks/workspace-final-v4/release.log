@@ -307,3 +307,12 @@
    Compiling io_tee v0.1.1
    Compiling openssl-probe v0.1.6
    Compiling base64 v0.21.7
+   Compiling age-core v0.10.0
+   Compiling ed25519 v2.2.3
+   Compiling i18n-embed-fl v0.7.0
+   Compiling pin-project v1.1.13
+   Compiling scrypt v0.11.0
+   Compiling ghash v0.5.1
+   Compiling x25519-dalek v2.0.1
+   Compiling aes v0.8.4
+   Compiling ctr v0.9.2
