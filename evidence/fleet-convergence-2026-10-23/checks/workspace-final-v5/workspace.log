@@ -87,3 +87,6 @@
    Compiling futures-executor v0.3.34
    Compiling inout v0.1.4
    Compiling hybrid-array v0.4.15
+   Compiling crossbeam-epoch v0.9.21
+   Compiling rustc-hash v2.1.3
+   Compiling regex-syntax v0.8.11
