@@ -188,3 +188,5 @@
    Compiling unarray v0.1.4
    Compiling bech32 v0.9.1
    Compiling age v0.10.1
+   Compiling aes-gcm v0.10.3
+   Compiling proptest v1.11.0
