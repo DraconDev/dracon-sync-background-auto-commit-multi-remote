@@ -71,6 +71,56 @@ publication actor assertions remain intact. The four tests pass with zero
 failures. Source and cleanup receipt are retained; broader qualification is
 being rerun before deployment.
 
+## Additional verification-driven corrections
+
+The scoped policy review found blanket-equivalent `*?` and `*.[a-z]*` file
+globs. New behavioral cases fail before the correction; the renderer now
+accepts only exact files or fixed-literal file-type suffix globs under an
+explicit subtree. Both hygiene tests pass afterward. An independent narrow
+source review found no remaining issue; a real disposable Git fixture also
+ruled out directory-negation inheritance. The tightening still awaits final
+qualification and deployment; the earlier installed Warden is not claimed to
+contain it. Raw red/green results and independent review are in `checks/`.
+
+The observer timeout regression initially raced asynchronous SIGKILL delivery
+and saw a transient runnable child after its parent/pipes settled. It now waits
+within the SAME original five-second budget for absence/zombie, rather than
+asserting instantaneous kernel scheduling. Five observer tests pass. A bounded
+fault injection deliberately left a real owned child alive and verified that
+the check still fails, then killed and joined only that injected child. Alias
+receipts now reconcile configured transport aliases to actual destinations,
+refusing ambiguous/missing mirrors instead of guessing; explicit endpoint ports
+remain distinct. These changes do not mutate Git or remotes.
+
+The first full Rust qualification run failed a concurrently changed
+`dracon-system` TCP fixture. That other worker independently repaired its
+hexadecimal/column handling, and the same targeted test passes on its current
+source. No edit to that unrelated feature was made in this continuation. A
+full final-source run remains required; earlier partial passes do not close it.
+
+The real browser gate's dependency preparation succeeds and reaches product
+checks. Gemini toolkit LINT refused a literal C0-byte regex. Equivalent explicit
+C0 filtering replaces it; added tests cover every control value, Unicode and
+fallback. Its typecheck, 207-test suite and unchanged lint all pass locally;
+full coherent-revision gate qualification remains pending.
+
+Clean Web's coherent snapshot exposed two dependencies on the intentionally
+ignored browser-harness corpus. Its heuristic regression names the ORIGINAL
+public HN page, so substituting today's unrelated front page was a failed
+preparation approach (the unchanged threshold caught it). After inspecting the
+full historical logged-out page and its metadata, only that exact original
+public page is promoted to a tracked fixture with provenance; no other live
+capture is committed. The memory probe uses the existing tracked representative
+HTML fixtures rather than iterating an empty machine-local corpus in exports.
+No assertions, scoring rules or privacy ignore policy are weakened. Full product
+tests are being rerun with the original regression input.
+
+Deathrun subsequently committed the evidence and published autonomously on the
+first qualified daemon: observed HEAD `a789aa70db2...`, clean, zero upstream
+backlog. This advances the initial backlog but is not yet proof on the FINAL
+loaded daemon revision or of every intended remote; final ref evidence is still
+required.
+
 ## Qualification and prohibited actions
 
 Workspace tests, all-target Clippy, release build and cargo-deny are running
