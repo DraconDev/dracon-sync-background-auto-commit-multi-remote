@@ -1,0 +1,79 @@
+✖ native pool budgets bound lifecycle, library and gate workers (4682.531526ms)
+✖ native pool budgets preserve stricter caller limits (4964.11965ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9688.968111
+
+✖ failing tests:
+
+test at scripts/git-hooks/run-push-gates.test.mjs:249:39
+✖ native pool budgets bound lifecycle, library and gate workers (4682.531526ms)
+  AssertionError [ERR_ASSERTION]: 🧾 Pre-push attempt logs: /tmp/pinned-gate-fixture-0cDFPy/attempts/dracon-pre-push.vhnT7v
+  🔍 Pre-push: 2 affected workspace(s) at 920806ce438f3c8ef28c78590fe798dca052acab — running 4-gate.
+  ❌ Pre-push: 4-gate FAILED: dependency workspace packages/runtime failed to build (exit 1); see /tmp/pinned-gate-fixture-0cDFPy/attempts/dracon-pre-push.vhnT7v/920806ce438f-DEPS-packages_runtime.log
+  
+  AssertionError [ERR_ASSERTION]: TOKIO_WORKER_THREADS
+  
+  '999' !== '2'
+  
+      at file:///tmp/pinned-gate-fixture-0cDFPy/attempts/dracon-pre-push.vhnT7v/snapshot-920806ce438f3c8ef28c78590fe798dca052acab/check-pools.mjs:4:10
+      at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+      at async node:internal/modules/esm/loader:643:26
+      at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '999',
+    expected: '2',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+  
+  Node.js v24.18.0
+  error: script "build" exited with code 1
+  
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:275:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/git-hooks/run-push-gates.test.mjs:249:39
+✖ native pool budgets preserve stricter caller limits (4964.11965ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + undefined
+  - {
+  -   GOMAXPROCS: '1',
+  -   RAYON_NUM_THREADS: '1',
+  -   ROLLDOWN_MAX_BLOCKING_THREADS: '1',
+  -   ROLLDOWN_WORKER_THREADS: '1',
+  -   TOKIO_WORKER_THREADS: '1'
+  - }
+  
+      at TestContext.<anonymous> (file:///home/dracon/Dev/browser-extensions-shared/scripts/git-hooks/run-push-gates.test.mjs:276:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { TOKIO_WORKER_THREADS: '1', RAYON_NUM_THREADS: '1', ROLLDOWN_WORKER_THREADS: '1', ROLLDOWN_MAX_BLOCKING_THREADS: '1', GOMAXPROCS: '1' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

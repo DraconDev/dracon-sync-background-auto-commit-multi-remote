@@ -1,0 +1,60 @@
+[0.69ms] ".env"
+bun install v1.3.14 (0d9b296a)
+Resolving dependencies
+Resolved, downloaded and extracted [89]
+
++ @eslint/js@9.39.4 (v10.0.1 available)
++ adm-zip@0.5.17 (v0.6.1 available)
++ eslint@9.39.4 (v10.13.0 available)
++ eslint-plugin-react-hooks@7.1.1
++ eslint-plugin-svelte@3.20.0 (v3.23.1 available)
++ globals@17.7.0 (v17.13.0 available)
++ playwright@1.61.1 (v1.64.1 available)
++ prettier@3.9.0 (v3.9.10 available)
++ prettier-plugin-tailwindcss@0.6.11 (v0.8.1 available)
++ svelte-eslint-parser@1.8.0
++ typescript-eslint@8.62.0 (v8.72.0 available)
+
+2220 packages installed [10.70s]
+[0.11ms] ".env"
+bun install v1.3.14 (0d9b296a)
+
+thread '<unnamed>' (571940) panicked at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.52.3/src/runtime/scheduler/multi_thread/worker.rs:503:13:
+OS can't spawn worker thread: Resource temporarily unavailable (os error 11)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (571940) panicked at /rustc/ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96/library/core/src/panicking.rs:225:5:
+panic in a function that cannot unwind
+stack backtrace:
+   0:     0x7d8a122f149a - <unknown>
+   1:     0x7d8a1230821a - <unknown>
+   2:     0x7d8a122f65a2 - <unknown>
+   3:     0x7d8a122d6453 - <unknown>
+   4:     0x7d8a122e9002 - <unknown>
+   5:     0x7d8a122e91bb - <unknown>
+   6:     0x7d8a122d653a - <unknown>
+   7:     0x7d8a122cb779 - <unknown>
+   8:     0x7d8a122d70ad - <unknown>
+   9:     0x7d8a115aa4cd - <unknown>
+  10:     0x7d8a115aa44b - <unknown>
+  11:     0x7d8a115aa5d7 - <unknown>
+  12:     0x7d8a115ade8a - <unknown>
+  13:     0x7d8a54f2880f - call_init
+  14:     0x7d8a54f2890d - _dl_init
+  15:     0x7d8a54f245e2 - _dl_catch_exception
+  16:     0x7d8a54f2fc14 - dl_open_worker
+  17:     0x7d8a54f24543 - _dl_catch_exception
+  18:     0x7d8a54f2ffe5 - _dl_open
+  19:     0x7d8a53496764 - dlopen_doit
+  20:     0x7d8a54f24543 - _dl_catch_exception
+  21:     0x7d8a54f24699 - _dl_catch_error
+  22:     0x7d8a534961e3 - _dlerror_run
+  23:     0x7d8a5349682f - dlopen@GLIBC_2.2.5
+  24:     0x5b1e79506ec5 - _ZN4node7binding4DLib4OpenEv
+  25:     0x5b1e79507d5a - _ZNSt17_Function_handlerIFbPN4node7binding4DLibEEZNS1_6DLOpenERKN2v820FunctionCallbackInfoINS5_5ValueEEEEUlS3_E_E9_M_invokeERKSt9_Any_dataOS3_
+  26:     0x5b1e794a9a84 - _ZN4node11Environment12TryLoadAddonEPKciRKSt8functionIFbPNS_7binding4DLibEEE
+  27:     0x5b1e79506b78 - _ZN4node7binding6DLOpenERKN2v820FunctionCallbackInfoINS1_5ValueEEE
+  28:     0x5b1e7a78508d - Builtins_CallApiCallbackGeneric
+thread caused non-unwinding panic. aborting.
+
+error: postinstall script from "youtube-dislike" terminated by SIGABRT (Abort)

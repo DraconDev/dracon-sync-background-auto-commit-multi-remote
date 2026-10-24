@@ -1,0 +1,27 @@
+✔ canonical root lock is eligible without admitting workspace locks or dependencies (14.868793ms)
+✔ managed hygiene refresh cannot silently exclude the canonical lock again (11.927899ms)
+✔ concurrent failures retain separate evidence and the exact gate exit code (292.783851ms)
+✔ successful gates remain required and pass normally (328.041658ms)
+✔ the unchanged secret phase rejects both quote styles even with the existing emergency gate flag (115.81987ms)
+✔ the gate caps the vitest worker fan-out (311.823148ms)
+✔ the worker cap can be overridden (304.830496ms)
+✔ the worker cap can be disabled (327.902707ms)
+✔ uses the pushed source and package scripts, not newer live edits (297.86228ms)
+✔ preparation runs in isolated generated directories and live changes between gates do not leak (616.3126ms)
+✔ pre-script failure cannot be replaced by a successful script body (433.262197ms)
+✔ export attributes cannot omit or rewrite the sources being validated (363.928874ms)
+✔ each distinct pushed revision is validated, not just the current HEAD (444.331446ms)
+✔ source symlinks cannot route gates back into the mutable live checkout (136.05835ms)
+✔ owned group cancellation stops gates and cleans only disposable sources (670.859114ms)
+✔ nested Bun scripts use the exact selected pin rather than inherited Bun (3342.009264ms)
+✔ library workspaces are built before a dependent lifecycle script resolves them (4504.022908ms)
+✔ native pool budgets bound lifecycle, library and gate workers (3726.497235ms)
+✔ native pool budgets preserve stricter caller limits (3925.824639ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18510.26478
