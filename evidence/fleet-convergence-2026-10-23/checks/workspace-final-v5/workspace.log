@@ -222,3 +222,9 @@
    Compiling tracing-attributes v0.1.31
    Compiling tracing v0.1.44
    Compiling proc-macro-crate v3.5.0
+   Compiling event-listener v5.4.2
+   Compiling zvariant_utils v4.2.0
+   Compiling ring v0.17.14
+   Compiling concurrent-queue v2.5.0
+   Compiling enumflags2_derive v0.7.12
+   Compiling zvariant_derive v5.15.0
