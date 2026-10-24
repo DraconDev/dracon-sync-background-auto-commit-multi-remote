@@ -58,7 +58,10 @@ impl Fixture {
             let hook = hooks.join("pre-push");
             std::fs::write(
                 &hook,
-                "#!/bin/sh\nset -eu\ntouch ../hook-entered\nwhile [ ! -e ../hook-release ]; do sleep 0.01; done\n",
+                // The fixture must also terminate if the test executable aborts
+                // before Rust cleanup (for example, a stack overflow). An
+                // unbounded hook outlives its deleted TempDir indefinitely.
+                "#!/bin/sh\nset -eu\ntouch ../hook-entered\ndeadline=$(($(date +%s) + 90))\nwhile [ ! -e ../hook-release ]; do\n [ -d \"$PWD\" ] || exit 1\n [ \"$(date +%s)\" -lt \"$deadline\" ] || exit 1\n sleep 0.05\ndone\n",
             )
             .unwrap();
             std::fs::set_permissions(hook, std::fs::Permissions::from_mode(0o755)).unwrap();
