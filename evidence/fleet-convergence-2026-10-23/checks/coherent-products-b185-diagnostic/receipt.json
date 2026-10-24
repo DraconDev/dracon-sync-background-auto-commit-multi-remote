@@ -1,0 +1,329 @@
+{
+  "started": 1792815820.7879856,
+  "scope": "coherent source product diagnostics, not a manual push or a whole-hook pass",
+  "commands": [
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "install",
+        "--frozen-lockfile",
+        "--backend=copyfile",
+        "--concurrent-scripts=1",
+        "--network-concurrency=8",
+        "--ignore-scripts"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815904.296089,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/install-base.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815926.1685932
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/affiliate-deals",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815926.1857715,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-0.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815933.7197149
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/brand-icon",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815933.7202442,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-1.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815934.746553
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-core",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815934.7468698,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-2.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815936.467386
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-forms",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815936.7147572,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-3.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815938.539077
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-react",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815938.539434,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-4.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815939.2569249
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-svelte",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815939.257263,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-5.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815939.975698
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/new-tab-core",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815939.9760942,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/dependency-6.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815941.6441445
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-tm6lbvut/toolchain/bin/bun",
+        "install",
+        "--frozen-lockfile",
+        "--backend=copyfile",
+        "--concurrent-scripts=1",
+        "--network-concurrency=8"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot",
+      "started": 1792815941.6445034,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/install-scripted.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815962.5145876
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792815962.5227978,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/web-time-tracker-limiter-typecheck.log",
+      "status": "failed",
+      "exit_code": 1,
+      "finished": 1792815967.2308285
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792815967.2326748,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/web-time-tracker-limiter-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815971.0712311
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792815971.071613,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/web-time-tracker-limiter-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815979.0191302
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/web-time-tracker-limiter",
+      "started": 1792815979.088118,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/web-time-tracker-limiter-lint.log",
+      "status": "failed",
+      "exit_code": 1,
+      "finished": 1792815987.0094802
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/tabmon",
+      "started": 1792815987.0341866,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/tabmon-typecheck.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792815994.5171552
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/tabmon",
+      "started": 1792815994.5174818,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/tabmon-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816004.143436
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/tabmon",
+      "started": 1792816004.1439073,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/tabmon-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816060.864408
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/tabmon",
+      "started": 1792816060.8696873,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/tabmon-lint.log",
+      "status": "failed",
+      "exit_code": 1,
+      "finished": 1792816069.2835245
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816069.3342187,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/vidpro-extension-typecheck.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816076.9965713
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816076.9983416,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/vidpro-extension-build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816095.5324118
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "test"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816095.7066855,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/vidpro-extension-test.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816178.33993
+    },
+    {
+      "command": [
+        "npm",
+        "--workspaces=false",
+        "run",
+        "lint"
+      ],
+      "cwd": "/tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/vidpro-extension",
+      "started": 1792816178.4568064,
+      "log": "/tmp/fleet-browser-products-tm6lbvut/vidpro-extension-lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792816192.309913
+    }
+  ],
+  "status": "failed",
+  "revision": "b185911720a3dc9fb4b8031cf524f5004e803169",
+  "required_source_blobs": {
+    "bun.lock": "9d797c57db238570fd2846f8bfee2cfddf51e00478c2b67dcbcb939fcaaf8943",
+    "packages/nightfall/src/components/Card.svelte.d.ts": "d8c6596a3c1edef8bb238bd145bbfcba9aba4d5afaa8fffd17c7aa8fc0aba350",
+    "packages/nightfall/src/components/StatusHero.svelte.d.ts": "796132d2b8c2a9b5bfa8be1f33191dca93da7c2eebe3d73eacb73db9070837e2",
+    "extensions/standalones/web-time-tracker-limiter/tailwind.config.mjs": "25164ecee899e13bce28772ccddc53f417d0ba30cab4d282089e32cd8ac42dbb",
+    "extensions/standalones/web-time-tracker-limiter/tests/nightfall-types.test.ts": "55ce85e08bc7b38492d18d1e4a6f8babaede75a98b0cd55ccf47176ef614082a",
+    "extensions/standalones/web-time-tracker-limiter/tests/tailwind.test.ts": "8f76f323605648380cee74816c6072a1c91d00bafc4347982ee055d784c8f452",
+    "extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/NavIcon.svelte": "fd32da327516dd2ab491f2efba54f1caea1db3b2acffc051151bc61ecb575236",
+    "extensions/standalones/tabmon/tools/music_provenance.py": "12d70d688f7b5ead0233795c0573de1fa86ee50fe313c409c254f91a358b5ccf",
+    "extensions/standalones/tabmon/tools/test_music_provenance.py": "323e8e254154a823886a7a2d4506582b2210371737f6dfe8c65064af5ab1e242",
+    "scripts/git-hooks/run-push-gates.mjs": "1878074a4c37623c9067ff8ddf1397c5b975b3b5b117d57aa2552d3bb69df34d"
+  },
+  "bun_sha256": "9fd36f87e4b90b07632b987a2e4ec81ca15a62c81bf983190cea6d715be2ad74",
+  "bun_version": "1.3.14",
+  "finished": 1792816192.4030683
+}

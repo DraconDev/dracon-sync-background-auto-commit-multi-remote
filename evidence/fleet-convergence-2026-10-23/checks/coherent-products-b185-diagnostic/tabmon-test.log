@@ -1,0 +1,20 @@
+
+> tabmon@1.1.0 test
+> python3 -m unittest discover -s tools -p test_music_provenance.py && vitest run --passWithNoTests
+
+................
+----------------------------------------------------------------------
+Ran 16 tests in 1.049s
+
+OK
+
+ RUN  v4.1.9 /tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/tabmon
+
+05:26:51 [vite-plugin-svelte] /tmp/fleet-browser-products-tm6lbvut/snapshot/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  66 passed (66)
+      Tests  998 passed (998)
+   Start at  05:26:47
+   Duration  52.72s (transform 3.40s, setup 791ms, import 7.86s, tests 66.01s, environment 19.97s)
+

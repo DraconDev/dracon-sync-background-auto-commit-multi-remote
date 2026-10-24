@@ -1,0 +1,8 @@
+
+> vidpro-extension@1.16.0 pretypecheck
+> node scripts/ensure-wxt.mjs
+
+
+> vidpro-extension@1.16.0 typecheck
+> tsc --noEmit
+

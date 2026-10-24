@@ -1,0 +1,19 @@
+
+> vidpro-extension@1.16.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /tmp/fleet-browser-products-tm6lbvut/snapshot/extensions/standalones/vidpro-extension
+
+05:28:30 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Visible, non-interactive element `<label>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+05:28:30 [vite-plugin-svelte] components/PublishingDefaultsSettings.svelte:585:10 Non-interactive element `<label>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+05:29:06 [vite-plugin-svelte] entrypoints/dashboard/components/ToastItem.svelte:18:22 This reference only captures the initial value of `toast`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  115 passed (115)
+      Tests  1367 passed (1367)
+   Start at  05:28:24
+   Duration  67.39s (transform 8.82s, setup 40.84s, import 10.48s, tests 21.68s, environment 40.35s)
+
