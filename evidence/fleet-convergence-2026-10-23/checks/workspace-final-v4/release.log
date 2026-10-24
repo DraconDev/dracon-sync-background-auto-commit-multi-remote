@@ -203,3 +203,29 @@
    Compiling intl_pluralrules v7.0.2
    Compiling piper v0.2.5
    Compiling num-traits v0.2.19
+   Compiling encoding_rs v0.8.41
+   Compiling multiversion-macros v0.9.0
+   Compiling aho-corasick v1.1.5
+   Compiling sync_wrapper v1.0.2
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling getrandom v0.3.4
+   Compiling rustc-hash v1.1.0
+   Compiling anstyle-query v1.1.5
+   Compiling litrs v1.0.0
+   Compiling regex-syntax v0.8.11
+   Compiling tower-layer v0.3.3
+   Compiling anstyle v1.0.14
+   Compiling colorchoice v1.0.5
+   Compiling syn v1.0.109
+   Compiling anstream v1.0.0
+   Compiling regex-automata v0.4.18
+   Compiling tower v0.5.3
+   Compiling document-features v0.2.12
+   Compiling fluent-bundle v0.15.3
+   Compiling multiversion v0.9.0
+   Compiling blocking v1.7.0
+   Compiling async-process v2.5.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling tokio-rustls v0.26.5
+   Compiling zbus_macros v5.19.0
