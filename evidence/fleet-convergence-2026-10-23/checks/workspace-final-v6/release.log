@@ -153,3 +153,24 @@
    Compiling tempfile v3.27.0
    Compiling rand v0.8.8
    Compiling notify-rust v4.18.0
+   Compiling clap v4.6.7
+   Compiling toml v0.8.23
+   Compiling regex v1.13.1
+   Compiling cookie-factory v0.3.3
+   Compiling polyval v0.6.2
+   Compiling pbkdf2 v0.12.2
+   Compiling hkdf v0.12.4
+   Compiling salsa20 v0.10.2
+   Compiling secrecy v0.8.0
+   Compiling pin-project-internal v1.1.13
+   Compiling io_tee v0.1.1
+   Compiling signature v2.2.0
+   Compiling base64 v0.21.7
+   Compiling strsim v0.10.0
+   Compiling openssl-probe v0.1.6
+   Compiling i18n-embed-fl v0.7.0
+   Compiling age-core v0.10.0
+   Compiling ed25519 v2.2.3
+   Compiling pin-project v1.1.13
+   Compiling scrypt v0.11.0
+   Compiling ghash v0.5.1
