@@ -5,11 +5,13 @@
 Fresh read-only refs and Git objects for all ten initial repositories are in
 `checks/refs-before-final-qualified-deploy.json` (2026-10-24). All commands have
 finite deadlines and the loaded executable was stable throughout that capture.
-The operator service still runs the first qualified daemon artifact
-`f08e08a242057ceedb2bcf67e4670a1e18c130f2520a3c4f4aaa2928f2f8b6cb`.
-A newer source correction shares the targeted push-stuck hint between status,
-journal and alert; it still requires qualification/deployment before claiming
-that the live runtime emits the repaired hint.
+The operator service now runs the final daemon artifact
+`8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb`,
+PID 3393180, verified through `/proc/<pid>/exe`. It shares the targeted
+push-stuck hint between status, journal and alert. The final installed-binary
+isolated receipt passed and matches that loaded artifact, including independent
+publication, same-repository follow-up, real lifecycle hooks, preserved refused
+work, repaired retry, missing-tool PATH recovery and bounded joined shutdown.
 
 At the fresh CLI observation, browser extensions had exhausted retries and
 1448 unpublished commits; commits continued while publication remained paused.
@@ -169,6 +171,71 @@ installation is not substituted for product execution or final fleet proof.
   `checks/refs-before-final-qualified-deploy.json`. New observer output also
   contains destination/alias reconciliation. All review children are settled;
   the retained narrow hygiene review is not the final whole-contract rehearsal.
+
+## Latest execution checkpoint — 2026-10-24T03:40Z
+
+The continuation pointers above retain historical launcher locations. Superseding
+facts:
+
+- The first deployment verifier hit a transient permission denial reading the
+  new service PID before exec. It rolled back to the old executable and resumed
+  automatically. After treating that startup race as transient, a second bounded
+  maintenance operation loaded the qualified daemon, verified both loaded and
+  installed hashes, and resumed. No service stop was used. Raw receipts/logs are
+  `checks/final-daemon-deployment*`.
+- All four v2 qualification gates passed (workspace, all-target Clippy, release,
+  deny). The v2 logs are retained in `checks/qualification-v2-*`. During rendering
+  comparison, the live hook unexpectedly already contained the final policy.
+  Two Warden tests merely held HOME_MUTEX while invoking global refresh against
+  the operator HOME. Both now use fixture-owned HomeGuard; one seeds and verifies
+  an actual private canonical refresh. Seven CLI tests pass. Full qualification
+  v3 is now running at `/tmp/fleet-final-qualification-v3/` (launcher 3608032,
+  workspace bound 2400s, other gates bounded); it must pass before completion.
+- Warden binary `c0f1594c5890cbfc08f39ba2bda20072cafcd0ec183d757c2c39af6563470787`
+  is atomically installed with a backup. All three live hooks match its private
+  renderer byte-for-byte; pre-push/pre-rebase security bytes remain unchanged.
+  This installation did not rely on rerunning tests as a deployment mechanism.
+  The unexpected prior non-security hook refresh is explicitly retained, not
+  hidden as a planned install. See `checks/final-warden-install.json`.
+- The installed daemon receipt is terminal/pass in
+  `checks/final-installed-receipt.json`, with raw daemon log alongside it.
+- Ten distinct per-repository diagnostic notes were deliberately left eligible
+  for daemon-owned commits; no real-repository add/commit/push calls were made.
+  Their exact expected blobs and pre-work HEADs are recorded in
+  `checks/final-eligible-work-witnesses.json`.
+- `checks/live-convergence-ledger.json` currently proves eight note commits and
+  before/after advertised ref advancement to all intended physical destinations
+  on the final loaded daemon. Commit events come from its actual service PID.
+  It explicitly leaves browser extensions and platform NONHEALTHY/UNPROVEN;
+  `all_initial_repositories_proven` is false. The raw service journal and ledger
+  construction script are retained beside it. The ledger must be refreshed when
+  outstanding publication advances; it is not a completion claim.
+- Platform's current refusal is NEW staged deletion of book sample chapters
+  under `web/books/static/books/`, not the earlier storage preparation defect.
+  The forward-only guard correctly refuses those legacy deletions and retains
+  all work. Current CLI reports BLOCKED with thousands of later book-tree edits,
+  not healthy. This goal has not restored those edits, bypassed the guard,
+  classified the local failure as external, or broadened into the unrelated
+  books migration. Its diagnostic note is not yet committed.
+- The first browser diagnostic run terminated at its finite 1800-second bound,
+  with a cancelled manifest (not passed). In addition to the repaired Gemini/
+  Clean Web failures it exposed Tabmon's recipe/receipt prompt drift and Vidpro
+  collaborator-record typing errors. Vidpro source has since been independently
+  corrected by its active worker; do not claim that as this executor's edit.
+  All raw failed gate logs and the terminal manifest are retained in
+  `checks/browser-demonstrated-product-failures/`.
+- The second full browser gate (pin `11c41fb766adaf6ae679e99a51e018a969b5c521`,
+  attempt `q5qKQk`, `/tmp/fleet-browser-final/`, bound 3600 seconds) is still
+  running; it has so far passed the repaired Gemini/Clean Web gates. It predates
+  the later Vidpro correction, so a later failure there may be stale, not proof
+  of current source failure. Browser retry exhaustion remains intact pending
+  durable repair/qualification; no generic concern repair was invoked.
+- A read-only scout is investigating the narrow Tabmon provenance workflow
+  (run a9c9af26-2d54-47a2-8abc-0efb0de4c2bb), with no write/media-generation
+  authority. Current receipt prompts describe actual chiptune takes, while
+  active recipe tables now say orchestral. Do NOT fabricate matching receipts
+  with `--manifest-only`, weaken the provenance assertion, or silently discard
+  desired work. Collect the scout's native result before completing.
 
 ## Remaining concrete work
 
