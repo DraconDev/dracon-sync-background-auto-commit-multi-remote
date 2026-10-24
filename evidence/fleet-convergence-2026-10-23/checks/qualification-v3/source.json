@@ -1,0 +1,10 @@
+{
+  "started_at": "2026-10-24T03:31:59.841965+00:00",
+  "revisions": {
+    ".": "12c5ed58113b2770f7529fafe77c4a207b6ac7f9",
+    "dracon-sync": "9869cd003919cd3e0ce5bc70fbb7cdbbbc63479f",
+    "dracon-system": "256d7a1e795e02255cb7f484a968535c20192179",
+    "dracon-warden": "9c8bc8a7020efde9de62f7a7395801440a30e103"
+  },
+  "reason": "repeat after isolating two Warden tests that could refresh operator global hooks; runtime code/artifacts unchanged"
+}
