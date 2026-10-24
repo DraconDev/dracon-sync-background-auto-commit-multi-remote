@@ -1,0 +1,23 @@
+    Blocking waiting for file lock on build directory
+   Compiling dracon-warden v0.113.16 (/home/dracon/Dev/dracon-utilities/dracon-warden)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.97s
+     Running unittests src/main.rs (target/debug/deps/dracon_warden-295213678567516a)
+
+running 7 tests
+test tests::tests::cli_once_hardens_single_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_once_repo_K2bGFE/repo/.git/
+ok
+test tests::tests::cli_repair_dry_run_does_not_modify ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_dry_run_31aiv2/repo/.git/
+ok
+test tests::tests::cli_repair_strict_fails_when_markers_remain ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_repair_strict_l6Mdrr/repo/.git/
+ok
+test tests::tests::cli_resmudge_reports_on_plaintext_repo ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plain_rTvhJF/repo/.git/
+ok
+test tests::tests::cli_resmudge_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_resmudge_plaintext_sibling_1uIu23/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_finds_markers_in_json ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_json_R3kYlP/repo/.git/
+ok
+test tests::tests::cli_scrub_markers_skips_plaintext_sibling_outside_cwd ... Initialized empty Git repository in /tmp/dracon_warden_test_warden_scrub_plaintext_sibling_6YPxmT/repo/.git/
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 223 filtered out; finished in 0.15s
+
