@@ -284,3 +284,5 @@
    Compiling hashbrown v0.14.5
    Compiling reqwest v0.12.28
    Compiling dashmap v5.5.3
+   Compiling comfy-table v7.2.2
+   Compiling chrono v0.4.45
