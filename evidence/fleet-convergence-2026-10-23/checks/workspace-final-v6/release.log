@@ -146,3 +146,4 @@
    Compiling i18n-embed v0.14.1
    Compiling dashmap v5.5.3
    Compiling reqwest v0.12.28
+   Compiling chrono v0.4.45
