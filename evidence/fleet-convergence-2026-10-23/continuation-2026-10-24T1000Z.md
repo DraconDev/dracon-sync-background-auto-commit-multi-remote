@@ -73,7 +73,8 @@ and deny passed, but input fingerprint changed, so the artifact is unqualified.
 Other active cargo jobs belong to unrelated work; never kill them or delete
 canonical target/checkouts. Storage lease guards/assertions were NOT changed.
 
-Coherent qualification v5 is now RUNNING: checks/workspace-final-v5/{source,receipt}.json.
+Coherent qualification v5 was rejected after real failures; corrected v6 is now
+RUNNING: checks/workspace-final-v6/{source,receipt}.json.
 Frozen sources are /tmp/fleet-workspace-frozen-2ajly5n9/source, ordinary Git
 checkouts at captured refs with existing required smudge filters copied exactly.
 Private bare origins and object alternates read canonical objects without
@@ -85,9 +86,23 @@ remain busy until a pre-exec child exits, consistent with the earlier fixture
 failures but not proof of their exact PID. Raw reproduction and recipes are in
 v5/. Do not claim a default-parallel pass or deploy until all4gates pass.
 Previous v3 source refs remain in checks/qualification-v3/source.json.
-Prepared v5 stage-and-receipt.py and deploy-qualified.py are NOT executed yet.
-They require passing gates/candidate execution; all execution fixtures stay
-outside watch roots. The original deployment recipe was recovered and retained.
+V5 serial scheduling passed the formerly busy lease fixtures without altering
+storage code/assertions, but caught (1) an actual classifier bug: the existing
+forge predicate treated local worker EAGAIN's 'temporarily unavailable' as forge
+outage, outranking local-hook reporting; and (2) missing normal Node SDK setup in
+the new checkout. Push.rs now narrowly excludes explicit local-hook worker-spawn
+failures from forge classification; real remote Gitaly equivalents stay transient,
+with a counterexample regression. V6 freezes that committed fix, runs normal
+locked npm ci for scripts/bucket-runner (no lifecycle bypass), and reuses ONLY
+the owned private v5 compilation cache. V5's active private compiler was cancelled
+by its owner via pidfd; unrelated jobs were not signalled.
+Prepared v6 stage-and-receipt.py, deploy-qualified.py and write-eligible-refresh.py
+are NOT executed yet. They require passing gates/candidate execution; all fixtures
+and candidate ELF stay outside watch roots. Deployment template was recovered
+from the prior successful transaction. V6 staging also checks dynamic libraries
+are not tied to disposable build paths. The new pre-work snapshot/eligible files
+are named refs-final-v6-before-work.json and final-v6-eligible-work-witnesses.json;
+archive old8be epoch and promote only after the new deployment/installed receipt.
 
 After all4Rust gates pass on a coherent assembly: run candidate isolated receipt
 using scripts/isolated-publication-receipt.py, safely deploy via maintenance +
