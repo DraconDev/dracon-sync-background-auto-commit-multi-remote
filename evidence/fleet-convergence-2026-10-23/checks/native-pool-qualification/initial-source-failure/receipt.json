@@ -1,0 +1,110 @@
+{
+  "started": 1792833666.962225,
+  "generator_sha256": "40ca525a979b1ed9c4fcb29976aaa99fdc817025e449eb10e0f69935f1285e39",
+  "scope": "coherent source product diagnostics, not a manual push or a whole-hook pass",
+  "commands": [
+    {
+      "command": [
+        "/tmp/fleet-browser-products-rzlro5c5/toolchain/bin/bun",
+        "install",
+        "--frozen-lockfile",
+        "--backend=copyfile",
+        "--concurrent-scripts=1",
+        "--network-concurrency=8",
+        "--ignore-scripts"
+      ],
+      "cwd": "/tmp/fleet-browser-products-rzlro5c5/snapshot",
+      "started": 1792833707.1467483,
+      "log": "/tmp/fleet-browser-products-rzlro5c5/install-base.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792833715.7705832
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-rzlro5c5/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/affiliate-deals",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-rzlro5c5/snapshot",
+      "started": 1792833715.876241,
+      "log": "/tmp/fleet-browser-products-rzlro5c5/dependency-0.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792833717.6833646
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-rzlro5c5/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/brand-icon",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-rzlro5c5/snapshot",
+      "started": 1792833717.683684,
+      "log": "/tmp/fleet-browser-products-rzlro5c5/dependency-1.log",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1792833718.4490197
+    },
+    {
+      "command": [
+        "/tmp/fleet-browser-products-rzlro5c5/toolchain/bin/bun",
+        "run",
+        "--cwd",
+        "packages/extension-core",
+        "build"
+      ],
+      "cwd": "/tmp/fleet-browser-products-rzlro5c5/snapshot",
+      "started": 1792833718.4494205,
+      "log": "/tmp/fleet-browser-products-rzlro5c5/dependency-2.log",
+      "status": "failed",
+      "exit_code": 2,
+      "finished": 1792833719.665513
+    }
+  ],
+  "status": "failed",
+  "resource_environment": {
+    "TOKIO_WORKER_THREADS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "ROLLDOWN_WORKER_THREADS": "2",
+    "ROLLDOWN_MAX_BLOCKING_THREADS": "8",
+    "GOMAXPROCS": "2"
+  },
+  "cgroup_budget": {
+    "path": "/user.slice/user-1000.slice/user@1000.service/app.slice/fleet-browser-native-qualification.service",
+    "pids_max": "512",
+    "cpu_max": "200000 100000"
+  },
+  "revision": "df73d57074c0fccab1ac8ed0f688baa4e714ba75",
+  "required_source_blobs": {
+    "bun.lock": "9d797c57db238570fd2846f8bfee2cfddf51e00478c2b67dcbcb939fcaaf8943",
+    ".gitignore": "a905834112066b583cfcfc036eb1ab4cb8c79cb0e744d5433538422b598e5ba0",
+    "packages/nightfall/src/components/Card.svelte.d.ts": "d8c6596a3c1edef8bb238bd145bbfcba9aba4d5afaa8fffd17c7aa8fc0aba350",
+    "packages/nightfall/src/components/StatusHero.svelte.d.ts": "796132d2b8c2a9b5bfa8be1f33191dca93da7c2eebe3d73eacb73db9070837e2",
+    "extensions/standalones/web-time-tracker-limiter/tailwind.config.mjs": "25164ecee899e13bce28772ccddc53f417d0ba30cab4d282089e32cd8ac42dbb",
+    "extensions/standalones/web-time-tracker-limiter/tests/nightfall-types.test.ts": "55ce85e08bc7b38492d18d1e4a6f8babaede75a98b0cd55ccf47176ef614082a",
+    "extensions/standalones/web-time-tracker-limiter/tests/tailwind.test.ts": "1b72540179cec5c3ea0150756793af1227534352c7f15ce62fe3a8d681f75e6b",
+    "extensions/standalones/web-time-tracker-limiter/entrypoints/dashboard/components/NavIcon.svelte": "4c6a31b3b091840e14ab3a66c895b538d840cf6bfed63b9b1f02023872052a14",
+    "extensions/standalones/tabmon/tools/music_provenance.py": "330806700b91668e8241bcb3baf054e0518bc7ac1c55a824db42d0bbad0b4374",
+    "extensions/standalones/tabmon/tools/test_music_provenance.py": "323e8e254154a823886a7a2d4506582b2210371737f6dfe8c65064af5ab1e242",
+    "extensions/standalones/tabmon/tools/fetch-sfx-mmx.py": "1187dd39552f38e11a7a8bea5444a18a1ea53f1c27ad4d5482fbe329c7bbc5c7",
+    "extensions/standalones/tabmon/tools/fetch-missing.py": "bf1d4fe08f9f81c61e41537fc6bbe7689b776fe9faea4f1eec81b2d18790084c",
+    "extensions/standalones/tabmon/tools/merge-music-receipt.py": "ed3a0fc880132098a1acc867f57d6c2870d6672742dfea467b7366cf88edc2ec",
+    "extensions/standalones/tabmon/scripts/framework-lint.mjs": "3ea4537919f28f965a1916ff25031327d5235cd804d4429ac2c0a594e3374d34",
+    "extensions/standalones/tabmon/scripts/framework-lint.check.mjs": "ec780ad609d9995e41bd5dcc5163e06c853071ee28964ae317efb92e40c06443",
+    "extensions/standalones/tabmon/eslint.config.js": "3b5e5e8c1ebb73a023df9de7a0d39026885c234c319d7417d5f0d17b4e2923d8",
+    "extensions/standalones/tabmon/package.json": "3e9d8bff885ee96369ab2d8bd576abca9dd85b4931fe24b107f392dfb928d315",
+    "extensions/standalones/web-time-tracker-limiter/package.json": "49d924fb588c07843d57794e02de1fd74ab3f886395d1b6156054283ac5541f9",
+    "extensions/standalones/web-time-tracker-limiter/tests/dashboard.test.ts": "8e2ab7b0b1e7e14c5cfdc136b829778c066c3ca7984ee85eb9e83c0e36c68480",
+    "scripts/git-hooks/run-push-gates.mjs": "3fb91031f4c6c4b011609101be6f07bef53f8e995add298faeb47ebfbb5d3e9a",
+    "scripts/git-hooks/run-push-gates.test.mjs": "3912f0703e8b8fe19cdeb58fa13e538ded175323e4937e99c4187cdefc4efefe"
+  },
+  "bun_sha256": "9fd36f87e4b90b07632b987a2e4ec81ca15a62c81bf983190cea6d715be2ad74",
+  "bun_version": "1.3.14",
+  "error": "dependency build refused: packages/extension-core",
+  "finished": 1792833719.6658795
+}

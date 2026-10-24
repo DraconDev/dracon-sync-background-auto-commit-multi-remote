@@ -1,0 +1,13 @@
+
+> @dracon/extension-core@1.0.0 test
+> vitest run --passWithNoTests tests/byok/catalogue-convergence.test.ts --maxWorkers=2
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/extension-core
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  10:27:42
+   Duration  162ms (transform 48ms, setup 0ms, import 61ms, tests 15ms, environment 0ms)
+

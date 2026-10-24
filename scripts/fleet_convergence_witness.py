@@ -28,8 +28,10 @@ def select_witness(repo, witness, journal, daemon_pid, git, ancestor):
             timestamp = int(fields[2])
         except ValueError:
             continue
+        kind = git(repo, 'cat-file', '-t', commit)
         object_ok = (
-            git(repo, 'cat-file', '-t', commit).stdout.strip() == 'commit'
+            fields[0] == commit and kind.returncode == 0
+            and kind.stdout.strip() == 'commit'
             and commit != witness['before_head']
             and ancestor(repo, witness['before_head'], commit)
             and timestamp >= int(witness['before_observed_at'])

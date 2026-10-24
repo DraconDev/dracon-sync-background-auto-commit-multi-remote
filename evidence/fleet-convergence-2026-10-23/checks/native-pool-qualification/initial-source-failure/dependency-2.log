@@ -1,0 +1,2 @@
+$ tsc
+src/byok/catalogue.ts(58,32): error TS2304: Cannot find name 'OPENROUTER_API'.

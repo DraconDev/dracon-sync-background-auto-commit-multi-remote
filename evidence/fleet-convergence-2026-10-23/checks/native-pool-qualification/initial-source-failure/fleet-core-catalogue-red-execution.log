@@ -1,0 +1,44 @@
+
+> @dracon/extension-core@1.0.0 test
+> vitest run --passWithNoTests tests/byok/catalogue-convergence.test.ts --maxWorkers=2
+
+
+ RUN  v4.1.9 /home/dracon/Dev/browser-extensions-shared/packages/extension-core
+
+ ❯ tests/byok/catalogue-convergence.test.ts (1 test | 1 failed) 17ms
+   × fetches the shared OpenRouter endpoint instead of hiding a local reference error 16ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/byok/catalogue-convergence.test.ts > fetches the shared OpenRouter endpoint instead of hiding a local reference error
+AssertionError: expected [] to deeply equal [ { id: 'fixture-model', …(3) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "context_length": 8192,
+-     "free": true,
+-     "id": "fixture-model",
+-     "name": "Fixture Model",
+-   },
+- ]
++ []
+
+ ❯ tests/byok/catalogue-convergence.test.ts:14:18
+     12|   vi.stubGlobal('fetch', fetchMock);
+     13|   const models = await listOpenRouterModels();
+     14|   expect(models).toEqual([{ id: 'fixture-model', name: 'Fixture Model'…
+       |                  ^
+     15|   expect(fetchMock).toHaveBeenCalledWith('https://openrouter.ai/api/v1…
+     16|     expect.objectContaining({ signal: expect.anything() }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  10:27:35
+   Duration  167ms (transform 51ms, setup 0ms, import 63ms, tests 17ms, environment 0ms)
+
