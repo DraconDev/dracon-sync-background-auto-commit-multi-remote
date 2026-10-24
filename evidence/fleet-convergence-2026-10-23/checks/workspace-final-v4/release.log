@@ -172,3 +172,9 @@
    Compiling uuid v1.26.1
    Compiling rust-embed-impl v8.12.0
    Compiling url v2.5.8
+   Compiling rustls-webpki v0.103.16
+   Compiling async-channel v2.5.0
+   Compiling sha2 v0.10.9
+   Compiling futures-executor v0.3.34
+   Compiling toml v0.5.11
+   Compiling basic-toml v0.1.10
