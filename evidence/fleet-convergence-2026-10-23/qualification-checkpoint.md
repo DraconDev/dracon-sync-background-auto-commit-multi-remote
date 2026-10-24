@@ -1,5 +1,12 @@
 # Qualification checkpoint — fleet convergence remains open
 
+**Historical checkpoint:** this records the first qualified deployment. Later
+work and qualification are tracked in [execution-update-2026-10-24.md](execution-update-2026-10-24.md).
+In particular, Warden has since been deployed again, strategy has published,
+platform publication has progressed, and deathrun's initial image staging
+conflict has been repaired. Statements below marked pending describe this
+checkpoint, not the current observed state. No final convergence claim exists.
+
 ## Current runtime
 
 The operator service now runs PID 18115 with executable SHA-256
