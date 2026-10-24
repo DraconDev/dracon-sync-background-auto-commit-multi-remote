@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-24T15:33:41.070807+00:00",
+  "manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.Dy32YA/manifest.json",
+  "status": "running",
+  "revision": "73e4deae3cc3e9bdf89f6285868ebdb9fca4847b",
+  "registered_gates": 19,
+  "passed_gates": 18,
+  "failed_gates": [],
+  "provisioning": {
+    "scope": "0adbb94636edbc906b24afa0fbfb7b89c46136f01ddd0940bf94765a03812978",
+    "status": "released",
+    "waitBudgetSecs": 300,
+    "started": "2026-10-24T15:20:58.591Z",
+    "acquired": "2026-10-24T15:20:58.607Z",
+    "finished": "2026-10-24T15:24:54.229Z"
+  },
+  "contains_expected_eligible_blob": true,
+  "contains_repair_anchor": true,
+  "runner_matches_current_verified_source": true,
+  "loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "expected_loaded_sha256": "59ef460ef335d51aafd09f01d7537589a70712254feb2557751c440f62146cfc",
+  "no_terminal_gate_or_remote_success_inferred": true
+}
