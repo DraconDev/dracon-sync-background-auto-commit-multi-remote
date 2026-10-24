@@ -1,6 +1,9 @@
-# Fleet convergence — investigation in progress
+# Fleet convergence — historical investigation
 
-Current deployment, qualification receipts and remaining failures are recorded
+**Current authoritative report:** [REPORT.md](REPORT.md). The observations below
+are retained history, not current runtime or publication status.
+
+Earlier deployment, qualification receipts and remaining failures are recorded
 in [qualification-checkpoint.md](qualification-checkpoint.md). The baseline and
 "pending" statements below describe the earlier investigation stage; they are
 not a claim that the newly qualified executables remain undeployed. Fleet-wide

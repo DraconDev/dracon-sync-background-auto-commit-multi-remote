@@ -1,5 +1,7 @@
 # Qualification checkpoint — fleet convergence remains open
 
+**Current authoritative report:** [REPORT.md](REPORT.md).
+
 **Historical checkpoint:** this records the first qualified deployment. Later
 work and qualification are tracked in [execution-update-2026-10-24.md](execution-update-2026-10-24.md).
 In particular, Warden has since been deployed again, strategy has published,

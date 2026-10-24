@@ -1,6 +1,9 @@
-# Execution update — convergence remains open
+# Historical execution update — convergence remains open
 
-## Current observations
+**Current authoritative report:** [REPORT.md](REPORT.md). This update predates
+the final59ef artifact; its pending/current statements describe that checkpoint.
+
+## Observations at this checkpoint
 
 Fresh read-only refs and Git objects for all ten initial repositories are in
 `checks/refs-before-final-qualified-deploy.json` (2026-10-24). All commands have
