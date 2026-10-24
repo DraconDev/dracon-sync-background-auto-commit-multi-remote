@@ -290,3 +290,5 @@
    Compiling async-channel v2.5.0
    Compiling iana-time-zone v0.1.65
    Compiling unicode-segmentation v1.13.3
+   Compiling ipnet v2.12.2
+   Compiling openssl-probe v0.2.1
