@@ -1,3 +1,5 @@
     Checking dracon-security v0.4.0 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-warden/src/security)
     Checking dracon-sync v0.113.95 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-sync)
     Checking dracon-system v0.112.45 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-system)
+    Checking dracon-warden v0.113.16 (/tmp/fleet-workspace-frozen-isf27qum/source/dracon-warden)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 28.61s
