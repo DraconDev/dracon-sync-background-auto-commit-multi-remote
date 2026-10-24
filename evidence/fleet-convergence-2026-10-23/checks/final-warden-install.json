@@ -1,0 +1,13 @@
+{
+  "installed_sha256": "c0f1594c5890cbfc08f39ba2bda20072cafcd0ec183d757c2c39af6563470787",
+  "previous_sha256": "99058e48b684ae9b8e0931d2c711461ec2af88164fa499251e01b98851376d43",
+  "backup": "/home/dracon/.local/state/dracon/deployments/20261024T033224Z-final-warden-convergence",
+  "live_hooks_match_qualified_renderer": {
+    "pre-commit": true,
+    "pre-push": true,
+    "pre-rebase": true
+  },
+  "hooks_rewritten_by_this_install": false,
+  "unexpected_prior_hook_refresh": "two qualification tests could refresh operator HOME; corrected to private HOME before further qualification",
+  "secret_trust_ownership_policies_changed": false
+}
