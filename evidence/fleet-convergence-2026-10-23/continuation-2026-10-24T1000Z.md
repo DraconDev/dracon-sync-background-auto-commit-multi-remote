@@ -73,12 +73,21 @@ and deny passed, but input fingerprint changed, so the artifact is unqualified.
 Other active cargo jobs belong to unrelated work; never kill them or delete
 canonical target/checkouts. Storage lease guards/assertions were NOT changed.
 
-Next: qualify an isolated coherent source assembly, with its own target directory
-(no shared build lock or mutable-source drift). Previous v3 source refs are in
-checks/qualification-v3/source.json. A bounded single-test-thread harness is a
-possible qualification setting for these fork/OS-lease fixtures; preserve all
-assertions and the actual internally concurrent publication tests. Do not waive
-failures or claim a default-parallel pass. Diagnose/reproduce further if needed.
+Coherent qualification v5 is now RUNNING: checks/workspace-final-v5/{source,receipt}.json.
+Frozen sources are /tmp/fleet-workspace-frozen-2ajly5n9/source, ordinary Git
+checkouts at captured refs with existing required smudge filters copied exactly.
+Private bare origins and object alternates read canonical objects without
+changing canonical refs/config/checkouts. The build has its own target directory.
+RUST_TEST_THREADS=1 explicitly serializes test cases, not internal publication
+concurrency; no assertions, ignored cases or production locks were changed.
+A controlled fork/CLOEXEC lease reproduction demonstrates a parent-close can
+remain busy until a pre-exec child exits, consistent with the earlier fixture
+failures but not proof of their exact PID. Raw reproduction and recipes are in
+v5/. Do not claim a default-parallel pass or deploy until all4gates pass.
+Previous v3 source refs remain in checks/qualification-v3/source.json.
+Prepared v5 stage-and-receipt.py and deploy-qualified.py are NOT executed yet.
+They require passing gates/candidate execution; all execution fixtures stay
+outside watch roots. The original deployment recipe was recovered and retained.
 
 After all4Rust gates pass on a coherent assembly: run candidate isolated receipt
 using scripts/isolated-publication-receipt.py, safely deploy via maintenance +
