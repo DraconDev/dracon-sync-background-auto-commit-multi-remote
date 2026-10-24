@@ -315,3 +315,11 @@
     Checking hyper-rustls v0.27.9
     Checking tower-http v0.6.11
     Checking reqwest v0.12.28
+   Compiling libgit2-sys v0.18.8+1.9.7
+    Checking notify-rust v4.18.0
+    Checking openssl-probe v0.1.6
+    Checking terminal_size v0.4.4
+    Checking urlencoding v2.1.3
+    Checking ssh2 v0.9.6
+    Checking sysinfo v0.32.1
+    Checking dracon-system-lib v94.2.7
