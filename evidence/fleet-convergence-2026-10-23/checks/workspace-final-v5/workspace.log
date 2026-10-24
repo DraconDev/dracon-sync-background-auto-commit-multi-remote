@@ -190,3 +190,6 @@
    Compiling age v0.10.1
    Compiling aes-gcm v0.10.3
    Compiling proptest v1.11.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
