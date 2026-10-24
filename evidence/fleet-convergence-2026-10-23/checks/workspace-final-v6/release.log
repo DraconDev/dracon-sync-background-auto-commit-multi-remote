@@ -123,3 +123,26 @@
    Compiling clap_derive v4.6.7
    Compiling zbus v5.19.0
    Compiling console v0.16.6
+   Compiling hyper-tls v0.6.0
+   Compiling hyper-rustls v0.27.9
+   Compiling ansi-str v0.9.0
+   Compiling rand_chacha v0.3.1
+   Compiling rust-embed-utils v8.12.0
+   Compiling crossterm v0.29.0
+   Compiling tower-http v0.6.11
+   Compiling fluent v0.16.1
+   Compiling parking_lot v0.12.5
+   Compiling rust-embed v8.12.0
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling arc-swap v1.9.2
+   Compiling bstr v1.13.1
+   Compiling unicode-segmentation v1.13.3
+   Compiling hashbrown v0.14.5
+   Compiling iana-time-zone v0.1.65
+   Compiling mime v0.3.17
+   Compiling once_cell v1.21.4
+   Compiling lazy_static v1.5.0
+   Compiling i18n-embed v0.14.1
+   Compiling dashmap v5.5.3
+   Compiling reqwest v0.12.28

@@ -75,8 +75,10 @@ canonical target/checkouts. Storage lease guards/assertions were NOT changed.
 
 Coherent qualification v5 was rejected after real failures; corrected v6 is now
 RUNNING: checks/workspace-final-v6/{source,receipt}.json.
-Frozen sources are /tmp/fleet-workspace-frozen-2ajly5n9/source, ordinary Git
-checkouts at captured refs with existing required smudge filters copied exactly.
+See v6/source.json for its immutable private source location. The earlier
+/tmp/fleet-workspace-frozen-2ajly5n9/source is retained as a private build cache.
+Both are ordinary Git checkouts at captured refs with existing required smudge
+filters copied exactly.
 Private bare origins and object alternates read canonical objects without
 changing canonical refs/config/checkouts. The build has its own target directory.
 RUST_TEST_THREADS=1 explicitly serializes test cases, not internal publication
@@ -95,7 +97,11 @@ failures from forge classification; real remote Gitaly equivalents stay transien
 with a counterexample regression. V6 freezes that committed fix, runs normal
 locked npm ci for scripts/bucket-runner (no lifecycle bypass), and reuses ONLY
 the owned private v5 compilation cache. V5's active private compiler was cancelled
-by its owner via pidfd; unrelated jobs were not signalled.
+by its owner via pidfd; unrelated jobs were not signalled. V6 raw workspace.log
+now shows the corrected resource-classification test and all3production bucket
+actor tests passing. Full gates remain pending. A targeted read-only follow-up
+review is running as76a8342c-4520-49d9-b492-af19bbf4d027, checking only the narrow
+forge/local-worker classifier delta; the dependency is owned by this goal.
 Prepared v6 stage-and-receipt.py, deploy-qualified.py and write-eligible-refresh.py
 are NOT executed yet. They require passing gates/candidate execution; all fixtures
 and candidate ELF stay outside watch roots. Deployment template was recovered
