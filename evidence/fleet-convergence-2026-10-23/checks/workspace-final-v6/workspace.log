@@ -1780,4 +1780,18 @@ test standard_files::tests::test_copies_file_when_missing ... ok
 test standard_files::tests::test_dry_run_does_not_copy_files ... ok
 test standard_files::tests::test_funding_yml_in_dot_github_subdir ... ok
 test standard_files::tests::test_funding_yml_skip_standard_files_optout ... ok
-test standard_files::tests::test_overwrite_directory_target ... 
+test standard_files::tests::test_overwrite_directory_target ... ok
+test standard_files::tests::test_overwrites_when_configured ... ok
+test standard_files::tests::test_parent_dir_source_rejected_at_point_of_use ... ok
+test standard_files::tests::test_root_equivalent_target_cannot_delete_repo_on_overwrite ... ok
+test standard_files::tests::test_short_form_source_resolution ... ok
+test standard_files::tests::test_skips_from_repo_override ... ok
+test standard_files::tests::test_skips_when_target_exists ... ok
+test standard_files::tests::test_subdirectory_target_creates_parent ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_delete_external_directory ... ok
+test standard_files::tests::test_symlink_directory_target_cannot_write_or_delete_external ... ok
+test standard_files::tests::test_tilde_source_rejected ... ok
+test standard_files::tests::test_warns_when_template_missing ... ok
+test storage::tests::a_refusing_commit_msg_hook_blocks_a_storage_sealed_commit ... ok
+test storage::tests::a_refusing_hook_blocks_a_storage_sealed_commit ... ok
+test storage::tests::a_sealed_commit_runs_the_full_commit_hook_lifecycle_in_git_order ... 
