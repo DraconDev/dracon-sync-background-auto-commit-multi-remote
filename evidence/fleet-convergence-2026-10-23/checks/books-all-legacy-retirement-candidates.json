@@ -9072,7 +9072,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/elara-1/chapters/02-chains-and-thorn-lit-eyes.md",
@@ -9081,7 +9082,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/elara-1/chapters/03-the-huntsmans-hearth.md",
@@ -9090,7 +9092,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/elara-1/chapters/04-smoke-and-the-salt-cove.md",
@@ -9099,7 +9102,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/elara-ashby-1/chapters/01-the-inheritance.md",
@@ -9756,7 +9760,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/eleanor-1/chapters/02-firmware.md",
@@ -9765,7 +9770,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/eleanor-1/chapters/03-cold-crank.md",
@@ -9774,7 +9780,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/eleanor-1/chapters/04-redline.md",
@@ -9783,7 +9790,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/eleanor-keystone-1/chapters/01-chisel-and-dust.md",
@@ -11808,7 +11816,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/fernsong-1/chapters/02-inventory-of-unsettled-things.md",
@@ -11817,7 +11826,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/fernsong-1/chapters/03-tea-with-the-apothecary.md",
@@ -11826,7 +11836,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/fernsong-1/chapters/04-the-badgers-ledger.md",
@@ -11835,7 +11846,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/finley-frost-1/chapters/01-the-girl-who-walked-out-of-the-storm.md",
@@ -15408,7 +15420,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/james-1/chapters/02-what-the-envelope-held.md",
@@ -15417,7 +15430,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/james-1/chapters/03-the-yard-at-mile-zero.md",
@@ -15426,7 +15440,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/james-1/chapters/04-a-debt-repaid.md",
@@ -15435,7 +15450,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/james-ashworth-1/chapters/01-the-custody-of-strangers.md",
@@ -23004,7 +23020,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/morgan-1/chapters/02-the-half-dug-hole.md",
@@ -23013,7 +23030,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/morgan-1/chapters/03-county-clerk-hours.md",
@@ -23022,7 +23040,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/morgan-1/chapters/04-the-groundskeepers-shed.md",
@@ -23031,7 +23050,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/morgan-fenwick-1/chapters/01-the-letter-in-the-cabin.md",
@@ -23256,7 +23276,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/nathan-1/chapters/02-receipts-and-red-flags.md",
@@ -23265,7 +23286,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/nathan-1/chapters/03-ghost-vins.md",
@@ -23274,7 +23296,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/nathan-1/chapters/04-the-woman-in-the-photograph.md",
@@ -23283,7 +23306,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/neo-vance-1/chapters/01-the-last-clean-transmission.md",
@@ -25308,7 +25332,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/oliver-123-1/chapters/02-embers-in-the-alley.md",
@@ -25317,7 +25342,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/oliver-123-1/chapters/03-curfew.md",
@@ -25326,7 +25352,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/oliver-123-1/chapters/04-the-watcher.md",
@@ -25335,7 +25362,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/oliver-silverveil-1/chapters/01-the-man-at-the-ledger.md",
@@ -29016,7 +29044,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/ross-1/chapters/02-run-the-vin--lose-the-signal.md",
@@ -29025,7 +29054,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/ross-1/chapters/03-black-notebook--red-flag.md",
@@ -29034,7 +29064,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/ross-1/chapters/04-harlan-boyd-comes-calling.md",
@@ -29043,7 +29074,8 @@
       "canonical_index_blob": null,
       "canonical_head_blob": null,
       "canonical_worktree_blob": null,
-      "all_views_identical": false
+      "all_views_identical": false,
+      "retained_canonical_aliases": []
     },
     {
       "retired_candidate": "web/books/static/books/rowan-ashvine-1/chapters/01-hollowmere-burns.md",
@@ -40020,5 +40052,6 @@
   "all_views_identical_count": 4414,
   "other_deleted_paths_under_books": [],
   "purpose": "Already-deleted obsolete legacy sample copies; exact canonical counterparts are retained in HEAD, index and worktree. No asset bytes modified by this read-only check.",
-  "existing_policy": "docs/design/bucket-retirement-and-glob-fix-2026-10-07.md"
+  "existing_policy": "docs/design/bucket-retirement-and-glob-fix-2026-10-07.md",
+  "retained_by_alias_count": 0
 }
