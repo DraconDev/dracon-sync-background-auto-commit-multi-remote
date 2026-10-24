@@ -278,3 +278,4 @@
    Compiling winnow v0.7.15
    Compiling clap_lex v1.1.1
    Compiling clap_builder v4.6.7
+   Compiling toml_edit v0.22.27
