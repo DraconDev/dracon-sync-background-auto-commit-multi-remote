@@ -214,6 +214,10 @@ refreshed to claim those older snapshots passed. The next normal attempt must
 validate corrected coherent source. Browser's refreshed eligible marker anchors
 the provisioning repair, not merely an earlier source tip.
 
+At2026-10-24T15:18UTC the daemon started ordinary attemptDy32YA on newer
+73e4deae3cc3e9bdf89f6285868ebdb9fca4847b; the stuck list was empty. This is
+an in-progress observation, not a gate pass or a remote acknowledgment.
+
 **Still required:** terminal success of the original browser whole gates and
 observed final-runtime eligible-tip advancement on all its intended remotes.
 The daemon, not a manual push, must establish it. Current active work is not
