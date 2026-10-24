@@ -278,3 +278,4 @@
    Compiling native-tls v0.2.18
    Compiling async-task v4.7.1
    Compiling clap_builder v4.6.7
+   Compiling clap_derive v4.6.7
