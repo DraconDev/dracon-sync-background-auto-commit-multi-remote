@@ -1,0 +1,139 @@
+{
+  "observed_at": 1792854992.1239624,
+  "active_manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.rCvDai/manifest.json",
+  "signals": [
+    {
+      "pid": 326080,
+      "starttime": "256265228",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 326230,
+      "starttime": "256265259",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4012433,
+      "starttime": "256138584",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4012480,
+      "starttime": "256138592",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4013353,
+      "starttime": "256138738",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 4015633,
+      "starttime": "256139298",
+      "signal": "SIGTERM"
+    }
+  ],
+  "failed_revision": "476c295a1813f9d7ed8765a15787d495ccf9451c",
+  "group": 4012433,
+  "daemon_pid": 3046262,
+  "initial_members": [
+    {
+      "pid": 326080,
+      "state": "S",
+      "ppid": 4015633,
+      "group": 4012433,
+      "starttime": "256265228",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.rCvDai/snapshot-476c295a1813f9d7ed8765a15787d495ccf9451c/extensions/collections/new-tab/virtual-pet-new-tab",
+      "unit": true,
+      "name": "npm run typeche"
+    },
+    {
+      "pid": 326230,
+      "state": "R",
+      "ppid": 326080,
+      "group": 4012433,
+      "starttime": "256265259",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.rCvDai/snapshot-476c295a1813f9d7ed8765a15787d495ccf9451c/extensions/collections/new-tab/virtual-pet-new-tab",
+      "unit": true,
+      "name": "MainThread"
+    },
+    {
+      "pid": 4012433,
+      "state": "S",
+      "ppid": 3046262,
+      "group": 4012433,
+      "starttime": "256138584",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "git"
+    },
+    {
+      "pid": 4012480,
+      "state": "S",
+      "ppid": 4012433,
+      "group": 4012433,
+      "starttime": "256138592",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "ssh"
+    },
+    {
+      "pid": 4013353,
+      "state": "S",
+      "ppid": 4012433,
+      "group": 4012433,
+      "starttime": "256138738",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "pre-push"
+    },
+    {
+      "pid": 4015633,
+      "state": "S",
+      "ppid": 4013353,
+      "group": 4012433,
+      "starttime": "256139298",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "MainThread"
+    }
+  ],
+  "applied": true,
+  "corrected_test_anchor": "0860f182dc697ac7d3742c84ca4ad6b0b9986106"
+}
