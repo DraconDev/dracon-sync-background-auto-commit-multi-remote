@@ -282,3 +282,4 @@
    Compiling iana-time-zone v0.1.65
    Compiling unicode-segmentation v1.13.3
    Compiling hashbrown v0.14.5
+   Compiling reqwest v0.12.28
