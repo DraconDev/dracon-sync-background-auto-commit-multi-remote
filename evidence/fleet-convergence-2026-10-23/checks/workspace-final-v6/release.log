@@ -67,3 +67,12 @@
    Compiling syn v1.0.109
    Compiling is_terminal_polyfill v1.70.2
    Compiling anstyle v1.0.14
+   Compiling regex-syntax v0.8.11
+   Compiling cpufeatures v0.3.1
+   Compiling anstyle-query v1.1.5
+   Compiling litrs v1.0.0
+   Compiling tower-layer v0.3.3
+   Compiling rustc-hash v1.1.0
+   Compiling getrandom v0.3.4
+   Compiling fluent-bundle v0.15.3
+   Compiling tower v0.5.3
