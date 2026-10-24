@@ -2164,4 +2164,49 @@ test storage::tests::repo_policy_symlinks_cannot_read_outside_repository ... ok
 test storage::tests::repository_cannot_downgrade_operator_backend_encryption ... ok
 test storage::tests::rule_order_threshold_and_no_universal_media_policy ... ok
 test storage::tests::sealed_commit_honors_a_refusing_reference_transaction_hook ... ok
-test storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg ... 
+test storage::tests::sealed_commit_rejects_a_message_emptied_by_commit_msg ... ok
+test storage::tests::staged_nested_macro_and_quoted_storage_declarations_require_binding ... ok
+test storage::tests::storage_bootstrap_cannot_bypass_guard_with_no_verify ... ok
+test storage::tests::storage_bootstrap_without_local_driver_cannot_commit_hydrated_bytes ... ok
+test storage::tests::symlinks_and_non_utf8_paths_are_not_silently_followed_or_conflated ... ok
+test stuck_route::tests::cause_falls_back_to_first_lines ... ok
+test stuck_route::tests::dedups_same_tip_episode ... ok
+test stuck_route::tests::new_tip_is_a_new_episode ... ok
+test stuck_route::tests::rederive_files_despite_misclassified_summary ... warning: You appear to have cloned an empty repository.
+ok
+test stuck_route::tests::routes_hook_refusal_with_guard_json_cause ... ok
+test stuck_route::tests::skips_repo_without_ledger ... ok
+test stuck_route::tests::skips_transient_network ... ok
+test stuck_route::tests::skips_young_stuck ... ok
+test sync::bucket_qualification_tests::bucket_qualification_daemon_concurrent_manifest_preserves_independent_writer ... FAILED
+test sync::bucket_qualification_tests::bucket_qualification_daemon_new_enrollment_retry_and_fresh_restore ... FAILED
+test sync::bucket_qualification_tests::bucket_qualification_daemon_outage_partial_upload_and_recovery ... FAILED
+test sync::diff_tests::test_fallback_entries_recalculate_staged_files ... ok
+test sync::diff_tests::test_retain_existing_stage_paths_drops_vanished ... ok
+test sync::owned_commit_tests::a_refusing_commit_hook_blocks_the_auto_commit_and_keeps_the_work ... ok
+test sync::owned_commit_tests::a_repository_without_commit_hooks_still_commits ... ok
+test sync::owned_commit_tests::another_publication_owner_allows_a_real_commit_without_a_push_or_failure_reset ... ok
+test sync::owned_commit_tests::cancelled_or_timed_out_publication_kills_owned_hook_descendants ... ok
+test sync::owned_commit_tests::configured_hook_runner_propagates_refusal_without_mutating_head ... ok
+test sync::owned_commit_tests::owned_commit_runs_the_configured_hook_chain_and_preserves_worktree_edits ... ok
+test sync::owned_commit_tests::the_ordinary_commit_path_runs_each_hook_exactly_once ... ok
+test sync::publication_actor_tests::abandoned_fixture_hook_exits_when_its_checkout_disappears ... ok
+test sync::publication_actor_tests::blocked_publication_does_not_stall_cross_repo_or_same_repo_commits ... branch 'main' set up to track 'origin/main'.
+branch 'main' set up to track 'origin/main'.
+ok
+test sync::publication_actor_tests::secondary_owner_commits_and_reports_pending_publication ... ok
+test sync::publication_actor_tests::unpublished_tip_from_another_process_is_rediscovered ... ok
+test sync::push_isolation_tests::cancelled_push_hook_cleans_owned_descendants_but_not_interactive_sentinel ... ok
+test sync::push_isolation_tests::release_tag_janitor_and_nix_hooks_yield_local_work_capacity ... ok
+test sync::push_isolation_tests::slow_push_hook_leaves_capacity_for_inspection_and_commit_and_enforces_rejection ... ok
+test sync::tests::github_mirror_comparison_accepts_transport_variants ... ok
+test sync::tests::github_mirror_comparison_uses_repository_identity_not_host_only ... ok
+test sync::tests::parent_gitlink_propagates_after_standalone_commit ... ok
+test sync::tests::test_alert_unpushed_threshold ... [master (root-commit) 8218dd4] init
+ok
+test sync::tests::test_alert_unpushed_threshold_not_triggered ... [master (root-commit) 8218dd4] init
+ok
+test sync::tests::test_auto_commit_excludes_union_global_and_per_repo ... ok
+test sync::tests::test_auto_resolve_no_unmerged ... ok
+test sync::tests::test_auto_resolve_unmerged_disabled ... ok
+test sync::tests::test_auto_resolve_unmerged_working_tree_differs_from_head ... 
