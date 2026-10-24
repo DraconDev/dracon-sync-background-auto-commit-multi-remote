@@ -329,3 +329,4 @@
     Checking git2 v0.21.0
     Checking dracon-git v94.7.2
     Checking dracon-sync v0.113.95 (/tmp/fleet-workspace-frozen-2ajly5n9/source/dracon-sync)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 08s
