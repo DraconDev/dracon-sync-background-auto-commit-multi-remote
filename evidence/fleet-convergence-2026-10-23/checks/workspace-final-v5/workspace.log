@@ -310,3 +310,5 @@
    Compiling blocking v1.7.0
    Compiling async-process v2.5.0
    Compiling tokio-rustls v0.26.5
+   Compiling tokio-native-tls v0.3.1
+   Compiling zbus_macros v5.19.0
