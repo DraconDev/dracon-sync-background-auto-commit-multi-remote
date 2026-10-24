@@ -1,0 +1,83 @@
+diff --git a/scripts/git-hooks/run-push-gates.mjs b/scripts/git-hooks/run-push-gates.mjs
+index 7e37b2baf7..20f15f308e 100644
+--- a/scripts/git-hooks/run-push-gates.mjs
++++ b/scripts/git-hooks/run-push-gates.mjs
+@@ -11,6 +11,17 @@ import { fileURLToPath } from 'node:url';
+ process.umask(0o077);
+ const original = realpathSync(process.cwd());
+ const env = { ...process.env };
++// Each mirror owns an independent hook, but they share the daemon's finite
++// task budget. Native pools also run during install/prepare, before Vitest's
++// cap applies. Bound their fan-out without serializing publication or skipping
++// lifecycle scripts; retain caller limits that are already stricter.
++const resourceEnvironment = {};
++for (const [key, limit] of Object.entries({ TOKIO_WORKER_THREADS: 2, RAYON_NUM_THREADS: 2,
++  ROLLDOWN_WORKER_THREADS: 2, ROLLDOWN_MAX_BLOCKING_THREADS: 8, GOMAXPROCS: 2 })) {
++  const requested = Number(env[key]);
++  env[key] = String(Number.isInteger(requested) && requested > 0 ? Math.min(requested, limit) : limit);
++  resourceEnvironment[key] = env[key];
++}
+ // Git's push environment must not redirect snapshot commands into the live index.
+ for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE',
+   'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_PREFIX']) delete env[key];
+@@ -24,7 +35,7 @@ console.log(`🧾 Pre-push attempt logs: ${attempt}`);
+ env.npm_config_cache = join(root, 'npm-cache');
+ env.BUN_INSTALL_CACHE_DIR = join(root, 'bun-cache');
+ const manifest = { version: 1, repo: original, runnerSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
+-  started: new Date().toISOString(), ownerPid: process.pid, tuples: [], revisions: [], status: 'running' };
++  resourceEnvironment, started: new Date().toISOString(), ownerPid: process.pid, tuples: [], revisions: [], status: 'running' };
+ const receipt = () => writeFileSync(join(attempt, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+ receipt();
+ let activeTree;
+diff --git a/scripts/git-hooks/run-push-gates.test.mjs b/scripts/git-hooks/run-push-gates.test.mjs
+index 0c43927b21..711e25b793 100644
+--- a/scripts/git-hooks/run-push-gates.test.mjs
++++ b/scripts/git-hooks/run-push-gates.test.mjs
+@@ -10,8 +10,7 @@ const ws = 'extensions/standalones/fixture';
+ function fixture(scripts = {}) {
+   const root = mkdtempSync(join(tmpdir(), 'pinned-gate-fixture-'));
+   mkdirSync(join(root, ws), { recursive: true });
+-  const git = (...args) => execFileSync('git', ['-c', 'core.hooksPath=/dev/null',
+-    '-c', 'commit.gpgsign=false', ...args],
++  const git = (...args) => execFileSync('git', args,
+     { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+   git('init', '-q');
+   const put = (path, value) => { mkdirSync(join(root, path, '..'), { recursive: true }); writeFileSync(join(root, path), value); };
+@@ -246,3 +245,37 @@ assert.equal(readFileSync('dist-ready.txt','utf8'),'ok');console.log('dependent
+     assert.equal(result.manifest.revisions[0].gates[0].status, 'passed');
+   } finally { rmSync(repo.root, { recursive: true, force: true }); }
+ });
++
++for (const stricter of [false, true]) test(`native pool budgets ${stricter ? 'preserve stricter caller limits' : 'bound lifecycle, library and gate workers'}`, async () => {
++  const repo = fixture();
++  const limits = { TOKIO_WORKER_THREADS: 2, RAYON_NUM_THREADS: 2, ROLLDOWN_WORKER_THREADS: 2,
++    ROLLDOWN_MAX_BLOCKING_THREADS: 8, GOMAXPROCS: 2 };
++  try {
++    repo.put('package.json', JSON.stringify({ packageManager: 'bun@1.3.14',
++      workspaces: ['packages/*', 'extensions/standalones/*'] }));
++    repo.put('check-pools.mjs', `import assert from 'node:assert/strict';
++import {appendFileSync} from 'node:fs';
++for (const [key, limit] of Object.entries(${JSON.stringify(limits)}))
++  assert.equal(process.env[key], process.env.STRICTER_POOLS === 'yes' ? '1' : String(limit), key);
++appendFileSync(process.env.POOL_TRACE, process.argv[2] + '\\n');`);
++    repo.put('packages/runtime/package.json', JSON.stringify({ name: '@fixture/runtime', version: '1.0.0',
++      main: './dist/index.js', scripts: { build: 'node ../../check-pools.mjs library && node build.mjs' } }));
++    repo.put('packages/runtime/build.mjs', `import {mkdirSync,writeFileSync} from 'node:fs';
++mkdirSync('dist',{recursive:true});writeFileSync('dist/index.js','export const ok=1;');`);
++    const check = 'node ../../../check-pools.mjs';
++    repo.put(`${ws}/package.json`, JSON.stringify({ name: 'fixture-pools', version: '1.0.0',
++      dependencies: { '@fixture/runtime': 'workspace:*' }, scripts: { postinstall: `${check} install`,
++        pretest: `${check} pretest`, test: `${check} test`, posttest: `${check} posttest` } }));
++    execFileSync('bun', ['install', '--ignore-scripts'], { cwd: repo.root, stdio: 'ignore' });
++    repo.sha = repo.commit();
++    const trace = join(repo.root, 'attempts', 'pool-phases.log');
++    const extra = { ...Object.fromEntries(Object.keys(limits).map(key => [key, stricter ? '1' : '999'])),
++      STRICTER_POOLS: stricter ? 'yes' : 'no', POOL_TRACE: trace };
++    const result = await run(repo, undefined, extra);
++    assert.equal(result.code, 0, result.output);
++    assert.deepEqual(result.manifest.resourceEnvironment,
++      Object.fromEntries(Object.entries(limits).map(([key, limit]) => [key, String(stricter ? 1 : limit)])));
++    const phases = readFileSync(trace, 'utf8').trim().split('\n');
++    for (const phase of ['library', 'install', 'pretest', 'test', 'posttest']) assert.ok(phases.includes(phase), phase);
++  } finally { rmSync(repo.root, { recursive: true, force: true }); }
++});

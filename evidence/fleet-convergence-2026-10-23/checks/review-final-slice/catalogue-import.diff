@@ -1,0 +1,36 @@
+diff --git a/packages/extension-core/src/byok/catalogue.ts b/packages/extension-core/src/byok/catalogue.ts
+index 8972c69c35..9c8378b6c7 100644
+--- a/packages/extension-core/src/byok/catalogue.ts
++++ b/packages/extension-core/src/byok/catalogue.ts
+@@ -16,7 +16,7 @@
+  * typing a model id they already know.
+  */
+ 
+-import { AGNES_ENDPOINT } from './types.js';
++import { AGNES_ENDPOINT, OPENROUTER_API } from './types.js';
+ import { chatWithProvider } from './client.js';
+ import { chatWithAgnes } from './agnes.js';
+ import { chatWithOpenRouter } from './openrouter.js';
+diff --git a/packages/extension-core/tests/byok/catalogue-convergence.test.ts b/packages/extension-core/tests/byok/catalogue-convergence.test.ts
+new file mode 100644
+index 0000000000..f232c3383a
+--- /dev/null
++++ b/packages/extension-core/tests/byok/catalogue-convergence.test.ts
+@@ -0,0 +1,17 @@
++import { afterEach, expect, it, vi } from 'vitest';
++import { listOpenRouterModels } from '../../src/byok/catalogue.js';
++
++// A missing endpoint import used to be swallowed as an empty catalogue, while
++// also refusing the clean-snapshot library build. No provider request is made.
++afterEach(() => vi.unstubAllGlobals());
++
++it('fetches the shared OpenRouter endpoint instead of hiding a local reference error', async () => {
++  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [
++    { id: 'fixture-model', name: 'Fixture Model', pricing: { prompt: '0', completion: '0' }, context_length: 8192 },
++  ] }), { status: 200 }));
++  vi.stubGlobal('fetch', fetchMock);
++  const models = await listOpenRouterModels();
++  expect(models).toEqual([{ id: 'fixture-model', name: 'Fixture Model', free: true, context_length: 8192 }]);
++  expect(fetchMock).toHaveBeenCalledWith('https://openrouter.ai/api/v1/models',
++    expect.objectContaining({ signal: expect.anything() }));
++});

@@ -1,0 +1,32 @@
+diff --git a/src/git/push.rs b/src/git/push.rs
+index 161b05f..b02f714 100644
+--- a/src/git/push.rs
++++ b/src/git/push.rs
+@@ -769,7 +769,7 @@ pub(crate) fn classify_push_failure(err_msg: &str) -> &'static str {
+     } else if is_pack_too_large(err_msg) {
+         "pack exceeds forge size limit (needs history rewrite)"
+     } else if is_local_hook_rejection(err_msg) {
+-        "local pre-push hook refused the push (repo policy: asset-guard / size budget / secret scan / history guard — fix the policy, not the network)"
++        "local pre-push hook failed (inspect retained hook output, product gates and the service environment; this does not establish a network failure or justify weakening policy)"
+     } else if is_permanent_push_rejection(err_msg) {
+         "server-side policy rejection (protected branch / hook declined / missing repo / lost key)"
+     } else if is_push_rejected(err_msg) {
+@@ -1768,6 +1768,18 @@ mod tests {
+         assert!(classify_push_failure(banner_only).contains("local pre-push hook"));
+     }
+ 
++    #[test]
++    fn test_local_hook_resource_failure_does_not_prescribe_policy_weakening() {
++        let message = "Pre-push: snapshot dependency installation exited 128\nOS can't spawn worker thread: Resource temporarily unavailable (os error 11)\npostinstall terminated by SIGABRT";
++        assert!(is_local_hook_rejection(message));
++        let class = classify_push_failure(message);
++        assert!(class.contains("local pre-push hook"));
++        assert!(class.contains("service environment"));
++        assert!(!class.contains("fix the policy"));
++        assert!(!is_transient_forge_outage(message));
++        assert!(!is_transient_network_outage(message));
++    }
++
+     #[test]
+     fn test_local_hook_rejection_does_not_swallow_server_side_policy() {
+         // The server-side arms must keep winning: `pre-receive` does not
