@@ -283,3 +283,4 @@
    Compiling unicode-segmentation v1.13.3
    Compiling hashbrown v0.14.5
    Compiling reqwest v0.12.28
+   Compiling dashmap v5.5.3
