@@ -1,0 +1,17 @@
+..F.
+======================================================================
+FAIL: test_timeout_cleans_owned_descendant_and_inherited_pipes (__main__.ObservationTests.test_timeout_cleans_owned_descendant_and_inherited_pipes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/dracon/Dev/dracon-utilities/dracon-sync/scripts/test-fleet-convergence-observe.py", line 46, in test_timeout_cleans_owned_descendant_and_inherited_pipes
+    self.assertEqual(stat.read_text().rsplit(') ', 1)[1].split()[0], 'Z')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R' != 'Z'
+- R
++ Z
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.008s
+
+FAILED (failures=1)
