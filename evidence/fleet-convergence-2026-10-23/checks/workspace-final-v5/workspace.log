@@ -152,3 +152,8 @@
    Compiling rand_chacha v0.3.1
    Compiling hashbrown v0.14.5
    Compiling bytes v1.12.1
+   Compiling vcpkg v0.2.15
+   Compiling dashmap v5.5.3
+   Compiling rand v0.8.8
+   Compiling chacha20poly1305 v0.10.1
+   Compiling i18n-embed v0.14.1
