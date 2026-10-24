@@ -239,3 +239,7 @@
     Checking untrusted v0.9.0
     Checking is_terminal_polyfill v1.70.2
     Checking anstream v1.0.0
+    Checking want v0.3.1
+    Checking foreign-types v0.3.2
+   Compiling openssl v0.10.81
+    Checking h2 v0.4.19
