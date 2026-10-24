@@ -265,3 +265,4 @@
    Compiling zbus v5.19.0
    Compiling serde_urlencoded v0.7.1
    Compiling clap_derive v4.6.7
+   Compiling rayon v1.12.0
