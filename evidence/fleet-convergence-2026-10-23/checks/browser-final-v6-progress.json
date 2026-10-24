@@ -1,0 +1,29 @@
+{
+  "observed_at": 1792841315.7622619,
+  "attempt": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.pQhJ6K",
+  "status": "running",
+  "resource_environment": {
+    "TOKIO_WORKER_THREADS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "ROLLDOWN_WORKER_THREADS": "2",
+    "ROLLDOWN_MAX_BLOCKING_THREADS": "8",
+    "GOMAXPROCS": "2"
+  },
+  "source_revisions": [
+    "0d601d4647fa25b44ef540f955612222268b4ca4"
+  ],
+  "registered_gates": 53,
+  "passed": 51,
+  "failed": [
+    [
+      "extensions/collections/toolkit/gemini-toolkit",
+      "TYPECHECK"
+    ]
+  ],
+  "running": [
+    [
+      "extensions/standalones/bugkit",
+      "TEST"
+    ]
+  ]
+}
