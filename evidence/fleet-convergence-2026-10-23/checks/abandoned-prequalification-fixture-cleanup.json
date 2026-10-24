@@ -1,0 +1,30 @@
+{
+  "reason": "Abandoned test-only Git push/hook from failed prequalification actor test; parent reaped, cwd and hook deleted, seven hours old. Exact hook matches src/sync/publication_actor_tests.rs. No active service or unrelated workload targeted.",
+  "hook": "touch ../hook-entered; while [ ! -e ../hook-release ]; do sleep 0.01; done",
+  "signal": "pidfd-targeted SIGTERM",
+  "processes": [
+    {
+      "pid": 2152916,
+      "cwd": "/tmp/.tmpLtgTrJ/a (deleted)",
+      "command": "/run/current-system/sw/bin/git push origin da1fd45662f8c278aec9c1cb85c5d8e1550c3e88:refs/heads/main ",
+      "starttime": "249148208"
+    },
+    {
+      "pid": 2152920,
+      "cwd": "/tmp/.tmpLtgTrJ/a-remote.git (deleted)",
+      "command": "git-receive-pack /tmp/.tmpLtgTrJ/a-remote.git ",
+      "starttime": "249148209"
+    },
+    {
+      "pid": 2152925,
+      "cwd": "/tmp/.tmpLtgTrJ/a (deleted)",
+      "command": "/bin/sh /tmp/.tmpLtgTrJ/a/hooks/pre-push origin /tmp/.tmpLtgTrJ/a-remote.git ",
+      "starttime": "249148209"
+    }
+  ],
+  "pids_not_present_after_signal": [
+    2152916,
+    2152920,
+    2152925
+  ]
+}

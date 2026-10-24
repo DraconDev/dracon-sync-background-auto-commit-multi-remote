@@ -165,6 +165,25 @@ impl SyncGuard {
     }
 }
 
+/// A hard-aborted test cannot run Rust Drop. Its hook must not spin forever
+/// after the fixture directory is removed by the next recovery attempt.
+#[tokio::test]
+async fn abandoned_fixture_hook_exits_when_its_checkout_disappears() {
+    let fixture = Fixture::new("abandoned", true);
+    let mut child = tokio::process::Command::new(fixture.repo.join("hooks/pre-push"))
+        .current_dir(&fixture.repo)
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    fixture.wait_for("hook-entered", 10).await;
+    drop(fixture);
+    let status = tokio::time::timeout(Duration::from_secs(10), child.wait())
+        .await
+        .expect("abandoned hook survived removal of its checkout")
+        .unwrap();
+    assert!(!status.success(), "abandoned hook must refuse publication");
+}
+
 /// The core contract: a blocked publication in repository A must not stop
 /// repository B from committing AND publishing, and it must not stop a SECOND
 /// real commit in A from landing while A's upload is still blocked. A released
