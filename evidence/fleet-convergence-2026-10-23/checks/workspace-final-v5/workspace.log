@@ -295,3 +295,18 @@
    Compiling zbus_names v4.3.4
    Compiling hyper-util v0.1.20
    Compiling comfy-table v7.2.2
+   Compiling chrono v0.4.45
+   Compiling async-signal v0.2.14
+   Compiling clap v4.6.7
+   Compiling toml v0.8.23
+   Compiling async-lock v3.4.2
+   Compiling piper v0.2.5
+   Compiling encoding_rs v0.8.41
+   Compiling multiversion-macros v0.9.0
+   Compiling sync_wrapper v1.0.2
+   Compiling tower-layer v0.3.3
+   Compiling tower v0.5.3
+   Compiling multiversion v0.9.0
+   Compiling blocking v1.7.0
+   Compiling async-process v2.5.0
+   Compiling tokio-rustls v0.26.5
