@@ -311,3 +311,7 @@
     Checking serde_urlencoded v0.7.1
     Checking zbus v5.19.0
     Checking encoding_rs v0.8.41
+    Checking hyper-tls v0.6.0
+    Checking hyper-rustls v0.27.9
+    Checking tower-http v0.6.11
+    Checking reqwest v0.12.28
