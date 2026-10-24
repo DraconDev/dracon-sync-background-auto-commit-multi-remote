@@ -77,3 +77,6 @@
    Compiling hashbrown v0.17.1
    Compiling litemap v0.8.3
    Compiling icu_locale_core v2.3.0
+   Compiling indexmap v2.14.2
+   Compiling hybrid-array v0.4.15
+   Compiling unic-langid-impl v0.9.6
