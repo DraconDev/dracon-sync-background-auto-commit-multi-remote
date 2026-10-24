@@ -1,0 +1,12 @@
+
+> vidpro-extension@1.16.0 prebuild
+> node scripts/ensure-wxt.mjs
+
+
+> vidpro-extension@1.16.0 build
+> tsc --noEmit && wxt build && node scripts/clean-duplicate-css.js
+
+utils/watchCollaborators.ts(196,41): error TS2339: Property 'browseEndpoint' does not exist on type '{}'.
+utils/watchCollaborators.ts(247,41): error TS2339: Property 'showDialogCommand' does not exist on type '{}'.
+
+Gate exited with status 2

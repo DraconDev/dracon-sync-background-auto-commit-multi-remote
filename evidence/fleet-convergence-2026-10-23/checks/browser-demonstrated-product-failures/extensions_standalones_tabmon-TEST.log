@@ -1,0 +1,38 @@
+
+> tabmon@1.1.0 test
+> vitest run --passWithNoTests
+
+
+ RUN  v4.1.9 /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/extensions/standalones/tabmon
+
+04:24:12 [vite-plugin-svelte] /home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.tG2OS0/snapshot-5281de2176a4cb0cb4a48ebd0f34edf88a4e3df9/packages/nightfall/src/components/Card.svelte:48:14 This reference only captures the initial value of `dense`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+ ❯ tests/sfx.test.ts (50 tests | 1 failed) 57150ms
+     × ships a provenance receipt that matches the recipe, take by take 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sfx.test.ts > packaged sfx > ships a provenance receipt that matches the recipe, take by take
+AssertionError: cue's prompt must be the prompt the recipe carries: expected 'cute chiptune game sound effect, a sh…' to be 'orchestral game sound effect, a short…' // Object.is equality
+
+Expected: "orchestral game sound effect, a short alert sweep, rising bowed string swell ending on a soft bell, calm and inviting, instrumental, no vocals, no choir"
+Received: "cute chiptune game sound effect, a short alert sweep, rising square-wave whoosh ending on a bright ping, attention grabbing and playful, clean retro 8-bit video game sound, no vocals, no drums"
+
+ ❯ tests/sfx.test.ts:825:9
+    823|         row!.prompt,
+    824|         `${name}'s prompt must be the prompt the recipe carries`,
+    825|       ).toBe(prompts.get(name)?.prompt);
+       |         ^
+    826|     }
+    827|     // The receipt's shipped path is the file that ships, and it is
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 65 passed (66)
+      Tests  1 failed | 997 passed (998)
+   Start at  04:24:09
+   Duration  76.58s (transform 5.96s, setup 1.14s, import 11.25s, tests 94.74s, environment 32.61s)
+
+
+Gate exited with status 1
