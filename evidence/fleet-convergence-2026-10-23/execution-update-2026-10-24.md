@@ -239,11 +239,11 @@ facts:
 
 ## Remaining concrete work
 
-Finish the real browser product gate and fix any meaningful failures; only
-then clear its retry exhaustion. Retain coherent affected-product results.
-Finish qualification, safely deploy the final daemon, rerun its isolated
-installed-binary receipt, and prove a daemon-owned eligible commit reaches
-all intended destinations for each of the ten initial repositories using
-before/after refs, commit objects and journal evidence. Continue to distinguish
-later edits from publication failure. The final ledger/report and independent
-review are still required; no completion claim is submitted.
+Repair/qualify the real browser product gate while preserving provenance and
+other meaningful assertions; only then clear its targeted retry exhaustion and
+observe daemon publication. Resolve the platform's current local forward-only
+refusal without discarding later edits or weakening the guard. Retain coherent
+affected-product results, finish v3 qualification after test isolation, and
+refresh final-loaded before/after remote/object/journal evidence until all ten
+initial repositories are proven. The final whole-contract independent rehearsal
+and final report remain required; no completion claim is submitted.
