@@ -50,3 +50,8 @@
    Compiling linux-raw-sys v0.12.1
    Compiling itoa v1.0.18
    Compiling futures-util v0.3.34
+   Compiling fastrand v2.5.0
+   Compiling autocfg v1.5.1
+   Compiling cpufeatures v0.2.17
+   Compiling thiserror v1.0.69
+   Compiling thiserror-impl v1.0.69
