@@ -1,0 +1,102 @@
+{
+  "observed_at": 1792858111.1988955,
+  "active_manifest": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.d3CKuT/manifest.json",
+  "signals": [
+    {
+      "pid": 1445648,
+      "starttime": "256561286",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1445675,
+      "starttime": "256561290",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1446207,
+      "starttime": "256561395",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1449506,
+      "starttime": "256562304",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1449639,
+      "starttime": "256562357",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 1449506,
+      "starttime": "256562304",
+      "signal": "SIGTERM"
+    }
+  ],
+  "failed_revision": "73e4deae3cc3e9bdf89f6285868ebdb9fca4847b",
+  "group": 1445648,
+  "daemon_pid": 3046262,
+  "initial_members": [
+    {
+      "pid": 1445648,
+      "state": "S",
+      "ppid": 3046262,
+      "group": 1445648,
+      "starttime": "256561286",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "git"
+    },
+    {
+      "pid": 1445675,
+      "state": "S",
+      "ppid": 1445648,
+      "group": 1445648,
+      "starttime": "256561290",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "ssh"
+    },
+    {
+      "pid": 1446207,
+      "state": "S",
+      "ppid": 1445648,
+      "group": 1445648,
+      "starttime": "256561395",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "pre-push"
+    },
+    {
+      "pid": 1449506,
+      "state": "S",
+      "ppid": 1446207,
+      "group": 1445648,
+      "starttime": "256562304",
+      "uid": 1000,
+      "cwd": "/home/dracon/Dev/browser-extensions-shared",
+      "unit": true,
+      "name": "MainThread"
+    },
+    {
+      "pid": 1449639,
+      "state": "S",
+      "ppid": 1449506,
+      "group": 1445648,
+      "starttime": "256562357",
+      "uid": 1000,
+      "cwd": "/home/dracon/.local/state/dracon/sync/gates/browser-extensions-shared/dracon-pre-push.d3CKuT/snapshot-73e4deae3cc3e9bdf89f6285868ebdb9fca4847b",
+      "unit": true,
+      "name": "git"
+    }
+  ],
+  "applied": true,
+  "corrected_test_anchor": "5d8e0ac02d374edeb17aa60dffb63f7c754dba05",
+  "result": "no live members remain",
+  "remaining": [],
+  "manifest_after": "failed",
+  "finished_at": 1792858112.8014386
+}
