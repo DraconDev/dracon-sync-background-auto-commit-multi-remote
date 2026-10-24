@@ -18,3 +18,10 @@
    Compiling zerofrom-derive v0.1.8
    Compiling smallvec v1.16.1
    Compiling yoke-derive v0.8.4
+   Compiling parking_lot_core v0.9.12
+   Compiling zerofrom v0.1.8
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.3
+   Compiling scopeguard v1.2.0
+   Compiling generic-array v0.14.7
+   Compiling zerovec-derive v0.11.6
