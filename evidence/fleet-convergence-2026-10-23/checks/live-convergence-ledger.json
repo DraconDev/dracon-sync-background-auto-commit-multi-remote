@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T03:34:05.338990+00:00",
+  "generated_at": "2026-10-24T09:24:24.497316+00:00",
   "loaded_sha256": "8be3718f27c1bc6edee5bb38a27d3911fdb1154715848e148dc13009cb5891cb",
   "loaded_pid": 3393180,
   "before_snapshot": "refs-final-loaded-before-work.json",
@@ -26,9 +26,9 @@
             {
               "alias": "origin",
               "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
-              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "after_ref": "93bd028abd4648db24dcf21d3993bb2db3556020",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.489801,
+              "confirmed_at": 1792833828.8517733,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -47,9 +47,9 @@
             {
               "alias": "origin",
               "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
-              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "after_ref": "93bd028abd4648db24dcf21d3993bb2db3556020",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.489801,
+              "confirmed_at": 1792833828.8517733,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -68,9 +68,9 @@
             {
               "alias": "gitlab",
               "before_ref": "4de4be3c1ed233d1d4cc041dee3e91d661a8a1b6",
-              "after_ref": "769c5c87a1d7443fa39fd702364743c3c7aa9c35",
+              "after_ref": "f870431893f8671f1a82ca40042d000029e825c0",
               "query_succeeded": true,
-              "confirmed_at": 1792812759.3991127,
+              "confirmed_at": 1792833827.793542,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -111,25 +111,15 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/browser-extensions-shared",
           "aliases": [
-            "github",
             "origin"
           ],
           "observations": [
-            {
-              "alias": "github",
-              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
-              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
-              "query_succeeded": true,
-              "confirmed_at": 1792812759.0379846,
-              "contains_witness": false,
-              "fast_forward_from_before": false
-            },
             {
               "alias": "origin",
               "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.7317562,
+              "confirmed_at": 1792833828.6067512,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -142,25 +132,15 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/browser-extensions-shared",
           "aliases": [
-            "github",
             "origin"
           ],
           "observations": [
-            {
-              "alias": "github",
-              "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
-              "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
-              "query_succeeded": true,
-              "confirmed_at": 1792812759.0379846,
-              "contains_witness": false,
-              "fast_forward_from_before": false
-            },
             {
               "alias": "origin",
               "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.7317562,
+              "confirmed_at": 1792833828.6067512,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -181,7 +161,7 @@
               "before_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "after_ref": "d67c4cba524fdf29bcabf5337a2f0354d889c0a8",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.717199,
+              "confirmed_at": 1792833827.6051717,
               "contains_witness": false,
               "fast_forward_from_before": false
             }
@@ -222,15 +202,25 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-strategy",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
             {
+              "alias": "github",
+              "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+              "after_ref": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
+              "query_succeeded": true,
+              "confirmed_at": 1792833827.2211006,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
               "alias": "origin",
               "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
-              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "after_ref": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.3590052,
+              "confirmed_at": 1792833829.9226751,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -243,15 +233,25 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/dracon-strategy",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
             {
+              "alias": "github",
+              "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
+              "after_ref": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
+              "query_succeeded": true,
+              "confirmed_at": 1792833827.2211006,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
               "alias": "origin",
               "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
-              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "after_ref": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.3590052,
+              "confirmed_at": 1792833829.9226751,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -270,9 +270,9 @@
             {
               "alias": "gitlab",
               "before_ref": "aef5ab1eaae37d875017d816f24b4ba8e91117f0",
-              "after_ref": "1580cdc934a1c26840ddfeef1b1e0c0c59c7ac87",
+              "after_ref": "39a3cd8e5ed49be9320882d0bf85585198125ff3",
               "query_succeeded": true,
-              "confirmed_at": 1792812759.3262017,
+              "confirmed_at": 1792833828.9051085,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -320,18 +320,18 @@
             {
               "alias": "github",
               "before_ref": null,
-              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "after_ref": "0eefbef80d5e3c53d5c19d8fb57230a2acd45fbc",
               "query_succeeded": true,
-              "confirmed_at": 1792812758.950418,
+              "confirmed_at": 1792833827.2001855,
               "contains_witness": true,
               "fast_forward_from_before": false
             },
             {
               "alias": "origin",
               "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
-              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "after_ref": "0eefbef80d5e3c53d5c19d8fb57230a2acd45fbc",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.3417993,
+              "confirmed_at": 1792833829.6812315,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -351,18 +351,18 @@
             {
               "alias": "github",
               "before_ref": null,
-              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "after_ref": "0eefbef80d5e3c53d5c19d8fb57230a2acd45fbc",
               "query_succeeded": true,
-              "confirmed_at": 1792812758.950418,
+              "confirmed_at": 1792833827.2001855,
               "contains_witness": true,
               "fast_forward_from_before": false
             },
             {
               "alias": "origin",
               "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
-              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "after_ref": "0eefbef80d5e3c53d5c19d8fb57230a2acd45fbc",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.3417993,
+              "confirmed_at": 1792833829.6812315,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -381,9 +381,9 @@
             {
               "alias": "gitlab",
               "before_ref": "178d87dc441f87a91929d4a358148cd9e3a31da2",
-              "after_ref": "fe728778f0e70762903ad319bd1fe7169f7f5fde",
+              "after_ref": "0eefbef80d5e3c53d5c19d8fb57230a2acd45fbc",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.3251944,
+              "confirmed_at": 1792833828.681876,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -424,15 +424,25 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-video",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
             {
+              "alias": "github",
+              "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+              "after_ref": "6b0baa65e7e6c001a1a9d3a1d34045d3ae028d81",
+              "query_succeeded": true,
+              "confirmed_at": 1792833827.2205908,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
               "alias": "origin",
               "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
-              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "after_ref": "6b0baa65e7e6c001a1a9d3a1d34045d3ae028d81",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.594086,
+              "confirmed_at": 1792833829.5385845,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -445,15 +455,25 @@
           "resolution": "configured-destination",
           "destination": "github.com/dracondev/ai-auto-video",
           "aliases": [
+            "github",
             "origin"
           ],
           "observations": [
             {
+              "alias": "github",
+              "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
+              "after_ref": "6b0baa65e7e6c001a1a9d3a1d34045d3ae028d81",
+              "query_succeeded": true,
+              "confirmed_at": 1792833827.2205908,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
               "alias": "origin",
               "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
-              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "after_ref": "6b0baa65e7e6c001a1a9d3a1d34045d3ae028d81",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.594086,
+              "confirmed_at": 1792833829.5385845,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -472,9 +492,9 @@
             {
               "alias": "gitlab",
               "before_ref": "91e997693796e715e805fc7b8414c9b72e0a80f6",
-              "after_ref": "316ad2f7cfede273865128103d75e4b321b7f25d",
+              "after_ref": "6b0baa65e7e6c001a1a9d3a1d34045d3ae028d81",
               "query_succeeded": true,
-              "confirmed_at": 1792812759.588843,
+              "confirmed_at": 1792833828.542379,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -522,18 +542,18 @@
             {
               "alias": "github",
               "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "after_ref": "c730282408a7fc253345cdf7e8710c690e37da5e",
               "query_succeeded": true,
-              "confirmed_at": 1792812758.9687915,
+              "confirmed_at": 1792833827.2399957,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "after_ref": "c730282408a7fc253345cdf7e8710c690e37da5e",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.5104723,
+              "confirmed_at": 1792833829.5072236,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -553,18 +573,18 @@
             {
               "alias": "github",
               "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "after_ref": "c730282408a7fc253345cdf7e8710c690e37da5e",
               "query_succeeded": true,
-              "confirmed_at": 1792812758.9687915,
+              "confirmed_at": 1792833827.2399957,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "after_ref": "c730282408a7fc253345cdf7e8710c690e37da5e",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.5104723,
+              "confirmed_at": 1792833829.5072236,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -583,9 +603,9 @@
             {
               "alias": "gitlab",
               "before_ref": "d56a83a6288f1c92be843b13760432e68bf07ab9",
-              "after_ref": "0ab95cf853667a8e3bd8c630e258e9d981c6e3ee",
+              "after_ref": "c730282408a7fc253345cdf7e8710c690e37da5e",
               "query_succeeded": true,
-              "confirmed_at": 1792812760.5167484,
+              "confirmed_at": 1792833828.5150235,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -634,7 +654,7 @@
               "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
               "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
               "query_succeeded": true,
-              "confirmed_at": 1792812762.064772,
+              "confirmed_at": 1792833830.585794,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -655,7 +675,7 @@
               "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
               "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
               "query_succeeded": true,
-              "confirmed_at": 1792812762.064772,
+              "confirmed_at": 1792833830.585794,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -676,7 +696,7 @@
               "before_ref": "0ddc7c43ab05794cee85b61298d50a6176075369",
               "after_ref": "8ddf537aa4e9fde1fc49737c3f12d55ddabfc3a2",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.708934,
+              "confirmed_at": 1792833830.3482652,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -710,7 +730,7 @@
       "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
       "expected_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
       "before_head": "128d017d881fd66fde777b9229410b43c2883844",
-      "witness_commit": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+      "witness_commit": "d26245fa42cd54e739efc80346b2608027228e74",
       "destinations": [
         {
           "logical": "origin",
@@ -724,18 +744,18 @@
             {
               "alias": "gitlab",
               "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
-              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "after_ref": "5b1b03612cce52dd300b2749a8f84535628d8c15",
               "query_succeeded": true,
-              "confirmed_at": 1792812763.0175722,
+              "confirmed_at": 1792833831.5792825,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
-              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "after_ref": "5b1b03612cce52dd300b2749a8f84535628d8c15",
               "query_succeeded": true,
-              "confirmed_at": 1792812764.661217,
+              "confirmed_at": 1792833833.1525319,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -754,9 +774,9 @@
             {
               "alias": "github",
               "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
-              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "after_ref": "5b1b03612cce52dd300b2749a8f84535628d8c15",
               "query_succeeded": true,
-              "confirmed_at": 1792812761.5388277,
+              "confirmed_at": 1792833829.8690217,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -776,18 +796,129 @@
             {
               "alias": "gitlab",
               "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
-              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "after_ref": "5b1b03612cce52dd300b2749a8f84535628d8c15",
               "query_succeeded": true,
-              "confirmed_at": 1792812763.0175722,
+              "confirmed_at": 1792833831.5792825,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "128d017d881fd66fde777b9229410b43c2883844",
-              "after_ref": "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+              "after_ref": "5b1b03612cce52dd300b2749a8f84535628d8c15",
               "query_succeeded": true,
-              "confirmed_at": 1792812764.661217,
+              "confirmed_at": 1792833833.1525319,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        }
+      ],
+      "state": "nonhealthy-unproven",
+      "external_blocker": null,
+      "actual_blob": "d26245fa42cd54e739efc80346b2608027228e74:SYNC-CONVERGENCE-2026-10-24.md",
+      "commit_metadata": [
+        "d26245fa42cd54e739efc80346b2608027228e74",
+        "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
+        "1792813502",
+        "DraconDev",
+        "dracsharp@gmail.com"
+      ],
+      "object_and_advancement_verified": false,
+      "matching_loaded_daemon_commit_events": [
+        {
+          "timestamp_us": "1792813510490784",
+          "pid": "3393180",
+          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis"
+        }
+      ],
+      "reason": "Missing object, loaded-daemon commit correlation, or intended-destination advancement; not classified healthy or external."
+    },
+    {
+      "repo": "/home/dracon/Dev/dracon-platform",
+      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
+      "expected_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
+      "before_head": "300396264d33325c3a3ffd830882529478df7d05",
+      "witness_commit": "b804cfbda33c127e99360452907b1f05d760e439",
+      "destinations": [
+        {
+          "logical": "origin",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-platform",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "300396264d33325c3a3ffd830882529478df7d05",
+              "after_ref": "6bd2094ff923ada510d5035dc08b3defe9031e77",
+              "query_succeeded": true,
+              "confirmed_at": 1792833830.5173624,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "300396264d33325c3a3ffd830882529478df7d05",
+              "after_ref": "6bd2094ff923ada510d5035dc08b3defe9031e77",
+              "query_succeeded": true,
+              "confirmed_at": 1792833832.882465,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "github",
+          "resolution": "configured-destination",
+          "destination": "github.com/dracondev/dracon-platform",
+          "aliases": [
+            "github",
+            "origin"
+          ],
+          "observations": [
+            {
+              "alias": "github",
+              "before_ref": "300396264d33325c3a3ffd830882529478df7d05",
+              "after_ref": "6bd2094ff923ada510d5035dc08b3defe9031e77",
+              "query_succeeded": true,
+              "confirmed_at": 1792833830.5173624,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            },
+            {
+              "alias": "origin",
+              "before_ref": "300396264d33325c3a3ffd830882529478df7d05",
+              "after_ref": "6bd2094ff923ada510d5035dc08b3defe9031e77",
+              "query_succeeded": true,
+              "confirmed_at": 1792833832.882465,
+              "contains_witness": true,
+              "fast_forward_from_before": true
+            }
+          ],
+          "contains_witness": true,
+          "advanced_from_before": true
+        },
+        {
+          "logical": "gitlab",
+          "resolution": "configured-destination",
+          "destination": "gitlab.com/DraconDev/dracon-platform",
+          "aliases": [
+            "gitlab"
+          ],
+          "observations": [
+            {
+              "alias": "gitlab",
+              "before_ref": "300396264d33325c3a3ffd830882529478df7d05",
+              "after_ref": "6bd2094ff923ada510d5035dc08b3defe9031e77",
+              "query_succeeded": true,
+              "confirmed_at": 1792833831.9014494,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -798,34 +929,23 @@
       ],
       "state": "witnessed-autonomous-publication",
       "external_blocker": null,
-      "actual_blob": "a727340872b4a1a4049e5308e29180319aa1d05f",
+      "actual_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
       "commit_metadata": [
-        "ad23e4adf4ed75b6f1df545469a1c000cf573ab1",
-        "0aa929ea1436e7c6fd28f73bba116136528e8d16",
-        "1792812520",
+        "b804cfbda33c127e99360452907b1f05d760e439",
+        "9d7476a066fe1b45d49266fde4277794523e302e",
+        "1792820287",
         "DraconDev",
         "dracsharp@gmail.com"
       ],
       "object_and_advancement_verified": true,
       "matching_loaded_daemon_commit_events": [
         {
-          "timestamp_us": "1792812527933438",
+          "timestamp_us": "1792820309654498",
           "pid": "3393180",
-          "message": "📝 committed 1 file(s) in /home/dracon/Dev/dracon-platform/web/games/wip/polis"
+          "message": "📝 committed 15 file(s) in /home/dracon/Dev/dracon-platform"
         }
       ],
       "reason": "Exact eligible note blob committed after the final loaded baseline, correlated with that service PID, and advertised descendant refs advanced on all intended destinations. Later edits may remain."
-    },
-    {
-      "repo": "/home/dracon/Dev/dracon-platform",
-      "eligible_path": "SYNC-CONVERGENCE-2026-10-24.md",
-      "expected_blob": "57afb53651cdeb5f8a06ce1019aad62664c9c774",
-      "before_head": "300396264d33325c3a3ffd830882529478df7d05",
-      "witness_commit": "",
-      "destinations": [],
-      "state": "nonhealthy-unproven",
-      "external_blocker": null,
-      "reason": "eligible note not yet observed in a daemon-owned commit"
     },
     {
       "repo": "/home/dracon/Dev/dracon-platform/web/games/wip/deathrun",
@@ -846,18 +966,18 @@
             {
               "alias": "github",
               "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "after_ref": "b9db0a865d5cb5fa6f35561ea2bf46ae12664f56",
               "query_succeeded": true,
-              "confirmed_at": 1792812762.461731,
+              "confirmed_at": 1792833830.529193,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "after_ref": "b9db0a865d5cb5fa6f35561ea2bf46ae12664f56",
               "query_succeeded": true,
-              "confirmed_at": 1792812764.9206812,
+              "confirmed_at": 1792833832.8567827,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -877,18 +997,18 @@
             {
               "alias": "github",
               "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "after_ref": "b9db0a865d5cb5fa6f35561ea2bf46ae12664f56",
               "query_succeeded": true,
-              "confirmed_at": 1792812762.461731,
+              "confirmed_at": 1792833830.529193,
               "contains_witness": true,
               "fast_forward_from_before": true
             },
             {
               "alias": "origin",
               "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "after_ref": "b9db0a865d5cb5fa6f35561ea2bf46ae12664f56",
               "query_succeeded": true,
-              "confirmed_at": 1792812764.9206812,
+              "confirmed_at": 1792833832.8567827,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
@@ -907,9 +1027,9 @@
             {
               "alias": "gitlab",
               "before_ref": "a789aa70db2400bc480acc06e1a7a47ef57dfacf",
-              "after_ref": "33a5beba235245eed14224e22a20b99be3cfd504",
+              "after_ref": "b9db0a865d5cb5fa6f35561ea2bf46ae12664f56",
               "query_succeeded": true,
-              "confirmed_at": 1792812763.857648,
+              "confirmed_at": 1792833831.8877134,
               "contains_witness": true,
               "fast_forward_from_before": true
             }
