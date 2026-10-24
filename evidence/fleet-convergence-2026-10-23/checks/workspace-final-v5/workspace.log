@@ -47,3 +47,6 @@
    Compiling rustix v1.1.5
    Compiling futures-macro v0.3.34
    Compiling linux-raw-sys v0.12.1
+   Compiling futures-task v0.3.34
+   Compiling itoa v1.0.18
+   Compiling futures-util v0.3.34
