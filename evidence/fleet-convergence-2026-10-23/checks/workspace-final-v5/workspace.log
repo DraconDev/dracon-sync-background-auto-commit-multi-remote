@@ -125,3 +125,6 @@
    Compiling hashbrown v0.17.1
    Compiling equivalent v1.0.2
    Compiling indexmap v2.14.2
+   Compiling i18n-config v0.4.8
+   Compiling find-crate v0.6.3
+   Compiling rust-embed-impl v8.12.0
