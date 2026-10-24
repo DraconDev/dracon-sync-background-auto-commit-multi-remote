@@ -271,3 +271,5 @@
    Compiling ansi-str v0.9.0
    Compiling rand_chacha v0.3.1
    Compiling fluent v0.16.1
+   Compiling crossterm v0.29.0
+   Compiling tower-http v0.6.11
